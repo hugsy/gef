@@ -41,7 +41,7 @@ other architectures.
 Simply make sure you're having a [GDB 7+](https://www.gnu.org/s/gdb).
 ``` bash
 $ git clone https://github.com/hugsy/gef.git
-$ echo source /path/to/gef/dir > ~/.gdbinit
+$ echo source /path/to/dir/gef.py > ~/.gdbinit
 $ gdb -q /path/to/my/bin
 ```
 
