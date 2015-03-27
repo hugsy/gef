@@ -53,3 +53,5 @@ gef> gef help
 ## Bugs & Feedbacks
 
 Go [here](https://github.com/hugsy/gef/issues)
+
+### Happy hacking
