@@ -1177,31 +1177,32 @@ class CapstoneDisassembleCommand(GenericCommand):
                 return
             loc = get_pc()
 
-        if lgt is None :
+        if lgt is None:
             lgt = 0x10
 
-            if is_arm():
-                if self.get_setting("arm_thumb"):
-                    arch, mode = self.get_cs_arch(arm_thumb=True)
-                else:
-                    arch, mode = self.get_cs_arch(arm_thumb=False)
-
-            elif is_mips():
-                if self.get_setting("mips_r6"):
-                    arch, mode = self.get_cs_arch(mips_r6=True)
+        if is_arm():
+            if self.get_setting("arm_thumb"):
+                arch, mode = self.get_cs_arch(arm_thumb=True)
             else:
-                arch, mode = self.get_cs_arch()
+                arch, mode = self.get_cs_arch(arm_thumb=False)
 
-        mem  = read_memory(loc, 0x1000)
+        elif is_mips():
+            if self.get_setting("mips_r6"):
+                arch, mode = self.get_cs_arch(mips_r6=True)
 
-        self.disassemble(mem, loc, arch, mode, lgt)
+        else:
+            arch, mode = self.get_cs_arch()
+
+        location = align_address( loc )
+        code  = read_memory(location, 0x1000)
+
+        self.disassemble(code, loc, arch, mode, lgt)
         return
 
 
     def get_cs_arch(self, *args, **kwargs):
         arch = get_arch()
         mode = get_memory_alignment()
-
         capstone = sys.modules['capstone']
 
         if   arch.startswith("i386"):
@@ -1212,10 +1213,8 @@ class CapstoneDisassembleCommand(GenericCommand):
 
         elif arch.startswith("arm"):
             thumb_mode = kwargs.get("arm_thumb", False)
-
             if thumb_mode:  mode = capstone.CS_MODE_THUMB
             else:           mode = capstone.CS_MODE_ARM
-
             return (capstone.CS_ARCH_ARM, mode)
 
         elif arch.startswith("mips"):
@@ -1243,10 +1242,10 @@ class CapstoneDisassembleCommand(GenericCommand):
         cs.detail = True
         code = str(code)
 
-        for (address, size, mnemonic, op_str) in cs.disasm_lite(code, location):
-            m = Color.boldify(Color.blueify(format_address(address))) + "\t\t"
-            m+= Color.greenify("%s" % mnemonic) + "\t"
-            m+= Color.yellowify("%s" % op_str)
+        for i in cs.disasm(code, location):
+            m = Color.boldify(Color.blueify(format_address(i.address))) + "\t\t"
+            m+= Color.greenify("%s" % i.mnemonic) + "\t"
+            m+= Color.yellowify("%s" % i.op_str)
 
             print (m)
 
