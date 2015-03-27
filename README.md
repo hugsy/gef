@@ -50,6 +50,20 @@ Then just start playing:
 gef> gef help
 ```
 
+## Dependencies
+
+`GEF` works out of the box. However, to enjoy all the coolest features, it is
+recommended to install:
+
+- [capstone](https://github.com/aquynh/capstone) **highly** recommended
+- [ROPgadget](https://github.com/JonathanSalwan/ROPgadget) **highly** recommended
+- [python-radare2](https://github.com/radare/radare2-bindings)
+
+*Note*: if you are using GDB with Python3 support, you cannot use `ROPgadget` as
+ Python3 support has not implemented yet. `Capstone` and `radare2-python` will
+ work just fine.
+
+
 ## Bugs & Feedbacks
 
 Go [here](https://github.com/hugsy/gef/issues)
