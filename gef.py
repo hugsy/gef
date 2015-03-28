@@ -1151,8 +1151,12 @@ class CapstoneDisassembleCommand(GenericCommand):
     def pre_load(self):
         try:
             import capstone
-        except ImportError:
-            raise GefMissingDependencyException("Missing Python `capstone` package")
+            # ok("Using `capstone` v%d.%d" % (capstone.CS_API_MAJOR, capstone.CS_API_MINOR))
+        except ImportError as ie:
+            msg = "Missing Python `capstone` package\n"
+            msg+= "Install with\n"
+            msg+= "$ pip install capstone"
+            raise GefMissingDependencyException( msg )
         return
 
 
@@ -1649,62 +1653,68 @@ class ROPgadgetCommand(GenericCommand):
         return
 
     def pre_load(self):
-        self.add_setting("ropgadget_path", os.getenv("HOME") + "/code/ROPgadget")
-
-        if sys.version_info.major == 3:
+        if PYTHON_MAJOR == 3:
             raise GefGenericException("ROPGadget doesn't support Python3 yet")
 
-        ropgadget_path = self.get_setting("ropgadget_path")
-
-        if not os.path.isdir(ropgadget_path):
-            self.del_setting( "ropgadget_path" )
-            raise GefMissingDependencyException("Failed to import ROPgadget (check path)")
-
         try:
-            sys.path.append( ropgadget_path )
-            import ROPgadget
+            import ropgadget
+            # ok("Using `ropgadget` v%d.%d" % (ropgadget.version.MAJOR_VERSION, ropgadget.version.MINOR_VERSION))
 
         except ImportError as ie:
-            self.del_setting( "ropgadget_path" )
-            raise GefMissingDependencyException("Failed to import ROPgadget: %s" % ie)
+            msg = "Failed to import ROPgadget: %s\n" % ie
+            msg+= "Install with\n%s"
+            msg+= "$ pip2 install ropgadget"
+            raise GefMissingDependencyException( msg )
 
         return
 
 
     def do_invoke(self, argv):
-        ROPgadget = sys.modules['ROPgadget']
-
         class FakeArgs(object):
-            binary = None
-            string = None
-            opcode = None
-            memstr = None
-            console = None
-            norop = None
-            nojop = None
-            depth = 10
-            nosys = None
-            range = "0x00-0x00"
-            badbytes = None
-            only = None
-            filter = None
-            ropchain = None
-            offset = 0x00
-            outfile = None
-            thumb = None
-            rawArch = None
-            rawMode = None
+            all        = None
+            binary     = None
+            string     = None
+            opcode     = None
+            memstr     = None
+            console    = None
+            norop      = None
+            nojop      = None
+            depth      = 10
+            nosys      = None
+            range      = "0x00-0x00"
+            badbytes   = None
+            only       = None
+            filter     = None
+            ropchain   = None
+            offset     = 0x00
+            outfile    = None
+            thumb      = None
+            rawArch    = None
+            rawMode    = None
+            multibr    = None
 
+
+        ropgadget = sys.modules['ropgadget']
         args = FakeArgs()
-        self.parse_args(args, argv)
-        ROPgadget.Core( args ).analyze()
+        if self.parse_args(args, argv):
+            ropgadget.core.Core( args ).analyze()
         return
 
 
     def parse_args(self, args, argv):
-        info("ROPGadget options")
+        #
         # options format is 'option_name1=option_value1'
+        #
+        def __usage__():
+            arr = [ x for x in dir(args) if not x.startswith("__") ]
+            info("Valid options for %s are:\n%s" % (self._cmdline_, arr))
+            return
+
         for opt in argv:
+            if opt in ("?", "h", "help"):
+                __usage__()
+                return False
+
             name, value = opt.split("=", 1)
             if hasattr(args, name):
                 if name == "console":
@@ -1713,23 +1723,26 @@ class ROPgadgetCommand(GenericCommand):
                     value = long(value)
                     depth = value
                     info("Using depth %d" % depth)
-                elif name == "offset":
-                    value = long(value, 16)
-                    info("Using offset %#x" % value)
                 elif name == "range":
                     off_min = long(value.split('-')[0], 16)
                     off_max = long(value.split('-')[1], 16)
                     if off_max < off_min:
-                        raise ValueError("Value2 must be higher that Value1")
+                        raise ValueError("%x must be higher that %x" % (off_max, off_min))
                     info("Using range [%#x:%#x] (%ld bytes)" % (off_min, off_max, (off_max-off_min)))
 
                 setattr(args, name, value)
+
+            else:
+                err("'%s' is not a valid ropgadget option" % name)
+                __usage__()
+                return False
+
 
         if not hasattr(args, "binary") or getattr(args, "binary") is None:
             setattr(args, "binary", get_filename())
 
         info("Using binary: %s" % args.binary)
-        return
+        return True
 
 
 class FileDescriptorCommand(GenericCommand):
@@ -1771,6 +1784,7 @@ class AssembleCommand(GenericCommand):
     def pre_load(self):
         try:
             import r2, r2.r_asm
+            # ok("Using `radare2-python` v%s" % r2.r_asm.R2_VERSION)
         except ImportError:
             raise GefMissingDependencyException("radare2 Python bindings could not be loaded")
 
