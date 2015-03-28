@@ -63,6 +63,12 @@ recommended to install:
  Python3 support has not implemented yet. `Capstone` and `radare2-python` will
  work just fine.
 
+*Another note*: `Capstone` is packaged for Python 2 and 3 with `pip`. So a quick install is 
+```bash 
+$ pip2 install capstone    # for Python2.x
+$ pip3 install capstone    # for Python3.x
+```
+
 
 ## Bugs & Feedbacks
 
