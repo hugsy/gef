@@ -45,6 +45,12 @@ $ echo source /path/to/dir/gef.py > ~/.gdbinit
 $ gdb -q /path/to/my/bin
 ```
 
+GEF requires [Capstone](http://capstone-engine.org) to be installed as dependency.
+
+```bash
+$ sudo pip3 install capstone
+```
+
 Then just start playing:
 ```bash
 gef> gef help
