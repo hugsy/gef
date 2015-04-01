@@ -14,7 +14,7 @@ distro start pushing `gdb` compiled with Python3 support).
 ## But why not PEDA?
 Yes ! Why not ?! [PEDA](https://github.com/longld/peda) is a fantastic tool to
 do the same, but is **only** to be used for x86-32 or x86-64. On the other hand,
-GEF supports all the architecture supported by `GDB` (x86, ARM, MIPS, PowerPC,
+`GEF` supports all the architecture supported by `GDB` (x86, ARM, MIPS, PowerPC,
 SPARC, and so on).
 I love `PEDA` and use it litterally all the time whenever I'm facing a Intel
 binary. And so should you. But being Intel only prevents from having fun with
@@ -52,8 +52,8 @@ gef> gef help
 
 ## Dependencies
 
-`GEF` works out of the box. However, to enjoy all the coolest features, it is
-recommended to install:
+There are none: `GEF` works out of the box!
+However, to enjoy all the coolest features, it is recommended to install:
 
 - [capstone](https://github.com/aquynh/capstone) **highly** recommended
 - [ROPgadget](https://github.com/JonathanSalwan/ROPgadget) **highly** recommended
@@ -69,6 +69,12 @@ $ pip2 install capstone    # for Python2.x
 $ pip3 install capstone    # for Python3.x
 ```
 
+And for `ropgadget`
+```bash
+$ pip install ropgadget
+```
+
+`python-radare2` is not packaged by `pip`, you might need to install it the old school way.
 
 ## Bugs & Feedbacks
 
