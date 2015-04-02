@@ -365,7 +365,7 @@ def info(msg):
     print((Color.BOLD+Color.BLUE+"[+]"+Color.NORMAL+" "+msg))
     return
 
-def hexdump(src, l=0x10, sep='.', show_raw=False):
+def hexdump(src, l=0x10, sep='.', show_raw=False, base=0x00):
     res = []
 
     for i in range(0, len(src), l):
@@ -398,7 +398,7 @@ def hexdump(src, l=0x10, sep='.', show_raw=False):
         if show_raw:
             res.append(('%-'+str(l*(2+1)+1)+'s') % (hexa))
         else:
-            res.append(('%08X:  %-'+str(l*(2+1)+1)+'s  |%s|') % (i, hexa, text))
+            res.append(('%08X:  %-'+str(l*(2+1)+1)+'s  |%s|') % (i+base, hexa, text))
 
     return '\n'.join(res)
 
@@ -1124,6 +1124,11 @@ class GenericCommand(gdb.Command):
         return __config__[ key ][0]
 
 
+    def has_setting(self, name):
+        key = "%s.%s" % (self.__class__._cmdline_, name)
+        return __config__.has_key( key )
+
+
     def del_setting(self, name):
         key = "%s.%s" % (self.__class__._cmdline_, name)
         del ( __config__[ key ] )
@@ -1154,8 +1159,7 @@ class CapstoneDisassembleCommand(GenericCommand):
             # ok("Using `capstone` v%d.%d" % (capstone.CS_API_MAJOR, capstone.CS_API_MINOR))
         except ImportError as ie:
             msg = "Missing Python `capstone` package\n"
-            msg+= "Install with\n"
-            msg+= "$ pip install capstone"
+            msg+= "Install with `pip install capstone`"
             raise GefMissingDependencyException( msg )
         return
 
@@ -1184,27 +1188,30 @@ class CapstoneDisassembleCommand(GenericCommand):
         if lgt is None:
             lgt = 0x10
 
-        if is_arm():
-            if self.get_setting("arm_thumb"):
-                arch, mode = self.get_cs_arch(arm_thumb=True)
-            else:
-                arch, mode = self.get_cs_arch(arm_thumb=False)
+        kwargs = {}
+        if self.has_setting("arm_thumb"):
+            kwargs["arm_thumb"] = True
 
-        elif is_mips():
-            if self.get_setting("mips_r6"):
-                arch, mode = self.get_cs_arch(mips_r6=True)
+        if self.has_setting("mips_r6"):
+            kwargs["mips_r6"] = True
 
-        else:
-            arch, mode = self.get_cs_arch()
-
-        location = align_address( loc )
-        code  = read_memory(location, 0x1000)
-
-        self.disassemble(code, loc, arch, mode, lgt)
+        CapstoneDisassembleCommand.disassemble(loc, lgt, **kwargs)
         return
 
 
-    def get_cs_arch(self, *args, **kwargs):
+    @staticmethod
+    def disassemble(location, insn_num, *args, **kwargs):
+        arch, mode = CapstoneDisassembleCommand.get_cs_arch( *args, **kwargs )
+        base = align_address( location ) & 0xFFFFFFFFFFFFF000
+        mem  = read_memory(base, 0x1000)
+        off  = location - base
+
+        CapstoneDisassembleCommand.cs_disass(mem, base, off, arch, mode, insn_num)
+        return
+
+
+    @staticmethod
+    def get_cs_arch(*args, **kwargs):
         arch = get_arch()
         mode = get_memory_alignment()
         capstone = sys.modules['capstone']
@@ -1239,23 +1246,22 @@ class CapstoneDisassembleCommand(GenericCommand):
         raise GefGenericException("capstone invalid architecture")
 
 
-    def disassemble(self, code, location, arch, mode, max_inst):
+    @staticmethod
+    def cs_disass(code, base, offset, arch, mode, max_inst):
         inst_num = 0
+        location = base + offset
         capstone = sys.modules['capstone']
         cs = capstone.Cs(arch, mode)
         cs.detail = True
-        code = str(code)
+        code = str(code[offset:])
 
         for i in cs.disasm(code, location):
             m = Color.boldify(Color.blueify(format_address(i.address))) + "\t\t"
             m+= Color.greenify("%s" % i.mnemonic) + "\t"
             m+= Color.yellowify("%s" % i.op_str)
-
             print (m)
-
             inst_num += 1
-            if inst_num == max_inst:
-                break
+            if inst_num == max_inst:  break
 
         return
 
@@ -2018,6 +2024,7 @@ class ContextCommand(GenericCommand):
     def __init__(self):
          super(ContextCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
          self.add_setting("enable", True)
+         self.add_setting("use_capstone", False)
          self.add_setting("show_stack_raw", False)
          self.add_setting("nb_registers_per_line", 4)
          self.add_setting("nb_lines_stack", 5)
@@ -2089,9 +2096,16 @@ class ContextCommand(GenericCommand):
         return
 
     def context_code(self):
+        nb_insn = self.get_setting("nb_lines_code")
+
         print(( Color.boldify( Color.blueify("-"*80 + "[code]")) ))
+
+        if self.get_setting("use_capstone"):
+            CapstoneDisassembleCommand.disassemble(get_pc(), nb_insn)
+            return
+
         try:
-            gdb.execute("x/%di $pc" % self.get_setting("nb_lines_code"))
+            gdb.execute("x/%di $pc" % nb_insn)
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
         return
