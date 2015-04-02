@@ -1260,7 +1260,7 @@ class CapstoneDisassembleCommand(GenericCommand):
             m+= Color.greenify("%s" % i.mnemonic) + "\t"
             m+= Color.yellowify("%s" % i.op_str)
 
-            if (i.address == location):
+            if (i.address == get_pc()):
                 m+= Color.redify("\t<<== $pc")
 
             print (m)
