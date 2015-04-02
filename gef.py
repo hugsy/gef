@@ -1259,6 +1259,10 @@ class CapstoneDisassembleCommand(GenericCommand):
             m = Color.boldify(Color.blueify(format_address(i.address))) + "\t\t"
             m+= Color.greenify("%s" % i.mnemonic) + "\t"
             m+= Color.yellowify("%s" % i.op_str)
+
+            if (i.address == location):
+                m+= Color.redify("\t<<== $pc")
+
             print (m)
             inst_num += 1
             if inst_num == max_inst:  break
@@ -2024,12 +2028,13 @@ class ContextCommand(GenericCommand):
     def __init__(self):
          super(ContextCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
          self.add_setting("enable", True)
-         self.add_setting("use_capstone", False)
          self.add_setting("show_stack_raw", False)
          self.add_setting("nb_registers_per_line", 4)
          self.add_setting("nb_lines_stack", 5)
          self.add_setting("nb_lines_backtrace", 5)
          self.add_setting("nb_lines_code", 6)
+
+         self.add_setting("use_capstone", sys.modules.has_key('capstone'))
          return
 
 
@@ -2100,12 +2105,11 @@ class ContextCommand(GenericCommand):
 
         print(( Color.boldify( Color.blueify("-"*80 + "[code]")) ))
 
-        if self.get_setting("use_capstone"):
-            CapstoneDisassembleCommand.disassemble(get_pc(), nb_insn)
-            return
-
         try:
-            gdb.execute("x/%di $pc" % nb_insn)
+            if self.get_setting("use_capstone"):
+                CapstoneDisassembleCommand.disassemble(get_pc(), nb_insn)
+            else:
+                gdb.execute("x/%di $pc" % nb_insn)
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
         return
@@ -2878,6 +2882,7 @@ class GEFCommand(gdb.Command):
                         ASLRCommand,
                         DereferenceCommand,
                         HexdumpCommand,
+                        CapstoneDisassembleCommand,
                         ContextCommand,
                         EntryPointBreakCommand,
                         ElfInfoCommand,
@@ -2894,7 +2899,6 @@ class GEFCommand(gdb.Command):
                         AliasCommand, AliasShowCommand, AliasSetCommand, AliasUnsetCommand, AliasDoCommand,
                         DumpMemoryCommand,
                         GlibcHeapCommand,
-                        CapstoneDisassembleCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
