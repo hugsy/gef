@@ -41,7 +41,7 @@ If you only need `GEF` for a one-time environment (VMs, etc.) that do not
 have/need `git` installed, just go with:
 
 ``` bash
-$ curl -L https://github.com/hugsy/gef/raw/master/gef.sh | bash
+$ curl -s -L https://github.com/hugsy/gef/raw/master/gef.sh | sh
 ```
 
 ### Optional dependancies
