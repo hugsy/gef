@@ -38,11 +38,11 @@ other architectures.
 ![gef-mips](https://i.imgur.com/WTXutso.png)
 
 
-## Enough, let me try it
+## Quick start
 
 Simply make sure you're having a [GDB 7.x+](https://www.gnu.org/s/gdb).
 ``` bash
-$ curl -L https://github.com/hugsy/gef/raw/master/gef.sh | sh
+$ curl -s -L https://github.com/hugsy/gef/raw/master/gef.sh | sh
 ```
 
 Then just start playing:
