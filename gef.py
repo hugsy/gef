@@ -487,6 +487,10 @@ def arm_nop_insn():
     return b"\x00\x00\xa0\xe1"
 
 
+def arm_return_register():
+    return "$r0"
+
+
 ######################[ Intel x86-64 specific ]######################
 def x86_64_registers():
     return [ "$rax   ", "$rcx   ", "$rdx   ", "$rbx   ", "$rsp   ", "$rbp   ", "$rsi   ",
@@ -499,6 +503,10 @@ def x86_64_nop_insn():
     return b'\x90'
 
 
+def x86_64_return_register():
+    return "$rax"
+
+
 ######################[ Intel x86-32 specific ]######################
 def x86_32_registers():
     return [ "$eax   ", "$ecx   ", "$edx   ", "$ebx   ", "$esp   ", "$ebp   ", "$esi   ",
@@ -508,6 +516,10 @@ def x86_32_registers():
 
 def x86_32_nop_insn():
     return b'\x90'
+
+
+def x86_32_return_register():
+    return "$eax"
 
 
 ######################[ PowerPC specific ]######################
@@ -525,6 +537,10 @@ def powerpc_nop_insn():
     return b'\x60\x00\x00\x00'
 
 
+def powerpc_return_register():
+    return "$r0"
+
+
 ######################[ SPARC specific ]######################
 def sparc_registers():
     return ["$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
@@ -538,6 +554,10 @@ def sparc_nop_insn():
     # http://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
     # sethi 0, %g0
     return b'\x00\x00\x00\x00'
+
+
+def sparc_return_register():
+    return ""
 
 
 ######################[ MIPS specific ]######################
@@ -556,39 +576,40 @@ def mips_nop_insn():
     return b"\x00\x00\x00\x00"
 
 
+def mips_return_register():
+    return "$r2"
+
+
 @memoize
 def all_registers():
-    if is_arm():
-        return arm_registers()
-    elif is_x86_32():
-        return x86_32_registers()
-    elif is_x86_64():
-        return x86_64_registers()
-    elif is_powerpc():
-        return powerpc_registers()
-    elif is_sparc():
-        return sparc_registers()
-    elif is_mips():
-        return mips_registers()
-
+    if is_arm():         return arm_registers()
+    elif is_x86_32():    return x86_32_registers()
+    elif is_x86_64():    return x86_64_registers()
+    elif is_powerpc():   return powerpc_registers()
+    elif is_sparc():     return sparc_registers()
+    elif is_mips():      return mips_registers()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 
 @memoize
 def nop_insn():
-    if is_arm():
-        return arm_nop_insn()
-    elif is_x86_32():
-        return x86_32__nop_insn()
-    elif is_x86_64():
-        return x86_64_nop_insn()
-    elif is_powerpc():
-        return powerpc_nop_insn()
-    elif is_sparc():
-        return sparc_nop_insn()
-    elif is_mips():
-        return mips_nop_insn()
+    if is_arm():         return arm_nop_insn()
+    elif is_x86_32():    return x86_32_nop_insn()
+    elif is_x86_64():    return x86_64_nop_insn()
+    elif is_powerpc():   return powerpc_nop_insn()
+    elif is_sparc():     return sparc_nop_insn()
+    elif is_mips():      return mips_nop_insn()
+    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
+
+@memoize
+def return_register():
+    if is_arm():         return arm_return_register()
+    elif is_x86_32():    return x86_32_return_register()
+    elif is_x86_64():    return x86_64_return_register()
+    elif is_powerpc():   return powerpc_return_register()
+    elif is_sparc():     return sparc_return_register()
+    elif is_mips():      return mips_return_register()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 
@@ -1226,6 +1247,7 @@ class PatchCommand(GenericCommand):
             warn("No debugging session active")
             return
 
+        retval = None
         opts, args = getopt.getopt(argv, 'r:')
         for o,a in opts:
             if o == "-r":
@@ -1240,7 +1262,7 @@ class PatchCommand(GenericCommand):
         nops = nop_insn()
 
         if len(nops) > size:
-            err(("Cannot patch instruction at %#x (nop_size is:%d,insn_size is:%d)" % (loc, len(nops), size)))
+            err("Cannot patch instruction at %#x (nop_size is:%d,insn_size is:%d)" % (loc, len(nops), size))
             return
 
         if len(nops) < size:
@@ -1249,11 +1271,16 @@ class PatchCommand(GenericCommand):
                 nops += nop_insn()
 
         if len(nops) != size:
-            err(("Cannot patch instruction at %#x (unexpected NOP length)" % (loc)))
+            err("Cannot patch instruction at %#x (unexpected NOP length)" % (loc))
             return
 
-        ok(("Patching %d bytes from %s" % (size, format_address(loc))))
+        ok("Patching %d bytes from %s" % (size, format_address(loc)))
         write_memory(loc, nops, size)
+
+        if retval:
+            retreg = return_register()
+            ok("Setting Return Value register (%s) to %d" % (retreg, retval))
+            gdb.execute("set %s = %d" % (retreg, retval))
         return
 
 
