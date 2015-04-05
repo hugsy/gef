@@ -162,9 +162,9 @@ class Address:
 
 
 class Permission:
-    READ = 4
-    WRITE = 2
-    EXECUTE = 1
+    READ      = 4
+    WRITE     = 2
+    EXECUTE   = 1
 
     def __init__(self, *args, **kwargs):
         self.value = 0
@@ -349,16 +349,16 @@ class GlibcChunk:
 def titlify(msg):
     return "{0}[{1} {3} {2}]{0}".format('='*20, Color.RED, Color.NORMAL, msg)
 
-def ok(msg):
-    print((Color.BOLD+Color.GREEN+"[+]"+Color.NORMAL+" "+msg))
+def err(msg):
+    print((Color.BOLD+Color.RED+"[!]"+Color.NORMAL+" "+msg))
     return
 
 def warn(msg):
-    print((Color.BOLD+Color.YELLOW+"[+]"+Color.NORMAL+" "+msg))
+    print((Color.BOLD+Color.YELLOW+"[*]"+Color.NORMAL+" "+msg))
     return
 
-def err(msg):
-    print((Color.BOLD+Color.RED+"[+]"+Color.NORMAL+" "+msg))
+def ok(msg):
+    print((Color.BOLD+Color.GREEN+"[+]"+Color.NORMAL+" "+msg))
     return
 
 def info(msg):
@@ -413,37 +413,17 @@ def gef_obsolete_function(func):
     return new_func
 
 
-def gef_execute(command, as_list = False):
-
+def gef_execute(command, as_list=False):
     output = []
+    lines = gdb.execute(command, to_string=True).splitlines()
 
-    fd, fname = tempfile.mkstemp()
-    os.close(fd)
-
-    gdb.execute("set logging file " + fname)
-    gdb.execute("set logging overwrite on")
-    gdb.execute("set logging redirect on")
-    gdb.execute("set logging on")
-
-    try :
-        lines = gdb.execute(command, to_string=True)
-        lines = data.splitlines()
-
-        for line in lines:
-            address, content = x.split(" ", 1)
-            address = long(address.strip()[:-1], 16)
-            content = content.strip()
-
-            output.append( (address, content) )
-
-    except:
-        pass
-
-    finally:
-        gdb.execute("set logging off")
-        gdb.execute("set logging redirect off")
-        os.unlink(fname)
-        return output
+    for line in lines:
+        if line.startswith("=>"): line = line[2:]
+        line = line.lstrip().rstrip()
+        address, content = line.split(" ", 1)
+        address = long(address, 16)
+        output.append( (address, content) )
+    return output
 
 
 def gef_execute_external(command, as_list=False):
@@ -494,12 +474,20 @@ def get_arch():
     return gdb.execute("show architecture", to_string=True).strip().split(" ")[7][:-1]
 
 
+######################[ ARM specific ]######################
 def arm_registers():
     return ["$r0  ", "$r1  ", "$r2  ", "$r3  ", "$r4  ", "$r5  ", "$r6  ",
             "$r7  ", "$r8  ", "$r9  ", "$r10 ", "$r11 ", "$r12 ", "$sp  ",
             "$lr  ", "$pc  ", "$cpsr", ]
 
 
+def arm_nop_insn():
+    # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
+    # mov r0,r0
+    return b"\x00\x00\xa0\xe1"
+
+
+######################[ Intel x86-64 specific ]######################
 def x86_64_registers():
     return [ "$rax   ", "$rcx   ", "$rdx   ", "$rbx   ", "$rsp   ", "$rbp   ", "$rsi   ",
              "$rdi   ", "$rip   ", "$r8    ", "$r9    ", "$r10   ", "$r11   ", "$r12   ",
@@ -507,12 +495,22 @@ def x86_64_registers():
              "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags", ]
 
 
+def x86_64_nop_insn():
+    return b'\x90'
+
+
+######################[ Intel x86-32 specific ]######################
 def x86_32_registers():
     return [ "$eax   ", "$ecx   ", "$edx   ", "$ebx   ", "$esp   ", "$ebp   ", "$esi   ",
              "$edi   ", "$eip   ", "$cs    ", "$ss    ", "$ds    ", "$es    ",
              "$fs    ", "$gs    ", "$eflags", ]
 
 
+def x86_32_nop_insn():
+    return b'\x90'
+
+
+######################[ PowerPC specific ]######################
 def powerpc_registers():
     return ["$r0  ", "$r1  ", "$r2  ", "$r3  ", "$r4  ", "$r5  ", "$r6  ", "$r7  ",
             "$r8  ", "$r9  ", "$r10 ", "$r11 ", "$r12 ", "$r13 ", "$r14 ", "$r15 ",
@@ -520,6 +518,14 @@ def powerpc_registers():
             "$r24 ", "$r25 ", "$r26 ", "$r27 ", "$r28 ", "$r29 ", "$r30 ", "$r31 ",
             "$pc  ", "$msr ", "$cr  ", "$lr  ", "$ctr ", "$xer ", "$trap" ]
 
+
+def powerpc_nop_insn():
+    # http://www.ibm.com/developerworks/library/l-ppc/index.html
+    # nop
+    return b'\x60\x00\x00\x00'
+
+
+######################[ SPARC specific ]######################
 def sparc_registers():
     return ["$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
             "$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ",
@@ -528,6 +534,13 @@ def sparc_registers():
             "$pc ", "$sp ", "$fp ", "$psr", ]
 
 
+def sparc_nop_insn():
+    # http://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
+    # sethi 0, %g0
+    return b'\x00\x00\x00\x00'
+
+
+######################[ MIPS specific ]######################
 def mips_registers():
     # http://vhouten.home.xs4all.nl/mipsel/r3000-isa.html
     return ["$r0   ", "$r1   ", "$r2   ", "$r3   ", "$r4   ", "$r5   ", "$r6   ", "$r7   ",
@@ -535,6 +548,12 @@ def mips_registers():
             "$r16  ", "$r17  ", "$r18  ", "$r19  ", "$r20  ", "$r21  ", "$r22  ", "$r23  ",
             "$r24  ", "$r25  ", "$r26  ", "$r27  ", "$r28  ", "$r29  ", "$r30  ", "$r31  ",
             "$pc   ", "$sp   ", "$hi   ", "$lo   ", "$fir  ", "$ra   ", "$gp   ", ]
+
+
+def mips_nop_insn():
+    # https://en.wikipedia.org/wiki/MIPS_instruction_set
+    # sll $0,$0,0
+    return b"\x00\x00\x00\x00"
 
 
 @memoize
@@ -551,8 +570,26 @@ def all_registers():
         return sparc_registers()
     elif is_mips():
         return mips_registers()
-    else:
-        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+
+@memoize
+def nop_insn():
+    if is_arm():
+        return arm_nop_insn()
+    elif is_x86_32():
+        return x86_32__nop_insn()
+    elif is_x86_64():
+        return x86_64_nop_insn()
+    elif is_powerpc():
+        return powerpc_nop_insn()
+    elif is_sparc():
+        return sparc_nop_insn()
+    elif is_mips():
+        return mips_nop_insn()
+
+    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 
 def write_memory(address, buffer, length=0x10):
@@ -672,11 +709,17 @@ def get_register(regname):
 
 
 def get_pc():
-    return get_register("$pc")
+    try:
+        return get_register("$pc")
+    except:
+        return -1
 
 
 def get_sp():
-    return get_register("$sp")
+    try:
+        return get_register("$sp")
+    except:
+        return -1
 
 
 @memoize
@@ -872,6 +915,13 @@ def XOR(data, key):
     return ''.join(chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key)))
 
 
+def ishex(pattern):
+    if pattern.startswith("0x") or pattern.startswith("0X"):
+        pattern = pattern[2:]
+    charset = "0123456789abcdefABCDEF"
+    return all( c in charset for c in pattern )
+
+
 # dirty hack, from https://github.com/longld/peda
 def define_user_command(cmd, code):
     if sys.version_info.major == 3:
@@ -980,9 +1030,12 @@ def get_memory_alignment():
         return 32
     elif is_elf64():
         return 64
-    else:
-        raise GefUnsupportedMode("GEF is running under an unsupported mode, functions will not work")
 
+    raise GefUnsupportedMode("GEF is running under an unsupported mode, functions will not work")
+
+def clear_screen():
+    gdb.execute("shell clear")
+    return
 
 def format_address(addr):
     memalign_size = get_memory_alignment()
@@ -991,16 +1044,19 @@ def format_address(addr):
     elif memalign_size == 64:
         return "%#.16x" % (addr & 0xFFFFFFFFFFFFFFFF)
 
-
-def clear_screen():
-    gdb.execute("shell clear")
-    return
-
 def align_address(address):
     if get_memory_alignment()== 32:
         return address & 0xFFFFFFFF
     else:
         return address & 0xFFFFFFFFFFFFFFFF
+
+def parse_address(address):
+    if ishex(address):
+        return long(address, 16)
+    else:
+        t = gdb.lookup_type("unsigned long")
+        a = gdb.parse_and_eval( address ).cast(t)
+        return long(a)
 
 def is_in_x86_kernel(address):
     address = align_address(address)
@@ -1146,11 +1202,66 @@ class GenericCommand(gdb.Command):
         # return
 
 
+class PatchCommand(GenericCommand):
+    """Patch the instruction pointed by parameters with NOP. If the return option is
+    specified, it will set the return register to the specific value."""
+
+    _cmdline_ = "patch"
+    _syntax_  = "%s [LOCATION] [-r VALUE]" % _cmdline_
+
+
+    def __init__(self):
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+
+    def get_insn_size(self, addr):
+        res = gef_execute("x/2i %x" % addr, as_list=True)
+        insns = [ x[0] for x in res ]
+        return insns[1] - insns[0]
+
+
+    def do_invoke(self, argv):
+        if not is_alive():
+            warn("No debugging session active")
+            return
+
+        opts, args = getopt.getopt(argv, 'r:')
+        for o,a in opts:
+            if o == "-r":
+                retval = long(a)
+
+        if len(args):
+            loc = parse_address(argv[0])
+        else:
+            loc = get_pc()
+
+        size = self.get_insn_size( loc )
+        nops = nop_insn()
+
+        if len(nops) > size:
+            err(("Cannot patch instruction at %#x (nop_size is:%d,insn_size is:%d)" % (loc, len(nops), size)))
+            return
+
+        if len(nops) < size:
+            warn("Adjusting NOPs to size %d" % size)
+            while len(nops) < size:
+                nops += nop_insn()
+
+        if len(nops) != size:
+            err(("Cannot patch instruction at %#x (unexpected NOP length)" % (loc)))
+            return
+
+        ok(("Patching %d bytes from %s" % (size, format_address(loc))))
+        write_memory(loc, nops, size)
+        return
+
+
 class CapstoneDisassembleCommand(GenericCommand):
     """Use capstone disassembly framework to disassemble code."""
 
     _cmdline_ = "cs-dis"
-    _syntax_  = "%s [-a LOCATION] [-l LENGTH] [-t opt]" % _cmdline_
+    _syntax_  = "%s [LOCATION] [-l LENGTH] [-t opt]" % _cmdline_
 
 
     def pre_load(self):
@@ -1158,7 +1269,7 @@ class CapstoneDisassembleCommand(GenericCommand):
             import capstone
             # ok("Using `capstone` v%d.%d" % (capstone.CS_API_MAJOR, capstone.CS_API_MINOR))
         except ImportError as ie:
-            msg = "Missing Python `capstone` package\n"
+            msg = "Missing Python `capstone` package. "
             msg+= "Install with `pip install capstone`"
             raise GefMissingDependencyException( msg )
         return
@@ -1170,14 +1281,16 @@ class CapstoneDisassembleCommand(GenericCommand):
 
 
     def do_invoke(self, argv):
-        loc, lgt, arm_thumb = None, None, False
-        opts, args = getopt.getopt(argv, 'a:l:x:')
+        loc, lgt = None, None
+        opts, args = getopt.getopt(argv, 'l:x:')
         for o,a in opts:
-            if   o == "-a":   loc = long(a, 16)
-            elif o == "-l":   lgt = long(a)
+            if   o == "-l":   lgt = long(a)
             elif o == "-x":
                 k, v = a.split(":", 1)
                 self.add_setting(k, v)
+
+        if len(args):
+            loc = parse_address( args[0] )
 
         if loc is None:
             if not is_alive():
@@ -1202,11 +1315,9 @@ class CapstoneDisassembleCommand(GenericCommand):
     @staticmethod
     def disassemble(location, insn_num, *args, **kwargs):
         arch, mode = CapstoneDisassembleCommand.get_cs_arch( *args, **kwargs )
-        base = align_address( location ) & 0xFFFFFFFFFFFFF000
-        mem  = read_memory(base, 0x1000)
-        off  = location - base
+        mem  = read_memory(location, 0x200)  # hack hack hack
 
-        CapstoneDisassembleCommand.cs_disass(mem, base, off, arch, mode, insn_num)
+        CapstoneDisassembleCommand.cs_disass(mem, location, arch, mode, insn_num)
         return
 
 
@@ -1247,14 +1358,13 @@ class CapstoneDisassembleCommand(GenericCommand):
 
 
     @staticmethod
-    def cs_disass(code, base, offset, arch, mode, max_inst):
-        inst_num = 0
-        location = base + offset
-        capstone = sys.modules['capstone']
-        cs = capstone.Cs(arch, mode)
-        cs.detail = True
-        code = str(code[offset:])
-        pc = get_pc()
+    def cs_disass(code, location, arch, mode, max_inst):
+        inst_num    = 0
+        capstone    = sys.modules['capstone']
+        cs          = capstone.Cs(arch, mode)
+        cs.detail   = True
+        code        = str(code)
+        pc          = get_pc()
 
         for i in cs.disasm(code, location):
             m = Color.boldify(Color.blueify(format_address(i.address))) + "\t"
@@ -1266,7 +1376,8 @@ class CapstoneDisassembleCommand(GenericCommand):
 
             print (m)
             inst_num += 1
-            if inst_num == max_inst:  break
+            if inst_num == max_inst:
+                break
 
         return
 
@@ -1447,7 +1558,7 @@ class AliasDoCommand(GenericCommand):
 
 
 class SolveKernelSymbolCommand(GenericCommand):
-    """Get kernel address"""
+    """Solve kernel symbols from kallsyms table."""
 
     _cmdline_ = "ksymaddr"
     _syntax_  = "%s SymbolToSearch" % _cmdline_
@@ -1672,9 +1783,8 @@ class ROPgadgetCommand(GenericCommand):
             # ok("Using `ropgadget` v%d.%d" % (ropgadget.version.MAJOR_VERSION, ropgadget.version.MINOR_VERSION))
 
         except ImportError as ie:
-            msg = "Failed to import ROPgadget: %s\n" % ie
-            msg+= "Install with\n%s"
-            msg+= "$ pip2 install ropgadget"
+            msg = "Missing Python `ropgadget` package. "
+            msg+= "Install with `pip install ropgadget`"
             raise GefMissingDependencyException( msg )
 
         return
@@ -2900,6 +3010,7 @@ class GEFCommand(gdb.Command):
                         AliasCommand, AliasShowCommand, AliasSetCommand, AliasUnsetCommand, AliasDoCommand,
                         DumpMemoryCommand,
                         GlibcHeapCommand,
+                        PatchCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
