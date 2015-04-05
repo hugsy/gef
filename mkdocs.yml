@@ -1,0 +1,6 @@
+site_name: GEF - GDB Enhanced Features documentation
+theme: readthedocs
+pages:
+- [index.md, Home]
+- [config.md, Configuration]
+- [commands.md, Commands]

@@ -1087,8 +1087,8 @@ class GenericCommand(gdb.Command):
 
         self.__doc__  += "\n" + "Syntax: " + self._syntax_
 
-        command_type = kwargs["command"] if "command" in kwargs.keys() else gdb.COMMAND_OBSCURE
-        complete_type = kwargs["complete"] if "complete" in kwargs.keys() else gdb.COMPLETE_NONE
+        command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
+        complete_type = kwargs.setdefault("complete", gdb.COMPLETE_NONE)
         super(GenericCommand, self).__init__(self._cmdline_, command_type, complete_type, True)
         self.post_load()
         return
@@ -1254,13 +1254,14 @@ class CapstoneDisassembleCommand(GenericCommand):
         cs = capstone.Cs(arch, mode)
         cs.detail = True
         code = str(code[offset:])
+        pc = get_pc()
 
         for i in cs.disasm(code, location):
-            m = Color.boldify(Color.blueify(format_address(i.address))) + "\t\t"
+            m = Color.boldify(Color.blueify(format_address(i.address))) + "\t"
             m+= Color.greenify("%s" % i.mnemonic) + "\t"
             m+= Color.yellowify("%s" % i.op_str)
 
-            if (i.address == get_pc()):
+            if (i.address == pc):
                 m+= Color.redify("\t<<== $pc")
 
             print (m)
@@ -2861,7 +2862,7 @@ class FormatStringSearchCommand(GenericCommand):
 
 
 class GEFCommand(gdb.Command):
-    """GEF Control Center"""
+    """GEF main command: start with `gef help` """
 
     _cmdline_ = "gef"
     _syntax_  = "%s (load/help)" % _cmdline_
@@ -2908,6 +2909,7 @@ class GEFCommand(gdb.Command):
         self.__loaded_cmds = []
 
         self.load()
+        self.__doc__ = self.generate_help()
         return
 
 
@@ -2970,8 +2972,9 @@ class GEFCommand(gdb.Command):
         return
 
 
-    def help(self):
-        print((titlify("GEF - GDB Enhanced Features") ))
+    def generate_help(self):
+        d = []
+        d.append( titlify("GEF - GDB Enhanced Features") )
 
         for (cmd, class_name) in self.__loaded_cmds:
             if " " in cmd:
@@ -2981,7 +2984,13 @@ class GEFCommand(gdb.Command):
             doc = class_name.__doc__ if hasattr(class_name, "__doc__") else ""
             doc = "\n                         ".join(doc.split("\n"))
             msg = "%-25s -- %s" % (cmd, Color.greenify( doc ))
-            print(("%s" % msg))
+
+            d.append( msg )
+        return "\n".join(d)
+
+
+    def help(self):
+        print ((self.__doc__))
         return
 
 
