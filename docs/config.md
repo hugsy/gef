@@ -11,14 +11,14 @@ $ gdb -nx -ex 'python print (sys.version)' -ex quit
 This should display your version of Python compiled with `gdb`.
 
 For example, with Python2
-```
+```bash
 $ gdb -nx -ex 'python print (sys.version)' -ex quit
 2.7.3 (default, Mar 18 2014, 06:31:17)
 [GCC 4.6.3]
 ```
 
 Or Python3
-```
+```bash
 $ gdb -nx -ex 'python print (sys.version)' -ex quit
 3.4.0 (default, Apr 11 2014, 13:08:40)
 [GCC 4.8.2]
