@@ -756,10 +756,10 @@ def get_filename():
 
 @memoize
 def get_process_maps():
-    pid = get_pid()
     sections = []
 
     try:
+        pid = get_pid()
         f = open('/proc/%d/maps' % pid)
         while True:
             line = f.readline()
@@ -2235,6 +2235,7 @@ class ContextCommand(GenericCommand):
          self.add_setting("nb_lines_stack", 5)
          self.add_setting("nb_lines_backtrace", 5)
          self.add_setting("nb_lines_code", 6)
+         self.add_setting("clear_screen", False)
 
          self.add_setting("use_capstone", sys.modules.has_key('capstone'))
          return
@@ -2248,7 +2249,9 @@ class ContextCommand(GenericCommand):
         if self.get_setting("enable") != True:
             return
 
-        # clear_screen()
+        if self.get_setting("clear_screen"):
+            clear_screen()
+
         self.context_regs()
         self.context_stack()
         self.context_code()
@@ -2315,14 +2318,15 @@ class ContextCommand(GenericCommand):
 
     def context_code(self):
         nb_insn = self.get_setting("nb_lines_code")
+        pc = get_pc()
 
         print(( Color.boldify( Color.blueify("-"*80 + "[code]")) ))
 
         try:
             if self.get_setting("use_capstone"):
-                CapstoneDisassembleCommand.disassemble(get_pc(), nb_insn)
+                CapstoneDisassembleCommand.disassemble(pc, nb_insn)
             else:
-                gdb.execute("x/%di $pc" % nb_insn)
+                gdb.execute("x/%di %x" % (nb_insn, pc))
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
         return
@@ -2603,7 +2607,7 @@ class XAddressInfoCommand(GenericCommand):
 
         for sym in argv:
             try:
-                addr = align_address( long(gdb.parse_and_eval(sym)) )
+                addr = align_address( parse_address(sym) )
                 print(( titlify("xinfo: %#x" % addr )))
                 self.infos(addr)
 
