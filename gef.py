@@ -1248,7 +1248,7 @@ class PatchCommand(GenericCommand):
     specified, it will set the return register to the specific value."""
 
     _cmdline_ = "patch"
-    _syntax_  = "%s [-r VALUE] [-p] [LOCATION]" % _cmdline_
+    _syntax_  = "%s [-r VALUE] [-p] [-h] [LOCATION]" % _cmdline_
 
 
     def __init__(self):
@@ -1265,20 +1265,39 @@ class PatchCommand(GenericCommand):
     def do_invoke(self, argv):
         retval = None
         perm_mode = False
-        opts, args = getopt.getopt(argv, "r:p")
+        opts, args = getopt.getopt(argv, "r:ph")
         for o,a in opts:
-            if   o == "-r": retval = long(a, 16)
-            elif o == "-p": perm_mode = True
+            if   o == "-r":
+                retval = long(a, 16)
+            elif o == "-p":
+                perm_mode = True
+            elif o == "-h":
+                self.help()
+                return
+
+        if perm_mode:
+            if len(args)==0:
+                err("Missing location")
+                return
+            self.permanent_patch(args[0], retval)
+            return
 
         if len(args):
             loc = parse_address(args[0])
         else:
             loc = get_pc()
 
-        if perm_mode:
-            self.permanent_patch(args[0], retval)
-        else:
-            self.onetime_patch(loc, retval)
+        self.onetime_patch(loc, retval)
+        return
+
+
+    def help(self):
+        m = "%s\n" % self._syntax_
+        m+= "  LOCATION\taddress/symbol to patch\n"
+        m+= "  -r VALUE\tset the return register to VALUE (ex. 0x00, 0xffffffff)\n"
+        m+= "  -p \t\tmake this patch permanent for the whole GDB session\n"
+        m+= "  -h \t\tprint this help\n"
+        info(m)
         return
 
 
