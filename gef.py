@@ -1148,7 +1148,7 @@ class PatchBreakpoint(gdb.Breakpoint):
 
         m = "Ignoring call to '%s'" % self.func
         if self.retval is not None:
-            m+= "(setting %s to %x)" % (regret, self.retval)
+            m+= "(setting %s to %x)" % (retreg, self.retval)
         ok( m )
         return False  # never stop at this breakpoint
 
