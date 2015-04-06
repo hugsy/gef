@@ -2633,7 +2633,7 @@ class XAddressInfoCommand(GenericCommand):
                                                 sect.page_end-sect.page_start)))
             print(("Permissions: %s" % sect.permission))
             print(("Pathname: %s" % sect.path))
-            print(("Offset (from page): +%#x" % (address-sect.page_start)))
+            print(("Offset (from page): +%#x" % (addr.value-sect.page_start)))
             print(("Inode: %s" % sect.inode))
 
         if info:
