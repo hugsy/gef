@@ -728,8 +728,12 @@ def get_register(regname):
     return long( reg.cast(t) )
 
 def get_register_ex(regname):
-    v = gdb.execute("info register %s" % regname, to_string=True).split(" ")[-1]
-    return long(v.strip().split("\t")[0], 16)
+    t = gdb.execute("info register %s" % regname, to_string=True)
+    for v in t.split(" "):
+        v = v.strip()
+        if v.startswith("0x"):
+            return long(v.strip().split("\t",1)[0], 16)
+    return 0
 
 def get_pc():
     try:
@@ -898,7 +902,7 @@ def process_lookup_path(name, perm=Permission.READ|Permission.WRITE|Permission.E
         return None
 
     for sect in get_process_maps():
-        if name in sect.name and sect.perm.value & perm:
+        if name in sect.path and sect.perm.value & perm:
             return sect
 
     return None
@@ -2237,7 +2241,8 @@ class ContextCommand(GenericCommand):
          self.add_setting("nb_lines_code", 6)
          self.add_setting("clear_screen", False)
 
-         self.add_setting("use_capstone", sys.modules.has_key('capstone'))
+         if sys.modules.has_key('capstone'):
+             self.add_setting("use_capstone", False)
          return
 
 
@@ -2612,8 +2617,8 @@ class XAddressInfoCommand(GenericCommand):
                 self.infos(addr)
 
             except gdb.error as gdb_err:
-                err("Exception raised: %s" % gdb_err)
-                continue
+                err("%s" % gdb_err)
+
         return
 
 
