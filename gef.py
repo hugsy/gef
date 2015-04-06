@@ -1129,9 +1129,9 @@ class PatchBreakpoint(gdb.Breakpoint):
         self.func = func
         self.retval = retval
 
-        m = "All calls to '%s' will be skipped"
+        m = "All calls to '%s' will be skipped" % self.func
         if self.retval is not None:
-            m+= " (with return value as %#x)"
+            m+= " (with return value as %#x)" % self.retval
         info(m)
         return
 
