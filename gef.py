@@ -1045,7 +1045,7 @@ def is_sparc():
     elf = get_elf_headers()
     return elf.e_machine==0x12
 
-
+@memoize
 def get_memory_alignment():
     if is_elf32():
         return 32
@@ -1092,10 +1092,10 @@ def endian_str():
     return ">" # BE
 
 #
-# breakpoints
+# Breakpoints
 #
 class FormatStringBreakpoint(gdb.Breakpoint):
-    ''' Inspect stack for format string '''
+    """Inspect stack for format string"""
     def __init__(self, spec, num_args):
         super(FormatStringBreakpoint, self).__init__(spec, gdb.BP_BREAKPOINT, internal=False)
         self.num_args = num_args
@@ -1109,11 +1109,8 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         else :
             raise NotImplementedError()
 
-        value = gdb.parse_and_eval(ref)
-        address = long(value)
-        pid = get_pid()
+        addr = lookup_address( parse_address(ref) )
 
-        addr = lookup_address(address)
         if 'w' in addr.permissions:
             print((titlify("Format String Detection")))
             info(">>> Possible writable format string %#x (%s): %s" % (addr, ref, content))
@@ -1121,6 +1118,29 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             return True
 
         return False
+
+
+class PatchBreakpoint(gdb.Breakpoint):
+    """Create a breakpoint to permanently disable a call (fork/alarm/signal/etc.)"""
+
+    def __init__(self, func, retval):
+        super(PatchBreakpoint, self).__init__(func, gdb.BP_BREAKPOINT, internal=False)
+        self.func = func
+        self.retval = retval
+        return
+
+    def stop(self):
+        retaddr = gdb.selected_frame().older().pc()
+        retreg  = return_register()
+
+        if self.retval is not None:
+            cmd = "set %s = %x" % (retreg, self.retval)
+            gdb.execute( cmd )
+
+        cmd = "set $pc = %x" % (retaddr)
+        gdb.execute( cmd )
+        info("Ignoring call to '%s'" % self.func)
+        return False  # never stop at this breakpoint
 
 #
 # Functions
@@ -1228,7 +1248,7 @@ class PatchCommand(GenericCommand):
     specified, it will set the return register to the specific value."""
 
     _cmdline_ = "patch"
-    _syntax_  = "%s [LOCATION] [-r VALUE]" % _cmdline_
+    _syntax_  = "%s [-r VALUE] [-p] [LOCATION]" % _cmdline_
 
 
     def __init__(self):
@@ -1243,20 +1263,29 @@ class PatchCommand(GenericCommand):
 
 
     def do_invoke(self, argv):
+        retval = None
+        perm_mode = False
+        opts, args = getopt.getopt(argv, "r:p")
+        for o,a in opts:
+            if   o == "-r": retval = long(a, 16)
+            elif o == "-p": perm_mode = True
+
+        if len(args):
+            loc = parse_address(args[0])
+        else:
+            loc = get_pc()
+
+        if perm_mode:
+            self.permanent_patch(args[0], retval)
+        else:
+            self.onetime_patch(loc, retval)
+        return
+
+
+    def onetime_patch(self, loc, retval):
         if not is_alive():
             warn("No debugging session active")
             return
-
-        retval = None
-        opts, args = getopt.getopt(argv, 'r:')
-        for o,a in opts:
-            if o == "-r":
-                retval = long(a)
-
-        if len(args):
-            loc = parse_address(argv[0])
-        else:
-            loc = get_pc()
 
         size = self.get_insn_size( loc )
         nops = nop_insn()
@@ -1277,10 +1306,15 @@ class PatchCommand(GenericCommand):
         ok("Patching %d bytes from %s" % (size, format_address(loc)))
         write_memory(loc, nops, size)
 
-        if retval:
+        if retval is not None:
             retreg = return_register()
-            ok("Setting Return Value register (%s) to %d" % (retreg, retval))
             gdb.execute("set %s = %d" % (retreg, retval))
+            ok("Setting Return Value register (%s) to %d" % (retreg, retval))
+        return
+
+
+    def permanent_patch(self, loc, retval):
+        PatchBreakpoint(loc, retval)
         return
 
 
@@ -1288,7 +1322,7 @@ class CapstoneDisassembleCommand(GenericCommand):
     """Use capstone disassembly framework to disassemble code."""
 
     _cmdline_ = "cs-dis"
-    _syntax_  = "%s [LOCATION] [-l LENGTH] [-t opt]" % _cmdline_
+    _syntax_  = "%s [-l LENGTH] [-t opt] [LOCATION]" % _cmdline_
 
 
     def pre_load(self):
@@ -1311,7 +1345,8 @@ class CapstoneDisassembleCommand(GenericCommand):
         loc, lgt = None, None
         opts, args = getopt.getopt(argv, 'l:x:')
         for o,a in opts:
-            if   o == "-l":   lgt = long(a)
+            if   o == "-l":
+                lgt = long(a)
             elif o == "-x":
                 k, v = a.split(":", 1)
                 self.add_setting(k, v)
@@ -2607,7 +2642,7 @@ class XorMemoryPatchCommand(GenericCommand):
     """Patch a block of memory by XOR-ing each key with a key."""
 
     _cmdline_ = "xor-memory patch"
-    _syntax_  = "%s <address> <size_to_read> <xor_key> " % _cmdline_
+    _syntax_  = "%s <address> <size_to_read> <xor_key>" % _cmdline_
 
 
     def do_invoke(self, argv):
@@ -2615,14 +2650,13 @@ class XorMemoryPatchCommand(GenericCommand):
             self.usage()
             return
 
-        address = long(gdb.parse_and_eval(argv[0]))
+        address = parse_address( argv[0] )
         length, key = long(argv[1]), argv[2]
         block = read_memory(address, length)
         info("Patching XOR-ing %#x-%#x with '%s'" % (address, address+len(block), key))
 
         xored_block = XOR(block, key)
         write_memory(address, xored_block, length)
-
         return
 
 
