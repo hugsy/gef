@@ -1145,7 +1145,11 @@ class PatchBreakpoint(gdb.Breakpoint):
 
         cmd = "set $pc = %x" % (retaddr)
         gdb.execute( cmd )
-        ok("Ignoring call to '%s'" % self.func)
+
+        m = "Ignoring call to '%s'" % self.func
+        if self.retval is not None:
+            m+= "(setting %s to %x)" % (regret, self.retval)
+        ok( m )
         return False  # never stop at this breakpoint
 
 #
@@ -2333,7 +2337,7 @@ class ContextCommand(GenericCommand):
 
     def update_registers(self):
         for reg in all_registers():
-            self.old_registers[reg] = gdb.parse_and_eval(reg)
+            self.old_registers[reg] = get_register_ex(reg)
         return
 
 
