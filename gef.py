@@ -35,8 +35,6 @@
 #
 #
 
-from __future__ import print_function
-
 import math
 import struct
 import subprocess
@@ -51,6 +49,7 @@ import gdb
 
 
 if sys.version_info.major == 2:
+    from __future__ import print_function
     from HTMLParser import HTMLParser
     import itertools
     from cStringIO import StringIO
@@ -1237,7 +1236,7 @@ class GenericCommand(gdb.Command):
 
     def has_setting(self, name):
         key = "%s.%s" % (self.__class__._cmdline_, name)
-        return __config__.has_key( key )
+        return key in list( __config__.keys() )
 
 
     def del_setting(self, name):
@@ -2241,7 +2240,7 @@ class ContextCommand(GenericCommand):
          self.add_setting("nb_lines_code", 6)
          self.add_setting("clear_screen", False)
 
-         if sys.modules.has_key('capstone'):
+         if "capstone" in list( sys.modules.keys() ):
              self.add_setting("use_capstone", False)
          return
 
@@ -3075,7 +3074,7 @@ class FormatStringSearchCommand(GenericCommand):
             'vsnprintf':  2,
             }
 
-        for func_name, num_arg in dangerous_functions.iteritems():
+        for func_name, num_arg in dangerous_functions.items():
             FormatStringBreakpoint(func_name, num_arg)
 
         return
