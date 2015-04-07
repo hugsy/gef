@@ -35,6 +35,8 @@
 #
 #
 
+from __future__ import print_function
+
 import math
 import struct
 import subprocess
@@ -49,7 +51,6 @@ import gdb
 
 
 if sys.version_info.major == 2:
-    from __future__ import print_function
     from HTMLParser import HTMLParser
     import itertools
     from cStringIO import StringIO
