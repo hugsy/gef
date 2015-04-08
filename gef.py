@@ -2328,7 +2328,7 @@ class ContextCommand(GenericCommand):
         print(( Color.boldify( Color.blueify("-"*80 + "[code]")) ))
 
         try:
-            if self.get_setting("use_capstone"):
+            if self.has_setting("use_capstone") and self.get_setting("use_capstone"):
                 CapstoneDisassembleCommand.disassemble(pc, nb_insn)
             else:
                 gdb.execute("x/%di %x" % (nb_insn, pc))
