@@ -2214,7 +2214,7 @@ class EntryPointBreakCommand(GenericCommand):
         value = elf.e_entry
         if value:
             info("Breaking at entry-point: %#x" % value)
-            gdb.execute("tbreak *%x" % value)
+            gdb.execute("tbreak *%#x" % value)
             info("Starting execution")
             gdb.execute("run")
             return
