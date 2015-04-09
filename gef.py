@@ -1144,15 +1144,15 @@ class PatchBreakpoint(gdb.Breakpoint):
         retreg  = return_register()
 
         if self.retval is not None:
-            cmd = "set %s = %x" % (retreg, self.retval)
+            cmd = "set %s = %#x" % (retreg, self.retval)
             gdb.execute( cmd )
 
-        cmd = "set $pc = %x" % (retaddr)
+        cmd = "set $pc = %#x" % (retaddr)
         gdb.execute( cmd )
 
         m = "Ignoring call to '%s'" % self.func
         if self.retval is not None:
-            m+= "(setting %s to %x)" % (retreg, self.retval)
+            m+= "(setting %s to %#x)" % (retreg, self.retval)
         ok( m )
         return False  # never stop at this breakpoint
 
@@ -1271,7 +1271,7 @@ class PatchCommand(GenericCommand):
 
 
     def get_insn_size(self, addr):
-        res = gef_execute("x/2i %x" % addr, as_list=True)
+        res = gef_execute("x/2i %#x" % addr, as_list=True)
         insns = [ x[0] for x in res ]
         return insns[1] - insns[0]
 
@@ -1943,7 +1943,7 @@ class ROPgadgetCommand(GenericCommand):
                     off_min = long(value.split('-')[0], 16)
                     off_max = long(value.split('-')[1], 16)
                     if off_max < off_min:
-                        raise ValueError("%x must be higher that %x" % (off_max, off_min))
+                        raise ValueError("%#x must be higher that %#x" % (off_max, off_min))
                     info("Using range [%#x:%#x] (%ld bytes)" % (off_min, off_max, (off_max-off_min)))
 
                 setattr(args, name, value)
@@ -2457,7 +2457,7 @@ class DereferenceCommand(GenericCommand):
                 msg.append( "%s" % format_address( long(deref) ))
 
                 if section.permission.value & Permission.EXECUTE:
-                    cmd = gdb.execute("x/i %x" % value, to_string=True).replace("=>", '')
+                    cmd = gdb.execute("x/i %#x" % value, to_string=True).replace("=>", '')
                     cmd = re.sub('\s+',' ', cmd.strip())
 
                     msg.append( "%s" % cmd )
