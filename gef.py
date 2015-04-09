@@ -3272,8 +3272,6 @@ if __name__  == "__main__":
     # setup config
     gdb.execute("set confirm off")
     gdb.execute("set verbose off")
-    gdb.execute("set output-radix 0x10")
-    gdb.execute("set input-radix 0x10")
     gdb.execute("set height 0")
     gdb.execute("set width 0")
     gdb.execute("set prompt %s" % GEF_PROMPT)
