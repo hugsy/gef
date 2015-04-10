@@ -347,7 +347,7 @@ class GlibcChunk:
 
 
 def titlify(msg):
-    return "{0}[{1} {3} {2}]{0}".format('='*20, Color.RED, Color.NORMAL, msg)
+    return "{0}[{1} {3} {2}]{0}".format('='*30, Color.RED, Color.NORMAL, msg)
 
 def err(msg):
     print((Color.BOLD+Color.RED+"[!]"+Color.NORMAL+" "+msg))
@@ -720,7 +720,7 @@ def get_register(regname):
     """
     Get register value. Exception will be raised if expression cannot be parse.
     This function won't catch on purpose.
-    @param regname : expected register
+    @param regname: expected register
     @return register value
     """
     t = gdb.lookup_type("unsigned long")
@@ -1109,17 +1109,51 @@ class FormatStringBreakpoint(gdb.Breakpoint):
 
     def stop(self):
         if is_arm():
-            regs = ['$r0','$r1','$r2','$3']
-            ref = regs[self.num_args]
+            regs = ['$r0','$r1','$r2','$r3']
+            ptr = regs[self.num_args]
+            addr = lookup_address( get_register_ex( ptr ) )
+
+        elif is_x86_64():
+            regs = ['$rdi', '$rsi', '$rdx', '$rcx', '$r8', '$r9']
+            ptr = regs[self.num_args]
+            addr = lookup_address( get_register_ex( ptr ) )
+
+        elif is_sparc():
+            regs = ['%i0', '%i1', '%i2','%i3','%i4', '%i5' ]
+            ptr = regs[self.num_args]
+            addr = lookup_address( get_register_ex( ptr ) )
+
+        elif is_mips():
+            regs = ['$a0','$a1','$a2','$a3']
+            ptr = regs[self.num_args]
+            addr = lookup_address( get_register_ex( ptr ) )
+
+        elif is_powerpc():
+            regs = ['$gpr3', '$gpr4', '$gpr4','$gpr5', '$gpr6']
+            ptr = regs[self.num_args]
+            addr = lookup_address( get_register_ex( ptr ) )
+
+        elif is_x86_32():
+            # experimental, need more checks
+            sp = get_sp()
+            m = get_memory_alignment() / 8
+            stack = sp + (m*2)
+
+            val = stack + (self.num_args * m)
+            ptr = read_int_from_memory( val )
+            print("sp=%#x, stack=%#x" % (sp, stack))
+            addr = lookup_address( ptr )
+
         else :
             raise NotImplementedError()
 
-        addr = lookup_address( parse_address(ref) )
+        if addr.section.permission.value & Permission.WRITE:
+            content = read_memory_until_null(addr.value)
 
-        if 'w' in addr.permissions:
             print((titlify("Format String Detection")))
-            info(">>> Possible writable format string %#x (%s): %s" % (addr, ref, content))
-            print((gdb.execute("backtrace")))
+            info("Possible exploitable format string '%s' -> %#x: '%s'" % (ptr, addr.value, content))
+            info("Raised by '%s()'" % self.location)
+            info("Page %#x is writable" % addr.section.page_start)
             return True
 
         return False
@@ -3068,8 +3102,8 @@ class FormatStringSearchCommand(GenericCommand):
         dangerous_functions = {
             'printf':     0,
             'sprintf':    1,
-            'vfprintf':   1,
-            'vsprintf':   1,
+            # 'vfprintf':   1,
+            # 'vsprintf':   1,
             'fprintf':    1,
             'snprintf':   2,
             'vsnprintf':  2,
