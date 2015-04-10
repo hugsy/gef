@@ -29,11 +29,8 @@
 # ToDo:
 # - add explicit actions for flags (jumps/overflow/negative/etc)
 #
-# ToDo commands:
-# - finish FormatStringSearchCommand
 #
-#
-#
+
 
 from __future__ import print_function
 
