@@ -1137,11 +1137,8 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             # experimental, need more checks
             sp = get_sp()
             m = get_memory_alignment() / 8
-            stack = sp + (m*2)
-
-            val = stack + (self.num_args * m)
+            val = sp + (self.num_args * m) + m
             ptr = read_int_from_memory( val )
-            print("sp=%#x, stack=%#x" % (sp, stack))
             addr = lookup_address( ptr )
 
         else :
@@ -3102,8 +3099,6 @@ class FormatStringSearchCommand(GenericCommand):
         dangerous_functions = {
             'printf':     0,
             'sprintf':    1,
-            # 'vfprintf':   1,
-            # 'vsprintf':   1,
             'fprintf':    1,
             'snprintf':   2,
             'vsnprintf':  2,
