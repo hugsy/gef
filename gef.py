@@ -1166,7 +1166,6 @@ class PatchBreakpoint(gdb.Breakpoint):
     """Create a breakpoint to permanently disable a call (fork/alarm/signal/etc.)"""
 
     def __init__(self, func, retval):
-        print(func)
         super(PatchBreakpoint, self).__init__(func, gdb.BP_BREAKPOINT, internal=False)
         self.func = func
         self.retval = retval
