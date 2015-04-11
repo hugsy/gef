@@ -2475,32 +2475,30 @@ class DereferenceCommand(GenericCommand):
             try:
 
                 value = align_address( long(deref) )
-                infos = lookup_address(value)
-                if infos is None or infos.section is None:
+                addr  = lookup_address(value)
+                if addr is None:
                     msg.append( "%#x" % ( long(deref) ))
                     break
 
-                section = infos.section
-
                 msg.append( "%s" % format_address( long(deref) ))
 
-                if section.permission.value & Permission.EXECUTE:
+                if addr.section.permission.value & Permission.EXECUTE and ".text" in addr.info.name:
                     cmd = gdb.execute("x/i %#x" % value, to_string=True).replace("=>", '')
-                    cmd = re.sub('\s+',' ', cmd.strip())
+                    cmd = re.sub('\s+',' ', cmd.strip()).split(" ", 1)[1]
 
-                    msg.append( "%s" % cmd )
+                    msg.append( "%s" % Color.redify(cmd) )
                     break
 
-                elif section.permission.value & Permission.READ:
+                elif addr.section.permission.value & Permission.READ:
                     if is_readable_string(value):
-                        msg.append( '"%s"' % read_string(value) )
+                        msg.append( '"%s"' % Color.greenify(read_string(value) ))
                         break
 
                 old_deref = deref
                 deref = DereferenceCommand.dereference(value)
 
             except Exception as e:
-                # print(((e)))
+                print((e))
                 break
 
         return msg
@@ -2980,9 +2978,9 @@ class InspectStackCommand(GenericCommand):
         for i in range(nb_stack_block):
             cur_addr = align_address( long(sp) + i*memalign )
             addrs = DereferenceCommand.dereference_from(cur_addr)
-            msg = Color.boldify(Color.blueify( format_address(cur_addr) ))
+            msg = Color.boldify(Color.blueify( format_address(long( addrs[0],16) )))
             msg += ": "
-            msg += " -> ".join(addrs)
+            msg += " -> ".join(addrs[1:])
             print((msg))
 
         return
