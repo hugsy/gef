@@ -646,25 +646,37 @@ def which(program):
     raise IOError("Missing file `%s`" % program)
 
 
-def read_memory_until_null(address):
+def read_memory_until_null(address, max_length=-1):
     i = 0
 
     if PYTHON_MAJOR == 2:
         buf = ''
         while True:
-            c = read_memory(address + i, 1)[0]
-            if c == '\x00': break
-            buf += c
-            i += 1
+            try:
+                c = read_memory(address + i, 1)[0]
+                if c == '\x00':
+                    break
+                buf += c
+                i += 1
+                if max_length > 0 and i == max_length:
+                    break
+            except:
+                break
         return buf
 
     else:
         buf = []
         while True:
-            c = read_memory(address + i, 1)[0]
-            if c == 0x00: break
-            buf.append( c )
-            i += 1
+            try:
+                c = read_memory(address + i, 1)[0]
+                if c == 0x00:
+                    break
+                buf.append( c )
+                i += 1
+                if max_length > 0 and i == max_length:
+                    break
+            except:
+                break
 
         return bytes(buf)
 
@@ -674,29 +686,29 @@ def is_readable_string(address):
     Here we will assume that a readable string is
     a consecutive byte array whose
     * last element is 0x00
-    * and values for each byte is [0x07, 0x7F]
+    * and values for each byte is [0x07, 0x7F[
     """
     buffer = read_memory_until_null(address)
     if len(buffer) == 0:
         return False
 
-    if sys.version_info.major == 2:
+    if PYTHON_MAJOR == 2:
         for c in buffer:
-            if not (0x07 <= ord(c) < 0x0e) and not (0x20 <= ord(c) < 0x7f):
+            if not ( (0x07 <= ord(c) < 0x0e) or (0x20 <= ord(c) < 0x7f) ):
                 return False
     else:
         for c in buffer:
-            if not (0x07 <= c < 0x0e) and not (0x20 <= c < 0x7f):
+            if not ( (0x07 <= c < 0x0e) or (0x20 <= c < 0x7f) ):
                 return False
 
     return True
 
 
-def read_string(address):
+def read_string(address, max_length=-1):
     if not is_readable_string(address):
         raise ValueError("Content at address `%#x` is not a string" % address)
 
-    buf = read_memory_until_null(address)
+    buf = read_memory_until_null(address, max_length)
     replaced_chars = [ (b"\n",b"\\n"), (b"\r",b"\\r"), (b"\t",b"\\t"), (b"\"",b"\\\"")]
     for f,t in replaced_chars:
         buf = buf.replace(f, t)
@@ -2519,14 +2531,18 @@ class DereferenceCommand(GenericCommand):
 
                 elif addr.section.permission.value & Permission.READ:
                     if is_readable_string(value):
-                        msg.append( '"%s"' % Color.greenify(read_string(value) ))
+                        s = read_string(value, 50)
+                        if len(s) == 50:
+                            s += "[...]"
+                        msg.append( '"%s"' % Color.greenify(s))
                         break
+
 
                 old_deref = deref
                 deref = DereferenceCommand.dereference(value)
 
             except Exception as e:
-                # print((e))
+                print((e))
                 break
 
         return msg
