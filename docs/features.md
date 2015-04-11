@@ -76,10 +76,10 @@ mapping of either the process or a specific location.
 Interestingly, it helps finding secret gems: as an aware reader might have seen,
 memory mapping differs from one architecture to another (this is one of the main
 reasons I started `GEF` in a first place). For example, you can learn that
-ELF running on SPARC architectures always have their `.data` section set as
+ELF running on SPARC architectures always have their `.data` and `heap` sections set as
 Read/Write/Execute.
 
-![xinfo-example](https://i.imgur.com/Tw6XktE.png)
+![xinfo-example](https://pbs.twimg.com/media/CCSW9JkW4AAx8gD.png:large)
 
 
 ## heap command
