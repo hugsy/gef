@@ -19,7 +19,7 @@ It will perform the following actions:
    breakpoint and run. This case should never fail if the ELF binary has a valid
    structure.
 
-![entry-break-example](http://i.imgur.com/zXSERMh.png)
+![entry-break-example](https://i.imgur.com/zXSERMh.png)
 
 
 ## patch command
@@ -54,16 +54,32 @@ Example:
 Patching `fork()` calls:
 
    * Before `patch`
-![before-patch](http://i.imgur.com/Gr5g45S.png)
+![before-patch](https://i.imgur.com/Gr5g45S.png)
 
    * Apply `patch` and force return register to `0`
 ```
 gef> patch -r 0 0x400596
 ```
-![apply-patch](http://i.imgur.com/hYE2sv2.png)
+![apply-patch](https://i.imgur.com/hYE2sv2.png)
 
    * After `patch`
-![after-patch](http://i.imgur.com/iEZVJWb.png)
+![after-patch](https://i.imgur.com/iEZVJWb.png)
+
+
+## xinfo/vmmap/xfiles commands
+
+`xinfo`, `vmmap` and `xfiles` display a comprehensive and human-friendly memory
+mapping of either the process or a specific location.
+
+![vmmap-example](https://i.imgur.com/iau8SwS.png)
+
+Interestingly, it helps finding secret gems: as an aware reader might have seen,
+memory mapping differs from one architecture to another (this is one of the main
+reasons I started `GEF` in a first place). For example, you can learn that
+ELF running on SPARC architectures always have their `.data` section set as
+Read/Write/Execute.
+
+![xinfo-example](https://i.imgur.com/Tw6XktE.png)
 
 
 ## heap command
@@ -140,4 +156,4 @@ gef> g
 If a potentially insecure entry is found, the breakpoint will trigger, stop the
 process execution, display the reason for trigger and the associated context.
 
-![fmtstr-helper-example](http://i.imgur.com/INU3KGn.png)
+![fmtstr-helper-example](https://i.imgur.com/INU3KGn.png)
