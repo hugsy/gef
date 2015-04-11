@@ -1,4 +1,4 @@
-# GEF - GDB Enhanced Features
+# GEF - GDB Enhanced Features  [![Documentation Status](https://readthedocs.org/projects/gef/badge/?version=latest)](https://gef.readthedocs.org/en/latest/)
 
 `GEF` is aimed to be used mostly by exploiters and reverse-engineers. It
 provides additional features to GDB using the Python API to assist during the
@@ -10,18 +10,19 @@ custom or harden systems such as GrSec.
 It has fully support for Python2 and Python3 indifferently (as more and more
 distro start pushing `gdb` compiled with Python3 support).
 
-### Status
-[![Documentation Status](https://readthedocs.org/projects/gef/badge/?version=latest)](https://gef.readthedocs.org/en/latest/)
 
-## But why not PEDA?
-Yes ! Why not ?! [PEDA](https://github.com/longld/peda) is a fantastic tool to
-do the same, but is **only** to be used for x86-32 or x86-64. On the other hand,
-`GEF` supports all the architecture supported by `GDB` (x86, ARM, MIPS, PowerPC,
-SPARC, and so on).
-I love `PEDA` and use it litterally all the time whenever I'm facing a Intel
-binary. And so should you. But being Intel only prevents from having fun with
-other architectures.
+## Quick start
 
+Simply make sure you're having a [GDB 7.x+](https://www.gnu.org/s/gdb).
+``` bash
+ $ curl -sSL https://github.com/hugsy/gef/raw/master/gef.sh | sh
+```
+
+Then just start playing:
+```bash
+$ gdb -q /path/to/my/bin
+gef> gef help
+```
 
 ## Show me
 
@@ -37,19 +38,6 @@ other architectures.
 ### Mips64
 ![gef-mips](https://i.imgur.com/WTXutso.png)
 
-
-## Quick start
-
-Simply make sure you're having a [GDB 7.x+](https://www.gnu.org/s/gdb).
-``` bash
-$ curl -s -L https://github.com/hugsy/gef/raw/master/gef.sh | sh
-```
-
-Then just start playing:
-```bash
-$ gdb -q /path/to/my/bin
-gef> gef help
-```
 
 ## Dependencies
 
@@ -76,6 +64,17 @@ $ pip install ropgadget
 ```
 
 `python-radare2` is not packaged by `pip`, you might need to install it the old school way.
+
+
+## But why not PEDA?
+Yes ! Why not ?! [PEDA](https://github.com/longld/peda) is a fantastic tool to
+do the same, but is **only** to be used for x86-32 or x86-64. On the other hand,
+`GEF` supports all the architecture supported by `GDB` (x86, ARM, MIPS, PowerPC,
+SPARC, and so on).
+I love `PEDA` and use it litterally all the time whenever I'm facing a Intel
+binary. And so should you. But being Intel only prevents from having fun with
+other architectures.
+
 
 ## Bugs & Feedbacks
 
