@@ -1126,7 +1126,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             addr = lookup_address( get_register_ex( ptr ) )
 
         elif is_powerpc():
-            regs = ['$gpr3', '$gpr4', '$gpr4','$gpr5', '$gpr6']
+            regs = ['$r3', '$r4', '$r4','$r5', '$r6']
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
 
@@ -1138,6 +1138,9 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             ptr = read_int_from_memory( val )
             addr = lookup_address( ptr )
 
+            # for pretty printing
+            ptr = hex(ptr)
+
         else :
             raise NotImplementedError()
 
@@ -1145,9 +1148,15 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             content = read_memory_until_null(addr.value)
 
             print((titlify("Format String Detection")))
-            info("Possible exploitable format string '%s' -> %#x: '%s'" % (ptr, addr.value, content))
-            info("Raised by '%s()'" % self.location)
-            info("Page %#x is writable" % addr.section.page_start)
+            info("Possible insecure format string '%s' -> %#x: '%s'" % (ptr, addr.value, content))
+            info("Triggered by '%s()'" % self.location)
+
+            name = addr.info.name if addr.info else addr.section.path
+            m = "Reason:\n"
+            m+= "Call to '%s()' with format string argument in position #%d is in\n" % (self.location, self.num_args)
+            m+= "page %#x (%s) that has write permission" % (addr.section.page_start, name)
+            warn(m)
+
             return True
 
         return False
