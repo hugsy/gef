@@ -77,6 +77,8 @@ else:
 __aliases__ = {}
 __config__ = {}
 NO_COLOR = False
+__infos_files__ = []
+
 
 
 class GefGenericException(Exception):
@@ -849,33 +851,33 @@ def get_info_sections():
     return sections
 
 
-@memoize
 def get_info_files():
-    infos = []
-    stream = StringIO(gdb.execute("info files", to_string=True))
+    global __infos_files__
 
-    while True:
-        line = stream.readline()
+    cmd = gdb.execute("info files", to_string=True)
+    lines = cmd.split("\n")
+
+    if len(lines) < len(__infos_files__):
+        return __infos_files__
+
+    for line in lines:
+        line = line.strip().rstrip()
+
         if len(line) == 0:
             break
 
-        try:
-            blobs = [x.strip() for x in line.split(' ')]
-            addr_start = long(blobs[0], 16)
-            addr_end = long(blobs[2], 16)
-            section_name = blobs[4]
-
-            if len(blobs) == 7:
-                filename = blobs[6]
-            else:
-                filename = get_filename()
-
-
-        except ValueError:
+        if not line.startswith("0x"):
             continue
 
-        except IndexError:
-            continue
+        blobs = [x.strip() for x in line.split(' ')]
+        addr_start = long(blobs[0], 16)
+        addr_end = long(blobs[2], 16)
+        section_name = blobs[4]
+
+        if len(blobs) == 7:
+            filename = blobs[6]
+        else:
+            filename = get_filename()
 
         info = Zone()
         info.name = section_name
@@ -883,10 +885,10 @@ def get_info_files():
         info.zone_end = addr_end
         info.filename = filename
 
-        infos.append( info )
+        # print("adding %s (%#x-%#x) in %s" % (info.name, info.zone_start, info.zone_end, info.filename))
+        __infos_files__.append( info )
 
-    stream.close()
-    return infos
+    return __infos_files__
 
 
 def process_lookup_address(address):
@@ -2542,7 +2544,7 @@ class DereferenceCommand(GenericCommand):
                 deref = DereferenceCommand.dereference(value)
 
             except Exception as e:
-                print((e))
+                # print((e))
                 break
 
         return msg
@@ -2712,7 +2714,7 @@ class XAddressInfoCommand(GenericCommand):
             print(("Inode: %s" % sect.inode))
 
         if info:
-            print(("Section: %s (%s-%s)" % (info.name,
+            print(("Segment: %s (%s-%s)" % (info.name,
                                             format_address(info.zone_start),
                                             format_address(info.zone_end))))
 
