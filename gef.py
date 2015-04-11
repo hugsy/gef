@@ -554,7 +554,7 @@ def sparc_nop_insn():
 
 
 def sparc_return_register():
-    return ""
+    return "$i0"
 
 
 ######################[ MIPS specific ]######################
@@ -1116,7 +1116,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             addr = lookup_address( get_register_ex( ptr ) )
 
         elif is_sparc():
-            regs = ['%i0', '%i1', '%i2','%i3','%i4', '%i5' ]
+            regs = ['$i0', '$i1', '$i2','$i3','$i4', '$i5' ]
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
 
@@ -1166,6 +1166,7 @@ class PatchBreakpoint(gdb.Breakpoint):
     """Create a breakpoint to permanently disable a call (fork/alarm/signal/etc.)"""
 
     def __init__(self, func, retval):
+        print(func)
         super(PatchBreakpoint, self).__init__(func, gdb.BP_BREAKPOINT, internal=False)
         self.func = func
         self.retval = retval
@@ -1192,6 +1193,25 @@ class PatchBreakpoint(gdb.Breakpoint):
             m+= "(setting %s to %#x)" % (retreg, self.retval)
         ok( m )
         return False  # never stop at this breakpoint
+
+
+class SetRegisterBreakpoint(gdb.Breakpoint):
+    """When hit, this temporary breakpoint simply sets one specific register to a given value."""
+
+    def __init__(self, func, reg, retval, force_stop=False):
+        super(SetRegisterBreakpoint, self).__init__(func, gdb.BP_BREAKPOINT, internal=False)
+        self.func = func
+        self.reg = reg
+        self.retval = retval
+        self.force_stop = force_stop
+        return
+
+    def stop(self):
+        gdb.execute("set %s = %d" % (self.reg, self.retval))
+        ok("Setting Return Value register (%s) to %d" % (self.reg, self.retval))
+        self.delete ()
+        return self.force_stop
+
 
 #
 # Functions
@@ -1377,9 +1397,9 @@ class PatchCommand(GenericCommand):
         write_memory(loc, nops, size)
 
         if retval is not None:
-            retreg = return_register()
-            gdb.execute("set %s = %d" % (retreg, retval))
-            ok("Setting Return Value register (%s) to %d" % (retreg, retval))
+            reg = return_register()
+            addr = '*'+format_address(loc)
+            SetRegisterBreakpoint(addr, reg, retval)
         return
 
 
@@ -2507,7 +2527,7 @@ class DereferenceCommand(GenericCommand):
                 deref = DereferenceCommand.dereference(value)
 
             except Exception as e:
-                print((e))
+                # print((e))
                 break
 
         return msg
