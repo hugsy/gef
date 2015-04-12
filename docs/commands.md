@@ -30,6 +30,7 @@ gef-alias unset -- GEF remove alias command
 
 `GEF` (not unlike `PEDA` or `fG! famous gdbinit`) provides comprehensive context
 menu when hitting a breakpoint.
+
 * The register context box displays current register values. Values in red
   indicate that this register has its value changed since the last
   breakpoint. It makes it convenient to track values. Register values can be
