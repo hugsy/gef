@@ -1838,11 +1838,14 @@ class ShellcodeSearchCommand(GenericCommand):
         # API : http://shell-storm.org/shellcode/
         args = "*".join(search_options)
         http = urlopen(self.search_url + args)
-        ret  = http.read()
 
         if http.getcode() != 200:
             err("Could not query search page: got %d" % http.getcode())
             return
+
+        ret = http.read()
+        if PYTHON_MAJOR == 3:
+            ret = str( ret, encoding="ascii" )
 
         # format: [author, OS/arch, cmd, id, link]
         lines = ret.split("\n")
@@ -1887,11 +1890,14 @@ class ShellcodeGetCommand(GenericCommand):
 
     def get_shellcode(self, sid):
         http = urlopen(self.get_url % sid)
-        ret  = http.read()
 
         if http.getcode() != 200:
             err("Could not query search page: got %d" % http.getcode())
             return
+
+        ret  = http.read()
+        if PYTHON_MAJOR == 3:
+            ret = str( ret, encoding="ascii" )
 
         info("Downloading shellcode id=%d" % sid)
         fd, fname = tempfile.mkstemp(suffix=".txt", prefix="sc-", text=True, dir='/tmp')
@@ -2110,7 +2116,12 @@ class InvokeCommand(GenericCommand):
     _syntax_  = "%s [COMMAND]" % _cmdline_
 
     def do_invoke(self, argv):
-        print(( "%s" % gef_execute_external(" ".join(argv)) ))
+        ret = gef_execute_external(" ".join(argv))
+
+        if PYTHON_MAJOR == 3:
+            ret = str( ret, encoding="ascii" )
+
+        print(( "%s" % ret ))
         return
 
 
@@ -3093,8 +3104,7 @@ class ChecksecCommand(GenericCommand):
         cmd  += [filename, ]
 
         ret = subprocess.check_output( cmd )
-        if PYTHON_MAJOR == 3:
-            ret = str( buf )
+        ret = str( buf )
 
         lines = ret.split("\n")
         found = False
