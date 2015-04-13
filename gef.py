@@ -3078,6 +3078,7 @@ class ChecksecCommand(GenericCommand):
 
         if not os.access(self.get_setting("readelf_path"), os.X_OK):
             err("Could not access readelf")
+            return
 
         info("%s for '%s'" % (self._cmdline_, filename))
         self.checksec(filename)
@@ -3090,7 +3091,12 @@ class ChecksecCommand(GenericCommand):
         cmd   = [self.get_setting("readelf_path"), ]
         cmd  += options
         cmd  += [filename, ]
-        lines = subprocess.check_output( cmd ).split("\n")
+
+        ret = subprocess.check_output( cmd )
+        if PYTHON_MAJOR == 3:
+            ret = str( buf )
+
+        lines = ret.split("\n")
         found = False
 
         for line in lines:
