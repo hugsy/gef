@@ -431,9 +431,10 @@ def gef_execute_external(command, as_list=False):
                                        stderr=subprocess.STDOUT,
                                        shell=True).splitlines()
     else:
-        return subprocess.check_output(command,
-                                       stderr=subprocess.STDOUT,
-                                       shell=True)
+        res = subprocess.check_output(command,
+                                      stderr=subprocess.STDOUT,
+                                      shell=True)
+        return str(res, encoding="ascii" )
 
 
 def disassemble_parse(name, filter_opcode=None):
@@ -3103,8 +3104,7 @@ class ChecksecCommand(GenericCommand):
         cmd  += options
         cmd  += [filename, ]
 
-        ret = subprocess.check_output( cmd )
-        ret = str( buf )
+        ret = gef_execute_external( cmd )
 
         lines = ret.split("\n")
         found = False
