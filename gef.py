@@ -2421,7 +2421,13 @@ class ContextCommand(GenericCommand):
             if self.has_setting("use_capstone") and self.get_setting("use_capstone"):
                 CapstoneDisassembleCommand.disassemble(pc, nb_insn)
             else:
-                gdb.execute("x/%di %#x" % (nb_insn, pc))
+                if is_arm():
+                    if (get_register("$cpsr") & 0x20):
+                        gdb.execute("x/%di %#x" % (nb_insn, pc+1))
+                    else:
+                        gdb.execute("x/%di %#x" % (nb_insn, pc))
+                else:
+                    gdb.execute("x/%di %#x" % (nb_insn, pc))
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
         return
