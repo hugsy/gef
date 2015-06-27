@@ -134,6 +134,7 @@ def reset_all_caches():
 
 # let's get fancy
 class Color:
+    GRAY           = "\033[1;30m"
     NORMAL         = "\x1b[0m"
     RED            = "\x1b[31m"
     GREEN          = "\x1b[32m"
@@ -2328,7 +2329,7 @@ class ContextCommand(GenericCommand):
          self.add_setting("nb_registers_per_line", 4)
          self.add_setting("nb_lines_stack", 5)
          self.add_setting("nb_lines_backtrace", 5)
-         self.add_setting("nb_lines_code", 6)
+         self.add_setting("nb_lines_code", 10)
          self.add_setting("clear_screen", False)
 
          if "capstone" in list( sys.modules.keys() ):
@@ -2421,13 +2422,21 @@ class ContextCommand(GenericCommand):
             if self.has_setting("use_capstone") and self.get_setting("use_capstone"):
                 CapstoneDisassembleCommand.disassemble(pc, nb_insn)
             else:
-                if is_arm():
-                    if (get_register("$cpsr") & 0x20):
-                        gdb.execute("x/%di %#x" % (nb_insn, pc+1))
-                    else:
-                        gdb.execute("x/%di %#x" % (nb_insn, pc))
+                if is_arm() and (get_register("$cpsr") & 0x20):
+                    lines = gef_execute("x/%di %#x" % (nb_insn, (pc+1)-(2*nb_insn)))
                 else:
-                    gdb.execute("x/%di %#x" % (nb_insn, pc))
+                    lines = gef_execute("x/%di %#x" % (nb_insn, pc-(2*nb_insn)))
+
+                for addr, content in lines:
+                    line = ""
+                    if addr < pc:
+                        line+= "%s%#x\t %s%s" % (Color.GRAY, addr, content, Color.NORMAL)
+                    elif addr == pc:
+                        line+= "%s%#x\t %s <<= %s" % (Color.RED+Color.BOLD, addr, content, Color.NORMAL)
+                    else:
+                        line+= "%#x\t %s" % (addr, content)
+                    print(line)
+
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
         return
