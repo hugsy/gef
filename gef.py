@@ -426,6 +426,21 @@ def gef_execute(command, as_list=False):
     return output
 
 
+def gef_disassemble(addr, nb_insn, from_top=False):
+    dis_start_addr = addr if from_top else addr-(2*nb_insn)
+    cmd = "x/%di %#x" % (nb_insn, dis_start_addr)
+    lines = gdb.execute(cmd, to_string=True).splitlines()
+    lines = [ l.replace("=>", "").replace("\t", " ").replace(":", " ").strip() for l in lines if "(bad)" not in l ]
+    l = []
+    patt = re.compile(r'^(0x[0-9a-f]{,16})(.*)$', flags=re.IGNORECASE)
+    for line in lines:
+        parts = [ x for x in re.split(patt, line) if len(x)>0 ]
+        addr = int(parts[0], 16)
+        code = parts[1].strip()
+        l.append( (addr, code) )
+    return l
+
+
 def gef_execute_external(command, as_list=False):
     if as_list :
         return subprocess.check_output(command,
@@ -2356,7 +2371,7 @@ class ContextCommand(GenericCommand):
         return
 
     def context_regs(self):
-        print((Color.boldify( Color.blueify("-"*80 + "[regs]") )))
+        print((Color.boldify( Color.blueify("-"*90 + "[regs]") )))
         i = 1
         line = ""
 
@@ -2396,7 +2411,7 @@ class ContextCommand(GenericCommand):
         return
 
     def context_stack(self):
-        print (Color.boldify( Color.blueify("-"*80 + "[stack]")))
+        print (Color.boldify( Color.blueify("-"*90 + "[stack]")))
 
         show_raw = self.get_setting("show_stack_raw")
         try:
@@ -2416,16 +2431,16 @@ class ContextCommand(GenericCommand):
         nb_insn = self.get_setting("nb_lines_code")
         pc = get_pc()
 
-        print(( Color.boldify( Color.blueify("-"*80 + "[code]")) ))
+        print(( Color.boldify( Color.blueify("-"*90 + "[code]")) ))
 
         try:
             if self.has_setting("use_capstone") and self.get_setting("use_capstone"):
                 CapstoneDisassembleCommand.disassemble(pc, nb_insn)
             else:
                 if is_arm() and (get_register("$cpsr") & 0x20):
-                    lines = gef_execute("x/%di %#x" % (nb_insn, (pc+1)-(2*nb_insn)))
+                    lines = gef_disassemble(pc+1, nb_insn)
                 else:
-                    lines = gef_execute("x/%di %#x" % (nb_insn, pc-(2*nb_insn)))
+                    lines = gef_disassemble(pc, nb_insn)
 
                 for addr, content in lines:
                     line = ""
@@ -2442,7 +2457,7 @@ class ContextCommand(GenericCommand):
         return
 
     def context_trace(self):
-        print(( Color.boldify( Color.blueify("-"*80 + "[trace]")) ))
+        print(( Color.boldify( Color.blueify("-"*90 + "[trace]")) ))
         try:
             gdb.execute("backtrace %d" % self.get_setting("nb_lines_backtrace"))
         except gdb.MemoryError:
