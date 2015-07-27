@@ -1,7 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+#
 ################################################################################################################
 # GEF - Multi-Architecture GDB Enhanced Features for Exploiters & Reverse-Engineers
 #
 # by  @_hugsy_
+#
+################################################################################################################
 #
 # GEF provides additional functions to GDB using its powerful Python API. Some
 # functions were inspired by PEDA (https://github.com/longld/peda) which is totally
@@ -30,7 +36,6 @@
 # - add explicit actions for flags (jumps/overflow/negative/etc)
 #
 #
-
 
 from __future__ import print_function
 
@@ -335,19 +340,20 @@ class GlibcChunk:
 
 
     def __str__(self):
-        msg = "====================[ %s ]====================\n"
+        msg = ""
         if not self.is_used():
-            msg%= Color.boldify(Color.greenify("Chunk (free): ") + "%#x" % self.start_addr)
-            msg+= self.str_as_freeed()
+            msg += titlify("Chunk (free): %#x" % self.start_addr, Color.GREEN)
+            msg += "\n"
+            msg += self.str_as_freeed()
         else:
-            msg%= Color.boldify(Color.redify("Chunk (used): ") + "%#x" % self.start_addr)
-            msg+= self.str_as_alloced()
-
+            msg += titlify("Chunk (used): %#x" % self.start_addr, Color.RED)
+            msg += "\n"
+            msg += self.str_as_alloced()
         return msg
 
 
-def titlify(msg):
-    return "{0}[{1} {3} {2}]{0}".format('='*30, Color.RED, Color.NORMAL, msg)
+def titlify(msg, color=Color.RED):
+    return "{0}[ {1}{2}{3}{4} ]{0}".format('='*30, Color.BOLD, color, msg, Color.NORMAL)
 
 def err(msg):
     print((Color.BOLD+Color.RED+"[!]"+Color.NORMAL+" "+msg))
@@ -491,54 +497,58 @@ def get_arch():
 
 
 ######################[ ARM specific ]######################
+@memoize
 def arm_registers():
     return ["$r0  ", "$r1  ", "$r2  ", "$r3  ", "$r4  ", "$r5  ", "$r6  ",
             "$r7  ", "$r8  ", "$r9  ", "$r10 ", "$r11 ", "$r12 ", "$sp  ",
             "$lr  ", "$pc  ", "$cpsr", ]
 
-
+@memoize
 def arm_nop_insn():
     # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
     # mov r0,r0
     return b"\x00\x00\xa0\xe1"
 
-
+@memoize
 def arm_return_register():
     return "$r0"
 
 
 ######################[ Intel x86-64 specific ]######################
+@memoize
 def x86_64_registers():
     return [ "$rax   ", "$rcx   ", "$rdx   ", "$rbx   ", "$rsp   ", "$rbp   ", "$rsi   ",
              "$rdi   ", "$rip   ", "$r8    ", "$r9    ", "$r10   ", "$r11   ", "$r12   ",
              "$r13   ", "$r14   ", "$r15   ",
              "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags", ]
 
-
+@memoize
 def x86_64_nop_insn():
     return b'\x90'
 
-
+@memoize
 def x86_64_return_register():
     return "$rax"
 
 
 ######################[ Intel x86-32 specific ]######################
+@memoize
 def x86_32_registers():
     return [ "$eax   ", "$ecx   ", "$edx   ", "$ebx   ", "$esp   ", "$ebp   ", "$esi   ",
              "$edi   ", "$eip   ", "$cs    ", "$ss    ", "$ds    ", "$es    ",
              "$fs    ", "$gs    ", "$eflags", ]
 
-
+@memoize
 def x86_32_nop_insn():
     return b'\x90'
 
-
+@memoize
 def x86_32_return_register():
     return "$eax"
 
 
 ######################[ PowerPC specific ]######################
+@memoize
 def powerpc_registers():
     return ["$r0  ", "$r1  ", "$r2  ", "$r3  ", "$r4  ", "$r5  ", "$r6  ", "$r7  ",
             "$r8  ", "$r9  ", "$r10 ", "$r11 ", "$r12 ", "$r13 ", "$r14 ", "$r15 ",
@@ -546,18 +556,19 @@ def powerpc_registers():
             "$r24 ", "$r25 ", "$r26 ", "$r27 ", "$r28 ", "$r29 ", "$r30 ", "$r31 ",
             "$pc  ", "$msr ", "$cr  ", "$lr  ", "$ctr ", "$xer ", "$trap" ]
 
-
+@memoize
 def powerpc_nop_insn():
     # http://www.ibm.com/developerworks/library/l-ppc/index.html
     # nop
     return b'\x60\x00\x00\x00'
 
-
+@memoize
 def powerpc_return_register():
     return "$r0"
 
 
 ######################[ SPARC specific ]######################
+@memoize
 def sparc_registers():
     return ["$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
             "$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ",
@@ -565,18 +576,19 @@ def sparc_registers():
             "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ",
             "$pc ", "$sp ", "$fp ", "$psr", ]
 
-
+@memoize
 def sparc_nop_insn():
     # http://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
     # sethi 0, %g0
     return b'\x00\x00\x00\x00'
 
-
+@memoize
 def sparc_return_register():
     return "$i0"
 
 
 ######################[ MIPS specific ]######################
+@memoize
 def mips_registers():
     # http://vhouten.home.xs4all.nl/mipsel/r3000-isa.html
     return ["$r0   ", "$r1   ", "$r2   ", "$r3   ", "$r4   ", "$r5   ", "$r6   ", "$r7   ",
@@ -585,13 +597,13 @@ def mips_registers():
             "$r24  ", "$r25  ", "$r26  ", "$r27  ", "$r28  ", "$r29  ", "$r30  ", "$r31  ",
             "$pc   ", "$sp   ", "$hi   ", "$lo   ", "$fir  ", "$ra   ", "$gp   ", ]
 
-
+@memoize
 def mips_nop_insn():
     # https://en.wikipedia.org/wiki/MIPS_instruction_set
     # sll $0,$0,0
     return b"\x00\x00\x00\x00"
 
-
+@memoize
 def mips_return_register():
     return "$r2"
 
@@ -1553,7 +1565,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         capstone    = sys.modules['capstone']
         cs          = capstone.Cs(arch, mode)
         cs.detail   = True
-        code        = str(code)
+        code        = bytes(code)
         pc          = get_pc()
 
         for i in cs.disasm(code, location):
@@ -1562,7 +1574,7 @@ class CapstoneDisassembleCommand(GenericCommand):
             m+= Color.yellowify("%s" % i.op_str)
 
             if (i.address == pc):
-                m+= Color.redify("\t<<== $pc")
+                m+= Color.redify("\t<- $pc")
 
             print (m)
             inst_num += 1
@@ -2348,7 +2360,7 @@ class ContextCommand(GenericCommand):
          self.add_setting("clear_screen", False)
 
          if "capstone" in list( sys.modules.keys() ):
-             self.add_setting("use_capstone", False)
+             self.add_setting("use_capstone", True)
          return
 
 
@@ -2973,10 +2985,10 @@ class PatternCreateCommand(GenericCommand):
     @staticmethod
     def generate(limit):
         pattern = ""
-        for mj in range(ord('A'), ord('Z')+1) :             # from A to Z
-            for mn in range(ord('a'), ord('z')+1) :         # from a to z
-                for dg in range(ord('0'), ord('9')+1) :     # from 0 to 9
-                    for extra in "~!@#$%&*()-_+={}[]|;:<>?/": # adding extra chars
+        for mj in range(ord('A'), ord('Z')+1) :                         # from A to Z
+            for mn in range(ord('a'), ord('z')+1) :                     # from a to z
+                for dg in range(ord('0'), ord('9')+1) :                 # from 0 to 9
+                    for extra in "~!@#$%&*()-_+={}[]|;:<>?/":           # adding extra chars
                         for c in (chr(mj), chr(mn), chr(dg), extra):
                             if len(pattern) == limit :
                                 return pattern
