@@ -3088,7 +3088,10 @@ class InspectStackCommand(GenericCommand):
             addrs = DereferenceCommand.dereference_from(cur_addr)
             msg = Color.boldify(Color.blueify( format_address(long( addrs[0],16) )))
             msg += ": "
-            msg += " -> ".join(addrs[1:])
+            if len(addrs) >= 2:
+                msg += " -> ".join(addrs[1:])
+            else:
+                msg += format_address( read_int_from_memory( cur_addr ) )
             print((msg))
 
         return
