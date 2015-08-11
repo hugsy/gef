@@ -149,15 +149,17 @@ class Color:
     UNDERLINE      = "\x1b[4m"
 
     @staticmethod
-    def redify(msg): return Color.RED + msg + Color.NORMAL if not NO_COLOR else ""
+    def redify(msg):     return Color.RED + msg + Color.NORMAL if not NO_COLOR else ""
     @staticmethod
-    def greenify(msg): return Color.GREEN + msg + Color.NORMAL if not NO_COLOR else ""
+    def greenify(msg):   return Color.GREEN + msg + Color.NORMAL if not NO_COLOR else ""
     @staticmethod
-    def blueify(msg): return Color.BLUE + msg + Color.NORMAL if not NO_COLOR else ""
+    def blueify(msg):    return Color.BLUE + msg + Color.NORMAL if not NO_COLOR else ""
     @staticmethod
-    def yellowify(msg): return Color.YELLOW + msg + Color.NORMAL if not NO_COLOR else ""
+    def yellowify(msg):  return Color.YELLOW + msg + Color.NORMAL if not NO_COLOR else ""
     @staticmethod
-    def boldify(msg): return Color.BOLD + msg + Color.NORMAL if not NO_COLOR else ""
+    def grayify(msg):    return Color.GRAY + msg + Color.NORMAL if not NO_COLOR else ""
+    @staticmethod
+    def boldify(msg):    return Color.BOLD + msg + Color.NORMAL if not NO_COLOR else ""
 
 
 
@@ -220,6 +222,15 @@ class Section:
             value = kwargs[attr] if attr in kwargs else None
             setattr(self, attr, value)
         return
+
+    def is_readable(self):
+        return self.permission.value and self.permission.value&Permission.READ
+
+    def is_writable(self):
+        return self.permission.value and self.permission.value&Permission.WRITE
+
+    def is_executable(self):
+        return self.permission.value and self.permission.value&Permission.EXECUTE
 
 
 class Zone:
@@ -1468,7 +1479,6 @@ class CapstoneDisassembleCommand(GenericCommand):
     def pre_load(self):
         try:
             import capstone
-            # ok("Using `capstone` v%d.%d" % (capstone.CS_API_MAJOR, capstone.CS_API_MINOR))
         except ImportError as ie:
             msg = "Missing Python `capstone` package. "
             msg+= "Install with `pip install capstone`"
@@ -2360,7 +2370,7 @@ class ContextCommand(GenericCommand):
          self.add_setting("clear_screen", False)
 
          if "capstone" in list( sys.modules.keys() ):
-             self.add_setting("use_capstone", True)
+             self.add_setting("use_capstone", False)
          return
 
 
@@ -2412,7 +2422,7 @@ class ContextCommand(GenericCommand):
                 if new_value == old_value:
                     line += "%s " % (format_address(new_value))
                 else:
-                    line += "%s " % Color.redify(format_address(new_value))
+                    line += "%s " % Color.boldify(Color.redify(format_address(new_value)))
 
             if (i % self.get_setting("nb_registers_per_line")==0) :
                 print(line)
@@ -2455,11 +2465,11 @@ class ContextCommand(GenericCommand):
                     lines = gef_disassemble(pc, nb_insn)
 
                 for addr, content in lines:
-                    line = ""
+                    line = u""
                     if addr < pc:
-                        line+= "%s%#x\t %s%s" % (Color.GRAY, addr, content, Color.NORMAL)
+                        line+= Color.grayify("%#x\t %s" % (addr, content,) )
                     elif addr == pc:
-                        line+= "%s%#x\t %s <<= %s" % (Color.RED+Color.BOLD, addr, content, Color.NORMAL)
+                        line+= Color.boldify(Color.redify("%#x\t %s <- $pc" % (addr, content)))
                     else:
                         line+= "%#x\t %s" % (addr, content)
                     print(line)
@@ -2586,7 +2596,9 @@ class DereferenceCommand(GenericCommand):
 
                 msg.append( "%s" % format_address( long(deref) ))
 
-                if addr.section.permission.value & Permission.EXECUTE and ".text" in addr.info.name:
+                is_in_text_segment = hasattr(addr.info, "name") and ".text" in addr.info.name
+
+                if addr.section.is_executable() and is_in_text_segment:
                     cmd = gdb.execute("x/i %#x" % value, to_string=True).replace("=>", '')
                     cmd = re.sub('\s+',' ', cmd.strip()).split(" ", 1)[1]
 
@@ -2606,7 +2618,7 @@ class DereferenceCommand(GenericCommand):
                 deref = DereferenceCommand.dereference(value)
 
             except Exception as e:
-                # print((e))
+                err((e))
                 break
 
         return msg
@@ -3088,10 +3100,7 @@ class InspectStackCommand(GenericCommand):
             addrs = DereferenceCommand.dereference_from(cur_addr)
             msg = Color.boldify(Color.blueify( format_address(long( addrs[0],16) )))
             msg += ": "
-            if len(addrs) >= 2:
-                msg += " -> ".join(addrs[1:])
-            else:
-                msg += format_address( read_int_from_memory( cur_addr ) )
+            msg += " -> ".join(addrs[1:])
             print((msg))
 
         return
