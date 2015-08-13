@@ -452,11 +452,14 @@ def gef_execute_external(command, as_list=False):
         return subprocess.check_output(command,
                                        stderr=subprocess.STDOUT,
                                        shell=True).splitlines()
-    else:
-        res = subprocess.check_output(command,
-                                      stderr=subprocess.STDOUT,
-                                      shell=True)
+
+    res = subprocess.check_output(command,
+                                  stderr=subprocess.STDOUT,
+                                  shell=True)
+    if PYTHON_MAJOR == 3:
         return str(res, encoding="ascii" )
+
+    return res
 
 
 def disassemble_parse(name, filter_opcode=None):
