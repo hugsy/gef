@@ -50,6 +50,7 @@ import os
 import binascii
 import getopt
 import gdb
+import traceback
 
 
 if sys.version_info.major == 2:
@@ -1128,15 +1129,17 @@ def clear_screen():
 def format_address(addr):
     memalign_size = get_memory_alignment()
     if memalign_size == 32:
+        print
         return "%#.8x" % (addr & 0xFFFFFFFF)
     elif memalign_size == 64:
         return "%#.16x" % (addr & 0xFFFFFFFFFFFFFFFF)
 
 def align_address(address):
-    if get_memory_alignment()== 32:
-        return address & 0xFFFFFFFF
+    if get_memory_alignment()==32:
+        ret = address & 0xFFFFFFFF
     else:
-        return address & 0xFFFFFFFFFFFFFFFF
+        ret = address & 0xFFFFFFFFFFFFFFFF
+    return ret
 
 def parse_address(address):
     if ishex(address):
@@ -2588,11 +2591,11 @@ class DereferenceCommand(GenericCommand):
         old_deref = None
         deref = addr
         msg = []
+
         while True:
             try:
-
                 value = align_address( long(deref) )
-                addr  = lookup_address(value)
+                addr  = lookup_address( value )
                 if addr is None:
                     msg.append( "%#x" % ( long(deref) ))
                     break
@@ -2600,11 +2603,9 @@ class DereferenceCommand(GenericCommand):
                 msg.append( "%s" % format_address( long(deref) ))
 
                 is_in_text_segment = hasattr(addr.info, "name") and ".text" in addr.info.name
-
                 if addr.section.is_executable() and is_in_text_segment:
                     cmd = gdb.execute("x/i %#x" % value, to_string=True).replace("=>", '')
                     cmd = re.sub('\s+',' ', cmd.strip()).split(" ", 1)[1]
-
                     msg.append( "%s" % Color.redify(cmd) )
                     break
 
@@ -2616,12 +2617,10 @@ class DereferenceCommand(GenericCommand):
                         msg.append( '"%s"' % Color.greenify(s))
                         break
 
-
                 old_deref = deref
                 deref = DereferenceCommand.dereference(value)
-
             except Exception as e:
-                err((e))
+                # err((e))
                 break
 
         return msg
@@ -3097,7 +3096,6 @@ class InspectStackCommand(GenericCommand):
     @staticmethod
     def inspect_stack(sp, nb_stack_block):
         memalign = get_memory_alignment() >> 3
-
         for i in range(nb_stack_block):
             cur_addr = align_address( long(sp) + i*memalign )
             addrs = DereferenceCommand.dereference_from(cur_addr)
