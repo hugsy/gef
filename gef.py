@@ -3441,6 +3441,7 @@ if __name__  == "__main__":
     gdb.execute("alias -a bc = delete breakpoints")
     gdb.execute("alias -a tbp = tbreak")
     gdb.execute("alias -a tba = thbreak")
+    gdb.execute("alias -a pt = finish")
 
     # runtime
     gdb.execute("alias -a g = run")
