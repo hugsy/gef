@@ -39,6 +39,7 @@
 
 from __future__ import print_function
 
+import gdb
 import math
 import struct
 import subprocess
@@ -49,9 +50,10 @@ import tempfile
 import os
 import binascii
 import getopt
-import gdb
 import traceback
-
+import threading
+import collections
+import time
 
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
@@ -166,7 +168,14 @@ class Color:
 
 # helpers
 class Address:
-    pass
+    def __init__(self, *args, **kwargs):
+        self.value = kwargs.get("value", 0)
+        self.section = kwargs.get("section", None)
+        self.info = kwargs.get("info", None)
+        return
+
+    def __str__(self):
+        return hex( self.value )
 
 
 class Permission:
@@ -979,12 +988,7 @@ def file_lookup_address(address):
 
 
 def lookup_address(address):
-    addr = Address()
-    for attr in ["value", "section", "info"]:
-        setattr(addr, attr, None)
-
-    addr.value = address
-
+    addr = Address(value=address)
     sect = process_lookup_address(address)
     info = file_lookup_address(address)
     if sect is None and info is None:
@@ -1136,7 +1140,7 @@ def format_address(addr):
 
 def align_address(address):
     if get_memory_alignment()==32:
-        ret = address & 0xFFFFFFFF
+        ret = address & 0x00000000FFFFFFFF
     else:
         ret = address & 0xFFFFFFFFFFFFFFFF
     return ret
@@ -2370,7 +2374,7 @@ class ContextCommand(GenericCommand):
          self.add_setting("enable", True)
          self.add_setting("show_stack_raw", False)
          self.add_setting("nb_registers_per_line", 4)
-         self.add_setting("nb_lines_stack", 5)
+         self.add_setting("nb_lines_stack", 10)
          self.add_setting("nb_lines_backtrace", 5)
          self.add_setting("nb_lines_code", 10)
          self.add_setting("clear_screen", False)
@@ -2440,15 +2444,16 @@ class ContextCommand(GenericCommand):
 
     def context_stack(self):
         print (Color.boldify( Color.blueify("-"*90 + "[stack]")))
-
         show_raw = self.get_setting("show_stack_raw")
+        nb_lines = self.get_setting("nb_lines_stack")
+
         try:
             sp = get_sp()
             if show_raw == True:
-                mem = read_memory(sp, 0x10 * self.get_setting("nb_lines_stack"))
+                mem = read_memory(sp, 0x10 * nb_lines)
                 print (( hexdump(mem) ))
             else:
-                InspectStackCommand.inspect_stack(sp, 10)
+                InspectStackCommand.inspect_stack(sp, nb_lines)
 
         except gdb.MemoryError:
                 err("Cannot read memory from $SP (corrupted stack pointer?)")
@@ -2582,8 +2587,15 @@ class DereferenceCommand(GenericCommand):
 
     @staticmethod
     def dereference(addr):
-        p_long = gdb.lookup_type('unsigned long').pointer()
-        return gdb.Value(addr).cast(p_long).dereference()
+        try:
+            p_long = gdb.lookup_type('unsigned long').pointer()
+            ret = gdb.Value(addr).cast(p_long).dereference()
+        except MemoryError:
+            # exc_type, exc_value, exc_traceback = sys.exc_info()
+            # traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+            # traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
+            ret = None
+        return ret
 
 
     @staticmethod
@@ -2593,35 +2605,31 @@ class DereferenceCommand(GenericCommand):
         msg = []
 
         while True:
-            try:
-                value = align_address( long(deref) )
-                addr  = lookup_address( value )
-                if addr is None:
-                    msg.append( "%#x" % ( long(deref) ))
-                    break
-
-                msg.append( "%s" % format_address( long(deref) ))
-
-                is_in_text_segment = hasattr(addr.info, "name") and ".text" in addr.info.name
-                if addr.section.is_executable() and is_in_text_segment:
-                    cmd = gdb.execute("x/i %#x" % value, to_string=True).replace("=>", '')
-                    cmd = re.sub('\s+',' ', cmd.strip()).split(" ", 1)[1]
-                    msg.append( "%s" % Color.redify(cmd) )
-                    break
-
-                elif addr.section.permission.value & Permission.READ:
-                    if is_readable_string(value):
-                        s = read_string(value, 50)
-                        if len(s) == 50:
-                            s += "[...]"
-                        msg.append( '"%s"' % Color.greenify(s))
-                        break
-
-                old_deref = deref
-                deref = DereferenceCommand.dereference(value)
-            except Exception as e:
-                # err((e))
+            value = align_address( long(deref) )
+            addr  = lookup_address( value )
+            if addr is None:
+                msg.append( "%#x" % ( long(deref) ))
                 break
+
+            msg.append( "%s" % format_address( long(deref) ))
+
+            is_in_text_segment = hasattr(addr.info, "name") and ".text" in addr.info.name
+            if addr.section.is_executable() and is_in_text_segment:
+                cmd = gdb.execute("x/i %#x" % value, to_string=True).replace("=>", '')
+                cmd = re.sub('\s+',' ', cmd.strip()).split(" ", 1)[1]
+                msg.append( "%s" % Color.redify(cmd) )
+                break
+
+            elif addr.section.permission.value & Permission.READ:
+                if is_readable_string(value):
+                    s = read_string(value, 50)
+                    if len(s) == 50:
+                        s += "[...]"
+                    msg.append( '"%s"' % Color.greenify(s))
+                    break
+
+            old_deref = deref
+            deref = DereferenceCommand.dereference(value)
 
         return msg
 
@@ -3096,16 +3104,20 @@ class InspectStackCommand(GenericCommand):
     @staticmethod
     def inspect_stack(sp, nb_stack_block):
         memalign = get_memory_alignment() >> 3
-        for i in range(nb_stack_block):
+
+        def _do_inspect_stack(i):
             cur_addr = align_address( long(sp) + i*memalign )
             addrs = DereferenceCommand.dereference_from(cur_addr)
-            msg = Color.boldify(Color.blueify( format_address(long( addrs[0],16) )))
-            msg += ": "
-            msg += " -> ".join(addrs[1:])
-            print((msg))
+            l  = Color.boldify(Color.blueify( format_address(long(addrs[0], 16) )))
+            l += ": "
+            l += " -> ".join(addrs[1:])
+            return l
+
+        for i in range(nb_stack_block):
+            value = _do_inspect_stack(i)
+            print((value))
 
         return
-
 
 
 
@@ -3441,7 +3453,7 @@ if __name__  == "__main__":
     gdb.execute("alias -a bc = delete breakpoints")
     gdb.execute("alias -a tbp = tbreak")
     gdb.execute("alias -a tba = thbreak")
-    gdb.execute("alias -a pt = finish")
+    gdb.execute("alias -a ptc = finish")
 
     # runtime
     gdb.execute("alias -a g = run")
