@@ -157,3 +157,55 @@ If a potentially insecure entry is found, the breakpoint will trigger, stop the
 process execution, display the reason for trigger and the associated context.
 
 ![fmtstr-helper-example](https://i.imgur.com/INU3KGn.png)
+
+
+## Remote debugging
+
+It is possible to use `gef` in a remote debugging environment.
+
+
+### With a local copy
+
+If you want to remotely debug a binary that you already have, you simply need to
+specify to `gdb` where to find the debug information.
+
+For example, if we want to debug `uname`, we do on the server:
+```
+$ gdbserver 0.0.0.0:1234 /bin/uname
+Process /bin/uname created; pid = 32280
+Listening on port 1234
+```
+
+And on the client, simply run `gdb`:
+```
+$ gdb /bin/uname
+gef> target remote 192.168.56.1:1234
+```
+Or
+```
+$ gdb
+gef> file /bin/uname
+gef> target remote 192.168.56.1:1234
+```
+
+
+### Without a local copy
+
+It is possible to use `gdb` internal functions to copy our targeted binary.
+
+In the following of our previous, if we want to debug `uname`, run `gdb` and
+connect to our `gdbserver`.
+
+```
+$ gdb
+gef> target remote 192.168.56.1:1234
+```
+
+If it cannot find the debug information, `gef` will try to download
+automatically the target file and store in the local temporary directory (on
+most Unix `/tmp`). If successful, it will then automatically load the debug
+information to `gdb` and proceed with the debugging.
+
+![gef-remote-autodownload](https://i.imgur.com/S3X536b.png)
+
+You can then reuse the downloaded file for your future debugging sessions.
