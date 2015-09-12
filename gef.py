@@ -97,10 +97,17 @@ class GefGenericException(Exception):
     def __str__(self):
         return repr(self.message)
 
-class GefMissingDependencyException(GefGenericException): pass
-class GefUnsupportedMode(GefGenericException): pass
-class GefUnsupportedOS(GefGenericException): pass
-class GefNoDebugInformation(GefGenericException): pass
+class GefMissingDependencyException(GefGenericException):
+    pass
+
+class GefUnsupportedMode(GefGenericException):
+    pass
+
+class GefUnsupportedOS(GefGenericException):
+    pass
+
+class GefNoDebugInformation(GefGenericException):
+    pass
 
 
 # https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
@@ -2019,12 +2026,9 @@ class ROPgadgetCommand(GenericCommand):
         return
 
     def pre_load(self):
-        if PYTHON_MAJOR == 3:
-            raise GefGenericException("ROPGadget doesn't support Python3 yet")
-
         try:
             import ropgadget
-            # ok("Using `ropgadget` v%d.%d" % (ropgadget.version.MAJOR_VERSION, ropgadget.version.MINOR_VERSION))
+            # ok("Using %s v%d.%d" % (Color.yellowify("ropgadget"), ropgadget.version.MAJOR_VERSION, ropgadget.version.MINOR_VERSION))
 
         except ImportError as ie:
             msg = "Missing Python `ropgadget` package. "
@@ -3117,10 +3121,11 @@ class InspectStackCommand(GenericCommand):
 
     @staticmethod
     def inspect_stack(sp, nb_stack_block):
+        sp = align_address( long(sp) )
         memalign = get_memory_alignment() >> 3
 
         def _do_inspect_stack(i):
-            cur_addr = align_address( long(sp) + i*memalign )
+            cur_addr = align_address( sp + i*memalign )
             addrs = DereferenceCommand.dereference_from(cur_addr)
             l  = Color.boldify(Color.blueify( format_address(long(addrs[0], 16) )))
             l += ": "
