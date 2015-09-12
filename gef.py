@@ -476,15 +476,12 @@ def gef_disassemble(addr, nb_insn, from_top=False):
     return l
 
 
-def gef_execute_external(command, as_list=False):
-    if as_list :
-        return subprocess.check_output(command,
-                                       stderr=subprocess.STDOUT,
-                                       shell=True).splitlines()
+def gef_execute_external(command, *args, **kwargs):
+    res = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=kwargs.get("shell", False))
 
-    res = subprocess.check_output(command,
-                                  stderr=subprocess.STDOUT,
-                                  shell=True)
+    if kwargs.get("as_list", False) == True:
+        return res.splitlines()
+
     if PYTHON_MAJOR == 3:
         return str(res, encoding="ascii" )
 
@@ -783,7 +780,7 @@ def read_string(address, max_length=-1):
     replaced_chars = [ (b"\n",b"\\n"), (b"\r",b"\\r"), (b"\t",b"\\t"), (b"\"",b"\\\"")]
     for f,t in replaced_chars:
         buf = buf.replace(f, t)
-    return str(buf)
+    return str(buf).decode("utf-8")
 
 
 def is_alive():
@@ -2161,7 +2158,7 @@ class AssembleCommand(GenericCommand):
     def do_invoke(self, argv):
         if len(argv)==0 or (len(argv)==1 and argv[0]=="list"):
             self.usage()
-            err("Modes available:\n%s" % gef_execute_external("rasm2 -L; exit 0"))
+            err("Modes available:\n%s" % gef_execute_external("rasm2 -L;exit 0", shell=True))
             return
 
         mode = self.get_setting("arch")
@@ -2185,7 +2182,7 @@ class InvokeCommand(GenericCommand):
     _syntax_  = "%s [COMMAND]" % _cmdline_
 
     def do_invoke(self, argv):
-        ret = gef_execute_external(" ".join(argv))
+        ret = gef_execute_external( argv )
 
         if PYTHON_MAJOR == 3:
             ret = str( ret, encoding="ascii" )
@@ -2237,7 +2234,7 @@ class ProcessListingCommand(GenericCommand):
 
     def ps(self):
         processes = list()
-        output = gef_execute_external(self.get_setting("ps_command"), True)[1:]
+        output = gef_execute_external(self.get_setting("ps_command").split(" "), True)[1:]
 
         for line in output:
             field = re.compile('\s+').split(line)
