@@ -462,7 +462,11 @@ def gef_execute(command, as_list=False):
 
 
 def gef_disassemble(addr, nb_insn, from_top=False):
-    dis_start_addr = addr if from_top else addr-(2*nb_insn)
+    if from_top:
+        dis_start_addr = addr
+    else:
+        dis_start_addr = addr-(2*nb_insn)
+        nb_insn = 2*nb_insn
     cmd = "x/%di %#x" % (nb_insn, dis_start_addr)
     lines = gdb.execute(cmd, to_string=True).splitlines()
     lines = [ l.replace("=>", "").replace("\t", " ").replace(":", " ").strip() for l in lines if "(bad)" not in l ]
@@ -528,9 +532,9 @@ def get_arch():
 ######################[ ARM specific ]######################
 @memoize
 def arm_registers():
-    return ["$r0  ", "$r1  ", "$r2  ", "$r3  ", "$r4  ", "$r5  ", "$r6  ",
-            "$r7  ", "$r8  ", "$r9  ", "$r10 ", "$r11 ", "$r12 ", "$sp  ",
-            "$lr  ", "$pc  ", "$cpsr", ]
+    return ["$r0   ", "$r1   ", "$r2   ", "$r3   ", "$r4   ", "$r5   ", "$r6   ",
+            "$r7   ", "$r8   ", "$r9   ", "$r10  ", "$r11  ", "$r12  ", "$sp   ",
+            "$lr   ", "$pc   ", "$cpsr ", ]
 
 @memoize
 def arm_nop_insn():
@@ -635,7 +639,7 @@ def mips_nop_insn():
 
 @memoize
 def mips_return_register():
-    return "$r2"
+    return "$v0"
 
 
 @memoize
@@ -1114,6 +1118,11 @@ def is_x86_32():
 def is_arm():
     elf = get_elf_headers()
     return elf.e_machine==0x28
+
+@memoize
+def is_arm_thumb():
+    # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
+    return is_arm() and get_register("$cpsr") & (1<<5)
 
 @memoize
 def is_mips():
@@ -1921,15 +1930,17 @@ class ShellcodeSearchCommand(GenericCommand):
         lines = ret.split("\n")
         refs = [ line.split("::::") for line in lines ]
 
-        info("Showing matching shellcodes")
-        for ref in refs:
-            try:
-                auth, arch, cmd, sid, link = ref
-                print(("\t".join([sid, arch, cmd])))
-            except ValueError:
-                continue
+        if len(refs) > 0:
+            info("Showing matching shellcodes")
+            info("\t".join(["Id", "Platform", "Description"]))
+            for ref in refs:
+                try:
+                    auth, arch, cmd, sid, link = ref
+                    print(("\t".join([sid, arch, cmd])))
+                except ValueError:
+                    continue
 
-        info("Use `%s get <id>` to fetch shellcode" % self._cmdline_)
+            info("Use `shellcode get <id>` to fetch shellcode")
         return
 
 
@@ -2394,7 +2405,7 @@ class ContextCommand(GenericCommand):
          self.add_setting("nb_registers_per_line", 4)
          self.add_setting("nb_lines_stack", 10)
          self.add_setting("nb_lines_backtrace", 5)
-         self.add_setting("nb_lines_code", 10)
+         self.add_setting("nb_lines_code", 6)
          self.add_setting("clear_screen", False)
 
          if "capstone" in list( sys.modules.keys() ):
@@ -2457,7 +2468,9 @@ class ContextCommand(GenericCommand):
                 line = ""
             i+=1
 
-        print("")
+        if len(line) > 0:
+            print(line)
+
         return
 
     def context_stack(self):
@@ -2480,28 +2493,32 @@ class ContextCommand(GenericCommand):
 
     def context_code(self):
         nb_insn = self.get_setting("nb_lines_code")
+        use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
         pc = get_pc()
 
-        print(( Color.boldify( Color.blueify("-"*90 + "[code]")) ))
+        arch = get_arch().lower()
+        title_fmtstr = "%s[code:%s]"
+        if is_arm_thumb():
+            arch += ":thumb"
+            pc   += 1
+        title = title_fmtstr % ("-"*90, arch)
+        print(( Color.boldify( Color.blueify(title)) ))
 
         try:
-            if self.has_setting("use_capstone") and self.get_setting("use_capstone"):
+            if use_capstone:
                 CapstoneDisassembleCommand.disassemble(pc, nb_insn)
-            else:
-                if is_arm() and (get_register("$cpsr") & 0x20):
-                    lines = gef_disassemble(pc+1, nb_insn)
-                else:
-                    lines = gef_disassemble(pc, nb_insn)
+                return
 
-                for addr, content in lines:
-                    line = u""
-                    if addr < pc:
-                        line+= Color.grayify("%#x\t %s" % (addr, content,) )
-                    elif addr == pc:
-                        line+= Color.boldify(Color.redify("%#x\t %s <- $pc" % (addr, content)))
-                    else:
-                        line+= "%#x\t %s" % (addr, content)
-                    print(line)
+            lines = gef_disassemble(pc, nb_insn)
+            for addr, content in lines:
+                line = u""
+                if addr < pc:
+                    line+= Color.grayify("%#x\t %s" % (addr, content,) )
+                elif addr == pc:
+                    line+= Color.boldify(Color.redify("%#x\t %s <- $pc" % (addr, content)))
+                else:
+                    line+= "%#x\t %s" % (addr, content)
+                print(line)
 
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
