@@ -1119,7 +1119,8 @@ def get_elf_headers(filename=None):
             except Exception as e:
                 raise GefNoDebugInformation("Failed to get remote file {0}: {1}".format(rfpath, e))
         else:
-            raise GefNoDebugInformation("Failed to get debug information")
+            warn("Failed to get debug information")
+            return None
 
     elf = Elf()
 
@@ -2369,7 +2370,10 @@ class ElfInfoCommand(GenericCommand):
                      0xB7: "AArch64",
                      }
 
-        filename = argv[0] if len(argv) else get_filename()
+        filename = argv[0] if len(argv) > 0 else get_filename()
+        if filename is None:
+            return
+
         elf = get_elf_headers(filename)
         if elf is None:
             return
@@ -2406,6 +2410,10 @@ class EntryPointBreakCommand(GenericCommand):
     _syntax_  = "%s" % _cmdline_
 
     def do_invoke(self, argv):
+        if not is_alive():
+            warn("No debugging session active")
+            return
+
         # has main() ?
         try:
             value = gdb.parse_and_eval("main")
@@ -2855,6 +2863,10 @@ class XAddressInfoCommand(GenericCommand):
 
 
     def do_invoke (self, argv):
+        if not is_alive():
+            warn("Debugging session is not active")
+            return
+
         if len(argv) < 1:
             err ("At least one valid address must be specified")
             return
@@ -3240,6 +3252,10 @@ class ChecksecCommand(GenericCommand):
         argc = len(argv)
 
         if argc == 0:
+            if not is_alive():
+                warn("No executable/library specified")
+                return
+
             filename = get_filename()
 
         elif argc == 1:
