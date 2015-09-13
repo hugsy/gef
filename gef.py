@@ -2410,8 +2410,8 @@ class EntryPointBreakCommand(GenericCommand):
     _syntax_  = "%s" % _cmdline_
 
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
+        if get_filename() is None:
+            warn("No executable to debug, use `file` to load a binary")
             return
 
         # has main() ?
