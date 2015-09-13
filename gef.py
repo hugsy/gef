@@ -529,6 +529,15 @@ def get_arch():
     return gdb.execute("show architecture", to_string=True).strip().split(" ")[7][:-1]
 
 
+def flags_to_human(reg_value, value_table):
+    flags = "["
+    for i in value_table.keys():
+        w = Color.boldify( value_table[i].upper() ) if reg_value & (1<<i) else value_table[i].lower()
+        flags += " %s " % w
+    flags += "]"
+    return flags
+
+
 ######################[ ARM specific ]######################
 @memoize
 def arm_registers():
@@ -546,6 +555,19 @@ def arm_nop_insn():
 def arm_return_register():
     return "$r0"
 
+def arm_flags_to_human():
+    # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
+    reg = "$cpsr"
+    val = get_register_ex( reg )
+    table = { 31: "negative",
+              30: "zero",
+              29: "carry",
+              28: "overflow",
+               7: "interrupt",
+               6: "fast",
+               5: "thumb"
+    }
+    return flags_to_human(val, table)
 
 ######################[ Intel x86-64 specific ]######################
 @memoize
@@ -563,6 +585,21 @@ def x86_64_nop_insn():
 def x86_64_return_register():
     return "$rax"
 
+def x86_flags_to_human():
+    reg = "$eflags"
+    val = get_register_ex( reg )
+    table = { 6: "zero",
+              0: "carry",
+              2: "parity",
+              4: "adjust",
+              8: "sign",
+              8: "trap",
+              11: "overflow",
+              9: "interrupt",
+              10: "direction",
+              17: "virtual",
+    }
+    return flags_to_human(val, table)
 
 ######################[ Intel x86-32 specific ]######################
 @memoize
@@ -599,6 +636,19 @@ def powerpc_nop_insn():
 def powerpc_return_register():
     return "$r0"
 
+def powerpc_flags_to_human():
+    # http://www.csit-sun.pub.ro/~cpop/Documentatie_SM/Motorola_PowerPC/PowerPc/GenInfo/pemch2.pdf
+    reg = "$cr"
+    val = get_register_ex( reg )
+    table = { 0: "negative",
+              1: "positive",
+              2: "zero",
+              8: "less",
+              9: "greater",
+              10: "equal",
+              11: "overflow",
+    }
+    return flags_to_human(val, table)
 
 ######################[ SPARC specific ]######################
 @memoize
@@ -674,6 +724,14 @@ def return_register():
     elif is_mips():      return mips_return_register()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
+def flag_register():
+    if is_arm():         return "Flags: " + arm_flags_to_human()
+    elif is_x86_32():    return "Flags: " + x86_flags_to_human()
+    elif is_x86_64():    return "Flags: " + x86_flags_to_human()
+    elif is_powerpc():   return "Flags: " + powerpc_flags_to_human
+    elif is_mips():      return ""
+    elif is_sparc():     return ""
+    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 def write_memory(address, buffer, length=0x10):
     return gdb.selected_inferior().write_memory(address, buffer, length)
@@ -2470,6 +2528,8 @@ class ContextCommand(GenericCommand):
 
         if len(line) > 0:
             print(line)
+
+        print(flag_register())
 
         return
 
