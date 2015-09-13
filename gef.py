@@ -843,7 +843,8 @@ def read_string(address, max_length=-1):
     replaced_chars = [ (b"\n",b"\\n"), (b"\r",b"\\r"), (b"\t",b"\\t"), (b"\"",b"\\\"")]
     for f,t in replaced_chars:
         buf = buf.replace(f, t)
-    return str(buf).decode("utf-8")
+
+    return buf.decode("utf-8")
 
 
 def is_alive():
