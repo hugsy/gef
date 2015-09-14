@@ -173,6 +173,15 @@ class Color:
     def boldify(msg):    return Color.BOLD + msg + Color.NORMAL if not NO_COLOR else ""
 
 
+def left_arrow():
+    if PYTHON_MAJOR == 3: return "\u2190"
+    else: return "<-"
+
+
+def right_arrow():
+    if PYTHON_MAJOR == 3: return "\u2192"
+    else: return "->"
+
 
 # helpers
 class Address:
@@ -957,7 +966,7 @@ def get_info_sections():
         try:
             blobs = [x.strip() for x in line.split(' ')]
             index = blobs[0][1:-1]
-            addr_start, addr_end = [ long(x, 16) for x in blobs[1].split("->") ]
+            addr_start, addr_end = [ long(x, 16) for x in blobs[1].split( right_arrow() ) ]
             at = blobs[2]
             off = long(blobs[3][:-1], 16)
             path = blobs[4]
@@ -1684,7 +1693,7 @@ class CapstoneDisassembleCommand(GenericCommand):
             m+= Color.yellowify("%s" % i.op_str)
 
             if (i.address == pc):
-                m+= Color.redify("\t<- $pc")
+                m+= Color.redify("\t\t "+left_arrow()+" $pc")
 
             print (m)
             inst_num += 1
@@ -1935,7 +1944,8 @@ class DetailRegistersCommand(GenericCommand):
                 line+= Color.boldify(Color.blueify(format_address(addr)))
                 addrs = DereferenceCommand.dereference_from(addr)
                 if len(addrs) > 1:
-                    line+= " -> " + " -> ".join(addrs[1:])
+                    sep = " %s " % right_arrow()
+                    line+= sep + sep.join(addrs[1:])
             print(line)
 
         return
@@ -2200,7 +2210,7 @@ class FileDescriptorCommand(GenericCommand):
         for fname in os.listdir(path):
             fullpath = path+"/"+fname
             if os.path.islink(fullpath):
-                info("- %s -> %s" % (fullpath, os.readlink(fullpath)))
+                info("- %s %s %s" % (fullpath, right_arrow(), os.readlink(fullpath)))
 
         return
 
@@ -2584,7 +2594,7 @@ class ContextCommand(GenericCommand):
                 if addr < pc:
                     line+= Color.grayify("%#x\t %s" % (addr, content,) )
                 elif addr == pc:
-                    line+= Color.boldify(Color.redify("%#x\t %s <- $pc" % (addr, content)))
+                    line+= Color.boldify(Color.redify("%#x\t %s \t\t %s $pc" % (addr, content, left_arrow())))
                 else:
                     line+= "%#x\t %s" % (addr, content)
                 print(line)
@@ -3215,9 +3225,12 @@ class InspectStackCommand(GenericCommand):
         def _do_inspect_stack(i):
             cur_addr = align_address( sp + i*memalign )
             addrs = DereferenceCommand.dereference_from(cur_addr)
+            sep = " %s " % right_arrow()
             l  = Color.boldify(Color.blueify( format_address(long(addrs[0], 16) )))
             l += ": "
-            l += " -> ".join(addrs[1:])
+            l += sep.join(addrs[1:])
+            if cur_addr == sp:
+                l += Color.boldify(Color.greenify( "\t\t"+ left_arrow() + " $sp" ))
             return l
 
         for i in range(nb_stack_block):
