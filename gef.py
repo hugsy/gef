@@ -1319,7 +1319,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             content = read_memory_until_null(addr.value)
 
             print((titlify("Format String Detection")))
-            info("Possible insecure format string '%s' -> %#x: '%s'" % (ptr, addr.value, content))
+            info("Possible insecure format string '%s' %s %#x: '%s'" % (ptr, right_arrow(), addr.value, content))
             info("Triggered by '%s()'" % self.location)
 
             name = addr.info.name if addr.info else addr.section.path
@@ -2504,6 +2504,7 @@ class ContextCommand(GenericCommand):
         self.context_regs()
         self.context_stack()
         self.context_code()
+        self.context_source()
         self.context_trace()
         self.update_registers()
         return
@@ -2561,7 +2562,7 @@ class ContextCommand(GenericCommand):
             sp = get_sp()
             if show_raw == True:
                 mem = read_memory(sp, 0x10 * nb_lines)
-                print (( hexdump(mem) ))
+                print(( hexdump(mem) ))
             else:
                 InspectStackCommand.inspect_stack(sp, nb_lines)
 
@@ -2601,6 +2602,45 @@ class ContextCommand(GenericCommand):
 
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
+        return
+
+    def context_source(self):
+        try:
+            pc = get_pc()
+            symtabline = gdb.find_pc_line(pc)
+            symtab = symtabline.symtab
+            line_num = symtabline.line - 1     # we substract one because line number returned by gdb start at 1
+            if not symtab.is_valid():
+                return
+
+            fpath = symtab.fullname()
+            with open(fpath, 'r') as f:
+                lines = [l.rstrip() for l in f.readlines()]
+
+        except Exception as e:
+            # err("in `context_source, exception raised: %s" % e)
+            return
+
+        nb_line = self.get_setting("nb_lines_code")
+        title = "%s[source:%s+%d]" % ("-"*90, symtab.filename, line_num)
+        print(( Color.boldify( Color.blueify(title)) ))
+
+        for i in range(line_num-nb_line+1, line_num+nb_line):
+            if i < 0:
+                continue
+
+            if i < line_num:
+                print(Color.grayify("%4d\t %s" % (i+1, lines[i],) ))
+
+            if i==line_num:
+                print(Color.boldify(Color.redify("%4d\t %s \t\t %s $pc" % (i+1, lines[i], left_arrow()))))
+
+            if i > line_num:
+                try:
+                    print("%4d\t %s" % (i+1, lines[i],) )
+                except IndexError:
+                    break
+
         return
 
     def context_trace(self):
@@ -2694,7 +2734,7 @@ class DereferenceCommand(GenericCommand):
             addrs = DereferenceCommand.dereference_from(pointer)
 
             print(("Dereferencing pointers from `%s`:" % Color.yellowify(format_address(pointer))))
-            print(("%s" % (Color.boldify(" -------> ").join(addrs), )))
+            print(("%s" % (Color.boldify("   %s   " % right_arrow()).join(addrs), )))
 
         return
 
@@ -2905,9 +2945,10 @@ class XAddressInfoCommand(GenericCommand):
 
         if sect:
             print(("Found %s" % format_address(addr.value)))
-            print(("Page: %s->%s (size=%#x)" % (format_address(sect.page_start),
-                                                format_address(sect.page_end),
-                                                sect.page_end-sect.page_start)))
+            print(("Page: %s %s %s (size=%#x)" % (format_address(sect.page_start),
+                                                  right_arrow(),
+                                                  format_address(sect.page_end),
+                                                  sect.page_end-sect.page_start)))
             print(("Permissions: %s" % sect.permission))
             print(("Pathname: %s" % sect.path))
             print(("Offset (from page): +%#x" % (addr.value-sect.page_start)))
