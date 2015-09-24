@@ -2665,7 +2665,7 @@ class ContextCommand(GenericCommand):
                     m.append( (key, val) )
 
             if len(m) > 0:
-                return "("+ ", ".join([ "%s=%s"%(Color.yellowify(a),b) for a,b in m ])  +")"
+                return "; "+ ", ".join([ "%s=%s"%(Color.yellowify(a),b) for a,b in m ])
         except Exception as e:
             pass
         return ""
