@@ -2621,7 +2621,7 @@ class ContextCommand(GenericCommand):
             return
 
         nb_line = self.get_setting("nb_lines_code")
-        title = "%s[source:%s+%d]" % ("-"*90, symtab.filename, line_num)
+        title = "%s[source:%s+%d]" % ("-"*90, symtab.filename, line_num+1)
         print(( Color.boldify( Color.blueify(title)) ))
 
         for i in range(line_num-nb_line+1, line_num+nb_line):
