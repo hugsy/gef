@@ -737,7 +737,7 @@ def flag_register():
     if is_arm():         return "Flags: " + arm_flags_to_human()
     elif is_x86_32():    return "Flags: " + x86_flags_to_human()
     elif is_x86_64():    return "Flags: " + x86_flags_to_human()
-    elif is_powerpc():   return "Flags: " + powerpc_flags_to_human
+    elif is_powerpc():   return "Flags: " + powerpc_flags_to_human()
     elif is_mips():      return ""
     elif is_sparc():     return ""
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
@@ -1024,7 +1024,6 @@ def get_info_files():
         info.zone_end = addr_end
         info.filename = filename
 
-        # print("adding %s (%#x-%#x) in %s" % (info.name, info.zone_start, info.zone_end, info.filename))
         __infos_files__.append( info )
 
     return __infos_files__
@@ -2633,15 +2632,43 @@ class ContextCommand(GenericCommand):
                 print(Color.grayify("%4d\t %s" % (i+1, lines[i],) ))
 
             if i==line_num:
-                print(Color.boldify(Color.redify("%4d\t %s \t\t %s $pc" % (i+1, lines[i], left_arrow()))))
+                extra_info = self.get_pc_context_info(pc, lines[i])
+                print(Color.boldify(Color.redify("%4d\t %s \t\t %s $pc\t" % (i+1, lines[i], left_arrow(),))) + extra_info)
 
             if i > line_num:
                 try:
                     print("%4d\t %s" % (i+1, lines[i],) )
                 except IndexError:
                     break
-
         return
+
+    def get_pc_context_info(self, pc, line):
+        try:
+            current_block = gdb.block_for_pc(pc)
+            if not current_block.is_valid(): return ""
+            m = []
+            for sym in current_block:
+                if not sym.is_function and sym.name in line:
+                    key = sym.name
+                    val = gdb.parse_and_eval(sym.name)
+                    if val.type.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY):
+                        addr = long(val.address)
+                        addrs = DereferenceCommand.dereference_from(addr)
+                        if len(addrs) > 2:
+                            addrs = [addrs[0], "[...]", addrs[-1]]
+                        val = right_arrow().join(addrs)
+                    elif val.type.code == gdb.TYPE_CODE_INT:
+                        val = hex(long(val))
+                    else:
+                        continue
+
+                    m.append( (key, val) )
+
+            if len(m) > 0:
+                return "("+ ", ".join([ "%s=%s"%(Color.yellowify(a),b) for a,b in m ])  +")"
+        except Exception as e:
+            pass
+        return ""
 
     def context_trace(self):
         print(( Color.boldify( Color.blueify("-"*90 + "[trace]")) ))
@@ -3264,14 +3291,16 @@ class InspectStackCommand(GenericCommand):
         memalign = get_memory_alignment() >> 3
 
         def _do_inspect_stack(i):
-            cur_addr = align_address( sp + i*memalign )
+            offset = i*memalign
+            cur_addr = align_address( sp + offset )
             addrs = DereferenceCommand.dereference_from(cur_addr)
             sep = " %s " % right_arrow()
             l  = Color.boldify(Color.blueify( format_address(long(addrs[0], 16) )))
-            l += ": "
+            l += "|+%#.2x: " % offset
             l += sep.join(addrs[1:])
             if cur_addr == sp:
                 l += Color.boldify(Color.greenify( "\t\t"+ left_arrow() + " $sp" ))
+            offset += memalign
             return l
 
         for i in range(nb_stack_block):
