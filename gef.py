@@ -2656,7 +2656,8 @@ class ContextCommand(GenericCommand):
                         addrs = DereferenceCommand.dereference_from(addr)
                         if len(addrs) > 2:
                             addrs = [addrs[0], "[...]", addrs[-1]]
-                        val = right_arrow().join(addrs)
+                        f = " " + right_arrow() + " "
+                        val = f.join(addrs)
                     elif val.type.code == gdb.TYPE_CODE_INT:
                         val = hex(long(val))
                     else:
