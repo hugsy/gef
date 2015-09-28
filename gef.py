@@ -2068,7 +2068,7 @@ class ShellcodeGetCommand(GenericCommand):
 
 	#OWASP ZSC API Z3r0D4y.Com
 class ShellcodeGenerateCommand(GenericCommand):
-	
+	#[!] Failed to load `shellcode zsc`: unsupported operand type(s) for +=: 'NoneType' and 'str'
 	_cmdline_ = "shellcode zsc"
 	_syntax_  = _cmdline_
 	def do_invoke(self, argv):
