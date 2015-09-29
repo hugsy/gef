@@ -2068,7 +2068,7 @@ class ShellcodeGetCommand(GenericCommand):
 
 	#OWASP ZSC API Z3r0D4y.Com
 class ShellcodeGenerateCommand(GenericCommand):
-	
+	"""OWASP ZSC API By Ali Razmjoo"""
 	_cmdline_ = "shellcode zsc"
 	_syntax_  = _cmdline_
 	def do_invoke(self, argv):
