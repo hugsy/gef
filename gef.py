@@ -2068,12 +2068,17 @@ class ShellcodeGetCommand(GenericCommand):
 
 	#OWASP ZSC API Z3r0D4y.Com
 class ShellcodeGenerateCommand(GenericCommand):
-	#[!] Failed to load `shellcode zsc`: unsupported operand type(s) for +=: 'NoneType' and 'str'
+	
 	_cmdline_ = "shellcode zsc"
 	_syntax_  = _cmdline_
 	def do_invoke(self, argv):
+		if len(argv) is 0:
+			self.zscgenerate()
+			return
+		else:
+			self.usage()
 		return
-	def zscget(self,os,job,encode):
+	def zsc(self,os,job,encode):
 		try:
 			info('Connection to OWASP ZSC API api.z3r0d4y.com')
 			params = urllib.urlencode({
@@ -2126,7 +2131,7 @@ class ShellcodeGenerateCommand(GenericCommand):
 					err("Please enter a encode type.")
 		except (KeyboardInterrupt, SystemExit):
 			err("Aborted by user")
-		result = zsc(os,job,encode)
+		result = self.zsc(os,job,encode)
 		if result is not None:
 			print(result)
 		else:
