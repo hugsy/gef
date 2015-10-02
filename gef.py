@@ -54,8 +54,8 @@ import traceback
 import threading
 import collections
 import time
+import socket
 import urllib
-import httplib
 
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
@@ -81,7 +81,6 @@ elif sys.version_info.major == 3:
 
 else:
     raise Exception("WTF is this Python version??")
-
 
 
 __aliases__ = {}
@@ -1954,8 +1953,7 @@ class DetailRegistersCommand(GenericCommand):
 
 class ShellcodeCommand(GenericCommand):
     """ShellcodeCommand uses @JonathanSalwan simple-yet-awesome shellcode API to
-    download shellcodes"""
-    """OWASP ZSC API Z3r0D4y.Com"""
+    download shellcodes or generate shellcodes with OWASP ZSC API"""
 
     _cmdline_ = "shellcode"
     _syntax_  = "%s (search|get|zsc)" % _cmdline_
@@ -2065,8 +2063,6 @@ class ShellcodeGetCommand(GenericCommand):
         os.close(fd)
         info("Shellcode written as '%s'" % fname)
         return
-
-	#OWASP ZSC API Z3r0D4y.Com
 class ShellcodeGenerateCommand(GenericCommand):
 	"""OWASP ZSC API By Ali Razmjoo"""
 	_cmdline_ = "shellcode zsc"
@@ -2080,16 +2076,22 @@ class ShellcodeGenerateCommand(GenericCommand):
 		return
 	def zsc(self,os,job,encode):
 		try:
-			info('Connection to OWASP ZSC API api.z3r0d4y.com')
+			info('Connection to OWASP ZSC API api.z3r0d4y.com')			
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			s.connect(('api.z3r0d4y.com', 80))
 			params = urllib.urlencode({
-						'api_name': 'zsc', 
-						'os': os,
-						'job': job,
-						'encode': encode})
-			headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:41.0) Gecko/20100101 Firefox/41.0 [GDB-PEDA]'}
-			conn = httplib.HTTPConnection('api.z3r0d4y.com')
-			conn.request("POST", "", params, headers)
-			return '\n"'+conn.getresponse().read().replace('\n','')+'"\n'
+					'api_name': 'zsc', 
+					'os': os,
+					'job': job,
+					'encode': encode})
+			data = "GET /index.py?%s\n"%(str(params))
+			s.send(data)
+			shellcode = ''
+			while 1:
+    				temp = s.recv(1024)
+    				if not temp: break
+    				else: shellcode+=temp 
+			return '\n"'+shellcode.replace('\n','')+'"\n'
 		except:
 			err("Error while connecting to api.z3r0d4y.com ...")
 			return None
@@ -2137,6 +2139,7 @@ class ShellcodeGenerateCommand(GenericCommand):
 		else:
 			pass
 		return
+
 class CtfExploitTemplaterCommand(GenericCommand):
     """Generates a ready-to-use exploit template for CTF."""
 
