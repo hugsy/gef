@@ -55,14 +55,13 @@ import threading
 import collections
 import time
 import socket
-import urllib
 
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
     import itertools
     from cStringIO import StringIO
     from urllib import urlopen
-
+    from urllib import urlencode
     # Compat Py2/3 hacks
     range = xrange
 
@@ -72,7 +71,7 @@ elif sys.version_info.major == 3:
     from html.parser import HTMLParser
     from io import StringIO
     from urllib.request import urlopen
-
+    from urllib.parse import urlencode
     # Compat Py2/3 hack
     long = int
     FileNotFoundError = IOError
@@ -2079,7 +2078,7 @@ class ShellcodeGenerateCommand(GenericCommand):
 			info('Connection to OWASP ZSC API api.z3r0d4y.com')			
 			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			s.connect(('api.z3r0d4y.com', 80))
-			params = urllib.urlencode({
+			params = urlencode({
 					'api_name': 'zsc', 
 					'os': os,
 					'job': job,
