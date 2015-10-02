@@ -54,7 +54,6 @@ import traceback
 import threading
 import collections
 import time
-import socket
 
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
@@ -2076,20 +2075,12 @@ class ShellcodeGenerateCommand(GenericCommand):
 	def zsc(self,os,job,encode):
 		try:
 			info('Connection to OWASP ZSC API api.z3r0d4y.com')			
-			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			s.connect(('api.z3r0d4y.com', 80))
 			params = urlencode({
 					'api_name': 'zsc', 
 					'os': os,
 					'job': job,
 					'encode': encode})
-			data = "GET /index.py?%s\n"%(str(params))
-			s.send(data)
-			shellcode = ''
-			while 1:
-    				temp = s.recv(1024)
-    				if not temp: break
-    				else: shellcode+=temp 
+			shellcode = urlopen("http://api.z3r0d4y.com/index.py?%s\n"%(str(params))).read()
 			return '\n"'+shellcode.replace('\n','')+'"\n'
 		except:
 			err("Error while connecting to api.z3r0d4y.com ...")
