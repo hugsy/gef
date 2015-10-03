@@ -2062,7 +2062,7 @@ class ShellcodeGetCommand(GenericCommand):
         info("Shellcode written as '%s'" % fname)
         return
 class ShellcodeGenerateCommand(GenericCommand):
-	"""OWASP ZSC API By Ali Razmjoo"""
+	"""OWASP ZSC API"""
 	_cmdline_ = "shellcode zsc"
 	_syntax_  = _cmdline_
 	def do_invoke(self, argv):
@@ -2081,7 +2081,11 @@ class ShellcodeGenerateCommand(GenericCommand):
 					'job': job,
 					'encode': encode})
 			shellcode = urlopen("http://api.z3r0d4y.com/index.py?%s\n"%(str(params))).read()
-			return '\n"'+shellcode.replace('\n','')+'"\n'
+			if PYTHON_MAJOR == 3:
+				shellcode = str(shellcode,encoding='ascii')
+				return '\n"'+str(shellcode.replace('\n',''))+'"\n'
+			if PYTHON_MAJOR == 2:
+				return '\n"'+str(shellcode.replace('\n',''))+'"\n'
 		except:
 			err("Error while connecting to api.z3r0d4y.com ...")
 			return None
@@ -2100,7 +2104,10 @@ class ShellcodeGenerateCommand(GenericCommand):
 			while True:
 				for os in oslist:
 					print('%s %s'%(Color.yellowify('[+]'),Color.greenify(os)))
-				os = raw_input('%s'%Color.blueify('os:'))
+				if PYTHON_MAJOR is 2:
+					os = raw_input('%s'%Color.blueify('os:'))
+				if PYTHON_MAJOR is 3:
+					os = input('%s'%Color.blueify('os:'))
 				if os in oslist: #check if os exist 
 					break
 				else:
@@ -2108,7 +2115,10 @@ class ShellcodeGenerateCommand(GenericCommand):
 			while True:
 				for job in joblist:
 					print('%s %s'%(Color.yellowify('[+]'),Color.greenify(job)))
-				job = raw_input('%s'%Color.blueify('job:'))
+				if PYTHON_MAJOR is 2:
+					job = raw_input('%s'%Color.blueify('job:'))
+				if PYTHON_MAJOR is 3:
+					job = input('%s'%Color.blueify('job:'))
 				if job != '':
 					break
 				else:
@@ -2116,7 +2126,10 @@ class ShellcodeGenerateCommand(GenericCommand):
 			while True:
 				for encode in encodelist:
 					print('%s %s'%(Color.yellowify('[+]'),Color.greenify(encode)))
-				encode = raw_input('%s'%Color.blueify('encode:'))
+				if PYTHON_MAJOR is 2:
+					encode = raw_input('%s'%Color.blueify('encode:'))
+				if PYTHON_MAJOR is 3:
+					encode = input('%s'%Color.blueify('encode:'))
 				if encode != '':
 					break
 				else:
