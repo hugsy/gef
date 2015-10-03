@@ -60,7 +60,7 @@ if sys.version_info.major == 2:
     import itertools
     from cStringIO import StringIO
     from urllib import urlopen
-
+    from urllib import urlencode
     # Compat Py2/3 hacks
     range = xrange
 
@@ -70,7 +70,7 @@ elif sys.version_info.major == 3:
     from html.parser import HTMLParser
     from io import StringIO
     from urllib.request import urlopen
-
+    from urllib.parse import urlencode
     # Compat Py2/3 hack
     long = int
     FileNotFoundError = IOError
@@ -79,7 +79,6 @@ elif sys.version_info.major == 3:
 
 else:
     raise Exception("WTF is this Python version??")
-
 
 
 __aliases__ = {}
@@ -1952,10 +1951,10 @@ class DetailRegistersCommand(GenericCommand):
 
 class ShellcodeCommand(GenericCommand):
     """ShellcodeCommand uses @JonathanSalwan simple-yet-awesome shellcode API to
-    download shellcodes"""
+    download shellcodes or generate shellcodes with OWASP ZSC API"""
 
     _cmdline_ = "shellcode"
-    _syntax_  = "%s (search|get)" % _cmdline_
+    _syntax_  = "%s (search|get|zsc)" % _cmdline_
 
 
     def do_invoke(self, argv):
@@ -2062,7 +2061,87 @@ class ShellcodeGetCommand(GenericCommand):
         os.close(fd)
         info("Shellcode written as '%s'" % fname)
         return
-
+class ShellcodeGenerateCommand(GenericCommand):
+	"""OWASP ZSC API"""
+	_cmdline_ = "shellcode zsc"
+	_syntax_  = _cmdline_
+	def do_invoke(self, argv):
+		if len(argv) is 0:
+			self.zscgenerate()
+			return
+		else:
+			self.usage()
+		return
+	def zsc(self,os,job,encode):
+		try:
+			info('Connection to OWASP ZSC API api.z3r0d4y.com')			
+			params = urlencode({
+					'api_name': 'zsc', 
+					'os': os,
+					'job': job,
+					'encode': encode})
+			shellcode = urlopen("http://api.z3r0d4y.com/index.py?%s\n"%(str(params))).read()
+			if PYTHON_MAJOR == 3:
+				shellcode = str(shellcode,encoding='ascii')
+				return '\n"'+str(shellcode.replace('\n',''))+'"\n'
+			if PYTHON_MAJOR == 2:
+				return '\n"'+str(shellcode.replace('\n',''))+'"\n'
+		except:
+			err("Error while connecting to api.z3r0d4y.com ...")
+			return None
+	def zscgenerate(self):
+		'os lists'
+		oslist = ['linux_x86','linux_x64','linux_arm','linux_mips','freebsd_x86',
+			'freebsd_x64','windows_x86','windows_x64','osx','solaris_x64','solaris_x86']
+		'functions'
+		joblist = ['exec(\'/path/file\')','chmod(\'/path/file\',\'permission number\')','write(\'/path/file\',\'text to write\')',
+			'file_create(\'/path/file\',\'text to write\')','dir_create(\'/path/folder\')','download(\'url\',\'filename\')',
+			'download_execute(\'url\',\'filename\',\'command to execute\')','system(\'command to execute\')']
+		'encode types'
+		encodelist = ['none','xor_random','xor_yourvalue','add_random','add_yourvalue','sub_random',
+			'sub_yourvalue','inc','inc_timeyouwant','dec','dec_timeyouwant','mix_all']
+		try:
+			while True:
+				for os in oslist:
+					print('%s %s'%(Color.yellowify('[+]'),Color.greenify(os)))
+				if PYTHON_MAJOR is 2:
+					os = raw_input('%s'%Color.blueify('os:'))
+				if PYTHON_MAJOR is 3:
+					os = input('%s'%Color.blueify('os:'))
+				if os in oslist: #check if os exist 
+					break
+				else:
+					err("Wrong input! Try Again.")
+			while True:
+				for job in joblist:
+					print('%s %s'%(Color.yellowify('[+]'),Color.greenify(job)))
+				if PYTHON_MAJOR is 2:
+					job = raw_input('%s'%Color.blueify('job:'))
+				if PYTHON_MAJOR is 3:
+					job = input('%s'%Color.blueify('job:'))
+				if job != '':
+					break
+				else:
+					err("Please enter a function.")
+			while True:
+				for encode in encodelist:
+					print('%s %s'%(Color.yellowify('[+]'),Color.greenify(encode)))
+				if PYTHON_MAJOR is 2:
+					encode = raw_input('%s'%Color.blueify('encode:'))
+				if PYTHON_MAJOR is 3:
+					encode = input('%s'%Color.blueify('encode:'))
+				if encode != '':
+					break
+				else:
+					err("Please enter a encode type.")
+		except (KeyboardInterrupt, SystemExit):
+			err("Aborted by user")
+		result = self.zsc(os,job,encode)
+		if result is not None:
+			print(result)
+		else:
+			pass
+		return
 
 class CtfExploitTemplaterCommand(GenericCommand):
     """Generates a ready-to-use exploit template for CTF."""
@@ -3470,7 +3549,7 @@ class GEFCommand(gdb.Command):
                         ROPgadgetCommand,
                         InspectStackCommand,
                         CtfExploitTemplaterCommand,
-                        ShellcodeCommand, ShellcodeSearchCommand, ShellcodeGetCommand,
+                        ShellcodeCommand, ShellcodeSearchCommand, ShellcodeGetCommand,ShellcodeGenerateCommand,
                         DetailRegistersCommand,
                         SolveKernelSymbolCommand,
                         AliasCommand, AliasShowCommand, AliasSetCommand, AliasUnsetCommand, AliasDoCommand,
