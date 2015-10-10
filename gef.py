@@ -32,9 +32,6 @@
 # To start: in gdb, type `source /path/to/gef.py`
 #
 #
-# ToDo:
-# - add explicit actions for flags (jumps/overflow/negative/etc)
-#
 #
 
 from __future__ import print_function
@@ -394,19 +391,23 @@ def titlify(msg, color=Color.RED):
     return "{0}[ {1}{2}{3}{4} ]{0}".format('='*30, Color.BOLD, color, msg, Color.NORMAL)
 
 def err(msg):
-    print((Color.BOLD+Color.RED+"[!]"+Color.NORMAL+" "+msg))
+    gdb.write(Color.BOLD+Color.RED+"[!]"+Color.NORMAL+" "+msg+"\n", gdb.STDERR)
+    gdb.flush()
     return
 
 def warn(msg):
-    print((Color.BOLD+Color.YELLOW+"[*]"+Color.NORMAL+" "+msg))
+    gdb.write(Color.BOLD+Color.YELLOW+"[*]"+Color.NORMAL+" "+msg+"\n", gdb.STDLOG)
+    gdb.flush()
     return
 
 def ok(msg):
-    print((Color.BOLD+Color.GREEN+"[+]"+Color.NORMAL+" "+msg))
+    gdb.write(Color.BOLD+Color.GREEN+"[+]"+Color.NORMAL+" "+msg+"\n", gdb.STDLOG)
+    gdb.flush()
     return
 
 def info(msg):
-    print((Color.BOLD+Color.BLUE+"[+]"+Color.NORMAL+" "+msg))
+    gdb.write(Color.BOLD+Color.BLUE+"[+]"+Color.NORMAL+" "+msg+"\n", gdb.STDLOG)
+    gdb.flush()
     return
 
 def hexdump(src, l=0x10, sep='.', show_raw=False, base=0x00):
@@ -898,15 +899,16 @@ def get_sp():
         return get_register_ex("$sp")
 
 
-@memoize
 def get_pid():
+    if "gef-remote.pid" in __config__.keys():
+        return __config__.get("gef-remote.pid")[0]
     return get_frame().pid
 
 
-@memoize
 def get_filename():
+    if "gef-remote.filename" in __config__.keys():
+        return __config__.get("gef-remote.filename")[0]
     return gdb.current_progspace().filename
-
 
 @memoize
 def get_process_maps():
@@ -914,7 +916,8 @@ def get_process_maps():
 
     try:
         pid = get_pid()
-        f = open('/proc/%d/maps' % pid)
+        proc = __config__.get("gef-remote.proc_directory")[0]
+        f = open('%s/%d/maps' % (proc, pid))
         while True:
             line = f.readline()
             if len(line) == 0:
@@ -945,7 +948,8 @@ def get_process_maps():
 
             sections.append( section )
 
-    except IOError:
+    except IOError as ioe:
+        err(str(ioe))
         sections = get_info_sections()
 
     return sections
@@ -1094,7 +1098,7 @@ def ishex(pattern):
 
 # dirty hack, from https://github.com/longld/peda
 def define_user_command(cmd, code):
-    if sys.version_info.major == 3:
+    if PYTHON_MAJOR == 3:
         commands = bytes( "define {0}\n{1}\nend".format(cmd, code), "UTF-8" )
     else:
         commands = "define {0}\n{1}\nend".format(cmd, code)
@@ -1117,19 +1121,10 @@ def get_elf_headers(filename=None):
     except IOError:
         err("'{0}' not found/readable".format(filename))
         if filename.startswith("target:"):
-            rfpath = filename.replace("target:","")
-            lfpath = tempfile.gettempdir() + '/' + os.path.basename(rfpath)
-            warn("{0} is remote, trying to fetch and load".format(rfpath))
-            try:
-                gdb.execute("remote get {0} {1}".format(rfpath, lfpath))
-                gdb.execute("file {0}".format(lfpath))
-                ok("Binary copied at '{}'".format(lfpath))
-                f = open(lfpath, "rb")
-            except Exception as e:
-                raise GefNoDebugInformation("Failed to get remote file {0}: {1}".format(rfpath, e))
+            warn("Your file is remote, you should try using `gef-remote` instead")
         else:
-            warn("Failed to get debug information")
-            return None
+            err("Failed to get file debug information, most of gef features will not work")
+        return None
 
     elf = Elf()
 
@@ -1259,6 +1254,8 @@ def endian_str():
     if elf.e_endianness == 0x01:
         return "<" # LE
     return ">" # BE
+
+
 
 #
 # Breakpoints
@@ -1481,6 +1478,103 @@ class GenericCommand(gdb.Command):
 
     # def do_invoke(self, argv):
         # return
+
+
+class RemoteCommand(GenericCommand):
+    """gef wrapper for the `target remote` command. This command will automatically
+    download the target binary in the local temporary directory (defaut /tmp) and then
+    source it. Additionally, it will fetch all the /proc/PID/maps and loads all its
+    information."""
+
+    _cmdline_ = "gef-remote"
+    _syntax_  = "%s TARGET REMOTE-PID" % _cmdline_
+
+    def __init__(self):
+        super(RemoteCommand, self).__init__()
+        self.add_setting("proc_directory", "/proc")
+        return
+
+    def do_invoke(self, argv):
+        if len(argv) != 2 or not argv[1].isdigit():
+            err("Invalid syntax.")
+            self.help()
+            return
+
+        # cleaning memoized cache
+        gdb.execute("reset-cache")
+
+        target = argv[0]
+        rpid = int(argv[1])
+        if not self.connect_target(target):
+            err("Failed to connect to %s" % target)
+            return
+
+        ok("Connected to '%s'" % target)
+        directory, filename = self.load_target_binary(rpid)
+        if (directory, filename) == (None, None):
+            err("Failed to source remote binary")
+            return
+
+        ok("Downloading remote information")
+        for info in ["maps", "environ", "cmdline"]:
+            if self.load_target_proc(rpid, info) is None:
+                err("Failed to load memory map of '%s'" % info)
+                return
+
+        self.add_setting("proc_directory", directory + '/proc')
+        self.add_setting("pid", rpid)
+        self.add_setting("filename", filename)
+        self.add_setting("target", target)
+
+        ok("Remote information loaded, remember to clean '%s' when your session is over" % directory)
+        return
+
+
+    def connect_target(self, target):
+        define_user_command("hook-stop", "")
+        try:
+            gdb.execute("target remote {0}".format(target))
+            ret = True
+        except Exception as e:
+            err(str(e))
+            ret = False
+        define_user_command("hook-stop", "context")
+        return ret
+
+
+    def load_target_binary(self, pid):
+        rfpath = get_filename().replace("target:","")
+        lfdir  = '%s/%d' % (tempfile.gettempdir(), pid)
+        lfpath = lfdir + '/' + os.path.basename(rfpath)
+        try:
+            os.makedirs(lfdir, exist_ok=True)
+            gdb.execute("remote get {0} {1}".format(rfpath, lfpath))
+            gdb.execute("file {0}".format(lfpath))
+        except Exception as e:
+            err(str(e))
+            lfdir = None
+            lfpath = None
+        return (lfdir, lfpath)
+
+
+    def load_target_proc(self, pid, fname):
+        try:
+            dst_d = '{0:s}/{1:d}/proc/{1:d}'.format(tempfile.gettempdir(), pid)
+            dst_f = dst_d + '/' + fname
+            os.makedirs(dst_d, exist_ok=True)
+            gdb.execute("remote get /proc/{:d}/{:s} {:s}".format(pid, fname, dst_f))
+        except Exception as e:
+            err(str(e))
+            dst_f = None
+        return dst_f
+
+
+    def help(self):
+        h = "%s\n" % self._syntax_
+        h+= "\tTARGET is the host:port, serial port or tty to connect to.\n"
+        h+= "\tREMOTE-PID is PID of the debugged process on gdbserver's end.\n"
+        info(h)
+        return
 
 
 class PatchCommand(GenericCommand):
@@ -2204,7 +2298,8 @@ class FileDescriptorCommand(GenericCommand):
             return
 
         pid = get_pid()
-        path = "/proc/%s/fd" % pid
+        proc = __config__.get("get-remote.proc_directory")[0]
+        path = "%s/%s/fd" % (proc, pid)
 
         for fname in os.listdir(path):
             fullpath = path+"/"+fname
@@ -2264,10 +2359,6 @@ class InvokeCommand(GenericCommand):
 
     def do_invoke(self, argv):
         ret = gef_execute_external( argv )
-
-        if PYTHON_MAJOR == 3:
-            ret = str( ret, encoding="ascii" )
-
         print(( "%s" % ret ))
         return
 
@@ -2617,7 +2708,7 @@ class ContextCommand(GenericCommand):
                 lines = [l.rstrip() for l in f.readlines()]
 
         except Exception as e:
-            # err("in `context_source, exception raised: %s" % e)
+            # err("in `context_source, exception '%s' raised: %s" % (e.__class__.__name__, e.message))
             return
 
         nb_line = self.get_setting("nb_lines_code")
@@ -2663,7 +2754,12 @@ class ContextCommand(GenericCommand):
                     else:
                         continue
 
-                    m.append( (key, val) )
+                    found = False
+                    for (k,v) in m:
+                        if k==key: found = True
+
+                    if not found:
+                        m.append( (key, val) )
 
             if len(m) > 0:
                 return "; "+ ", ".join([ "%s=%s"%(Color.yellowify(a),b) for a,b in m ])
@@ -3477,6 +3573,7 @@ class GEFCommand(gdb.Command):
                         DumpMemoryCommand,
                         GlibcHeapCommand,
                         PatchCommand,
+                        RemoteCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
