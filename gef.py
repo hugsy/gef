@@ -2890,20 +2890,21 @@ class DereferenceCommand(GenericCommand):
                 break
             msg.append( "%s" % format_address( long(deref) ))
 
-            is_in_text_segment = hasattr(addr.info, "name") and ".text" in addr.info.name
-            if addr.section.is_executable() and is_in_text_segment:
-                cmd = gdb.execute("x/i %#x" % value, to_string=True).replace("=>", '')
-                cmd = re.sub('\s+',' ', cmd.strip()).split(" ", 1)[1]
-                msg.append( "%s" % Color.redify(cmd) )
-                break
-
-            elif addr.section.permission.value & Permission.READ:
-                if is_readable_string(value):
-                    s = read_string(value, 50)
-                    if len(s) == 50:
-                        s += "[...]"
-                    msg.append( '"%s"' % Color.greenify(s))
+            if addr.section:
+                is_in_text_segment = hasattr(addr.info, "name") and ".text" in addr.info.name
+                if addr.section.is_executable() and is_in_text_segment:
+                    cmd = gdb.execute("x/i %#x" % value, to_string=True).replace("=>", '')
+                    cmd = re.sub('\s+',' ', cmd.strip()).split(" ", 1)[1]
+                    msg.append( "%s" % Color.redify(cmd) )
                     break
+
+                elif addr.section.permission.value & Permission.READ:
+                    if is_readable_string(value):
+                        s = read_string(value, 50)
+                        if len(s) == 50:
+                            s += "[...]"
+                        msg.append( '"%s"' % Color.greenify(s))
+                        break
 
             old_deref = deref
             deref = DereferenceCommand.dereference(value)
