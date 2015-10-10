@@ -21,8 +21,8 @@
 #
 # Tested on
 # * x86-32/x86-64 (even though you should totally use `gdb-peda` (https://github.com/longld/peda) instead)
-# * armv6/armv7/armv8 (untested)
-# * mips32
+# * armv6/armv7/armv8
+# * mips
 # * powerpc32/powerpc64
 # * sparc
 #
@@ -1255,6 +1255,9 @@ def endian_str():
         return "<" # LE
     return ">" # BE
 
+@memoize
+def is_remote_debug():
+    return "gef-remote.target" in __config__.keys()
 
 
 #
@@ -1531,14 +1534,14 @@ class RemoteCommand(GenericCommand):
 
 
     def connect_target(self, target):
-        define_user_command("hook-stop", "")
+        __config__["context.enable"] = (False, bool)
         try:
             gdb.execute("target remote {0}".format(target))
             ret = True
         except Exception as e:
             err(str(e))
             ret = False
-        define_user_command("hook-stop", "context")
+        __config__["context.enable"] = (True, bool)
         return ret
 
 
@@ -2297,6 +2300,10 @@ class FileDescriptorCommand(GenericCommand):
             warn("No debugging session active")
             return
 
+        if is_remote_debug():
+            warn("'%s' cannot be used on remote debugging" % self._cmdline_)
+            return
+
         pid = get_pid()
         proc = __config__.get("get-remote.proc_directory")[0]
         path = "%s/%s/fd" % (proc, pid)
@@ -2326,7 +2333,6 @@ class AssembleCommand(GenericCommand):
     def pre_load(self):
         try:
             import r2, r2.r_asm
-            # ok("Using `radare2-python` v%s" % r2.r_asm.R2_VERSION)
         except ImportError:
             raise GefMissingDependencyException("radare2 Python bindings could not be loaded")
 
@@ -3514,7 +3520,10 @@ class ChecksecCommand(GenericCommand):
 
 
 class FormatStringSearchCommand(GenericCommand):
-    """Exploitable format-string helper (experimental)"""
+    """Exploitable format-string helper: this command will set up specific breakpoints
+    at well-known dangerous functions (printf, snprintf, etc.), and check if the pointer
+    holding the format string is writable, and therefore susceptible to format string
+    attacks if an attacker can control its content."""
     _cmdline_ = "fmtstr-helper"
     _syntax_ = "%s" % _cmdline_
 
