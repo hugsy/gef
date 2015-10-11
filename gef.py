@@ -1511,19 +1511,22 @@ class RemoteCommand(GenericCommand):
         if not self.connect_target(target):
             err("Failed to connect to %s" % target)
             return
-
         ok("Connected to '%s'" % target)
-        directory, filename = self.load_target_binary(rpid)
-        if (directory, filename) == (None, None):
-            err("Failed to source remote binary")
-            return
 
         ok("Downloading remote information")
-        for info in ["maps", "environ", "cmdline"]:
-            if self.load_target_proc(rpid, info) is None:
-                err("Failed to load memory map of '%s'" % info)
+        infos = {}
+        for i in ["exe", "maps", "environ", "cmdline"]:
+            infos[i] = self.load_target_proc(rpid, i)
+            if infos[i] is None:
+                err("Failed to load memory map of '%s'" % i)
                 return
 
+        if not os.access(infos["exe"], os.R_OK):
+            err("Source binary is not readable")
+            return
+
+        directory  = '%s/%d' % (tempfile.gettempdir(), rpid)
+        filename   = infos["exe"]
         self.add_setting("proc_directory", directory + '/proc')
         self.add_setting("pid", rpid)
         self.add_setting("filename", filename)
@@ -1534,30 +1537,15 @@ class RemoteCommand(GenericCommand):
 
 
     def connect_target(self, target):
-        __config__["context.enable"] = (False, bool)
+        disable_context()
         try:
             gdb.execute("target remote {0}".format(target))
             ret = True
         except Exception as e:
             err(str(e))
             ret = False
-        __config__["context.enable"] = (True, bool)
+        enable_context()
         return ret
-
-
-    def load_target_binary(self, pid):
-        rfpath = get_filename().replace("target:","")
-        lfdir  = '%s/%d' % (tempfile.gettempdir(), pid)
-        lfpath = lfdir + '/' + os.path.basename(rfpath)
-        try:
-            os.makedirs(lfdir, exist_ok=True)
-            gdb.execute("remote get {0} {1}".format(rfpath, lfpath))
-            gdb.execute("file {0}".format(lfpath))
-        except Exception as e:
-            err(str(e))
-            lfdir = None
-            lfpath = None
-        return (lfdir, lfpath)
 
 
     def load_target_proc(self, pid, fname):
@@ -2787,6 +2775,15 @@ class ContextCommand(GenericCommand):
         return
 
 
+def disable_context():
+    __config__["context.enable"] = (False, bool)
+    return
+
+
+def enable_context():
+    __config__["context.enable"] = (True, bool)
+    return
+
 
 class HexdumpCommand(GenericCommand):
     """Display arranged hexdump (according to architecture endianness) of memory range."""
@@ -3210,11 +3207,11 @@ class TraceRunCommand(GenericCommand):
         gdb.execute( "set logging redirect on" )
         gdb.execute( "set logging on" )
 
-        __config__["context.enable"] = (False, bool)
+        disable_context()
 
         self._do_trace(loc_start, loc_end, depth)
 
-        __config__["context.enable"] = (True, bool)
+        enable_context()
 
         gdb.execute( "set logging redirect off" )
         gdb.execute( "set logging off" )
