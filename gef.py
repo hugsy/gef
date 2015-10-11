@@ -1509,6 +1509,7 @@ class RemoteCommand(GenericCommand):
             elif o == "-p":   rpid = int(a)
             elif o == "-U":   update_solib = True
             elif o == "-D":   download_lib = a
+            elif o == "-U":   fetch_all_libs = True
             elif o == "-h":
                 self.help()
                 return
@@ -1532,6 +1533,8 @@ class RemoteCommand(GenericCommand):
                 err("Failed to download remote file")
                 return
             ok("Download success: %s %s %s" % (download_lib, right_arrow(), fil))
+            if update_solib:
+                self.refresh_shared_library_path()
             return
 
         err("No action defined")
@@ -1560,19 +1563,17 @@ class RemoteCommand(GenericCommand):
             return
 
         directory  = '%s/%d' % (tempfile.gettempdir(), pid)
-        filename   = infos["exe"]
+        gdb.execute("file %s" % infos["exe"])
+
         self.add_setting("root", directory)
         self.add_setting("proc_directory", directory + '/proc')
         self.add_setting("pid", pid)
-        self.add_setting("filename", filename)
+        self.add_setting("filename", infos["exe"])
         self.add_setting("target", target)
 
         ok("Remote information loaded, remember to clean '%s' when your session is over" % directory)
-
         if update_solib:
-            ok("Adding '%s' to shared libraries path" % directory)
-            gdb.execute("set solib-search-path %s" % directory)
-            gdb.execute("file %s" % filename)
+            self.refresh_shared_library_path()
         return
 
 
@@ -1608,6 +1609,13 @@ class RemoteCommand(GenericCommand):
         """Download one item from /proc/pid"""
         remote_name = "/proc/{:d}/{:s}".format(pid, info)
         return self.download_file(pid, remote_name)
+
+
+    def refresh_shared_library_path(self):
+        dirs = [r for r, d, f in os.walk( self.get_setting("root") )]
+        path = ":".join(dirs)
+        gdb.execute("set solib-search-path %s" % (path,))
+        return
 
 
     def help(self):
