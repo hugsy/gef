@@ -1490,7 +1490,7 @@ class RemoteCommand(GenericCommand):
     information."""
 
     _cmdline_ = "gef-remote"
-    _syntax_  = "%s TARGET REMOTE-PID" % _cmdline_
+    _syntax_  = "%s -t TARGET -r PID [OPTIONS]" % _cmdline_
 
     def __init__(self):
         super(RemoteCommand, self).__init__()
@@ -1498,16 +1498,50 @@ class RemoteCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
-        if len(argv) != 2 or not argv[1].isdigit():
-            err("Invalid syntax.")
-            self.help()
+        target = None
+        rpid = -1
+        update_solib = False
+        fetch_all_libs = False
+        download_lib = None
+        opts, args = getopt.getopt(argv, "t:p:hUD:")
+        for o,a in opts:
+            if   o == "-t":   target = a
+            elif o == "-p":   rpid = int(a)
+            elif o == "-U":   update_solib = True
+            elif o == "-D":   download_lib = a
+            elif o == "-h":
+                self.help()
+                return
+
+        if target is not None:
+            if rpid not in range(1, 65536):
+                err("Invalid syntax, see -h for help.")
+                return
+
+            self.setup_remote_environment(target, rpid, update_solib)
             return
 
+        if download_lib is not None:
+            if not is_remote_debug():
+                warn("No remote session active.")
+                return
+
+            pid = self.get_setting("pid")
+            fil = self.download_file(pid, download_lib)
+            if fil is None:
+                err("Failed to download remote file")
+                return
+            ok("Download success: %s %s %s" % (download_lib, right_arrow(), fil))
+            return
+
+        err("No action defined")
+        return
+
+
+    def setup_remote_environment(self, target, pid, update_solib=False):
         # cleaning memoized cache
         gdb.execute("reset-cache")
 
-        target = argv[0]
-        rpid = int(argv[1])
         if not self.connect_target(target):
             err("Failed to connect to %s" % target)
             return
@@ -1516,7 +1550,7 @@ class RemoteCommand(GenericCommand):
         ok("Downloading remote information")
         infos = {}
         for i in ["exe", "maps", "environ", "cmdline"]:
-            infos[i] = self.load_target_proc(rpid, i)
+            infos[i] = self.load_target_proc(pid, i)
             if infos[i] is None:
                 err("Failed to load memory map of '%s'" % i)
                 return
@@ -1525,18 +1559,26 @@ class RemoteCommand(GenericCommand):
             err("Source binary is not readable")
             return
 
-        directory  = '%s/%d' % (tempfile.gettempdir(), rpid)
+        directory  = '%s/%d' % (tempfile.gettempdir(), pid)
         filename   = infos["exe"]
+        self.add_setting("root", directory)
         self.add_setting("proc_directory", directory + '/proc')
-        self.add_setting("pid", rpid)
+        self.add_setting("pid", pid)
         self.add_setting("filename", filename)
         self.add_setting("target", target)
 
         ok("Remote information loaded, remember to clean '%s' when your session is over" % directory)
+
+        if update_solib:
+            ok("Adding '%s' to shared libraries path" % directory)
+            gdb.execute("set solib-search-path %s" % directory)
+            gdb.execute("file %s" % filename)
         return
 
 
     def connect_target(self, target):
+        """Connect to remote target and get symbols. To prevent `gef` from requesting information
+        not fetched just yet, we disable the context disable when connection was successful."""
         disable_context()
         try:
             gdb.execute("target remote {0}".format(target))
@@ -1548,22 +1590,33 @@ class RemoteCommand(GenericCommand):
         return ret
 
 
-    def load_target_proc(self, pid, fname):
+    def download_file(self, pid, target):
+        """Download filename `target` inside the mirror tree in /tmp"""
         try:
-            dst_d = '{0:s}/{1:d}/proc/{1:d}'.format(tempfile.gettempdir(), pid)
-            dst_f = dst_d + '/' + fname
-            os.makedirs(dst_d, exist_ok=True)
-            gdb.execute("remote get /proc/{:d}/{:s} {:s}".format(pid, fname, dst_f))
+            local_root = '{0:s}/{1:d}'.format(tempfile.gettempdir(), pid)
+            local_path = local_root + '/' + os.path.dirname( target.replace("target:", "") )
+            local_name = local_path + '/' + os.path.basename( target )
+            os.makedirs(local_path, exist_ok=True)
+            gdb.execute("remote get {0:s} {1:s}".format(target, local_name))
         except Exception as e:
             err(str(e))
-            dst_f = None
-        return dst_f
+            local_name = None
+        return local_name
+
+
+    def load_target_proc(self, pid, info):
+        """Download one item from /proc/pid"""
+        remote_name = "/proc/{:d}/{:s}".format(pid, info)
+        return self.download_file(pid, remote_name)
 
 
     def help(self):
         h = "%s\n" % self._syntax_
-        h+= "\tTARGET is the host:port, serial port or tty to connect to.\n"
-        h+= "\tREMOTE-PID is PID of the debugged process on gdbserver's end.\n"
+        h+= "\t-t TARGET (mandatory) specifies the host:port, serial port or tty to connect to.\n"
+        h+= "\t-p PID (mandatory) specifies PID of the debugged process on gdbserver's end.\n"
+        h+= "\t-U will update gdb `solib-search-path` attribute to include the files downloaded from server (default: False).\n"
+        h+= "\t-A will download *ALL* the remote shared libraries and store them in the new environment. This command can take a few minutes to complete (default: False).\n"
+        h+= "\t-D LIB will download the remote library called LIB.\n"
         info(h)
         return
 
