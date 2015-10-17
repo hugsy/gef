@@ -2905,7 +2905,12 @@ class DereferenceCommand(GenericCommand):
     """Dereference recursively an address and display information"""
 
     _cmdline_ = "deref"
-    _syntax_  = "%s" % _cmdline_
+    _syntax_  = "%s [LOCATION] [NB]" % _cmdline_
+
+
+    def __init__(self):
+         super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+         return
 
 
     def do_invoke(self, argv):
@@ -2917,11 +2922,15 @@ class DereferenceCommand(GenericCommand):
             err("Missing argument (register/address)")
             return
 
-        for addr in argv:
-            pointer = align_address( long(gdb.parse_and_eval(addr)) )
-            addrs = DereferenceCommand.dereference_from(pointer)
+        nb = int(argv[1]) if len(argv)==2 and argv[1].isdigit() else 1
+        init_addr = align_address( long(gdb.parse_and_eval(argv[0])) )
+        print("Dereferencing %d entr%s from %s " % (nb,
+                                                    "ies" if nb>1 else "y",
+                                                    Color.yellowify(format_address(init_addr))))
 
-            print(("Dereferencing pointers from `%s`:" % Color.yellowify(format_address(pointer))))
+        for i in range(0, nb):
+            addr = init_addr + (get_memory_alignment()/8 * i)
+            addrs = DereferenceCommand.dereference_from(addr)
             print(("%s" % (Color.boldify("   %s   " % right_arrow()).join(addrs), )))
 
         return
@@ -3861,12 +3870,12 @@ def hexdump(src, length=0x10):
 
 def xor(data, key):  return ''.join(chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key)))
 
-def h_s(i): return struct.pack("<I", i)
-def h_u(i): return struct.unpack("<I", i)[0]
-def i_s(i): return struct.pack("<I", i)
-def i_u(i): return struct.unpack("<I", i)[0]
-def q_s(i): return struct.pack("<Q", i)
-def q_u(i): return struct.unpack("<Q", i)[0]
+def h_s(i,signed=False): return struct.pack("<H", i) if not signed else struct.pack("<h", i)
+def h_u(i,signed=False): return struct.unpack("<H", i)[0] if not signed else struct.unpack("<h", i)[0]
+def i_s(i,signed=False): return struct.pack("<I", i) if not signed else struct.pack("<i", i)
+def i_u(i,signed=False): return struct.unpack("<I", i)[0] if not signed else struct.unpack("<i", i)[0]
+def q_s(i,signed=False): return struct.pack("<Q", i) if not signed else struct.pack("<q", i)
+def q_u(i,signed=False): return struct.unpack("<Q", i)[0] if not signed else struct.unpack("<q", i)[0]
 
 def err(msg):  print(("[!] %%s" %% msg))
 def ok(msg):   print(("[+] %%s" %% msg))
