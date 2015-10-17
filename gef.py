@@ -3352,7 +3352,7 @@ class PatternCreateCommand(GenericCommand):
 
     @staticmethod
     def generate(limit):
-        pattern = ""
+        pattern = b""
         for mj in range(ord('A'), ord('Z')+1) :                         # from A to Z
             for mn in range(ord('a'), ord('z')+1) :                     # from a to z
                 for dg in range(ord('0'), ord('9')+1) :                 # from 0 to 9
@@ -3361,9 +3361,9 @@ class PatternCreateCommand(GenericCommand):
                             if len(pattern) == limit :
                                 return pattern
                             else:
-                                pattern += "%s" % c
+                                pattern += c.encode("utf-8")
         # Should never be here, just for clarity
-        return ""
+        return b""
 
 
 class PatternSearchCommand(GenericCommand):
@@ -3383,7 +3383,7 @@ class PatternSearchCommand(GenericCommand):
             return
 
         size, pattern = long(argv[0]), argv[1]
-        info("Searching in '%s'" % pattern)
+        info("Searching '%s'" % pattern)
         offset = self.search(pattern, size)
 
         if offset < 0:
@@ -3401,20 +3401,21 @@ class PatternSearchCommand(GenericCommand):
             else:
                 pattern_be = struct.pack(">Q", addr)
                 pattern_le = struct.pack("<Q", addr)
+                #TODO: fix this for py3
 
         except gdb.error:
             err("Incorrect pattern")
             return -1
 
-        buffer = PatternCreateCommand.generate(size)
+        buf = PatternCreateCommand.generate(size)
         found = False
 
-        off = buffer.find(pattern_le)
+        off = buf.find(pattern_le)
         if off >= 0:
             ok("Found at offset %d (little-endian search)" % off)
             found = True
 
-        off = buffer.find(pattern_be)
+        off = buf.find(pattern_be)
         if off >= 0:
             ok("Found at offset %d (big-endian search)" % off)
             found = True
