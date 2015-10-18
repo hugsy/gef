@@ -447,6 +447,16 @@ def hexdump(src, l=0x10, sep='.', show_raw=False, base=0x00):
 
     return '\n'.join(res)
 
+def is_debug():
+    return "global.debug" in __config__.keys() and __config__["global.debug"][0]==True
+
+def enable_debug():
+    __config__["global.debug"] = (True, bool)
+    return
+
+def disable_debug():
+    __config__["global.debug"] = (False, bool)
+    return
 
 def gef_obsolete_function(func):
     def new_func(*args, **kwargs):
@@ -522,34 +532,6 @@ def gef_execute_external(command, *args, **kwargs):
         return str(res, encoding="ascii" )
 
     return res
-
-
-def disassemble_parse(name, filter_opcode=None):
-    lines = [x.split(":", 1) for x in gdb_exec("disassemble %s" % name).split('\n') if "0x" in x]
-    dis   = []
-
-    for address, opcode in lines:
-        try:
-            address = address.replace("=>", "  ").strip()
-            address = long(address.split(" ")[0], 16)
-
-            i = opcode.find("#")
-            if i != -1:
-                opcode = opcode[:i]
-
-            i = opcode.find("<")
-            if i != -1:
-                opcode = opcode[:i]
-
-            opcode = opcode.strip()
-
-            if filter_opcode is None or filter_opcode in opcode:
-                dis.append( (address, opcode) )
-
-        except:
-            continue
-
-    return dis
 
 
 def get_frame():
@@ -971,7 +953,8 @@ def get_process_maps():
             sections.append( section )
 
     except IOError as ioe:
-        err(str(ioe))
+        if is_debug():
+            err(str(ioe))
         sections = get_info_sections()
 
     return sections
@@ -2964,9 +2947,10 @@ class DereferenceCommand(GenericCommand):
             p_long = gdb.lookup_type('unsigned long').pointer()
             ret = gdb.Value(addr).cast(p_long).dereference()
         except MemoryError:
-            # exc_type, exc_value, exc_traceback = sys.exc_info()
-            # traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
-            # traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
+            if is_debug():
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+                traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
             ret = None
         return ret
 
@@ -3420,11 +3404,7 @@ class PatternSearchCommand(GenericCommand):
 
         size, pattern = long(argv[0]), argv[1]
         info("Searching '%s'" % pattern)
-        offset = self.search(pattern, size)
-
-        if offset < 0:
-            print(("Not found"))
-
+        self.search(pattern, size)
         return
 
 
@@ -3437,11 +3417,9 @@ class PatternSearchCommand(GenericCommand):
             else:
                 pattern_be = struct.pack(">Q", addr)
                 pattern_le = struct.pack("<Q", addr)
-                #TODO: fix this for py3
-
         except gdb.error:
             err("Incorrect pattern")
-            return -1
+            return
 
         buf = PatternCreateCommand.generate(size)
         found = False
@@ -3456,7 +3434,10 @@ class PatternSearchCommand(GenericCommand):
             ok("Found at offset %d (big-endian search)" % off)
             found = True
 
-        return -1 if not found else 0
+        if not found:
+            err("Pattern not found")
+
+        return
 
 
 class InspectStackCommand(GenericCommand):
@@ -3780,6 +3761,15 @@ class GEFCommand(gdb.Command):
             err("Invalid number of arguments")
             return
 
+        if argc==1 and args[0] in ("debug_on", "debug_off"):
+            if args[0] == "debug_on":
+                enable_debug()
+                info("Enabled debug mode")
+            else:
+                disable_debug()
+                info("Disabled debug mode")
+            return
+
         if argc==0 or argc==1:
             config_items = sorted( __config__ )
             plugin_name = args[0] if argc==1 and args[0] in self.loaded_command_names else ""
@@ -3819,8 +3809,6 @@ class GEFCommand(gdb.Command):
 
         __config__[ args[0] ] = (_newval, _type)
         return
-
-
 
 
 
