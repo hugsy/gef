@@ -477,9 +477,31 @@ def gef_disassemble(addr, nb_insn, from_top=False):
     else:
         dis_start_addr = addr-(2*nb_insn)
         nb_insn = 2*nb_insn
-    cmd = "x/%di %#x" % (nb_insn, dis_start_addr)
-    lines = gdb.execute(cmd, to_string=True).splitlines()
-    lines = [ l.replace("=>", "").replace("\t", " ").replace(":", " ").strip() for l in lines if "(bad)" not in l ]
+
+    # adjust lines to disassemble because of variable instructions (intel)
+    cur_insn = gdb.execute("x/1i %#x" % addr, to_string=True).splitlines()[0]
+    found = False
+
+    for i in range(30):
+        cmd = "x/%di %#x" % (nb_insn, dis_start_addr-i)
+        lines = gdb.execute(cmd, to_string=True).splitlines()
+
+        # 1. check that the instruction at address in the list
+        if cur_insn not in lines:
+            continue
+
+        # 2. check no bad instructions in found
+        if any( map(lambda x: "(bad)" in x, lines) ):
+            continue
+
+        # we assume here that it was successful
+        found = True
+        lines = [ re.sub(r'(\t|:)', r' ', insn.replace("=>", "").strip()) for insn in lines ]
+        break
+
+    if not found:
+        return []
+
     l = []
     patt = re.compile(r'^(0x[0-9a-f]{,16})(.*)$', flags=re.IGNORECASE)
     for line in lines:
