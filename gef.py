@@ -2973,7 +2973,7 @@ class DereferenceCommand(GenericCommand):
 
     @staticmethod
     def dereference_from(addr):
-        old_deref = None
+        prev_addr_value = None
         deref = addr
         msg = []
 
@@ -2983,6 +2983,11 @@ class DereferenceCommand(GenericCommand):
             if addr is None:
                 msg.append( "%#x" % ( long(deref) ))
                 break
+
+            if addr.value == prev_addr_value:
+                msg.append( "[loop detected]")
+                break
+
             msg.append( "%s" % format_address( long(deref) ))
 
             if addr.section:
@@ -3001,7 +3006,7 @@ class DereferenceCommand(GenericCommand):
                         msg.append( '"%s"' % Color.greenify(s))
                         break
 
-            old_deref = deref
+            prev_addr_value = addr.value
             deref = DereferenceCommand.dereference(value)
         return msg
 
@@ -3864,6 +3869,8 @@ if __name__  == "__main__":
     except gdb.error:
         pass
 
+    # SIGALRM will simply display a message, but gdb won't forward the signal to the process
+    gdb.execute("handle SIGALRM print nopass")
 
     # load GEF
     GEFCommand()
