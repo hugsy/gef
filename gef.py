@@ -458,6 +458,16 @@ def disable_debug():
     __config__["global.debug"] = (False, bool)
     return
 
+def gef_makedirs(path, mode=0755):
+    if PYTHON_MAJOR == 3:
+        os.makedirs(path, mode=mode, exist_ok=True)
+        return
+    try:
+        os.makedirs(path, mode=mode)
+    except os.error:
+        pass
+    return
+
 def gef_obsolete_function(func):
     def new_func(*args, **kwargs):
         warn("Call to deprecated function {}.".format(func.__name__), category=DeprecationWarning)
@@ -1602,7 +1612,7 @@ class RemoteCommand(GenericCommand):
             local_root = '{0:s}/{1:d}'.format(tempfile.gettempdir(), pid)
             local_path = local_root + '/' + os.path.dirname( target.replace("target:", "") )
             local_name = local_path + '/' + os.path.basename( target )
-            os.makedirs(local_path, exist_ok=True)
+            gef_makedirs(local_path)
             gdb.execute("remote get {0:s} {1:s}".format(target, local_name))
         except Exception as e:
             err(str(e))
