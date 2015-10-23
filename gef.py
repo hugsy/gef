@@ -458,7 +458,7 @@ def disable_debug():
     __config__["global.debug"] = (False, bool)
     return
 
-def gef_makedirs(path, mode=0755):
+def gef_makedirs(path, mode=0o755):
     if PYTHON_MAJOR == 3:
         os.makedirs(path, mode=mode, exist_ok=True)
         return
