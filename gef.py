@@ -3376,7 +3376,8 @@ class PatternCreateCommand(GenericCommand):
 
         size = long(argv[0])
         info("Generating a pattern of %d bytes" % size)
-        print(( PatternCreateCommand.generate(size) ))
+        patt = PatternCreateCommand.generate(size)
+        print(patt.decode("utf-8"))
         return
 
 
