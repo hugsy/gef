@@ -1218,7 +1218,7 @@ def is_sparc():
     return elf.e_machine==0x02
 
 @memoize
-def is_sparc():
+def is_sparc64():
     elf = get_elf_headers()
     return elf.e_machine==0x12
 
