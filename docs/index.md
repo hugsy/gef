@@ -18,10 +18,20 @@ Simply make sure you're having a [GDB 7.x+](https://www.gnu.org/s/gdb).
  $ curl -fsSL https://github.com/hugsy/gef/raw/master/gef.sh | sh
 ```
 
-Then just start playing:
+Then just start playing (for local files):
 ```bash
 $ gdb -q /path/to/my/bin
 gef> gef help
+```
+
+Or (for remote debugging)
+```bash
+remote:~ $ gdbserver /path/to/my/remote/file 0.0.0.0:1234
+```
+And 
+```bash
+local:~ $ gdb -q
+gef> gef-remote your.ip.address:1234
 ```
 
 ## Show me
