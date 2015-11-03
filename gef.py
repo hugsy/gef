@@ -1487,13 +1487,20 @@ class GenericCommand(gdb.Command):
         return
 
 
-
+# Copy/paste this template for new command
 # class TemplateCommand(GenericCommand):
-    # """TemplaceCommand: add description here."""
+    # """TemplaceCommand: description here will be seen in the help menu for the command."""
 
     # _cmdline_ = "template-fake"
     # _syntax_  = "%s" % _cmdline_
 
+    # def __init__(self):
+         # super(TemplateCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+         # return
+    # def pre_load(self):
+        # return
+    # def post_load(self):
+        # return
     # def do_invoke(self, argv):
         # return
 
@@ -2925,6 +2932,7 @@ class DereferenceCommand(GenericCommand):
 
     def __init__(self):
          super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+         self.add_setting("max_recursion", 10)
          return
 
 
@@ -2970,8 +2978,9 @@ class DereferenceCommand(GenericCommand):
         prev_addr_value = None
         deref = addr
         msg = []
+        i = max(int(__config__["deref.max_recursion"][0]), 1)
 
-        while True:
+        while i:
             value = align_address( long(deref) )
             addr  = lookup_address( value )
             if addr is None:
@@ -3002,6 +3011,8 @@ class DereferenceCommand(GenericCommand):
 
             prev_addr_value = addr.value
             deref = DereferenceCommand.dereference(value)
+            i -= 1
+
         return msg
 
 
