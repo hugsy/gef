@@ -729,6 +729,19 @@ def aarch64_registers():
 def aarch64_return_register():
     return "$x0"
 
+def aarch64_flags_to_human():
+    # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
+    reg = "$cpsr"
+    val = get_register_ex( reg )
+    table = { 31: "negative",
+              30: "zero",
+              29: "carry",
+              28: "overflow",
+               7: "interrupt",
+               6: "fast"
+    }
+    return flags_to_human(val, table)
+
 @memoize
 def all_registers():
     if is_arm():         return arm_registers()
@@ -770,7 +783,7 @@ def flag_register():
     elif is_powerpc():   return "Flags: " + powerpc_flags_to_human()
     elif is_mips():      return ""
     elif is_sparc():     return ""
-    elif is_aarch64():   return ""
+    elif is_aarch64():   return "Flags: " + aarch64_flags_to_human()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 def write_memory(address, buffer, length=0x10):
