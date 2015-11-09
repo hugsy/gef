@@ -715,6 +715,32 @@ def mips_nop_insn():
 def mips_return_register():
     return "$v0"
 
+######################[ AARCH64 specific ]######################
+
+@memoize
+def aarch64_registers():
+    return ["$x0       ", "$x1       ", "$x2       ", "$x3       ", "$x4       ", "$x5       ", "$x6       ", "$x7       ",
+            "$x8       ", "$x9       ", "$x10      ", "$x11      ", "$x12      ", "$x13      ", "$x14      ", "$x15      ",
+            "$x16      ", "$x17      ", "$x18      ", "$x19      ", "$x20      ", "$x21      ", "$x22      ", "$x23      ",
+            "$x24      ", "$x25      ", "$x26      ", "$x27      ", "$x28      ", "$x29      ", "$x30      ", "$sp       ",
+            "$pc       ", "$cpsr     ", "$fpsr     ", "$fpcr     ", ]
+
+@memoize
+def aarch64_return_register():
+    return "$x0"
+
+def aarch64_flags_to_human():
+    # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
+    reg = "$cpsr"
+    val = get_register_ex( reg )
+    table = { 31: "negative",
+              30: "zero",
+              29: "carry",
+              28: "overflow",
+               7: "interrupt",
+               6: "fast"
+    }
+    return flags_to_human(val, table)
 
 @memoize
 def all_registers():
@@ -724,6 +750,7 @@ def all_registers():
     elif is_powerpc():   return powerpc_registers()
     elif is_sparc():     return sparc_registers()
     elif is_mips():      return mips_registers()
+    elif is_aarch64():   return aarch64_registers()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 
@@ -746,6 +773,7 @@ def return_register():
     elif is_powerpc():   return powerpc_return_register()
     elif is_sparc():     return sparc_return_register()
     elif is_mips():      return mips_return_register()
+    elif is_aarch64():   return aarch64_return_register()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 def flag_register():
@@ -755,6 +783,7 @@ def flag_register():
     elif is_powerpc():   return "Flags: " + powerpc_flags_to_human()
     elif is_mips():      return ""
     elif is_sparc():     return ""
+    elif is_aarch64():   return "Flags: " + aarch64_flags_to_human()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 def write_memory(address, buffer, length=0x10):
@@ -1221,6 +1250,11 @@ def is_sparc():
 def is_sparc64():
     elf = get_elf_headers()
     return elf.e_machine==0x12
+
+@memoize
+def is_aarch64():
+    elf = get_elf_headers()
+    return elf.e_machine==0xb7
 
 @memoize
 def get_memory_alignment():
