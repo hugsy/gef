@@ -21,7 +21,8 @@
 #
 # Tested on
 # * x86-32/x86-64 (even though you should totally use `gdb-peda` (https://github.com/longld/peda) instead)
-# * armv6/armv7/armv8
+# * arm (32b)
+# * aarch64/armv8 (64b)
 # * mips
 # * powerpc32/powerpc64
 # * sparc
@@ -51,6 +52,7 @@ import traceback
 import threading
 import collections
 import time
+import resource
 
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
@@ -171,14 +173,16 @@ class Color:
 
 
 def left_arrow():
-    if PYTHON_MAJOR == 3: return "\u2190"
-    else: return "<-"
-
+    return "\u2190" if PYTHON_MAJOR == 3 else "<-"
 
 def right_arrow():
-    if PYTHON_MAJOR == 3: return "\u2192"
-    else: return "->"
+    return "\u2192" if PYTHON_MAJOR == 3 else "->"
 
+def horizontal_line():
+    return "\u2500" if PYTHON_MAJOR == 3 else "-"
+
+def vertical_line():
+    return "\u2502" if PYTHON_MAJOR == 3 else "|"
 
 # helpers
 class Address:
@@ -388,7 +392,7 @@ class GlibcChunk:
 
 
 def titlify(msg, color=Color.RED):
-    return "{0}[ {1}{2}{3}{4} ]{0}".format('='*30, Color.BOLD, color, msg, Color.NORMAL)
+    return "{0}[ {1}{2}{3}{4} ]{0}".format(horizontal_line()*40, Color.BOLD, color, msg, Color.NORMAL)
 
 def err(msg):
     gdb.write(Color.BOLD+Color.RED+"[!]"+Color.NORMAL+" "+msg+"\n", gdb.STDERR)
@@ -753,8 +757,8 @@ def flag_register():
     elif is_x86_32():    return "Flags: " + x86_flags_to_human()
     elif is_x86_64():    return "Flags: " + x86_flags_to_human()
     elif is_powerpc():   return "Flags: " + powerpc_flags_to_human()
-    elif is_mips():      return ""
-    elif is_sparc():     return ""
+    elif is_mips():      return "" # TODO
+    elif is_sparc():     return "" # TODO
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 def write_memory(address, buffer, length=0x10):
@@ -1250,6 +1254,10 @@ def align_address(address):
         ret = address & 0xFFFFFFFFFFFFFFFF
     return ret
 
+def align_address_to_page(address):
+    # HACK HACK HACK (hardcoded)
+    return align_address(address) & 0xFFFFFFFFFFFFF000
+
 def parse_address(address):
     if ishex(address):
         return long(address, 16)
@@ -1503,6 +1511,130 @@ class GenericCommand(gdb.Command):
         # return
     # def do_invoke(self, argv):
         # return
+
+
+class UnicornEmulateCommand(GenericCommand):
+    """EmulateCommand: Use Unicorn-Engine to emulate the behavior of the binary, without affecting the GDB runtime.
+    By default the command will emulate only the next instruction, but location and number of instruction can be
+    changed via arguments to the command line."""
+
+    _cmdline_ = "emulate"
+    _syntax_  = "%s [LOCATION] [NB_INSTRUCTION]" % _cmdline_
+
+    def __init__(self):
+         super(UnicornEmulateCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+         return
+
+    def pre_load(self):
+        try:
+            import unicorn
+        except ImportError as ie:
+            msg = "This command requires the following packages: `unicorn` and `capstone`."
+            raise GefMissingDependencyException( msg )
+        return
+
+    def post_load(self):
+        return
+
+    def do_invoke(self, argv):
+        if not is_alive():
+            warn("No debugging session active")
+            return
+
+        if len(argv)==0 or argv[0]=="-1":
+            start_insn = get_pc()
+        else:
+            start_insn = long(gdb.parse_and_eval( argv[0] ))
+
+        if len(argv)==2:
+            nb_insn = long(argv[1])
+        else:
+            nb_insn = 1
+
+        self.run_unicorn(start_insn, nb_insn)
+        return
+
+    def get_unicorn_arch(self):
+        unicorn = sys.modules['unicorn']
+        if   is_x86_32():    arch, mode = unicorn.UC_ARCH_X86, unicorn.UC_MODE_32
+        elif is_x86_64():    arch, mode = unicorn.UC_ARCH_X86, unicorn.UC_MODE_64
+        elif is_powerpc():   arch, mode = unicorn.UC_ARCH_PPC, unicorn.UC_MODE_32
+        elif is_mips():      arch, mode = unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_32
+        elif is_sparc():     arch, mode = unicorn.UC_ARCH_SPARC, unicorn.UC_MODE_32
+        elif is_arm():
+            arch = unicorn.UC_ARCH_ARM
+            mode = unicorn.UC_MODE_32 if not is_arm_thumb() else unicorn.UC_MODE_16
+        else:
+            raise GefUnsupportedOS("Emulation not supported for your OS")
+        return arch, mode
+
+    def get_unicorn_registers(self):
+        "Creates a dict matching the Unicorn identifier for a specific register."
+        unicorn = sys.modules['unicorn']
+        regs = {}
+
+        if is_x86_32() or is_x86_64():   arch = "x86"
+        elif is_powerpc():               arch = "ppc"
+        elif is_mips():                  arch = "mips"
+        elif is_sparc():                 arch = "sparc"
+        elif is_arm():                   arch = "arm"
+
+        const = getattr(unicorn, arch + "_const")
+        for r in all_registers():
+            regname = "UC_%s_REG_%s" % (arch.upper(), r.strip()[1:].upper())
+            regs[r] = getattr(const, regname)
+        return regs
+
+    def get_unicorn_end_addr(self, start_addr, nb):
+        dis = gef_disassemble(start_addr, nb+1)
+        return dis[-1][0]
+
+    def run_unicorn(self, start_insn_addr, nb_insn, *args, **kwargs):
+        start_regs = {}
+        end_regs = {}
+        arch, mode = self.get_unicorn_arch()
+        unicorn_registers = self.get_unicorn_registers()
+        end_insn_addr = self.get_unicorn_end_addr(start_insn_addr, nb_insn)
+        insn_section_length = end_insn_addr - start_insn_addr
+
+        unicorn = sys.modules['unicorn']
+
+        info("init unicorn engine")
+        emu = unicorn.Uc(arch, mode)
+
+        info("populating registers")
+        for r in all_registers():
+            gregval = get_register_ex(r)
+            emu.reg_write(unicorn_registers[r], gregval)
+            start_regs[r] = gregval
+
+
+        pc = align_address_to_page(start_insn_addr)
+        code = read_memory(pc, resource.getpagesize())
+        info("populating code page=%#x-%#x" % (pc, pc+resource.getpagesize()-1))
+        emu.mem_map(pc, resource.getpagesize())
+        emu.mem_write(pc, bytes(code))
+
+        sp = align_address_to_page(get_sp())
+        stack = read_memory(sp, resource.getpagesize())
+        info("populating stack page=%#x-%#x" % (sp, sp+resource.getpagesize()-1))
+        emu.mem_map(sp, resource.getpagesize())
+        emu.mem_write(sp, bytes(stack))
+        ok("Starting emulation: %#x %s %#x (%d instructions)" % (start_insn_addr,
+                                                                 right_arrow(),
+                                                                 end_insn_addr,
+                                                                 nb_insn))
+        emu.emu_start(start_insn_addr, end_insn_addr)
+        ok("Ending emulation")
+
+        for r in all_registers():
+            end_regs[r] = emu.reg_read(unicorn_registers[r])
+            info("old_%s=%#x\t||\tnew_%s=%#x%s" % (r.strip(), start_regs[r],
+                                                   r.strip(), end_regs[r],
+                                                   "\t(tainted)" if start_regs[r] != end_regs[r] else ""))
+
+        return
+
 
 
 class RemoteCommand(GenericCommand):
@@ -1842,7 +1974,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         elif arch.startswith("sparc"):
             return (capstone.CS_ARCH_SPARC, None)
 
-        raise GefGenericException("capstone invalid architecture")
+        raise GefUnsupportedOS("OS not supported by capstone")
 
 
     @staticmethod
@@ -1884,7 +2016,6 @@ class GlibcHeapCommand(GenericCommand):
 
 
     def do_invoke(self, argv):
-
         if not is_alive():
             warn("No debugging session active")
             return
@@ -2104,7 +2235,8 @@ class DetailRegistersCommand(GenericCommand):
                 line+= "%s" % reg
 
             elif reg.type.code == gdb.TYPE_CODE_FLAGS:
-                line+= "%s" % (Color.boldify(str(reg)))
+                desc_flag = flag_register()
+                line+= "%s" % (Color.boldify(str(reg))) if desc_flag == "" else desc_flag
 
             else:
                 addr = align_address( long(reg) )
@@ -2465,42 +2597,28 @@ class ProcessListingCommand(GenericCommand):
             if not re.search(pattern, command):
                 continue
 
-            line = ""
-            line += "%s "  % process["user"]
-            line += "%d "  % process["pid"]
-            line += "%.f " % process["percentage_cpu"]
-            line += "%.f " % process["percentage_mem"]
-            line += "%s "  % process["tty"]
-            line += "%d "  % process["vsz"]
-            line += "%s "  % process["stat"]
-            line += "%s "  % process["time"]
-            line += "%s "  % process["command"]
-
-            print (line)
+            line = [ process[i] for i in ("pid", "user", "cpu", "mem", "tty", "command") ]
+            print ( '\t\t'.join(line) )
 
         return None
 
 
     def ps(self):
-        processes = list()
-        output = gef_execute_external(self.get_setting("ps_command").split(" "), True)[1:]
+        processes = []
+        output = gef_execute_external(self.get_setting("ps_command").split(), True).splitlines()
+        names = [x.lower().replace('%','') for x in output[0].split()]
 
-        for line in output:
-            field = re.compile('\s+').split(line)
+        for line in output[1:]:
+            fields = line.split()
+            t = {}
 
-            processes.append({ 'user': field[0],
-                               'pid': long(field[1]),
-                               'percentage_cpu': eval(field[2]),
-                               'percentage_mem': eval(field[3]),
-                               'vsz': long(field[4]),
-                               'rss': long(field[5]),
-                               'tty': field[6],
-                               'stat': field[7],
-                               'start': field[8],
-                               'time': field[9],
-                               'command': field[10],
-                               'args': field[11:] if len(field) > 11 else ''
-                               })
+            for i in range(len(names)):
+                if i==len(names)-1:
+                    t[ names[i] ] = ' '.join(fields[i:])
+                else:
+                    t[ names[i] ] = fields[i]
+
+            processes.append(t)
 
         return processes
 
@@ -2677,7 +2795,7 @@ class ContextCommand(GenericCommand):
         return
 
     def context_regs(self):
-        print((Color.boldify( Color.blueify("-"*90 + "[regs]") )))
+        print((Color.boldify( Color.blueify(horizontal_line()*90 + "[regs]") )))
         i = 1
         line = ""
 
@@ -2721,7 +2839,7 @@ class ContextCommand(GenericCommand):
         return
 
     def context_stack(self):
-        print (Color.boldify( Color.blueify("-"*90 + "[stack]")))
+        print (Color.boldify( Color.blueify(horizontal_line()*90 + "[stack]")))
         show_raw = self.get_setting("show_stack_raw")
         nb_lines = self.get_setting("nb_lines_stack")
 
@@ -2748,7 +2866,7 @@ class ContextCommand(GenericCommand):
         if is_arm_thumb():
             arch += ":thumb"
             pc   += 1
-        title = title_fmtstr % ("-"*90, arch)
+        title = title_fmtstr % (horizontal_line()*90, arch)
         print(( Color.boldify( Color.blueify(title)) ))
 
         try:
@@ -2789,7 +2907,7 @@ class ContextCommand(GenericCommand):
             return
 
         nb_line = self.get_setting("nb_lines_code")
-        title = "%s[source:%s+%d]" % ("-"*90, symtab.filename, line_num+1)
+        title = "%s[source:%s+%d]" % (horizontal_line()*90, symtab.filename, line_num+1)
         print(( Color.boldify( Color.blueify(title)) ))
 
         for i in range(line_num-nb_line+1, line_num+nb_line):
@@ -2845,7 +2963,7 @@ class ContextCommand(GenericCommand):
         return ""
 
     def context_trace(self):
-        print(( Color.boldify( Color.blueify("-"*90 + "[trace]")) ))
+        print(( Color.boldify( Color.blueify(horizontal_line()*90 + "[trace]")) ))
         try:
             gdb.execute("backtrace %d" % self.get_setting("nb_lines_backtrace"))
         except gdb.MemoryError:
@@ -3498,7 +3616,7 @@ class InspectStackCommand(GenericCommand):
             addrs = DereferenceCommand.dereference_from(cur_addr)
             sep = " %s " % right_arrow()
             l  = Color.boldify(Color.blueify( format_address(long(addrs[0], 16) )))
-            l += "|+%#.2x: " % offset
+            l += vertical_line() + "+%#.2x: " % offset
             l += sep.join(addrs[1:])
             if cur_addr == sp:
                 l += Color.boldify(Color.greenify( "\t\t"+ left_arrow() + " $sp" ))
@@ -3682,6 +3800,7 @@ class GEFCommand(gdb.Command):
                         GlibcHeapCommand,
                         PatchCommand,
                         RemoteCommand,
+                        UnicornEmulateCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
@@ -3835,7 +3954,8 @@ class GEFCommand(gdb.Command):
 
 
 if __name__  == "__main__":
-    GEF_PROMPT = Color.boldify(Color.redify("gef> "))
+    GEF_PROMPT = "gef> " if PYTHON_MAJOR == 2 else "gef\u27a4  "
+    GEF_PROMPT = Color.boldify(Color.redify(GEF_PROMPT))
 
     # setup config
     gdb.execute("set confirm off")
