@@ -1678,7 +1678,7 @@ class RemoteCommand(GenericCommand):
     information."""
 
     _cmdline_ = "gef-remote"
-    _syntax_  = "%s -t TARGET -r PID [OPTIONS]" % _cmdline_
+    _syntax_  = "%s -t TARGET -p PID [OPTIONS]" % _cmdline_
 
     def __init__(self):
         super(RemoteCommand, self).__init__()
