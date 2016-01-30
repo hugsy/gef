@@ -1548,9 +1548,9 @@ class GenericCommand(gdb.Command):
 
 
 class UnicornEmulateCommand(GenericCommand):
-    """EmulateCommand: Use Unicorn-Engine to emulate the behavior of the binary, without affecting the GDB runtime.
+    """Unicorn emulate: Use Unicorn-Engine to emulate the behavior of the binary, without affecting the GDB runtime.
     By default the command will emulate only the next instruction, but location and number of instruction can be
-    changed via arguments to the command line."""
+    changed via arguments to the command line. By default, it will emulate the next instruction from current PC."""
 
     _cmdline_ = "emulate"
     _syntax_  = "%s [LOCATION] [NB_INSTRUCTION]" % _cmdline_
@@ -1612,6 +1612,8 @@ class UnicornEmulateCommand(GenericCommand):
         elif is_mips():                  arch = "mips"
         elif is_sparc():                 arch = "sparc"
         elif is_arm():                   arch = "arm"
+        else:
+            raise GefUnsupportedOS("oops")
 
         const = getattr(unicorn, arch + "_const")
         for r in all_registers():
@@ -1633,10 +1635,10 @@ class UnicornEmulateCommand(GenericCommand):
 
         unicorn = sys.modules['unicorn']
 
-        info("init unicorn engine")
+        info("Initializing Unicorn engine")
         emu = unicorn.Uc(arch, mode)
 
-        info("populating registers")
+        info("Populating registers")
         for r in all_registers():
             gregval = get_register_ex(r)
             emu.reg_write(unicorn_registers[r], gregval)
@@ -1645,15 +1647,16 @@ class UnicornEmulateCommand(GenericCommand):
 
         pc = align_address_to_page(start_insn_addr)
         code = read_memory(pc, resource.getpagesize())
-        info("populating code page=%#x-%#x" % (pc, pc+resource.getpagesize()-1))
+        info("Populating code page=%#x-%#x" % (pc, pc+resource.getpagesize()-1))
         emu.mem_map(pc, resource.getpagesize())
         emu.mem_write(pc, bytes(code))
 
         sp = align_address_to_page(get_sp())
         stack = read_memory(sp, resource.getpagesize())
-        info("populating stack page=%#x-%#x" % (sp, sp+resource.getpagesize()-1))
+        info("Populating stack page=%#x-%#x" % (sp, sp+resource.getpagesize()-1))
         emu.mem_map(sp, resource.getpagesize())
         emu.mem_write(sp, bytes(stack))
+
         ok("Starting emulation: %#x %s %#x (%d instructions)" % (start_insn_addr,
                                                                  right_arrow(),
                                                                  end_insn_addr,
@@ -2420,7 +2423,7 @@ class CtfExploitTemplaterCommand(GenericCommand):
         path = argv[2] if argc==3 else self.get_setting("exploit_path")
 
         with open(path, "w") as f:
-            f.write( CTF_EXPLOIT_TEMPLATE % (host, port) )
+            f.write( CTF_EXPLOIT_TEMPLATE.format(host=host, port=port) )
 
         info("Exploit script written as '%s'" % path)
         return
@@ -4050,15 +4053,15 @@ if __name__  == "__main__":
 CTF_EXPLOIT_TEMPLATE = """#!/usr/bin/env python2
 import socket, struct, sys, telnetlib, binascii
 
-HOST = "%s"
-PORT = %s
+HOST = "{host:s}"
+PORT = {port:s}
 DEBUG = True
 
 def hexdump(src, length=0x10):
     f=''.join([(len(repr(chr(x)))==3) and chr(x) or '.' for x in range(256)]) ; n=0 ; result=''
     while src:
-       s,src = src[:length],src[length:]; hexa = ' '.join(["%%02X"%%ord(x) for x in s])
-       s = s.translate(f) ; result += "%%04X   %%-*s   %%s\\n" %% (n, length*3, hexa, s); n+=length
+       s,src = src[:length],src[length:]; hexa = ' '.join(["%02X"%ord(x) for x in s])
+       s = s.translate(f) ; result += "%04X   %-*s   %s\\n" % (n, length*3, hexa, s); n+=length
     return result
 
 def xor(data, key):  return ''.join(chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key)))
@@ -4075,21 +4078,21 @@ def _xlog(x):
     sys.stderr.flush()
     return
 
-def err(msg):  _xlog("[!] %%s" %% msg)
-def ok(msg):   _xlog("[+] %%s" %% msg)
-def dbg(msg):  _xlog("[*] %%s" %% msg)
-def xd(msg):   _xlog("[*] Hexdump:\\n%%s" %% hexdump(msg))
+def err(msg):  _xlog("[!] %s" % msg)
+def ok(msg):   _xlog("[+] %s" % msg)
+def dbg(msg):  _xlog("[*] %s" % msg)
+def xd(msg):   _xlog("[*] Hexdump:\\n%s" % hexdump(msg))
 
 
 def grab_banner(s):
     data = s.read_until("> ")
-    dbg("Received %%d bytes: %%s" %% (len(data), data))
+    dbg("Received %d bytes: %s" % (len(data), data))
     return data
 
 def build_socket(host, port):
     if DEBUG: return -1
     s = telnetlib.Telnet(HOST, PORT)
-    ok("Connected to %%s:%%d" %% (host, port))
+    ok("Connected to %s:%d" % (host, port))
     return s
 
 def interact(s):
