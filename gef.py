@@ -554,7 +554,7 @@ def get_frame():
 
 @memoize
 def get_arch():
-    return gdb.execute("show architecture", to_string=True).strip().split(" ")[7][:-1]
+    return gdb.execute("show architecture", to_string=True).strip().split()[7][:-1]
 
 
 def flags_to_human(reg_value, value_table):
@@ -576,8 +576,8 @@ def arm_registers():
 @memoize
 def arm_nop_insn():
     # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
-    # mov r0,r0
-    return b"\x00\x00\xa0\xe1"
+    # return b"\x00\x00\xa0\xe1" # mov r0,r0
+    return b"\x01\x10\xa0\xe1" # mov r1,r1
 
 @memoize
 def arm_return_register():
@@ -2566,35 +2566,48 @@ class AssembleCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(AssembleCommand, self).__init__()
-        self.add_setting("arch", "x86")
         return
 
 
     def pre_load(self):
         try:
-            import r2, r2.r_asm
-        except ImportError:
-            raise GefMissingDependencyException("radare2 Python bindings could not be loaded")
+            r2 = which("rasm2")
+            self.add_setting("rasm2_path", r2)
+        except IOError as ioe:
+            raise GefMissingDependencyException("radare2 missing: %s" % ioe)
 
 
     def do_invoke(self, argv):
+        r2 = self.get_setting("rasm2_path")
+
+        if not self.has_setting("arch"):
+            arch = "x86"if "i386" in get_arch() else get_arch()
+            self.add_setting("arch", arch)
+        else:
+            arch = self.get_setting("arch")
+
+        if not self.has_setting("bits"):
+            bits = 64 if is_elf64() else 32
+            self.add_setting("bits", bits)
+        else:
+            bits = self.get_setting("bits")
+
+
         if len(argv)==0 or (len(argv)==1 and argv[0]=="list"):
             self.usage()
-            err("Modes available:\n%s" % gef_execute_external("rasm2 -L;exit 0", shell=True))
+            err("Modes available:\n%s" % gef_execute_external("{} -L;exit 0".format(r2), shell=True))
             return
 
-        mode = self.get_setting("arch")
-        instns = " ".join(argv)
-        info( "%s" % self.assemble(mode, instns) )
+        insns = " ".join(argv)
+        insns = [x.strip() for x in insns.split(";")]
+        info("Assembling {} instructions for {} ({} bits):".format(len(insns), arch, bits))
+
+        for insn in insns:
+            res = gef_execute_external("{} -C -a {} -b {} '{}';exit 0".format(r2, arch, bits, insn), shell=True).strip()
+            print( "{0:40s} # {1:s}".format(res, insn))
+            if res == "invalid":
+                break
         return
-
-
-    def assemble(self, mode, instructions):
-        r2 = sys.modules['r2']
-        asm = r2.r_asm.RAsm()
-        asm.use(mode)
-        opcode = asm.massemble( instructions )
-        return None if opcode is None else opcode.buf_hex
 
 
 class InvokeCommand(GenericCommand):
