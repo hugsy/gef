@@ -2581,7 +2581,9 @@ class AssembleCommand(GenericCommand):
         r2 = self.get_setting("rasm2_path")
 
         if not self.has_setting("arch"):
-            arch = "x86"if "i386" in get_arch() else get_arch()
+            if   "i386" in get_arch(): arch = "x86"
+            elif "armv" in get_arch(): arch = "arm"
+            else: arch = get_arch()
             self.add_setting("arch", arch)
         else:
             arch = self.get_setting("arch")
