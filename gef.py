@@ -1552,8 +1552,9 @@ class UnicornEmulateCommand(GenericCommand):
     By default the command will emulate only the next instruction, but location and number of instruction can be
     changed via arguments to the command line. By default, it will emulate the next instruction from current PC."""
 
-    _cmdline_ = "emulate"
+    _cmdline_ = "unicorn-emulate"
     _syntax_  = "%s [LOCATION] [NB_INSTRUCTION]" % _cmdline_
+    _aliases_ = ["emulate", "emu"]
 
     def __init__(self):
          super(UnicornEmulateCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -1917,8 +1918,9 @@ class PatchCommand(GenericCommand):
 class CapstoneDisassembleCommand(GenericCommand):
     """Use capstone disassembly framework to disassemble code."""
 
-    _cmdline_ = "cs-dis"
+    _cmdline_ = "capstone-disassemble"
     _syntax_  = "%s [-l LENGTH] [-t opt] [LOCATION]" % _cmdline_
+    _aliases_ = ["cs-dis", ]
 
 
     def pre_load(self):
@@ -2248,9 +2250,8 @@ class SolveKernelSymbolCommand(GenericCommand):
 class DetailRegistersCommand(GenericCommand):
     """Display full details on one, many or all registers value from current architecture."""
 
-    _cmdline_ = "reg"
+    _cmdline_ = "registers"
     _syntax_  = "%s [Register1] [Register2] ... [RegisterN]" % _cmdline_
-
 
     def do_invoke(self, argv):
         regs = []
@@ -2305,6 +2306,7 @@ class ShellcodeSearchCommand(GenericCommand):
 
     _cmdline_ = "shellcode search"
     _syntax_  = "%s <pattern1> <pattern2>" % _cmdline_
+    _aliases_ = ["sc-search",]
 
     api_base = "http://shell-storm.org"
     search_url = api_base + "/api/?s="
@@ -2355,6 +2357,7 @@ class ShellcodeGetCommand(GenericCommand):
 
     _cmdline_ = "shellcode get"
     _syntax_  = "%s <shellcode_id>" % _cmdline_
+    _aliases_ = ["sc-get",]
 
     api_base = "http://shell-storm.org"
     get_url = api_base + "/shellcode/files/shellcode-%d.php"
@@ -2563,6 +2566,7 @@ class AssembleCommand(GenericCommand):
 
     _cmdline_ = "assemble"
     _syntax_  = "%s (list|instruction1;[instruction2;]...[instructionN;])" % _cmdline_
+    _aliases_ = ["asm", ]
 
     def __init__(self, *args, **kwargs):
         super(AssembleCommand, self).__init__()
@@ -2627,8 +2631,9 @@ class InvokeCommand(GenericCommand):
 class ProcessListingCommand(GenericCommand):
     """List and filter process."""
 
-    _cmdline_ = "ps"
+    _cmdline_ = "process-search"
     _syntax_  = "%s [PATTERN]" % _cmdline_
+    _aliases_ = ["ps", ]
 
     def __init__(self):
         super(ProcessListingCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -2809,6 +2814,7 @@ class ContextCommand(GenericCommand):
 
     _cmdline_ = "context"
     _syntax_  = "%s" % _cmdline_
+    _aliases_ = ["ctx",]
 
     old_registers = {}
 
@@ -3041,8 +3047,9 @@ def enable_context():
 class HexdumpCommand(GenericCommand):
     """Display arranged hexdump (according to architecture endianness) of memory range."""
 
-    _cmdline_ = "xd"
+    _cmdline_ = "hexdump"
     _syntax_  = "%s (q|d|w|b) LOCATION [SIZE]" % _cmdline_
+    _aliases_ = ["xd",]
 
     def do_invoke(self, argv):
         argc = len(argv)
@@ -3096,9 +3103,8 @@ class HexdumpCommand(GenericCommand):
 class DereferenceCommand(GenericCommand):
     """Dereference recursively an address and display information"""
 
-    _cmdline_ = "deref"
+    _cmdline_ = "dereference"
     _syntax_  = "%s [LOCATION] [NB]" % _cmdline_
-
 
     def __init__(self):
          super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -3148,7 +3154,7 @@ class DereferenceCommand(GenericCommand):
         prev_addr_value = None
         deref = addr
         msg = []
-        i = max(int(__config__["deref.max_recursion"][0]), 1)
+        i = max(int(__config__["dereference.max_recursion"][0]), 1)
 
         while i:
             value = align_address( long(deref) )
@@ -3689,7 +3695,6 @@ class ChecksecCommand(GenericCommand):
     _cmdline_ = "checksec"
     _syntax_  = "%s (filename)" % _cmdline_
 
-
     def __init__(self):
          super(ChecksecCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
          return
@@ -3907,6 +3912,12 @@ class GEFCommand(gdb.Command):
 
                 class_name()
                 loaded.append( (cmd, class_name)  )
+
+                if hasattr(class_name, "_aliases_"):
+                    aliases = getattr(class_name, "_aliases_")
+                    for alias in aliases:
+                        gdb.execute("alias -a {} = {}".format(alias, cmd, ))
+
             except Exception as e:
                 err("Failed to load `%s`: %s" % (cmd, e))
 
