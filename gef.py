@@ -184,6 +184,7 @@ def horizontal_line():
 def vertical_line():
     return "\u2502" if PYTHON_MAJOR == 3 else "|"
 
+
 # helpers
 class Address:
     def __init__(self, *args, **kwargs):
@@ -2844,6 +2845,11 @@ class ContextCommand(GenericCommand):
         if self.get_setting("clear_screen"):
             clear_screen()
 
+        cmd = [which("stty"), "size"]
+        tty_rows, tty_columns = gef_execute_external(cmd).strip().split()
+        self.tty_rows = int(tty_rows)
+        self.tty_columns = int(tty_columns)
+
         self.context_regs()
         self.context_stack()
         self.context_code()
@@ -2852,8 +2858,16 @@ class ContextCommand(GenericCommand):
         self.update_registers()
         return
 
+    def context_title(self, m):
+        trail = horizontal_line()*2
+        title = "[{}]{}".format(m,trail)
+        title = horizontal_line()*(self.tty_columns-len(title)) + title
+        print(( Color.boldify( Color.blueify(title)) ))
+        return
+
     def context_regs(self):
-        print((Color.boldify( Color.blueify(horizontal_line()*90 + "[regs]") )))
+        self.context_title("registers")
+
         i = 1
         line = ""
 
@@ -2897,7 +2911,8 @@ class ContextCommand(GenericCommand):
         return
 
     def context_stack(self):
-        print (Color.boldify( Color.blueify(horizontal_line()*90 + "[stack]")))
+        self.context_title("stack")
+
         show_raw = self.get_setting("show_stack_raw")
         nb_lines = self.get_setting("nb_lines_stack")
 
@@ -2920,12 +2935,11 @@ class ContextCommand(GenericCommand):
         pc = get_pc()
 
         arch = get_arch().lower()
-        title_fmtstr = "%s[code:%s]"
         if is_arm_thumb():
             arch += ":thumb"
             pc   += 1
-        title = title_fmtstr % (horizontal_line()*90, arch)
-        print(( Color.boldify( Color.blueify(title)) ))
+
+        self.context_title("code:{}".format(arch))
 
         try:
             if use_capstone:
@@ -2965,8 +2979,8 @@ class ContextCommand(GenericCommand):
             return
 
         nb_line = self.get_setting("nb_lines_code")
-        title = "%s[source:%s+%d]" % (horizontal_line()*90, symtab.filename, line_num+1)
-        print(( Color.boldify( Color.blueify(title)) ))
+        title = "source:{0:s}+{1:d}".format(symtab.filename, line_num+1)
+        self.context_title(title)
 
         for i in range(line_num-nb_line+1, line_num+nb_line):
             if i < 0:
@@ -3021,7 +3035,8 @@ class ContextCommand(GenericCommand):
         return ""
 
     def context_trace(self):
-        print(( Color.boldify( Color.blueify(horizontal_line()*90 + "[trace]")) ))
+        self.context_title("trace")
+
         try:
             gdb.execute("backtrace %d" % self.get_setting("nb_lines_backtrace"))
         except gdb.MemoryError:
