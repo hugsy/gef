@@ -270,6 +270,9 @@ class Zone:
 
 
 class Elf:
+    """
+    Basic ELF parsing based on http://www.skyfree.org/linux/references/ELF_Format.pdf
+    """
     e_magic           = None
     e_class           = None
     e_endianness      = None
@@ -290,6 +293,42 @@ class Elf:
     e_shentsize       = None
     e_shnum           = None
     e_shstrndx        = None
+
+    def __init__(self, elf):
+
+        if not os.access(elf, os.R_OK):
+            err("'{0}' not found/readable".format(elf))
+            err("Failed to get file debug information, most of gef features will not work")
+            return
+
+        with open(elf, "rb") as f:
+            # off 0x0
+            self.e_magic, self.e_class, self.e_endianness, self.e_eiversion = struct.unpack(">IBBB", f.read(7))
+
+            # adjust endianness in bin reading
+            if self.e_endianness == 0x01:
+                endian = "<" # LE
+            else:
+                endian = ">" # BE
+
+            # off 0x7
+            self.e_osabi, self.e_abiversion = struct.unpack(endian + "BB", f.read(2))
+            # off 0x9
+            self.e_pad = f.read(7)
+            # off 0x10
+            self.e_type, self.e_machine, self.e_version = struct.unpack(endian + "HHI", f.read(8))
+            # off 0x18
+            if self.e_class == 0x02:
+                # if arch 64bits
+                self.e_entry, self.e_phoff, self.e_shoff = struct.unpack(endian + "QQQ", f.read(24))
+            else:
+                # else arch 32bits
+                self.e_entry, self.e_phoff, self.e_shoff = struct.unpack(endian + "III", f.read(12))
+
+            self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = struct.unpack(endian + "HHHH", f.read(8))
+            self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack(endian + "HHH", f.read(6))
+
+        return
 
 
 class GlibcChunk:
@@ -1165,44 +1204,11 @@ def get_elf_headers(filename=None):
     if filename is None:
         filename = get_filename()
 
-    try:
-        f = open(filename, "rb")
-    except IOError:
-        err("'{0}' not found/readable".format(filename))
-        if filename.startswith("target:"):
-            warn("Your file is remote, you should try using `gef-remote` instead")
-        else:
-            err("Failed to get file debug information, most of gef features will not work")
-        return None
+    if filename.startswith("target:"):
+        warn("Your file is remote, you should try using `gef-remote` instead")
+        return
 
-    elf = Elf()
-
-    # off 0x0
-    elf.e_magic, elf.e_class, elf.e_endianness, elf.e_eiversion = struct.unpack(">IBBB", f.read(7))
-
-    # adjust endianness in bin reading
-    if elf.e_endianness == 0x01:
-        endian = "<" # LE
-    else:
-        endian = ">" # BE
-
-    # off 0x7
-    elf.e_osabi, elf.e_abiversion = struct.unpack(endian + "BB", f.read(2))
-    # off 0x9
-    elf.e_pad = f.read(7)
-    # off 0x10
-    elf.e_type, elf.e_machine, elf.e_version = struct.unpack(endian + "HHI", f.read(8))
-    # off 0x18
-    if elf.e_class == 0x02: # arch 64bits
-        elf.e_entry, elf.e_phoff, elf.e_shoff = struct.unpack(endian + "QQQ", f.read(24))
-    else: # arch 32bits
-        elf.e_entry, elf.e_phoff, elf.e_shoff = struct.unpack(endian + "III", f.read(12))
-
-    elf.e_flags, elf.e_ehsize, elf.e_phentsize, elf.e_phnum = struct.unpack(endian + "HHHH", f.read(8))
-    elf.e_shentsize, elf.e_shnum, elf.e_shstrndx = struct.unpack(endian + "HHH", f.read(6))
-
-    f.close()
-    return elf
+    return Elf(filename)
 
 
 @memoize
