@@ -15,7 +15,7 @@ distro start pushing `gdb` compiled with Python3 support).
 
 Simply make sure you're having a [GDB 7.x+](https://www.gnu.org/s/gdb).
 ``` bash
- $ wget -O- https://github.com/hugsy/gef/raw/master/gef.sh | sh
+ $ wget -q -O- https://github.com/hugsy/gef/raw/master/gef.sh | sh
 ```
 
 Then just start playing (for local files):
