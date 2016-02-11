@@ -40,7 +40,7 @@ gef> gef-remote your.ip.address:1234
 ![gef-x86](https://i.imgur.com/P6ZGp6E.png)
 
 ### ARM
-![gef-arm](https://pbs.twimg.com/media/CA_y-xEU0AAroF3.png:large)
+![gef-arm](http://i.imgur.com/qOL8CnL.png)
 
 ### PowerPC
 ![gef-ppc](https://i.imgur.com/IN6x6lw.png)
