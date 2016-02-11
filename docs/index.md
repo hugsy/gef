@@ -26,7 +26,7 @@ gef> gef help
 
 Or (for remote debugging)
 ```bash
-remote:~ $ gdbserver /path/to/my/remote/file 0.0.0.0:1234
+remote:~ $ gdbserver 0.0.0.0:1234 /path/to/file 
 ```
 And 
 ```bash
