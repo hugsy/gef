@@ -45,8 +45,8 @@ gef> gef-remote your.ip.address:1234
 ### PowerPC
 ![gef-ppc](https://i.imgur.com/IN6x6lw.png)
 
-### Mips64
-![gef-mips](https://i.imgur.com/WTXutso.png)
+### Mips
+![gef-mips](https://i.imgur.com/dBaB9os.png)
 
 
 ## Dependencies
