@@ -623,10 +623,15 @@ def arm_nop_insn():
 def arm_return_register():
     return "$r0"
 
-def arm_flags_to_human():
+@memoize
+def arm_flag_register():
+    return "$cpsr"
+
+def arm_flags_to_human(val=None):
     # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
     reg = "$cpsr"
-    val = get_register_ex( reg )
+    if not val:
+        val = get_register_ex( reg )
     table = { 31: "negative",
               30: "zero",
               29: "carry",
@@ -653,9 +658,14 @@ def x86_64_nop_insn():
 def x86_64_return_register():
     return "$rax"
 
-def x86_flags_to_human():
+@memoize
+def x86_flag_register():
+    return "$eflags"
+
+def x86_flags_to_human(val=None):
     reg = "$eflags"
-    val = get_register_ex( reg )
+    if not val:
+        val = get_register_ex( reg )
     table = { 6: "zero",
               0: "carry",
               2: "parity",
@@ -668,6 +678,7 @@ def x86_flags_to_human():
               17: "virtual",
     }
     return flags_to_human(val, table)
+
 
 ######################[ Intel x86-32 specific ]######################
 @memoize
@@ -704,10 +715,15 @@ def powerpc_nop_insn():
 def powerpc_return_register():
     return "$r0"
 
-def powerpc_flags_to_human():
+@memoize
+def powerpc_flag_register():
+    return "$cr"
+
+def powerpc_flags_to_human(val=None):
     # http://www.csit-sun.pub.ro/~cpop/Documentatie_SM/Motorola_PowerPC/PowerPc/GenInfo/pemch2.pdf
     reg = "$cr"
-    val = get_register_ex( reg )
+    if not val:
+        val = get_register_ex( reg )
     table = { 0: "negative",
               1: "positive",
               2: "zero",
@@ -717,6 +733,7 @@ def powerpc_flags_to_human():
               11: "overflow",
     }
     return flags_to_human(val, table)
+
 
 ######################[ SPARC specific ]######################
 @memoize
@@ -736,6 +753,13 @@ def sparc_nop_insn():
 @memoize
 def sparc_return_register():
     return "$i0"
+
+@memoize
+def sparc_flag_register():
+    return "$psr"
+
+def sparc_flags_to_human(val=None):
+    return "TODO"
 
 
 ######################[ MIPS specific ]######################
@@ -759,6 +783,14 @@ def mips_nop_insn():
 def mips_return_register():
     return "$v0"
 
+@memoize
+def mips_flag_register():
+    return "$fcsr"
+
+def mips_flags_to_human(val=None):
+    return "TODO"
+
+
 ######################[ AARCH64 specific ]######################
 
 @memoize
@@ -773,10 +805,15 @@ def aarch64_registers():
 def aarch64_return_register():
     return "$x0"
 
-def aarch64_flags_to_human():
+@memoize
+def aarch64_flag_register():
+    return "$fpcr"
+
+def aarch64_flags_to_human(val=None):
     # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
     reg = "$cpsr"
-    val = get_register_ex( reg )
+    if not val:
+        val = get_register_ex( reg )
     table = { 31: "negative",
               30: "zero",
               29: "carry",
@@ -785,6 +822,9 @@ def aarch64_flags_to_human():
                6: "fast"
     }
     return flags_to_human(val, table)
+
+
+################################################################
 
 @memoize
 def all_registers():
@@ -820,15 +860,29 @@ def return_register():
     elif is_aarch64():   return aarch64_return_register()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
+
+@memoize
 def flag_register():
-    if is_arm():         return "Flags: " + arm_flags_to_human()
-    elif is_x86_32():    return "Flags: " + x86_flags_to_human()
-    elif is_x86_64():    return "Flags: " + x86_flags_to_human()
-    elif is_powerpc():   return "Flags: " + powerpc_flags_to_human()
-    elif is_mips():      return ""
-    elif is_sparc():     return ""
-    elif is_aarch64():   return "Flags: " + aarch64_flags_to_human()
+    if is_arm():         return arm_flag_register()
+    elif is_x86_32():    return x86_flag_register()
+    elif is_x86_64():    return x86_flag_register()
+    elif is_powerpc():   return powerpc_flag_register()
+    elif is_mips():      return mips_flag_register()
+    elif is_sparc():     return sparc_flag_register()
+    elif is_aarch64():   return aarch64_flag_register()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+
+def flag_register_to_human(val=None):
+    if is_arm():         return arm_flags_to_human(val)
+    elif is_x86_32():    return x86_flags_to_human(val)
+    elif is_x86_64():    return x86_flags_to_human(val)
+    elif is_powerpc():   return powerpc_flags_to_human(val)
+    elif is_mips():      return mips_flags_to_human(val)
+    elif is_sparc():     return sparc_flags_to_human(val)
+    elif is_aarch64():   return aarch64_flags_to_human(val)
+    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
 
 def write_memory(address, buffer, length=0x10):
     return gdb.selected_inferior().write_memory(address, buffer, length)
@@ -1560,11 +1614,13 @@ class UnicornEmulateCommand(GenericCommand):
     changed via arguments to the command line. By default, it will emulate the next instruction from current PC."""
 
     _cmdline_ = "unicorn-emulate"
-    _syntax_  = "%s [LOCATION] [NB_INSTRUCTION]" % _cmdline_
-    _aliases_ = ["emulate", "emu"]
+    _syntax_  = "%s [-l LOCATION] [-n NB_INSTRUCTION] [-e UNICORN_SCRIPT]" % _cmdline_
+    _aliases_ = ["emulate", ]
 
     def __init__(self):
          super(UnicornEmulateCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+         self.verbose = False
+         self.show_disassembly = False
          return
 
     def pre_load(self):
@@ -1579,24 +1635,30 @@ class UnicornEmulateCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
+        start_insn = None
+        nb_insn = 1
+        opts, args = getopt.getopt(argv, "l:n:hvx")
+        for o,a in opts:
+            if   o == "-l":   start_insn = int(a, 16)
+            elif o == "-n":   nb_insn = int(a)
+            elif o == "-v":   self.verbose = True
+            elif o == "-x":   self.show_disassembly = True
+            elif o == "-h":
+                self.help()
+                return
 
-        if len(argv)==0 or argv[0]=="-1":
-            start_insn = get_pc()
-        else:
-            start_insn = long(gdb.parse_and_eval( argv[0] ))
-
-        if len(argv)==2:
-            nb_insn = long(argv[1])
-        else:
-            nb_insn = 1
+        if start_insn is None:
+            if not is_alive:
+                warn("No debugging session active")
+                return
+            else:
+                start_insn = get_pc()
 
         self.run_unicorn(start_insn, nb_insn)
         return
 
     def get_unicorn_arch(self):
+        "Retrieves Unicorn architecture and mode from the current context."
         unicorn = sys.modules['unicorn']
         if   is_x86_32():    arch, mode = unicorn.UC_ARCH_X86, unicorn.UC_MODE_32
         elif is_x86_64():    arch, mode = unicorn.UC_ARCH_X86, unicorn.UC_MODE_64
@@ -1621,7 +1683,7 @@ class UnicornEmulateCommand(GenericCommand):
         elif is_sparc():                 arch = "sparc"
         elif is_arm():                   arch = "arm"
         else:
-            raise GefUnsupportedOS("oops")
+            raise GefUnsupportedOS("Oops")
 
         const = getattr(unicorn, arch + "_const")
         for r in all_registers():
@@ -1630,7 +1692,7 @@ class UnicornEmulateCommand(GenericCommand):
         return regs
 
     def get_unicorn_end_addr(self, start_addr, nb):
-        dis = gef_disassemble(start_addr, nb+1)
+        dis = gef_disassemble(start_addr, nb+1, True)
         return dis[-1][0]
 
     def run_unicorn(self, start_insn_addr, nb_insn, *args, **kwargs):
@@ -1642,26 +1704,28 @@ class UnicornEmulateCommand(GenericCommand):
         insn_section_length = end_insn_addr - start_insn_addr
 
         unicorn = sys.modules['unicorn']
-
-        info("Initializing Unicorn engine")
+        if self.verbose:
+            info("Initializing Unicorn engine")
         emu = unicorn.Uc(arch, mode)
 
-        info("Populating registers")
+        if self.verbose:
+            info("Populating registers")
         for r in all_registers():
             gregval = get_register_ex(r)
             emu.reg_write(unicorn_registers[r], gregval)
             start_regs[r] = gregval
 
-
         pc = align_address_to_page(start_insn_addr)
         code = read_memory(pc, resource.getpagesize())
-        info("Populating code page=%#x-%#x" % (pc, pc+resource.getpagesize()-1))
+        if self.verbose:
+            info("Populating code page=%#x-%#x" % (pc, pc+resource.getpagesize()-1))
         emu.mem_map(pc, resource.getpagesize())
         emu.mem_write(pc, bytes(code))
 
         sp = align_address_to_page(get_sp())
         stack = read_memory(sp, resource.getpagesize())
-        info("Populating stack page=%#x-%#x" % (sp, sp+resource.getpagesize()-1))
+        if self.verbose:
+            info("Populating stack page=%#x-%#x" % (sp, sp+resource.getpagesize()-1))
         emu.mem_map(sp, resource.getpagesize())
         emu.mem_write(sp, bytes(stack))
 
@@ -1669,14 +1733,36 @@ class UnicornEmulateCommand(GenericCommand):
                                                                  right_arrow(),
                                                                  end_insn_addr,
                                                                  nb_insn))
-        emu.emu_start(start_insn_addr, end_insn_addr)
-        ok("Ending emulation")
+        if self.show_disassembly:
+            CapstoneDisassembleCommand.disassemble(start_insn_addr, nb_insn)
+
+        try:
+            emu.emu_start(start_insn_addr, end_insn_addr)
+        except Exception as e:
+            err("An error occured during emulation: %s" % e)
+            return
+
+        ok("Emulation ended, dumping VM state")
 
         for r in all_registers():
             end_regs[r] = emu.reg_read(unicorn_registers[r])
-            info("old_%s=%#x\t||\tnew_%s=%#x%s" % (r.strip(), start_regs[r],
-                                                   r.strip(), end_regs[r],
-                                                   "\t(tainted)" if start_regs[r] != end_regs[r] else ""))
+            tainted = ( start_regs[r] != end_regs[r] )
+
+            msg = ""
+            if r != flag_register():
+                msg = "old %-10s= %#.16x " % (r.strip(), start_regs[r])
+                msg+= "|| new %-10s= %#.16x " % (r.strip(), end_regs[r])
+                if tainted :
+                    msg+= "\t(tainted)"
+                    msg = Color.redify(msg)
+
+            else:
+                msg = "old %-10s= %s " % (r.strip(), flag_register_to_human(start_regs[r]))
+                msg+= "|| new %-10s= %s " % (r.strip(), flag_register_to_human(end_regs[r]))
+                if tainted :
+                    msg+= Color.redify("\t(tainted)")
+
+            info(msg)
 
         return
 
@@ -2912,7 +2998,7 @@ class ContextCommand(GenericCommand):
         if len(line) > 0:
             print(line)
 
-        print(flag_register())
+        print("Flags: " + flag_register_to_human())
 
         return
 
