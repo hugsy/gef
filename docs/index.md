@@ -56,7 +56,6 @@ However, to enjoy all the coolest features, it is recommended to install:
 
 - [`capstone`](https://github.com/aquynh/capstone) **highly** recommended
 - [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget) **highly** recommended
-- [`python-radare2`](https://github.com/radare/radare2-bindings)
 
 *Note*: if you are using GDB with Python3 support, you cannot use `ROPgadget` as
  Python3 support has not implemented yet. `Capstone` and `radare2-python` will
@@ -68,13 +67,12 @@ $ pip2 install capstone    # for Python2.x
 $ pip3 install capstone    # for Python3.x
 ```
 
-And for `ropgadget`
+And same goes for `ropgadget`
 ```bash
-$ pip install ropgadget
+$ pip[23] install ropgadget
 ```
 
-`python-radare2` is not packaged by `pip`, you might need to install it the old school way.
-
+The `assemble` command relies on the binary `rasm2` provided by [`radare2`](http://www.radare.org/r/).
 
 ## But why not PEDA?
 Yes ! Why not ?! [PEDA](https://github.com/longld/peda) is a fantastic tool to
