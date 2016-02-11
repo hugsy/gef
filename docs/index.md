@@ -37,7 +37,7 @@ gef> gef-remote your.ip.address:1234
 ## Show me
 
 ### x86
-![gef-x86](https://pbs.twimg.com/media/BvdRAJKIUAA8R6_.png:large)
+![gef-x86](https://i.imgur.com/P6ZGp6E.png)
 
 ### ARM
 ![gef-arm](https://pbs.twimg.com/media/CA_y-xEU0AAroF3.png:large)
