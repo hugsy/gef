@@ -15,7 +15,7 @@ distro start pushing `gdb` compiled with Python3 support).
 
 Simply make sure you're having a [GDB 7.x+](https://www.gnu.org/s/gdb).
 ``` bash
- $ curl -fsSL https://github.com/hugsy/gef/raw/master/gef.sh | sh
+ $ wget -q -O- https://github.com/hugsy/gef/raw/master/gef.sh | sh
 ```
 
 Then just start playing (for local files):
@@ -26,7 +26,7 @@ gef> gef help
 
 Or (for remote debugging)
 ```bash
-remote:~ $ gdbserver /path/to/my/remote/file 0.0.0.0:1234
+remote:~ $ gdbserver 0.0.0.0:1234 /path/to/file 
 ```
 And 
 ```bash
@@ -37,16 +37,16 @@ gef> gef-remote your.ip.address:1234
 ## Show me
 
 ### x86
-![gef-x86](https://pbs.twimg.com/media/BvdRAJKIUAA8R6_.png:large)
+![gef-x86](https://i.imgur.com/P6ZGp6E.png)
 
 ### ARM
-![gef-arm](https://pbs.twimg.com/media/CA_y-xEU0AAroF3.png:large)
+![gef-arm](http://i.imgur.com/qOL8CnL.png)
 
 ### PowerPC
 ![gef-ppc](https://i.imgur.com/IN6x6lw.png)
 
-### Mips64
-![gef-mips](https://i.imgur.com/WTXutso.png)
+### MIPS
+![gef-mips](https://i.imgur.com/dBaB9os.png)
 
 
 ## Dependencies
@@ -56,7 +56,6 @@ However, to enjoy all the coolest features, it is recommended to install:
 
 - [`capstone`](https://github.com/aquynh/capstone) **highly** recommended
 - [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget) **highly** recommended
-- [`python-radare2`](https://github.com/radare/radare2-bindings)
 
 *Note*: if you are using GDB with Python3 support, you cannot use `ROPgadget` as
  Python3 support has not implemented yet. `Capstone` and `radare2-python` will
@@ -68,13 +67,12 @@ $ pip2 install capstone    # for Python2.x
 $ pip3 install capstone    # for Python3.x
 ```
 
-And for `ropgadget`
+And same goes for `ropgadget`
 ```bash
-$ pip install ropgadget
+$ pip[23] install ropgadget
 ```
 
-`python-radare2` is not packaged by `pip`, you might need to install it the old school way.
-
+The `assemble` command relies on the binary `rasm2` provided by [`radare2`](http://www.radare.org/r/).
 
 ## But why not PEDA?
 Yes ! Why not ?! [PEDA](https://github.com/longld/peda) is a fantastic tool to

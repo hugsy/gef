@@ -523,15 +523,9 @@ def gef_obsolete_function(func):
 
 
 def gef_execute(command, as_list=False):
-    output = []
-    lines = gdb.execute(command, to_string=True).splitlines()
-
-    for line in lines:
-        if line.startswith("=>"): line = line[2:]
-        line = line.lstrip().rstrip()
-        address, content = line.split(" ", 1)
-        address = long(address, 16)
-        output.append( (address, content) )
+    res = gdb.execute(command, to_string=True)
+    if as_list:
+        return res.splitlines()
     return output
 
 
@@ -1266,29 +1260,28 @@ def get_elf_headers(filename=None):
 
 
 @memoize
-def is_elf64():
-    elf = get_elf_headers()
+def is_elf64(filename=None):
+    elf = get_elf_headers(filename)
     return elf.e_class == 0x02
 
-
 @memoize
-def is_elf32():
-    elf = get_elf_headers()
+def is_elf32(filename=None):
+    elf = get_elf_headers(filename)
     return elf.e_class == 0x01
 
 @memoize
-def is_x86_64():
-    elf = get_elf_headers()
+def is_x86_64(filename=None):
+    elf = get_elf_headers(filename)
     return elf.e_machine==0x3e
 
 @memoize
-def is_x86_32():
-    elf = get_elf_headers()
+def is_x86_32(filename=None):
+    elf = get_elf_headers(filename)
     return elf.e_machine==0x03
 
 @memoize
-def is_arm():
-    elf = get_elf_headers()
+def is_arm(filename=None):
+    elf = get_elf_headers(filename)
     return elf.e_machine==0x28
 
 @memoize
@@ -1496,8 +1489,26 @@ class SetRegisterBreakpoint(gdb.Breakpoint):
     def stop(self):
         gdb.execute("set %s = %d" % (self.reg, self.retval))
         ok("Setting Return Value register (%s) to %d" % (self.reg, self.retval))
-        self.delete ()
+        self.delete()
         return self.force_stop
+
+
+class ChangePermissionBreakpoint(gdb.Breakpoint):
+    """When hit, this temporary breakpoint will restore the original code, and position
+    $pc correctly."""
+
+    def __init__(self, loc, code, pc):
+        super(ChangePermissionBreakpoint, self).__init__(loc, gdb.BP_BREAKPOINT, internal=False)
+        self.original_code = code
+        self.original_pc = pc
+        return
+
+    def stop(self):
+        info("Restoring original context")
+        write_memory(self.original_pc, self.original_code, len(self.original_code))
+        info("Restoring $pc")
+        gdb.execute("set $pc = %#x" % self.original_pc)
+        return True
 
 
 #
@@ -1596,6 +1607,7 @@ class GenericCommand(gdb.Command):
 
     # _cmdline_ = "template-fake"
     # _syntax_  = "%s" % _cmdline_
+    # _aliases_ = ["tpl-fk", ]
 
     # def __init__(self):
          # super(TemplateCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
@@ -1606,6 +1618,67 @@ class GenericCommand(gdb.Command):
         # return
     # def do_invoke(self, argv):
         # return
+
+
+class ChangePermissionCommand(GenericCommand):
+    """Change a page permission. By default, it will change it to RWX."""
+
+    _cmdline_ = "set-permission"
+    _syntax_  = "%s LOCATION [PERMISSION]" % _cmdline_
+    _aliases_ = ["mprotect", ]
+
+    def __init__(self):
+         super(ChangePermissionCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+         return
+
+    def do_invoke(self, argv):
+        if not is_alive():
+            warn("No debugging session active")
+            return
+
+        if not is_x86_64():
+            warn("This feature only works for x64 for now.")
+            return
+
+        if len(argv) not in (1, 2):
+            err("Incorrect syntax")
+            return
+
+        if len(argv)==2:
+            perm = int(argv[1])
+        else:
+            perm = Permission.READ | Permission.WRITE | Permission.EXECUTE
+
+        loc = int(argv[0], 16)
+        sect = process_lookup_address(loc)
+        size = sect.page_end - sect.page_start
+        original_pc = get_pc()
+        sc_mprotect = 10
+
+        info("Preparing and compiling the replacement stub (call to mprotect())")
+        insns = ["mov rax, %d" % sc_mprotect,
+                 "mov rdi, %#x" % sect.page_start,
+                 "mov rsi, %#x" % size,
+                 "mov rdx, %d" % perm,
+                 "syscall",]
+
+        stub = "".join([AssembleCommand.gef_assemble_instruction(i) for i in insns])
+        stub = bytearray(stub.replace('\\x', ''), "utf-8")
+        stub = binascii.unhexlify(stub)
+
+        info("Saving original code")
+        original_code = read_memory(original_pc, len(stub))
+
+        info("Setting a restore breakpoint")
+        bp_loc = "*%#x"%(original_pc + len(stub))
+        ChangePermissionBreakpoint(bp_loc, original_code, original_pc)
+
+        info("Overwriting current memory")
+        write_memory(original_pc, stub, len(stub))
+
+        info("Resuming execution")
+        gdb.execute("continue")
+        return
 
 
 class UnicornEmulateCommand(GenericCommand):
@@ -1940,7 +2013,7 @@ class PatchCommand(GenericCommand):
 
 
     def get_insn_size(self, addr):
-        res = gef_execute("x/2i %#x" % addr, as_list=True)
+        res = gef_disassemble(addr, 1, True)
         insns = [ x[0] for x in res ]
         return insns[1] - insns[0]
 
@@ -2685,24 +2758,27 @@ class AssembleCommand(GenericCommand):
         except IOError as ioe:
             raise GefMissingDependencyException("radare2 missing: %s" % ioe)
 
+        return
+
+    @staticmethod
+    def get_arch_mode():
+        arch = get_arch()
+        if "i386" in arch: a = "x86"
+        elif "armv" in arch: a = "arm"
+        else: a = arch
+
+        m = 64 if is_elf64() else 32
+        return (a, m)
 
     def do_invoke(self, argv):
         r2 = self.get_setting("rasm2_path")
+        if not self.has_setting("arch") or not self.has_setting("bits"):
+            a, b = AssembleCommand.get_arch_mode()
+            self.add_setting("arch", a)
+            self.add_setting("bits", b)
 
-        if not self.has_setting("arch"):
-            if   "i386" in get_arch(): arch = "x86"
-            elif "armv" in get_arch(): arch = "arm"
-            else: arch = get_arch()
-            self.add_setting("arch", arch)
-        else:
-            arch = self.get_setting("arch")
-
-        if not self.has_setting("bits"):
-            bits = 64 if is_elf64() else 32
-            self.add_setting("bits", bits)
-        else:
-            bits = self.get_setting("bits")
-
+        arch = self.get_setting("arch")
+        bits = self.get_setting("bits")
 
         if len(argv)==0 or (len(argv)==1 and argv[0]=="list"):
             self.usage()
@@ -2714,11 +2790,19 @@ class AssembleCommand(GenericCommand):
         info("Assembling {} instructions for {} ({} bits):".format(len(insns), arch, bits))
 
         for insn in insns:
-            res = gef_execute_external("{} -C -a {} -b {} '{}';exit 0".format(r2, arch, bits, insn), shell=True).strip()
-            print( "{0:40s} # {1:s}".format(res, insn))
+            res = AssembleCommand.gef_assemble_instruction(insn)
+            print( "{0:60s} # {1:s}".format(res, insn))
             if res == "invalid":
                 break
         return
+
+    @staticmethod
+    def gef_assemble_instruction(insn):
+        r2 = __config__[AssembleCommand._cmdline_ + ".rasm2_path"][0]
+        arch, bits = AssembleCommand.get_arch_mode()
+        cmd = "{} -C -a {} -b {} '{}';exit 0".format(r2, arch, bits, insn)
+        res = gef_execute_external(cmd, shell=True).strip().replace('"','')
+        return res
 
 
 class InvokeCommand(GenericCommand):
@@ -3216,7 +3300,6 @@ class HexdumpCommand(GenericCommand):
             i += 1
 
         return
-
 
 
 class DereferenceCommand(GenericCommand):
@@ -3977,6 +4060,7 @@ class GEFCommand(gdb.Command):
                         PatchCommand,
                         RemoteCommand,
                         UnicornEmulateCommand,
+                        ChangePermissionCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
