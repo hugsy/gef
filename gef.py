@@ -85,7 +85,8 @@ __aliases__ = {}
 __config__ = {}
 NO_COLOR = False
 __infos_files__ = []
-
+DEFAULT_PAGE_ALIGN_SHIFT = 12
+DEFAULT_PAGE_SIZE = 1 << DEFAULT_PAGE_ALIGN_SHIFT
 
 
 class GefGenericException(Exception):
@@ -260,6 +261,12 @@ class Section:
 
     def is_executable(self):
         return self.permission.value and self.permission.value&Permission.EXECUTE
+
+    @property
+    def size(self):
+        if self.page_end is None or self.page_start is None:
+            return -1
+        return self.page_end - self.page_start
 
 
 class Zone:
@@ -1343,8 +1350,8 @@ def align_address(address):
     return ret
 
 def align_address_to_page(address):
-    # HACK HACK HACK (hardcoded)
-    return align_address(address) & 0xFFFFFFFFFFFFF000
+    a = align_address(address) >> DEFAULT_PAGE_ALIGN_SHIFT
+    return a << DEFAULT_PAGE_ALIGN_SHIFT
 
 def parse_address(address):
     if ishex(address):
@@ -1634,10 +1641,8 @@ class ChangePermissionCommand(GenericCommand):
     def pre_load(self):
         try:
             r2 = which("rasm2")
-            self.add_setting("rasm2_path", r2)
         except IOError as ioe:
-            raise GefMissingDependencyException("radare2 missing: %s" % ioe)
-
+            raise GefMissingDependencyException("Binary `rasm2` missing: %s" % ioe)
         return
 
     def do_invoke(self, argv):
@@ -1659,18 +1664,17 @@ class ChangePermissionCommand(GenericCommand):
         size = sect.page_end - sect.page_start
         original_pc = get_pc()
 
-        info("Preparing and compiling the replacement stub (call to mprotect())")
-
+        info("Getting replacement stub: sys_mprotect(%#x, %d, %d))"%(sect.page_start, size, perm))
         stub = self.get_stub_by_arch(sect.page_start, size, perm)
 
         info("Saving original code")
         original_code = read_memory(original_pc, len(stub))
 
-        info("Setting a restore breakpoint")
         bp_loc = "*%#x"%(original_pc + len(stub))
+        info("Setting a restore breakpoint at %#x" % bp_loc)
         ChangePermissionBreakpoint(bp_loc, original_code, original_pc)
 
-        info("Overwriting current memory")
+        info("Overwriting current memory at %#x (%d bytes)" % (loc, len(stub)))
         write_memory(original_pc, stub, len(stub))
 
         info("Resuming execution")
@@ -1701,15 +1705,15 @@ class ChangePermissionCommand(GenericCommand):
                 "popad",
             ]
         elif is_arm():
-            sc_num = 125
+            sc_num = 0x7d
             insns = [
-                "stmfd r13!, {r0-r7}",
-                "mov r0, $%#x"%addr,
-                "mov r1, $%d"%size,
-                "mov r2, $%d"%perm,
-                "mov r7, $%d"%sc_num,
-                "svc $0",
-                "ldmfd r13!, {r0-r7}",
+                "push {r0-r2, r7}",
+                "ldr r0, =%d"%addr,
+                "ldr r1, =%d"%size,
+                "ldr r2, =%d"%perm,
+                "mov r7, %d"%sc_num,
+                "svc 0",
+                "pop {r0-r2, r7}",
             ]
         elif is_mips():
             sc_num = 125
@@ -2169,10 +2173,14 @@ class CapstoneDisassembleCommand(GenericCommand):
 
 
     def do_invoke(self, argv):
-        loc, lgt = None, None
-        opts, args = getopt.getopt(argv, 'l:x:')
+        if not is_alive():
+            warn("No debugging session active")
+            return
+
+        loc, lgt = loc = get_pc(), 0x10
+        opts, args = getopt.getopt(argv, 'n:x:')
         for o,a in opts:
-            if   o == "-l":
+            if   o == "-n":
                 lgt = long(a)
             elif o == "-x":
                 k, v = a.split(":", 1)
@@ -2180,15 +2188,6 @@ class CapstoneDisassembleCommand(GenericCommand):
 
         if len(args):
             loc = parse_address( args[0] )
-
-        if loc is None:
-            if not is_alive():
-                warn("No debugging session active")
-                return
-            loc = get_pc()
-
-        if lgt is None:
-            lgt = 0x10
 
         kwargs = {}
         if self.has_setting("arm_thumb"):
@@ -2204,8 +2203,9 @@ class CapstoneDisassembleCommand(GenericCommand):
     @staticmethod
     def disassemble(location, insn_num, *args, **kwargs):
         arch, mode = CapstoneDisassembleCommand.get_cs_arch( *args, **kwargs )
-        mem  = read_memory(location, 0x200)  # hack hack hack
-
+        page_start = align_address_to_page(location)
+        offset = location - page_start
+        mem  = read_memory(location, DEFAULT_PAGE_SIZE-offset-1)
         CapstoneDisassembleCommand.cs_disass(mem, location, arch, mode, insn_num)
         return
 
@@ -2247,7 +2247,7 @@ class CapstoneDisassembleCommand(GenericCommand):
 
 
     @staticmethod
-    def cs_disass(code, location, arch, mode, max_inst):
+    def cs_disass(code, offset, arch, mode, max_inst):
         inst_num    = 0
         capstone    = sys.modules['capstone']
         cs          = capstone.Cs(arch, mode)
@@ -2255,7 +2255,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         code        = bytes(code)
         pc          = get_pc()
 
-        for i in cs.disasm(code, location):
+        for i in cs.disasm(code, offset):
             m = Color.boldify(Color.blueify(format_address(i.address))) + "\t"
             m+= Color.greenify("%s" % i.mnemonic) + "\t"
             m+= Color.yellowify("%s" % i.op_str)
