@@ -1632,12 +1632,12 @@ class ChangePermissionCommand(GenericCommand):
          return
 
     def do_invoke(self, argv):
-        if not is_x86_64():
-            warn("This feature only works for x64 for now.")
+        if not is_alive():
+            warn("No debugging session active")
             return
 
-        if not is_alive:
-            warn("No debugging session active")
+        if not is_x86_64():
+            warn("This feature only works for x64 for now.")
             return
 
         if len(argv) not in (1, 2):
