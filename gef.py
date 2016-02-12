@@ -1510,9 +1510,10 @@ class ChangePermissionBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
+        info("Restoring original context")
         write_memory(self.original_pc, self.original_code, len(self.original_code))
+        info("Restoring $pc")
         gdb.execute("set $pc = %#x" % self.original_pc)
-        self.delete()
         return True
 
 
@@ -1675,7 +1676,7 @@ class ChangePermissionCommand(GenericCommand):
         original_code = read_memory(original_pc, len(stub))
 
         # 3. Setting a restore breakpoint
-        bp_loc = "*%#x"%(pc + len(stub))
+        bp_loc = "*%#x"%(original_pc + len(stub))
         ChangePermissionBreakpoint(bp_loc, original_code, original_pc)
 
         # 4. Overwrite current memory
