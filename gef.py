@@ -1729,13 +1729,16 @@ class UnicornEmulateCommand(GenericCommand):
         emu.mem_map(sp, resource.getpagesize())
         emu.mem_write(sp, bytes(stack))
 
+        if self.versbose:
+            emu.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
+
+        if self.show_disassembly:
+            emu.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
+
         ok("Starting emulation: %#x %s %#x (%d instructions)" % (start_insn_addr,
                                                                  right_arrow(),
                                                                  end_insn_addr,
                                                                  nb_insn))
-        if self.show_disassembly:
-            CapstoneDisassembleCommand.disassemble(start_insn_addr, nb_insn)
-
         try:
             emu.emu_start(start_insn_addr, end_insn_addr)
         except Exception as e:
@@ -1764,6 +1767,15 @@ class UnicornEmulateCommand(GenericCommand):
 
             info(msg)
 
+        return
+
+    def hook_code(self, emu, addr, size, misc):
+        mem = emu.mem_read(addr, size)
+        CapstoneDisassembleCommand.disassemble(addr, 1)
+        return
+
+    def hook_block(self, emu, addr, size, misc):
+        ok("Entering new block at %s" %(format_address(addr, )))
         return
 
 
