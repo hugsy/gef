@@ -523,15 +523,9 @@ def gef_obsolete_function(func):
 
 
 def gef_execute(command, as_list=False):
-    output = []
-    lines = gdb.execute(command, to_string=True).splitlines()
-
-    for line in lines:
-        if line.startswith("=>"): line = line[2:]
-        line = line.lstrip().rstrip()
-        address, content = line.split(" ", 1)
-        address = long(address, 16)
-        output.append( (address, content) )
+    res = gdb.execute(command, to_string=True)
+    if as_list:
+        return res.splitlines()
     return output
 
 
@@ -1661,7 +1655,7 @@ class ChangePermissionCommand(GenericCommand):
         original_pc = get_pc()
         sc_mprotect = 10
 
-        # 1. prepare and compile the replacement stub (call to mprotect())
+        info("Preparing and compiling the replacement stub (call to mprotect())")
         insns = ["mov rax, %d" % sc_mprotect,
                  "mov rdi, %#x" % sect.page_start,
                  "mov rsi, %#x" % size,
@@ -1672,15 +1666,18 @@ class ChangePermissionCommand(GenericCommand):
         stub = bytearray(stub.replace('\\x', ''), "utf-8")
         stub = binascii.unhexlify(stub)
 
-        # 2. saving original code
+        info("Saving original code")
         original_code = read_memory(original_pc, len(stub))
 
-        # 3. Setting a restore breakpoint
+        info("Setting a restore breakpoint")
         bp_loc = "*%#x"%(original_pc + len(stub))
         ChangePermissionBreakpoint(bp_loc, original_code, original_pc)
 
-        # 4. Overwrite current memory
+        info("Overwriting current memory")
         write_memory(original_pc, stub, len(stub))
+
+        info("Resuming execution")
+        gdb.execute("continue")
         return
 
 
@@ -2004,7 +2001,7 @@ class PatchCommand(GenericCommand):
 
 
     def get_insn_size(self, addr):
-        res = gef_execute("x/2i %#x" % addr, as_list=True)
+        res = gef_disassemble(addr, 1, True)
         insns = [ x[0] for x in res ]
         return insns[1] - insns[0]
 
