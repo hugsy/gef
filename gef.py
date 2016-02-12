@@ -1631,6 +1631,15 @@ class ChangePermissionCommand(GenericCommand):
         super(ChangePermissionCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
+    def pre_load(self):
+        try:
+            r2 = which("rasm2")
+            self.add_setting("rasm2_path", r2)
+        except IOError as ioe:
+            raise GefMissingDependencyException("radare2 missing: %s" % ioe)
+
+        return
+
     def do_invoke(self, argv):
         if not is_alive():
             warn("No debugging session active")
@@ -2267,7 +2276,7 @@ class GlibcHeapCommand(GenericCommand):
     """Get some information about the Glibc heap structure."""
 
     _cmdline_ = "heap"
-    _syntax_  = "%s LOCATION" % _cmdline_
+    _syntax_  = "%s MALLOCED_LOCATION" % _cmdline_
 
 
     def __init__(self):
@@ -2792,7 +2801,6 @@ class AssembleCommand(GenericCommand):
     def __init__(self, *args, **kwargs):
         super(AssembleCommand, self).__init__()
         return
-
 
     def pre_load(self):
         try:
