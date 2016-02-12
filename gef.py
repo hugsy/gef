@@ -1628,16 +1628,12 @@ class ChangePermissionCommand(GenericCommand):
     _aliases_ = ["mprotect", ]
 
     def __init__(self):
-         super(ChangePermissionCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
-         return
+        super(ChangePermissionCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
 
     def do_invoke(self, argv):
         if not is_alive():
             warn("No debugging session active")
-            return
-
-        if not is_x86_64():
-            warn("This feature only works for x64 for now.")
             return
 
         if len(argv) not in (1, 2):
@@ -1653,18 +1649,10 @@ class ChangePermissionCommand(GenericCommand):
         sect = process_lookup_address(loc)
         size = sect.page_end - sect.page_start
         original_pc = get_pc()
-        sc_mprotect = 10
 
         info("Preparing and compiling the replacement stub (call to mprotect())")
-        insns = ["mov rax, %d" % sc_mprotect,
-                 "mov rdi, %#x" % sect.page_start,
-                 "mov rsi, %#x" % size,
-                 "mov rdx, %d" % perm,
-                 "syscall",]
 
-        stub = "".join([AssembleCommand.gef_assemble_instruction(i) for i in insns])
-        stub = bytearray(stub.replace('\\x', ''), "utf-8")
-        stub = binascii.unhexlify(stub)
+        stub = self.get_stub_by_arch(sect.page_start, size, perm)
 
         info("Saving original code")
         original_code = read_memory(original_pc, len(stub))
@@ -1679,6 +1667,61 @@ class ChangePermissionCommand(GenericCommand):
         info("Resuming execution")
         gdb.execute("continue")
         return
+
+    def get_stub_by_arch(self, addr, size, perm):
+        if is_x86_64():
+            sc_num = 10
+            insns = [
+                "push rax", "push rdi", "push rsi", "push rdx",
+                "mov rax, %d" % sc_num,
+                "mov rdi, %#x" % addr,
+                "mov rsi, %#x" % size,
+                "mov rdx, %d" % perm,
+                "syscall",
+                "pop rdx", "pop rsi", "pop rdi", "pop rax"
+            ]
+        elif is_x86_32():
+            sc_num = 125
+            insns = [
+                "pushad",
+                "mov eax, %d" % sc_num,
+                "mov ebx, %#x" % addr,
+                "mov ecx, %#x" % size,
+                "mov edx, %d" % perm,
+                "int 0x80",
+                "popad",
+            ]
+        elif is_arm():
+            sc_num = 125
+            insns = [
+                "stmfd r13!, {r0-r7}",
+                "mov r0, $%#x"%addr,
+                "mov r1, $%d"%size,
+                "mov r2, $%d"%perm,
+                "mov r7, $%d"%sc_num,
+                "svc $0",
+                "ldmfd r13!, {r0-r7}",
+            ]
+        elif is_mips():
+            sc_num = 125
+            insns = [
+                "addi $sp, $sp, -16",
+                "sw $v0, 0($sp)", "sw $a0, 4($sp)",
+                "sw $a1, 8($sp)", "sw $a2, 12($sp)",
+                "li $v0, %d"%sc_num,
+                "li $a0, %d"%addr,
+                "li $a1, %d"%size,
+                "li $a2, %d"%perm,
+                "syscall",
+                "lw $v0, 0($sp)", "lw $a0, 4($sp)",
+                "lw $a1, 8($sp)", "lw $a2, 12($sp)",
+                "addi $sp, $sp, 16",
+            ]
+        else:
+            raise GefUnsupportedOS("Architecture %s not supported yet" % get_arch())
+
+        insns = b"".join([AssembleCommand.gef_assemble_instruction(i, raw=True) for i in insns])
+        return insns
 
 
 class UnicornEmulateCommand(GenericCommand):
@@ -2797,11 +2840,15 @@ class AssembleCommand(GenericCommand):
         return
 
     @staticmethod
-    def gef_assemble_instruction(insn):
+    def gef_assemble_instruction(insn, raw=False):
         r2 = __config__[AssembleCommand._cmdline_ + ".rasm2_path"][0]
         arch, bits = AssembleCommand.get_arch_mode()
-        cmd = "{} -C -a {} -b {} '{}';exit 0".format(r2, arch, bits, insn)
-        res = gef_execute_external(cmd, shell=True).strip().replace('"','')
+        cmd = "{} {} -a {} -b {} '{}';exit 0".format(r2, "-C" if not raw else "", arch, bits, insn)
+        res = gef_execute_external(cmd, shell=True).strip()
+        if raw:
+            stub = bytearray(res.replace('"',''), "utf-8")
+            res = binascii.unhexlify(stub)
+
         return res
 
 
