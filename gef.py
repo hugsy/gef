@@ -1773,6 +1773,10 @@ class UnicornEmulateCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
+        if not is_alive():
+            warn("No debugging session active")
+            return
+
         start_insn = None
         nb_insn = 1
         opts, args = getopt.getopt(argv, "l:n:hvx")
@@ -1786,11 +1790,7 @@ class UnicornEmulateCommand(GenericCommand):
                 return
 
         if start_insn is None:
-            if not is_alive:
-                warn("No debugging session active")
-                return
-            else:
-                start_insn = get_pc()
+            start_insn = get_pc()
 
         self.run_unicorn(start_insn, nb_insn)
         return
@@ -1867,7 +1867,7 @@ class UnicornEmulateCommand(GenericCommand):
         emu.mem_map(sp, resource.getpagesize())
         emu.mem_write(sp, bytes(stack))
 
-        if self.versbose:
+        if self.verbose:
             emu.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
 
         if self.show_disassembly:
@@ -1883,27 +1883,23 @@ class UnicornEmulateCommand(GenericCommand):
             err("An error occured during emulation: %s" % e)
             return
 
-        ok("Emulation ended, dumping VM state")
+        ok("Emulation ended, showing %s registers:" % Color.redify("tainted"))
 
         for r in all_registers():
             end_regs[r] = emu.reg_read(unicorn_registers[r])
             tainted = ( start_regs[r] != end_regs[r] )
 
+            if not tainted:
+                continue
+
             msg = ""
             if r != flag_register():
-                msg = "old %-10s= %#.16x " % (r.strip(), start_regs[r])
-                msg+= "|| new %-10s= %#.16x " % (r.strip(), end_regs[r])
-                if tainted :
-                    msg+= "\t(tainted)"
-                    msg = Color.redify(msg)
-
+                msg = "%-10s : old=%#.16x || new=%#.16x" % (r.strip(), start_regs[r], end_regs[r])
             else:
-                msg = "old %-10s= %s " % (r.strip(), flag_register_to_human(start_regs[r]))
-                msg+= "|| new %-10s= %s " % (r.strip(), flag_register_to_human(end_regs[r]))
-                if tainted :
-                    msg+= Color.redify("\t(tainted)")
+                msg = "%-10s : old=%s " % (r.strip(), flag_register_to_human(start_regs[r]))
+                msg+= "|| new=%s" % (flag_register_to_human(end_regs[r]),)
 
-            info(msg)
+            err(msg)
 
         return
 
