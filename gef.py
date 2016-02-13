@@ -808,7 +808,7 @@ def aarch64_return_register():
 
 @memoize
 def aarch64_flag_register():
-    return "$fpcr"
+    return "$cpsr"
 
 def aarch64_flags_to_human(val=None):
     # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
@@ -1664,7 +1664,7 @@ class ChangePermissionCommand(GenericCommand):
         size = sect.page_end - sect.page_start
         original_pc = get_pc()
 
-        info("Getting replacement stub: sys_mprotect(%#x, %d, %d))"%(sect.page_start, size, perm))
+        info("Generating stub: sys_mprotect(%#x, %d, %d))"%(sect.page_start, size, perm))
         stub = self.get_stub_by_arch(sect.page_start, size, perm)
 
         info("Saving original code")
@@ -2242,6 +2242,9 @@ class CapstoneDisassembleCommand(GenericCommand):
 
         elif arch.startswith("sparc"):
             return (capstone.CS_ARCH_SPARC, None)
+
+        elif arch.startswith("aarch64"):
+            return (capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM)
 
         raise GefUnsupportedOS("OS not supported by capstone")
 
@@ -2851,8 +2854,8 @@ class AssembleCommand(GenericCommand):
     def gef_assemble_instruction(insn, raw=False):
         r2 = __config__[AssembleCommand._cmdline_ + ".rasm2_path"][0]
         arch, bits = AssembleCommand.get_arch_mode()
-        cmd = "{} {} -a {} -b {} '{}';exit 0".format(r2, "-C" if not raw else "", arch, bits, insn)
-        res = gef_execute_external(cmd, shell=True).strip()
+        cmd = "{} {} -a {} -b {} '{}'".format(r2, "-C" if not raw else "", arch, bits, insn)
+        res = gef_execute_external(cmd+";exit 0", shell=True).strip()
         if raw:
             stub = bytearray(res.replace('"',''), "utf-8")
             res = binascii.unhexlify(stub)
