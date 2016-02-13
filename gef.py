@@ -301,6 +301,10 @@ class Elf:
     e_shnum           = None
     e_shstrndx        = None
 
+    BIG_ENDIAN        = 0
+    LITTLE_ENDIAN     = 1
+
+
     def __init__(self, elf):
 
         if not os.access(elf, os.R_OK):
@@ -313,7 +317,7 @@ class Elf:
             self.e_magic, self.e_class, self.e_endianness, self.e_eiversion = struct.unpack(">IBBB", f.read(7))
 
             # adjust endianness in bin reading
-            if self.e_endianness == 0x01:
+            if self.e_endianness == Elf.LITTLE_ENDIAN:
                 endian = "<" # LE
             else:
                 endian = ">" # BE
@@ -597,6 +601,11 @@ def get_frame():
 def get_arch():
     return gdb.execute("show architecture", to_string=True).strip().split()[7][:-1]
 
+@memoize
+def get_endian():
+    if gdb.execute("show endian", to_string=True).strip().split()[7] == "little" :
+        return Elf.LITTLE_ENDIAN
+    return Elf.BIG_ENDIAN
 
 def flags_to_human(reg_value, value_table):
     flags = "["
@@ -2230,9 +2239,10 @@ class CapstoneDisassembleCommand(GenericCommand):
 
         elif arch.startswith("mips"):
             use_r6 = kwargs.get("mips_r6", False)
-            if use_r6      :  return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32R6)
-            elif mode == 32:  return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32)
-            elif mode == 64:  return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS64)
+            endian = capstone.CS_MODE_BIG_ENDIAN if get_endian()==Elf.BIG_ENDIAN else capstone.CS_MODE_LITTLE_ENDIAN
+            if use_r6      :  return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32R6|endian)
+            elif mode == 32:  return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32|endian)
+            elif mode == 64:  return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS64|endian)
             raise GefGenericException("capstone invalid mode for %s" % arch)
 
         elif arch.startswith("powerpc"):
