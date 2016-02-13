@@ -1714,7 +1714,7 @@ class ChangePermissionCommand(GenericCommand):
                 "popad",
             ]
         elif is_arm():
-            sc_num = 0x7d
+            sc_num = 125
             insns = [
                 "push {r0-r2, r7}",
                 "ldr r0, =%d"%addr,
@@ -1727,17 +1727,17 @@ class ChangePermissionCommand(GenericCommand):
         elif is_mips():
             sc_num = 125
             insns = [
-                "addi $sp, $sp, -16",
-                "sw $v0, 0($sp)", "sw $a0, 4($sp)",
-                "sw $a1, 8($sp)", "sw $a2, 12($sp)",
-                "li $v0, %d"%sc_num,
-                "li $a0, %d"%addr,
-                "li $a1, %d"%size,
-                "li $a2, %d"%perm,
+                "addi sp, sp, -16",
+                "sw v0, 0(sp)", "sw a0, 4(sp)",
+                "sw a1, 8(sp)", "sw a2, 12(sp)",
+                "li v0, %d"%sc_num,
+                "li a0, %d"%addr,
+                "li a1, %d"%size,
+                "li a2, %d"%perm,
                 "syscall",
-                "lw $v0, 0($sp)", "lw $a0, 4($sp)",
-                "lw $a1, 8($sp)", "lw $a2, 12($sp)",
-                "addi $sp, $sp, 16",
+                "lw v0, 0(sp)", "lw a0, 4(sp)",
+                "lw a1, 8(sp)", "lw a2, 12(sp)",
+                "addi sp, sp, 16",
             ]
         else:
             raise GefUnsupportedOS("Architecture %s not supported yet" % get_arch())
@@ -2829,6 +2829,8 @@ class AssembleCommand(GenericCommand):
         arch = get_arch()
         if "i386" in arch: a = "x86"
         elif "armv" in arch: a = "arm"
+        elif "mips" in arch: a = "mips"
+        elif "aarch64" in arch: a = "arm"
         else: a = arch
 
         m = 64 if is_elf64() else 32
@@ -2864,8 +2866,12 @@ class AssembleCommand(GenericCommand):
     def gef_assemble_instruction(insn, raw=False):
         r2 = __config__[AssembleCommand._cmdline_ + ".rasm2_path"][0]
         arch, bits = AssembleCommand.get_arch_mode()
-        cmd = "{} {} -a {} -b {} '{}'".format(r2, "-C" if not raw else "", arch, bits, insn)
-        res = gef_execute_external(cmd+";exit 0", shell=True).strip()
+        cmd = "{} {} -a {} -b {} '{}';".format(r2, "-C" if not raw else "", arch, bits, insn)
+        res = gef_execute_external(cmd+"exit 0", shell=True).strip()
+        if "invalid" in res:
+            err("r2 failed: %s" % res)
+            return None
+
         if raw:
             stub = bytearray(res.replace('"',''), "utf-8")
             res = binascii.unhexlify(stub)
