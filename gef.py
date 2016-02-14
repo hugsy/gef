@@ -680,12 +680,14 @@ def x86_flags_to_human(val=None):
               0: "carry",
               2: "parity",
               4: "adjust",
-              8: "sign",
+              7: "sign",
               8: "trap",
-              11: "overflow",
               9: "interrupt",
               10: "direction",
-              17: "virtual",
+              11: "overflow",
+              16: "resume",
+              17: "virtualx86",
+              21: "identification",
     }
     return flags_to_human(val, table)
 
@@ -1909,7 +1911,8 @@ class UnicornEmulateCommand(GenericCommand):
         return
 
     def hook_block(self, emu, addr, size, misc):
-        ok("Entering new block at %s" %(format_address(addr, )))
+        if self.verbose:
+            ok("Entering new block at %s" %(format_address(addr, )))
         return
 
 
@@ -2799,9 +2802,8 @@ class FileDescriptorCommand(GenericCommand):
 
 
 class AssembleCommand(GenericCommand):
-    """AssembleCommand: using radare2 to assemble code (requires r2 Python bindings)
-    Architecture can be set in GEF runtime config (default is x86).
-    Use `list' subcommand to list architectures supported"""
+    """Inline code assemble. Architecture can be set in GEF runtime config (default is
+    x86). """
 
     _cmdline_ = "assemble"
     _syntax_  = "%s (list|instruction1;[instruction2;]...[instructionN;])" % _cmdline_
