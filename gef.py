@@ -1907,8 +1907,8 @@ class UnicornEmulateCommand(GenericCommand):
             if r != flag_register():
                 msg = "%-10s : old=%#.16x || new=%#.16x" % (r.strip(), start_regs[r], end_regs[r])
             else:
-                msg = "%-10s : old=%s " % (r.strip(), flag_register_to_human(start_regs[r]))
-                msg+= "|| new=%s" % (flag_register_to_human(end_regs[r]),)
+                msg = "%-10s : old=%s \n" % (r.strip(), flag_register_to_human(start_regs[r]))
+                msg+= "%-16s new=%s" % ("", flag_register_to_human(end_regs[r]),)
 
             err(msg)
 
