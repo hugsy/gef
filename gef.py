@@ -1754,14 +1754,23 @@ class UnicornEmulateCommand(GenericCommand):
     changed via arguments to the command line. By default, it will emulate the next instruction from current PC."""
 
     _cmdline_ = "unicorn-emulate"
-    _syntax_  = "%s [-l LOCATION] [-n NB_INSTRUCTION] [-e UNICORN_SCRIPT]" % _cmdline_
+    _syntax_  = "%s [-l LOCATION] [-n NB_INSTRUCTION] [-v] [-x]" % _cmdline_
     _aliases_ = ["emulate", ]
 
     def __init__(self):
-         super(UnicornEmulateCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
-         self.verbose = False
-         self.show_disassembly = False
-         return
+        super(UnicornEmulateCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.verbose = False
+        self.show_disassembly = False
+        return
+
+    def help(self):
+        h = "%s\n" % self._syntax_
+        h+= "\t-l LOCATION specifies the start address of the emulated run.\n"
+        h+= "\t-n NB_INSTRUCTION indicates the number of instructions to execute.\n"
+        h+= "\t-v Enable verbose output.\n"
+        h+= "\t-x Display instructions and gadgets being executed (requires `capstone` library) .\n"
+        info(h)
+        return
 
     def pre_load(self):
         try:
