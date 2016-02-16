@@ -202,16 +202,26 @@ class Permission:
     READ      = 4
     WRITE     = 2
     EXECUTE   = 1
+    NONE      = 0
 
     def __init__(self, *args, **kwargs):
         self.value = 0
         return
 
+    def __or__(self, a):
+        return self.value | a
+
+    def __and__(self, a):
+        return self.value & a
+
+    def __xor__(self, a):
+        return self.value ^ a
+
     def __str__(self):
         perm_str = ""
-        perm_str += "r" if self.value & Permission.READ else "-"
-        perm_str += "w" if self.value & Permission.WRITE else "-"
-        perm_str += "x" if self.value & Permission.EXECUTE else "-"
+        perm_str += "r" if self & Permission.READ else "-"
+        perm_str += "w" if self & Permission.WRITE else "-"
+        perm_str += "x" if self & Permission.EXECUTE else "-"
         return perm_str
 
     @staticmethod
@@ -1850,24 +1860,48 @@ class UnicornEmulateCommand(GenericCommand):
 
         if self.verbose:
             info("Populating registers")
+
         for r in all_registers():
             gregval = get_register_ex(r)
             emu.reg_write(unicorn_registers[r], gregval)
             start_regs[r] = gregval
 
-        pc = align_address_to_page(start_insn_addr)
-        code = read_memory(pc, resource.getpagesize())
-        if self.verbose:
-            info("Populating code page=%#x-%#x" % (pc, pc+resource.getpagesize()-1))
-        emu.mem_map(pc, resource.getpagesize())
-        emu.mem_write(pc, bytes(code))
+        # pc = align_address_to_page(start_insn_addr)
+        # code = read_memory(pc, resource.getpagesize())
+        # if self.verbose:
+            # info("Populating code page=%#x-%#x" % (pc, pc+resource.getpagesize()-1))
+        # emu.mem_map(pc, resource.getpagesize())
+        # emu.mem_write(pc, bytes(code))
 
-        sp = align_address_to_page(get_sp())
-        stack = read_memory(sp, resource.getpagesize())
+        vmmap = get_process_maps()
+        if vmmap is None or len(vmmap)==0:
+            warn("An error occured when reading memory map.")
+            return
+
         if self.verbose:
-            info("Populating stack page=%#x-%#x" % (sp, sp+resource.getpagesize()-1))
-        emu.mem_map(sp, resource.getpagesize())
-        emu.mem_write(sp, bytes(stack))
+            info("Duplicating memory map")
+
+        for sect in vmmap:
+            try:
+                page_start = sect.page_start
+                page_end   = sect.page_end
+                size       = sect.size
+                perm       = sect.permission
+
+                emu.mem_map(page_start, size, perm.value)
+                if perm.value != Permission.NONE:
+                    code = read_memory(page_start, size)
+                    if self.verbose:
+                        info("Populating path=%s page=%#x-%#x size=%d perm=%s" % (sect.path,
+                                                                                  page_start,
+                                                                                  page_end,
+                                                                                  size,
+                                                                                  perm))
+
+                    emu.mem_write(page_start, bytes(code))
+            except Exception as e:
+                err("Cannot copy page=%#x-%#x : %s" % (page_start, page_end, e))
+                continue
 
         if self.verbose:
             emu.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
@@ -1883,6 +1917,7 @@ class UnicornEmulateCommand(GenericCommand):
             emu.emu_start(start_insn_addr, end_insn_addr)
         except Exception as e:
             err("An error occured during emulation: %s" % e)
+            emu.emu_stop()
             return
 
         ok("Emulation ended, showing %s registers:" % Color.redify("tainted"))
