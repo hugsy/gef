@@ -217,6 +217,12 @@ class Permission:
     def __xor__(self, a):
         return self.value ^ a
 
+    def __eq__(self, a):
+        return self.value == a
+
+    def __ne__(self, a):
+        return self.value != a
+
     def __str__(self):
         perm_str = ""
         perm_str += "r" if self & Permission.READ else "-"
@@ -1764,21 +1770,21 @@ class UnicornEmulateCommand(GenericCommand):
     changed via arguments to the command line. By default, it will emulate the next instruction from current PC."""
 
     _cmdline_ = "unicorn-emulate"
-    _syntax_  = "%s [-l LOCATION] [-n NB_INSTRUCTION] [-v] [-x]" % _cmdline_
+    _syntax_  = "%s [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION]" % _cmdline_
     _aliases_ = ["emulate", ]
 
     def __init__(self):
         super(UnicornEmulateCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
-        self.verbose = False
-        self.show_disassembly = False
+        self.add_setting("verbose", False)
+        self.add_setting("show_disassembly", False)
         return
 
     def help(self):
         h = "%s\n" % self._syntax_
-        h+= "\t-l LOCATION specifies the start address of the emulated run.\n"
-        h+= "\t-n NB_INSTRUCTION indicates the number of instructions to execute.\n"
-        h+= "\t-v Enable verbose output.\n"
-        h+= "\t-x Display instructions and gadgets being executed (requires `capstone` library) .\n"
+        h+= "\t-f LOCATION specifies the start address of the emulated run (default $pc).\n"
+        h+= "\t-t LOCATION specifies the end address of the emulated run.\n"
+        h+= "\t-n NB_INSTRUCTION indicates the number of instructions to execute (mutually exclusive with `-t`).\n"
+        h+= "Additional options can be setup via `gef config unicorn-emulate`\n"
         info(h)
         return
 
@@ -1799,13 +1805,13 @@ class UnicornEmulateCommand(GenericCommand):
             return
 
         start_insn = None
+        end_insn = None
         nb_insn = 1
-        opts, args = getopt.getopt(argv, "l:n:hvx")
+        opts, args = getopt.getopt(argv, "f:t:n:h")
         for o,a in opts:
-            if   o == "-l":   start_insn = int(a, 16)
+            if   o == "-f":   start_insn = int(a, 16)
+            elif o == "-t":   end_insn = int(a, 16)
             elif o == "-n":   nb_insn = int(a)
-            elif o == "-v":   self.verbose = True
-            elif o == "-x":   self.show_disassembly = True
             elif o == "-h":
                 self.help()
                 return
@@ -1813,7 +1819,10 @@ class UnicornEmulateCommand(GenericCommand):
         if start_insn is None:
             start_insn = get_pc()
 
-        self.run_unicorn(start_insn, nb_insn)
+        if end_insn is None:
+            end_insn = self.get_unicorn_end_addr(start_insn, nb_insn)
+
+        self.run_unicorn(start_insn, end_insn, nb_insn)
         return
 
     def get_unicorn_arch(self):
@@ -1854,20 +1863,21 @@ class UnicornEmulateCommand(GenericCommand):
         dis = gef_disassemble(start_addr, nb+1, True)
         return dis[-1][0]
 
-    def run_unicorn(self, start_insn_addr, nb_insn, *args, **kwargs):
+    def run_unicorn(self, start_insn_addr, end_insn_addr, nb_insn, *args, **kwargs):
         start_regs = {}
         end_regs = {}
         arch, mode = self.get_unicorn_arch()
         unicorn_registers = self.get_unicorn_registers()
-        end_insn_addr = self.get_unicorn_end_addr(start_insn_addr, nb_insn)
         insn_section_length = end_insn_addr - start_insn_addr
+        verbose = self.get_setting("verbose") or False
 
         unicorn = sys.modules['unicorn']
-        if self.verbose:
+        if verbose:
             info("Initializing Unicorn engine")
+
         emu = unicorn.Uc(arch, mode)
 
-        if self.verbose:
+        if verbose:
             info("Populating registers")
 
         for r in all_registers():
@@ -1875,19 +1885,12 @@ class UnicornEmulateCommand(GenericCommand):
             emu.reg_write(unicorn_registers[r], gregval)
             start_regs[r] = gregval
 
-        # pc = align_address_to_page(start_insn_addr)
-        # code = read_memory(pc, resource.getpagesize())
-        # if self.verbose:
-            # info("Populating code page=%#x-%#x" % (pc, pc+resource.getpagesize()-1))
-        # emu.mem_map(pc, resource.getpagesize())
-        # emu.mem_write(pc, bytes(code))
-
         vmmap = get_process_maps()
         if vmmap is None or len(vmmap)==0:
             warn("An error occured when reading memory map.")
             return
 
-        if self.verbose:
+        if verbose:
             info("Duplicating memory map")
 
         for sect in vmmap:
@@ -1898,9 +1901,9 @@ class UnicornEmulateCommand(GenericCommand):
                 perm       = sect.permission
 
                 emu.mem_map(page_start, size, perm.value)
-                if perm.value != Permission.NONE:
+                if perm & Permission.READ:
                     code = read_memory(page_start, size)
-                    if self.verbose:
+                    if verbose:
                         info("Populating path=%s page=%#x-%#x size=%d perm=%s" % (sect.path,
                                                                                   page_start,
                                                                                   page_end,
@@ -1909,19 +1912,19 @@ class UnicornEmulateCommand(GenericCommand):
 
                     emu.mem_write(page_start, bytes(code))
             except Exception as e:
-                err("Cannot copy page=%#x-%#x : %s" % (page_start, page_end, e))
+                warn("Cannot copy page=%#x-%#x : %s" % (page_start, page_end, e))
                 continue
 
-        if self.verbose:
+        if verbose:
             emu.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
 
-        if self.show_disassembly:
+        if self.get_setting("show_disassembly"):
             emu.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
 
-        ok("Starting emulation: %#x %s %#x (%d instructions)" % (start_insn_addr,
-                                                                 right_arrow(),
-                                                                 end_insn_addr,
-                                                                 nb_insn))
+        ok("Starting emulation: %#x %s %#x" % (start_insn_addr,
+                                               right_arrow(),
+                                               end_insn_addr))
+
         try:
             emu.emu_start(start_insn_addr, end_insn_addr)
         except Exception as e:
@@ -1945,7 +1948,7 @@ class UnicornEmulateCommand(GenericCommand):
                 msg = "%-10s : old=%s \n" % (r.strip(), flag_register_to_human(start_regs[r]))
                 msg+= "%-16s new=%s" % ("", flag_register_to_human(end_regs[r]),)
 
-            err(msg)
+            ok(msg)
 
         return
 
@@ -1955,7 +1958,7 @@ class UnicornEmulateCommand(GenericCommand):
         return
 
     def hook_block(self, emu, addr, size, misc):
-        if self.verbose:
+        if self.get_setting("verbose"):
             ok("Entering new block at %s" %(format_address(addr, )))
         return
 
