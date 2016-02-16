@@ -1807,11 +1807,13 @@ class UnicornEmulateCommand(GenericCommand):
         start_insn = None
         end_insn = None
         nb_insn = 1
-        opts, args = getopt.getopt(argv, "f:t:n:h")
+        to_script = None
+        opts, args = getopt.getopt(argv, "f:t:n:e:h")
         for o,a in opts:
             if   o == "-f":   start_insn = int(a, 16)
             elif o == "-t":   end_insn = int(a, 16)
             elif o == "-n":   nb_insn = int(a)
+            elif o == "-e":   to_script = a if a is not None else "/tmp/unicorn.py"
             elif o == "-h":
                 self.help()
                 return
@@ -1822,7 +1824,7 @@ class UnicornEmulateCommand(GenericCommand):
         if end_insn is None:
             end_insn = self.get_unicorn_end_addr(start_insn, nb_insn)
 
-        self.run_unicorn(start_insn, end_insn, nb_insn)
+        self.run_unicorn(start_insn, end_insn, nb_insn, to_script=to_script)
         return
 
     def get_unicorn_arch(self):
@@ -1870,20 +1872,35 @@ class UnicornEmulateCommand(GenericCommand):
         unicorn_registers = self.get_unicorn_registers()
         insn_section_length = end_insn_addr - start_insn_addr
         verbose = self.get_setting("verbose") or False
+        to_script = kwargs.get("to_script") if "to_script" in kwargs.keys() else None
+        content = ""
+
+        if to_script:
+            content+= "#!/usr/bin/python" + "\n"*2
+            content+= "import capstone, unicorn" + "\n\n"
+            content+= """def hook_code(uc, address, size, user_data):
+    print(">> Executing instruction at 0x{:x}".format(address))\n
+    return\n\n"""
 
         unicorn = sys.modules['unicorn']
         if verbose:
             info("Initializing Unicorn engine")
 
-        emu = unicorn.Uc(arch, mode)
+        if to_script:
+            content += "emu = unicorn.Uc(%d, %d)\n" % (arch, mode)
+        else:
+            emu = unicorn.Uc(arch, mode)
 
         if verbose:
             info("Populating registers")
 
         for r in all_registers():
             gregval = get_register_ex(r)
-            emu.reg_write(unicorn_registers[r], gregval)
-            start_regs[r] = gregval
+            if to_script:
+                content += "emu.reg_write(%s, %#x)\n" % (unicorn_registers[r], gregval)
+            else:
+                emu.reg_write(unicorn_registers[r], gregval)
+                start_regs[r] = gregval
 
         vmmap = get_process_maps()
         if vmmap is None or len(vmmap)==0:
@@ -1900,7 +1917,11 @@ class UnicornEmulateCommand(GenericCommand):
                 size       = sect.size
                 perm       = sect.permission
 
-                emu.mem_map(page_start, size, perm.value)
+                if to_script:
+                    content += "emu.mem_map(%#x, %d, %d)\n" % (page_start, size, perm.value)
+                else:
+                    emu.mem_map(page_start, size, perm.value)
+
                 if perm & Permission.READ:
                     code = read_memory(page_start, size)
                     if verbose:
@@ -1910,7 +1931,11 @@ class UnicornEmulateCommand(GenericCommand):
                                                                                   size,
                                                                                   perm))
 
-                    emu.mem_write(page_start, bytes(code))
+                    if to_script:
+                        content += "emu.mem_write(%#x, %s)\n" % (page_start, bytes(code))
+                        content += ""
+                    else:
+                        emu.mem_write(page_start, bytes(code))
             except Exception as e:
                 warn("Cannot copy page=%#x-%#x : %s" % (page_start, page_end, e))
                 continue
@@ -1918,8 +1943,26 @@ class UnicornEmulateCommand(GenericCommand):
         if verbose:
             emu.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
 
+        if to_script:
+            content += "emu.hook_add(unicorn.UC_HOOK_CODE, hook_code)\n"
+
         if self.get_setting("show_disassembly"):
             emu.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
+
+        if to_script:
+            content += "\n"*2
+            content += "try:\n    emu.emu_start(%#x, %#x)\n" % (start_insn_addr, end_insn_addr)
+            content += "except Exception as e:\n    emu.emu_stop()\n    print('Error: {}'.format(e))"
+            content += "\n"*2
+
+            for r in all_registers():
+                content += """print(">> %s = 0x{:x}".format(emu.reg_read(%d)))\n""" % (r, unicorn_registers[r])
+
+            with open(to_script, 'w') as f:
+                f.write(content)
+
+            info("Unicorn script generated as '%s'" % to_script)
+            return
 
         ok("Starting emulation: %#x %s %#x" % (start_insn_addr,
                                                right_arrow(),
@@ -1961,7 +2004,6 @@ class UnicornEmulateCommand(GenericCommand):
         if self.get_setting("verbose"):
             ok("Entering new block at %s" %(format_address(addr, )))
         return
-
 
 
 class RemoteCommand(GenericCommand):
