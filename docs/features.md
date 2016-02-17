@@ -3,6 +3,25 @@
 This page will explain in details some non-trivial commands available in `GEF`
 with examples and screenshots to make it easier to reproduce.
 
+## context
+![gef-x86](https://pbs.twimg.com/media/BvdRAJKIUAA8R6_.png:large)
+
+
+`GEF` (not unlike `PEDA` or `fG! famous gdbinit`) provides comprehensive context
+menu when hitting a breakpoint.
+
+* The register context box displays current register values. Values in red
+  indicate that this register has its value changed since the last
+  breakpoint. It makes it convenient to track values. Register values can be
+  also accessed and/or dereferenced through the `reg` command.
+
+* The stack context box shows the 10 (by default but can be tweaked) entries in
+  memory pointed by the stack pointer register. If those values are pointers,
+  they are successively dereferenced.
+
+* The code context box shows the 10 (by default but can be tweaked) next
+  instructions to be executed.
+
 
 ## entry-break command
 
@@ -129,9 +148,9 @@ Shellcode ARM without 0x20, 0x0a and 0x00
 [...]
 ```
 
-## fmtstr-helper command
+## format-string-helper command
 
-`fmtstr-helper` command will create a `GEF` specific type of breakpoints
+`format-string-helper` command will create a `GEF` specific type of breakpoints
 dedicated to detecting potentially insecure format string when using the GlibC
 library.
 
@@ -143,7 +162,7 @@ It will use this new breakpoint against several targets, including:
    * `snprintf()`
    * `vsnprintf()`
 
-Just call the command to enable this functionality.
+Just call the command to enable this functionality. `fmtstr-helper` is an alias of `format-string-helper`.
 ```
 gef> fmtstr-helper
 ```
@@ -209,3 +228,112 @@ information to `gdb` and proceed with the debugging.
 ![gef-remote-autodownload](https://i.imgur.com/S3X536b.png)
 
 You can then reuse the downloaded file for your future debugging sessions.
+
+
+## capstone-disassemble command
+
+If you have installed [`capstone`](http://capstone-engine.org) library and its
+Python bindings, you can use it to disassemble any location in your debugging
+session. This plugin was done to offer an alternative to `GDB` disassemble
+function which sometimes gets things mixed up :)
+
+You can use its alias `cs-disassemble` and the location to disassemble (if not
+specified, it will use `$pc`).
+
+```
+gef> cs main
+```
+
+![cs-disassemble](https://i.imgur.com/wypt7Fo.png)
+
+
+## set-permission command
+
+This command was added to facilitate the exploitation process, by changing the
+permission rights on a specific page directly from the debugger.
+
+By default, `GDB` does not allow you to do that, so the command will modify a
+code section of the binary being debugged, and add a native mprotect syscall
+stub. For example, for an x86, the following stub will be inserted:
+
+```
+pushad
+mov eax, mprotect_syscall_num
+mov ebx, address_of_the_page
+mov ecx, size_of_the_page
+mov edx, permission_to_set
+int 0x80
+popad
+```
+
+A breakpoint is added following this stub, which when hit will restore the
+original context, allowing you to resume execution.
+
+`mprotect` is a `gef` for `set-permission`. For example, to set the `stack` as
+READ|WRITE|EXECUTE on this binary,
+
+![mprotect-before](https://i.imgur.com/RRYHxzW.png)
+
+Simply run
+
+```
+gef> mprotect 0xfffdd000
+```
+
+Et voilà !
+
+![mprotect-after](https://i.imgur.com/9MvyQi8.png)
+
+
+## assemble command
+
+If you have installed [`radare2`](http://radare.org) and `rasm2` binary can be
+found in your system $PATH, then `gef` will provide a convenient command to
+assemble native instructions directly to opcodes of the architecture you are
+currently debugging.
+
+Call it via `assemble` or its alias `asm`:
+
+```
+gef> asm main
+```
+
+![r2-assemble](https://i.imgur.com/ShuPF6h.png)
+
+
+## unicorn command
+
+If you have installed [`unicorn`](http://unicorn-engine.org) emulation engine
+and its Python bindings, `gef` integrates a new command to emulate instructions
+of your current debugging context !
+
+This command, `unicorn-emulate` (or its alias `emulate`) will replicate for you
+the current memory mapping (including the page permissions), and by default
+(i.e. without any additional argument), it will emulate the execution of the
+instruction about to be executed (i.e. the one pointed by `$pc`) and display
+which register(s) is(are) tainted by it.
+
+Use `-h` for help
+```
+gef> emu -h
+```
+
+For example, the following command will execute only the next 2 instructions:
+```
+gef> emu -n 2
+```
+
+And showing this:
+![emu](https://i.imgur.com/DmVH6o1.png)
+
+In this example, we can see that after executing
+```
+0x80484db	 <main+75>  xor    eax,eax
+0x80484dd	 <main+77>  add    esp,0x18
+```
+The registers `eax` and `esp` are tainted (modified).
+
+A convenient option is `-e /path/to/file.py` that will generate a pure Python
+script embedding your current execution context, ready to be re-used outside
+`gef`!! This can be useful for dealing with obfuscation or solve crackmes if
+powered with a SMT for instance.

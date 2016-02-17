@@ -1691,14 +1691,14 @@ class ChangePermissionCommand(GenericCommand):
         size = sect.page_end - sect.page_start
         original_pc = get_pc()
 
-        info("Generating stub: sys_mprotect(%#x, %d, %d))"%(sect.page_start, size, perm))
+        info("Generating stub: sys_mprotect(%#x, %d, %d)"%(sect.page_start, size, perm))
         stub = self.get_stub_by_arch(sect.page_start, size, perm)
 
         info("Saving original code")
         original_code = read_memory(original_pc, len(stub))
 
         bp_loc = "*%#x"%(original_pc + len(stub))
-        info("Setting a restore breakpoint at %#x" % bp_loc)
+        info("Setting a restore breakpoint at %s" % bp_loc)
         ChangePermissionBreakpoint(bp_loc, original_code, original_pc)
 
         info("Overwriting current memory at %#x (%d bytes)" % (loc, len(stub)))
@@ -1916,6 +1916,11 @@ class UnicornEmulateCommand(GenericCommand):
                 page_end   = sect.page_end
                 size       = sect.size
                 perm       = sect.permission
+                path       = sect.path
+
+                # hack hack hack
+                if path == "[vvar]":
+                    continue
 
                 if to_script:
                     content += "emu.mem_map(%#x, %d, %d)\n" % (page_start, size, perm.value)
@@ -1971,8 +1976,8 @@ class UnicornEmulateCommand(GenericCommand):
         try:
             emu.emu_start(start_insn_addr, end_insn_addr)
         except Exception as e:
-            err("An error occured during emulation: %s" % e)
             emu.emu_stop()
+            err("An error occured during emulation: %s" % e)
             return
 
         ok("Emulation ended, showing %s registers:" % Color.redify("tainted"))
@@ -4160,8 +4165,9 @@ class FormatStringSearchCommand(GenericCommand):
     at well-known dangerous functions (printf, snprintf, etc.), and check if the pointer
     holding the format string is writable, and therefore susceptible to format string
     attacks if an attacker can control its content."""
-    _cmdline_ = "fmtstr-helper"
+    _cmdline_ = "format-string-helper"
     _syntax_ = "%s" % _cmdline_
+    _aliases_ = ["fmtstr-helper",]
 
 
     def do_invoke(self, argv):

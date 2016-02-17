@@ -22,32 +22,10 @@ gef-alias show -- GEF show alias command
 gef-alias unset -- GEF remove alias command
 ```
 
-## Features
-
-### Context
-![gef-x86](https://pbs.twimg.com/media/BvdRAJKIUAA8R6_.png:large)
-
-
-`GEF` (not unlike `PEDA` or `fG! famous gdbinit`) provides comprehensive context
-menu when hitting a breakpoint.
-
-* The register context box displays current register values. Values in red
-  indicate that this register has its value changed since the last
-  breakpoint. It makes it convenient to track values. Register values can be
-  also accessed and/or dereferenced through the `reg` command.
-
-* The stack context box shows the 10 (by default but can be tweaked) entries in
-  memory pointed by the stack pointer register. If those values are pointers,
-  they are successively dereferenced.
-
-* The code context box shows the 10 (by default but can be tweaked) next
-  instructions to be executed.
-
-
 
 ### Commands
 
-Here are some of the most useful commands available in `GEF`.
+Here are some of the most useful commands available in `GEF`. Have a look at the `Features` section for full explanation.
 
 | Command    | Description |
 |:-----------|----------------:|
