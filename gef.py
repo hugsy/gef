@@ -4355,7 +4355,14 @@ class GEFCommand(gdb.Command):
 
             doc = class_name.__doc__ if hasattr(class_name, "__doc__") else ""
             doc = "\n                         ".join(doc.split("\n"))
-            msg = "%-25s -- %s" % (cmd, Color.greenify( doc ))
+
+            if hasattr(class_name, "_aliases_"):
+                aliases = ", ".join(class_name._aliases_)
+                aliases = "(alias: %s)" % aliases
+            else:
+                aliases = ""
+
+            msg = "%-25s -- %s %s" % (cmd, Color.greenify(doc), aliases)
 
             d.append( msg )
         return "\n".join(d)
