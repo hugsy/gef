@@ -1807,7 +1807,7 @@ class UnicornEmulateCommand(GenericCommand):
 
         start_insn = None
         end_insn = None
-        self.nb_insn = 1
+        self.nb_insn = -1
         to_script = None
         self.until_next_gadget = -1
         opts, args = getopt.getopt(argv, "f:t:n:e:gh")
@@ -1824,7 +1824,8 @@ class UnicornEmulateCommand(GenericCommand):
         if start_insn is None:
             start_insn = get_pc()
 
-        if end_insn is None:
+        if end_insn is None and self.nb_insn == -1:
+            self.nb_insn = 1
             end_insn = self.get_unicorn_end_addr(start_insn, self.nb_insn)
 
         self.run_unicorn(start_insn, end_insn, to_script=to_script)
@@ -2021,26 +2022,28 @@ def hook_code(emu, address, size, user_data):
         return
 
     def hook_code(self, emu, addr, size, misc):
+        if self.nb_insn == 0:
+            ok("Stopping emulation on user's demand (max_instructions reached)")
+            emu.emu_stop()
+            return
+
         if self.get_setting("show_disassembly"):
             mem = emu.mem_read(addr, size)
             CapstoneDisassembleCommand.disassemble(addr, 1)
 
         self.nb_insn -= 1
-        if self.nb_insn == 0:
-            ok("Stopping emulation on user's demand (max_instructions reached)")
-            emu.emu_stop()
-
         return
 
     def hook_block(self, emu, addr, size, misc):
+        if self.until_next_gadget == 0:
+            ok("Stopping emulation on user's demand (max_gadgets reached)")
+            emu.emu_stop()
+            return
+
         if self.get_setting("show_disassembly"):
             info("Entering new block at %s" %(format_address(addr, )))
 
         self.until_next_gadget -= 1
-        if self.until_next_gadget == 0:
-            ok("Stopping emulation on user's demand (max_gadgets reached)")
-            emu.emu_stop()
-
         return
 
 
@@ -2288,7 +2291,7 @@ class CapstoneDisassembleCommand(GenericCommand):
     """Use capstone disassembly framework to disassemble code."""
 
     _cmdline_ = "capstone-disassemble"
-    _syntax_  = "%s [-l LENGTH] [-t opt] [LOCATION]" % _cmdline_
+    _syntax_  = "%s [-n LENGTH] [-t opt] [LOCATION]" % _cmdline_
     _aliases_ = ["cs-dis", ]
 
 
@@ -2312,7 +2315,7 @@ class CapstoneDisassembleCommand(GenericCommand):
             warn("No debugging session active")
             return
 
-        loc, lgt = loc = get_pc(), 0x10
+        loc, lgt = get_pc(), 0x10
         opts, args = getopt.getopt(argv, 'n:x:')
         for o,a in opts:
             if   o == "-n":
@@ -2982,9 +2985,11 @@ class AssembleCommand(GenericCommand):
 
         for insn in insns:
             res = AssembleCommand.gef_assemble_instruction(insn)
-            print( "{0:60s} # {1:s}".format(res, insn))
-            if res == "invalid":
+            if res is None:
                 break
+
+            print( "{0:60s} # {1:s}".format(res, insn))
+
         return
 
     @staticmethod
@@ -2994,7 +2999,7 @@ class AssembleCommand(GenericCommand):
         cmd = "{} {} -a {} -b {} '{}';".format(r2, "-C" if not raw else "", arch, bits, insn)
         res = gef_execute_external(cmd+"exit 0", shell=True).strip()
         if "invalid" in res:
-            err("r2 failed: %s" % res)
+            err("r2 failed: {}".format(res))
             return None
 
         if raw:
