@@ -199,10 +199,11 @@ class Address:
 
 
 class Permission:
-    READ      = 4
-    WRITE     = 2
-    EXECUTE   = 1
     NONE      = 0
+    READ      = 1
+    WRITE     = 2
+    EXECUTE   = 4
+    ALL       = 7
 
     def __init__(self, *args, **kwargs):
         self.value = 0
@@ -1808,12 +1809,14 @@ class UnicornEmulateCommand(GenericCommand):
         end_insn = None
         nb_insn = 1
         to_script = None
-        opts, args = getopt.getopt(argv, "f:t:n:e:h")
+        self.until_next_gadget = -1
+        opts, args = getopt.getopt(argv, "f:t:n:e:gh")
         for o,a in opts:
             if   o == "-f":   start_insn = int(a, 16)
             elif o == "-t":   end_insn = int(a, 16)
+            elif o == "-g":   self.until_next_gadget = int(a) if int(a)>0 else 1
             elif o == "-n":   nb_insn = int(a)
-            elif o == "-e":   to_script = a if a is not None else "/tmp/unicorn.py"
+            elif o == "-e":   to_script = a
             elif o == "-h":
                 self.help()
                 return
@@ -1876,11 +1879,26 @@ class UnicornEmulateCommand(GenericCommand):
         content = ""
 
         if to_script:
-            content+= "#!/usr/bin/python" + "\n"*2
-            content+= "import capstone, unicorn" + "\n\n"
-            content+= """def hook_code(uc, address, size, user_data):
+            content+= "#!/usr/bin/python"
+            content+= """
+
+import capstone, unicorn
+
+
+def disassemble(code, addr):
+    cs = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_64) # todo: to change
+    for i in cs.disasm(str(code),addr):
+        return i
+
+def hook_code(emu, address, size, user_data):
     print(">> Executing instruction at 0x{:x}".format(address))\n
-    return\n\n"""
+    code = emu.mem_read(address, size)
+    insn = disassemble(code, address)
+    print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))\n
+    return
+
+
+"""
 
         unicorn = sys.modules['unicorn']
         if verbose:
@@ -1901,6 +1919,10 @@ class UnicornEmulateCommand(GenericCommand):
             else:
                 emu.reg_write(unicorn_registers[r], gregval)
                 start_regs[r] = gregval
+
+        if to_script:
+            for r in all_registers():
+                content += """print(">> %s = 0x{:x}".format(emu.reg_read(%d)))\n""" % (r, unicorn_registers[r])
 
         vmmap = get_process_maps()
         if vmmap is None or len(vmmap)==0:
@@ -1925,7 +1947,7 @@ class UnicornEmulateCommand(GenericCommand):
                 if to_script:
                     content += "emu.mem_map(%#x, %d, %d)\n" % (page_start, size, perm.value)
                 else:
-                    emu.mem_map(page_start, size, perm.value)
+                    emu.mem_map(page_start, size, 7)
 
                 if perm & Permission.READ:
                     code = read_memory(page_start, size)
@@ -1945,14 +1967,15 @@ class UnicornEmulateCommand(GenericCommand):
                 warn("Cannot copy page=%#x-%#x : %s" % (page_start, page_end, e))
                 continue
 
-        if verbose:
-            emu.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
 
         if to_script:
             content += "emu.hook_add(unicorn.UC_HOOK_CODE, hook_code)\n"
+        else:
+            if self.until_next_gadget != -1:
+                emu.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
 
-        if self.get_setting("show_disassembly"):
-            emu.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
+            if self.get_setting("show_disassembly"):
+                emu.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
 
         if to_script:
             content += "\n"*2
@@ -1975,7 +1998,7 @@ class UnicornEmulateCommand(GenericCommand):
 
         try:
             emu.emu_start(start_insn_addr, end_insn_addr)
-        except Exception as e:
+        except unicorn.UcError as e:
             emu.emu_stop()
             err("An error occured during emulation: %s" % e)
             return
@@ -2008,6 +2031,12 @@ class UnicornEmulateCommand(GenericCommand):
     def hook_block(self, emu, addr, size, misc):
         if self.get_setting("verbose"):
             ok("Entering new block at %s" %(format_address(addr, )))
+
+        if self.until_next_gadget == 0:
+            ok("Stopping emulation on user's demand (new_block=%s)"%(format_address(addr, )))
+            emu.emu_stop()
+
+        self.until_next_gadget -= 1
         return
 
 
