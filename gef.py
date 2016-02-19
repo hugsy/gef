@@ -1807,7 +1807,7 @@ class UnicornEmulateCommand(GenericCommand):
 
         start_insn = None
         end_insn = None
-        nb_insn = 1
+        self.nb_insn = 1
         to_script = None
         self.until_next_gadget = -1
         opts, args = getopt.getopt(argv, "f:t:n:e:gh")
@@ -1815,7 +1815,7 @@ class UnicornEmulateCommand(GenericCommand):
             if   o == "-f":   start_insn = int(a, 16)
             elif o == "-t":   end_insn = int(a, 16)
             elif o == "-g":   self.until_next_gadget = int(a) if int(a)>0 else 1
-            elif o == "-n":   nb_insn = int(a)
+            elif o == "-n":   self.nb_insn = int(a)
             elif o == "-e":   to_script = a
             elif o == "-h":
                 self.help()
@@ -1825,9 +1825,9 @@ class UnicornEmulateCommand(GenericCommand):
             start_insn = get_pc()
 
         if end_insn is None:
-            end_insn = self.get_unicorn_end_addr(start_insn, nb_insn)
+            end_insn = self.get_unicorn_end_addr(start_insn, self.nb_insn)
 
-        self.run_unicorn(start_insn, end_insn, nb_insn, to_script=to_script)
+        self.run_unicorn(start_insn, end_insn, to_script=to_script)
         return
 
     def get_unicorn_arch(self):
@@ -1868,7 +1868,7 @@ class UnicornEmulateCommand(GenericCommand):
         dis = gef_disassemble(start_addr, nb+1, True)
         return dis[-1][0]
 
-    def run_unicorn(self, start_insn_addr, end_insn_addr, nb_insn, *args, **kwargs):
+    def run_unicorn(self, start_insn_addr, end_insn_addr, *args, **kwargs):
         start_regs = {}
         end_regs = {}
         arch, mode = self.get_unicorn_arch()
@@ -1971,11 +1971,8 @@ def hook_code(emu, address, size, user_data):
         if to_script:
             content += "emu.hook_add(unicorn.UC_HOOK_CODE, hook_code)\n"
         else:
-            if self.until_next_gadget != -1:
-                emu.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
-
-            if self.get_setting("show_disassembly"):
-                emu.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
+            emu.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
+            emu.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
 
         if to_script:
             content += "\n"*2
@@ -2024,19 +2021,26 @@ def hook_code(emu, address, size, user_data):
         return
 
     def hook_code(self, emu, addr, size, misc):
-        mem = emu.mem_read(addr, size)
-        CapstoneDisassembleCommand.disassemble(addr, 1)
+        if self.get_setting("show_disassembly"):
+            mem = emu.mem_read(addr, size)
+            CapstoneDisassembleCommand.disassemble(addr, 1)
+
+        self.nb_insn -= 1
+        if self.nb_insn == 0:
+            ok("Stopping emulation on user's demand (max_instructions reached)")
+            emu.emu_stop()
+
         return
 
     def hook_block(self, emu, addr, size, misc):
-        if self.get_setting("verbose"):
-            ok("Entering new block at %s" %(format_address(addr, )))
-
-        if self.until_next_gadget == 0:
-            ok("Stopping emulation on user's demand (new_block=%s)"%(format_address(addr, )))
-            emu.emu_stop()
+        if self.get_setting("show_disassembly"):
+            info("Entering new block at %s" %(format_address(addr, )))
 
         self.until_next_gadget -= 1
+        if self.until_next_gadget == 0:
+            ok("Stopping emulation on user's demand (max_gadgets reached)")
+            emu.emu_stop()
+
         return
 
 
