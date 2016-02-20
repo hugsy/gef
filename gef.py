@@ -1854,9 +1854,9 @@ class UnicornEmulateCommand(GenericCommand):
             arch = "%s.%s_ARCH_%s" % (mod.__name__, prefix, arch)
             mode = "%s.%s_MODE_%s" % (mod.__name__, prefix, str(mode))
             if is_big_endian():
-                mode += " + %s.%s_MODE_BIG_ENDIAN" % (mod.__name__, prefix))
+                mode += " + %s.%s_MODE_BIG_ENDIAN" % (mod.__name__, prefix)
             else:
-                mode += " + %s.%s_MODE_LITTLE_ENDIAN" % (mod.__name__, prefix))
+                mode += " + %s.%s_MODE_LITTLE_ENDIAN" % (mod.__name__, prefix)
 
         else:
             arch = getattr(mod, "%s_ARCH_%s" % (prefix, arch))
