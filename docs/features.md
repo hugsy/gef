@@ -3,7 +3,7 @@
 This page will explain in details some non-trivial commands available in `GEF`
 with examples and screenshots to make it easier to reproduce.
 
-## context
+## `context` command
 ![gef-x86](https://pbs.twimg.com/media/BvdRAJKIUAA8R6_.png:large)
 
 
@@ -23,7 +23,7 @@ menu when hitting a breakpoint.
   instructions to be executed.
 
 
-## entry-break command
+## `entry-break` command
 
 The `entry-break` goal is to find and break at the most obvious entry point
 available in the binary. Since the binary will start running, some of the `PLT`
@@ -41,7 +41,7 @@ It will perform the following actions:
 ![entry-break-example](https://i.imgur.com/zXSERMh.png)
 
 
-## patch command
+## `patch` command
 
 The `patch` command allows to easily bypass a call or syscall. The syntax is as
 following:
@@ -85,7 +85,7 @@ gef> patch -r 0 0x400596
 ![after-patch](https://i.imgur.com/iEZVJWb.png)
 
 
-## xinfo/vmmap/xfiles commands
+## `xinfo`/`vmmap`/`xfiles` commands
 
 `xinfo`, `vmmap` and `xfiles` display a comprehensive and human-friendly memory
 mapping of either the process or a specific location.
@@ -101,7 +101,7 @@ Read/Write/Execute.
 ![xinfo-example](https://pbs.twimg.com/media/CCSW9JkW4AAx8gD.png:large)
 
 
-## heap command
+## `heap` command
 
 `heap` command provides information on the heap chunk specified as argument. For
 the moment, it only supports GlibC heap format (see
@@ -116,7 +116,7 @@ will display information like this
 
 ![heap-example](https://i.imgur.com/xPcnzWp.png)
 
-## shellcode command
+## `shellcode` command
 
 `shellcode` is a command line client for @JonathanSalwan shellcodes database. It
 can be used to search and download directly via `GEF` the shellcode you're
@@ -148,7 +148,7 @@ Shellcode ARM without 0x20, 0x0a and 0x00
 [...]
 ```
 
-## format-string-helper command
+## `format-string-helper` command
 
 `format-string-helper` command will create a `GEF` specific type of breakpoints
 dedicated to detecting potentially insecure format string when using the GlibC
@@ -178,7 +178,7 @@ process execution, display the reason for trigger and the associated context.
 ![fmtstr-helper-example](https://i.imgur.com/INU3KGn.png)
 
 
-## Remote debugging
+## `gef-remote` debugging
 
 It is possible to use `gef` in a remote debugging environment.
 
@@ -199,6 +199,8 @@ And on the client, simply run `gdb`:
 ```
 $ gdb /bin/uname
 gef> target remote 192.168.56.1:1234
+Process /bin/uname created; pid = 10851
+Listening on port 1234
 ```
 Or
 ```
@@ -213,24 +215,33 @@ gef> target remote 192.168.56.1:1234
 It is possible to use `gdb` internal functions to copy our targeted binary.
 
 In the following of our previous, if we want to debug `uname`, run `gdb` and
-connect to our `gdbserver`.
+connect to our `gdbserver`. To be able to locate the right process in the `/proc` 
+structure, the command `gef-remote` requires 2 arguments:
+   - `-t` to provide the target host and port
+   - `-p` to provide the PID on the remote host
 
 ```
 $ gdb
-gef> target remote 192.168.56.1:1234
+gef> gef-remote -t 192.168.56.1:1234 -p 10851
+[+] Connected to '192.168.56.1:1234'
+[+] Downloading remote information
+[+] Remote information loaded, remember to clean '/tmp/10851' when your session is over
+
 ```
 
-If it cannot find the debug information, `gef` will try to download
+As you can observe, if it cannot find the debug information, `gef` will try to download
 automatically the target file and store in the local temporary directory (on
 most Unix `/tmp`). If successful, it will then automatically load the debug
 information to `gdb` and proceed with the debugging.
 
 ![gef-remote-autodownload](https://i.imgur.com/S3X536b.png)
 
-You can then reuse the downloaded file for your future debugging sessions.
+You can then reuse the downloaded file for your future debugging sessions, use it under IDA 
+and such. This makes the entire remote debugging process (particularly for Android applications) 
+a child game.
 
 
-## capstone-disassemble command
+## `capstone-disassemble` command
 
 If you have installed [`capstone`](http://capstone-engine.org) library and its
 Python bindings, you can use it to disassemble any location in your debugging
@@ -247,7 +258,7 @@ gef> cs main
 ![cs-disassemble](https://i.imgur.com/wypt7Fo.png)
 
 
-## set-permission command
+## `set-permission` command
 
 This command was added to facilitate the exploitation process, by changing the
 permission rights on a specific page directly from the debugger.
@@ -285,7 +296,7 @@ Et voilà !
 ![mprotect-after](https://i.imgur.com/9MvyQi8.png)
 
 
-## assemble command
+## `assemble` command
 
 If you have installed [`radare2`](http://radare.org) and `rasm2` binary can be
 found in your system $PATH, then `gef` will provide a convenient command to
@@ -301,7 +312,7 @@ gef> asm main
 ![r2-assemble](https://i.imgur.com/ShuPF6h.png)
 
 
-## unicorn command
+## `unicorn` command
 
 If you have installed [`unicorn`](http://unicorn-engine.org) emulation engine
 and its Python bindings, `gef` integrates a new command to emulate instructions
@@ -339,7 +350,7 @@ script embedding your current execution context, ready to be re-used outside
 powered with a SMT for instance.
 
 
-## trace-run command
+## `trace-run` command
 
 The `trace-run` is meant to be provide a visual appreciation directly in IDA
 disassembler of the path taken by a specific execution. It should be used with
