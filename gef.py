@@ -624,6 +624,12 @@ def get_endian():
         return Elf.LITTLE_ENDIAN
     return Elf.BIG_ENDIAN
 
+def is_big_endian():
+    return get_endian() == Elf.BIG_ENDIAN
+
+def is_little_endian():
+    return not is_big_endian()
+
 def flags_to_human(reg_value, value_table):
     flags = "["
     for i in value_table.keys():
@@ -1831,22 +1837,46 @@ class UnicornEmulateCommand(GenericCommand):
         self.run_unicorn(start_insn, end_insn, to_script=to_script)
         return
 
-    def get_unicorn_arch(self):
-        "Retrieves Unicorn architecture and mode from the current context."
-        unicorn = sys.modules['unicorn']
-        if   is_x86_32():    arch, mode = unicorn.UC_ARCH_X86, unicorn.UC_MODE_32
-        elif is_x86_64():    arch, mode = unicorn.UC_ARCH_X86, unicorn.UC_MODE_64
-        elif is_powerpc():   arch, mode = unicorn.UC_ARCH_PPC, unicorn.UC_MODE_32
-        elif is_mips():      arch, mode = unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_32
-        elif is_sparc():     arch, mode = unicorn.UC_ARCH_SPARC, unicorn.UC_MODE_32
-        elif is_arm():
-            arch = unicorn.UC_ARCH_ARM
-            mode = unicorn.UC_MODE_32 if not is_arm_thumb() else unicorn.UC_MODE_16
+    def get_arch(self, mod, prefix, to_string=False):
+        "Retrieves architecture and mode from the current context."
+
+        if   is_x86_32():    arch, mode = "X86", 32
+        elif is_x86_64():    arch, mode = "X86", 64
+        elif is_powerpc():   arch, mode = "PPC", "PPC32"
+        elif is_mips():      arch, mode = "MIPS", "MIPS32"
+        elif is_sparc():     arch, mode = "SPARC", "SPARC32"
+        elif is_arm():       arch, mode = "ARM", "ARM"
+        elif is_aarch64():   arch, mode = "ARM", "ARM"
         else:
             raise GefUnsupportedOS("Emulation not supported for your OS")
+
+        if to_string:
+            arch = "%s.%s_ARCH_%s" % (mod.__name__, prefix, arch)
+            mode = "%s.%s_MODE_%s" % (mod.__name__, prefix, str(mode))
+            if is_big_endian():
+                mode += " + %s.%s_MODE_BIG_ENDIAN" % (mod.__name__, prefix))
+            else:
+                mode += " + %s.%s_MODE_LITTLE_ENDIAN" % (mod.__name__, prefix))
+
+        else:
+            arch = getattr(mod, "%s_ARCH_%s" % (prefix, arch))
+            mode = getattr(mod, "%s_MODE_%s" % (prefix, str(mode)))
+            if is_big_endian():
+                mode += getattr(mod, "%s_MODE_BIG_ENDIAN" % prefix)
+            else:
+                mode += getattr(mod, "%s_MODE_LITTLE_ENDIAN" % prefix)
+
         return arch, mode
 
-    def get_unicorn_registers(self):
+    def get_unicorn_arch(self, to_string=False):
+        unicorn = sys.modules["unicorn"]
+        return self.get_arch(unicorn, "UC", to_string)
+
+    def get_capstone_arch(self, to_string=False):
+        capstone = sys.modules["capstone"]
+        return self.get_arch(capstone, "CS", to_string)
+
+    def get_unicorn_registers(self, to_string=False):
         "Creates a dict matching the Unicorn identifier for a specific register."
         unicorn = sys.modules['unicorn']
         regs = {}
@@ -1856,13 +1886,17 @@ class UnicornEmulateCommand(GenericCommand):
         elif is_mips():                  arch = "mips"
         elif is_sparc():                 arch = "sparc"
         elif is_arm():                   arch = "arm"
+        elif is_aarch64():               arch = "arm64"
         else:
             raise GefUnsupportedOS("Oops")
 
         const = getattr(unicorn, arch + "_const")
         for r in all_registers():
             regname = "UC_%s_REG_%s" % (arch.upper(), r.strip()[1:].upper())
-            regs[r] = getattr(const, regname)
+            if to_string:
+                regs[r] = "%s.%s" % (const.__name__, regname)
+            else:
+                regs[r] = getattr(const, regname)
         return regs
 
     def get_unicorn_end_addr(self, start_addr, nb):
@@ -1872,12 +1906,12 @@ class UnicornEmulateCommand(GenericCommand):
     def run_unicorn(self, start_insn_addr, end_insn_addr, *args, **kwargs):
         start_regs = {}
         end_regs = {}
-        arch, mode = self.get_unicorn_arch()
-        unicorn_registers = self.get_unicorn_registers()
         insn_section_length = end_insn_addr - start_insn_addr
         verbose = self.get_setting("verbose") or False
         to_script = kwargs.get("to_script") if "to_script" in kwargs.keys() else None
         content = ""
+        arch, mode = self.get_unicorn_arch(to_string=to_script)
+        unicorn_registers = self.get_unicorn_registers(to_string=to_script)
 
         if to_script:
             content+= "#!/usr/bin/python"
@@ -1887,7 +1921,7 @@ import capstone, unicorn
 
 
 def disassemble(code, addr):
-    cs = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_64) # todo: to change
+    cs = capstone.Cs(%s, %s)
     for i in cs.disasm(str(code),addr):
         return i
 
@@ -1899,14 +1933,14 @@ def hook_code(emu, address, size, user_data):
     return
 
 
-"""
+""" % self.get_capstone_arch(to_script)
 
         unicorn = sys.modules['unicorn']
         if verbose:
             info("Initializing Unicorn engine")
 
         if to_script:
-            content += "emu = unicorn.Uc(%d, %d)\n" % (arch, mode)
+            content += "emu = unicorn.Uc(%s, %s)\n" % (arch, mode)
         else:
             emu = unicorn.Uc(arch, mode)
 
@@ -1923,7 +1957,7 @@ def hook_code(emu, address, size, user_data):
 
         if to_script:
             for r in all_registers():
-                content += """print(">> %s = 0x{:x}".format(emu.reg_read(%d)))\n""" % (r, unicorn_registers[r])
+                content += """print(">> %s = 0x{:x}".format(emu.reg_read(%s)))\n""" % (r, unicorn_registers[r])
 
         vmmap = get_process_maps()
         if vmmap is None or len(vmmap)==0:
@@ -1941,14 +1975,10 @@ def hook_code(emu, address, size, user_data):
                 perm       = sect.permission
                 path       = sect.path
 
-                # hack hack hack
-                if path == "[vvar]":
-                    continue
-
                 if to_script:
                     content += "emu.mem_map(%#x, %d, %d)\n" % (page_start, size, perm.value)
                 else:
-                    emu.mem_map(page_start, size, 7)
+                    emu.mem_map(page_start, size, perm.value)
 
                 if perm & Permission.READ:
                     code = read_memory(page_start, size)
@@ -1982,7 +2012,7 @@ def hook_code(emu, address, size, user_data):
             content += "\n"*2
 
             for r in all_registers():
-                content += """print(">> %s = 0x{:x}".format(emu.reg_read(%d)))\n""" % (r, unicorn_registers[r])
+                content += """print(">> %s = 0x{:x}".format(emu.reg_read(%s)))\n""" % (r, unicorn_registers[r])
 
             with open(to_script, 'w') as f:
                 f.write(content)
