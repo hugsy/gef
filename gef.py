@@ -678,7 +678,7 @@ def arm_flags_to_human(val=None):
 ######################[ Intel x86-64 specific ]######################
 @memoize
 def x86_64_registers():
-    return [ "$rax   ", "$rcx   ", "$rdx   ", "$rbx   ", "$rsp   ", "$rbp   ", "$rsi   ",
+    return [ "$rax   ", "$rbx   ", "$rcx   ", "$rdx   ", "$rsp   ", "$rbp   ", "$rsi   ",
              "$rdi   ", "$rip   ", "$r8    ", "$r9    ", "$r10   ", "$r11   ", "$r12   ",
              "$r13   ", "$r14   ", "$r15   ",
              "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags", ]
@@ -718,7 +718,7 @@ def x86_flags_to_human(val=None):
 ######################[ Intel x86-32 specific ]######################
 @memoize
 def x86_32_registers():
-    return [ "$eax   ", "$ecx   ", "$edx   ", "$ebx   ", "$esp   ", "$ebp   ", "$esi   ",
+    return [ "$eax   ", "$ebx   ", "$ecx   ", "$edx   ", "$esp   ", "$ebp   ", "$esi   ",
              "$edi   ", "$eip   ", "$cs    ", "$ss    ", "$ds    ", "$es    ",
              "$fs    ", "$gs    ", "$eflags", ]
 
@@ -1790,7 +1790,8 @@ class UnicornEmulateCommand(GenericCommand):
         h = "%s\n" % self._syntax_
         h+= "\t-f LOCATION specifies the start address of the emulated run (default $pc).\n"
         h+= "\t-t LOCATION specifies the end address of the emulated run.\n"
-        h+= "\t-n NB_INSTRUCTION indicates the number of instructions to execute (mutually exclusive with `-t`).\n"
+        h+= "\t-n NB_INSTRUCTION indicates the number of instructions to execute (mutually exclusive with `-t` and `-g`).\n"
+        h+= "\t-g NB_GADGET indicates the number of gadgets to execute (mutually exclusive with `-t` and `-n`).\n"
         h+= "Additional options can be setup via `gef config unicorn-emulate`\n"
         info(h)
         return
