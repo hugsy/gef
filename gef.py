@@ -150,8 +150,8 @@ def reset_all_caches():
 
 # let's get fancy
 class Color:
-    GRAY           = "\033[1;30m"
     NORMAL         = "\x1b[0m"
+    GRAY           = "\x1b[30m"
     RED            = "\x1b[31m"
     GREEN          = "\x1b[32m"
     YELLOW         = "\x1b[33m"
@@ -564,7 +564,7 @@ def gef_disassemble(addr, nb_insn, from_top=False):
         dis_start_addr = addr-(2*nb_insn)
         nb_insn = 2*nb_insn
 
-    # adjust lines to disassemble because of variable instructions (intel)
+    # adjust lines to disassemble because of variable length instructions architecture (intel)
     cur_insn = gdb.execute("x/1i %#x" % addr, to_string=True).splitlines()[0]
     found = False
 
