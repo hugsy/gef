@@ -52,7 +52,7 @@ import traceback
 import threading
 import collections
 import time
-import resource
+
 
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
@@ -1817,11 +1817,11 @@ class UnicornEmulateCommand(GenericCommand):
         self.nb_insn = -1
         to_script = None
         self.until_next_gadget = -1
-        opts, args = getopt.getopt(argv, "f:t:n:e:gh")
+        opts, args = getopt.getopt(argv, "f:t:n:e:g:h")
         for o,a in opts:
             if   o == "-f":   start_insn = int(a, 16)
             elif o == "-t":   end_insn = int(a, 16)
-            elif o == "-g":   self.until_next_gadget = int(a) if int(a)>0 else 1
+            elif o == "-g":   self.until_next_gadget = int(a)
             elif o == "-n":   self.nb_insn = int(a)
             elif o == "-e":   to_script = a
             elif o == "-h":
@@ -2072,7 +2072,8 @@ def hook_code(emu, address, size, user_data):
             return
 
         if self.get_setting("show_disassembly"):
-            info("Entering new block at %s" %(format_address(addr, )))
+            addr_s = format_address(addr)
+            info("Entering new block at %s" %(addr_s,))
 
         self.until_next_gadget -= 1
         return
@@ -3591,9 +3592,9 @@ class DereferenceCommand(GenericCommand):
         prev_addr_value = None
         deref = addr
         msg = []
-        i = max(int(__config__["dereference.max_recursion"][0]), 1)
+        max_recursion = max(int(__config__["dereference.max_recursion"][0]), 1)
 
-        while i:
+        while max_recursion:
             value = align_address( long(deref) )
             addr  = lookup_address( value )
             if addr is None:
@@ -3624,7 +3625,7 @@ class DereferenceCommand(GenericCommand):
 
             prev_addr_value = addr.value
             deref = DereferenceCommand.dereference(value)
-            i -= 1
+            max_recursion -= 1
 
         return msg
 
