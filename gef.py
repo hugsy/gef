@@ -678,7 +678,7 @@ def arm_flags_to_human(val=None):
 ######################[ Intel x86-64 specific ]######################
 @memoize
 def x86_64_registers():
-    return [ "$rax   ", "$rcx   ", "$rdx   ", "$rbx   ", "$rsp   ", "$rbp   ", "$rsi   ",
+    return [ "$rax   ", "$rbx   ", "$rcx   ", "$rdx   ", "$rsp   ", "$rbp   ", "$rsi   ",
              "$rdi   ", "$rip   ", "$r8    ", "$r9    ", "$r10   ", "$r11   ", "$r12   ",
              "$r13   ", "$r14   ", "$r15   ",
              "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags", ]
@@ -718,7 +718,7 @@ def x86_flags_to_human(val=None):
 ######################[ Intel x86-32 specific ]######################
 @memoize
 def x86_32_registers():
-    return [ "$eax   ", "$ecx   ", "$edx   ", "$ebx   ", "$esp   ", "$ebp   ", "$esi   ",
+    return [ "$eax   ", "$ebx   ", "$ecx   ", "$edx   ", "$esp   ", "$ebp   ", "$esi   ",
              "$edi   ", "$eip   ", "$cs    ", "$ss    ", "$ds    ", "$es    ",
              "$fs    ", "$gs    ", "$eflags", ]
 
