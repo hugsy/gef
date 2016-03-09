@@ -2832,8 +2832,22 @@ class CtfExploitTemplaterCommand(GenericCommand):
         host, port = argv[0], argv[1]
         path = argv[2] if argc==3 else self.get_setting("exploit_path")
 
+        asm_def = ""
+        r, t = __config__.get("assemble.rasm2_path", (None, None))
+        if r is not None:
+            a, m = AssembleCommand.get_arch_mode()
+            asm_def = """
+def asm(code, arch="%s", bits=%d):
+    r2 = "%s"
+    cmd = "{} -a {} -b {}".format(r2, arch, bits).split(" ")
+    cmd+= [code, ]
+    try: rc = subprocess.check_output(cmd).strip()
+    except: return ""
+    return binascii.unhexlify(rc)
+"""%(a, m, r)
+
         with open(path, "w") as f:
-            f.write( CTF_EXPLOIT_TEMPLATE.format(host=host, port=port) )
+            f.write( CTF_EXPLOIT_TEMPLATE.format(host=host, port=port, asm=asm_def) )
 
         info("Exploit script written as '%s'" % path)
         return
@@ -2989,14 +3003,17 @@ class AssembleCommand(GenericCommand):
 
     @staticmethod
     def get_arch_mode():
-        arch = get_arch()
-        if "i386" in arch: a = "x86"
-        elif "armv" in arch: a = "arm"
-        elif "mips" in arch: a = "mips"
-        elif "aarch64" in arch: a = "arm"
-        else: a = arch
+        try:
+            arch = get_arch()
+            if "i386" in arch: a = "x86"
+            elif "armv" in arch: a = "arm"
+            elif "mips" in arch: a = "mips"
+            elif "aarch64" in arch: a = "arm"
+            else: a = arch
 
-        m = 64 if is_elf64() else 32
+            m = 64 if is_elf64() else 32
+        except:
+            a, m = "x86", 64
         return (a, m)
 
     def do_invoke(self, argv):
@@ -4557,8 +4574,7 @@ def err(msg):  _xlog("[!] %s" % msg)
 def ok(msg):   _xlog("[+] %s" % msg)
 def dbg(msg):  _xlog("[*] %s" % msg)
 def xd(msg):   _xlog("[*] Hexdump:\\n%s" % hexdump(msg))
-
-
+{asm:s}
 def grab_banner(s):
     data = s.read_until("> ")
     dbg("Received %d bytes: %s" % (len(data), data))
