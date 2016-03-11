@@ -159,6 +159,8 @@ class Color:
     BOLD           = "\x1b[1m"
     UNDERLINE_ON   = "\x1b[4m"
     UNDERLINE_OFF  = "\x1b[24m"
+    ITALIC_ON      = "\x1b[3m"
+    ITALIC_OFF     = "\x1b[23m"
     CLEAR_LINE     = "\x1b[1K"
 
     @staticmethod
@@ -175,6 +177,8 @@ class Color:
     def boldify(msg):    return Color.BOLD + msg + Color.NORMAL if not NO_COLOR else msg
     @staticmethod
     def underlinify(msg):return Color.UNDERLINE_ON + msg + Color.UNDERLINE_OFF if not NO_COLOR else msg
+    @staticmethod
+    def italicify(msg):  return Color.ITALC_ON + msg + Color.ITALIC_OFF if not NO_COLOR else msg
 
 
 def left_arrow():
