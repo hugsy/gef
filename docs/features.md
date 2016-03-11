@@ -215,7 +215,7 @@ gef> target remote 192.168.56.1:1234
 It is possible to use `gdb` internal functions to copy our targeted binary.
 
 In the following of our previous, if we want to debug `uname`, run `gdb` and
-connect to our `gdbserver`. To be able to locate the right process in the `/proc` 
+connect to our `gdbserver`. To be able to locate the right process in the `/proc`
 structure, the command `gef-remote` requires 2 arguments:
    - `-t` to provide the target host and port
    - `-p` to provide the PID on the remote host
@@ -236,8 +236,8 @@ information to `gdb` and proceed with the debugging.
 
 ![gef-remote-autodownload](https://i.imgur.com/S3X536b.png)
 
-You can then reuse the downloaded file for your future debugging sessions, use it under IDA 
-and such. This makes the entire remote debugging process (particularly for Android applications) 
+You can then reuse the downloaded file for your future debugging sessions, use it under IDA
+and such. This makes the entire remote debugging process (particularly for Android applications)
 a child game.
 
 
@@ -370,3 +370,26 @@ By using the script `ida_color_gdb_trace.py` on the text file generated, it will
 color the path taken:
 
 ![trace-run-2](http://i.imgur.com/oAGoSMQ.png)
+
+
+## `edit-flags` command
+
+The `edit-flags` command (alias: `flags`) provides a quick and comprehensible
+way to view and edit the flag register for the architectures that support it.
+Without argument, the command will simply return a human-friendly display of the
+register flags.
+
+One or many arguments can be provided, following the syntax below:
+```
+gef> flags [+|-]FLAGNAME ([+|-]FLAGNAME...)
+```
+Where `FLAGNAME` is the name of the flag (case insensitive), and `+|-` indicates
+the action on wether to set the flag or not.
+
+For instance, on x86 architecture, if we don't want to take a conditional jump
+(`jz` condition), but we want to have the Carry flag set, simply go with:
+
+```
+gef> flags -ZERO +CARRY
+```
+![flags](https://i.imgur.com/ro7iC5m.png)
