@@ -1722,22 +1722,29 @@ class FlagsCommand(GenericCommand):
             if len(flag)<2:
                 continue
 
-            if flag[0] not in ('+', '-'):
+            action = flag[0]
+            name = flag[1:].lower()
+
+            if action not in ('+', '-'):
                 err("Invalid action for flag '%s'" % flag)
                 continue
 
-            if flag[1:].lower() not in flags_tables().values():
+            if name not in flags_table().values():
                 err("Invalid flag name '%s'" % flag[1:])
                 continue
 
-            off = list(flags_tables().values()).index(flag[1:])
+            for k in flags_table().keys():
+                if flags_table()[k] == name:
+                    off = k
+                    break
+
             old_flag = get_register_ex( flag_register() )
-            if flag[0]=='+':
-                new_flags = old_flag & (1<<off)
+            if action=='+':
+                new_flags = old_flag | (1<<off)
             else:
                 new_flags = old_flag & ~(1<<off)
 
-            gdb.execute("set %s = %#x" % (flag_register(), new_flags))
+            gdb.execute("set (%s) = %#x" % (flag_register(), new_flags))
 
         print(flag_register_to_human())
         return
@@ -4407,6 +4414,7 @@ class GEFCommand(gdb.Command):
                         RemoteCommand,
                         UnicornEmulateCommand,
                         ChangePermissionCommand,
+                        FlagsCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
