@@ -561,37 +561,38 @@ def _gef_disassemble_around(addr, nb_insn):
 
     if not is_x86_32() and not is_x86_64():
         top = addr - (nb_insn-3)*(get_memory_alignment()/4)
-        lines = _gef_disassemble_top(top, nb_insn-1)
+        lines = _gef_disassemble_top(top,  nb_insn-1)
+        lines+= _gef_disassemble_top(addr, nb_insn)
+        return lines
 
-    else:
-        cur_insn = gdb.execute("x/1i %#x" % addr, to_string=True).splitlines()[0]
-        found = False
+    cur_insn = gdb.execute("x/1i %#x" % addr, to_string=True).splitlines()[0]
+    found = False
 
-        # we try to find a good set of previous instructions by guessing incrementally
-        for i in reversed( range(255) ):
-            try:
-                cmd = "x/%di %#x" % (nb_insn, addr-i)
-                lines = gdb.execute(cmd, to_string=True).splitlines()
-            except gdb.MemoryError as me:
-                # we can hit an unmapped page trying to read backward, so leave gracefully
-                break
-
-            # 1. check no bad instructions in found
-            if any( map(lambda x: "(bad)" in x, lines) ):
-                continue
-
-            # 2. if cur_insn is not in the "middle" of the set, it is invalid
-            insn = lines[-1]
-            if insn != cur_insn:
-                continue
-
-            # we assume here that it was successful
-            found = True
-            lines = [ re.sub(r'(\t|:)', r' ', x.replace("=>", "").strip()) for x in lines[-nb_insn:-1] ]
+    # we try to find a good set of previous instructions by guessing incrementally
+    for i in reversed( range(255) ):
+        try:
+            cmd = "x/%di %#x" % (nb_insn, addr-i)
+            lines = gdb.execute(cmd, to_string=True).splitlines()
+        except gdb.MemoryError as me:
+            # we can hit an unmapped page trying to read backward, if so just print forward disass lines
             break
 
-        if not found:
-            lines = []
+        # 1. check no bad instructions in found
+        if any( map(lambda x: "(bad)" in x, lines) ):
+            continue
+
+        # 2. if cur_insn is not in the "middle" of the set, it is invalid
+        insn = lines[-1]
+        if insn != cur_insn:
+            continue
+
+        # we assume here that it was successful
+        found = True
+        lines = [ re.sub(r'(\t|:)', r' ', x.replace("=>", "").strip()) for x in lines[-nb_insn:-1] ]
+        break
+
+    if not found:
+        lines = []
 
     lines += _gef_disassemble_top(addr, nb_insn)
     return lines
@@ -677,11 +678,8 @@ def arm_return_register():
 def arm_flag_register():
     return "$cpsr"
 
-def arm_flags_to_human(val=None):
-    # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
-    reg = "$cpsr"
-    if not val:
-        val = get_register_ex( reg )
+@memoize
+def arm_flags_table():
     table = { 31: "negative",
               30: "zero",
               29: "carry",
@@ -690,7 +688,15 @@ def arm_flags_to_human(val=None):
                6: "fast",
                5: "thumb"
     }
-    return flags_to_human(val, table)
+    return table
+
+def arm_flags_to_human(val=None):
+    # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
+    reg = "$cpsr"
+    if not val:
+        val = get_register_ex( reg )
+    return flags_to_human(val, arm_flags_table())
+
 
 ######################[ Intel x86-64 specific ]######################
 @memoize
@@ -712,10 +718,8 @@ def x86_64_return_register():
 def x86_flag_register():
     return "$eflags"
 
-def x86_flags_to_human(val=None):
-    reg = "$eflags"
-    if not val:
-        val = get_register_ex( reg )
+@memoize
+def x86_flags_table():
     table = { 6: "zero",
               0: "carry",
               2: "parity",
@@ -729,7 +733,13 @@ def x86_flags_to_human(val=None):
               17: "virtualx86",
               21: "identification",
     }
-    return flags_to_human(val, table)
+    return table
+
+def x86_flags_to_human(val=None):
+    reg = "$eflags"
+    if not val:
+        val = get_register_ex( reg )
+    return flags_to_human(val, x86_flags_table())
 
 
 ######################[ Intel x86-32 specific ]######################
@@ -771,11 +781,8 @@ def powerpc_return_register():
 def powerpc_flag_register():
     return "$cr"
 
-def powerpc_flags_to_human(val=None):
-    # http://www.csit-sun.pub.ro/~cpop/Documentatie_SM/Motorola_PowerPC/PowerPc/GenInfo/pemch2.pdf
-    reg = "$cr"
-    if not val:
-        val = get_register_ex( reg )
+@memoize
+def powerpc_flags_table():
     table = { 0: "negative",
               1: "positive",
               2: "zero",
@@ -784,7 +791,14 @@ def powerpc_flags_to_human(val=None):
               10: "equal",
               11: "overflow",
     }
-    return flags_to_human(val, table)
+    return table
+
+def powerpc_flags_to_human(val=None):
+    # http://www.csit-sun.pub.ro/~cpop/Documentatie_SM/Motorola_PowerPC/PowerPc/GenInfo/pemch2.pdf
+    reg = "$cr"
+    if not val:
+        val = get_register_ex( reg )
+    return flags_to_human(val, powerpc_flags_table())
 
 
 ######################[ SPARC specific ]######################
@@ -861,11 +875,8 @@ def aarch64_return_register():
 def aarch64_flag_register():
     return "$cpsr"
 
-def aarch64_flags_to_human(val=None):
-    # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
-    reg = "$cpsr"
-    if not val:
-        val = get_register_ex( reg )
+@memoize
+def aarch64_flags_table():
     table = { 31: "negative",
               30: "zero",
               29: "carry",
@@ -873,7 +884,14 @@ def aarch64_flags_to_human(val=None):
                7: "interrupt",
                6: "fast"
     }
-    return flags_to_human(val, table)
+    return table
+
+def aarch64_flags_to_human(val=None):
+    # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
+    reg = "$cpsr"
+    if not val:
+        val = get_register_ex( reg )
+    return flags_to_human(val, aarch64_flags_table())
 
 
 ################################################################
@@ -922,6 +940,16 @@ def flag_register():
     elif is_mips():      return mips_flag_register()
     elif is_sparc():     return sparc_flag_register()
     elif is_aarch64():   return aarch64_flag_register()
+    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+
+@memoize
+def flags_table():
+    if is_x86_32():       return x86_flags_table()
+    elif is_x86_64():     return x86_flags_table()
+    elif is_arm():        return arm_flags_table()
+    elif is_aarch64():    return aarch64_flags_table()
+    elif is_powerpc():    return powerpc_flags_table()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 
@@ -1676,6 +1704,43 @@ class GenericCommand(gdb.Command):
         # return
     # def do_invoke(self, argv):
         # return
+
+
+class FlagsCommand(GenericCommand):
+    """Edit flags in a human friendly wait"""
+
+    _cmdline_ = "edit-flags"
+    _syntax_  = "%s [+|-]FLAGNAME ([+|-]FLAGNAME)*" % _cmdline_
+    _aliases_ = ["flags", ]
+
+    def __init__(self):
+         super(FlagsCommand, self).__init__()
+         return
+
+    def do_invoke(self, argv):
+        for flag in argv:
+            if len(flag)<2:
+                continue
+
+            if flag[0] not in ('+', '-'):
+                err("Invalid action for flag '%s'" % flag)
+                continue
+
+            if flag[1:].lower() not in flags_tables().values():
+                err("Invalid flag name '%s'" % flag[1:])
+                continue
+
+            off = list(flags_tables().values()).index(flag[1:])
+            old_flag = get_register_ex( flag_register() )
+            if flag[0]=='+':
+                new_flags = old_flag & (1<<off)
+            else:
+                new_flags = old_flag & ~(1<<off)
+
+            gdb.execute("set %s = %#x" % (flag_register(), new_flags))
+
+        print(flag_register_to_human())
+        return
 
 
 class ChangePermissionCommand(GenericCommand):
