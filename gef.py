@@ -547,52 +547,72 @@ def gef_obsolete_function(func):
     return new_func
 
 
-def gef_execute(command, as_list=False):
-    res = gdb.execute(command, to_string=True)
-    if as_list:
-        return res.splitlines()
-    return output
+def _gef_disassemble_top(addr, nb_insn):
+    lines = gdb.execute("x/%di %#x" % (nb_insn, addr), to_string=True).splitlines()
+    lines = [ re.sub(r'(\t|:)', r' ', x.replace("=>", "").strip()) for x in lines ]
+    return lines
+
+
+def _gef_disassemble_around(addr, nb_insn):
+    """
+    Adjust lines to disassemble because of variable length instructions architecture (intel)
+    """
+    lines = []
+
+    if not is_x86_32() and not is_x86_64():
+        top = addr - (nb_insn-3)*(get_memory_alignment()/4)
+        lines = _gef_disassemble_top(top, nb_insn-1)
+
+    else:
+        cur_insn = gdb.execute("x/1i %#x" % addr, to_string=True).splitlines()[0]
+        found = False
+
+        # we try to find a good set of previous instructions by guessing incrementally
+        for i in reversed( range(255) ):
+            try:
+                cmd = "x/%di %#x" % (nb_insn, addr-i)
+                lines = gdb.execute(cmd, to_string=True).splitlines()
+            except gdb.MemoryError as me:
+                # we can hit an unmapped page trying to read backward, so leave gracefully
+                break
+
+            # 1. check no bad instructions in found
+            if any( map(lambda x: "(bad)" in x, lines) ):
+                continue
+
+            # 2. if cur_insn is not in the "middle" of the set, it is invalid
+            insn = lines[-1]
+            if insn != cur_insn:
+                continue
+
+            # we assume here that it was successful
+            found = True
+            lines = [ re.sub(r'(\t|:)', r' ', x.replace("=>", "").strip()) for x in lines[-nb_insn:-1] ]
+            break
+
+        if not found:
+            lines = []
+
+    lines += _gef_disassemble_top(addr, nb_insn)
+    return lines
 
 
 def gef_disassemble(addr, nb_insn, from_top=False):
+    if nb_insn % 2 == 0: nb_insn += 1
     if from_top:
-        dis_start_addr = addr
+        lines = _gef_disassemble_top(addr, nb_insn)
     else:
-        dis_start_addr = addr-(2*nb_insn)
-        nb_insn = 2*nb_insn
+        lines = _gef_disassemble_around(addr, nb_insn)
 
-    # adjust lines to disassemble because of variable length instructions architecture (intel)
-    cur_insn = gdb.execute("x/1i %#x" % addr, to_string=True).splitlines()[0]
-    found = False
-
-    for i in range(30):
-        cmd = "x/%di %#x" % (nb_insn, dis_start_addr-i)
-        lines = gdb.execute(cmd, to_string=True).splitlines()
-
-        # 1. check that the instruction at address in the list
-        if cur_insn not in lines:
-            continue
-
-        # 2. check no bad instructions in found
-        if any( map(lambda x: "(bad)" in x, lines) ):
-            continue
-
-        # we assume here that it was successful
-        found = True
-        lines = [ re.sub(r'(\t|:)', r' ', insn.replace("=>", "").strip()) for insn in lines ]
-        break
-
-    if not found:
-        return []
-
-    l = []
+    if len(lines)==0: return []
+    result = []
     patt = re.compile(r'^(0x[0-9a-f]{,16})(.*)$', flags=re.IGNORECASE)
     for line in lines:
         parts = [ x for x in re.split(patt, line) if len(x)>0 ]
         addr = int(parts[0], 16)
         code = parts[1].strip()
-        l.append( (addr, code) )
-    return l
+        result.append( (addr, code) )
+    return result
 
 
 def gef_execute_external(command, *args, **kwargs):
@@ -2996,6 +3016,10 @@ class AssembleCommand(GenericCommand):
         try:
             r2 = which("rasm2")
             self.add_setting("rasm2_path", r2)
+
+            arch, mode = AssembleCommand.get_arch_mode()
+            self.add_setting("rasm2_arch", arch)
+            self.add_setting("rasm2_mode", mode)
         except IOError as ioe:
             raise GefMissingDependencyException("radare2 missing: %s" % ioe)
 
@@ -3268,9 +3292,9 @@ class ContextCommand(GenericCommand):
          self.add_setting("enable", True)
          self.add_setting("show_stack_raw", False)
          self.add_setting("nb_registers_per_line", 4)
-         self.add_setting("nb_lines_stack", 10)
+         self.add_setting("nb_lines_stack", 8)
          self.add_setting("nb_lines_backtrace", 5)
-         self.add_setting("nb_lines_code", 6)
+         self.add_setting("nb_lines_code", 5)
          self.add_setting("clear_screen", False)
 
          if "capstone" in list( sys.modules.keys() ):
