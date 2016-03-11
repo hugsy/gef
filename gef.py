@@ -157,20 +157,24 @@ class Color:
     YELLOW         = "\x1b[33m"
     BLUE           = "\x1b[34m"
     BOLD           = "\x1b[1m"
-    UNDERLINE      = "\x1b[4m"
+    UNDERLINE_ON   = "\x1b[4m"
+    UNDERLINE_OFF  = "\x1b[24m"
+    CLEAR_LINE     = "\x1b[1K"
 
     @staticmethod
-    def redify(msg):     return Color.RED + msg + Color.NORMAL if not NO_COLOR else ""
+    def redify(msg):     return Color.RED + msg + Color.NORMAL if not NO_COLOR else msg
     @staticmethod
-    def greenify(msg):   return Color.GREEN + msg + Color.NORMAL if not NO_COLOR else ""
+    def greenify(msg):   return Color.GREEN + msg + Color.NORMAL if not NO_COLOR else msg
     @staticmethod
-    def blueify(msg):    return Color.BLUE + msg + Color.NORMAL if not NO_COLOR else ""
+    def blueify(msg):    return Color.BLUE + msg + Color.NORMAL if not NO_COLOR else msg
     @staticmethod
-    def yellowify(msg):  return Color.YELLOW + msg + Color.NORMAL if not NO_COLOR else ""
+    def yellowify(msg):  return Color.YELLOW + msg + Color.NORMAL if not NO_COLOR else msg
     @staticmethod
-    def grayify(msg):    return Color.GRAY + msg + Color.NORMAL if not NO_COLOR else ""
+    def grayify(msg):    return Color.GRAY + msg + Color.NORMAL if not NO_COLOR else msg
     @staticmethod
-    def boldify(msg):    return Color.BOLD + msg + Color.NORMAL if not NO_COLOR else ""
+    def boldify(msg):    return Color.BOLD + msg + Color.NORMAL if not NO_COLOR else msg
+    @staticmethod
+    def underlinify(msg):return Color.UNDERLINE_ON + msg + Color.UNDERLINE_OFF if not NO_COLOR else msg
 
 
 def left_arrow():
@@ -4582,7 +4586,7 @@ class GEFCommand(gdb.Command):
 
 if __name__  == "__main__":
     GEF_PROMPT = "gef> " if PYTHON_MAJOR == 2 else "gef\u27a4  "
-    GEF_PROMPT = Color.boldify(Color.redify(GEF_PROMPT))
+    GEF_PROMPT = Color.CLEAR_LINE + Color.boldify(Color.redify(GEF_PROMPT))
 
     # setup config
     gdb.execute("set confirm off")
