@@ -4680,8 +4680,8 @@ def ok(msg):   _xlog("[+] %s" % msg)
 def dbg(msg):  _xlog("[*] %s" % msg)
 def xd(msg):   _xlog("[*] Hexdump:\\n%s" % hexdump(msg))
 {asm:s}
-def grab_banner(s):
-    data = s.read_until("> ")
+def grab_banner(s, until_pattern="> "):
+    data = s.read_until(until_pattern)
     dbg("Received %d bytes: %s" % (len(data), data))
     return data
 
@@ -4708,6 +4708,7 @@ def pwn(s):
 
 if __name__ == "__main__":
     s = build_socket(HOST, PORT)
+    raw_input("Attach with GDB and hit Enter ")
     banner = grab_banner(s)
     if pwn(s):
         ok("Got it, interacting (Ctrl-C to break)")
