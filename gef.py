@@ -403,15 +403,24 @@ class GlibcChunk:
     # endif free-ed functions
 
 
+    #
+    # Best Glibc heap write-up:
+    # https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/
+    #
     def has_P_bit(self):
-        """Check for in PREV_INUSE bit"""
+        """Check for in PREV_INUSE bit
+        Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1267"""
         return read_int_from_memory( self.size_addr ) & 0x01
 
-
     def has_M_bit(self):
-        """Check for in IS_MMAPPED bit"""
+        """Check for in IS_MMAPPED bit
+        Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1274"""
         return read_int_from_memory( self.size_addr ) & 0x02
 
+    def has_N_bit(self):
+        """Check for in NON_MAIN_ARENA bit.
+        Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1283"""
+        return read_int_from_memory( self.size_addr ) & 0x04
 
     def is_used(self):
         """
@@ -426,30 +435,67 @@ class GlibcChunk:
         return True if next_chunk.has_P_bit() else False
 
 
-    def str_as_alloced(self):
+    def str_chunk_size_flag(self):
         msg = ""
-        msg+= "Chunk size: {0:d} ({0:#x})".format( self.get_chunk_size() ) + "\n"
-        msg+= "Usable size: {0:d} ({0:#x})".format( self.get_usable_size() ) + "\n"
-        msg+= "Previous chunk size: {0:d} ({0:#x})".format( self.get_prev_chunk_size() ) + "\n"
-
         msg+= "PREV_INUSE flag: "
         msg+= Color.greenify("On") if self.has_P_bit() else Color.redify("Off")
         msg+= "\n"
 
         msg+= "IS_MMAPPED flag: "
         msg+= Color.greenify("On") if self.has_M_bit() else Color.redify("Off")
+        msg+= "\n"
+
+        msg+= "NON_MAIN_ARENA flag: "
+        msg+= Color.greenify("On") if self.has_N_bit() else Color.redify("Off")
+
         return msg
 
+
+    def _str_sizes(self):
+        msg = ""
+        failed = False
+
+        try:
+            msg+= "Chunk size: {0:d} ({0:#x})\n".format( self.get_chunk_size() )
+            msg+= "Usable size: {0:d} ({0:#x})\n".format( self.get_usable_size() )
+            failed = True
+        except gdb.MemoryError as me:
+            msg+= "Chunk size: Cannot read at {0:#x} (corrupted?)\n".format(self.size_addr)
+
+        try:
+            msg+= "Previous chunk size: {0:d} ({0:#x})\n".format( self.get_prev_chunk_size() )
+            failed = True
+        except gdb.MemoryError as me:
+            msg+= "Previous chunk size: Cannot read at {0:#x} (corrupted?)\n".format(self.start_addr)
+
+        if failed:
+            msg+= self.str_chunk_size_flag()
+
+        return msg
+
+    def _str_pointers(self):
+        fwd = self.addr
+        bkw = self.addr + self.arch
+
+        msg = ""
+
+        try:
+            msg+= "Forward pointer: {0:#x}\n".format( self.get_fwd_ptr() )
+        except gdb.MemoryError as me:
+            msg+= "Forward pointer: {0:#x} (corrupted?)\n".format( fwd )
+
+        try:
+            msg+= "Backward pointer: {0:#x}\n".format( self.get_bkw_ptr() )
+        except gdb.MemoryError as me:
+            msg+= "Backward pointer: {0:#x} (corrupted?)\n".format( bkw )
+
+        return msg
+
+    def str_as_alloced(self):
+        return self._str_sizes()
 
     def str_as_freeed(self):
-        msg = ""
-        msg+= "Chunk size: {0:d} ({0:#x})".format( self.get_chunk_size() ) + "\n"
-        msg+= "Previous chunk size: {0:d} ({0:#x})".format( self.get_prev_chunk_size() ) + "\n"
-
-        msg+= "Forward pointer: {0:#x}".format( self.get_fwd_ptr() ) + "\n"
-        msg+= "Backward pointer: {0:#x}".format( self.get_bkw_ptr() )
-        return msg
-
+        return self._str_sizes() + '\n'*2 + self._str_pointers()
 
     def __str__(self):
         msg = ""
@@ -3377,6 +3423,11 @@ class ContextCommand(GenericCommand):
          self.add_setting("nb_lines_code", 5)
          self.add_setting("clear_screen", False)
 
+         self.add_setting("show_registers", True)
+         self.add_setting("show_stack", True)
+         self.add_setting("show_code", True)
+         self.add_setting("show_trace", False)
+
          if "capstone" in list( sys.modules.keys() ):
              self.add_setting("use_capstone", False)
          return
@@ -3404,16 +3455,21 @@ class ContextCommand(GenericCommand):
         self.context_source()
         self.context_trace()
         self.update_registers()
+
+        self.context_title('')
         return
 
     def context_title(self, m):
         trail = horizontal_line()*2
-        title = "[{}]{}".format(m,trail)
+        title = "[{}]{}".format(m,trail) if len(m) else "{}".format(trail)
         title = horizontal_line()*(self.tty_columns-len(title)) + title
         print(( Color.boldify( Color.blueify(title)) ))
         return
 
     def context_regs(self):
+        if self.get_setting("show_registers")==False:
+            return
+
         self.context_title("registers")
 
         i = 1
@@ -3459,6 +3515,9 @@ class ContextCommand(GenericCommand):
         return
 
     def context_stack(self):
+        if self.get_setting("show_stack")==False:
+            return
+
         self.context_title("stack")
 
         show_raw = self.get_setting("show_stack_raw")
@@ -3478,6 +3537,9 @@ class ContextCommand(GenericCommand):
         return
 
     def context_code(self):
+        if self.get_setting("show_code")==False:
+            return
+
         nb_insn = self.get_setting("nb_lines_code")
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
         pc = get_pc()
@@ -3583,6 +3645,9 @@ class ContextCommand(GenericCommand):
         return ""
 
     def context_trace(self):
+        if self.get_setting("show_trace")==False:
+            return
+
         self.context_title("trace")
 
         try:
