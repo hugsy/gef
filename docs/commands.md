@@ -22,6 +22,25 @@ gef-alias show -- GEF show alias command
 gef-alias unset -- GEF remove alias command
 ```
 
+### Configuration
+
+`gef` can also be configured at runtime through a configuration file locate at
+`~/.gef.rc`. To dump the current settings for `GEF`, simply run:
+
+```
+gef➤  gef save
+[+] Configuration saved to '/home/vagrant/.gef.rc'
+```
+
+And to load settings
+```
+gef➤  gef restore
+[+] Configuration from '/home/vagrant/.gef.rc' restored
+```
+
+You can then tweak this configuration outside your `gdb` session to suit your
+needs.
+
 
 ### Commands
 
