@@ -53,12 +53,12 @@ import threading
 import collections
 import time
 
-
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
     import itertools
     from cStringIO import StringIO
     from urllib import urlopen
+    import configparser as ConfigParser
 
     # Compat Py2/3 hacks
     range = xrange
@@ -69,7 +69,7 @@ elif sys.version_info.major == 3:
     from html.parser import HTMLParser
     from io import StringIO
     from urllib.request import urlopen
-
+    import configparser
     # Compat Py2/3 hack
     long = int
     FileNotFoundError = IOError
@@ -87,7 +87,7 @@ NO_COLOR = False
 __infos_files__ = []
 DEFAULT_PAGE_ALIGN_SHIFT = 12
 DEFAULT_PAGE_SIZE = 1 << DEFAULT_PAGE_ALIGN_SHIFT
-
+GEF_RC = os.getenv("HOME") + "/.gef.rc"
 
 class GefGenericException(Exception):
     def __init__(self, value):
@@ -3438,7 +3438,7 @@ class ContextCommand(GenericCommand):
             warn("No debugging session active")
             return
 
-        if self.get_setting("enable") != True:
+        if not self.get_setting("enable"):
             return
 
         if self.get_setting("clear_screen"):
@@ -4448,7 +4448,7 @@ class GEFCommand(gdb.Command):
     """GEF main command: start with `gef help` """
 
     _cmdline_ = "gef"
-    _syntax_  = "%s (load/help)" % _cmdline_
+    _syntax_  = "%s (config|help|save|restore)" % _cmdline_
 
     def __init__(self):
         super(GEFCommand, self).__init__(GEFCommand._cmdline_,
@@ -4517,6 +4517,10 @@ class GEFCommand(gdb.Command):
             self.help()
         elif cmd == "config":
             self.config(*argv[1:])
+        elif cmd == "save":
+            self.save()
+        elif cmd == "restore":
+            self.restore()
         else:
             err("Invalid command '%s' for gef -- type `gef help' for help" % ' '.join(argv))
 
@@ -4591,7 +4595,8 @@ class GEFCommand(gdb.Command):
 
 
     def help(self):
-        print ((self.__doc__))
+        print("Syntax: %s\n" % self._syntax_)
+        print(self.__doc__)
         return
 
 
@@ -4651,6 +4656,54 @@ class GEFCommand(gdb.Command):
         __config__[ args[0] ] = (_newval, _type)
         return
 
+
+    def save(self):
+        """
+        Saves the current configuration of GEF to disk
+        """
+        cfg = configparser.RawConfigParser()
+        old_sect = None
+        for key in sorted( __config__.keys() ):
+            sect, optname = key.split(".", 1)
+            value, type = __config__.get(key, None)
+
+            if old_sect != sect:
+                cfg.add_section(sect)
+                old_sect = sect
+
+            cfg.set(sect, optname, value)
+
+        with open(GEF_RC, "w") as fd:
+            cfg.write(fd)
+
+        ok("Configuration saved to '%s'" % GEF_RC)
+        return
+
+
+    def restore(self):
+        """
+        Loads ~/.gef.rc and restore a former configuration of GEF
+        """
+
+        cfg = configparser.ConfigParser()
+        cfg.read(GEF_RC)
+
+        for section in cfg.sections():
+            for optname in cfg.options(section):
+                key = "%s.%s" % (section, optname)
+                old_value, _type = __config__.get(key)
+                try:
+                    new_value = cfg.get(section, optname)
+                    if _type == bool:
+                        new_value = True if new_value=='True' else False
+                    else:
+                        new_value = _type(new_value)
+                    __config__[key] = (new_value, _type)
+                except:
+                    warn("Could not restore '%s'" % optname)
+
+        ok("Configuration from '%s' restored" % GEF_RC)
+        return
 
 
 if __name__  == "__main__":
@@ -4713,7 +4766,7 @@ if __name__  == "__main__":
 ##
 ##  CTF exploit templates
 ##
-CTF_EXPLOIT_TEMPLATE = """#!/usr/bin/env python2
+CTF_EXPLOIT_TEMPLATE = """#!/usr/bin/env python
 import socket, struct, sys, telnetlib, binascii
 
 HOST = "{host:s}"
