@@ -3426,7 +3426,7 @@ class ContextCommand(GenericCommand):
          self.add_setting("show_registers", True)
          self.add_setting("show_stack", True)
          self.add_setting("show_code", True)
-         self.add_setting("show_trace", False)
+         self.add_setting("show_trace", True)
 
          if "capstone" in list( sys.modules.keys() ):
              self.add_setting("use_capstone", False)
