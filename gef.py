@@ -58,7 +58,7 @@ if sys.version_info.major == 2:
     import itertools
     from cStringIO import StringIO
     from urllib import urlopen
-    import configparser as ConfigParser
+    import ConfigParser as configparser
 
     # Compat Py2/3 hacks
     range = xrange
@@ -372,7 +372,7 @@ class GlibcChunk:
     def __init__(self, addr=None):
         """Init `addr` as a chunk"""
         self.addr = addr if addr else process_lookup_path("heap").page_start
-        self.arch = int(get_memory_alignment()/8)
+        self.arch = int(get_memory_alignment(to_byte=True))
         self.start_addr = int(self.addr - 2*self.arch)
         self.size_addr  = int(self.addr - self.arch)
         return
@@ -614,7 +614,7 @@ def _gef_disassemble_around(addr, nb_insn):
     lines = []
 
     if not is_x86_32() and not is_x86_64():
-        top = addr - (nb_insn-3)*(get_memory_alignment()/4)
+        top = addr - (nb_insn-3)*get_memory_alignment(to_byte=True)*2
         lines = _gef_disassemble_top(top,  nb_insn-1)
         lines+= _gef_disassemble_top(addr, nb_insn)
         return lines
@@ -879,7 +879,7 @@ def sparc_flag_register():
     return "$psr"
 
 def sparc_flags_to_human(val=None):
-    return "TODO"
+    return ""
 
 
 ######################[ MIPS specific ]######################
@@ -908,7 +908,7 @@ def mips_flag_register():
     return "$fcsr"
 
 def mips_flags_to_human(val=None):
-    return "TODO"
+    return ""
 
 
 ######################[ AARCH64 specific ]######################
@@ -1454,12 +1454,11 @@ def is_aarch64():
     elf = get_elf_headers()
     return elf.e_machine==0xb7
 
-@memoize
-def get_memory_alignment():
+def get_memory_alignment(to_byte=False):
     if is_elf32():
-        return 32
+        return 32 if not to_byte else 4
     elif is_elf64():
-        return 64
+        return 64 if not to_byte else 8
 
     raise GefUnsupportedMode("GEF is running under an unsupported mode, functions will not work")
 
@@ -1551,7 +1550,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         elif is_x86_32():
             # experimental, need more checks
             sp = get_sp()
-            m = get_memory_alignment() / 8
+            m = get_memory_alignment(to_byte=True)
             val = sp + (self.num_args * m) + m
             ptr = read_int_from_memory( val )
             addr = lookup_address( ptr )
@@ -3410,7 +3409,6 @@ class EntryPointBreakCommand(GenericCommand):
         except gdb.error:
             info("Could not solve `__libc_start_main` symbol")
 
-        ## TODO : add more tests
 
         # break at entry point - never fail
         elf = get_elf_headers()
@@ -3779,7 +3777,7 @@ class DereferenceCommand(GenericCommand):
                                                     Color.yellowify(format_address(init_addr))))
 
         for i in range(0, nb):
-            addr = init_addr + (get_memory_alignment()/8 * i)
+            addr = init_addr + (get_memory_alignment(to_byte=True) * i)
             addrs = DereferenceCommand.dereference_from(addr)
             print(("%s" % (Color.boldify("   %s   " % right_arrow()).join(addrs), )))
 
