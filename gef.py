@@ -1574,7 +1574,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
 
             name = addr.info.name if addr.info else addr.section.path
             m = "Reason:\n"
-            m+= "Call to '%s()' with format string argument in position #%d is in\n" % (self.location, self.num_args)
+            m+= "Call to '%s()' with format string argument in position #%d is in " % (self.location, self.num_args)
             m+= "page %#x (%s) that has write permission" % (addr.section.page_start, name)
             warn(m)
 
