@@ -4552,6 +4552,10 @@ class GEFCommand(gdb.Command):
 
 
     def load(self, mod=None):
+        """
+        Load all the commands defined by GEF into GBD.
+        If a configuration file is found, the settings are restored.
+        """
         loaded = []
 
         def is_loaded(x):
@@ -4591,6 +4595,9 @@ class GEFCommand(gdb.Command):
         print(("%s commands loaded (%s sub-commands), using Python engine %s" % (Color.greenify(str(nb_cmds)),
                                                                                  Color.greenify(str(nb_sub_cmds)),
                                                                                  Color.redify(ver))))
+
+        if os.access(GEF_RC, os.R_OK):
+            self.restore()
         return
 
 
@@ -4805,11 +4812,11 @@ def hexdump(src, length=0x10):
 
 def xor(data, key):  return ''.join(chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key)))
 
-def h_s(i,signed=False): return struct.pack("<H", i) if not signed else struct.pack("<h", i)
+def h_p(i,signed=False): return struct.pack("<H", i) if not signed else struct.pack("<h", i)
 def h_u(i,signed=False): return struct.unpack("<H", i)[0] if not signed else struct.unpack("<h", i)[0]
-def i_s(i,signed=False): return struct.pack("<I", i) if not signed else struct.pack("<i", i)
+def i_p(i,signed=False): return struct.pack("<I", i) if not signed else struct.pack("<i", i)
 def i_u(i,signed=False): return struct.unpack("<I", i)[0] if not signed else struct.unpack("<i", i)[0]
-def q_s(i,signed=False): return struct.pack("<Q", i) if not signed else struct.pack("<q", i)
+def q_p(i,signed=False): return struct.pack("<Q", i) if not signed else struct.pack("<q", i)
 def q_u(i,signed=False): return struct.unpack("<Q", i)[0] if not signed else struct.unpack("<q", i)[0]
 
 def _xlog(x):
