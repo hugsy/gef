@@ -2601,7 +2601,11 @@ class CapstoneDisassembleCommand(GenericCommand):
         m+= "\t"
         m+= Color.yellowify("%s" % insn.op_str)
 
-        m+= ";\t"
+
+        if is_pc:
+            m+= Color.redify("\t"+left_arrow()+" $pc ")
+
+        m+= "; "
 
         if len(insn.regs_read) > 0:
             m+= "Read:[%s] " % ','.join([insn.reg_name(x) for x in insn.regs_read])
@@ -2609,9 +2613,6 @@ class CapstoneDisassembleCommand(GenericCommand):
         if len(insn.regs_write) > 0:
             m+= "Write:[%s] " % ','.join([insn.reg_name(x) for x in insn.regs_write])
 
-
-        if is_pc:
-            m+= Color.redify("\t"+left_arrow()+" $pc")
         return m
 
 
