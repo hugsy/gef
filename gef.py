@@ -2052,7 +2052,7 @@ class UnicornEmulateCommand(GenericCommand):
         end_regs = {}
         insn_section_length = end_insn_addr - start_insn_addr
         verbose = self.get_setting("verbose") or False
-        to_script = kwargs.get("to_script") if "to_script" in kwargs.keys() else None
+        to_script = kwargs.get("to_script", None)
         content = ""
         arch, mode = self.get_unicorn_arch(to_string=to_script)
         unicorn_registers = self.get_unicorn_registers(to_string=to_script)
@@ -2580,11 +2580,12 @@ class CapstoneDisassembleCommand(GenericCommand):
 
         for i in cs.disasm(code, offset):
             m = Color.boldify(Color.blueify(format_address(i.address))) + "\t"
-            m+= Color.greenify("%s" % i.mnemonic) + "\t"
-            m+= Color.yellowify("%s" % i.op_str)
 
             if (i.address == pc):
-                m+= Color.redify("\t\t "+left_arrow()+" $pc")
+                m+= CapstoneDisassembleCommand.__cs_analyze_insn(i, arch, True)
+            else:
+                m+= Color.greenify("%s" % i.mnemonic) + "\t"
+                m+= Color.yellowify("%s" % i.op_str)
 
             print (m)
             inst_num += 1
@@ -2592,6 +2593,29 @@ class CapstoneDisassembleCommand(GenericCommand):
                 break
 
         return
+
+
+    @staticmethod
+    def __cs_analyze_insn(insn, arch, is_pc=True):
+        m = ""
+        m+= Color.greenify("%s" % insn.mnemonic)
+        m+= "\t"
+        m+= Color.yellowify("%s" % insn.op_str)
+
+        m+= ";\t"
+
+        if len(insn.regs_read) > 0:
+            m+= "Read:[%s] " % ','.join([insn.reg_name(x) for x in insn.regs_read])
+
+        if len(insn.regs_write) > 0:
+            m+= "Write:[%s] " % ','.join([insn.reg_name(x) for x in insn.regs_write])
+
+
+        if is_pc:
+            m+= Color.redify("\t"+left_arrow()+" $pc")
+        return m
+
+
 
 
 # http://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_chunk
