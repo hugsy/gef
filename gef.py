@@ -1387,6 +1387,12 @@ def define_user_command(cmd, code):
     return
 
 
+def get_terminal_size():
+    cmd = [which("stty"), "size"]
+    tty_rows, tty_columns = gef_execute_external(cmd).strip().split()
+    return int(tty_rows), int(tty_columns)
+
+
 @memoize
 def get_elf_headers(filename=None):
     if filename is None:
@@ -3438,10 +3444,11 @@ class ContextCommand(GenericCommand):
 
     def __init__(self):
          super(ContextCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+
          self.add_setting("enable", True)
          self.add_setting("show_stack_raw", False)
-         self.add_setting("nb_registers_per_line", 4)
-         self.add_setting("nb_lines_stack", 8)
+         self.add_setting("nb_registers_per_line", 5)
+         self.add_setting("nb_lines_stack", int(get_terminal_size()[1]/30) )
          self.add_setting("nb_lines_backtrace", 5)
          self.add_setting("nb_lines_code", 5)
          self.add_setting("clear_screen", False)
@@ -3467,10 +3474,7 @@ class ContextCommand(GenericCommand):
         if self.get_setting("clear_screen"):
             clear_screen()
 
-        cmd = [which("stty"), "size"]
-        tty_rows, tty_columns = gef_execute_external(cmd).strip().split()
-        self.tty_rows = int(tty_rows)
-        self.tty_columns = int(tty_columns)
+        self.tty_rows, self.tty_columns = get_terminal_size()
 
         self.context_regs()
         self.context_stack()
@@ -4743,7 +4747,7 @@ if __name__  == "__main__":
     # setup config
     gdb.execute("set confirm off")
     gdb.execute("set verbose off")
-    gdb.execute("set height 0")
+    gdb.execute("set height 0"),
     gdb.execute("set width 0")
     gdb.execute("set prompt %s" % GEF_PROMPT)
     gdb.execute("set follow-fork-mode child")
