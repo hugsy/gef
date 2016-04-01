@@ -3703,7 +3703,7 @@ class HexdumpCommand(GenericCommand):
     """Display arranged hexdump (according to architecture endianness) of memory range."""
 
     _cmdline_ = "hexdump"
-    _syntax_  = "%s (q|d|w|b) LOCATION [SIZE]" % _cmdline_
+    _syntax_  = "%s (q|d|w|b) LOCATION L[SIZE] [UP|DOWN]" % _cmdline_
     _aliases_ = ["xd",]
 
     def do_invoke(self, argv):
@@ -3722,13 +3722,29 @@ class HexdumpCommand(GenericCommand):
 
         fmt = argv[0]
         read_from = align_address( long(gdb.parse_and_eval(argv[1])) )
-        read_len = long(argv[2]) if argc>=3 and argv[2].isdigit() else 10
+        read_len = 10
+        up_to_down = True
 
-        self._hexdump ( read_from, read_len, fmt )
+        if argc >= 3:
+            for arg in argv[2:]:
+                if arg.startswith("L"):
+                    if arg[1:].isdigit():
+                        read_len = long(arg[1:])
+                        continue
+
+                if arg in ("UP", "Up", "up"):
+                    up_to_down = True
+                    continue
+
+                if arg in ("DOWN", "Down", "down"):
+                    up_to_down = False
+                    continue
+
+        self._hexdump(read_from, read_len, fmt, up_to_down)
         return
 
 
-    def _hexdump(self, start_addr, length, arrange_as):
+    def _hexdump(self, start_addr, length, arrange_as, from_up_to_down=True):
         elf = get_elf_headers()
         if elf is None:
             return
@@ -3741,16 +3757,21 @@ class HexdumpCommand(GenericCommand):
                     'b': ('B', 1),
                     }
         r, l = formats[arrange_as]
-        fmt_str = "<%#x+%x> %#."+str(l*2)+"x"
+        fmt_str = "<%#x+%.4x> %#."+str(l*2)+"x"
         fmt_pack = endianness + r
+        lines = []
 
         while i < length:
             cur_addr = start_addr + i*l
             mem = read_memory(cur_addr, l)
             val = struct.unpack(fmt_pack, mem)[0]
-            print (fmt_str % (start_addr, i*l, val))
+            lines.append(fmt_str % (start_addr, i*l, val))
             i += 1
 
+        if not from_up_to_down:
+            lines.reverse()
+
+        print("\n".join(lines))
         return
 
 
