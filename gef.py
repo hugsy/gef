@@ -2067,47 +2067,6 @@ class UnicornEmulateCommand(GenericCommand):
         self.run_unicorn(start_insn, end_insn, to_script=to_script)
         return
 
-    # def get_arch(self, mod, prefix, to_string=False):
-        # "Retrieves architecture and mode from the current context."
-
-        # if   is_x86_32():    arch, mode = "X86", 32
-        # elif is_x86_64():    arch, mode = "X86", 64
-        # elif is_powerpc():   arch, mode = "PPC", "PPC32"
-        # elif is_mips():      arch, mode = "MIPS", "MIPS32"
-        # elif is_sparc():     arch, mode = "SPARC", "SPARC32"
-        # elif is_arm():       arch, mode = "ARM", "ARM"
-        # elif is_aarch64():   arch, mode = "ARM", "ARM"
-        # else:
-            # raise GefUnsupportedOS("Emulation not supported for your OS")
-
-        # if to_string:
-            # arch = "%s.%s_ARCH_%s" % (mod.__name__, prefix, arch)
-            # mode = "%s.%s_MODE_%s" % (mod.__name__, prefix, str(mode))
-            # if is_big_endian():
-                # mode += " + %s.%s_MODE_BIG_ENDIAN" % (mod.__name__, prefix)
-            # else:
-                # mode += " + %s.%s_MODE_LITTLE_ENDIAN" % (mod.__name__, prefix)
-
-        # else:
-            # arch = getattr(mod, "%s_ARCH_%s" % (prefix, arch))
-            # mode = getattr(mod, "%s_MODE_%s" % (prefix, str(mode)))
-            # if is_big_endian():
-                # mode += getattr(mod, "%s_MODE_BIG_ENDIAN" % prefix)
-            # else:
-                # mode += getattr(mod, "%s_MODE_LITTLE_ENDIAN" % prefix)
-
-        # return arch, mode
-
-    # def get_unicorn_arch(self, to_string=False):
-        # unicorn = sys.modules["unicorn"]
-        # return self.get_arch(unicorn, "UC", to_string)
-
-    # def get_capstone_arch(self, to_string=False):
-        # capstone = sys.modules["capstone"]
-        # return self.get_arch(capstone, "CS", to_string)
-
-
-
     def get_unicorn_end_addr(self, start_addr, nb):
         dis = gef_disassemble(start_addr, nb+1, True)
         return dis[-1][0]
