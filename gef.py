@@ -1393,6 +1393,75 @@ def get_terminal_size():
     return int(tty_rows), int(tty_columns)
 
 
+def get_cs_uc_arch(module, prefix, to_string=False):
+    "Retrieves architecture and mode from the current context."
+
+    if not is_alive():
+        return None, None
+
+    if   is_x86_32():    arch, mode = "X86", 32
+    elif is_x86_64():    arch, mode = "X86", 64
+    elif is_powerpc():   arch, mode = "PPC", "PPC32"
+    elif is_mips():      arch, mode = "MIPS", "MIPS32"
+    elif is_sparc():     arch, mode = "SPARC", "SPARC32"
+    elif is_arm():       arch, mode = "ARM", "ARM"
+    elif is_aarch64():   arch, mode = "ARM", "ARM"
+    else:
+        raise GefUnsupportedOS("Emulation not supported for your OS")
+
+    if to_string:
+        arch = "%s.%s_ARCH_%s" % (module.__name__, prefix, arch)
+        mode = "%s.%s_MODE_%s" % (module.__name__, prefix, str(mode))
+        if is_big_endian():
+            mode += " + %s.%s_MODE_BIG_ENDIAN" % (module.__name__, prefix)
+        else:
+            mode += " + %s.%s_MODE_LITTLE_ENDIAN" % (module.__name__, prefix)
+
+    else:
+        arch = getattr(module, "%s_ARCH_%s" % (prefix, arch))
+        mode = getattr(module, "%s_MODE_%s" % (prefix, str(mode)))
+        if is_big_endian():
+            mode += getattr(module, "%s_MODE_BIG_ENDIAN" % prefix)
+        else:
+            mode += getattr(module, "%s_MODE_LITTLE_ENDIAN" % prefix)
+
+    return arch, mode
+
+
+def get_unicorn_arch(to_string=False):
+    unicorn = sys.modules["unicorn"]
+    return get_cs_uc_arch(unicorn, "UC", to_string)
+
+
+def get_capstone_arch(to_string=False):
+    capstone = sys.modules["capstone"]
+    return get_cs_uc_arch(capstone, "CS", to_string)
+
+
+def get_unicorn_registers(to_string=False):
+    "Creates a dict matching the Unicorn identifier for a specific register."
+    unicorn = sys.modules['unicorn']
+    regs = {}
+
+    if is_x86_32() or is_x86_64():   arch = "x86"
+    elif is_powerpc():               arch = "ppc"
+    elif is_mips():                  arch = "mips"
+    elif is_sparc():                 arch = "sparc"
+    elif is_arm():                   arch = "arm"
+    elif is_aarch64():               arch = "arm64"
+    else:
+        raise GefUnsupportedOS("Oops")
+
+    const = getattr(unicorn, arch + "_const")
+    for r in all_registers():
+        regname = "UC_%s_REG_%s" % (arch.upper(), r.strip()[1:].upper())
+        if to_string:
+            regs[r] = "%s.%s" % (const.__name__, regname)
+        else:
+            regs[r] = getattr(const, regname)
+    return regs
+
+
 @memoize
 def get_elf_headers(filename=None):
     if filename is None:
@@ -1961,16 +2030,28 @@ class UnicornEmulateCommand(GenericCommand):
             return
 
         start_insn = None
-        end_insn = None
+        end_insn = -1
         self.nb_insn = -1
-        to_script = None
         self.until_next_gadget = -1
+        to_script = None
         opts, args = getopt.getopt(argv, "f:t:n:e:g:h")
         for o,a in opts:
             if   o == "-f":   start_insn = int(a, 16)
-            elif o == "-t":   end_insn = int(a, 16)
-            elif o == "-g":   self.until_next_gadget = int(a)
-            elif o == "-n":   self.nb_insn = int(a)
+            elif o == "-t":
+                end_insn = int(a, 16)
+                self.nb_insn = -1
+                self.until_next_gadget = -1
+
+            elif o == "-g":
+                self.until_next_gadget = int(a)
+                self.nb_insn = -1
+                end_insn = -1
+
+            elif o == "-n":
+                self.nb_insn = int(a)
+                self.until_next_gadget = -1
+                end_insn = -1
+
             elif o == "-e":   to_script = a
             elif o == "-h":
                 self.help()
@@ -1979,74 +2060,53 @@ class UnicornEmulateCommand(GenericCommand):
         if start_insn is None:
             start_insn = get_pc()
 
-        if end_insn is None and self.nb_insn == -1:
-            self.nb_insn = 1
-            end_insn = self.get_unicorn_end_addr(start_insn, self.nb_insn)
+        if end_insn == -1 and self.nb_insn == -1 and self.until_next_gadget == -1:
+            err("No stop condition (-t|-n|-g) defined.")
+            return
 
         self.run_unicorn(start_insn, end_insn, to_script=to_script)
         return
 
-    def get_arch(self, mod, prefix, to_string=False):
-        "Retrieves architecture and mode from the current context."
+    # def get_arch(self, mod, prefix, to_string=False):
+        # "Retrieves architecture and mode from the current context."
 
-        if   is_x86_32():    arch, mode = "X86", 32
-        elif is_x86_64():    arch, mode = "X86", 64
-        elif is_powerpc():   arch, mode = "PPC", "PPC32"
-        elif is_mips():      arch, mode = "MIPS", "MIPS32"
-        elif is_sparc():     arch, mode = "SPARC", "SPARC32"
-        elif is_arm():       arch, mode = "ARM", "ARM"
-        elif is_aarch64():   arch, mode = "ARM", "ARM"
-        else:
-            raise GefUnsupportedOS("Emulation not supported for your OS")
+        # if   is_x86_32():    arch, mode = "X86", 32
+        # elif is_x86_64():    arch, mode = "X86", 64
+        # elif is_powerpc():   arch, mode = "PPC", "PPC32"
+        # elif is_mips():      arch, mode = "MIPS", "MIPS32"
+        # elif is_sparc():     arch, mode = "SPARC", "SPARC32"
+        # elif is_arm():       arch, mode = "ARM", "ARM"
+        # elif is_aarch64():   arch, mode = "ARM", "ARM"
+        # else:
+            # raise GefUnsupportedOS("Emulation not supported for your OS")
 
-        if to_string:
-            arch = "%s.%s_ARCH_%s" % (mod.__name__, prefix, arch)
-            mode = "%s.%s_MODE_%s" % (mod.__name__, prefix, str(mode))
-            if is_big_endian():
-                mode += " + %s.%s_MODE_BIG_ENDIAN" % (mod.__name__, prefix)
-            else:
-                mode += " + %s.%s_MODE_LITTLE_ENDIAN" % (mod.__name__, prefix)
+        # if to_string:
+            # arch = "%s.%s_ARCH_%s" % (mod.__name__, prefix, arch)
+            # mode = "%s.%s_MODE_%s" % (mod.__name__, prefix, str(mode))
+            # if is_big_endian():
+                # mode += " + %s.%s_MODE_BIG_ENDIAN" % (mod.__name__, prefix)
+            # else:
+                # mode += " + %s.%s_MODE_LITTLE_ENDIAN" % (mod.__name__, prefix)
 
-        else:
-            arch = getattr(mod, "%s_ARCH_%s" % (prefix, arch))
-            mode = getattr(mod, "%s_MODE_%s" % (prefix, str(mode)))
-            if is_big_endian():
-                mode += getattr(mod, "%s_MODE_BIG_ENDIAN" % prefix)
-            else:
-                mode += getattr(mod, "%s_MODE_LITTLE_ENDIAN" % prefix)
+        # else:
+            # arch = getattr(mod, "%s_ARCH_%s" % (prefix, arch))
+            # mode = getattr(mod, "%s_MODE_%s" % (prefix, str(mode)))
+            # if is_big_endian():
+                # mode += getattr(mod, "%s_MODE_BIG_ENDIAN" % prefix)
+            # else:
+                # mode += getattr(mod, "%s_MODE_LITTLE_ENDIAN" % prefix)
 
-        return arch, mode
+        # return arch, mode
 
-    def get_unicorn_arch(self, to_string=False):
-        unicorn = sys.modules["unicorn"]
-        return self.get_arch(unicorn, "UC", to_string)
+    # def get_unicorn_arch(self, to_string=False):
+        # unicorn = sys.modules["unicorn"]
+        # return self.get_arch(unicorn, "UC", to_string)
 
-    def get_capstone_arch(self, to_string=False):
-        capstone = sys.modules["capstone"]
-        return self.get_arch(capstone, "CS", to_string)
+    # def get_capstone_arch(self, to_string=False):
+        # capstone = sys.modules["capstone"]
+        # return self.get_arch(capstone, "CS", to_string)
 
-    def get_unicorn_registers(self, to_string=False):
-        "Creates a dict matching the Unicorn identifier for a specific register."
-        unicorn = sys.modules['unicorn']
-        regs = {}
 
-        if is_x86_32() or is_x86_64():   arch = "x86"
-        elif is_powerpc():               arch = "ppc"
-        elif is_mips():                  arch = "mips"
-        elif is_sparc():                 arch = "sparc"
-        elif is_arm():                   arch = "arm"
-        elif is_aarch64():               arch = "arm64"
-        else:
-            raise GefUnsupportedOS("Oops")
-
-        const = getattr(unicorn, arch + "_const")
-        for r in all_registers():
-            regname = "UC_%s_REG_%s" % (arch.upper(), r.strip()[1:].upper())
-            if to_string:
-                regs[r] = "%s.%s" % (const.__name__, regname)
-            else:
-                regs[r] = getattr(const, regname)
-        return regs
 
     def get_unicorn_end_addr(self, start_addr, nb):
         dis = gef_disassemble(start_addr, nb+1, True)
@@ -2055,12 +2115,11 @@ class UnicornEmulateCommand(GenericCommand):
     def run_unicorn(self, start_insn_addr, end_insn_addr, *args, **kwargs):
         start_regs = {}
         end_regs = {}
-        insn_section_length = end_insn_addr - start_insn_addr
         verbose = self.get_setting("verbose") or False
         to_script = kwargs.get("to_script", None)
         content = ""
-        arch, mode = self.get_unicorn_arch(to_string=to_script)
-        unicorn_registers = self.get_unicorn_registers(to_string=to_script)
+        arch, mode = get_unicorn_arch(to_string=to_script)
+        unicorn_registers = get_unicorn_registers(to_string=to_script)
 
         if to_script:
             content+= "#!/usr/bin/python"
@@ -2082,7 +2141,7 @@ def hook_code(emu, address, size, user_data):
     return
 
 
-""" % self.get_capstone_arch(to_script)
+""" % get_capstone_arch(to_script)
 
         unicorn = sys.modules['unicorn']
         if verbose:
@@ -2602,23 +2661,48 @@ class CapstoneDisassembleCommand(GenericCommand):
 
     @staticmethod
     def __cs_analyze_insn(insn, arch, is_pc=True):
+        cs = sys.modules['capstone']
+
         m = ""
         m+= Color.greenify("%s" % insn.mnemonic)
         m+= "\t"
         m+= Color.yellowify("%s" % insn.op_str)
 
-
         if is_pc:
             m+= Color.redify("\t"+left_arrow()+" $pc ")
 
-        m+= "; "
+        m+= "\n\t"
 
+        # implicit read
         if len(insn.regs_read) > 0:
             m+= "Read:[%s] " % ','.join([insn.reg_name(x) for x in insn.regs_read])
+            m+= "\n\t"
 
+        # implicit write
         if len(insn.regs_write) > 0:
             m+= "Write:[%s] " % ','.join([insn.reg_name(x) for x in insn.regs_write])
+            m+= "\n\t"
 
+        if   is_x86_32():  reg, imm, mem = cs.x86.X86_OP_REG, cs.x86.X86_OP_IMM, cs.x86.X86_OP_MEM
+        elif is_x86_64():  reg, imm, mem = cs.x86.X86_OP_REG, cs.x86.X86_OP_IMM, cs.x86.X86_OP_MEM
+        elif is_powerpc(): reg, imm, mem = cs.ppc.PPC_OP_REG, cs.ppc.PPC_OP_IMM, cs.ppc.PPC_OP_MEM
+        elif is_mips():    reg, imm, mem = cs.mips.MIPS_OP_REG, cs.mips.MIPS_OP_IMM, cs.mips.MIPS_OP_MEM
+        elif is_sparc():   reg, imm, mem = cs.sparc.SPARC_OP_REG, cs.sparc.SPARC_OP_IMM, cs.sparc.SPARC_OP_MEM
+        elif is_arm():     reg, imm, mem = cs.arm.ARM_OP_REG, cs.arm.ARM_OP_IMM, cs.arm.ARM_OP_MEM
+        elif is_aarch64(): reg, imm, mem = cs.arm.ARM_OP_REG, cs.arm.ARM_OP_IMM, cs.arm.ARM_OP_MEM
+
+        # operand information
+        for op in insn.operands:
+            if op.type == reg:
+                m+="REG=%s " % (insn.reg_name(op.value.reg),)
+            if op.type == imm:
+                m+="IMM=%#x " % (op.value.imm,)
+            if op.type == mem:
+                if op.value.mem.disp > 0:
+                    m+="MEM=%s+%#x " % (insn.reg_name(op.value.mem.base), op.value.mem.disp,)
+                elif op.value.mem.disp < 0:
+                    m+="MEM=%s%#x " % (insn.reg_name(op.value.mem.base), op.value.mem.disp,)
+            m+= "\n\t"
         return m
 
 
@@ -3447,9 +3531,9 @@ class ContextCommand(GenericCommand):
 
          self.add_setting("enable", True)
          self.add_setting("show_stack_raw", False)
-         self.add_setting("nb_registers_per_line", 5)
-         self.add_setting("nb_lines_stack", int(get_terminal_size()[1]/30) )
-         self.add_setting("nb_lines_backtrace", 5)
+         self.add_setting("nb_registers_per_line", int(get_terminal_size()[1]/30))
+         self.add_setting("nb_lines_stack", 8)
+         self.add_setting("nb_lines_backtrace", 3)
          self.add_setting("nb_lines_code", 5)
          self.add_setting("clear_screen", False)
 
