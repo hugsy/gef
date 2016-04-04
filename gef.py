@@ -53,6 +53,7 @@ import threading
 import collections
 import time
 import resource
+import string
 
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
@@ -73,6 +74,7 @@ elif sys.version_info.major == 3:
     import configparser
     # Compat Py2/3 hack
     long = int
+    unicode = str
     FileNotFoundError = IOError
 
     PYTHON_MAJOR = 3
@@ -1059,6 +1061,10 @@ def which(program):
 
 
 def read_memory_until_null(address, max_length=-1):
+    """
+    Slow method to read all the bytes in memory starting from
+    `address` until we hit a null byte, or `max_length` is reached
+    """
     i = 0
 
     if PYTHON_MAJOR == 2:
@@ -1093,47 +1099,24 @@ def read_memory_until_null(address, max_length=-1):
         return bytes(buf)
 
 
+def read_cstring_from_memory(address):
+    char_ptr = gdb.lookup_type("char").pointer()
+    res = gdb.Value(address).cast(char_ptr).string()
+    return res
+
+
 def is_readable_string(address):
     """
     Here we will assume that a readable string is
     a consecutive byte array whose
-    * last element is 0x00
-    * and values for each byte is [0x07, 0x7F[
+    * last element is 0x00 (i.e. it is a C-string)
+    * and each byte is printable
     """
-    buffer = read_memory_until_null(address)
-    if len(buffer) == 0:
+    try:
+        cstr = read_cstring_from_memory(address)
+        return type(cstr) == unicode and len(cstr) > 0 and all([x in string.printable for x in cstr])
+    except UnicodeDecodeError as e:
         return False
-
-    valid_ascii_charset = [0x09, 0x0a, 0x0d,
-                           0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
-                           0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
-                           0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
-                           0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f,
-                           0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f,
-                           0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7d, 0x7e, ]
-
-    if PYTHON_MAJOR == 2:
-        for c in buffer:
-            if ord(c) not in valid_ascii_charset:
-                return False
-    else:
-        for c in buffer:
-            if c not in valid_ascii_charset:
-                return False
-
-    return len(buffer) > 1
-
-
-def read_string(address, max_length=-1):
-    if not is_readable_string(address):
-        raise ValueError("Content at address `%#x` is not a string" % address)
-
-    buf = read_memory_until_null(address, max_length)
-    replaced_chars = [ (b"\n",b"\\n"), (b"\r",b"\\r"), (b"\t",b"\\t"), (b"\"",b"\\\"")]
-    for f,t in replaced_chars:
-        buf = buf.replace(f, t)
-
-    return buf.decode("utf-8")
 
 
 def is_alive():
@@ -1867,11 +1850,6 @@ class SearchPatternCommand(GenericCommand):
          super(SearchPatternCommand, self).__init__()
          return
 
-    def cast_to_string(self, address):
-        char_ptr = gdb.lookup_type("char").pointer()
-        value = gdb.Value(address)
-        return value.cast(char_ptr).string()
-
     def search_pattern_by_address(self, pattern, start_address, end_address):
         """Search a pattern within a range defined by arguments."""
         if PYTHON_MAJOR==3:
@@ -1881,7 +1859,7 @@ class SearchPatternCommand(GenericCommand):
         locations = []
         for m in re.finditer(pattern, buf):
             start = start_address + m.start()
-            string = self.cast_to_string(start)
+            string = read_cstring_from_memory(start)
             end   = start + len(string)
 
             if '\t' in string: string = string[:string.index('\t')] + "[...]"
@@ -3963,9 +3941,9 @@ class DereferenceCommand(GenericCommand):
 
                 elif addr.section.permission.value & Permission.READ:
                     if is_readable_string(value):
-                        s = read_string(value, 50)
-                        if len(s) == 50:
-                            s += "[...]"
+                        s = read_cstring_from_memory(value)
+                        if len(s) >= 50:
+                            s = s[:50] + "[...]"
                         msg.append( '"%s"' % Color.greenify(s))
                         break
 
