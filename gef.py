@@ -157,6 +157,7 @@ class Color:
     GREEN          = "\x1b[32m"
     YELLOW         = "\x1b[33m"
     BLUE           = "\x1b[34m"
+    PINK           = "\x1b[35m"
     BOLD           = "\x1b[1m"
     UNDERLINE_ON   = "\x1b[4m"
     UNDERLINE_OFF  = "\x1b[24m"
@@ -174,6 +175,8 @@ class Color:
     def yellowify(msg):  return Color.YELLOW + msg + Color.NORMAL if not NO_COLOR else msg
     @staticmethod
     def grayify(msg):    return Color.GRAY + msg + Color.NORMAL if not NO_COLOR else msg
+    @staticmethod
+    def pinkify(msg):    return Color.PINK + msg + Color.NORMAL if not NO_COLOR else msg
     @staticmethod
     def boldify(msg):    return Color.BOLD + msg + Color.NORMAL if not NO_COLOR else msg
     @staticmethod
@@ -1440,7 +1443,7 @@ def get_capstone_arch(to_string=False):
 
 
 def get_unicorn_registers(to_string=False):
-    "Creates a dict matching the Unicorn identifier for a specific register."
+    "Returns a dict matching the Unicorn identifier for a specific register."
     unicorn = sys.modules['unicorn']
     regs = {}
 
@@ -1851,6 +1854,67 @@ class GenericCommand(gdb.Command):
         # return
     # def do_invoke(self, argv):
         # return
+
+
+class SearchPatternCommand(GenericCommand):
+    """SearchPatternCommand: search a pattern in memory."""
+
+    _cmdline_ = "search-pattern"
+    _syntax_  = "%s PATTERN" % _cmdline_
+    _aliases_ = ["grep", ]
+
+    def __init__(self):
+         super(SearchPatternCommand, self).__init__()
+         return
+
+    def cast_to_string(self, address):
+        char_ptr = gdb.lookup_type("char").pointer()
+        value = gdb.Value(address)
+        return value.cast(char_ptr).string()
+
+    def search_pattern_by_address(self, pattern, start_address, end_address):
+        """Search a pattern within a range defined by arguments."""
+        if PYTHON_MAJOR==3:
+            pattern = bytes(pattern, "utf-8")
+        length = end_address - start_address
+        buf = read_memory(start_address, length)
+        locations = []
+        for m in re.finditer(pattern, buf):
+            start = start_address + m.start()
+            string = self.cast_to_string(start)
+            end   = start + len(string)
+
+            if '\t' in string: string = string[:string.index('\t')] + "[...]"
+            if '\n' in string: string = string[:string.index('\n')] + "[...]"
+
+            locations.append( (start, end, string) )
+        return locations
+
+    def search_pattern(self, pattern):
+        """Search a pattern within the whole userland memory."""
+        for section in get_process_maps():
+            if not section.permission & Permission.READ: continue
+            if section.path == "[vvar]": continue
+
+            start = section.page_start
+            end   = section.page_end - 1
+            for loc in self.search_pattern_by_address(pattern, start, end):
+                print("""{:#x}-{:#x} {:s}  "{:s}" """.format(loc[0], loc[1], right_arrow(), Color.pinkify(loc[2])))
+        return
+
+    def do_invoke(self, argv):
+        if not is_alive():
+            err("No process alive")
+            return
+
+        if len(argv)!=1:
+            self.usage()
+            return
+
+        pattern = argv[0]
+        info("Searching '{:s}' in memory".format(Color.yellowify(pattern)))
+        self.search_pattern(pattern)
+        return
 
 
 class FlagsCommand(GenericCommand):
@@ -2558,17 +2622,17 @@ class CapstoneDisassembleCommand(GenericCommand):
             warn("No debugging session active")
             return
 
-        loc, lgt = get_pc(), 0x10
+        location, length = get_pc(), 0x10
         opts, args = getopt.getopt(argv, 'n:x:')
         for o,a in opts:
-            if   o == "-n":
-                lgt = long(a)
+            if  o == "-n":
+                length = long(a)
             elif o == "-x":
                 k, v = a.split(":", 1)
                 self.add_setting(k, v)
 
         if len(args):
-            loc = parse_address( args[0] )
+            location = parse_address( args[0] )
 
         kwargs = {}
         if self.has_setting("arm_thumb"):
@@ -2577,79 +2641,34 @@ class CapstoneDisassembleCommand(GenericCommand):
         if self.has_setting("mips_r6"):
             kwargs["mips_r6"] = True
 
-        CapstoneDisassembleCommand.disassemble(loc, lgt, **kwargs)
+        CapstoneDisassembleCommand.disassemble(location, length, **kwargs)
         return
 
 
     @staticmethod
-    def disassemble(location, insn_num, *args, **kwargs):
-        arch, mode = CapstoneDisassembleCommand.get_cs_arch( *args, **kwargs )
-        page_start = align_address_to_page(location)
-        offset = location - page_start
-        mem  = read_memory(location, DEFAULT_PAGE_SIZE-offset-1)
-        CapstoneDisassembleCommand.cs_disass(mem, location, arch, mode, insn_num)
-        return
-
-
-    @staticmethod
-    def get_cs_arch(*args, **kwargs):
-        arch = get_arch()
-        mode = get_memory_alignment()
-        capstone = sys.modules['capstone']
-
-        if   arch.startswith("i386"):
-            if   mode == 16:  return (capstone.CS_ARCH_X86, capstone.CS_MODE_16)
-            elif mode == 32:  return (capstone.CS_ARCH_X86, capstone.CS_MODE_32)
-            elif mode == 64:  return (capstone.CS_ARCH_X86, capstone.CS_MODE_64)
-            raise GefGenericException("capstone invalid mode for %s" % arch)
-
-        elif arch.startswith("arm"):
-            thumb_mode = kwargs.get("arm_thumb", False)
-            if thumb_mode:  mode = capstone.CS_MODE_THUMB
-            else:           mode = capstone.CS_MODE_ARM
-            return (capstone.CS_ARCH_ARM, mode)
-
-        elif arch.startswith("mips"):
-            use_r6 = kwargs.get("mips_r6", False)
-            endian = capstone.CS_MODE_BIG_ENDIAN if get_endian()==Elf.BIG_ENDIAN else capstone.CS_MODE_LITTLE_ENDIAN
-            if use_r6      :  return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32R6|endian)
-            elif mode == 32:  return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32|endian)
-            elif mode == 64:  return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS64|endian)
-            raise GefGenericException("capstone invalid mode for %s" % arch)
-
-        elif arch.startswith("powerpc"):
-            if   mode == 32:  return (capstone.CS_ARCH_PPC, capstone.CS_MODE_32)
-            elif mode == 64:  return (capstone.CS_ARCH_PPC, capstone.CS_MODE_64)
-            raise GefGenericException("capstone invalid mode for %s" % arch)
-
-        elif arch.startswith("sparc"):
-            return (capstone.CS_ARCH_SPARC, None)
-
-        elif arch.startswith("aarch64"):
-            return (capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM)
-
-        raise GefUnsupportedOS("OS not supported by capstone")
-
-
-    @staticmethod
-    def cs_disass(code, offset, arch, mode, max_inst):
-        inst_num    = 0
+    def disassemble(location, max_inst, *args, **kwargs):
         capstone    = sys.modules['capstone']
+        arch, mode  = get_capstone_arch()
         cs          = capstone.Cs(arch, mode)
         cs.detail   = True
-        code        = bytes(code)
+
+        page_start  = align_address_to_page(location)
+        offset      = location - page_start
+        mem         = read_memory(location, DEFAULT_PAGE_SIZE-offset-1)
+        inst_num    = 0
+        code        = bytes(mem)
         pc          = get_pc()
 
-        for i in cs.disasm(code, offset):
-            m = Color.boldify(Color.blueify(format_address(i.address))) + "\t"
+        for insn in cs.disasm(code, location):
+            m = Color.boldify(Color.blueify(format_address(insn.address))) + "\t"
 
-            if (i.address == pc):
-                m+= CapstoneDisassembleCommand.__cs_analyze_insn(i, arch, True)
+            if (insn.address == pc):
+                m+= CapstoneDisassembleCommand.__cs_analyze_insn(insn, arch, True)
             else:
-                m+= Color.greenify("%s" % i.mnemonic) + "\t"
-                m+= Color.yellowify("%s" % i.op_str)
+                m+= Color.greenify("%s" % insn.mnemonic) + "\t"
+                m+= Color.yellowify("%s" % insn.op_str)
 
-            print (m)
+            print(m)
             inst_num += 1
             if inst_num == max_inst:
                 break
@@ -2700,7 +2719,8 @@ class CapstoneDisassembleCommand(GenericCommand):
                     m+="MEM=%s+%#x " % (insn.reg_name(op.value.mem.base), op.value.mem.disp,)
                 elif op.value.mem.disp < 0:
                     m+="MEM=%s%#x " % (insn.reg_name(op.value.mem.base), op.value.mem.disp,)
-            m+= "\n\t"
+            m+= '\n' + '\t'*5
+
         return m
 
 
@@ -4615,6 +4635,7 @@ class GEFCommand(gdb.Command):
                         UnicornEmulateCommand,
                         ChangePermissionCommand,
                         FlagsCommand,
+                        SearchPatternCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
@@ -4840,16 +4861,22 @@ class GEFCommand(gdb.Command):
         return
 
 
+def __gef_prompt__(current_prompt):
+    prompt = "gef> " if PYTHON_MAJOR == 2 else "gef\u27a4  "
+    prompt = Color.CLEAR_LINE + Color.boldify(Color.redify(prompt))
+    return prompt
+
+
 if __name__  == "__main__":
-    GEF_PROMPT = "gef> " if PYTHON_MAJOR == 2 else "gef\u27a4  "
-    GEF_PROMPT = Color.CLEAR_LINE + Color.boldify(Color.redify(GEF_PROMPT))
+
+    # setup prompt
+    gdb.prompt_hook = __gef_prompt__
 
     # setup config
     gdb.execute("set confirm off")
     gdb.execute("set verbose off")
     gdb.execute("set height 0"),
     gdb.execute("set width 0")
-    gdb.execute("set prompt %s" % GEF_PROMPT)
     gdb.execute("set follow-fork-mode child")
 
     # gdb history
