@@ -3086,7 +3086,6 @@ class ROPgadgetCommand(GenericCommand):
     def pre_load(self):
         try:
             import ropgadget
-            # ok("Using %s v%d.%d" % (Color.yellowify("ropgadget"), ropgadget.version.MAJOR_VERSION, ropgadget.version.MINOR_VERSION))
 
         except ImportError as ie:
             msg = "Missing Python `ropgadget` package. "
@@ -3134,7 +3133,7 @@ class ROPgadgetCommand(GenericCommand):
         #
         def __usage__():
             arr = [ x for x in dir(args) if not x.startswith("__") ]
-            info("Valid options for %s are:\n%s" % (self._cmdline_, arr))
+            info("Valid options for %s are:\n%s" % (self._cmdline_, ", ".join(arr)))
             return
 
         for opt in argv:
@@ -3142,7 +3141,13 @@ class ROPgadgetCommand(GenericCommand):
                 __usage__()
                 return False
 
-            name, value = opt.split("=", 1)
+            try:
+                name, value = opt.split("=")
+            except ValueError:
+                err("Invalid syntax for argument '{0:s}', should be '{0:s}=<value>'".format(opt) )
+                __usage__()
+                return False
+
             if hasattr(args, name):
                 if name == "console":
                     continue
@@ -3164,8 +3169,7 @@ class ROPgadgetCommand(GenericCommand):
                 __usage__()
                 return False
 
-
-        if not hasattr(args, "binary") or getattr(args, "binary") is None:
+        if getattr(args, "binary") is None:
             setattr(args, "binary", get_filename())
 
         info("Using binary: %s" % args.binary)
