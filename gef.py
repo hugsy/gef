@@ -2158,10 +2158,20 @@ def hook_code(emu, address, size, user_data):
         # the NULL page as RW- to allow UC to treat instructions dealing with those regs
         # If anybody has a better approach, please send me a PR ;)
         if is_x86_32() or is_x86_64():
+            page_sz = resource.getpagesize()
+            FS = 0x00
+            GS = FS + page_sz
             if to_script:
-                content += "emu.mem_map(%#x, %d, %d)\n" % (0x0, resource.getpagesize(), 3)
+                content += "emu.mem_map(%#x, %d, %d)\n" % (FS, page_sz, 3)
+                content += "emu.mem_map(%#x, %d, %d)\n" % (GS, page_sz, 3)
+                content += "emu.reg_write(%s, %#x)\n" % (unicorn_registers['$fs    '], FS)
+                content += "emu.reg_write(%s, %#x)\n" % (unicorn_registers['gs     '], GS)
             else:
-                emu.mem_map(0x0, resource.getpagesize(), 3)
+                emu.mem_map(FS, page_sz, 3)
+                emu.mem_map(GS, page_sz, 3)
+                emu.reg_write(unicorn_registers['$fs    '], FS)
+                emu.reg_write(unicorn_registers['$gs    '], GS)
+
 
         for sect in vmmap:
             try:
