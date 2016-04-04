@@ -2229,7 +2229,7 @@ def hook_code(emu, address, size, user_data):
                 content += "emu.mem_map(%#x, %d, %d)\n" % (FS, page_sz, 3)
                 content += "emu.mem_map(%#x, %d, %d)\n" % (GS, page_sz, 3)
                 content += "emu.reg_write(%s, %#x)\n" % (unicorn_registers['$fs    '], FS)
-                content += "emu.reg_write(%s, %#x)\n" % (unicorn_registers['gs     '], GS)
+                content += "emu.reg_write(%s, %#x)\n" % (unicorn_registers['$gs    '], GS)
             else:
                 emu.mem_map(FS, page_sz, 3)
                 emu.mem_map(GS, page_sz, 3)
@@ -2310,6 +2310,9 @@ def hook_code(emu, address, size, user_data):
         ok("Emulation ended, showing %s registers:" % Color.redify("tainted"))
 
         for r in all_registers():
+            # ignoring $fs and $gs because of the dirty hack we did to emulate the selectors
+            if r in ('$gs    ', '$fs    '): continue
+
             end_regs[r] = emu.reg_read(unicorn_registers[r])
             tainted = ( start_regs[r] != end_regs[r] )
 
