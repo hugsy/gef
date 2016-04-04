@@ -1585,6 +1585,24 @@ def is_remote_debug():
     return "gef-remote.target" in __config__.keys()
 
 
+def generate_msf_pattern(length):
+    """
+    Create a Metasploit-like pattern whose length is specified by argument.
+    """
+    pattern = b""
+    for mj in range(ord('A'), ord('Z')+1) :                         # from A to Z
+        for mn in range(ord('a'), ord('z')+1) :                     # from a to z
+            for dg in range(ord('0'), ord('9')+1) :                 # from 0 to 9
+                for extra in "~!@#$%&*()-_+={}[]|;:<>?/":           # adding extra chars
+                    for c in (chr(mj), chr(mn), chr(dg), extra):
+                        if len(pattern) == length :
+                            return pattern
+                        else:
+                            pattern += c.encode("utf-8")
+        # Should never be here, just for clarity
+        return b""
+
+
 #
 # Breakpoints
 #
@@ -4261,6 +4279,10 @@ class PatternCommand(GenericCommand):
     _cmdline_ = "pattern"
     _syntax_  = "%s (create|search) <args>" % _cmdline_
 
+    def __init__(self, *args, **kwargs):
+        super(PatternCommand, self).__init__()
+        self.add_setting("length", 1024)
+        return
 
     def do_invoke(self, argv):
         self.usage()
@@ -4271,58 +4293,47 @@ class PatternCreateCommand(GenericCommand):
     """Metasploit-like pattern generation"""
 
     _cmdline_ = "pattern create"
-    _syntax_  = "%s SIZE" % _cmdline_
+    _syntax_  = "%s [SIZE]" % _cmdline_
 
 
     def do_invoke(self, argv):
-        if len(argv) != 1:
-            self.usage()
+        if len(argv) == 1:
+            if not argv[0].isdigit():
+                err("Invalid size")
+                return
+            __config__["pattern.length"] = (long(argv[0]), long)
+        elif len(argv) > 1:
+            err("Invalid syntax")
             return
 
-        if not argv[0].isdigit():
-            err("Invalid size")
-            return
-
-        size = long(argv[0])
+        size = __config__.get("pattern.length", 1024)[0]
         info("Generating a pattern of %d bytes" % size)
-        patt = PatternCreateCommand.generate(size)
+        patt = generate_msf_pattern(size)
         print(patt.decode("utf-8"))
         return
-
-
-    @staticmethod
-    def generate(limit):
-        pattern = b""
-        for mj in range(ord('A'), ord('Z')+1) :                         # from A to Z
-            for mn in range(ord('a'), ord('z')+1) :                     # from a to z
-                for dg in range(ord('0'), ord('9')+1) :                 # from 0 to 9
-                    for extra in "~!@#$%&*()-_+={}[]|;:<>?/":           # adding extra chars
-                        for c in (chr(mj), chr(mn), chr(dg), extra):
-                            if len(pattern) == limit :
-                                return pattern
-                            else:
-                                pattern += c.encode("utf-8")
-        # Should never be here, just for clarity
-        return b""
 
 
 class PatternSearchCommand(GenericCommand):
     """Metasploit-like pattern search"""
 
     _cmdline_ = "pattern search"
-    _syntax_  = "%s SIZE PATTERN" % _cmdline_
+    _syntax_  = "%s PATTERN [SIZE]" % _cmdline_
 
 
     def do_invoke(self, argv):
-        if len(argv) != 2:
+        if len(argv) not in (1, 2):
             self.usage()
             return
 
-        if not argv[0].isdigit():
-            err("Invalid size")
-            return
+        if len(argv)==2:
+            if not argv[0].isdigit():
+                err("Invalid size")
+                return
+            size = long(argv[1])
+        else:
+            size = __config__.get("pattern.length", 1024)[0]
 
-        size, pattern = long(argv[0]), argv[1]
+        pattern = argv[0]
         info("Searching '%s'" % pattern)
         self.search(pattern, size)
         return
@@ -4341,7 +4352,7 @@ class PatternSearchCommand(GenericCommand):
             err("Incorrect pattern")
             return
 
-        buf = PatternCreateCommand.generate(size)
+        buf = generate_msf_pattern(size)
         found = False
 
         off = buf.find(pattern_le)
