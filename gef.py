@@ -52,6 +52,7 @@ import traceback
 import threading
 import collections
 import time
+import resource
 
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
@@ -2152,6 +2153,16 @@ def hook_code(emu, address, size, user_data):
         if verbose:
             info("Duplicating memory map")
 
+        # Hack hack hack (- again !!)
+        # Because of fs/gs registers used for different purposes (canary and stuff), we map
+        # the NULL page as RW- to allow UC to treat instructions dealing with those regs
+        # If anybody has a better approach, please send me a PR ;)
+        if is_x86_32() or is_x86_64():
+            if to_script:
+                content += "emu.mem_map(%#x, %d, %d)\n" % (0x0, resource.getpagesize(), 3)
+            else:
+                emu.mem_map(0x0, resource.getpagesize(), 3)
+
         for sect in vmmap:
             try:
                 page_start = sect.page_start
@@ -2648,17 +2659,17 @@ class CapstoneDisassembleCommand(GenericCommand):
         if is_pc:
             m+= Color.redify("\t"+left_arrow()+" $pc ")
 
-        m+= "\n\t"
+        m+= '\n' + '\t'*5
 
         # implicit read
         if len(insn.regs_read) > 0:
             m+= "Read:[%s] " % ','.join([insn.reg_name(x) for x in insn.regs_read])
-            m+= "\n\t"
+            m+= '\n' + '\t'*5
 
         # implicit write
         if len(insn.regs_write) > 0:
             m+= "Write:[%s] " % ','.join([insn.reg_name(x) for x in insn.regs_write])
-            m+= "\n\t"
+            m+= '\n' + '\t'*5
 
         if   is_x86_32():  reg, imm, mem = cs.x86.X86_OP_REG, cs.x86.X86_OP_IMM, cs.x86.X86_OP_MEM
         elif is_x86_64():  reg, imm, mem = cs.x86.X86_OP_REG, cs.x86.X86_OP_IMM, cs.x86.X86_OP_MEM
