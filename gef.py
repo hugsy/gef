@@ -1393,8 +1393,7 @@ def XOR(data, key):
 def ishex(pattern):
     if pattern.startswith("0x") or pattern.startswith("0X"):
         pattern = pattern[2:]
-
-    return all(c in string.hexdigits for c in s)
+    return all(c in string.hexdigits for c in pattern)
 
 
 # dirty hack, from https://github.com/longld/peda
@@ -1588,10 +1587,10 @@ def align_address_to_page(address):
 def parse_address(address):
     if ishex(address):
         return long(address, 16)
-    else:
-        t = gdb.lookup_type("unsigned long")
-        a = gdb.parse_and_eval( address ).cast(t)
-        return long(a)
+
+    t = gdb.lookup_type("unsigned long")
+    a = gdb.parse_and_eval( address ).cast(t)
+    return long(a)
 
 def is_in_x86_kernel(address):
     address = align_address(address)
