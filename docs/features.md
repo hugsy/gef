@@ -120,7 +120,11 @@ This command gives visual information of a Glibc malloc-ed chunked. Simply
 provide the address to the user memory pointer of the chunk to show the
 information related to the current chunk:
 
-![heap-chunks](https://i.imgur.com/xPcnzWp.png)
+```
+gef> heap chunk <LOCATION>
+```
+
+![heap-chunks](https://i.imgur.com/SAWNptW.png)
 
 
 ### `heap arenas` command ###
