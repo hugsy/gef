@@ -378,6 +378,7 @@ class GlibcArena:
     Glibc arena class
     """
     def __init__(self, addr=None):
+        # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671
         arena = gdb.parse_and_eval(addr)
         self.__arena = arena.cast(gdb.lookup_type("struct malloc_state"))
         self.__addr = int(arena.address)
@@ -394,10 +395,23 @@ class GlibcArena:
         return self.__addr
 
     def fastbin(self, i):
-        addr = int(self.fastbinsY[i].address) + 2*self.__arch
-        addr = int(DereferenceCommand.dereference(addr))
-        if addr == 0x00: return None
+        addr = long(self.fastbinsY[i].dereference().address)
+        if addr == 0x00:
+            return None
         return GlibcChunk(addr)
+
+    def get_next(self):
+        addr_next = long(self.next.dereference().address)
+        arena_main = GlibcArena("main_arena")
+        if addr_next == arena_main.__addr:
+            return None
+        return GlibcArena(hex(addr_next))
+
+    def __str__(self):
+        top = int(self.top.address)
+        m = ""
+        m+= "Arena (base={:#x},top={:#x})".format(self.__addr, top)
+        return m
 
 
 class GlibcChunk:
@@ -2749,10 +2763,10 @@ class CapstoneDisassembleCommand(GenericCommand):
 
 
 class GlibcHeapCommand(GenericCommand):
-    """Get some information about the Glibc heap structure."""
+    """Base command to get information about the Glibc heap structure."""
 
     _cmdline_ = "heap"
-    _syntax_  = "%s (chunk|fastbins)" % _cmdline_
+    _syntax_  = "%s (chunk|fastbins|arenas)" % _cmdline_
 
     def __init__(self):
         super(GlibcHeapCommand, self).__init__()
@@ -2760,6 +2774,32 @@ class GlibcHeapCommand(GenericCommand):
 
     def do_invoke(self, argv):
         self.usage()
+        return
+
+
+class GlibcHeapArenaCommand(GenericCommand):
+    """Display information on a heap chunk."""
+
+    _cmdline_ = "heap arenas"
+    _syntax_  = "%s" % _cmdline_
+
+    def __init__(self):
+        super(GlibcHeapArenaCommand, self).__init__()
+        return
+
+    def do_invoke(self, argv):
+        if not is_alive():
+            warn("Process not alive")
+            return
+
+        ok("Listing active arena(s):")
+        while True:
+            arena = GlibcArena("main_arena")
+            next_arena = arena.get_next()
+            print(str(arena))
+            if next_arena is None: break
+            arena = next_arena
+
         return
 
 
@@ -4708,7 +4748,7 @@ class GEFCommand(gdb.Command):
                         SolveKernelSymbolCommand,
                         AliasCommand, AliasShowCommand, AliasSetCommand, AliasUnsetCommand, AliasDoCommand,
                         DumpMemoryCommand,
-                        GlibcHeapCommand, GlibcHeapChunkCommand, GlibcHeapFastbinsYCommand,
+                        GlibcHeapCommand, GlibcHeapChunkCommand, GlibcHeapFastbinsYCommand, GlibcHeapArenaCommand,
                         PatchCommand,
                         RemoteCommand,
                         UnicornEmulateCommand,
