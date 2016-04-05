@@ -373,8 +373,37 @@ class Elf:
         return
 
 
-class GlibcChunk:
+class GlibcArena:
+    """
+    Glibc arena class
+    """
+    def __init__(self, addr=None):
+        arena = gdb.parse_and_eval(addr)
+        self.__arena = arena.cast(gdb.lookup_type("struct malloc_state"))
+        self.__addr = int(arena.address)
+        self.__arch = int(get_memory_alignment(to_byte=True))
+        return
 
+    def __getitem__(self, item):
+        return self.__arena[item]
+
+    def __getattr__(self, item):
+        return self.__arena[item]
+
+    def __int__(self):
+        return self.__addr
+
+    def fastbin(self, i):
+        addr = int(self.fastbinsY[i].address) + 2*self.__arch
+        addr = int(DereferenceCommand.dereference(addr))
+        if addr == 0x00: return None
+        return GlibcChunk(addr)
+
+
+class GlibcChunk:
+    """
+    Glibc chunk class
+    """
     def __init__(self, addr=None):
         """Init `addr` as a chunk"""
         self.addr = addr if addr else process_lookup_path("heap").page_start
@@ -504,6 +533,12 @@ class GlibcChunk:
         return self._str_sizes() + '\n'*2 + self._str_pointers()
 
     def __str__(self):
+        m = ""
+        m+= Color.greenify("FreeChunk") if not self.is_used() else Color.redify("UsedChunk")
+        m+= "(%#x)" % (long(self.addr),)
+        return m
+
+    def pprint(self):
         msg = ""
         if not self.is_used():
             msg += titlify("Chunk (free): %#x" % self.start_addr, Color.GREEN)
@@ -513,7 +548,9 @@ class GlibcChunk:
             msg += titlify("Chunk (used): %#x" % self.start_addr, Color.RED)
             msg += "\n"
             msg += self.str_as_alloced()
-        return msg
+
+        print(msg)
+        return
 
 
 def titlify(msg, color=Color.RED):
@@ -744,9 +781,9 @@ def arm_flags_table():
               30: "zero",
               29: "carry",
               28: "overflow",
-               7: "interrupt",
-               6: "fast",
-               5: "thumb"
+              7: "interrupt",
+              6: "fast",
+              5: "thumb"
     }
     return table
 
@@ -941,8 +978,8 @@ def aarch64_flags_table():
               30: "zero",
               29: "carry",
               28: "overflow",
-               7: "interrupt",
-               6: "fast"
+              7: "interrupt",
+              6: "fast"
     }
     return table
 
@@ -1213,6 +1250,7 @@ def get_process_maps():
     except IOError as ioe:
         if is_debug():
             err(str(ioe))
+
         sections = get_info_sections()
 
     return sections
@@ -1318,7 +1356,7 @@ def process_lookup_path(name, perm=Permission.READ|Permission.WRITE|Permission.E
         return None
 
     for sect in get_process_maps():
-        if name in sect.path and sect.perm.value & perm:
+        if name in sect.path and sect.permission.value & perm:
             return sect
 
     return None
@@ -1355,8 +1393,8 @@ def XOR(data, key):
 def ishex(pattern):
     if pattern.startswith("0x") or pattern.startswith("0X"):
         pattern = pattern[2:]
-    charset = "0123456789abcdefABCDEF"
-    return all( c in charset for c in pattern )
+
+    return all(c in string.hexdigits for c in s)
 
 
 # dirty hack, from https://github.com/longld/peda
@@ -1586,7 +1624,7 @@ def generate_msf_pattern(length):
                             return pattern
                         else:
                             pattern += c.encode("utf-8")
-        # Should never be here, just for clarity
+
         return b""
 
 
@@ -1690,7 +1728,8 @@ class PatchBreakpoint(gdb.Breakpoint):
         m = "Ignoring call to '%s'" % self.func
         if self.retval is not None:
             m+= "(setting %s to %#x)" % (retreg, self.retval)
-        ok( m )
+
+        ok(m)
         return False  # never stop at this breakpoint
 
 
@@ -1822,21 +1861,21 @@ class GenericCommand(gdb.Command):
 
 # Copy/paste this template for new command
 # class TemplateCommand(GenericCommand):
-    # """TemplaceCommand: description here will be seen in the help menu for the command."""
+# """TemplaceCommand: description here will be seen in the help menu for the command."""
 
     # _cmdline_ = "template-fake"
     # _syntax_  = "%s" % _cmdline_
     # _aliases_ = ["tpl-fk", ]
 
     # def __init__(self):
-         # super(TemplateCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
-         # return
+    # super(TemplateCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+    # return
     # def pre_load(self):
-        # return
+    # return
     # def post_load(self):
-        # return
+    # return
     # def do_invoke(self, argv):
-        # return
+    # return
 
 
 class SearchPatternCommand(GenericCommand):
@@ -1847,16 +1886,18 @@ class SearchPatternCommand(GenericCommand):
     _aliases_ = ["grep", ]
 
     def __init__(self):
-         super(SearchPatternCommand, self).__init__()
-         return
+        super(SearchPatternCommand, self).__init__()
+        return
 
     def search_pattern_by_address(self, pattern, start_address, end_address):
         """Search a pattern within a range defined by arguments."""
         if PYTHON_MAJOR==3:
             pattern = bytes(pattern, "utf-8")
+
         length = end_address - start_address
         buf = read_memory(start_address, length)
         locations = []
+
         for m in re.finditer(pattern, buf):
             start = start_address + m.start()
             string = read_cstring_from_memory(start)
@@ -1903,8 +1944,8 @@ class FlagsCommand(GenericCommand):
     _aliases_ = ["flags", ]
 
     def __init__(self):
-         super(FlagsCommand, self).__init__()
-         return
+        super(FlagsCommand, self).__init__()
+        return
 
     def do_invoke(self, argv):
         for flag in argv:
@@ -2240,10 +2281,12 @@ def hook_code(emu, address, size, user_data):
                     if to_script:
                         with open("/tmp/gef-%#x.raw"%page_start, "wb") as f:
                             f.write(bytes(code))
+
                         content += "# Importing %s: %#x-%#x\n"%(sect.path, page_start, page_end)
                         content += "data=open('/tmp/gef-%#x.raw', 'r').read()\n" % page_start
                         content += "emu.mem_write(%#x, data)\n" % (page_start, )
                         content += "\n"
+
                     else:
                         emu.mem_write(page_start, bytes(code))
             except Exception as e:
@@ -2594,8 +2637,8 @@ class CapstoneDisassembleCommand(GenericCommand):
 
 
     def __init__(self):
-         super(CapstoneDisassembleCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
-         return
+        super(CapstoneDisassembleCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
 
 
     def do_invoke(self, argv):
@@ -2700,43 +2743,97 @@ class CapstoneDisassembleCommand(GenericCommand):
                     m+="MEM=%s+%#x " % (insn.reg_name(op.value.mem.base), op.value.mem.disp,)
                 elif op.value.mem.disp < 0:
                     m+="MEM=%s%#x " % (insn.reg_name(op.value.mem.base), op.value.mem.disp,)
+
             m+= '\n' + '\t'*5
 
         return m
 
 
-
-
-# http://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_chunk
 class GlibcHeapCommand(GenericCommand):
     """Get some information about the Glibc heap structure."""
 
     _cmdline_ = "heap"
-    _syntax_  = "%s MALLOCED_LOCATION" % _cmdline_
-
+    _syntax_  = "%s (chunk|fastbins)" % _cmdline_
 
     def __init__(self):
-         super(GlibcHeapCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
-         return
+        super(GlibcHeapCommand, self).__init__()
+        return
 
+    def do_invoke(self, argv):
+        self.usage()
+        return
+
+
+class GlibcHeapChunkCommand(GenericCommand):
+    """Display information on a heap chunk.
+    See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
+
+    _cmdline_ = "heap chunk"
+    _syntax_  = "%s MALLOCED_LOCATION" % _cmdline_
+
+    def __init__(self):
+        super(GlibcHeapChunkCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
 
     def do_invoke(self, argv):
         if not is_alive():
             warn("No debugging session active")
             return
 
-        argc = len(argv)
-
-        if argc < 1:
+        if len(argv) < 1:
             err("Missing chunk address")
             self.usage()
             return
 
         addr = long(gdb.parse_and_eval( argv[0] ))
         chunk = GlibcChunk(addr)
-        print("%s" % chunk)
+        chunk.pprint()
         return
 
+
+class GlibcHeapFastbinsYCommand(GenericCommand):
+    """Display information on the fastbinsY on an arena (default: main_arena).
+    See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
+
+    _cmdline_ = "heap fastbins"
+    _syntax_  = "%s [ARENA_LOCATION]" % _cmdline_
+
+    def __init__(self):
+        super(GlibcHeapFastbinsYCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+    def do_invoke(self, argv):
+        if not is_alive():
+            warn("No debugging session active")
+            return
+
+        if len(argv)==1:
+            arena = GlibcArena(argv[0])
+        else:
+            arena = GlibcArena("main_arena")
+
+        if arena is None:
+            err("No main_arena (linked statically?)")
+            return
+
+        info("FastbinsY of arena %#x" % int(arena))
+        for i in range(10):
+            m = "Fastbin[{:d}] ".format(i,)
+            # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1680
+            while True:
+                chunk = arena.fastbin(i)
+                if chunk is None:
+                    m+= "0x00"
+                    break
+
+                m+= "{:s}  {:s}  ".format(right_arrow(), str(chunk))
+
+                if chunk.get_fwd_ptr() == 0x00:
+                    break
+
+            print(m)
+
+        return
 
 
 class DumpMemoryCommand(GenericCommand):
@@ -2748,10 +2845,10 @@ class DumpMemoryCommand(GenericCommand):
 
 
     def __init__(self):
-         super(DumpMemoryCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
-         self.add_setting("dumpfile_prefix", "./dumpmem-")
-         self.add_setting("dumpfile_suffix", "raw")
-         return
+        super(DumpMemoryCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.add_setting("dumpfile_prefix", "./dumpmem-")
+        self.add_setting("dumpfile_suffix", "raw")
+        return
 
 
     def do_invoke(self, argv):
@@ -2806,8 +2903,8 @@ class AliasSetCommand(GenericCommand):
 
         if alias_name in list( __aliases__.keys() ):
             warn("Replacing alias '%s'" % alias_name)
-        __aliases__[ alias_name ] = alias_cmds
-        ok("'%s': '%s'" % (alias_name, "; ".join(alias_cmds)))
+            __aliases__[ alias_name ] = alias_cmds
+            ok("'%s': '%s'" % (alias_name, "; ".join(alias_cmds)))
         return
 
 class AliasUnsetCommand(GenericCommand):
@@ -2949,7 +3046,7 @@ class DetailRegistersCommand(GenericCommand):
                 if len(addrs) > 1:
                     sep = " %s " % right_arrow()
                     line+= sep + sep.join(addrs[1:])
-            print(line)
+                    print(line)
 
         return
 
@@ -3402,10 +3499,10 @@ class ElfInfoCommand(GenericCommand):
         # http://www.sco.com/developers/gabi/latest/ch4.eheader.html
         classes = { 0x01: "32-bit",
                     0x02: "64-bit",
-                    }
+        }
         endianness = { 0x01: "Little-Endian",
                        0x02: "Big-Endian",
-                       }
+        }
         osabi = { 0x00: "System V",
                   0x01: "HP-UX",
                   0x02: "NetBSD",
@@ -3415,13 +3512,13 @@ class ElfInfoCommand(GenericCommand):
                   0x08: "IRIX",
                   0x09: "FreeBSD",
                   0x0C: "OpenBSD",
-                  }
+        }
 
         types = { 0x01: "Relocatable",
                   0x02: "Executable",
                   0x03: "Shared",
                   0x04: "Core"
-                  }
+        }
 
         machines = { 0x02: "SPARC",
                      0x03: "x86",
@@ -3433,7 +3530,7 @@ class ElfInfoCommand(GenericCommand):
                      0x32: "IA-64",
                      0x3E: "x86-64",
                      0xB7: "AArch64",
-                     }
+        }
 
         filename = argv[0] if len(argv) > 0 else get_filename()
         if filename is None:
@@ -3530,24 +3627,23 @@ class ContextCommand(GenericCommand):
     old_registers = {}
 
     def __init__(self):
-         super(ContextCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(ContextCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.add_setting("enable", True)
+        self.add_setting("show_stack_raw", False)
+        self.add_setting("nb_registers_per_line", int(get_terminal_size()[1]/30))
+        self.add_setting("nb_lines_stack", 8)
+        self.add_setting("nb_lines_backtrace", 3)
+        self.add_setting("nb_lines_code", 5)
+        self.add_setting("clear_screen", False)
 
-         self.add_setting("enable", True)
-         self.add_setting("show_stack_raw", False)
-         self.add_setting("nb_registers_per_line", int(get_terminal_size()[1]/30))
-         self.add_setting("nb_lines_stack", 8)
-         self.add_setting("nb_lines_backtrace", 3)
-         self.add_setting("nb_lines_code", 5)
-         self.add_setting("clear_screen", False)
+        self.add_setting("show_registers", True)
+        self.add_setting("show_stack", True)
+        self.add_setting("show_code", True)
+        self.add_setting("show_trace", True)
 
-         self.add_setting("show_registers", True)
-         self.add_setting("show_stack", True)
-         self.add_setting("show_code", True)
-         self.add_setting("show_trace", True)
-
-         if "capstone" in list( sys.modules.keys() ):
-             self.add_setting("use_capstone", False)
-         return
+        if "capstone" in list( sys.modules.keys() ):
+            self.add_setting("use_capstone", False)
+        return
 
 
     def do_invoke(self, argv):
@@ -3581,8 +3677,7 @@ class ContextCommand(GenericCommand):
         return
 
     def context_regs(self):
-        if self.get_setting("show_registers")==False:
-            return
+        if self.get_setting("show_registers")==False: return
 
         self.context_title("registers")
 
@@ -3646,7 +3741,7 @@ class ContextCommand(GenericCommand):
                 InspectStackCommand.inspect_stack(sp, nb_lines)
 
         except gdb.MemoryError:
-                err("Cannot read memory from $SP (corrupted stack pointer?)")
+            err("Cannot read memory from $SP (corrupted stack pointer?)")
 
         return
 
@@ -3679,6 +3774,7 @@ class ContextCommand(GenericCommand):
                     line+= Color.boldify(Color.redify("%#x\t %s \t\t %s $pc" % (addr, content, left_arrow())))
                 else:
                     line+= "%#x\t %s" % (addr, content)
+
                 print(line)
 
         except gdb.MemoryError:
@@ -3738,6 +3834,7 @@ class ContextCommand(GenericCommand):
                         addrs = DereferenceCommand.dereference_from(addr)
                         if len(addrs) > 2:
                             addrs = [addrs[0], "[...]", addrs[-1]]
+
                         f = " " + right_arrow() + " "
                         val = f.join(addrs)
                     elif val.type.code == gdb.TYPE_CODE_INT:
@@ -3842,7 +3939,7 @@ class HexdumpCommand(GenericCommand):
                     'd': ('I', 4),
                     'w': ('H', 2),
                     'b': ('B', 1),
-                    }
+        }
         r, l = formats[arrange_as]
         fmt_str = "<%#x+%.4x> %#."+str(l*2)+"x"
         fmt_pack = endianness + r
@@ -3869,10 +3966,9 @@ class DereferenceCommand(GenericCommand):
     _syntax_  = "%s [LOCATION] [NB]" % _cmdline_
 
     def __init__(self):
-         super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
-         self.add_setting("max_recursion", 10)
-         return
-
+        super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.add_setting("max_recursion", 10)
+        return
 
     def do_invoke(self, argv):
         if not is_alive():
@@ -3900,13 +3996,14 @@ class DereferenceCommand(GenericCommand):
     @staticmethod
     def dereference(addr):
         try:
-            p_long = gdb.lookup_type('unsigned long').pointer()
-            ret = gdb.Value(addr).cast(p_long).dereference()
+            unsigned_long_type = gdb.lookup_type('unsigned long').pointer()
+            ret = gdb.Value(addr).cast(unsigned_long_type).dereference()
         except MemoryError:
             if is_debug():
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
                 traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
+
             ret = None
         return ret
 
@@ -3944,6 +4041,7 @@ class DereferenceCommand(GenericCommand):
                         s = read_cstring_from_memory(value)
                         if len(s) >= 50:
                             s = s[:50] + "[...]"
+
                         msg.append( '"%s"' % Color.greenify(s))
                         break
 
@@ -4040,6 +4138,7 @@ class VMMapCommand(GenericCommand):
                 l.append( Color.boldify(Color.redify(str(entry.permission))) )
             else:
                 l.append( str(entry.permission) )
+
             l.append( entry.path )
 
             print((" ".join(l)))
@@ -4077,8 +4176,8 @@ class XAddressInfoCommand(GenericCommand):
 
 
     def __init__(self):
-         super(XAddressInfoCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
-         return
+        super(XAddressInfoCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
 
 
     def do_invoke (self, argv):
@@ -4451,8 +4550,8 @@ class ChecksecCommand(GenericCommand):
     _syntax_  = "%s (filename)" % _cmdline_
 
     def __init__(self):
-         super(ChecksecCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
-         return
+        super(ChecksecCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+        return
 
 
     def pre_load(self):
@@ -4564,7 +4663,7 @@ class FormatStringSearchCommand(GenericCommand):
             'fprintf':    1,
             'snprintf':   2,
             'vsnprintf':  2,
-            }
+        }
 
         for func_name, num_arg in dangerous_functions.items():
             FormatStringBreakpoint(func_name, num_arg)
@@ -4610,7 +4709,7 @@ class GEFCommand(gdb.Command):
                         SolveKernelSymbolCommand,
                         AliasCommand, AliasShowCommand, AliasSetCommand, AliasUnsetCommand, AliasDoCommand,
                         DumpMemoryCommand,
-                        GlibcHeapCommand,
+                        GlibcHeapCommand, GlibcHeapChunkCommand, GlibcHeapFastbinsYCommand,
                         PatchCommand,
                         RemoteCommand,
                         UnicornEmulateCommand,
