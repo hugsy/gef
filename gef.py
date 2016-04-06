@@ -413,10 +413,15 @@ class GlibcArena:
         return GlibcArena(addr_next)
 
     def __str__(self):
-        top = self.dereference(self.top)
-        nfree = self.dereference(self.next_free)
-        m = ""
-        m+= "Arena (base={:#x},top={:#x},next_free={:#x})".format(self.__addr, top, nfree)
+        top    = self.dereference(self.top)
+        nfree  = self.dereference(self.next_free)
+        sysmem = long(self.system_mem)
+        m = "Arena ("
+        m+= "base={:#x},".format(self.__addr)
+        m+= "top={:#x},".format(top)
+        m+= "next_free={:#x},".format(nfree)
+        m+= "system_mem={:#x}".format(sysmem)
+        m+= ")"
         return m
 
 
