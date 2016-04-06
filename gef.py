@@ -404,6 +404,12 @@ class GlibcArena:
             return None
         return GlibcChunk(addr)
 
+    def bin(self, i):
+        idx = i * 2
+        fd = self.deref_as_long(self.bins[idx])
+        bw = self.deref_as_long(self.bins[idx+1])
+        return (fd, bw)
+
     def get_next(self):
         addr_next = self.deref_as_long(self.next)
         arena_main = GlibcArena("main_arena")
@@ -2793,7 +2799,7 @@ class GlibcHeapCommand(GenericCommand):
     """Base command to get information about the Glibc heap structure."""
 
     _cmdline_ = "heap"
-    _syntax_  = "%s (chunk|fastbins|arenas)" % _cmdline_
+    _syntax_  = "%s (chunk|bins|arenas)" % _cmdline_
 
     def __init__(self):
         super(GlibcHeapCommand, self).__init__()
@@ -2828,7 +2834,6 @@ class GlibcHeapArenaCommand(GenericCommand):
 
         return
 
-
 class GlibcHeapChunkCommand(GenericCommand):
     """Display information on a heap chunk.
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
@@ -2855,7 +2860,7 @@ class GlibcHeapChunkCommand(GenericCommand):
         chunk.pprint()
         return
 
-class GlibcHeapBinsYCommand(GenericCommand):
+class GlibcHeapBinsCommand(GenericCommand):
     """Display information on the bins on an arena (default: main_arena).
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
 
@@ -2864,7 +2869,7 @@ class GlibcHeapBinsYCommand(GenericCommand):
     _syntax_  = "%s [%s]" % (_cmdline_, '|'.join(_bins_type_))
 
     def __init__(self):
-        super(GlibcHeapBinsYCommand, self).__init__()
+        super(GlibcHeapBinsCommand, self).__init__()
         return
 
     def do_invoke(self, argv):
@@ -2878,12 +2883,31 @@ class GlibcHeapBinsYCommand(GenericCommand):
             return
 
         bin_t = argv[0]
-        if bin_t not in _bins_type_:
+        if bin_t not in GlibcHeapBinsCommand._bins_type_:
             self.usage()
             return
 
         gdb.execute("heap bins %s" % bin_t)
+        return
 
+    @staticmethod
+    def pprint_bin(arena_addr, bin_idx):
+        arena = GlibcArena(arena_addr)
+        bin_fw, bin_bk = arena.bins[bin_idx+2], arena.bins[bin_idx*2+1]
+        fw, bk = arena.bin(bin_idx)
+
+        ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(bin_idx, fw, bk))
+        if bk == fw:
+            ok("Empty")
+            return
+
+        m = ""
+        while fw != bin1_fd:
+            chunk = GlibcChunk(fw)
+            m+= "{:s}  {:s}  ".format(right_arrow(), str(chunk))
+            fw = chunk.get_fwd_ptr()
+
+        print(m)
         return
 
 class GlibcHeapFastbinsYCommand(GenericCommand):
@@ -2903,7 +2927,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
             return
 
         if len(argv)==1:
-            arena = GlibcArena(argv[0])
+            arena = GlibcArena('*'+argv[0])
         else:
             arena = GlibcArena("main_arena")
 
@@ -2945,29 +2969,51 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
             warn("No debugging session active")
             return
 
-        if len(argv)==1:
-            arena = GlibcArena(argv[0])
-        else:
-            arena = GlibcArena("main_arena")
+        arena_addr =  "*%#x"%int(argv[0],16) if len(argv)==1 else "main_arena"
+        print(titlify("Information on Unsorted Bin of arena '{:s}'".format(arena_addr)))
+        GlibcHeapBinsCommand.pprint_bin(arena_addr, 0)
+        return
 
-        print(titlify("Information on Unsorted Bin"))
-        bin1_fw = arena.bins[0]
-        bin1_bk = arena.bins[1]
-        fw = arena.deref_as_long(bin1_fw)
-        bk = arena.deref_as_long(bin1_bk)
+class GlibcHeapSmallBinsCommand(GenericCommand):
+    """Convience command for viewing small bins"""
 
-        ok("Found bin1: fw={:#x}, bk={:#x}".format(fw, bk))
-        if bk == fw:
-            ok("Empty")
+    _cmdline_ = "heap bins small"
+    _syntax_  = "%s [ARENA_LOCATION]" % _cmdline_
+
+    def __init__(self):
+        super(GlibcHeapSmallBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+    def do_invoke(self, argv):
+        if not is_alive():
+            warn("No debugging session active")
             return
 
-        m = ""
-        while fw != bin1_fd:
-            chunk = GlibcChunk(fw)
-            m+= "{:s}  {:s}  ".format(right_arrow(), str(chunk))
-            fw = chunk.get_fwd_ptr()
+        arena_addr = "*%#x"%int(argv[0],16) if len(argv)==1 else "main_arena"
+        print(titlify("Information on Small Bins of arena '{:s}'".format(arena_addr)))
+        for i in range(2, 64):
+            GlibcHeapBinsCommand.pprint_bin(arena_addr, i)
+        return
 
-        print(m)
+class GlibcHeapLargeBinsCommand(GenericCommand):
+    """Convience command for viewing large bins"""
+
+    _cmdline_ = "heap bins large"
+    _syntax_  = "%s [ARENA_LOCATION]" % _cmdline_
+
+    def __init__(self):
+        super(GlibcHeapLargeBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+    def do_invoke(self, argv):
+        if not is_alive():
+            warn("No debugging session active")
+            return
+
+        arena_addr = "*%#x"%int(argv[0],16) if len(argv)==1 else "main_arena"
+        print(titlify("Information on Large Bins of arena '{:s}'".format(arena_addr)))
+        for i in range(64, 127):
+            GlibcHeapBinsCommand.pprint_bin(arena_addr, i)
         return
 
 
@@ -2984,7 +3030,6 @@ class DumpMemoryCommand(GenericCommand):
         self.add_setting("dumpfile_prefix", "./dumpmem-")
         self.add_setting("dumpfile_suffix", "raw")
         return
-
 
     def do_invoke(self, argv):
         argc = len(argv)
@@ -3007,7 +3052,6 @@ class DumpMemoryCommand(GenericCommand):
 
         info("Dumped %d bytes from %#x in '%s'" % (size, start_addr, filename))
         return
-
 
 
 class AliasCommand(GenericCommand):
@@ -4829,7 +4873,7 @@ class GEFCommand(gdb.Command):
                         SolveKernelSymbolCommand,
                         AliasCommand, AliasShowCommand, AliasSetCommand, AliasUnsetCommand, AliasDoCommand,
                         DumpMemoryCommand,
-                        GlibcHeapCommand, GlibcHeapArenaCommand, GlibcHeapChunkCommand, GlibcHeapBinsYCommand, GlibcHeapFastbinsYCommand, GlibcHeapUnsortedBinsCommand,
+                        GlibcHeapCommand, GlibcHeapArenaCommand, GlibcHeapChunkCommand, GlibcHeapBinsCommand, GlibcHeapFastbinsYCommand, GlibcHeapUnsortedBinsCommand, GlibcHeapSmallBinsCommand, GlibcHeapLargeBinsCommand,
                         PatchCommand,
                         RemoteCommand,
                         UnicornEmulateCommand,
