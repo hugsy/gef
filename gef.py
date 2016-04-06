@@ -394,18 +394,18 @@ class GlibcArena:
     def __int__(self):
         return self.__addr
 
-    def dereference(self, addr):
-        naddr = addr.dereference().address
+    def deref_as_long(self, addr):
+        naddr = dereference(addr).address
         return long(naddr)
 
     def fastbin(self, i):
-        addr = self.dereference(fastbinsY[i])
+        addr = self.deref_as_long(self.fastbinsY[i])
         if addr == 0x00:
             return None
         return GlibcChunk(addr)
 
     def get_next(self):
-        addr_next = self.dereference(self.next)
+        addr_next = self.deref_as_long(self.next)
         arena_main = GlibcArena("main_arena")
         if addr_next == arena_main.__addr:
             return None
@@ -413,8 +413,8 @@ class GlibcArena:
         return GlibcArena(addr_next)
 
     def __str__(self):
-        top    = self.dereference(self.top)
-        nfree  = self.dereference(self.next_free)
+        top    = self.deref_as_long(self.top)
+        nfree  = self.deref_as_long(self.next_free)
         sysmem = long(self.system_mem)
         m = "Arena ("
         m+= "base={:#x},".format(self.__addr)
@@ -560,7 +560,7 @@ class GlibcChunk:
     def __str__(self):
         m = ""
         m+= Color.greenify("FreeChunk") if not self.is_used() else Color.redify("UsedChunk")
-        m+= "(%#x)" % (long(self.addr),)
+        m+= "(addr={:#x},size={:#x})" % (long(self.addr),self.get_chunk_size())
         return m
 
     def pprint(self):
@@ -1651,6 +1651,22 @@ def generate_msf_pattern(length):
 
         return b""
 
+
+def dereference(addr):
+    """
+    gef-wrapper for gdb dereference fonction.
+    """
+    try:
+        unsigned_long_type = gdb.lookup_type('unsigned long').pointer()
+        ret = gdb.Value(addr).cast(unsigned_long_type).dereference()
+    except gdb.MemoryError:
+        if is_debug():
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+            traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
+
+        ret = None
+    return ret
 
 #
 # Breakpoints
@@ -2839,12 +2855,42 @@ class GlibcHeapChunkCommand(GenericCommand):
         chunk.pprint()
         return
 
+class GlibcHeapBinsYCommand(GenericCommand):
+    """Display information on the bins on an arena (default: main_arena).
+    See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
+
+    _bins_type_ = [ "fast", "unsorted", "small", "large"]
+    _cmdline_ = "heap bins"
+    _syntax_  = "%s [%s]" % (_cmdline_, '|'.join(_bins_type_))
+
+    def __init__(self):
+        super(GlibcHeapBinsYCommand, self).__init__()
+        return
+
+    def do_invoke(self, argv):
+        if not is_alive():
+            warn("No debugging session active")
+            return
+
+        if len(argv)==0:
+            for bin_t in _bins_type_:
+                gdb.execute("heap bins %s" % bin_t)
+            return
+
+        bin_t = argv[0]
+        if bin_t not in _bins_type_:
+            self.usage()
+            return
+
+        gdb.execute("heap bins %s" % bin_t)
+
+        return
 
 class GlibcHeapFastbinsYCommand(GenericCommand):
     """Display information on the fastbinsY on an arena (default: main_arena).
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
 
-    _cmdline_ = "heap fastbins"
+    _cmdline_ = "heap bins fast"
     _syntax_  = "%s [ARENA_LOCATION]" % _cmdline_
 
     def __init__(self):
@@ -2865,7 +2911,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
             err("No main_arena (linked statically?)")
             return
 
-        info("FastbinsY of arena %#x" % int(arena))
+        print(titlify("Information on FastBins of arena %#x" % int(arena)))
         for i in range(10):
             m = "Fastbin[{:d}] ".format(i,)
             # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1680
@@ -2881,7 +2927,47 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
                     break
 
             print(m)
+        return
 
+class GlibcHeapUnsortedBinsCommand(GenericCommand):
+    """Display information on the Unsorted Bins of an arena (default: main_arena).
+    See: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1689"""
+
+    _cmdline_ = "heap bins unsorted"
+    _syntax_  = "%s [ARENA_LOCATION]" % _cmdline_
+
+    def __init__(self):
+        super(GlibcHeapUnsortedBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+    def do_invoke(self, argv):
+        if not is_alive():
+            warn("No debugging session active")
+            return
+
+        if len(argv)==1:
+            arena = GlibcArena(argv[0])
+        else:
+            arena = GlibcArena("main_arena")
+
+        print(titlify("Information on Unsorted Bin"))
+        bin1_fw = arena.bins[0]
+        bin1_bk = arena.bins[1]
+        fw = arena.deref_as_long(bin1_fw)
+        bk = arena.deref_as_long(bin1_bk)
+
+        ok("Found bin1: fw={:#x}, bk={:#x}".format(fw, bk))
+        if bk == fw:
+            ok("Empty")
+            return
+
+        m = ""
+        while fw != bin1_fd:
+            chunk = GlibcChunk(fw)
+            m+= "{:s}  {:s}  ".format(right_arrow(), str(chunk))
+            fw = chunk.get_fwd_ptr()
+
+        print(m)
         return
 
 
@@ -4043,21 +4129,6 @@ class DereferenceCommand(GenericCommand):
 
 
     @staticmethod
-    def dereference(addr):
-        try:
-            unsigned_long_type = gdb.lookup_type('unsigned long').pointer()
-            ret = gdb.Value(addr).cast(unsigned_long_type).dereference()
-        except MemoryError:
-            if is_debug():
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
-                traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
-
-            ret = None
-        return ret
-
-
-    @staticmethod
     def dereference_from(addr):
         prev_addr_value = None
         deref = addr
@@ -4095,7 +4166,7 @@ class DereferenceCommand(GenericCommand):
                         break
 
             prev_addr_value = addr.value
-            deref = DereferenceCommand.dereference(value)
+            deref = dereference(value)
             max_recursion -= 1
 
         return msg
@@ -4758,7 +4829,7 @@ class GEFCommand(gdb.Command):
                         SolveKernelSymbolCommand,
                         AliasCommand, AliasShowCommand, AliasSetCommand, AliasUnsetCommand, AliasDoCommand,
                         DumpMemoryCommand,
-                        GlibcHeapCommand, GlibcHeapChunkCommand, GlibcHeapFastbinsYCommand, GlibcHeapArenaCommand,
+                        GlibcHeapCommand, GlibcHeapArenaCommand, GlibcHeapChunkCommand, GlibcHeapBinsYCommand, GlibcHeapFastbinsYCommand, GlibcHeapUnsortedBinsCommand,
                         PatchCommand,
                         RemoteCommand,
                         UnicornEmulateCommand,
