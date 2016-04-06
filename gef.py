@@ -394,23 +394,29 @@ class GlibcArena:
     def __int__(self):
         return self.__addr
 
+    def dereference(self, addr):
+        naddr = addr.dereference().address
+        return long(naddr)
+
     def fastbin(self, i):
-        addr = long(self.fastbinsY[i].dereference().address)
+        addr = self.dereference(fastbinsY[i])
         if addr == 0x00:
             return None
         return GlibcChunk(addr)
 
     def get_next(self):
-        addr_next = long(self.next.dereference().address)
+        addr_next = self.dereference(self.next)
         arena_main = GlibcArena("main_arena")
         if addr_next == arena_main.__addr:
             return None
-        return GlibcArena(hex(addr_next))
+        addr_next = "*0x%x " % addr_next
+        return GlibcArena(addr_next)
 
     def __str__(self):
-        top = int(self.top.address)
+        top = self.dereference(self.top)
+        nfree = self.dereference(self.next_free)
         m = ""
-        m+= "Arena (base={:#x},top={:#x})".format(self.__addr, top)
+        m+= "Arena (base={:#x},top={:#x},next_free={:#x})".format(self.__addr, top, nfree)
         return m
 
 
@@ -2793,11 +2799,10 @@ class GlibcHeapArenaCommand(GenericCommand):
             return
 
         ok("Listing active arena(s):")
-        while True:
-            arena = GlibcArena("main_arena")
-            next_arena = arena.get_next()
+        arena = GlibcArena("main_arena")
+        while arena:
             print(str(arena))
-            if next_arena is None: break
+            next_arena = arena.get_next()
             arena = next_arena
 
         return
