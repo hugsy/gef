@@ -574,12 +574,15 @@ class GlibcChunk:
             msg += "\n"
             msg += self.str_as_alloced()
 
-        print(msg)
+        gdb.write(msg)
+        gdb.flush()
         return
 
 
 def titlify(msg, color=Color.RED):
-    return "{0}[ {1}{2}{3}{4} ]{0}".format(horizontal_line()*40, Color.BOLD, color, msg, Color.NORMAL)
+    cols = get_terminal_size()[1]
+    n = int((cols-len(msg)-4)/2)
+    return "{0}[ {1}{2}{3}{4} ]{0}".format(horizontal_line()*n, Color.BOLD, color, msg, Color.NORMAL)
 
 def err(msg):
     gdb.write(Color.BOLD+Color.RED+"[!]"+Color.NORMAL+" "+msg+"\n", gdb.STDERR)
