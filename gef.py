@@ -2881,7 +2881,7 @@ class GlibcHeapBinsCommand(GenericCommand):
             return
 
         if len(argv)==0:
-            for bin_t in _bins_type_:
+            for bin_t in GlibcHeapBinsCommand._bins_type_:
                 gdb.execute("heap bins %s" % bin_t)
             return
 
@@ -2994,7 +2994,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
 
         arena_addr = "*%#x"%int(argv[0],16) if len(argv)==1 else "main_arena"
         print(titlify("Information on Small Bins of arena '{:s}'".format(arena_addr)))
-        for i in range(2, 64):
+        for i in range(1, 64):
             GlibcHeapBinsCommand.pprint_bin(arena_addr, i)
         return
 
