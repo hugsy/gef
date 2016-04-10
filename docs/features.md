@@ -137,17 +137,33 @@ arenas allocated in your program **at the moment you call the command**.
 ![heap-arena](https://i.imgur.com/ajbLiCF.png)
 
 
-### `heap fastbins` command ###
+### `heap bins` command ###
+
+Glibc bins are the structures used for keeping tracks of free-ed chunks. The
+reason for that is that allocation (using `sbrk`) is costly. So Glibc uses those
+bins to remember formely allocated chunks. Because bins are structured in single
+or doubly linked list, I found that quite painful to always interrogate `gdb` to
+get a pointer address, dereference it, get the value chunk, etc... So I
+decided to implement in `gef` the `heap bins` sub-command, which allows to get info on:
+
+   - `fastbins`
+   - `bins`
+      - `unsorted`
+      - `small bins`
+      - `large bins`
+
+
+#### `heap bins fast` command ####
 
 When exploiting heap corruption vulnerabilities, it is sometimes convenient to
 know the state of the `fastbinsY` array.
-The `heap fastbins` command helps by displaying the list of fast chunks in this
+The `fast` sub-command helps by displaying the list of fast chunks in this
 array. Without any other argument, it will display the info of the `main_arena`
 arena. It accepts an optional argument, the address of another arena (which you
 can easily find using `heap arenas`).
 
 ```
-gef> heap fastbins
+gef➤ heap bins fast
 [+] FastbinsY of arena 0x7ffff7dd5b20
 Fastbin[0] 0x00
 Fastbin[1]  ->  FreeChunk(0x600310)  ->  FreeChunk(0x600350)
@@ -160,6 +176,14 @@ Fastbin[7] 0x00
 Fastbin[8] 0x00
 Fastbin[9] 0x00
 ```
+
+#### Other `heap bins X` command ####
+
+All the other subcommands for the `heap bins` works the same way than `fast`. If
+no argument is provided, `gef` will fall back to `main_arena`. Otherwise, it
+will use the address pointed as the base of the `malloc_state` structure and
+print out information accordingly.
+
 
 
 ## `shellcode` command ##
