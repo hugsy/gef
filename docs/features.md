@@ -166,7 +166,7 @@ can easily find using `heap arenas`).
 gef➤ heap bins fast
 [+] FastbinsY of arena 0x7ffff7dd5b20
 Fastbin[0] 0x00
-Fastbin[1]  ->  FreeChunk(0x600310)  ->  FreeChunk(0x600350)
+Fastbin[1]  →  FreeChunk(0x600310)  →  FreeChunk(0x600350)
 Fastbin[2] 0x00
 Fastbin[3] 0x00
 Fastbin[4] 0x00
@@ -193,7 +193,7 @@ can be used to search and download directly via `GEF` the shellcode you're
 looking for. Two primitive subcommands are available, `search` and `get`
 
 ```
-gef> shellcode search arm
+gef➤ shellcode search arm
 [+] Showing matching shellcodes
 901     Linux/ARM       Add map in /etc/hosts file - 79 bytes
 853     Linux/ARM       chmod("/etc/passwd", 0777) - 39 bytes
@@ -202,10 +202,10 @@ gef> shellcode search arm
 729     Linux/ARM       Bind Connect UDP Port 68
 730     Linux/ARM       Bindshell port 0x1337
 [...]
-gef> shellcode get 698
+gef➤ shellcode get 698
 [+] Downloading shellcode id=698
 [+] Shellcode written as '/tmp/sc-EfcWtM.txt'
-gef> system cat /tmp/sc-EfcWtM.txt
+gef➤ system cat /tmp/sc-EfcWtM.txt
 /*
 Title:     Linux/ARM - execve("/bin/sh", [0], [0 vars]) - 27 bytes
 Date:      2010-09-05
@@ -234,12 +234,12 @@ It will use this new breakpoint against several targets, including:
 
 Just call the command to enable this functionality. `fmtstr-helper` is an alias of `format-string-helper`.
 ```
-gef> fmtstr-helper
+gef➤ fmtstr-helper
 ```
 
 Then start the binary execution.
 ```
-gef> g
+gef➤ g
 ```
 
 If a potentially insecure entry is found, the breakpoint will trigger, stop the
