@@ -435,29 +435,38 @@ class GlibcChunk:
     """
     Glibc chunk class
     """
-    def __init__(self, addr=None):
+    def __init__(self, addr, from_base=False):
         """Init `addr` as a chunk"""
-        self.addr = addr if addr else process_lookup_path("heap").page_start
         self.arch = int(get_memory_alignment(to_byte=True))
-        self.start_addr = int(self.addr - 2*self.arch)
+        if from_base:
+            self.start_addr = addr
+            self.addr = addr + 2*self.arch
+        else:
+            self.start_addr = int(addr - 2*self.arch)
+            self.addr = addr
+
         self.size_addr  = int(self.addr - self.arch)
+        self.prev_size_addr = self.start_addr
         return
 
 
-    # if alloc-ed functions
     def get_chunk_size(self):
         return read_int_from_memory( self.size_addr ) & (~0x03)
 
+
     def get_usable_size(self):
-        return self.get_chunk_size() - 2*self.arch
+        cursz = self.get_chunk_size()
+        if cursz == 0x00: return cursz
+        return cursz - 2*self.arch
+
 
     def get_prev_chunk_size(self):
-        return read_int_from_memory( self.start_addr )
+        return read_int_from_memory( self.prev_size_addr )
+
 
     def get_next_chunk(self):
-        addr = self.start_addr + self.get_chunk_size() + 2*self.arch
+        addr = self.addr + self.get_chunk_size()
         return GlibcChunk(addr)
-    # endif alloc-ed functions
 
 
     # if free-ed functions
@@ -566,7 +575,7 @@ class GlibcChunk:
     def __str__(self):
         m = ""
         m+= Color.greenify("FreeChunk") if not self.is_used() else Color.redify("UsedChunk")
-        m+= "(addr={:#x},size={:#x})" % (long(self.addr),self.get_chunk_size())
+        m+= "(addr={:#x},size={:#x})".format(long(self.addr),self.get_chunk_size())
         return m
 
     def pprint(self):
@@ -2492,6 +2501,7 @@ class RemoteCommand(GenericCommand):
         if not self.connect_target(target):
             err("Failed to connect to %s" % target)
             return
+
         ok("Connected to '%s'" % target)
 
         ok("Downloading remote information")
@@ -2942,15 +2952,21 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         for i in range(10):
             m = "Fastbin[{:d}] ".format(i,)
             # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1680
+            chunk = arena.fastbin(i)
+
             while True:
-                chunk = arena.fastbin(i)
                 if chunk is None:
                     m+= "0x00"
                     break
 
-                m+= "{:s}  {:s}  ".format(right_arrow(), str(chunk))
+                try:
+                    m+= "{:s}  {:s}  ".format(right_arrow(), str(chunk))
+                    next_chunk = chunk.get_fwd_ptr()
+                    if next_chunk == 0x00:
+                        break
 
-                if chunk.get_fwd_ptr() == 0x00:
+                    chunk = GlibcChunk(next_chunk, from_base=True)
+                except gdb.MemoryError:
                     break
 
             print(m)
