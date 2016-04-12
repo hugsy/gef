@@ -137,20 +137,36 @@ arenas allocated in your program **at the moment you call the command**.
 ![heap-arena](https://i.imgur.com/ajbLiCF.png)
 
 
-### `heap fastbins` command ###
+### `heap bins` command ###
+
+Glibc bins are the structures used for keeping tracks of free-ed chunks. The
+reason for that is that allocation (using `sbrk`) is costly. So Glibc uses those
+bins to remember formely allocated chunks. Because bins are structured in single
+or doubly linked list, I found that quite painful to always interrogate `gdb` to
+get a pointer address, dereference it, get the value chunk, etc... So I
+decided to implement in `gef` the `heap bins` sub-command, which allows to get info on:
+
+   - `fastbins`
+   - `bins`
+      - `unsorted`
+      - `small bins`
+      - `large bins`
+
+
+#### `heap bins fast` command ####
 
 When exploiting heap corruption vulnerabilities, it is sometimes convenient to
 know the state of the `fastbinsY` array.
-The `heap fastbins` command helps by displaying the list of fast chunks in this
+The `fast` sub-command helps by displaying the list of fast chunks in this
 array. Without any other argument, it will display the info of the `main_arena`
 arena. It accepts an optional argument, the address of another arena (which you
 can easily find using `heap arenas`).
 
 ```
-gef> heap fastbins
+gef➤ heap bins fast
 [+] FastbinsY of arena 0x7ffff7dd5b20
 Fastbin[0] 0x00
-Fastbin[1]  ->  FreeChunk(0x600310)  ->  FreeChunk(0x600350)
+Fastbin[1]  →  FreeChunk(0x600310)  →  FreeChunk(0x600350)
 Fastbin[2] 0x00
 Fastbin[3] 0x00
 Fastbin[4] 0x00
@@ -161,6 +177,14 @@ Fastbin[8] 0x00
 Fastbin[9] 0x00
 ```
 
+#### Other `heap bins X` command ####
+
+All the other subcommands for the `heap bins` works the same way than `fast`. If
+no argument is provided, `gef` will fall back to `main_arena`. Otherwise, it
+will use the address pointed as the base of the `malloc_state` structure and
+print out information accordingly.
+
+
 
 ## `shellcode` command ##
 
@@ -169,7 +193,7 @@ can be used to search and download directly via `GEF` the shellcode you're
 looking for. Two primitive subcommands are available, `search` and `get`
 
 ```
-gef> shellcode search arm
+gef➤ shellcode search arm
 [+] Showing matching shellcodes
 901     Linux/ARM       Add map in /etc/hosts file - 79 bytes
 853     Linux/ARM       chmod("/etc/passwd", 0777) - 39 bytes
@@ -178,10 +202,10 @@ gef> shellcode search arm
 729     Linux/ARM       Bind Connect UDP Port 68
 730     Linux/ARM       Bindshell port 0x1337
 [...]
-gef> shellcode get 698
+gef➤ shellcode get 698
 [+] Downloading shellcode id=698
 [+] Shellcode written as '/tmp/sc-EfcWtM.txt'
-gef> system cat /tmp/sc-EfcWtM.txt
+gef➤ system cat /tmp/sc-EfcWtM.txt
 /*
 Title:     Linux/ARM - execve("/bin/sh", [0], [0 vars]) - 27 bytes
 Date:      2010-09-05
@@ -210,12 +234,12 @@ It will use this new breakpoint against several targets, including:
 
 Just call the command to enable this functionality. `fmtstr-helper` is an alias of `format-string-helper`.
 ```
-gef> fmtstr-helper
+gef➤ fmtstr-helper
 ```
 
 Then start the binary execution.
 ```
-gef> g
+gef➤ g
 ```
 
 If a potentially insecure entry is found, the breakpoint will trigger, stop the
