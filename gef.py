@@ -3649,17 +3649,32 @@ class ProcessListingCommand(GenericCommand):
 
     def do_invoke(self, argv):
         processes = self.ps()
+        do_attach = False
+        smart_scan = False
 
-        if len(argv) == 0:
-            pattern = re.compile("^.*$")
-        else:
-            pattern = re.compile(argv[0])
+        opts, args = getopt.getopt(argv, "as")
+        for o,a in opts:
+            if o=="-a": do_attach  = True
+            if o=="-s": smart_scan = True
+
+        pattern = re.compile("^.*$") if len(args)==0 else re.compile(args[0])
 
         for process in processes:
+            pid = int(process["pid"])
             command = process['command']
 
             if not re.search(pattern, command):
                 continue
+
+            if smart_scan:
+                if command.startswith("[") and command.endswith("]"): continue
+                if command.startswith("socat "): continue
+                if command.startswith("grep "): continue
+
+            if len(args) and do_attach:
+                ok("Attaching to process='%s' pid=%d" % (process["command"], pid))
+                gdb.execute("attach %d" % pid)
+                return None
 
             line = [ process[i] for i in ("pid", "user", "cpu", "mem", "tty", "command") ]
             print ( '\t\t'.join(line) )
