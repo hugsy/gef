@@ -1182,6 +1182,11 @@ def read_memory_until_null(address, max_length=-1):
 def read_cstring_from_memory(address):
     char_ptr = gdb.lookup_type("char").pointer()
     res = gdb.Value(address).cast(char_ptr).string()
+    for c in ("\n", "\t", "\d"):
+        i = res.find(c)
+        if i==-1: continue
+        res = res[:i] + "[...]"
+
     return res
 
 
@@ -5250,8 +5255,11 @@ def build_socket(host, port):
     return s
 
 def interact(s):
+    cmd = \"\"\"python -c "import pty;pty.spawn('/bin/bash')" \"\"\"
     try:
-        ok(\"\"\"Get a PTY with ' python -c "import pty;pty.spawn('/bin/bash')"  '\"\"\")
+        c = raw_input("Switch to pty [Yy]? ").strip()
+        if c in ('Y', 'y'):  s.write(pty + '\n')
+        else:                ok(\"\"\"Get a PTY with ' %s  '\"\"\" % cmd)
         s.interact()
     except KeyboardInterrupt:
         ok("Leaving")
