@@ -54,10 +54,10 @@ import collections
 import time
 import resource
 import string
+import itertools
 
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
-    import itertools
     from cStringIO import StringIO
     from urllib import urlopen
     import ConfigParser as configparser
@@ -1435,7 +1435,11 @@ def lookup_address(address):
 
 
 def XOR(data, key):
-    return ''.join(chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key)))
+    key = binascii.unhexlify(key)
+    if PYTHON_MAJOR == 2:
+        return ''.join(chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key)))
+    else:
+        return ''.join(chr(x ^ y) for (x,y) in zip(data, itertools.cycle(key)))
 
 
 def ishex(pattern):
