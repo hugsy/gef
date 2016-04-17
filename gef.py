@@ -3094,12 +3094,12 @@ class AliasCommand(GenericCommand):
 class AliasSetCommand(GenericCommand):
     """GEF add alias command"""
     _cmdline_ = "gef-alias set"
-    _syntax_  = "%s" % _cmdline_
+    _syntax_  = "%s NAME CMD1 [; CMD2] [; CMDN]" % _cmdline_
 
     def do_invoke(self, argv):
         argc = len(argv)
         if argc < 2:
-            err("'%s set' requires at least 2 params")
+            err("Requires at least 2 params")
             return
         alias_name = argv[0]
         alias_cmds  = " ".join(argv[1:]).split(";")
