@@ -4467,10 +4467,10 @@ class XorMemoryDisplayCommand(GenericCommand):
         info("Displaying XOR-ing %#x-%#x with '%s'" % (address, address+len(block), key))
 
         print(( titlify("Original block") ))
-        print(( hexdump( block ) ))
+        print(( hexdump( block, base=address ) ))
 
         print(( titlify("XOR-ed block") ))
-        print(( hexdump( XOR(block, key) )))
+        print(( hexdump( XOR(block, key), base=address )))
         return
 
 
