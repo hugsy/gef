@@ -1966,13 +1966,13 @@ class SearchPatternCommand(GenericCommand):
         locations = []
 
         for m in re.finditer(pattern, buf):
-            start = start_address + m.start()
-            string = read_cstring_from_memory(start)
-            end   = start + len(string)
-
-            if '\t' in string: string = string[:string.index('\t')] + "[...]"
-            if '\n' in string: string = string[:string.index('\n')] + "[...]"
-
+            try:
+                start = start_address + m.start()
+                string = read_cstring_from_memory(start)
+                end   = start + len(string)
+            except UnicodeError:
+                string = str(pattern) + "[...]"
+                end    = start + len(pattern)
             locations.append( (start, end, string) )
         return locations
 
