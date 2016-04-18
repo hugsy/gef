@@ -86,8 +86,8 @@ else:
 
 __aliases__ = {}
 __config__ = {}
-NO_COLOR = False
 __infos_files__ = []
+NO_COLOR = False
 DEFAULT_PAGE_ALIGN_SHIFT = 12
 DEFAULT_PAGE_SIZE = 1 << DEFAULT_PAGE_ALIGN_SHIFT
 GEF_RC = os.getenv("HOME") + "/.gef.rc"
@@ -619,42 +619,20 @@ def info(msg):
     gdb.flush()
     return
 
-def hexdump(src, l=0x10, sep='.', show_raw=False, base=0x00):
-    res = []
-
+def __hexdump(src, l, sep, show_raw, base, func):
+    result = []
     for i in range(0, len(src), l):
         s = src[i:i+l]
-        hexa = ''
-        isMiddle = False
+        hexa = b' '.join([b"%02X" % func(x) for x in s])
+        text = b''.join([struct.pack("<B", func(x)) if 0x20 <= func(x) < 0x7F else sep for x in s])
+        result.append( b"%#-.*x     %-*s    %s" % (16, base+i, 3*l, hexa, text) )
+    return b'\n'.join(result)
 
-        for h in range(0,len(s)):
-            if h == l/2:
-                hexa += ' '
-            h = s[h]
-            if not isinstance(h, int):
-                h = ord(h)
-            h = hex(h).replace('0x','')
-            if len(h) == 1:
-                h = '0'+h
-            hexa += h + ' '
-
-        hexa = hexa.strip(' ')
-        text = ''
-
-        for c in s:
-            if not isinstance(c, int):
-                c = ord(c)
-                if 0x20 <= c < 0x7F:
-                    text += chr(c)
-                else:
-                    text += sep
-
-        if show_raw:
-            res.append(('%-'+str(l*(2+1)+1)+'s') % (hexa))
-        else:
-            res.append(('%08X:  %-'+str(l*(2+1)+1)+'s  |%s|') % (i+base, hexa, text))
-
-    return '\n'.join(res)
+def hexdump(src, l=0x10, sep=b'.', show_raw=False, base=0x00):
+    if PYTHON_MAJOR == 3:
+        return __hexdump(src, l, sep, show_raw, base, int).decode(encoding="utf-8")
+    else:
+        return __hexdump(src, l, sep, show_raw, base, ord)
 
 def is_debug():
     return "global.debug" in __config__.keys() and __config__["global.debug"][0]==True
@@ -1437,9 +1415,9 @@ def lookup_address(address):
 def XOR(data, key):
     key = binascii.unhexlify(key)
     if PYTHON_MAJOR == 2:
-        return ''.join(chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key)))
-    else:
-        return ''.join(chr(x ^ y) for (x,y) in zip(data, itertools.cycle(key)))
+        return b''.join([chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key))])
+
+    return bytearray([x ^ y for (x,y) in zip(data, itertools.cycle(key))])
 
 
 def ishex(pattern):
@@ -3958,7 +3936,7 @@ class ContextCommand(GenericCommand):
             sp = get_sp()
             if show_raw == True:
                 mem = read_memory(sp, 0x10 * nb_lines)
-                print(( hexdump(mem) ))
+                print(( hexdump(mem, base=sp) ))
             else:
                 InspectStackCommand.inspect_stack(sp, nb_lines)
 
@@ -4462,15 +4440,16 @@ class XorMemoryDisplayCommand(GenericCommand):
             return
 
         address = long(gdb.parse_and_eval(argv[0]))
-        length, key = long(argv[1]), argv[2]
+        length = long(argv[1])
+        key = argv[2]
         block = read_memory(address, length)
-        info("Displaying XOR-ing %#x-%#x with '%s'" % (address, address+len(block), key))
+        info("Displaying XOR-ing %#x-%#x with %s" % (address, address+len(block), repr(key)))
 
-        print(( titlify("Original block") ))
-        print(( hexdump( block, base=address ) ))
+        print( titlify("Original block") )
+        print( hexdump(block, base=address) )
 
-        print(( titlify("XOR-ed block") ))
-        print(( hexdump( XOR(block, key), base=address )))
+        print( titlify("XOR-ed block") )
+        print( hexdump(XOR(block, key), base=address))
         return
 
 
