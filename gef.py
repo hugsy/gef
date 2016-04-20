@@ -2724,10 +2724,14 @@ class CapstoneDisassembleCommand(GenericCommand):
 
         page_start  = align_address_to_page(location)
         offset      = location - page_start
-        mem         = read_memory(location, DEFAULT_PAGE_SIZE-offset-1)
         inst_num    = 0
-        code        = bytes(mem)
         pc          = get_pc()
+
+        code        = kwargs.get("code", None)
+        if code is None:
+            code  = read_memory(location, DEFAULT_PAGE_SIZE-offset-1)
+
+        code        = bytes(code)
 
         for insn in cs.disasm(code, location):
             m = Color.boldify(Color.blueify(format_address(insn.address))) + "\t"
@@ -4431,25 +4435,38 @@ class XorMemoryDisplayCommand(GenericCommand):
     """Display a block of memory by XOR-ing each key with a key."""
 
     _cmdline_ = "xor-memory display"
-    _syntax_  = "%s <address> <size_to_read> <xor_key> " % _cmdline_
+    _syntax_  = "%s <address> <size_to_read> <xor_key> [-i]" % _cmdline_
 
 
     def do_invoke(self, argv):
-        if len(argv) != 3:
+        if not is_alive():
+            warn("No debugging session active")
+            return
+
+        if len(argv) not in (3, 4):
             self.usage()
             return
 
         address = long(gdb.parse_and_eval(argv[0]))
         length = long(argv[1])
         key = argv[2]
+        show_as_instructions = True if len(argv)==4 and argv[3]=="-i" else False
         block = read_memory(address, length)
         info("Displaying XOR-ing %#x-%#x with %s" % (address, address+len(block), repr(key)))
 
         print( titlify("Original block") )
-        print( hexdump(block, base=address) )
+        if show_as_instructions:
+            CapstoneDisassembleCommand.disassemble(address, -1, code=block)
+        else:
+            print( hexdump(block, base=address) )
+
 
         print( titlify("XOR-ed block") )
-        print( hexdump(XOR(block, key), base=address))
+        xored = XOR(block, key)
+        if show_as_instructions:
+            CapstoneDisassembleCommand.disassemble(address, -1, code=xored)
+        else:
+            print( hexdump(xored, base=address))
         return
 
 
@@ -4461,6 +4478,10 @@ class XorMemoryPatchCommand(GenericCommand):
 
 
     def do_invoke(self, argv):
+        if not is_alive():
+            warn("No debugging session active")
+            return
+
         if len(argv) != 3:
             self.usage()
             return
