@@ -37,7 +37,6 @@
 
 from __future__ import print_function
 
-import gdb
 import math
 import struct
 import subprocess
@@ -55,6 +54,8 @@ import time
 import resource
 import string
 import itertools
+import hashlib
+
 
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
@@ -81,6 +82,42 @@ elif sys.version_info.major == 3:
 
 else:
     raise Exception("WTF is this Python version??")
+
+
+def __update_gef(argv):
+    gef_local = os.path.realpath(argv[0])
+    hash_gef_local = hashlib.sha256( open(gef_local).read() ).hexdigest()
+    print(gef_local, hash_gef_local)
+
+    gef_remote = "https://raw.githubusercontent.com/hugsy/gef/master/gef.py"
+    fd, fpath = tempfile.mkstemp()
+
+    http = urlopen(gef_remote)
+    if http.getcode() != 200:
+        print("[-] Failed to update")
+        return
+
+    with fdopen(fd, "w") as f: f.write( http.read() )
+    hash_gef_remote = hashlib.sha256( open(fpath).read() ).hexdigest()
+
+    if hash_gef_local==hash_gef_remote:
+        print("No update")
+        os.unlink(fpath)
+    else:
+        os.rename(fpath, gef_local)
+        print("Updated")
+
+    return
+
+
+try:
+    import gdb
+    ALLOW_UPDATE_ONLY = False
+except ImportError:
+    ALLOW_UPDATE_ONLY = True
+    if len(sys.argv)!=2 or sys.argv[1]!="--update":
+        sys.exit(1)
+    sys.exit( __update_gef(sys.argv) )
 
 
 
@@ -5156,7 +5193,11 @@ def __gef_prompt__(current_prompt):
     return prompt
 
 
+
+
 if __name__  == "__main__":
+    if ALLOW_UPDATE_ONLY:
+        sys.exit(0)
 
     # setup prompt
     gdb.prompt_hook = __gef_prompt__
