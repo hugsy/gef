@@ -55,6 +55,7 @@ import resource
 import string
 import itertools
 import hashlib
+import shutil
 
 
 if sys.version_info.major == 2:
@@ -101,11 +102,10 @@ def __update_gef(argv):
 
     if hash_gef_local==hash_gef_remote:
         print("No update")
-        os.unlink(fpath)
     else:
-        os.rename(fpath, gef_local)
+        shutil.copyfile(fpath, gef_local)
         print("Updated")
-
+    os.unlink(fpath)
     return
 
 
