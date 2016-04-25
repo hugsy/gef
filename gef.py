@@ -87,17 +87,16 @@ else:
 def __update_gef(argv):
     gef_local = os.path.realpath(argv[0])
     hash_gef_local = hashlib.sha256( open(gef_local).read() ).hexdigest()
-    print(gef_local, hash_gef_local)
-
     gef_remote = "https://raw.githubusercontent.com/hugsy/gef/master/gef.py"
     fd, fpath = tempfile.mkstemp()
-
     http = urlopen(gef_remote)
     if http.getcode() != 200:
         print("[-] Failed to update")
         return
 
-    with fdopen(fd, "w") as f: f.write( http.read() )
+    with os.fdopen(fd, "w") as f:
+        f.write( http.read() )
+
     hash_gef_remote = hashlib.sha256( open(fpath).read() ).hexdigest()
 
     if hash_gef_local==hash_gef_remote:
