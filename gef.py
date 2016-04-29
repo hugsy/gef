@@ -1478,13 +1478,18 @@ def define_user_command(cmd, code):
 
 
 def get_terminal_size():
+    """
+    Portable function to retrieve the current terminal size.
+    """
     cmd = [which("stty"), "size"]
     tty_rows, tty_columns = gef_execute_external(cmd).strip().split()
     return int(tty_rows), int(tty_columns)
 
 
-def get_cs_uc_arch(module, prefix, to_string=False):
-    "Retrieves architecture and mode from the current context."
+def get_generic_arch(module, prefix, to_string=False):
+    """
+    Retrieves architecture and mode from the current context for the holy {cap,key}stone/unicorn trinity.
+    """
 
     if not is_alive():
         return None, None
@@ -1520,12 +1525,17 @@ def get_cs_uc_arch(module, prefix, to_string=False):
 
 def get_unicorn_arch(to_string=False):
     unicorn = sys.modules["unicorn"]
-    return get_cs_uc_arch(unicorn, "UC", to_string)
+    return get_generic_arch(unicorn, "UC", to_string)
 
 
 def get_capstone_arch(to_string=False):
     capstone = sys.modules["capstone"]
-    return get_cs_uc_arch(capstone, "CS", to_string)
+    return get_generic_arch(capstone, "CS", to_string)
+
+
+def get_keystone_arch(to_string=False):
+    keystone = sys.modules["keystone"]
+    return get_generic_arch(keystone, "KS", to_string)
 
 
 def get_unicorn_registers(to_string=False):
@@ -1550,6 +1560,29 @@ def get_unicorn_registers(to_string=False):
         else:
             regs[r] = getattr(const, regname)
     return regs
+
+
+def keystone_assemble(code, arch, mode, *args, **kwargs):
+    """Assembly encoding function based on keystone."""
+    keystone = sys.modules["keystone"]
+    code = bytes(code, encoding="utf-8")
+    addr = kwargs.get("addr", 0x1000)
+
+    try:
+        ks = keystone.Ks(arch, mode)
+        enc, cnt = ks.asm(code, addr)
+    except keystone.KsError as e:
+        err("Keystone assembler error: {:s}".format(e))
+        return []
+
+    enc = bytearray(enc)
+    if kwargs.get("raw", False)!=True:
+        # print as string
+        s = binascii.hexlify(enc)
+        enc = b"\\x" + b"\\x".join( [s[i:i+2] for i in range(0, len(s), 2)] )
+        enc = enc.decode("utf-8")
+
+    return enc
 
 
 @memoize
@@ -2074,9 +2107,11 @@ class ChangePermissionCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            r2 = which("rasm2")
+            import keystone
         except IOError as ioe:
-            raise GefMissingDependencyException("Binary `rasm2` missing: %s" % ioe)
+            msg = "Missing Python `keystone` package. "
+            msg+= "Install with `pip{} install keystone`".format(PYTHON_MAJOR)
+            raise GefMissingDependencyException( msg )
         return
 
     def do_invoke(self, argv):
@@ -2117,48 +2152,48 @@ class ChangePermissionCommand(GenericCommand):
 
     def get_stub_by_arch(self, addr, size, perm):
         if is_x86_64():
-            sc_num = 10
+            _NR_mprotect = 10
             insns = [
                 "push rax", "push rdi", "push rsi", "push rdx",
-                "mov rax, %d" % sc_num,
-                "mov rdi, %#x" % addr,
-                "mov rsi, %#x" % size,
-                "mov rdx, %d" % perm,
+                "mov rax, %d"  % _NR_mprotect,
+                "mov rdi, %d"  % addr,
+                "mov rsi, %d"  % size,
+                "mov rdx, %d"  % perm,
                 "syscall",
                 "pop rdx", "pop rsi", "pop rdi", "pop rax"
             ]
         elif is_x86_32():
-            sc_num = 125
+            _NR_mprotect = 125
             insns = [
                 "pushad",
-                "mov eax, %d" % sc_num,
-                "mov ebx, %#x" % addr,
-                "mov ecx, %#x" % size,
-                "mov edx, %d" % perm,
+                "mov eax, %d"  % _NR_mprotect,
+                "mov ebx, %d"  % addr,
+                "mov ecx, %d"  % size,
+                "mov edx, %d"  % perm,
                 "int 0x80",
                 "popad",
             ]
         elif is_arm():
-            sc_num = 125
+            _NR_mprotect = 125
             insns = [
                 "push {r0-r2, r7}",
-                "ldr r0, =%d"%addr,
-                "ldr r1, =%d"%size,
-                "ldr r2, =%d"%perm,
-                "mov r7, %d"%sc_num,
+                "ldr r0, =%d" % addr,
+                "ldr r1, =%d" % size,
+                "ldr r2, =%d" % perm,
+                "mov r7, %d"  % _NR_mprotect,
                 "svc 0",
                 "pop {r0-r2, r7}",
             ]
         elif is_mips():
-            sc_num = 125
+            _NR_mprotect = 125
             insns = [
                 "addi sp, sp, -16",
                 "sw v0, 0(sp)", "sw a0, 4(sp)",
                 "sw a1, 8(sp)", "sw a2, 12(sp)",
-                "li v0, %d"%sc_num,
-                "li a0, %d"%addr,
-                "li a1, %d"%size,
-                "li a2, %d"%perm,
+                "li v0, %d" % _NR_mprotect,
+                "li a0, %d" % addr,
+                "li a1, %d" % size,
+                "li a2, %d" % perm,
                 "syscall",
                 "lw v0, 0(sp)", "lw a0, 4(sp)",
                 "lw a1, 8(sp)", "lw a2, 12(sp)",
@@ -2167,8 +2202,9 @@ class ChangePermissionCommand(GenericCommand):
         else:
             raise GefUnsupportedOS("Architecture %s not supported yet" % get_arch())
 
-        insns = b"".join([AssembleCommand.gef_assemble_instruction(i, raw=True) for i in insns])
-        return insns
+        arch, mode = get_keystone_arch()
+        raw_insns = keystone_assemble(" ; ".join(insns), arch, mode, raw=True)
+        return raw_insns
 
 
 class UnicornEmulateCommand(GenericCommand):
@@ -2199,6 +2235,7 @@ class UnicornEmulateCommand(GenericCommand):
     def pre_load(self):
         try:
             import unicorn
+            import capstone
         except ImportError as ie:
             msg = "This command requires the following packages: `unicorn` and `capstone`."
             raise GefMissingDependencyException( msg )
@@ -2713,7 +2750,7 @@ class CapstoneDisassembleCommand(GenericCommand):
             import capstone
         except ImportError as ie:
             msg = "Missing Python `capstone` package. "
-            msg+= "Install with `pip install capstone`"
+            msg+= "Install with `pip{} install capstone`".format(PYTHON_MAJOR)
             raise GefMissingDependencyException( msg )
         return
 
@@ -2767,7 +2804,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         if code is None:
             code  = read_memory(location, DEFAULT_PAGE_SIZE-offset-1)
 
-        code        = bytes(code)
+        code = bytes(code)
 
         for insn in cs.disasm(code, location):
             m = Color.boldify(Color.blueify(format_address(insn.address))) + "\t"
@@ -3414,17 +3451,14 @@ class CtfExploitTemplaterCommand(GenericCommand):
         path = argv[2] if argc==3 else self.get_setting("exploit_path")
 
         asm_def = ""
-        r, t = __config__.get("assemble.rasm2_path", (None, None))
-        if r is not None:
-            a, m = AssembleCommand.get_arch_mode()
-            asm_def = """
-def asm(code, arch="%s", bits=%d):
-    r2 = "%s"
-    cmd = "{} -a {} -b {}".format(r2, arch, bits).split(" ")
-    cmd+= [code, ]
-    try: rc = subprocess.check_output(cmd).strip()
-    except: return ""
-    return binascii.unhexlify(rc)
+        a, m = get_keystone_arch(to_string=True)
+        asm_def = """
+def asm(code, arch="%s", mode=%s):
+    import keystone
+    ks = keystone.Ks(arch, mode)
+    try: enc, cnt = ks.asm(code)
+    except: enc = []
+    return bytearray(enc)
 """%(a, m, r)
 
         with open(path, "w") as f:
@@ -3579,75 +3613,34 @@ class AssembleCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            r2 = which("rasm2")
-            self.add_setting("rasm2_path", r2)
-
-            arch, mode = AssembleCommand.get_arch_mode()
-            self.add_setting("rasm2_arch", arch)
-            self.add_setting("rasm2_mode", mode)
+            import keystone
         except IOError as ioe:
-            raise GefMissingDependencyException("radare2 missing: %s" % ioe)
-
+            msg = "Missing Python `keystone` package. "
+            msg+= "Install with `pip{} install keystone`".format(PYTHON_MAJOR)
+            raise GefMissingDependencyException( msg )
         return
 
-    @staticmethod
-    def get_arch_mode():
-        try:
-            arch = get_arch()
-            if "i386" in arch: a = "x86"
-            elif "armv" in arch: a = "arm"
-            elif "mips" in arch: a = "mips"
-            elif "aarch64" in arch: a = "arm"
-            else: a = arch
-
-            m = 64 if is_elf64() else 32
-        except:
-            a, m = "x86", 64
-        return (a, m)
-
     def do_invoke(self, argv):
-        r2 = self.get_setting("rasm2_path")
-        if not self.has_setting("arch") or not self.has_setting("bits"):
-            a, b = AssembleCommand.get_arch_mode()
-            self.add_setting("arch", a)
-            self.add_setting("bits", b)
-
-        arch = self.get_setting("arch")
-        bits = self.get_setting("bits")
-
-        if len(argv)==0 or (len(argv)==1 and argv[0]=="list"):
-            self.usage()
-            err("Modes available:\n%s" % gef_execute_external("{} -L;exit 0".format(r2), shell=True))
-            return
+        keystone = sys.modules["keystone"]
+        arch, mode = get_keystone_arch()
+        if (arch, mode)==(None, None):
+            # if not alive, fall back to x86-32
+            arch, mode = keystone.KS_ARCH_X86, keystone.KS_MODE_32 + keystone.KS_MODE_LITTLE_ENDIAN
 
         insns = " ".join(argv)
         insns = [x.strip() for x in insns.split(";")]
-        info("Assembling {} instructions for {} ({} bits):".format(len(insns), arch, bits))
+
+        info("Assembling {} instruction{}:".format(len(insns), 's' if len(insns)>1 else '' ))
 
         for insn in insns:
-            res = AssembleCommand.gef_assemble_instruction(insn)
-            if res is None:
-                break
+            res = keystone_assemble(insn, arch, mode, raw=False)
+            if len(res)==0:
+                print("(Invalid)")
+                continue
 
-            print( "{0:60s} # {1:s}".format(res, insn))
+            print("{0:60s} # {1}".format(res, insn))
 
         return
-
-    @staticmethod
-    def gef_assemble_instruction(insn, raw=False):
-        r2 = __config__[AssembleCommand._cmdline_ + ".rasm2_path"][0]
-        arch, bits = AssembleCommand.get_arch_mode()
-        cmd = "{} {} -a {} -b {} '{}';".format(r2, "-C" if not raw else "", arch, bits, insn)
-        res = gef_execute_external(cmd+"exit 0", shell=True).strip()
-        if "invalid" in res:
-            err("r2 failed: {}".format(res))
-            return None
-
-        if raw:
-            stub = bytearray(res.replace('"',''), "utf-8")
-            res = binascii.unhexlify(stub)
-
-        return res
 
 
 class InvokeCommand(GenericCommand):
