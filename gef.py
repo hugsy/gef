@@ -3630,12 +3630,13 @@ class AssembleCommand(GenericCommand):
 
     def do_invoke(self, argv):
         keystone = sys.modules["keystone"]
-        arch, mode, big_endian = None, None, False
-        opts, args = getopt.getopt(argv, "a:m:e")
+        arch, mode, big_endian, as_shellcode = None, None, False, False
+        opts, args = getopt.getopt(argv, "a:m:es")
         for o,a in opts:
             if o=="-a": arch = a
             if o=="-m": mode = a
             if o=="-e": big_endian = True
+            if o=="-s": as_shellcode = True
 
         if (arch, mode)==(None, None):
             if is_alive():
@@ -3644,16 +3645,22 @@ class AssembleCommand(GenericCommand):
                 # if not alive, fall back to x86-32
                 arch, mode = keystone.KS_ARCH_X86, keystone.KS_MODE_32 + keystone.KS_MODE_LITTLE_ENDIAN
 
-        insns = " ".join(argv)
+        insns = " ".join(args)
         insns = [x.strip() for x in insns.split(";")]
 
         info("Assembling {} instruction{}:".format(len(insns), 's' if len(insns)>1 else '' ))
+
+        if as_shellcode:
+            print("""sc="" """)
 
         for insn in insns:
             res = keystone_assemble(insn, arch, mode, raw=False)
             if len(res)==0:
                 print("(Invalid)")
                 continue
+
+            if as_shellcode:
+                res = """sc+="{0:s}" """.format(res)
 
             print("{0:60s} # {1}".format(res, insn))
 
