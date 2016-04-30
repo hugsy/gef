@@ -256,7 +256,7 @@ class Permission:
     ALL       = 7
 
     def __init__(self, *args, **kwargs):
-        self.value = 0
+        self.value = kwargs.get("value", 0)
         return
 
     def __or__(self, a):
@@ -2141,7 +2141,7 @@ class ChangePermissionCommand(GenericCommand):
         size = sect.page_end - sect.page_start
         original_pc = get_pc()
 
-        info("Generating stub: sys_mprotect(%#x, %d, %d)"%(sect.page_start, size, perm))
+        info("Generating sys_mprotect(%#x, %#x, '%s') stub for arch %s"%(sect.page_start, size, Permission(value=perm), get_arch()))
         stub = self.get_stub_by_arch(sect.page_start, size, perm)
 
         info("Saving original code")
