@@ -625,7 +625,7 @@ class GlibcChunk:
             msg += "\n"
             msg += self.str_as_alloced()
 
-        gdb.write(msg)
+        gdb.write(msg+"\n")
         gdb.flush()
         return
 
