@@ -1486,24 +1486,11 @@ def get_terminal_size():
     return int(tty_rows), int(tty_columns)
 
 
-def get_generic_arch(module, prefix, to_string=False):
+def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):
     """
-    Retrieves architecture and mode from the current context for the holy {cap,key}stone/unicorn trinity.
+    Retrieves architecture and mode from the arguments for use for the holy
+    {cap,key}stone/unicorn trinity.
     """
-
-    if not is_alive():
-        return None, None
-
-    if   is_x86_32():    arch, mode = "X86", 32
-    elif is_x86_64():    arch, mode = "X86", 64
-    elif is_powerpc():   arch, mode = "PPC", "PPC32"
-    elif is_mips():      arch, mode = "MIPS", "MIPS32"
-    elif is_sparc():     arch, mode = "SPARC", "SPARC32"
-    elif is_arm():       arch, mode = "ARM", "ARM"
-    elif is_aarch64():   arch, mode = "ARM", "ARM"
-    else:
-        raise GefUnsupportedOS("Emulation not supported for your OS")
-
     if to_string:
         arch = "%s.%s_ARCH_%s" % (module.__name__, prefix, arch)
         mode = "%s.%s_MODE_%s" % (module.__name__, prefix, str(mode))
@@ -1514,8 +1501,8 @@ def get_generic_arch(module, prefix, to_string=False):
 
     else:
         arch = getattr(module, "%s_ARCH_%s" % (prefix, arch))
-        mode = getattr(module, "%s_MODE_%s" % (prefix, str(mode)))
-        if is_big_endian():
+        mode = getattr(module, "%s_MODE_%s" % (prefix, mode))
+        if big_endian:
             mode += getattr(module, "%s_MODE_BIG_ENDIAN" % prefix)
         else:
             mode += getattr(module, "%s_MODE_LITTLE_ENDIAN" % prefix)
@@ -1523,19 +1510,40 @@ def get_generic_arch(module, prefix, to_string=False):
     return arch, mode
 
 
+def get_generic_running_arch(module, prefix, to_string=False):
+    """
+    Retrieves architecture and mode from the current context.
+    """
+
+    if not is_alive():
+        return None, None
+
+    if   is_x86_32():    arch, mode = "X86", "32"
+    elif is_x86_64():    arch, mode = "X86", "64"
+    elif is_powerpc():   arch, mode = "PPC", "PPC32"
+    elif is_mips():      arch, mode = "MIPS", "MIPS32"
+    elif is_sparc():     arch, mode = "SPARC", "SPARC32"
+    elif is_arm():       arch, mode = "ARM", "ARM"
+    elif is_aarch64():   arch, mode = "ARM", "ARM"
+    else:
+        raise GefUnsupportedOS("Emulation not supported for your OS")
+
+    return get_generic_arch(module, prefix, arch, mode, is_big_endian(), to_string)
+
+
 def get_unicorn_arch(to_string=False):
     unicorn = sys.modules["unicorn"]
-    return get_generic_arch(unicorn, "UC", to_string)
+    return get_generic_running_arch(unicorn, "UC", to_string)
 
 
 def get_capstone_arch(to_string=False):
     capstone = sys.modules["capstone"]
-    return get_generic_arch(capstone, "CS", to_string)
+    return get_generic_running_arch(capstone, "CS", to_string)
 
 
 def get_keystone_arch(to_string=False):
     keystone = sys.modules["keystone"]
-    return get_generic_arch(keystone, "KS", to_string)
+    return get_generic_running_arch(keystone, "KS", to_string)
 
 
 def get_unicorn_registers(to_string=False):
@@ -3622,10 +3630,19 @@ class AssembleCommand(GenericCommand):
 
     def do_invoke(self, argv):
         keystone = sys.modules["keystone"]
-        arch, mode = get_keystone_arch()
+        arch, mode, big_endian = None, None, False
+        opts, args = getopt.getopt(argv, "a:m:e")
+        for o,a in opts:
+            if o=="-a": arch = a
+            if o=="-m": mode = a
+            if o=="-e": big_endian = True
+
         if (arch, mode)==(None, None):
-            # if not alive, fall back to x86-32
-            arch, mode = keystone.KS_ARCH_X86, keystone.KS_MODE_32 + keystone.KS_MODE_LITTLE_ENDIAN
+            if is_alive():
+                arch, mode = get_keystone_arch()
+            else:
+                # if not alive, fall back to x86-32
+                arch, mode = keystone.KS_ARCH_X86, keystone.KS_MODE_32 + keystone.KS_MODE_LITTLE_ENDIAN
 
         insns = " ".join(argv)
         insns = [x.strip() for x in insns.split(";")]
