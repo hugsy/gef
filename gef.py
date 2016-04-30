@@ -1070,6 +1070,7 @@ def all_registers():
     elif is_x86_32():    return x86_32_registers()
     elif is_x86_64():    return x86_64_registers()
     elif is_powerpc():   return powerpc_registers()
+    elif is_ppc64():     return powerpc_registers()
     elif is_sparc():     return sparc_registers()
     elif is_mips():      return mips_registers()
     elif is_aarch64():   return aarch64_registers()
@@ -1082,6 +1083,7 @@ def nop_insn():
     elif is_x86_32():    return x86_32_nop_insn()
     elif is_x86_64():    return x86_64_nop_insn()
     elif is_powerpc():   return powerpc_nop_insn()
+    elif is_ppc64():     return powerpc_nop_insn()
     elif is_sparc():     return sparc_nop_insn()
     elif is_mips():      return mips_nop_insn()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
@@ -1093,6 +1095,7 @@ def return_register():
     elif is_x86_32():    return x86_32_return_register()
     elif is_x86_64():    return x86_64_return_register()
     elif is_powerpc():   return powerpc_return_register()
+    elif is_ppc64():     return powerpc_return_register()
     elif is_sparc():     return sparc_return_register()
     elif is_mips():      return mips_return_register()
     elif is_aarch64():   return aarch64_return_register()
@@ -1105,6 +1108,7 @@ def flag_register():
     elif is_x86_32():    return x86_flag_register()
     elif is_x86_64():    return x86_flag_register()
     elif is_powerpc():   return powerpc_flag_register()
+    elif is_ppc64():     return powerpc_flag_register()
     elif is_mips():      return mips_flag_register()
     elif is_sparc():     return sparc_flag_register()
     elif is_aarch64():   return aarch64_flag_register()
@@ -1118,6 +1122,7 @@ def flags_table():
     elif is_arm():        return arm_flags_table()
     elif is_aarch64():    return aarch64_flags_table()
     elif is_powerpc():    return powerpc_flags_table()
+    elif is_ppc64():      return powerpc_flags_table()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 
@@ -1126,6 +1131,7 @@ def flag_register_to_human(val=None):
     elif is_x86_32():    return x86_flags_to_human(val)
     elif is_x86_64():    return x86_flags_to_human(val)
     elif is_powerpc():   return powerpc_flags_to_human(val)
+    elif is_ppc64():     return powerpc_flags_to_human(val)
     elif is_mips():      return mips_flags_to_human(val)
     elif is_sparc():     return sparc_flags_to_human(val)
     elif is_aarch64():   return aarch64_flags_to_human(val)
@@ -1663,6 +1669,10 @@ def is_mips():
 def is_powerpc():
     elf = get_elf_headers()
     return elf.e_machine==0x14 # http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
+
+def is_ppc64():
+    elf = get_elf_headers()
+    return elf.e_machine==0x15 # http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
 
 @memoize
 def is_sparc():
@@ -2212,6 +2222,7 @@ class ChangePermissionCommand(GenericCommand):
                 "pop {r0-r2, r7}",
             ]
         elif is_mips():
+            # todo : test
             _NR_mprotect = 125
             insns = [
                 "addi sp, sp, -16",
@@ -2226,7 +2237,13 @@ class ChangePermissionCommand(GenericCommand):
                 "lw a1, 8(sp)", "lw a2, 12(sp)",
                 "addi sp, sp, 16",
             ]
-        # todo : ppc / sparc
+        elif is_powerpc():
+            # todo
+            _NR_mprotect = 10
+            insns = [
+
+            ]
+        # todo : sparc
         else:
             raise GefUnsupportedOS("Architecture %s not supported yet" % get_arch())
 
