@@ -655,20 +655,34 @@ def info(msg):
     gdb.flush()
     return
 
-def __hexdump(src, l, sep, show_raw, base, func):
+def hexdump(source, length=0x10, separator='.', show_raw=False, base=0x00):
+    """
+    Return the hexdump of `src` argument.
+    @param source *MUST* be of type bytes or bytearray
+    @param length is the length of items per line
+    @param separator is the default character to use if one byte is not printable
+    @param show_raw if True, do not add the line nor the text translation
+    @param base is the start address of the block being hexdump
+    @param func is the function to use to parse bytes (int for Py3, chr for Py2)
+    @return a string with the hexdump
+    """
     result = []
-    for i in range(0, len(src), l):
-        s = src[i:i+l]
-        hexa = b' '.join([b"%02X" % func(x) for x in s])
-        text = b''.join([struct.pack("<B", func(x)) if 0x20 <= func(x) < 0x7F else sep for x in s])
-        result.append( b"%#-.*x     %-*s    %s" % (16, base+i, 3*l, hexa, text) )
-    return b'\n'.join(result)
+    for i in range(0, len(source), length):
+        s = source[i:i+length]
 
-def hexdump(src, l=0x10, sep=b'.', show_raw=False, base=0x00):
-    if PYTHON_MAJOR == 3:
-        return __hexdump(src, l, sep, show_raw, base, int).decode(encoding="utf-8")
-    else:
-        return __hexdump(src, l, sep, show_raw, base, ord)
+        if PYTHON_MAJOR == 3:
+            hexa = ' '.join(["%02X" % c for c in s])
+            text = ''.join( [chr(c) if 0x20 <= c < 0x7F else separator for c in s] )
+        else:
+            hexa = ' '.join(["%02X" % ord(c) for c in s])
+            text = ''.join( [c if 0x20 <= ord(c) < 0x7F else separator for c in s] )
+
+        if show_raw:
+            result.append(hexa)
+        else:
+            result.append( "%#-.*x     %-*s    %s" % (16, base+i, 3*length, hexa, text) )
+
+    return '\n'.join(result)
 
 def is_debug():
     return "global.debug" in __config__.keys() and __config__["global.debug"][0]==True
@@ -2116,7 +2130,7 @@ class ChangePermissionCommand(GenericCommand):
     def pre_load(self):
         try:
             import keystone
-        except IOError as ioe:
+        except ImportError as ioe:
             msg = "Missing Python `keystone` package. "
             msg+= "Install with `pip{} install keystone`".format(PYTHON_MAJOR)
             raise GefMissingDependencyException( msg )
@@ -3493,7 +3507,7 @@ class ROPgadgetCommand(GenericCommand):
 
         except ImportError as ie:
             msg = "Missing Python `ropgadget` package. "
-            msg+= "Install with `pip install ropgadget`"
+            msg+= "Install with `pip{} install ropgadget`".format(PYTHON_MAJOR)
             raise GefMissingDependencyException( msg )
 
         return
@@ -3622,7 +3636,7 @@ class AssembleCommand(GenericCommand):
     def pre_load(self):
         try:
             import keystone
-        except IOError as ioe:
+        except ImportError as ioe:
             msg = "Missing Python `keystone` package. "
             msg+= "Install with `pip{} install keystone`".format(PYTHON_MAJOR)
             raise GefMissingDependencyException( msg )
@@ -3993,7 +4007,7 @@ class ContextCommand(GenericCommand):
             sp = get_sp()
             if show_raw == True:
                 mem = read_memory(sp, 0x10 * nb_lines)
-                print(( hexdump(mem, base=sp) ))
+                print( hexdump(mem, base=sp) )
             else:
                 InspectStackCommand.inspect_stack(sp, nb_lines)
 
@@ -5047,7 +5061,7 @@ class GEFCommand(gdb.Command):
                         gdb.execute("alias -a {} = {}".format(alias, cmd, ))
 
             except Exception as e:
-                err("Failed to load `%s`: %s" % (cmd, e))
+                warn("Failed to load `%s`: %s" % (cmd, e))
 
         self.__loaded_cmds = sorted(loaded, key=lambda x: x[1]._cmdline_)
 
