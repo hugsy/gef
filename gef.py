@@ -1133,6 +1133,7 @@ def flag_register_to_human(val=None):
 
 
 def write_memory(address, buffer, length=0x10):
+    if PYTHON_MAJOR == 2: buffer = str(buffer)
     return gdb.selected_inferior().write_memory(address, buffer, length)
 
 
@@ -1591,7 +1592,7 @@ def get_unicorn_registers(to_string=False):
 def keystone_assemble(code, arch, mode, *args, **kwargs):
     """Assembly encoding function based on keystone."""
     keystone = sys.modules["keystone"]
-    code = bytes(code, encoding="utf-8")
+    if PYTHON_MAJOR==3: code = bytes(code, encoding="utf-8")
     addr = kwargs.get("addr", 0x1000)
 
     try:
@@ -2203,10 +2204,10 @@ class ChangePermissionCommand(GenericCommand):
             _NR_mprotect = 125
             insns = [
                 "push {r0-r2, r7}",
-                "ldr r0, =%d" % addr,
-                "ldr r1, =%d" % size,
-                "ldr r2, =%d" % perm,
-                "mov r7, %d"  % _NR_mprotect,
+                "mov r0, %d" % addr,
+                "mov r1, %d" % size,
+                "mov r2, %d" % perm,
+                "mov r7, %d" % _NR_mprotect,
                 "svc 0",
                 "pop {r0-r2, r7}",
             ]
@@ -3688,7 +3689,7 @@ class AssembleCommand(GenericCommand):
 
         for insn in insns:
             res = keystone_assemble(insn, arch, mode, raw=False)
-            if len(res)==0:
+            if res is None:
                 print("(Invalid)")
                 continue
 
