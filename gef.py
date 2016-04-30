@@ -1545,19 +1545,23 @@ def get_generic_running_arch(module, prefix, to_string=False):
     return get_generic_arch(module, prefix, arch, mode, is_big_endian(), to_string)
 
 
-def get_unicorn_arch(to_string=False):
+def get_unicorn_arch(arch=None, mode=None, endian=None, to_string=False):
     unicorn = sys.modules["unicorn"]
-    return get_generic_running_arch(unicorn, "UC", to_string)
+    if (arch, mode, endian) == (None,None,None):
+        return get_generic_running_arch(unicorn, "UC", to_string)
+    return get_generic_arch(unicorn, "UC", arch, mode, endian, to_string)
 
-
-def get_capstone_arch(to_string=False):
+def get_capstone_arch(arch=None, mode=None, endian=None, to_string=False):
     capstone = sys.modules["capstone"]
-    return get_generic_running_arch(capstone, "CS", to_string)
+    if (arch, mode, endian) == (None,None,None):
+        return get_generic_running_arch(capstone, "CS", to_string)
+    return get_generic_arch(capstone, "CS", arch, mode, endian, to_string)
 
-
-def get_keystone_arch(to_string=False):
+def get_keystone_arch(arch=None, mode=None, endian=None, to_string=False):
     keystone = sys.modules["keystone"]
-    return get_generic_running_arch(keystone, "KS", to_string)
+    if (arch, mode, endian) == (None,None,None):
+        return get_generic_running_arch(keystone, "KS", to_string)
+    return get_generic_arch(keystone, "KS", arch, mode, endian, to_string)
 
 
 def get_unicorn_registers(to_string=False):
@@ -1598,7 +1602,7 @@ def keystone_assemble(code, arch, mode, *args, **kwargs):
         return []
 
     enc = bytearray(enc)
-    if kwargs.get("raw", False)!=True:
+    if kwargs.get("raw", False) != True:
         # print as string
         s = binascii.hexlify(enc)
         enc = b"\\x" + b"\\x".join( [s[i:i+2] for i in range(0, len(s), 2)] )
@@ -2221,6 +2225,7 @@ class ChangePermissionCommand(GenericCommand):
                 "lw a1, 8(sp)", "lw a2, 12(sp)",
                 "addi sp, sp, 16",
             ]
+        # todo : ppc / sparc
         else:
             raise GefUnsupportedOS("Architecture %s not supported yet" % get_arch())
 
@@ -2342,7 +2347,7 @@ def hook_code(emu, address, size, user_data):
     return
 
 
-""" % get_capstone_arch(to_script)
+""" % get_capstone_arch(to_script=to_script)
 
         unicorn = sys.modules['unicorn']
         if verbose:
@@ -3632,7 +3637,7 @@ class AssembleCommand(GenericCommand):
     x86). """
 
     _cmdline_ = "assemble"
-    _syntax_  = "%s (list|instruction1;[instruction2;]...[instructionN;])" % _cmdline_
+    _syntax_  = "%s [-a ARCH] [-m MODE] [-e] [-s] instruction;[instruction;...instruction;])" % _cmdline_
     _aliases_ = ["asm", ]
 
     def __init__(self, *args, **kwargs):
@@ -3651,19 +3656,27 @@ class AssembleCommand(GenericCommand):
     def do_invoke(self, argv):
         keystone = sys.modules["keystone"]
         arch, mode, big_endian, as_shellcode = None, None, False, False
-        opts, args = getopt.getopt(argv, "a:m:es")
+        opts, args = getopt.getopt(argv, "a:m:esh")
         for o,a in opts:
-            if o=="-a": arch = a
-            if o=="-m": mode = a
+            if o=="-a": arch = a.upper()
+            if o=="-m": mode = a.upper()
             if o=="-e": big_endian = True
             if o=="-s": as_shellcode = True
+            if o=="-h":
+                self.usage()
+                return
+
+        if len(args)==0:
+            return
 
         if (arch, mode)==(None, None):
             if is_alive():
                 arch, mode = get_keystone_arch()
             else:
                 # if not alive, fall back to x86-32
-                arch, mode = keystone.KS_ARCH_X86, keystone.KS_MODE_32 + keystone.KS_MODE_LITTLE_ENDIAN
+                arch, mode = get_keystone_arch(arch="X86", mode="32", endian=False)
+        else:
+            arch, mode = get_keystone_arch(arch=arch, mode=mode, endian=big_endian)
 
         insns = " ".join(args)
         insns = [x.strip() for x in insns.split(";")]
