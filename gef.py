@@ -417,8 +417,8 @@ class GlibcArena:
         # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671
         arena = gdb.parse_and_eval(addr)
         self.__arena = arena.cast(gdb.lookup_type("struct malloc_state"))
-        self.__addr = int(arena.address)
-        self.__arch = int(get_memory_alignment(to_byte=True))
+        self.__addr = long(arena.address)
+        self.__arch = long(get_memory_alignment(to_byte=True))
         return
 
     def __getitem__(self, item):
@@ -2925,11 +2925,17 @@ class GlibcHeapArenaCommand(GenericCommand):
             return
 
         ok("Listing active arena(s):")
-        arena = GlibcArena("main_arena")
-        while arena:
-            print(str(arena))
-            next_arena = arena.get_next()
-            arena = next_arena
+        try:
+            arena = GlibcArena("main_arena")
+        except:
+            info("Could not find Glibc main arena")
+            return
+
+        while True:
+            print("%s" % (arena,))
+            arena = arena.get_next()
+            if arena is None:
+                break
 
         return
 
