@@ -727,8 +727,10 @@ def _gef_disassemble_around(addr, nb_insn):
     """
     lines = []
 
-    if not is_x86_32() and not is_x86_64():
-        top = addr - (nb_insn-3)*get_memory_alignment(to_byte=True)*2
+    if not ( is_x86_32() or is_x86_64() ):
+        # all ABI except x86 are fixed length instructions, easy to process
+        insn_len = 4 if is_aarch64() or is_ppc64() else get_memory_alignment(to_byte=True)
+        top = addr - (nb_insn-3)*insn_len*2
         lines = _gef_disassemble_top(top,  nb_insn-1)
         lines+= _gef_disassemble_top(addr, nb_insn)
         return lines
@@ -1809,6 +1811,11 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
 
+        if is_aarch64():
+            regs = ['$x0','$x1','$x2','$x3']
+            ptr = regs[self.num_args]
+            addr = lookup_address( get_register_ex( ptr ) )
+
         elif is_x86_64():
             regs = ['$rdi', '$rsi', '$rdx', '$rcx', '$r8', '$r9']
             ptr = regs[self.num_args]
@@ -1830,7 +1837,6 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             addr = lookup_address( get_register_ex( ptr ) )
 
         elif is_x86_32():
-            # experimental, need more checks
             sp = get_sp()
             m = get_memory_alignment(to_byte=True)
             val = sp + (self.num_args * m) + m
@@ -1841,7 +1847,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             ptr = hex(ptr)
 
         else :
-            raise NotImplementedError()
+            raise NotImplementedError("Architecture '%s' not supported yet for FormatStringBreakpoint.")
 
         if addr is None:
             return False
@@ -2238,33 +2244,40 @@ class ChangePermissionCommand(GenericCommand):
                 "pop {r0-r2, r7}",
             ]
         elif is_mips():
-            # todo : test
-            _NR_mprotect = 125
-            insns = [
-                "addi sp, sp, -16",
-                "sw v0, 0(sp)", "sw a0, 4(sp)",
-                "sw a1, 8(sp)", "sw a2, 12(sp)",
-                "li v0, %d" % _NR_mprotect,
-                "li a0, %d" % addr,
-                "li a1, %d" % size,
-                "li a2, %d" % perm,
-                "syscall",
-                "lw v0, 0(sp)", "lw a0, 4(sp)",
-                "lw a1, 8(sp)", "lw a2, 12(sp)",
-                "addi sp, sp, 16",
-            ]
-        elif is_powerpc() or is_ppc64():
             # todo
             _NR_mprotect = 125
             insns = [
 
+            ]
+        elif is_powerpc() or is_ppc64():
+            _NR_mprotect = 125
+            hi = (addr & 0xffff0000) >> 16
+            lo = (addr & 0x0000ffff)
+            insns = [
+                # http://www.ibm.com/developerworks/library/l-ppc/index.html
+                "addi 1, 1, -16",                 # 1 = r1 = sp
+                "stw 0, 0(1)", "stw 3, 4(1)",     # r0 = syscall_code | r3, r4, r5 = args
+                "stw 4, 8(1)", "stw 5, 12(1)",
+                "li 0, %d" % _NR_mprotect,
+                "lis 3, %#x@h" % addr,
+                "ori 3, 3, %#x@l" % addr,
+                "lis 4, %#x@h" % size,
+                "ori 4, 4, %#x@l" % size,
+                "li 5, %d" % perm,
+                "sc",
+                "lwz 0, 0(1)", "lwz 3, 4(1)",
+                "lwz 4, 8(1)", "lwz 5, 12(1)",
+                "addi 1, 1, 16",
             ]
         # todo : sparc
         else:
             raise GefUnsupportedOS("Architecture %s not supported yet" % get_arch())
 
         arch, mode = get_keystone_arch()
-        raw_insns = keystone_assemble(" ; ".join(insns), arch, mode, raw=True)
+        insns = " ; ".join(insns)
+        print(insns)
+        print(keystone_assemble(insns, arch, mode))
+        raw_insns = keystone_assemble(insns, arch, mode, raw=True)
         return raw_insns
 
 
