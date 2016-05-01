@@ -2244,10 +2244,19 @@ class ChangePermissionCommand(GenericCommand):
                 "pop {r0-r2, r7}",
             ]
         elif is_mips():
-            # todo
-            _NR_mprotect = 125
+            _NR_mprotect = 4125
             insns = [
-
+                "addi $sp, $sp, -16",
+                "sw $v0, 0($sp)", "sw $a0, 4($sp)",
+                "sw $a3, 8($sp)", "sw $a3, 12($sp)",
+                "li $v0, %d" % _NR_mprotect,
+                "li $a0, %d" % addr,
+                "li $a1, %d" % size,
+                "li $a2, %d" % perm,
+                "syscall",
+                "lw $v0, 0($sp)", "lw $a1, 4($sp)",
+                "lw $a3, 8($sp)", "lw $a3, 12($sp)",
+                "addi $sp, $sp, 16",
             ]
         elif is_powerpc() or is_ppc64():
             _NR_mprotect = 125
@@ -2275,8 +2284,6 @@ class ChangePermissionCommand(GenericCommand):
 
         arch, mode = get_keystone_arch()
         insns = " ; ".join(insns)
-        print(insns)
-        print(keystone_assemble(insns, arch, mode))
         raw_insns = keystone_assemble(insns, arch, mode, raw=True)
         return raw_insns
 
