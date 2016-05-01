@@ -707,7 +707,7 @@ def gef_makedirs(path, mode=0o755):
 
 def gef_obsolete_function(func):
     def new_func(*args, **kwargs):
-        warn("Call to deprecated function {}.".format(func.__name__), category=DeprecationWarning)
+        warn("Call to deprecated function '{}'.".format(func.__name__))
         return func(*args, **kwargs)
     new_func.__name__ = func.__name__
     new_func.__doc__ = func.__doc__
@@ -1542,6 +1542,7 @@ def get_generic_running_arch(module, prefix, to_string=False):
     if   is_x86_32():    arch, mode = "X86", "32"
     elif is_x86_64():    arch, mode = "X86", "64"
     elif is_powerpc():   arch, mode = "PPC", "PPC32"
+    elif is_ppc64():     arch, mode = "PPC", "PPC64"
     elif is_mips():      arch, mode = "MIPS", "MIPS32"
     elif is_sparc():     arch, mode = "SPARC", "SPARC32"
     elif is_arm():       arch, mode = "ARM", "ARM"
@@ -1560,6 +1561,18 @@ def get_unicorn_arch(arch=None, mode=None, endian=None, to_string=False):
 
 def get_capstone_arch(arch=None, mode=None, endian=None, to_string=False):
     capstone = sys.modules["capstone"]
+
+    # hacky patch to unify capstone/ppc syntax with keystone & unicorn:
+    # CS_MODE_PPC32 does not exist (but UC_MODE_32 & KS_MODE_32 do)
+    if is_alive() and (is_powerpc() or is_ppc64()):
+        if is_ppc64():
+            raise GefUnsupportedOS("Capstone not supported for PPC64 yet.")
+
+        arch = "PPC"
+        mode = "32"
+        endian = is_big_endian()
+        return get_generic_arch(capstone, "CS", arch, mode, endian, to_string)
+
     if (arch, mode, endian) == (None,None,None):
         return get_generic_running_arch(capstone, "CS", to_string)
     return get_generic_arch(capstone, "CS", arch, mode, endian, to_string)
@@ -1570,7 +1583,6 @@ def get_keystone_arch(arch=None, mode=None, endian=None, to_string=False):
         return get_generic_running_arch(keystone, "KS", to_string)
     return get_generic_arch(keystone, "KS", arch, mode, endian, to_string)
 
-
 def get_unicorn_registers(to_string=False):
     "Returns a dict matching the Unicorn identifier for a specific register."
     unicorn = sys.modules['unicorn']
@@ -1578,6 +1590,7 @@ def get_unicorn_registers(to_string=False):
 
     if is_x86_32() or is_x86_64():   arch = "x86"
     elif is_powerpc():               arch = "ppc"
+    elif is_ppc64():                 arch = "ppc"
     elif is_mips():                  arch = "mips"
     elif is_sparc():                 arch = "sparc"
     elif is_arm():                   arch = "arm"
@@ -1606,7 +1619,7 @@ def keystone_assemble(code, arch, mode, *args, **kwargs):
         enc, cnt = ks.asm(code, addr)
     except keystone.KsError as e:
         err("Keystone assembler error: {:s}".format(e))
-        return []
+        return None
 
     enc = bytearray(enc)
     if kwargs.get("raw", False) != True:
@@ -2172,6 +2185,9 @@ class ChangePermissionCommand(GenericCommand):
 
         info("Generating sys_mprotect(%#x, %#x, '%s') stub for arch %s"%(sect.page_start, size, Permission(value=perm), get_arch()))
         stub = self.get_stub_by_arch(sect.page_start, size, perm)
+        if stub is None:
+            err("Failed to generate mprotect opcodes")
+            return
 
         info("Saving original code")
         original_code = read_memory(original_pc, len(stub))
@@ -2237,9 +2253,9 @@ class ChangePermissionCommand(GenericCommand):
                 "lw a1, 8(sp)", "lw a2, 12(sp)",
                 "addi sp, sp, 16",
             ]
-        elif is_powerpc():
+        elif is_powerpc() or is_ppc64():
             # todo
-            _NR_mprotect = 10
+            _NR_mprotect = 125
             insns = [
 
             ]
@@ -3673,11 +3689,11 @@ class AssembleCommand(GenericCommand):
 
     def do_invoke(self, argv):
         keystone = sys.modules["keystone"]
-        arch, mode, big_endian, as_shellcode = None, None, False, False
+        arch_s, mode_s, big_endian, as_shellcode = None, None, False, False
         opts, args = getopt.getopt(argv, "a:m:esh")
         for o,a in opts:
-            if o=="-a": arch = a.upper()
-            if o=="-m": mode = a.upper()
+            if o=="-a": arch_s = a.upper()
+            if o=="-m": mode_s = a.upper()
             if o=="-e": big_endian = True
             if o=="-s": as_shellcode = True
             if o=="-h":
@@ -3687,19 +3703,24 @@ class AssembleCommand(GenericCommand):
         if len(args)==0:
             return
 
-        if (arch, mode)==(None, None):
+        if (arch_s, mode_s)==(None, None):
             if is_alive():
+                arch_s, mode_s = get_arch(), ""
                 arch, mode = get_keystone_arch()
             else:
-                # if not alive, fall back to x86-32
-                arch, mode = get_keystone_arch(arch="X86", mode="32", endian=False)
+                # if not alive, defaults to x86-32
+                arch_s = "X86"
+                mode_s = "32"
+                arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=False)
         else:
-            arch, mode = get_keystone_arch(arch=arch, mode=mode, endian=big_endian)
+            arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=big_endian)
 
         insns = " ".join(args)
         insns = [x.strip() for x in insns.split(";")]
 
-        info("Assembling {} instruction{}:".format(len(insns), 's' if len(insns)>1 else '' ))
+        info("Assembling {} instruction{} for {}".format(len(insns),
+                                                         "s" if len(insns)>1 else "",
+                                                         ":".join([arch_s, mode_s])))
 
         if as_shellcode:
             print("""sc="" """)
@@ -3724,6 +3745,7 @@ class InvokeCommand(GenericCommand):
     _cmdline_ = "system"
     _syntax_  = "%s [COMMAND]" % _cmdline_
 
+    @gef_obsolete_function
     def do_invoke(self, argv):
         ret = gef_execute_external( argv )
         print(( "%s" % ret ))
