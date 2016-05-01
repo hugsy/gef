@@ -365,6 +365,8 @@ Et voilà !
 
 ![mprotect-after](https://i.imgur.com/9MvyQi8.png)
 
+Or for a full demo video on a PowerPC VM: [![asciicast](https://asciinema.org/a/54noulja01k3cgctawjeio8xl.png)](https://asciinema.org/a/54noulja01k3cgctawjeio8xl) 
+
 
 ## `assemble` command ##
 
