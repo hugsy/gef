@@ -3372,10 +3372,12 @@ class DetailRegistersCommand(GenericCommand):
                 addr = align_address( long(reg) )
                 line+= Color.boldify(Color.blueify(format_address(addr)))
                 addrs = DereferenceCommand.dereference_from(addr)
+
                 if len(addrs) > 1:
                     sep = " %s " % right_arrow()
                     line+= sep + sep.join(addrs[1:])
-                    print(line)
+
+                print(line)
 
         return
 
@@ -5277,13 +5279,8 @@ class GEFCommand(gdb.Command):
 
 
 def __gef_prompt__(current_prompt):
-    try:
-        prompt = "gef> " if PYTHON_MAJOR == 2 else "gef\u27a4  "
-    except UnicodeEncodeError:
-        prompt = "gef> "
-
+    prompt = "gef> " if PYTHON_MAJOR == 2 else "gef\u27a4  "
     return Color.CLEAR_LINE + Color.boldify(Color.redify(prompt))
-
 
 
 
