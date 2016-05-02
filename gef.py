@@ -56,13 +56,14 @@ import string
 import itertools
 import hashlib
 import shutil
-
+import socket
 
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
     from cStringIO import StringIO
     from urllib import urlopen
     import ConfigParser as configparser
+    import xmlrpclib
 
     # Compat Py2/3 hacks
     range = xrange
@@ -74,6 +75,8 @@ elif sys.version_info.major == 3:
     from io import StringIO
     from urllib.request import urlopen
     import configparser
+    import xmlrpc.client as xmlrpclib
+
     # Compat Py2/3 hack
     long = int
     unicode = str
@@ -2046,6 +2049,68 @@ class GenericCommand(gdb.Command):
     # return
     # def do_invoke(self, argv):
     # return
+
+
+class IdaInteractCommand(GenericCommand):
+    """IDA Interact: set of commands to interact with IDA."""
+
+    _cmdline_ = "ida-interact"
+    _syntax_  = "%s METHOD [ARGS]" % _cmdline_
+
+    def __init__(self):
+        super(IdaInteractCommand, self).__init__()
+        host, port = "127.0.1.1", 1337
+        self.add_setting("host", host)
+        self.add_setting("port", port)
+        self.sock = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(host, port))
+        self.methods = self.sock.system.listMethods()
+        return
+
+    def pre_load(self):
+        """
+        Attempts to reach the server. If fails, the exception will be caught by gef
+        which will not enable the command.
+        """
+        socket.socket().connect(("127.0.1.1", 1337))
+        return
+
+    def connect(self):
+        """
+        Connect to the XML-RPC service.
+        """
+        return xmlrpclib.ServerProxy("http://{:s}:{:d}".format("127.0.1.1", 1337))
+
+    def do_invoke(self, argv):
+        host = self.get_setting("host")
+        port = self.get_setting("port")
+
+        if self.sock is None:
+            self.sock = self.connect()
+
+        if len(argv)==0 or argv[0] in ("-h", "-?", "-help", "--help"):
+            self.usage()
+            return
+
+        try:
+            method = getattr(self.sock, argv[0])
+            if len(argv) > 1:
+                args = argv[1:]
+                method(*args)
+            else:
+                method()
+        except:
+            self.sock = None
+
+        return
+
+    def usage(self):
+        super(IdaInteractCommand, self).usage()
+        if self.sock:
+            info("Listing methods: ")
+            for m in self.methods:
+                print(titlify(m))
+                print(self.sock.system.methodHelp(m))
+        return
 
 
 class SearchPatternCommand(GenericCommand):
@@ -5073,6 +5138,7 @@ class GEFCommand(gdb.Command):
                         ChangePermissionCommand,
                         FlagsCommand,
                         SearchPatternCommand,
+                        IdaInteractCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
