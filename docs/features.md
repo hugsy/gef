@@ -350,7 +350,7 @@ popad
 A breakpoint is added following this stub, which when hit will restore the
 original context, allowing you to resume execution.
 
-`mprotect` is a `gef` for `set-permission`. For example, to set the `stack` as
+`mprotect` is an alias for `set-permission`. As an example, to set the `stack` as
 READ|WRITE|EXECUTE on this binary,
 
 ![mprotect-before](https://i.imgur.com/RRYHxzW.png)
@@ -361,7 +361,8 @@ Simply run
 gef> mprotect 0xfffdd000
 ```
 
-Et voilà !
+Et voilà ! `gef` will use the memory runtime information to correctly adjust the protection 
+of the entire section.
 
 ![mprotect-after](https://i.imgur.com/9MvyQi8.png)
 
@@ -370,10 +371,9 @@ Or for a full demo video on a PowerPC VM: [![asciicast](https://asciinema.org/a/
 
 ## `assemble` command ##
 
-If you have installed [`radare2`](http://radare.org) and `rasm2` binary can be
-found in your system $PATH, then `gef` will provide a convenient command to
-assemble native instructions directly to opcodes of the architecture you are
-currently debugging.
+If you have installed [`keystone`](http://www.keystone-engine.org/), then `gef` will provide 
+a convenient command to assemble native instructions directly to opcodes of the  
+architecture you are currently debugging.
 
 Call it via `assemble` or its alias `asm`:
 
@@ -381,7 +381,7 @@ Call it via `assemble` or its alias `asm`:
 gef> asm main
 ```
 
-![r2-assemble](https://i.imgur.com/ShuPF6h.png)
+![gef-assemble](https://i.imgur.com/ShuPF6h.png)
 
 
 ## `unicorn` command ##
