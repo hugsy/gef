@@ -2108,6 +2108,7 @@ class IdaInteractCommand(GenericCommand):
         if self.sock:
             info("Listing methods: ")
             for m in self.methods:
+                if m.startswith("system."): continue
                 print(titlify(m))
                 print(self.sock.system.methodHelp(m))
         return

@@ -361,18 +361,18 @@ Simply run
 gef> mprotect 0xfffdd000
 ```
 
-Et voilà ! `gef` will use the memory runtime information to correctly adjust the protection 
+Et voilà ! `gef` will use the memory runtime information to correctly adjust the protection
 of the entire section.
 
 ![mprotect-after](https://i.imgur.com/9MvyQi8.png)
 
-Or for a full demo video on a PowerPC VM: [![asciicast](https://asciinema.org/a/54noulja01k3cgctawjeio8xl.png)](https://asciinema.org/a/54noulja01k3cgctawjeio8xl) 
+Or for a full demo video on a PowerPC VM: [![asciicast](https://asciinema.org/a/54noulja01k3cgctawjeio8xl.png)](https://asciinema.org/a/54noulja01k3cgctawjeio8xl)
 
 
 ## `assemble` command ##
 
-If you have installed [`keystone`](http://www.keystone-engine.org/), then `gef` will provide 
-a convenient command to assemble native instructions directly to opcodes of the  
+If you have installed [`keystone`](http://www.keystone-engine.org/), then `gef` will provide
+a convenient command to assemble native instructions directly to opcodes of the
 architecture you are currently debugging.
 
 Call it via `assemble` or its alias `asm`:
@@ -477,3 +477,51 @@ gef> search-pattern MyPattern
 ```
 
 ![grep](https://camo.githubusercontent.com/79c14e46fd1c1616cacab37d88b49aae7e00560e/68747470733a2f2f692e696d6775722e636f6d2f656e78456451642e706e67)
+
+
+
+## `ida-interact` command ##
+
+`gef` provides a simple XML-RPC client designed to communicate with a server
+running inside a specific IDA Python plugin, called `ida_gef_xmlrpc.py` (which
+can be downloaded freely
+[here](https://github.com/hugsy/stuff/blob/master/ida_scripts/ida_gef_xmlrpc.py)).
+
+Simply download this script, and run it inside IDA. When the server is running,
+you will see a text in the Output Window such as:
+
+```
+[+] Creating new thread for XMLRPC server: Thread-1
+[+] Starting XMLRPC server: 0.0.0.0:1337
+[+] Registered 6 functions.
+```
+
+This indicates that the XML-RPC server is ready and listening.
+
+`gef` can interact with it via the command `ida-interact`. This command receives
+as first argument the name of the function to execute, all the other arguments
+are the arguments of the remote function.
+
+To enumerate the functions available, simply run
+```
+gef➤  ida-interact -h
+```
+![gef-ida-help](https://i.imgur.com/JFNBfjY.png)
+
+Now, to execute an RPC, invoke the command `ida-interact` on the desired method,
+with its arguments (if required).
+
+For example:
+```
+gef➤  ida ida.set_color 0x40061E
+```
+will edit the remote IDB and set the background color of the location 0x40061E
+with the color 0x005500 (default value).
+
+Another convenient example is to add comment inside IDA directly from `gef`:
+```
+gef➤  ida ida.add_comment 0x40061E "My Awesome Comment !!"
+```
+
+Please use the `--help` argument to see all the methods available and their
+syntax.
