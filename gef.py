@@ -2073,6 +2073,7 @@ class IdaInteractCommand(GenericCommand):
         port = self.get_setting("port")
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(1)
             s.connect((host, port))
             s.close()
             sock = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(host, port))
@@ -2087,30 +2088,43 @@ class IdaInteractCommand(GenericCommand):
             return
 
         if len(argv)==0 or argv[0] in ("-h", "--help"):
-            self.usage(sock)
+            method_name = argv[1] if len(argv)>1 else None
+            self.usage(sock, method_name)
             return
 
         try:
             method = getattr(sock, argv[0])
             if len(argv) > 1:
                 args = argv[1:]
-                method(*args)
+                res = method(*args)
             else:
-                method()
+                res = method()
+
+            if res in (0, True):
+                ok("Success")
+            else:
+                err("Error: retcode={}".format(res))
         except:
             del sock
 
         return
 
-    def usage(self, sock=None):
+    def usage(self, sock=None, meth=None):
         super(IdaInteractCommand, self).usage()
-        methods = sock.system.listMethods()
-        if sock is not None:
-            info("Listing methods: ")
-            for m in methods:
-                if m.startswith("system."): continue
-                print(titlify(m))
-                print(sock.system.methodHelp(m))
+        if sock is None:
+            return
+
+        if meth:
+            meth = meth.replace("ida.", "")
+            print(titlify(meth))
+            print(sock.system.methodHelp(meth))
+            return
+
+        info("Listing methods: ")
+        for m in sock.system.listMethods():
+            if m.startswith("system."): continue
+            print(titlify(m))
+            print(sock.system.methodHelp(m))
         return
 
 
