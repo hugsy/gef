@@ -58,6 +58,7 @@ import hashlib
 import shutil
 import socket
 
+
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
     from cStringIO import StringIO
@@ -2062,55 +2063,54 @@ class IdaInteractCommand(GenericCommand):
         host, port = "127.0.1.1", 1337
         self.add_setting("host", host)
         self.add_setting("port", port)
-        self.sock = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(host, port))
-        self.methods = self.sock.system.listMethods()
-        return
-
-    def pre_load(self):
-        """
-        Attempts to reach the server. If fails, the exception will be caught by gef
-        which will not enable the command.
-        """
-        socket.socket().connect(("127.0.1.1", 1337))
         return
 
     def connect(self):
         """
         Connect to the XML-RPC service.
         """
-        return xmlrpclib.ServerProxy("http://{:s}:{:d}".format("127.0.1.1", 1337))
-
-    def do_invoke(self, argv):
         host = self.get_setting("host")
         port = self.get_setting("port")
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((host, port))
+            s.close()
+            sock = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(host, port))
+        except:
+            err("Failed to connect to '{:s}:{:d}'".format(host, port))
+            sock = None
+        return sock
 
-        if self.sock is None:
-            self.sock = self.connect()
+    def do_invoke(self, argv):
+        sock = self.connect()
+        if sock is None:
+            return
 
-        if len(argv)==0 or argv[0] in ("-h", "-?", "-help", "--help"):
-            self.usage()
+        if len(argv)==0 or argv[0] in ("-h", "--help"):
+            self.usage(sock)
             return
 
         try:
-            method = getattr(self.sock, argv[0])
+            method = getattr(sock, argv[0])
             if len(argv) > 1:
                 args = argv[1:]
                 method(*args)
             else:
                 method()
         except:
-            self.sock = None
+            del sock
 
         return
 
-    def usage(self):
+    def usage(self, sock=None):
         super(IdaInteractCommand, self).usage()
-        if self.sock:
+        methods = sock.system.listMethods()
+        if sock is not None:
             info("Listing methods: ")
-            for m in self.methods:
+            for m in methods:
                 if m.startswith("system."): continue
                 print(titlify(m))
-                print(self.sock.system.methodHelp(m))
+                print(sock.system.methodHelp(m))
         return
 
 
