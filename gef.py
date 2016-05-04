@@ -4436,7 +4436,7 @@ class DereferenceCommand(GenericCommand):
             value = align_address( long(deref) )
             addr  = lookup_address( value )
             if addr is None:
-                msg.append( "%#x" % ( long(deref) ))
+                msg.append( "%#x" % ( long(deref) & 0xffffffffffffffff ))
                 break
 
             if addr.value == prev_addr_value:
@@ -4974,7 +4974,7 @@ class InspectStackCommand(GenericCommand):
 
         for i in range(nb_stack_block):
             value = _do_inspect_stack(i)
-            print((value))
+            print(value)
 
         return
 
