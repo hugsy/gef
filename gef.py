@@ -2120,7 +2120,7 @@ class IdaInteractCommand(GenericCommand):
         sock = self.connect()
         if sock is None:
             return
-,
+
         if len(argv)==0 or argv[0] in ("-h", "--help"):
             method_name = argv[1] if len(argv)>1 else None
             self.usage(sock, method_name)
