@@ -25,7 +25,7 @@
 # * aarch64/armv8 (64b)
 # * mips
 # * powerpc32/powerpc64
-# * sparc/sparc64-ultrasparc
+# * sparc/sparc64 (v8+)
 #
 #
 # Tested on gdb 7.x / python 2.6 & 2.7 & 3.x
