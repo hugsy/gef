@@ -25,7 +25,7 @@
 # * aarch64/armv8 (64b)
 # * mips
 # * powerpc32/powerpc64
-# * sparc
+# * sparc/sparc64-ultrasparc
 #
 #
 # Tested on gdb 7.x / python 2.6 & 2.7 & 3.x
@@ -924,10 +924,6 @@ def x86_32_registers():
              "$fs    ", "$gs    ", "$eflags", ]
 
 @memoize
-def x86_32_nop_insn():
-    return b'\x90'
-
-@memoize
 def x86_32_return_register():
     return "$eax"
 
@@ -981,8 +977,8 @@ def sparc_registers():
     return ["$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
             "$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",
             "$l0 ", "$l1 ", "$l2 ", "$l3 ", "$l4 ", "$l5 ", "$l6 ", "$l7 ",
-            "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ", "$i7"
-            "$pc ", "$sp ", "$fp ", "$psr", ]
+            "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ", "$i7",
+            "$pc ", "$npc", "$sp ", "$fp ", "$psr", ]
 
 @memoize
 def sparc_nop_insn():
@@ -1011,7 +1007,6 @@ def mips_registers():
             "$s0       ", "$s1       ", "$s2       ", "$s3       ", "$s4       ", "$s5       ", "$s6       ", "$s7       ",
             "$t8       ", "$t9       ", "$k0       ", "$k1       ", "$s8       ", "$status   ", "$badvaddr ", "$cause    ",
             "$pc       ", "$sp       ", "$hi       ", "$lo       ", "$fir      ", "$fcsr     ", "$ra       ", "$gp       ", ]
-
 
 @memoize
 def mips_nop_insn():
@@ -1073,24 +1068,27 @@ def aarch64_flags_to_human(val=None):
 @memoize
 def all_registers():
     if is_arm():         return arm_registers()
+    elif is_aarch64():   return aarch64_registers()
     elif is_x86_32():    return x86_32_registers()
     elif is_x86_64():    return x86_64_registers()
     elif is_powerpc():   return powerpc_registers()
     elif is_ppc64():     return powerpc_registers()
     elif is_sparc():     return sparc_registers()
+    elif is_sparc64():   return sparc_registers()
     elif is_mips():      return mips_registers()
-    elif is_aarch64():   return aarch64_registers()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 
 @memoize
 def nop_insn():
     if is_arm():         return arm_nop_insn()
+    elif is_aarch64():   return arm_nop_insn()
     elif is_x86_32():    return x86_32_nop_insn()
-    elif is_x86_64():    return x86_64_nop_insn()
+    elif is_x86_64():    return x86_32_nop_insn()
     elif is_powerpc():   return powerpc_nop_insn()
     elif is_ppc64():     return powerpc_nop_insn()
     elif is_sparc():     return sparc_nop_insn()
+    elif is_sparc64():   return sparc_nop_insn()
     elif is_mips():      return mips_nop_insn()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
@@ -1098,26 +1096,28 @@ def nop_insn():
 @memoize
 def return_register():
     if is_arm():         return arm_return_register()
+    elif is_aarch64():   return aarch64_return_register()
     elif is_x86_32():    return x86_32_return_register()
     elif is_x86_64():    return x86_64_return_register()
     elif is_powerpc():   return powerpc_return_register()
     elif is_ppc64():     return powerpc_return_register()
     elif is_sparc():     return sparc_return_register()
+    elif is_sparc64():   return sparc_return_register()
     elif is_mips():      return mips_return_register()
-    elif is_aarch64():   return aarch64_return_register()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 
 @memoize
 def flag_register():
     if is_arm():         return arm_flag_register()
+    elif is_aarch64():   return aarch64_flag_register()
     elif is_x86_32():    return x86_flag_register()
     elif is_x86_64():    return x86_flag_register()
     elif is_powerpc():   return powerpc_flag_register()
     elif is_ppc64():     return powerpc_flag_register()
     elif is_mips():      return mips_flag_register()
     elif is_sparc():     return sparc_flag_register()
-    elif is_aarch64():   return aarch64_flag_register()
+    elif is_sparc64():   return sparc_flag_register()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 
@@ -1134,13 +1134,14 @@ def flags_table():
 
 def flag_register_to_human(val=None):
     if is_arm():         return arm_flags_to_human(val)
+    elif is_aarch64():   return aarch64_flags_to_human(val)
     elif is_x86_32():    return x86_flags_to_human(val)
     elif is_x86_64():    return x86_flags_to_human(val)
     elif is_powerpc():   return powerpc_flags_to_human(val)
     elif is_ppc64():     return powerpc_flags_to_human(val)
     elif is_mips():      return mips_flags_to_human(val)
     elif is_sparc():     return sparc_flags_to_human(val)
-    elif is_aarch64():   return aarch64_flags_to_human(val)
+    elif is_sparc64():   return sparc_flags_to_human(val)
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 
@@ -1181,6 +1182,7 @@ def which(program):
     raise IOError("Missing file `%s`" % program)
 
 
+@gef_obsolete_function
 def read_memory_until_null(address, max_length=-1):
     """
     Slow method to read all the bytes in memory starting from
@@ -1857,7 +1859,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             return False
 
         if addr.section.permission.value & Permission.WRITE:
-            content = read_memory_until_null(addr.value)
+            content = read_cstring_from_memory(addr.value)
 
             print((titlify("Format String Detection")))
             info("Possible insecure format string '%s' %s %#x: '%s'" % (ptr, right_arrow(), addr.value, content))
@@ -4575,7 +4577,7 @@ class VMMapCommand(GenericCommand):
 
             l.append( entry.path )
 
-            print((" ".join(l)))
+            print(" ".join(l))
         return
 
 
