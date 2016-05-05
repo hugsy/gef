@@ -866,7 +866,7 @@ def arm_flags_table():
 
 def arm_flags_to_human(val=None):
     # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
-    reg = "$cpsr"
+    reg = arm_flag_register()
     if not val:
         val = get_register_ex( reg )
     return flags_to_human(val, arm_flags_table())
@@ -910,7 +910,7 @@ def x86_flags_table():
     return table
 
 def x86_flags_to_human(val=None):
-    reg = "$eflags"
+    reg = x86_flag_register()
     if not val:
         val = get_register_ex( reg )
     return flags_to_human(val, x86_flags_table())
@@ -965,7 +965,7 @@ def powerpc_flags_table():
 
 def powerpc_flags_to_human(val=None):
     # http://www.csit-sun.pub.ro/~cpop/Documentatie_SM/Motorola_PowerPC/PowerPc/GenInfo/pemch2.pdf
-    reg = "$cr"
+    reg = powerpc_flag_register()
     if not val:
         val = get_register_ex( reg )
     return flags_to_human(val, powerpc_flags_table())
@@ -994,8 +994,23 @@ def sparc_return_register():
 def sparc_flag_register():
     return "$psr"
 
+@memoize
+def sparc_flags_table():
+    table = { 23: "negative",
+              20: "carry",
+              22: "zero",
+              5: "trap",
+              7: "supervisor",
+              21: "overflow",
+    }
+    return table
+
 def sparc_flags_to_human(val=None):
-    return ""
+    # http://www.gaisler.com/doc/sparcv8.pdf
+    reg = sparc_flag_register()
+    if not val:
+        val = get_register_ex( reg )
+    return flags_to_human(val, sparc_flags_table())
 
 
 ######################[ MIPS specific ]######################
@@ -1023,6 +1038,7 @@ def mips_flag_register():
     return "$fcsr"
 
 def mips_flags_to_human(val=None):
+    # mips architecture does not use processor status word (flag register)
     return ""
 
 
@@ -1057,7 +1073,7 @@ def aarch64_flags_table():
 
 def aarch64_flags_to_human(val=None):
     # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
-    reg = "$cpsr"
+    reg = aarch64_flag_register()
     if not val:
         val = get_register_ex( reg )
     return flags_to_human(val, aarch64_flags_table())
@@ -1129,6 +1145,8 @@ def flags_table():
     elif is_aarch64():    return aarch64_flags_table()
     elif is_powerpc():    return powerpc_flags_table()
     elif is_ppc64():      return powerpc_flags_table()
+    elif is_sparc():      return sparc_flags_table()
+    elif is_sparc64():    return sparc_flags_table()
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 
@@ -2102,7 +2120,7 @@ class IdaInteractCommand(GenericCommand):
         sock = self.connect()
         if sock is None:
             return
-
+,
         if len(argv)==0 or argv[0] in ("-h", "--help"):
             method_name = argv[1] if len(argv)>1 else None
             self.usage(sock, method_name)
