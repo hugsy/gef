@@ -127,6 +127,7 @@ except ImportError:
 __aliases__ = {}
 __config__ = {}
 __infos_files__ = []
+__loaded__ = []
 NO_COLOR = False
 DEFAULT_PAGE_ALIGN_SHIFT = 12
 DEFAULT_PAGE_SIZE = 1 << DEFAULT_PAGE_ALIGN_SHIFT
@@ -1540,7 +1541,10 @@ def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):
     """
     if to_string:
         arch = "%s.%s_ARCH_%s" % (module.__name__, prefix, arch)
-        mode = "%s.%s_MODE_%s" % (module.__name__, prefix, str(mode))
+        if mode:
+            mode = "%s.%s_MODE_%s" % (module.__name__, prefix, str(mode))
+        else:
+            mode = ""
         if is_big_endian():
             mode += " + %s.%s_MODE_BIG_ENDIAN" % (module.__name__, prefix)
         else:
@@ -1548,7 +1552,10 @@ def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):
 
     else:
         arch = getattr(module, "%s_ARCH_%s" % (prefix, arch))
-        mode = getattr(module, "%s_MODE_%s" % (prefix, mode))
+        if mode:
+            mode = getattr(module, "%s_MODE_%s" % (prefix, mode))
+        else:
+            mode = 0
         if big_endian:
             mode += getattr(module, "%s_MODE_BIG_ENDIAN" % prefix)
         else:
@@ -1570,7 +1577,8 @@ def get_generic_running_arch(module, prefix, to_string=False):
     elif is_powerpc():   arch, mode = "PPC", "PPC32"
     elif is_ppc64():     arch, mode = "PPC", "PPC64"
     elif is_mips():      arch, mode = "MIPS", "MIPS32"
-    elif is_sparc():     arch, mode = "SPARC", "SPARC32"
+    elif is_sparc():     arch, mode = "SPARC", None
+    elif is_sparc64():   arch, mode = "SPARC", "V9"
     elif is_arm():       arch, mode = "ARM", "ARM"
     elif is_aarch64():   arch, mode = "ARM", "ARM"
     else:
@@ -2117,6 +2125,9 @@ class IdaInteractCommand(GenericCommand):
         return sock
 
     def do_invoke(self, argv):
+        return self.call(argv)
+
+    def call(self, argv):
         sock = self.connect()
         if sock is None:
             return
@@ -3047,6 +3058,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         elif is_powerpc(): reg, imm, mem = cs.ppc.PPC_OP_REG, cs.ppc.PPC_OP_IMM, cs.ppc.PPC_OP_MEM
         elif is_mips():    reg, imm, mem = cs.mips.MIPS_OP_REG, cs.mips.MIPS_OP_IMM, cs.mips.MIPS_OP_MEM
         elif is_sparc():   reg, imm, mem = cs.sparc.SPARC_OP_REG, cs.sparc.SPARC_OP_IMM, cs.sparc.SPARC_OP_MEM
+        elif is_sparc64(): reg, imm, mem = cs.sparc.SPARC_OP_REG, cs.sparc.SPARC_OP_IMM, cs.sparc.SPARC_OP_MEM
         elif is_arm():     reg, imm, mem = cs.arm.ARM_OP_REG, cs.arm.ARM_OP_IMM, cs.arm.ARM_OP_MEM
         elif is_aarch64(): reg, imm, mem = cs.arm.ARM_OP_REG, cs.arm.ARM_OP_IMM, cs.arm.ARM_OP_MEM
 
@@ -5248,10 +5260,12 @@ class GEFCommand(gdb.Command):
         Load all the commands defined by GEF into GBD.
         If a configuration file is found, the settings are restored.
         """
-        loaded = []
+        global __loaded__
+
+        __loaded__ = []
 
         def is_loaded(x):
-            for (n, c) in loaded:
+            for (n, c, o) in __loaded__:
                 if x == n:
                     return True
             return False
@@ -5264,8 +5278,7 @@ class GEFCommand(gdb.Command):
                     if not is_loaded(root):
                         continue
 
-                class_name()
-                loaded.append( (cmd, class_name)  )
+                __loaded__.append( (cmd, class_name, class_name())  )
 
                 if hasattr(class_name, "_aliases_"):
                     aliases = getattr(class_name, "_aliases_")
@@ -5275,7 +5288,7 @@ class GEFCommand(gdb.Command):
             except Exception as e:
                 warn("Failed to load `%s`: %s" % (cmd, e))
 
-        self.__loaded_cmds = sorted(loaded, key=lambda x: x[1]._cmdline_)
+        self.__loaded_cmds = sorted(__loaded__, key=lambda x: x[1]._cmdline_)
 
         print(("%s, `%s' to start, `%s' to configure" % (Color.greenify("gef loaded"),
                                                          Color.redify("gef help"),
@@ -5297,7 +5310,7 @@ class GEFCommand(gdb.Command):
         d = []
         d.append( titlify("GEF - GDB Enhanced Features") )
 
-        for (cmd, class_name) in self.__loaded_cmds:
+        for (cmd, class_name, obj) in self.__loaded_cmds:
             if " " in cmd:
                 # do not print out subcommands in main help
                 continue

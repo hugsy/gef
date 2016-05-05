@@ -29,9 +29,9 @@ gef> gef help
 
 Or (for remote debugging)
 ```bash
-remote:~ $ gdbserver 0.0.0.0:1234 /path/to/file 
+remote:~ $ gdbserver 0.0.0.0:1234 /path/to/file
 ```
-And 
+And
 ```bash
 local:~ $ gdb -q
 gef> gef-remote your.ip.address:1234
@@ -51,6 +51,8 @@ gef> gef-remote your.ip.address:1234
 #### MIPS
 ![gef-mips](https://i.imgur.com/dBaB9os.png)
 
+#### SPARC v9
+![gef-sparc](https://i.imgur.com/VD2FpDt.png)
 
 ## Dependencies
 
