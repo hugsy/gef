@@ -2052,6 +2052,20 @@ class GenericCommand(gdb.Command):
     # return
 
 
+class ProcessIdCommand(GenericCommand):
+    """ProcessIdCommand: print the process id of the process being debugged."""
+
+    _cmdline_ = "pid"
+    _syntax_  = "%s" % _cmdline_
+
+    def do_invoke(self, argv):
+        if not is_alive():
+            err("No process alive")
+            return
+        print("%d" % get_pid())
+        return
+
+
 class IdaInteractCommand(GenericCommand):
     """IDA Interact: set of commands to interact with IDA."""
 
@@ -3757,8 +3771,8 @@ class FileDescriptorCommand(GenericCommand):
             return
 
         pid = get_pid()
-        proc = __config__.get("get-remote.proc_directory")[0]
-        path = "%s/%s/fd" % (proc, pid)
+        proc = __config__.get("gef-remote.proc_directory")[0]
+        path = "%s/%d/fd" % (proc, pid)
 
         for fname in os.listdir(path):
             fullpath = path+"/"+fname
@@ -4129,6 +4143,9 @@ class ContextCommand(GenericCommand):
                 # is corrupted. Just use the register "raw" value (not eval-ed)
                 new_value = get_register_ex( reg )
                 new_value_type_flag = False
+
+            except:
+                new_value = 0
 
             old_value = self.old_registers[reg] if reg in self.old_registers else 0x00
 
@@ -5154,6 +5171,7 @@ class GEFCommand(gdb.Command):
                         FlagsCommand,
                         SearchPatternCommand,
                         IdaInteractCommand,
+                        ProcessIdCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
