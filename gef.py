@@ -4583,14 +4583,15 @@ class XFilesCommand(GenericCommand):
     """Shows all libraries (and sections) loaded by binary (Truth is out there)."""
 
     _cmdline_ = "xfiles"
-    _syntax_  = "%s" % _cmdline_
+    _syntax_  = "%s [name]" % _cmdline_
 
-    def do_invoke(self, argv):
+    def do_invoke(self, args):
         if not is_alive():
             warn("Debugging session is not active")
             warn("Result may be incomplete (shared libs, etc.)")
             return
 
+        name = None if len(args)==0 else args[0]
         formats = {"Start": "{:{align}20s}",
                    "End":   "{:{align}20s}",
                    "Name":  "{:{align}30s}",
@@ -4601,6 +4602,9 @@ class XFilesCommand(GenericCommand):
         print(f.format(*args, align="^"))
 
         for xfile in get_info_files():
+            if name is not None and xfile.name != name:
+                continue
+
             l= ""
             l+= formats["Start"].format(format_address(xfile.zone_start), align=">")
             l+= formats["End"].format(format_address(xfile.zone_end), align=">")
