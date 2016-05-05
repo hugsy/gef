@@ -4591,14 +4591,22 @@ class XFilesCommand(GenericCommand):
             warn("Result may be incomplete (shared libs, etc.)")
             return
 
-        print(("%10s %10s %20s %s" % ("Start", "End", "Name", "File")))
+        formats = {"Start": "{:{align}20s}",
+                   "End":   "{:{align}20s}",
+                   "Name":  "{:{align}30s}",
+                   "File":  "{:s}",
+                  }
+        args = ("Start", "End", "Name", "File")
+        f = " ".join([formats[k] for k in args])
+        print(f.format(*args, align="^"))
+
         for xfile in get_info_files():
             l= ""
-            l+= "%s %s" % (format_address(xfile.zone_start),
-                           format_address(xfile.zone_end))
-            l+= "%20s " % xfile.name
-            l+= "%s" % xfile.filename
-            print (l)
+            l+= formats["Start"].format(format_address(xfile.zone_start), align=">")
+            l+= formats["End"].format(format_address(xfile.zone_end), align=">")
+            l+= formats["Name"].format(xfile.name, align="^")
+            l+= formats["File"].format(xfile.filename, align="<")
+            print(l)
         return
 
 
