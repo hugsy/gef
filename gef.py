@@ -1627,6 +1627,7 @@ def get_unicorn_registers(to_string=False):
     elif is_ppc64():                 arch = "ppc"
     elif is_mips():                  arch = "mips"
     elif is_sparc():                 arch = "sparc"
+    elif is_sparc64():               arch = "sparc"
     elif is_arm():                   arch = "arm"
     elif is_aarch64():               arch = "arm64"
     else:
@@ -3864,7 +3865,7 @@ class AssembleCommand(GenericCommand):
             arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=big_endian)
 
         insns = " ".join(args)
-        insns = [x.strip() for x in insns.split(";")]
+        insns = [x.strip() for x in insns.split(";") if x is not None]
 
         info("Assembling {} instruction{} for {}".format(len(insns),
                                                          "s" if len(insns)>1 else "",
