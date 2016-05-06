@@ -56,24 +56,50 @@ gef> gef-remote your.ip.address:1234
 
 ## Dependencies
 
-There are none: `GEF` works out of the box!
-However, to enjoy all the coolest features, it is recommended to install:
+There are none: `GEF` works out of the box! However, to enjoy all the coolest features, it is **highly** recommended to install:
 
-- [`capstone`](https://github.com/aquynh/capstone) **highly** recommended
-- [`keystone`](https://github.com/aquynh/keystone) **highly** recommended
-- [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget) **highly** recommended
+- [`capstone`](https://github.com/aquynh/capstone) 
+- [`keystone`](https://github.com/keystone-engine/keystone) 
+- [`unicorn`](https://github.com/unicorn-engine/unicorn)
+- [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget) 
 
-*Note*: You can use `pip` to simply and quickly install the (optional) dependencies.
+### {Cap,Key}stone
+[`capstone`](https://github.com/aquynh/capstone) (by [Nguyen Anh Quynh](https://github.com/aquynh))is an alternative disassembly engine, and [`keystone`](https://github.com/keystone-engine/keystone) is an (arguably the best) assembly engine.
+You can use `pip` to simply and quickly install it.
 ```bash
-$ pip2 install capstone    # for Python2.x
-$ pip3 install capstone    # for Python3.x
+$ pip2 install capstone keystone   # for Python2.x
+$ pip3 install capstone keystone   # for Python3.x
 ```
 
-And same goes for `ropgadget`
+`capstone` provides an alternative to the `gdb` disassembler, which could be useful specifically when dealing with complex/uncommon instructions.
+
+`keystone` allows to generate opcodes, which can, for example, then be used as part of a shellcode. 
+
+
+### Unicorn
+[`unicorn`](https://github.com/unicorn-engine/unicorn) (also written by [Nguyen Anh Quynh](https://github.com/aquynh)) is a lightweight Qemu-based framework to emulate any architecture currently supported by `GDB` (and even some more). 
+Install is simple through the [released packages](https://github.com/unicorn-engine/unicorn/releases) but I would recommend instead to rely on the GIT master branch.
+```bash
+$ git clone https://github.com/unicorn-engine/unicorn.git && cd unicorn && ./make.sh && sudo ./make.sh install
+``` 
+
+`unicorn` integration in `gef` allows to emulate the behaviour to specific instructions (or block of instructions) based on the runtime context, without actually running it, and therefore sparing the trouble of saving the context/running the new context/restoring the old context. Additionally, `gef` can generate a standalone `unicorn` Python script, if you want/need to reproduce steps outside the debugger.
+
+
+### ROPGadget
+[`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget) (written by [Jonathan Salwan](https://github.com/JonathanSalwan)) is simply the best cross-platform ROP gadget finder. It has been totally integrated inside `gef` to benefit of all of its awesomeness.
 ```bash
 $ pip[23] install ropgadget
 ```
 
+
+
+### One-liner
+
+Simply run this
+```bash
+$ pip install ropgadget capstone keystone
+```
 
 ## But why not PEDA?
 Yes ! Why not ?! [PEDA](https://github.com/longld/peda) is a fantastic tool to
