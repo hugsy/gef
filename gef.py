@@ -1357,10 +1357,9 @@ def get_process_maps():
 
             sections.append( section )
 
-    except IOError as ioe:
+    except Exception as e:
         if is_debug():
-            err(str(ioe))
-
+            warn("Failed to read /proc/<PID>/maps, using GDB sections info")
         sections = get_info_sections()
 
     return sections
@@ -1376,17 +1375,15 @@ def get_info_sections():
         if len(line) == 0:
             break
 
-        line = re.sub('\s+',' ', line.strip())
-
         try:
-            blobs = [x.strip() for x in line.split(' ')]
-            index = blobs[0][1:-1]
-            addr_start, addr_end = [ long(x, 16) for x in blobs[1].split( right_arrow() ) ]
-            at = blobs[2]
-            off = long(blobs[3][:-1], 16)
-            path = blobs[4]
+            parts = [x.strip() for x in line.split()]
+            index = parts[0][1:-1]
+            addr_start, addr_end = [ long(x, 16) for x in parts[1].split("->") ]
+            at = parts[2]
+            off = long(parts[3][:-1], 16)
+            path = parts[4]
             inode = ""
-            perm = Permission.from_info_sections(blobs[5:])
+            perm = Permission.from_info_sections(parts[5:])
 
             section = Section(page_start  = addr_start,
                               page_end    = addr_end,
@@ -2421,7 +2418,7 @@ class ChangePermissionCommand(GenericCommand):
                 syscall,
                 "ld [ %sp ], %g1", "ld [ %sp + 4 ], %o0",
                 "ld [ %sp + 8 ], %o1", "ld [ %sp + 12 ], %o2",
-                "add %sp, 16, %sp"
+                "add %sp, 16, %sp",
                 ]
         else:
             raise GefUnsupportedOS("Architecture %s not supported yet" % get_arch())
@@ -4079,32 +4076,26 @@ class EntryPointBreakCommand(GenericCommand):
             warn("No executable to debug, use `file` to load a binary")
             return
 
-        # has main() ?
-        try:
-            value = gdb.parse_and_eval("main")
-            info("Breaking at '%s'" % value)
-            gdb.execute("tbreak main")
-            info("Starting execution")
-            gdb.execute("run")
-            return
+        syms = ["main", "__libc_start_main", "__uClibc_main"]
+        for sym in syms:
+            try:
+                value = gdb.parse_and_eval(sym)
+                info("Breaking at '%s'" % value)
+                gdb.execute("tbreak %s" % sym)
+                info("Starting execution")
+                gdb.execute("run")
+                return
 
-        except gdb.error:
-            info("Could not solve `main` symbol")
+            except gdb.error as gdb_error:
+                if 'The "remote" target does not support "run".' in str(gdb_error):
+                    # this case can happen when doing remote debugging
+                    gdb.execute("continue")
+                    return
+                # otherwise, simply continue with next symbol
+                info("Could not solve `%s` symbol" % sym)
+                continue
 
-        # has __libc_start_main() ?
-        try:
-            value = gdb.parse_and_eval("__libc_start_main")
-            info("Breaking at '%s'" % value)
-            gdb.execute("tbreak __libc_start_main")
-            info("Starting execution")
-            gdb.execute("run")
-            return
-
-        except gdb.error:
-            info("Could not solve `__libc_start_main` symbol")
-
-
-        # break at entry point - never fail
+        # break at entry point - should never fail
         elf = get_elf_headers()
         if elf is None:
             return
@@ -4509,6 +4500,7 @@ class DereferenceCommand(GenericCommand):
         while max_recursion:
             value = align_address( long(deref) )
             addr  = lookup_address( value )
+
             if addr is None:
                 msg.append( "%#x" % ( long(deref) & 0xffffffffffffffff ))
                 break
