@@ -74,7 +74,7 @@ $ pip3 install capstone keystone   # for Python3.x
 `capstone` provides an alternative to the `gdb` disassembler, which could be useful specifically when dealing with complex/uncommon instructions.
 
 `keystone` allows to generate opcodes, which can, for example, then be used as part of a shellcode. 
-
+![gef-shellcoder](https://i.imgur.com/BPdtr2D.png)
 
 ### Unicorn
 [`unicorn`](https://github.com/unicorn-engine/unicorn) (also written by [Nguyen Anh Quynh](https://github.com/aquynh)) is a lightweight Qemu-based framework to emulate any architecture currently supported by `GDB` (and even some more). 
