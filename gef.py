@@ -2336,6 +2336,9 @@ class ChangePermissionCommand(GenericCommand):
         return
 
     def get_stub_by_arch(self, addr, size, perm):
+        hi = (addr & 0xffff0000) >> 16
+        lo = (addr & 0x0000ffff)
+
         if is_x86_64():
             _NR_mprotect = 10
             insns = [
@@ -2386,8 +2389,6 @@ class ChangePermissionCommand(GenericCommand):
             ]
         elif is_powerpc() or is_ppc64():
             _NR_mprotect = 125
-            hi = (addr & 0xffff0000) >> 16
-            lo = (addr & 0x0000ffff)
             insns = [
                 # http://www.ibm.com/developerworks/library/l-ppc/index.html
                 "addi 1, 1, -16",                 # 1 = r1 = sp
@@ -2404,7 +2405,24 @@ class ChangePermissionCommand(GenericCommand):
                 "lwz 4, 8(1)", "lwz 5, 12(1)",
                 "addi 1, 1, 16",
             ]
-        # todo : sparc
+        elif is_sparc() or is_sparc64():
+            _NR_mprotect = 125
+            syscall = "t 0x6d" if is_sparc64() else "t 0x10"
+            insns = [
+                # man 2 syscall
+                "add %sp, -16, %sp",
+                "st %g1, [ %sp ]", "st %o0, [ %sp + 4 ]",
+                "st %o1, [ %sp + 8 ]", "st %o2, [ %sp + 12 ]",
+                "sethi  %hi({}), %o0".format(hi),
+                "or  %o0, {}, %o0".format(lo),
+                "clr  %o1",
+                "clr  %o2",
+                "mov  {}, %g1".format(_NR_mprotect),
+                syscall,
+                "ld [ %sp ], %g1", "ld [ %sp + 4 ], %o0",
+                "ld [ %sp + 8 ], %o1", "ld [ %sp + 12 ], %o2",
+                "add %sp, 16, %sp"
+                ]
         else:
             raise GefUnsupportedOS("Architecture %s not supported yet" % get_arch())
 
@@ -2420,7 +2438,7 @@ class UnicornEmulateCommand(GenericCommand):
     changed via arguments to the command line. By default, it will emulate the next instruction from current PC."""
 
     _cmdline_ = "unicorn-emulate"
-    _syntax_  = "%s [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION]" % _cmdline_
+    _syntax_  = "%s [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-e] [-h]" % _cmdline_
     _aliases_ = ["emulate", ]
 
     def __init__(self):
@@ -2433,6 +2451,7 @@ class UnicornEmulateCommand(GenericCommand):
         h = "%s\n" % self._syntax_
         h+= "\t-f LOCATION specifies the start address of the emulated run (default $pc).\n"
         h+= "\t-t LOCATION specifies the end address of the emulated run.\n"
+        h+= "\t-e generates a standalone Python script from the current runtime context.\n"
         h+= "\t-n NB_INSTRUCTION indicates the number of instructions to execute (mutually exclusive with `-t` and `-g`).\n"
         h+= "\t-g NB_GADGET indicates the number of gadgets to execute (mutually exclusive with `-t` and `-n`).\n"
         h+= "Additional options can be setup via `gef config unicorn-emulate`\n"
@@ -3855,21 +3874,26 @@ class AssembleCommand(GenericCommand):
         if (arch_s, mode_s)==(None, None):
             if is_alive():
                 arch_s, mode_s = get_arch(), ""
+                endian_s = "big" if is_big_endian() else "little"
                 arch, mode = get_keystone_arch()
             else:
                 # if not alive, defaults to x86-32
                 arch_s = "X86"
                 mode_s = "32"
+                endian_s = "little"
                 arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=False)
         else:
             arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=big_endian)
+            endian_s = "big" if big_endian else "little"
 
         insns = " ".join(args)
         insns = [x.strip() for x in insns.split(";") if x is not None]
+        end = ""
 
-        info("Assembling {} instruction{} for {}".format(len(insns),
-                                                         "s" if len(insns)>1 else "",
-                                                         ":".join([arch_s, mode_s])))
+        info("Assembling {} instruction{} for {} ({} endian)".format(len(insns),
+                                                                     "s" if len(insns)>1 else "",
+                                                                     ":".join([arch_s, mode_s]),
+                                                                     endian_s))
 
         if as_shellcode:
             print("""sc="" """)
