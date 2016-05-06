@@ -520,8 +520,13 @@ with the color 0x005500 (default value).
 
 Another convenient example is to add comment inside IDA directly from `gef`:
 ```
-gef➤  ida ida.add_comment 0x40061E "My Awesome Comment !!"
+gef➤  ida ida.add_comment 0x40060C "<<<--- stack overflow"
+[+] Success
 ```
+
+Result:
+
+![gef-ida-example](https://i.imgur.com/jZ2eWG4.png)
 
 Please use the `--help` argument to see all the methods available and their
 syntax.
