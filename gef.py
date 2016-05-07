@@ -3691,7 +3691,7 @@ def asm(code, arch="%s", mode=%s):
     try: enc, cnt = ks.asm(code)
     except: enc = []
     return bytearray(enc)
-"""%(a, m, r)
+"""%(a, m,)
 
         with open(path, "w") as f:
             f.write( CTF_EXPLOIT_TEMPLATE.format(host=host, port=port, asm=asm_def) )
