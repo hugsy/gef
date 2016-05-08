@@ -2543,7 +2543,7 @@ def hook_code(emu, address, size, user_data):
     return
 
 
-""" % get_capstone_arch(to_script=to_script)
+""" % get_capstone_arch()
 
         unicorn = sys.modules['unicorn']
         if verbose:
@@ -3957,6 +3957,7 @@ class ProcessListingCommand(GenericCommand):
                 if command.startswith("[") and command.endswith("]"): continue
                 if command.startswith("socat "): continue
                 if command.startswith("grep "): continue
+                if command.startswith("gdb "): continue
 
             if len(args) and do_attach:
                 ok("Attaching to process='%s' pid=%d" % (process["command"], pid))
@@ -5148,10 +5149,10 @@ class ChecksecCommand(GenericCommand):
         # todo : add check for (DEBUG) if .so
 
         # check for RPATH
-        self.do_check("RPATH", "-d -l", filename, r'rpath', is_match=True)
+        self.do_check("No RPATH", "-d -l", filename, r'rpath', is_match=False)
 
         # check for RUNPATH
-        self.do_check("RUNPATH", "-d -l", filename, r'runpath', is_match=True)
+        self.do_check("No RUNPATH", "-d -l", filename, r'runpath', is_match=False)
 
         # check for RELRO
         self.do_check("Partial RelRO", "-l", filename, r'GNU_RELRO', is_match=True)
@@ -5559,10 +5560,6 @@ def ok(msg):   _xlog("[+] %s" % msg)
 def dbg(msg):  _xlog("[*] %s" % msg)
 def xd(msg):   _xlog("[*] Hexdump:\\n%s" % hexdump(msg))
 {asm:s}
-def grab_banner(s, until_pattern="> "):
-    data = s.read_until(until_pattern)
-    dbg("Received %d bytes: %s" % (len(data), data))
-    return data
 
 def build_socket(host, port):
     s = telnetlib.Telnet(HOST, PORT)
@@ -5591,9 +5588,8 @@ def pwn(s):
 if __name__ == "__main__":
     s = build_socket(HOST, PORT)
     raw_input("Attach with GDB and hit Enter ")
-    banner = grab_banner(s)
     if pwn(s):
-        ok("Got it, interacting (Ctrl-C to break)")
+        ok("Switching to interactive...")
         interact(s)
         ret = 0
     else:
