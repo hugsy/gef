@@ -5566,12 +5566,11 @@ def build_socket(host, port):
     ok("Connected to %s:%d" % (host, port))
     return s
 
-def interact(s):
+def interact(s, live_tty=False):
     pty = \"\"\"python -c "import pty;pty.spawn('/bin/bash')" \"\"\"
     try:
-        c = raw_input("Switch to pty [Yy]? ").strip()
-        if c in ('Y', 'y'):  s.write(pty + '\\n')
-        else:                ok(\"\"\"Get a PTY with ' %s  '\"\"\" % pty)
+        if live_tty:  s.write(pty + '\\n')
+        else:         ok(\"\"\"Get a PTY with ' %s  '\"\"\" % pty)
         s.interact()
     except KeyboardInterrupt:
         ok("Leaving")
@@ -5590,7 +5589,7 @@ if __name__ == "__main__":
     raw_input("Attach with GDB and hit Enter ")
     if pwn(s):
         ok("Switching to interactive...")
-        interact(s)
+        interact(s, False)
         ret = 0
     else:
         err("Failed to exploit")
