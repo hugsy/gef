@@ -5542,19 +5542,14 @@ def hexdump(src, length=0x10):
     return result
 
 def xor(data, key):  return ''.join(chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key)))
+def p16(i,signed=False): return struct.pack("<H", i) if not signed else struct.pack("<h", i)
+def u16(i,signed=False): return struct.unpack("<H", i)[0] if not signed else struct.unpack("<h", i)[0]
+def p32(i,signed=False): return struct.pack("<I", i) if not signed else struct.pack("<i", i)
+def u32(i,signed=False): return struct.unpack("<I", i)[0] if not signed else struct.unpack("<i", i)[0]
+def p64(i,signed=False): return struct.pack("<Q", i) if not signed else struct.pack("<q", i)
+def u64(i,signed=False): return struct.unpack("<Q", i)[0] if not signed else struct.unpack("<q", i)[0]
 
-def h_p(i,signed=False): return struct.pack("<H", i) if not signed else struct.pack("<h", i)
-def h_u(i,signed=False): return struct.unpack("<H", i)[0] if not signed else struct.unpack("<h", i)[0]
-def i_p(i,signed=False): return struct.pack("<I", i) if not signed else struct.pack("<i", i)
-def i_u(i,signed=False): return struct.unpack("<I", i)[0] if not signed else struct.unpack("<i", i)[0]
-def q_p(i,signed=False): return struct.pack("<Q", i) if not signed else struct.pack("<q", i)
-def q_u(i,signed=False): return struct.unpack("<Q", i)[0] if not signed else struct.unpack("<q", i)[0]
-
-def _xlog(x):
-    sys.stderr.write(x + "\\n")
-    sys.stderr.flush()
-    return
-
+def _xlog(x): sys.stderr.write(x + "\\n") ; sys.stderr.flush() ; return
 def err(msg):  _xlog("[!] %s" % msg)
 def ok(msg):   _xlog("[+] %s" % msg)
 def dbg(msg):  _xlog("[*] %s" % msg)
