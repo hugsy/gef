@@ -72,7 +72,7 @@ if sys.version_info.major == 2:
     PYTHON_MAJOR = 2
 
 elif sys.version_info.major == 3:
-    from html.parser import HTMLParserg
+    from html.parser import HTMLParser
     from io import StringIO
     from urllib.request import urlopen
     import configparser
