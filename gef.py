@@ -72,7 +72,7 @@ if sys.version_info.major == 2:
     PYTHON_MAJOR = 2
 
 elif sys.version_info.major == 3:
-    from html.parser import HTMLParser
+    from html.parser import HTMLParserg
     from io import StringIO
     from urllib.request import urlopen
     import configparser
@@ -195,7 +195,7 @@ def reset_all_caches():
 # let's get fancy
 class Color:
     NORMAL         = "\x1b[0m"
-    GRAY           = "\x1b[30m"
+    GRAY           = "\x1b1;[30m"
     RED            = "\x1b[31m"
     GREEN          = "\x1b[32m"
     YELLOW         = "\x1b[33m"
