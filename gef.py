@@ -195,7 +195,7 @@ def reset_all_caches():
 # let's get fancy
 class Color:
     NORMAL         = "\x1b[0m"
-    GRAY           = "\x1b[30m"
+    GRAY           = "\x1b[1;30m"
     RED            = "\x1b[31m"
     GREEN          = "\x1b[32m"
     YELLOW         = "\x1b[33m"
