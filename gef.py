@@ -3205,7 +3205,7 @@ class GlibcHeapBinsCommand(GenericCommand):
     def pprint_bin(arena_addr, bin_idx):
         arena = GlibcArena(arena_addr)
         fw, bk = arena.bin(bin_idx)
-        __arch = long(get_memory_alignment(to_byte=True))
+        arch = long(get_memory_alignment(to_byte=True))
 
         ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(bin_idx, fw, bk))
         if bk == fw:
@@ -3213,9 +3213,9 @@ class GlibcHeapBinsCommand(GenericCommand):
             return
 
         m = ""
-        head = GlibcChunk(bk+2*__arch).get_fwd_ptr()
+        head = GlibcChunk(bk+2*arch).get_fwd_ptr()
         while fw != head:
-            chunk = GlibcChunk(fw+2*__arch)
+            chunk = GlibcChunk(fw+2*arch)
             m+= "{:s}  {:s}  ".format(right_arrow(), str(chunk))
             fw = chunk.get_fwd_ptr()
 
