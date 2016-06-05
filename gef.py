@@ -459,6 +459,9 @@ class GlibcArena:
         addr_next = "*0x%x " % addr_next
         return GlibcArena(addr_next)
 
+    def get_arch(self):
+        return self.__arch
+
     def __str__(self):
         top             = self.deref_as_long(self.top)
         last_remainder  = self.deref_as_long(self.last_remainder)
@@ -3205,17 +3208,16 @@ class GlibcHeapBinsCommand(GenericCommand):
     def pprint_bin(arena_addr, bin_idx):
         arena = GlibcArena(arena_addr)
         fw, bk = arena.bin(bin_idx)
-        arch = long(get_memory_alignment(to_byte=True))
 
         ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(bin_idx, fw, bk))
-        if bk == fw:
+        if bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF)):
             ok("Empty")
             return
 
         m = ""
-        head = GlibcChunk(bk+2*arch).get_fwd_ptr()
+        head = GlibcChunk(bk+2*arena.get_arch()).get_fwd_ptr()
         while fw != head:
-            chunk = GlibcChunk(fw+2*arch)
+            chunk = GlibcChunk(fw+2*arena.get_arch())
             m+= "{:s}  {:s}  ".format(right_arrow(), str(chunk))
             fw = chunk.get_fwd_ptr()
 
