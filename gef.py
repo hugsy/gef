@@ -5466,7 +5466,7 @@ class GEFCommand(gdb.Command):
 
 
 def __gef_prompt__(current_prompt):
-    prompt = "gdb> "
+    prompt = "gef> " if PYTHON_MAJOR == 2 else "gef\u27a4  "
     return Color.CLEAR_LINE + Color.boldify(Color.redify(prompt))
 
 
