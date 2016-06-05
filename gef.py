@@ -443,7 +443,7 @@ class GlibcArena:
         addr = self.deref_as_long(self.fastbinsY[i])
         if addr == 0x00:
             return None
-        return GlibcChunk(addr)
+        return GlibcChunk(addr+2*self.__arch)
 
     def bin(self, i):
         idx = i * 2
