@@ -460,12 +460,16 @@ class GlibcArena:
         return GlibcArena(addr_next)
 
     def __str__(self):
-        top    = self.deref_as_long(self.top)
-        nfree  = self.deref_as_long(self.next_free)
-        sysmem = long(self.system_mem)
+        top             = self.deref_as_long(self.top)
+        last_remainder  = self.deref_as_long(self.last_remainder)
+        n               = self.deref_as_long(self.next)
+        nfree           = self.deref_as_long(self.next_free)
+        sysmem          = long(self.system_mem)
         m = "Arena ("
         m+= "base={:#x},".format(self.__addr)
         m+= "top={:#x},".format(top)
+        m+= "last_remainder={:#x},".format(last_remainder)
+        m+= "next={:#x},".format(n)
         m+= "next_free={:#x},".format(nfree)
         m+= "system_mem={:#x}".format(sysmem)
         m+= ")"
@@ -3200,8 +3204,8 @@ class GlibcHeapBinsCommand(GenericCommand):
     @staticmethod
     def pprint_bin(arena_addr, bin_idx):
         arena = GlibcArena(arena_addr)
-        bin_fw, bin_bk = arena.bins[bin_idx+2], arena.bins[bin_idx*2+1]
         fw, bk = arena.bin(bin_idx)
+        __arch = long(get_memory_alignment(to_byte=True))
 
         ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(bin_idx, fw, bk))
         if bk == fw:
@@ -3209,8 +3213,9 @@ class GlibcHeapBinsCommand(GenericCommand):
             return
 
         m = ""
-        while fw != bin1_fd:
-            chunk = GlibcChunk(fw)
+        head = GlibcChunk(bk+2*__arch).get_fwd_ptr()
+        while fw != head:
+            chunk = GlibcChunk(fw+2*__arch)
             m+= "{:s}  {:s}  ".format(right_arrow(), str(chunk))
             fw = chunk.get_fwd_ptr()
 
@@ -5461,7 +5466,7 @@ class GEFCommand(gdb.Command):
 
 
 def __gef_prompt__(current_prompt):
-    prompt = "gef> " if PYTHON_MAJOR == 2 else "gef\u27a4  "
+    prompt = "gdb> "
     return Color.CLEAR_LINE + Color.boldify(Color.redify(prompt))
 
 
