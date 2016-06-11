@@ -1877,7 +1877,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             ptr = hex(ptr)
 
         else :
-            raise NotImplementedError("Architecture '%s' not supported yet for FormatStringBreakpoint.")
+            raise NotImplementedError("Architecture '%s' not supported yet for FormatStringBreakpoint." % get_arch())
 
         if addr is None:
             return False
