@@ -443,7 +443,7 @@ class GlibcArena:
         addr = self.deref_as_long(self.fastbinsY[i])
         if addr == 0x00:
             return None
-        return GlibcChunk(addr)
+        return GlibcChunk(addr+2*self.__arch)
 
     def bin(self, i):
         idx = i * 2
@@ -459,13 +459,20 @@ class GlibcArena:
         addr_next = "*0x%x " % addr_next
         return GlibcArena(addr_next)
 
+    def get_arch(self):
+        return self.__arch
+
     def __str__(self):
-        top    = self.deref_as_long(self.top)
-        nfree  = self.deref_as_long(self.next_free)
-        sysmem = long(self.system_mem)
+        top             = self.deref_as_long(self.top)
+        last_remainder  = self.deref_as_long(self.last_remainder)
+        n               = self.deref_as_long(self.next)
+        nfree           = self.deref_as_long(self.next_free)
+        sysmem          = long(self.system_mem)
         m = "Arena ("
         m+= "base={:#x},".format(self.__addr)
         m+= "top={:#x},".format(top)
+        m+= "last_remainder={:#x},".format(last_remainder)
+        m+= "next={:#x},".format(n)
         m+= "next_free={:#x},".format(nfree)
         m+= "system_mem={:#x}".format(sysmem)
         m+= ")"
@@ -3200,17 +3207,17 @@ class GlibcHeapBinsCommand(GenericCommand):
     @staticmethod
     def pprint_bin(arena_addr, bin_idx):
         arena = GlibcArena(arena_addr)
-        bin_fw, bin_bk = arena.bins[bin_idx+2], arena.bins[bin_idx*2+1]
         fw, bk = arena.bin(bin_idx)
 
         ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(bin_idx, fw, bk))
-        if bk == fw:
+        if bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF)):
             ok("Empty")
             return
 
         m = ""
-        while fw != bin1_fd:
-            chunk = GlibcChunk(fw)
+        head = GlibcChunk(bk+2*arena.get_arch()).get_fwd_ptr()
+        while fw != head:
+            chunk = GlibcChunk(fw+2*arena.get_arch())
             m+= "{:s}  {:s}  ".format(right_arrow(), str(chunk))
             fw = chunk.get_fwd_ptr()
 

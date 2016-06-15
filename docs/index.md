@@ -16,9 +16,15 @@ distro start pushing `gdb` compiled with Python3 support).
 
 ## Quick start
 
+### Install
 Simply make sure you're having a [GDB 7.x+](https://www.gnu.org/s/gdb).
 ``` bash
- $ wget -q -O- https://github.com/hugsy/gef/raw/master/gef.sh | sh
+# via the install script
+$ wget -q -O- https://github.com/hugsy/gef/raw/master/gef.sh | sh
+
+# manually
+$ wget -q -O ~/.gdbinit-gef.py https://github.com/hugsy/gef/raw/master/gef.py
+$ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 ```
 
 Then just start playing (for local files):
@@ -36,6 +42,15 @@ And
 local:~ $ gdb -q
 gef> gef-remote your.ip.address:1234
 ```
+
+### Update
+
+If your host/VM is connected to Internet, you can update `gef` easily to the latest version (even without `git` installed)
+```bash
+$ python /path/to/gef.py --update
+Updated
+```
+If no updates are available, `gef` will respond `No update` instead.
 
 ## Show me
 
@@ -67,8 +82,17 @@ There are none: `GEF` works out of the box! However, to enjoy all the coolest fe
 [`capstone`](https://github.com/aquynh/capstone) (by [Nguyen Anh Quynh](https://github.com/aquynh))is an alternative disassembly engine, and [`keystone`](https://github.com/keystone-engine/keystone) is an (arguably the best) assembly engine.
 You can use `pip` to simply and quickly install it.
 ```bash
-$ pip2 install capstone keystone   # for Python2.x
-$ pip3 install capstone keystone   # for Python3.x
+$ pip2 install capstone   # for Python2.x
+$ pip3 install capstone   # for Python3.x
+```
+
+`capstone` and `keystone` are under very active development and improvement, so it is recommended to compile and install them from git.
+```bash
+$ git clone https://github.com/keystone-engine/keystone.git
+$ mkdir -p keystone/build && keystone/build
+$ cmake .. && make -j8
+$ sudo make install
+$ cd ../bindings/python && sudo make install # or sudo make install3 for Python3
 ```
 
 `capstone` provides an alternative to the `gdb` disassembler, which could be useful specifically when dealing with complex/uncommon instructions.

@@ -264,6 +264,7 @@ $ gdbserver 0.0.0.0:1234 /bin/uname
 Process /bin/uname created; pid = 32280
 Listening on port 1234
 ```
+![](https://i.imgur.com/Zc4vnBd.png)
 
 And on the client, simply run `gdb`:
 ```
@@ -296,7 +297,6 @@ gef> gef-remote -t 192.168.56.1:1234 -p 10851
 [+] Connected to '192.168.56.1:1234'
 [+] Downloading remote information
 [+] Remote information loaded, remember to clean '/tmp/10851' when your session is over
-
 ```
 
 As you can observe, if it cannot find the debug information, `gef` will try to download
@@ -304,7 +304,7 @@ automatically the target file and store in the local temporary directory (on
 most Unix `/tmp`). If successful, it will then automatically load the debug
 information to `gdb` and proceed with the debugging.
 
-![gef-remote-autodownload](https://i.imgur.com/S3X536b.png)
+![gef-remote-autodownload](https://i.imgur.com/8JHpOTV.png)
 
 You can then reuse the downloaded file for your future debugging sessions, use it under IDA
 and such. This makes the entire remote debugging process (particularly for Android applications)
