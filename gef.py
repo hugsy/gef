@@ -57,7 +57,8 @@ import itertools
 import hashlib
 import shutil
 import socket
-
+import fcntl
+import termios
 
 if sys.version_info.major == 2:
     from HTMLParser import HTMLParser
@@ -1533,9 +1534,9 @@ def get_terminal_size():
     """
     Portable function to retrieve the current terminal size.
     """
-    cmd = [which("stty"), "size"]
-    tty_rows, tty_columns = gef_execute_external(cmd).strip().split()
-    return int(tty_rows), int(tty_columns)
+    cmd = struct.unpack('hh',  fcntl.ioctl(1, termios.TIOCGWINSZ, '1234'))
+    tty_rows, tty_columns = int(cmd[0]), int(cmd[1])
+    return tty_rows, tty_columns
 
 
 def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):
