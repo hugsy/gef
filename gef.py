@@ -129,6 +129,7 @@ __aliases__ = {}
 __config__ = {}
 __infos_files__ = []
 __loaded__ = []
+__gef_convenience_vars_index__ = 0
 NO_COLOR = False
 DEFAULT_PAGE_ALIGN_SHIFT = 12
 DEFAULT_PAGE_SIZE = 1 << DEFAULT_PAGE_ALIGN_SHIFT
@@ -1831,6 +1832,15 @@ def dereference(addr):
 
         ret = None
     return ret
+
+
+def gef_convenience(value):
+    global __gef_convenience_vars_index__
+    var_name = "$_gef%d" % __gef_convenience_vars_index__
+    __gef_convenience_vars_index__ += 1
+    gdb.execute("""set %s = %s """ % (var_name, value))
+    return var_name
+
 
 #
 # Breakpoints
@@ -4721,20 +4731,20 @@ class XAddressInfoCommand(GenericCommand):
         info = addr.info
 
         if sect:
-            print(("Found %s" % format_address(addr.value)))
-            print(("Page: %s %s %s (size=%#x)" % (format_address(sect.page_start),
+            print("Found %s" % format_address(addr.value))
+            print("Page: %s %s %s (size=%#x)" % (format_address(sect.page_start),
                                                   right_arrow(),
                                                   format_address(sect.page_end),
-                                                  sect.page_end-sect.page_start)))
-            print(("Permissions: %s" % sect.permission))
-            print(("Pathname: %s" % sect.path))
-            print(("Offset (from page): +%#x" % (addr.value-sect.page_start)))
-            print(("Inode: %s" % sect.inode))
+                                                  sect.page_end-sect.page_start))
+            print("Permissions: %s" % sect.permission)
+            print("Pathname: %s" % sect.path)
+            print("Offset (from page): +%#x" % (addr.value-sect.page_start))
+            print("Inode: %s" % sect.inode)
 
         if info:
-            print(("Segment: %s (%s-%s)" % (info.name,
+            print("Segment: %s (%s-%s)" % (info.name,
                                             format_address(info.zone_start),
-                                            format_address(info.zone_end))))
+                                            format_address(info.zone_end)))
 
         return
 
@@ -4948,6 +4958,7 @@ class PatternCreateCommand(GenericCommand):
 
 
     def do_invoke(self, argv):
+
         if len(argv) == 1:
             if not argv[0].isdigit():
                 err("Invalid size")
@@ -4959,8 +4970,12 @@ class PatternCreateCommand(GenericCommand):
 
         size = __config__.get("pattern.length", 1024)[0]
         info("Generating a pattern of %d bytes" % size)
-        patt = generate_msf_pattern(size)
-        print(patt.decode("utf-8"))
+        patt = generate_msf_pattern(size).decode("utf-8")
+        if size < 1024:
+            print(patt)
+
+        var_name = gef_convenience('"%s"' % patt)
+        ok("Saved as '%s'" % var_name)
         return
 
 
