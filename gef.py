@@ -2307,7 +2307,6 @@ class ChangePermissionCommand(GenericCommand):
             import keystone
         except ImportError as ioe:
             msg = "Missing Python `keystone` package. "
-            msg+= "Install with `pip{} install keystone`".format(PYTHON_MAJOR)
             raise GefMissingDependencyException( msg )
         return
 
@@ -2991,7 +2990,6 @@ class CapstoneDisassembleCommand(GenericCommand):
             import capstone
         except ImportError as ie:
             msg = "Missing Python `capstone` package. "
-            msg+= "Install with `pip{} install capstone`".format(PYTHON_MAJOR)
             raise GefMissingDependencyException( msg )
         return
 
@@ -3735,7 +3733,6 @@ class ROPgadgetCommand(GenericCommand):
 
         except ImportError as ie:
             msg = "Missing Python `ropgadget` package. "
-            msg+= "Install with `pip{} install ropgadget`".format(PYTHON_MAJOR)
             raise GefMissingDependencyException( msg )
 
         return
@@ -3866,7 +3863,6 @@ class AssembleCommand(GenericCommand):
             import keystone
         except ImportError as ioe:
             msg = "Missing Python `keystone` package. "
-            msg+= "Install with `pip{} install keystone`".format(PYTHON_MAJOR)
             raise GefMissingDependencyException( msg )
         return
 
