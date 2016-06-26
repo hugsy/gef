@@ -1251,11 +1251,14 @@ def read_memory_until_null(address, max_length=-1):
 
 
 def read_cstring_from_memory(address):
+    """
+    Read a C-string from memory using GDB memory access.
+    """
     char_ptr = gdb.lookup_type("char").pointer()
-    res = gdb.Value(address).cast(char_ptr).string()
-    for c in ("\n", "\t", "\d"):
-        i = res.find(c)
-        if i==-1: continue
+    res = gdb.Value(address).cast(char_ptr).string().strip()
+
+    i = res.find('\n')
+    if i!=-1 and len(res) > get_memory_alignment(to_byte=True):
         res = res[:i] + "[...]"
 
     return res
@@ -4543,10 +4546,15 @@ class DereferenceCommand(GenericCommand):
                 elif addr.section.permission.value & Permission.READ:
                     if is_readable_string(value):
                         s = read_cstring_from_memory(value)
-                        if len(s) >= 50:
-                            s = s[:50] + "[...]"
+                        if len(s) < get_memory_alignment(to_byte=True):
+                            val = long(dereference(value))
+                            txt = "%s (\"%s\"?)" %  (format_address(val), Color.greenify(s))
+                        elif len(s) >= 50:
+                            txt = Color.greenify('"%s[...]"' % s[:50])
+                        else:
+                            txt = Color.greenify('"%s"' % s)
 
-                        msg.append( '"%s"' % Color.greenify(s))
+                        msg.append( txt )
                         break
 
             prev_addr_value = addr.value
