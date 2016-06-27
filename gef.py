@@ -152,9 +152,6 @@ class GefUnsupportedMode(GefGenericException):
 class GefUnsupportedOS(GefGenericException):
     pass
 
-class GefNoDebugInformation(GefGenericException):
-    pass
-
 
 # https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
 class memoize(object):
@@ -194,7 +191,6 @@ def reset_all_caches():
     return
 
 
-# let's get fancy
 class Color:
     NORMAL         = "\x1b[0m"
     GRAY           = "\x1b[1;30m"
@@ -243,7 +239,6 @@ def vertical_line():
     return "\u2502" if PYTHON_MAJOR == 3 else "|"
 
 
-# helpers
 class Address:
     def __init__(self, *args, **kwargs):
         self.value = kwargs.get("value", 0)
@@ -683,6 +678,25 @@ def info(msg):
     gdb.flush()
     return
 
+
+def which(program):
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    raise IOError("Missing file `%s`" % program)
+
+
 def hexdump(source, length=0x10, separator='.', show_raw=False, base=0x00):
     """
     Return the hexdump of `src` argument.
@@ -712,16 +726,20 @@ def hexdump(source, length=0x10, separator='.', show_raw=False, base=0x00):
 
     return '\n'.join(result)
 
+
 def is_debug():
     return "global.debug" in __config__.keys() and __config__["global.debug"][0]==True
+
 
 def enable_debug():
     __config__["global.debug"] = (True, bool)
     return
 
+
 def disable_debug():
     __config__["global.debug"] = (False, bool)
     return
+
 
 def gef_makedirs(path, mode=0o755):
     if PYTHON_MAJOR == 3:
@@ -732,6 +750,7 @@ def gef_makedirs(path, mode=0o755):
     except os.error:
         pass
     return
+
 
 def gef_obsolete_function(func):
     def new_func(*args, **kwargs):
@@ -1204,64 +1223,6 @@ def read_int_from_memory(addr):
     mem = read_memory( addr, arch)
     fmt = endian_str()+"I" if arch==4 else endian_str()+"Q"
     return struct.unpack( fmt, mem)[0]
-
-
-def which(program):
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
-
-    raise IOError("Missing file `%s`" % program)
-
-
-@gef_obsolete_function
-def read_memory_until_null(address, max_length=-1):
-    """
-    Slow method to read all the bytes in memory starting from
-    `address` until we hit a null byte, or `max_length` is reached
-    """
-    i = 0
-
-    if PYTHON_MAJOR == 2:
-        buf = ''
-        while True:
-            try:
-                c = read_memory(address + i, 1)[0]
-                if c == '\x00':
-                    break
-                buf += c
-                i += 1
-                if max_length > 0 and i == max_length:
-                    break
-            except:
-                break
-        return buf
-
-    else:
-        buf = []
-        while True:
-            try:
-                c = read_memory(address + i, 1)[0]
-                if c == 0x00:
-                    break
-                buf.append( c )
-                i += 1
-                if max_length > 0 and i == max_length:
-                    break
-            except:
-                break
-
-        return bytes(buf)
 
 
 def read_cstring_from_memory(address):
@@ -1766,7 +1727,7 @@ def get_memory_alignment(to_byte=False):
     elif is_elf64():
         return 64 if not to_byte else 8
 
-    raise GefUnsupportedMode("GEF is running under an unsupported mode, functions will not work")
+    raise GefUnsupportedMode("GEF is running under an unsupported mode")
 
 def clear_screen():
     gdb.execute("shell clear")
@@ -1816,22 +1777,46 @@ def is_remote_debug():
     return "gef-remote.target" in __config__.keys()
 
 
-def generate_msf_pattern(length):
+def de_bruijn(alphabet, n):
     """
-    Create a Metasploit-like pattern whose length is specified by argument.
+    De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib)
+    Source: https://github.com/Gallopsled/pwntools/blob/master/pwnlib/util/cyclic.py#L38
     """
-    pattern = b""
-    for mj in range(ord('A'), ord('Z')+1) :                         # from A to Z
-        for mn in range(ord('a'), ord('z')+1) :                     # from a to z
-            for dg in range(ord('0'), ord('9')+1) :                 # from 0 to 9
-                for extra in "~!@#$%&*()-_+={}[]|;:<>?/":           # adding extra chars
-                    for c in (chr(mj), chr(mn), chr(dg), extra):
-                        if len(pattern) == length :
-                            return pattern
-                        else:
-                            pattern += c.encode("utf-8")
+    k = len(alphabet)
+    a = [0] * k * n
+    def db(t, p):
+        if t > n:
+            if n % p == 0:
+                for j in range(1, p + 1):
+                    yield alphabet[a[j]]
+        else:
+            a[t] = a[t - p]
+            for c in db(t + 1, p):
+                yield c
 
-        return b""
+            for j in range(a[t - p] + 1, k):
+                a[t] = j
+                for c in db(t + 1, t):
+                    yield c
+
+    return db(1,1)
+
+
+def generate_cyclic_pattern(length):
+    """
+    Create a cyclic pattern based on de Bruijn sequence.
+    """
+    charset = b"""abcdefghijklmnopqrstuvwxyz"""
+    cycle = get_memory_alignment(to_byte=True) if is_alive() else 4
+    i = 0
+    res = []
+
+    for c in de_bruijn(charset, cycle):
+        if i == length: break
+        res.append(c)
+        i += 1
+
+    return bytearray(res)
 
 
 def dereference(addr):
@@ -5006,7 +4991,7 @@ class PatternCreateCommand(GenericCommand):
 
         size = __config__.get("pattern.length", 1024)[0]
         info("Generating a pattern of %d bytes" % size)
-        patt = generate_msf_pattern(size).decode("utf-8")
+        patt = generate_cyclic_pattern(size).decode("utf-8")
         if size < 1024:
             print(patt)
 
@@ -5054,17 +5039,17 @@ class PatternSearchCommand(GenericCommand):
             err("Incorrect pattern")
             return
 
-        buf = generate_msf_pattern(size)
+        buf = generate_cyclic_pattern(size)
         found = False
 
         off = buf.find(pattern_le)
         if off >= 0:
-            ok("Found at offset %d (little-endian search)" % off)
+            ok("Found at offset %d (little-endian search) %s" % (off, Color.boldify(Color.redify("likely")) if is_little_endian() else ""))
             found = True
 
         off = buf.find(pattern_be)
         if off >= 0:
-            ok("Found at offset %d (big-endian search)" % off)
+            ok("Found at offset %d (big-endian search) %s" % (off, Color.boldify(Color.redify("likely")) if is_big_endian() else ""))
             found = True
 
         if not found:
