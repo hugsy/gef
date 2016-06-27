@@ -1905,7 +1905,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         if addr.section.permission.value & Permission.WRITE:
             content = read_cstring_from_memory(addr.value)
 
-            print((titlify("Format String Detection")))
+            print(titlify("Format String Detection"))
             info("Possible insecure format string '%s' %s %#x: '%s'" % (ptr, right_arrow(), addr.value, content))
             info("Triggered by '%s()'" % self.location)
 
@@ -3439,7 +3439,7 @@ class AliasShowCommand(GenericCommand):
 
     def do_invoke(self, argv):
         for alias_name in list( __aliases__.keys() ):
-            print(("'%s'\t'%s'" % (alias_name, ";".join(__aliases__[alias_name]))))
+            print("'%s'\t'%s'" % (alias_name, ";".join(__aliases__[alias_name])))
         return
 
 class AliasDoCommand(GenericCommand):
@@ -3624,7 +3624,7 @@ class ShellcodeSearchCommand(GenericCommand):
             for ref in refs:
                 try:
                     auth, arch, cmd, sid, link = ref
-                    print(("\t".join([sid, arch, cmd])))
+                    print("\t".join([sid, arch, cmd]))
                 except ValueError:
                     continue
 
@@ -3939,7 +3939,7 @@ class InvokeCommand(GenericCommand):
     @gef_obsolete_function
     def do_invoke(self, argv):
         ret = gef_execute_external( argv )
-        print(( "%s" % ret ))
+        print( "%s" % ret )
         return
 
 
@@ -4081,7 +4081,7 @@ class ElfInfoCommand(GenericCommand):
               ]
 
         for title, content in data:
-            print(("{:<30}: {}".format(Color.boldify(title), content)))
+            print("{:<30}: {}".format(Color.boldify(title), content))
 
         # todo finish
         return
@@ -4517,7 +4517,7 @@ class DereferenceCommand(GenericCommand):
         for i in range(0, nb):
             addr = init_addr + (get_memory_alignment(to_byte=True) * i)
             addrs = DereferenceCommand.dereference_from(addr)
-            print(("%s" % (Color.boldify("   %s   " % right_arrow()).join(addrs), )))
+            print("%s" % (Color.boldify("   %s   " % right_arrow()).join(addrs), ))
 
         return
 
@@ -4603,7 +4603,7 @@ class ASLRCommand(GenericCommand):
             else:
                 msg+= Color.greenify( "enabled" )
 
-            print(("%s" % msg))
+            print("%s" % msg)
 
             return
 
@@ -4654,9 +4654,9 @@ class VMMapCommand(GenericCommand):
             return
 
         if is_elf64():
-            print(("%18s %18s %18s %4s %s" % ("Start", "End", "Offset", "Perm", "Path")))
+            print("%18s %18s %18s %4s %s" % ("Start", "End", "Offset", "Perm", "Path"))
         else:
-            print(("%10s %10s %10s %4s %s" % ("Start", "End", "Offset", "Perm", "Path")))
+            print("%10s %10s %10s %4s %s" % ("Start", "End", "Offset", "Perm", "Path"))
         for entry in vmmap:
             l = []
             l.append( format_address( entry.page_start ))
@@ -4733,7 +4733,7 @@ class XAddressInfoCommand(GenericCommand):
         for sym in argv:
             try:
                 addr = align_address( parse_address(sym) )
-                print(( titlify("xinfo: %#x" % addr )))
+                print(titlify("xinfo: %#x" % addr ))
                 self.infos(addr)
 
             except gdb.error as gdb_err:
@@ -5183,7 +5183,7 @@ class ChecksecCommand(GenericCommand):
             else:
                 buf+= Color.greenify("Yes")
 
-        print(("%s" % buf))
+        print("%s" % buf)
         return
 
 
@@ -5358,16 +5358,16 @@ class GEFCommand(gdb.Command):
 
         self.__loaded_cmds = sorted(__loaded__, key=lambda x: x[1]._cmdline_)
 
-        print(("%s, `%s' to start, `%s' to configure" % (Color.greenify("gef loaded"),
-                                                         Color.redify("gef help"),
-                                                         Color.redify("gef config"))))
+        print("%s, `%s' to start, `%s' to configure" % (Color.greenify("gef loaded"),
+                                                        Color.redify("gef help"),
+                                                        Color.redify("gef config")))
 
         ver = "%d.%d" % (sys.version_info.major, sys.version_info.minor)
         nb_cmds = sum([1 for x in self.loaded_command_names if " " not in x])
         nb_sub_cmds = sum([1 for x in self.loaded_command_names if " " in x])
-        print(("%s commands loaded (%s sub-commands), using Python engine %s" % (Color.greenify(str(nb_cmds)),
-                                                                                 Color.greenify(str(nb_sub_cmds)),
-                                                                                 Color.redify(ver))))
+        print("%s commands loaded (%s sub-commands), using Python engine %s" % (Color.greenify(str(nb_cmds)),
+                                                                                Color.greenify(str(nb_sub_cmds)),
+                                                                                Color.redify(ver)))
 
         if os.access(GEF_RC, os.R_OK):
             self.restore()
@@ -5423,7 +5423,7 @@ class GEFCommand(gdb.Command):
         if argc==0 or argc==1:
             config_items = sorted( __config__ )
             plugin_name = args[0] if argc==1 and args[0] in self.loaded_command_names else ""
-            print(( titlify("GEF configuration settings %s" % plugin_name) ))
+            print( titlify("GEF configuration settings %s" % plugin_name) )
             for key in config_items:
                 if plugin_name not in key:
                     continue
