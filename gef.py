@@ -254,6 +254,20 @@ class Address:
     def __str__(self):
         return hex( self.value )
 
+    def is_in_text_segment(self):
+        return hasattr(self.info, "name") and ".text" in self.info.name
+
+    def is_in_stack_segment(self):
+        return hasattr(self.info, "name") and "[stack]" in self.info.name
+
+    def is_in_heap_segment(self):
+        return hasattr(self.info, "name") and "[heap]" in self.info.name
+
+    def dereference(self):
+        addr = align_address(long(self.value))
+        addr = dereference(addr)
+        return long(addr)
+
 
 class Permission:
     NONE      = 0
@@ -3548,21 +3562,23 @@ class DetailRegistersCommand(GenericCommand):
 
             if str(reg.type) == 'builtin_type_sparc_psr':  # ugly but more explicit
                 line+= "%s" % reg
+                continue
 
-            elif reg.type.code == gdb.TYPE_CODE_FLAGS:
+            if reg.type.code == gdb.TYPE_CODE_FLAGS:
                 desc_flag = flag_register()
                 line+= "%s" % (Color.boldify(str(reg))) if desc_flag == "" else desc_flag
+                continue
 
-            else:
-                addr = align_address( long(reg) )
-                line+= Color.boldify(Color.blueify(format_address(addr)))
-                addrs = DereferenceCommand.dereference_from(addr)
+            addr = align_address( long(reg) )
 
-                if len(addrs) > 1:
-                    sep = " %s " % right_arrow()
-                    line+= sep + sep.join(addrs[1:])
+            line+= Color.boldify(Color.blueify(format_address(addr)))
+            addrs = DereferenceCommand.dereference_from(addr)
 
-                print(line)
+            if len(addrs) > 1:
+                sep = " %s " % right_arrow()
+                line+= sep + sep.join(addrs[1:])
+
+            print(line)
 
         return
 
@@ -4524,38 +4540,46 @@ class DereferenceCommand(GenericCommand):
     @staticmethod
     def dereference_from(addr):
         prev_addr_value = None
-        deref = addr
-        msg = []
         max_recursion = max(int(__config__["dereference.max_recursion"][0]), 1)
+        value = align_address( long(addr) )
+        addr  = lookup_address( value )
+
+        if addr is None:
+            return [ format_address(value), ]
+
+        msg = []
 
         while max_recursion:
-            value = align_address( long(deref) )
-            addr  = lookup_address( value )
-
-            if addr is None:
-                msg.append( "%#x" % ( long(deref) & 0xffffffffffffffff ))
-                break
 
             if addr.value == prev_addr_value:
                 msg.append( "[loop detected]")
                 break
 
-            msg.append( "%s" % format_address( long(deref) ))
+            msg.append( format_address(addr.value) )
 
+            prev_addr_value = addr.value
+            max_recursion -= 1
+
+            # can we derefence more ?
+            deref = addr.dereference()
+            new_addr = lookup_address(deref)
+            if new_addr is not None:
+                addr = new_addr
+                continue
+
+            # otherwise try to parse the value
             if addr.section:
-                is_in_text_segment = hasattr(addr.info, "name") and ".text" in addr.info.name
-                if addr.section.is_executable() and is_in_text_segment:
-                    cmd = gdb.execute("x/i %#x" % value, to_string=True).replace("=>", '')
+                if addr.section.is_executable() and addr.is_in_text_segment():
+                    cmd = gdb.execute("x/i %#x" % addr.value, to_string=True).replace("=>", '')
                     cmd = re.sub('\s+',' ', cmd.strip()).split(" ", 1)[1]
                     msg.append( "%s" % Color.redify(cmd) )
                     break
 
                 elif addr.section.permission.value & Permission.READ:
-                    if is_readable_string(value):
-                        s = read_cstring_from_memory(value)
+                    if is_readable_string(addr.value):
+                        s = read_cstring_from_memory(addr.value)
                         if len(s) < get_memory_alignment(to_byte=True):
-                            val = long(dereference(value))
-                            txt = "%s (\"%s\"?)" %  (format_address(val), Color.greenify(s))
+                            txt = "%s (\"%s\"?)" %  (format_address(deref), Color.greenify(s))
                         elif len(s) >= 50:
                             txt = Color.greenify('"%s[...]"' % s[:50])
                         else:
@@ -4564,9 +4588,10 @@ class DereferenceCommand(GenericCommand):
                         msg.append( txt )
                         break
 
-            prev_addr_value = addr.value
-            deref = dereference(value)
-            max_recursion -= 1
+            # if not able to parse cleanly, simply display and break
+            msg.append( "%#x" % ( long(deref) & 0xffffffffffffffff ))
+            break
+
 
         return msg
 
