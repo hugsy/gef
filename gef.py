@@ -3541,6 +3541,9 @@ class DetailRegistersCommand(GenericCommand):
 
         for regname in regs:
             reg = gdb.parse_and_eval(regname)
+            if reg.type.code == gdb.TYPE_CODE_VOID:
+                continue
+
             line = Color.boldify(Color.redify(regname)) + ": "
 
             if str(reg.type) == 'builtin_type_sparc_psr':  # ugly but more explicit
@@ -4203,10 +4206,12 @@ class ContextCommand(GenericCommand):
         line = ""
 
         for reg in all_registers():
-            line += "%s  " % (Color.greenify(reg))
 
             try:
                 r = gdb.parse_and_eval(reg)
+                if r.type.code == gdb.TYPE_CODE_VOID:
+                    continue
+
                 new_value_type_flag = (r.type.code == gdb.TYPE_CODE_FLAGS)
                 new_value = r
 
@@ -4220,6 +4225,8 @@ class ContextCommand(GenericCommand):
                 new_value = 0
 
             old_value = self.old_registers[reg] if reg in self.old_registers else 0x00
+
+            line += "%s  " % (Color.greenify(reg))
 
             if new_value_type_flag:
                 line += "%s " % (new_value)
