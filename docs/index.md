@@ -36,11 +36,12 @@ gef> gef help
 Or (for remote debugging)
 ```bash
 remote:~ $ gdbserver 0.0.0.0:1234 /path/to/file
+Running as PID: 666
 ```
 And
 ```bash
 local:~ $ gdb -q
-gef> gef-remote your.ip.address:1234
+gef> gef-remote -t your.ip.address:1234 -p 666
 ```
 
 ### Update
