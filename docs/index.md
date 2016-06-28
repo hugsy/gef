@@ -1,6 +1,6 @@
 # GEF - GDB Enhanced Features  [![Documentation Status](https://readthedocs.org/projects/gef/badge/?version=latest)](https://gef.readthedocs.org/en/latest/)
 
-**TL;DR**: `GEF` is a kick-ass set commands for X86, ARM, MIPS, etc. to
+**TL;DR**: `GEF` is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to
 make GDB cool again for exploit dev.
 
 `GEF` is aimed to be used mostly by exploiters and reverse-engineers. It
