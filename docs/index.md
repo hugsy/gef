@@ -1,6 +1,6 @@
 # GEF - GDB Enhanced Features  [![Documentation Status](https://readthedocs.org/projects/gef/badge/?version=latest)](https://gef.readthedocs.org/en/latest/)
 
-**TL;DR**: `GEF` is a kick-ass set commands for X86, ARM, MIPS, etc. to
+**TL;DR**: `GEF` is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to
 make GDB cool again for exploit dev.
 
 `GEF` is aimed to be used mostly by exploiters and reverse-engineers. It
@@ -36,11 +36,12 @@ gef> gef help
 Or (for remote debugging)
 ```bash
 remote:~ $ gdbserver 0.0.0.0:1234 /path/to/file
+Running as PID: 666
 ```
 And
 ```bash
 local:~ $ gdb -q
-gef> gef-remote your.ip.address:1234
+gef> gef-remote -t your.ip.address:1234 -p 666
 ```
 
 ### Update
