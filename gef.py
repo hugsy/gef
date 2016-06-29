@@ -2758,24 +2758,39 @@ class RemoteCommand(GenericCommand):
         update_solib = False
         fetch_all_libs = False
         download_lib = None
-        opts, args = getopt.getopt(argv, "t:p:hUD:")
+        is_extended_remote = False
+        opts, args = getopt.getopt(argv, "t:p:UD:AEh")
         for o,a in opts:
             if   o == "-t":   target = a
             elif o == "-p":   rpid = int(a)
             elif o == "-U":   update_solib = True
             elif o == "-D":   download_lib = a
-            elif o == "-U":   fetch_all_libs = True
+            elif o == "-A":   fetch_all_libs = True
+            elif o == "-E":   is_extended_remote = True
             elif o == "-h":
                 self.help()
                 return
 
-        if target is not None:
-            if rpid not in range(1, 65536):
-                err("Invalid syntax, see -h for help.")
-                return
-
-            self.setup_remote_environment(target, rpid, update_solib)
+        if rpid not in range(1, 65536):
+            err("A PID is always required.")
             return
+
+        if target is None:
+            err("A TARGET (HOST:PORT) is always required.")
+            return
+
+        if self.connect_target(target, is_extended_remote) == False:
+            return
+
+        # if extended-remote, need to attach
+        if is_extended_remote:
+            ok("Attaching to %d" % rpid)
+            disable_context()
+            gdb.execute("attach %d" % rpid)
+            enable_context()
+
+        self.add_setting("target", target)
+        self.setup_remote_environment(rpid, update_solib)
 
         if download_lib is not None:
             if not is_remote_debug():
@@ -2792,19 +2807,12 @@ class RemoteCommand(GenericCommand):
                 self.refresh_shared_library_path()
             return
 
-        err("No action defined")
         return
 
 
-    def setup_remote_environment(self, target, pid, update_solib=False):
+    def setup_remote_environment(self, pid, update_solib=False):
         # cleaning memoized cache
         gdb.execute("reset-cache")
-
-        if not self.connect_target(target):
-            err("Failed to connect to %s" % target)
-            return
-
-        ok("Connected to '%s'" % target)
 
         ok("Downloading remote information")
         infos = {}
@@ -2818,14 +2826,14 @@ class RemoteCommand(GenericCommand):
             err("Source binary is not readable")
             return
 
-        directory  = '%s/%d' % (tempfile.gettempdir(), pid)
+        directory  = '%s/gef/%d' % (tempfile.gettempdir(), pid)
         gdb.execute("file %s" % infos["exe"])
 
         self.add_setting("root", directory)
         self.add_setting("proc_directory", directory + '/proc')
         self.add_setting("pid", pid)
         self.add_setting("filename", infos["exe"])
-        self.add_setting("target", target)
+
 
         ok("Remote information loaded, remember to clean '%s' when your session is over" % directory)
         if update_solib:
@@ -2833,15 +2841,18 @@ class RemoteCommand(GenericCommand):
         return
 
 
-    def connect_target(self, target):
+    def connect_target(self, target, is_extended_remote):
         """Connect to remote target and get symbols. To prevent `gef` from requesting information
         not fetched just yet, we disable the context disable when connection was successful."""
         disable_context()
         try:
-            gdb.execute("target remote {0}".format(target))
+
+            gdb.execute("target {0} {1}".format("extended-remote" if is_extended_remote else "remote",
+                                                target))
+            ok("Connected to '%s'" % target)
             ret = True
         except Exception as e:
-            err(str(e))
+            err("Failed to connect to %s: %s" % (target, str(e)))
             ret = False
         enable_context()
         return ret
@@ -2850,7 +2861,7 @@ class RemoteCommand(GenericCommand):
     def download_file(self, pid, target):
         """Download filename `target` inside the mirror tree in /tmp"""
         try:
-            local_root = '{0:s}/{1:d}'.format(tempfile.gettempdir(), pid)
+            local_root = '{0:s}/gef/{1:d}'.format(tempfile.gettempdir(), pid)
             local_path = local_root + '/' + os.path.dirname( target.replace("target:", "") )
             local_name = local_path + '/' + os.path.basename( target )
             gef_makedirs(local_path)
@@ -2881,6 +2892,7 @@ class RemoteCommand(GenericCommand):
         h+= "\t-U will update gdb `solib-search-path` attribute to include the files downloaded from server (default: False).\n"
         h+= "\t-A will download *ALL* the remote shared libraries and store them in the new environment. This command can take a few minutes to complete (default: False).\n"
         h+= "\t-D LIB will download the remote library called LIB.\n"
+        h+= "\t-E Use 'extended-remote' to connect to the target.\n"
         info(h)
         return
 
@@ -4398,7 +4410,10 @@ class ContextCommand(GenericCommand):
 
     def update_registers(self):
         for reg in all_registers():
-            self.old_registers[reg] = get_register_ex(reg)
+            try:
+                self.old_registers[reg] = get_register_ex(reg)
+            except:
+                self.old_registers[reg] = 0
         return
 
 
