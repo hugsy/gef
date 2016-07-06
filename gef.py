@@ -198,6 +198,7 @@ class Color:
     GREEN          = "\001\x1b[32m\002"
     YELLOW         = "\001\x1b[33m\002"
     BLUE           = "\001\x1b[34m\002"
+    PINK           = "\001\x1b\x1b[35m\002"
     BOLD           = "\001\x1b[1m\002"
     UNDERLINE_ON   = "\001\x1b[4m\002"
     UNDERLINE_OFF  = "\001\x1b[24m\002"
