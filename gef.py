@@ -192,18 +192,17 @@ def reset_all_caches():
 
 
 class Color:
-    NORMAL         = "\x1b[0m"
-    GRAY           = "\x1b[1;30m"
-    RED            = "\x1b[31m"
-    GREEN          = "\x1b[32m"
-    YELLOW         = "\x1b[33m"
-    BLUE           = "\x1b[34m"
-    PINK           = "\x1b[35m"
-    BOLD           = "\x1b[1m"
-    UNDERLINE_ON   = "\x1b[4m"
-    UNDERLINE_OFF  = "\x1b[24m"
-    ITALIC_ON      = "\x1b[3m"
-    ITALIC_OFF     = "\x1b[23m"
+    NORMAL         = "\001\x1b[0m\002"
+    GRAY           = "\001\x1b[1;30m\002"
+    RED            = "\001\x1b[31m\002"
+    GREEN          = "\001\x1b[32m\002"
+    YELLOW         = "\001\x1b[33m\002"
+    BLUE           = "\001\x1b[34m\002"
+    BOLD           = "\001\x1b[1m\002"
+    UNDERLINE_ON   = "\001\x1b[4m\002"
+    UNDERLINE_OFF  = "\001\x1b[24m\002"
+    ITALIC_ON      = "\001\x1b[3m\002"
+    ITALIC_OFF     = "\001\x1b[23m\002"
     CLEAR_LINE     = "\x1b[1K"
 
     @staticmethod
