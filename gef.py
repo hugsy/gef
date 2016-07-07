@@ -2100,7 +2100,7 @@ class GenericCommand(gdb.Command):
 class ChangeFdCommand(GenericCommand):
     """ChangeFdCommand: redirect file descriptor during runtime."""
 
-    _cmdline_ = "redirect-fd"
+    _cmdline_ = "hijack-fd"
     _syntax_  = "%s FD_NUM NEW_OUTPUT" % _cmdline_
 
     def __init__(self):
@@ -2123,10 +2123,6 @@ class ChangeFdCommand(GenericCommand):
             return
 
         if not argv[0].isdigit() or not os.access("/proc/%d/fd/%s"%(get_pid(), argv[0]), os.R_OK):
-            self.usage()
-            return
-
-        if not os.access(argv[1], os.R_OK):
             self.usage()
             return
 
