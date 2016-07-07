@@ -2107,12 +2107,6 @@ class ChangeFdCommand(GenericCommand):
         super(ChangeFdCommand, self).__init__()
         return
 
-    def pre_load(self):
-        return
-
-    def post_load(self):
-        return
-
     def do_invoke(self, argv):
         if not is_alive():
             err("No process alive")
@@ -2126,13 +2120,14 @@ class ChangeFdCommand(GenericCommand):
             self.usage()
             return
 
-        if not argv[0].isdigit() or not os.access("/proc/%d/fd/%s"%(get_pid(), argv[0]), os.R_OK):
+        if not os.access("/proc/%d/fd/%s"%(get_pid(), argv[0]), os.R_OK):
             self.usage()
             return
 
         old_fd = int(argv[0])
         new_output = argv[1]
         res = gdb.execute("""call open("%s", 66, 0666)""" % new_output, to_string=True)
+        # Output example: $1 = 3
         new_fd = int(res.split()[2])
         info("Opened '%s' as fd=#%d" % (new_output, new_fd))
         gdb.execute("""call dup2(%d, %d)""" % (new_fd, old_fd), to_string=True)
