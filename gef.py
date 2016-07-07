@@ -2112,7 +2112,7 @@ class ChangeFdCommand(GenericCommand):
             err("No process alive")
             return
 
-        if not is_remote_debug():
+        if is_remote_debug():
             err("Cannot run on remote debugging")
             return
 
