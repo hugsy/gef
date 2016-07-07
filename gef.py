@@ -19,16 +19,15 @@
 #   cannot work on hardened configurations (such as GrSec)
 # * GEF supports kernel debugging in a limit way (please report crashes & bugs)
 #
-# Tested on
-# * x86-32/x86-64 (even though you should totally use `gdb-peda` (https://github.com/longld/peda) instead)
-# * arm (32b)
-# * aarch64/armv8 (64b)
-# * mips
-# * powerpc32/powerpc64
-# * sparc/sparc64 (v8+)
+# Works on on
+# * x86-32 & x86-64
+# * arm v5,v6,v7 & aarch64/armv8 (64b)
+# * mips & mips64
+# * powerpc & powerpc64
+# * sparc & sparc64(v8+)
 #
 #
-# Tested on gdb 7.x / python 2.6 & 2.7 & 3.x
+# Requires GDB 7.x compiled with Python (2.x, or 3.x)
 #
 # To start: in gdb, type `source /path/to/gef.py`
 #
@@ -119,10 +118,10 @@ try:
     ALLOW_UPDATE_ONLY = False
 except ImportError:
     ALLOW_UPDATE_ONLY = True
-    if len(sys.argv)!=2 or sys.argv[1]!="--update":
-        sys.exit(1)
-    sys.exit( __update_gef(sys.argv) )
-
+    if len(sys.argv)==2 and sys.argv[1]!="--update":
+        sys.exit( __update_gef(sys.argv) )
+    print("[-] gef cannot run as standalone")
+    sys.exit(0)
 
 
 __aliases__ = {}
@@ -2096,6 +2095,51 @@ class GenericCommand(gdb.Command):
     # return
     # def do_invoke(self, argv):
     # return
+
+
+class ChangeFdCommand(GenericCommand):
+    """ChangeFdCommand: redirect file descriptor during runtime."""
+
+    _cmdline_ = "redirect-fd"
+    _syntax_  = "%s FD_NUM NEW_OUTPUT" % _cmdline_
+
+    def __init__(self):
+        super(ChangeFdCommand, self).__init__()
+        return
+
+    def pre_load(self):
+        return
+
+    def post_load(self):
+        return
+
+    def do_invoke(self, argv):
+        if not is_alive():
+            err("No process alive")
+            return
+
+        if len(argv)!=2:
+            self.usage()
+            return
+
+        if not argv[0].isdigit() or not os.access("/proc/%d/fd/%s"%(get_pid(), argv[0]), os.R_OK):
+            self.usage()
+            return
+
+        if not os.access(argv[1], os.R_OK):
+            self.usage()
+            return
+
+        old_fd = int(argv[0])
+        new_output = argv[1]
+        res = gdb.execute("""call open("%s", 66, 0666)""" % new_output, to_string=True)
+        new_fd = int(res.split()[2])
+        info("Opened '%s' as fd=#%d" % (new_output, new_fd))
+        gdb.execute("""call dup2(%d, %d)""" % (new_fd, old_fd), to_string=True)
+        info("Duplicated FD #%d %s #%d" % (old_fd, right_arrow(), new_fd))
+        gdb.execute("""call close(%d)""" % new_fd, to_string=True)
+        ok("Success")
+        return
 
 
 class ProcessIdCommand(GenericCommand):
@@ -5299,6 +5343,7 @@ class GEFCommand(gdb.Command):
                         SearchPatternCommand,
                         IdaInteractCommand,
                         ProcessIdCommand,
+                        ChangeFdCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
