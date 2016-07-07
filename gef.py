@@ -2126,14 +2126,18 @@ class ChangeFdCommand(GenericCommand):
 
         old_fd = int(argv[0])
         new_output = argv[1]
-        res = gdb.execute("""call open("%s", 66, 0666)""" % new_output, to_string=True)
-        # Output example: $1 = 3
-        new_fd = int(res.split()[2])
-        info("Opened '%s' as fd=#%d" % (new_output, new_fd))
-        gdb.execute("""call dup2(%d, %d)""" % (new_fd, old_fd), to_string=True)
-        info("Duplicated FD #%d %s #%d" % (old_fd, right_arrow(), new_fd))
-        gdb.execute("""call close(%d)""" % new_fd, to_string=True)
-        ok("Success")
+
+        try:
+            res = gdb.execute("""call open("%s", 66, 0666)""" % new_output, to_string=True)
+            # Output example: $1 = 3
+            new_fd = int(res.split()[2])
+            info("Opened '%s' as fd=#%d" % (new_output, new_fd))
+            gdb.execute("""call dup2(%d, %d)""" % (new_fd, old_fd), to_string=True)
+            info("Duplicated FD #%d %s #%d" % (old_fd, right_arrow(), new_fd))
+            gdb.execute("""call close(%d)""" % new_fd, to_string=True)
+            ok("Success")
+        except:
+            err("Failed")
         return
 
 
