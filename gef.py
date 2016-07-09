@@ -118,7 +118,7 @@ try:
     ALLOW_UPDATE_ONLY = False
 except ImportError:
     ALLOW_UPDATE_ONLY = True
-    if len(sys.argv)==2 and sys.argv[1]!="--update":
+    if len(sys.argv)==2 and sys.argv[1]=="--update":
         sys.exit( __update_gef(sys.argv) )
     print("[-] gef cannot run as standalone")
     sys.exit(0)
