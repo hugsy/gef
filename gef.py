@@ -3747,7 +3747,7 @@ class RopperCommand(GenericCommand):
 
 
     def __init__(self):
-        super(RopperCommand, self).__init__()
+        super(RopperCommand, self).__init__(complete=gdb.COMPLETE_NONE)
         return
 
     def pre_load(self):
@@ -3777,7 +3777,7 @@ class ROPgadgetCommand(GenericCommand):
 
 
     def __init__(self):
-        super(ROPgadgetCommand, self).__init__()
+        super(ROPgadgetCommand, self).__init__(complete=gdb.COMPLETE_NONE)
         return
 
     def pre_load(self):
