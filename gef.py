@@ -3739,6 +3739,36 @@ class ShellcodeGetCommand(GenericCommand):
         return
 
 
+class RopperCommand(GenericCommand):
+    """Ropper (http://scoding.de/ropper) plugin"""
+
+    _cmdline_ = "ropper"
+    _syntax_  = "%s  [OPTIONS]" % _cmdline_
+
+
+    def __init__(self):
+        super(RopperCommand, self).__init__()
+        return
+
+    def pre_load(self):
+        try:
+            import ropper
+        except ImportError as ie:
+            msg = "Missing Python `ropper` package. "
+            raise GefMissingDependencyException( msg )
+        return
+
+
+    def do_invoke(self, argv):
+        ropper = sys.modules['ropper']
+        argv.append('--file')
+        argv.append(get_filename())
+        try:
+            ropper.start(argv)
+        except SystemExit:
+            return
+
+
 class ROPgadgetCommand(GenericCommand):
     """ROPGadget (http://shell-storm.org/project/ROPgadget) plugin"""
 
@@ -5287,6 +5317,7 @@ class GEFCommand(gdb.Command):
                         AssembleCommand,
                         FileDescriptorCommand,
                         ROPgadgetCommand,
+                        RopperCommand,
                         InspectStackCommand,
                         ShellcodeCommand, ShellcodeSearchCommand, ShellcodeGetCommand,
                         DetailRegistersCommand,
