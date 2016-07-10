@@ -78,6 +78,7 @@ There are none: `GEF` works out of the box! However, to enjoy all the coolest fe
 - [`keystone`](https://github.com/keystone-engine/keystone) 
 - [`unicorn`](https://github.com/unicorn-engine/unicorn)
 - [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget) 
+- [`Ropper`](https://github.com/sashs/ropper) 
 
 ### {Cap,Key}stone
 [`capstone`](https://github.com/aquynh/capstone) (by [Nguyen Anh Quynh](https://github.com/aquynh))is an alternative disassembly engine, and [`keystone`](https://github.com/keystone-engine/keystone) is an (arguably the best) assembly engine.
@@ -117,13 +118,17 @@ $ git clone https://github.com/unicorn-engine/unicorn.git && cd unicorn && ./mak
 $ pip[23] install ropgadget
 ```
 
-
+### Ropper
+[`Ropper`](https://github.com/sashs/ropper) (written by [Sascha Schirra](https://github.com/sashs)) is another gadget finder. It supports opening multiple files and provides an awesome search option to find accurate gadgets. 
+```bash
+$ pip[23] install ropper
+```
 
 ### One-liner
 
 Simply run this
 ```bash
-$ pip install ropgadget capstone keystone
+$ pip install ropgadget ropper capstone keystone
 ```
 
 ## But why not PEDA?
