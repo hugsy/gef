@@ -54,7 +54,6 @@ import resource
 import string
 import itertools
 import hashlib
-import shutil
 import socket
 import fcntl
 import termios
@@ -91,33 +90,29 @@ else:
 
 def __update_gef(argv):
     gef_local = os.path.realpath(argv[0])
-    hash_gef_local = hashlib.sha256( open(gef_local).read() ).hexdigest()
+    hash_gef_local = hashlib.sha512( open(gef_local, "rb").read() ).digest()
     gef_remote = "https://raw.githubusercontent.com/hugsy/gef/master/gef.py"
-    fd, fpath = tempfile.mkstemp()
     http = urlopen(gef_remote)
     if http.getcode() != 200:
-        print("[-] Failed to update")
-        return
+        print("[-] Failed to get remote gef")
+        return 1
 
-    with os.fdopen(fd, "w") as f:
-        f.write( http.read() )
-
-    hash_gef_remote = hashlib.sha256( open(fpath).read() ).hexdigest()
+    gef_remote_data = http.read()
+    hash_gef_remote = hashlib.sha512( gef_remote_data ).digest()
 
     if hash_gef_local==hash_gef_remote:
-        print("No update")
+        print("[-] No update")
     else:
-        shutil.copyfile(fpath, gef_local)
-        print("Updated")
-    os.unlink(fpath)
-    return
+        with open(gef_local, "wb") as f:
+            f.write( gef_remote_data )
+        print("[+] Updated")
+    return 0
 
 
 try:
     import gdb
-    ALLOW_UPDATE_ONLY = False
 except ImportError:
-    ALLOW_UPDATE_ONLY = True
+    # if out of gdb, the only action allowed is to update gef.py
     if len(sys.argv)==2 and sys.argv[1]=="--update":
         sys.exit( __update_gef(sys.argv) )
     print("[-] gef cannot run as standalone")
@@ -5566,10 +5561,7 @@ def __gef_prompt__(current_prompt):
     return Color.CLEAR_LINE + Color.boldify(Color.redify(prompt))
 
 
-
 if __name__  == "__main__":
-    if ALLOW_UPDATE_ONLY:
-        sys.exit(0)
 
     # setup prompt
     gdb.prompt_hook = __gef_prompt__
