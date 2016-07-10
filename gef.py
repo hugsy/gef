@@ -5005,7 +5005,8 @@ class TraceRunCommand(GenericCommand):
 
 
 class PatternCommand(GenericCommand):
-    """Metasploit-like pattern generation/search"""
+    """This command will create or search a De Bruijn cyclic pattern to facilitate determining the offset in
+    memory. The algorithm used is the same as the one used by pwntools, and can therefore be used in conjunction."""
 
     _cmdline_ = "pattern"
     _syntax_  = "%s (create|search) <args>" % _cmdline_
@@ -5021,7 +5022,7 @@ class PatternCommand(GenericCommand):
 
 
 class PatternCreateCommand(GenericCommand):
-    """Metasploit-like pattern generation"""
+    """Cyclic pattern generation"""
 
     _cmdline_ = "pattern create"
     _syntax_  = "%s [SIZE]" % _cmdline_
@@ -5050,7 +5051,7 @@ class PatternCreateCommand(GenericCommand):
 
 
 class PatternSearchCommand(GenericCommand):
-    """Metasploit-like pattern search"""
+    """Cyclic pattern search"""
 
     _cmdline_ = "pattern search"
     _syntax_  = "%s PATTERN [SIZE]" % _cmdline_
