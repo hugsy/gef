@@ -657,22 +657,22 @@ def titlify(msg, color=Color.RED):
     return "{0}[ {1} ]{0}".format(horizontal_line()*n, title)
 
 def err(msg):
-    gdb.write(Color.BOLD+Color.RED+"[!]"+Color.NORMAL+" "+msg+"\n", gdb.STDERR)
+    gdb.write(Color.boldify(Color.redify("[!]"))+" "+msg+"\n", gdb.STDERR)
     gdb.flush()
     return
 
 def warn(msg):
-    gdb.write(Color.BOLD+Color.YELLOW+"[*]"+Color.NORMAL+" "+msg+"\n", gdb.STDLOG)
+    gdb.write(Color.boldify(Color.yellowify("[*]"))+" "+msg+"\n", gdb.STDLOG)
     gdb.flush()
     return
 
 def ok(msg):
-    gdb.write(Color.BOLD+Color.GREEN+"[+]"+Color.NORMAL+" "+msg+"\n", gdb.STDLOG)
+    gdb.write(Color.boldify(Color.greenify("[+]"))+" "+msg+"\n", gdb.STDLOG)
     gdb.flush()
     return
 
 def info(msg):
-    gdb.write(Color.BOLD+Color.BLUE+"[+]"+Color.NORMAL+" "+msg+"\n", gdb.STDLOG)
+    gdb.write(Color.boldify(Color.blueify("[+]"))+" "+msg+"\n", gdb.STDLOG)
     gdb.flush()
     return
 
