@@ -74,11 +74,11 @@ If no updates are available, `gef` will respond `No update` instead.
 
 There are none: `GEF` works out of the box! However, to enjoy all the coolest features, it is **highly** recommended to install:
 
-- [`capstone`](https://github.com/aquynh/capstone) 
-- [`keystone`](https://github.com/keystone-engine/keystone) 
+- [`capstone`](https://github.com/aquynh/capstone)
+- [`keystone`](https://github.com/keystone-engine/keystone)
 - [`unicorn`](https://github.com/unicorn-engine/unicorn)
-- [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget) 
-- [`Ropper`](https://github.com/sashs/ropper) 
+- [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget)
+- [`Ropper`](https://github.com/sashs/ropper)
 
 ### {Cap,Key}stone
 [`capstone`](https://github.com/aquynh/capstone) (by [Nguyen Anh Quynh](https://github.com/aquynh))is an alternative disassembly engine, and [`keystone`](https://github.com/keystone-engine/keystone) is an (arguably the best) assembly engine.
@@ -99,15 +99,15 @@ $ cd ../bindings/python && sudo make install # or sudo make install3 for Python3
 
 `capstone` provides an alternative to the `gdb` disassembler, which could be useful specifically when dealing with complex/uncommon instructions.
 
-`keystone` allows to generate opcodes, which can, for example, then be used as part of a shellcode. 
+`keystone` allows to generate opcodes, which can, for example, then be used as part of a shellcode.
 ![gef-shellcoder](https://i.imgur.com/BPdtr2D.png)
 
 ### Unicorn
-[`unicorn`](https://github.com/unicorn-engine/unicorn) (also written by [Nguyen Anh Quynh](https://github.com/aquynh)) is a lightweight Qemu-based framework to emulate any architecture currently supported by `GDB` (and even some more). 
+[`unicorn`](https://github.com/unicorn-engine/unicorn) (also written by [Nguyen Anh Quynh](https://github.com/aquynh)) is a lightweight Qemu-based framework to emulate any architecture currently supported by `GDB` (and even some more).
 Install is simple through the [released packages](https://github.com/unicorn-engine/unicorn/releases) but I would recommend instead to rely on the GIT master branch.
 ```bash
 $ git clone https://github.com/unicorn-engine/unicorn.git && cd unicorn && ./make.sh && sudo ./make.sh install
-``` 
+```
 
 `unicorn` integration in `gef` allows to emulate the behaviour to specific instructions (or block of instructions) based on the runtime context, without actually running it, and therefore sparing the trouble of saving the context/running the new context/restoring the old context. Additionally, `gef` can generate a standalone `unicorn` Python script, if you want/need to reproduce steps outside the debugger.
 
@@ -119,16 +119,17 @@ $ pip[23] install ropgadget
 ```
 
 ### Ropper
-[`Ropper`](https://github.com/sashs/ropper) (written by [Sascha Schirra](https://github.com/sashs)) is another gadget finder. It supports opening multiple files and provides an awesome search option to find accurate gadgets. 
+[`Ropper`](https://github.com/sashs/ropper) (written by [Sascha Schirra](https://github.com/sashs)) is another gadget finder. It supports opening multiple files and provides an awesome search option to find accurate gadgets.
 ```bash
 $ pip[23] install ropper
 ```
 
 ### One-liner
 
-Simply run this
+Some of the optional dependencies can be installed using Python package
+installer, `pip`. Simply run this
 ```bash
-$ pip install ropgadget ropper capstone keystone
+$ pip install ropgadget ropper capstone
 ```
 
 ## But why not PEDA?
