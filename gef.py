@@ -186,19 +186,18 @@ def reset_all_caches():
 
 
 class Color:
-    NORMAL         = "\001\x1b[0m\002"
-    GRAY           = "\001\x1b[1;30m\002"
-    RED            = "\001\x1b[31m\002"
-    GREEN          = "\001\x1b[32m\002"
-    YELLOW         = "\001\x1b[33m\002"
-    BLUE           = "\001\x1b[34m\002"
-    PINK           = "\001\x1b[35m\002"
-    BOLD           = "\001\x1b[1m\002"
-    UNDERLINE_ON   = "\001\x1b[4m\002"
-    UNDERLINE_OFF  = "\001\x1b[24m\002"
-    ITALIC_ON      = "\001\x1b[3m\002"
-    ITALIC_OFF     = "\001\x1b[23m\002"
-    CLEAR_LINE     = "\x1b[1K"
+    NORMAL         = "\033[0m"
+    GRAY           = "\033[1;30m"
+    RED            = "\033[31m"
+    GREEN          = "\033[32m"
+    YELLOW         = "\033[33m"
+    BLUE           = "\033[34m"
+    PINK           = "\033[35m"
+    BOLD           = "\033[1m"
+    UNDERLINE_ON   = "\033[4m"
+    UNDERLINE_OFF  = "\033[24m"
+    ITALIC_ON      = "\033[3m"
+    ITALIC_OFF     = "\033[23m"
 
     @staticmethod
     def redify(msg):     return Color.RED + msg + Color.NORMAL if not NO_COLOR else msg
@@ -5548,7 +5547,7 @@ class GEFCommand(gdb.Command):
 
 def __gef_prompt__(current_prompt):
     prompt = "gef> " if PYTHON_MAJOR == 2 else "gef\u27a4  "
-    return Color.CLEAR_LINE + Color.boldify(Color.redify(prompt))
+    return "\001\033[1;31m\002{0:s}\001\033[0m\002".format(prompt)
 
 
 if __name__  == "__main__":
