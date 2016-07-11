@@ -3401,43 +3401,6 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         return
 
 
-class DumpMemoryCommand(GenericCommand):
-    """Dump chunks of memory into raw file on the filesystem. Dump file
-    name template can be defined in GEF runtime config"""
-
-    _cmdline_ = "dump-memory"
-    _syntax_  = "%s LOCATION [SIZE]" % _cmdline_
-
-
-    def __init__(self):
-        super(DumpMemoryCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
-        self.add_setting("dumpfile_prefix", "./dumpmem-")
-        self.add_setting("dumpfile_suffix", "raw")
-        return
-
-    def do_invoke(self, argv):
-        argc = len(argv)
-
-        if argc not in (1, 2):
-            err("Invalid arguments number")
-            self.usage()
-            return
-
-        prefix = self.get_setting("dumpfile_prefix")
-        suffix = self.get_setting("dumpfile_suffix")
-
-        start_addr = align_address( long(gdb.parse_and_eval( argv[0] )) )
-        filename = "%s%#x.%s" % (prefix, start_addr, suffix)
-        size = long(argv[1]) if argc==2 and argv[1].isdigit() else 0x100
-
-        with open(filename, "wb") as f:
-            mem = read_memory( start_addr, size )
-            f.write( mem )
-
-        info("Dumped %d bytes from %#x in '%s'" % (size, start_addr, filename))
-        return
-
-
 class AliasCommand(GenericCommand):
     """GEF defined aliases"""
 
@@ -5308,7 +5271,6 @@ class GEFCommand(gdb.Command):
                         DetailRegistersCommand,
                         SolveKernelSymbolCommand,
                         AliasCommand, AliasShowCommand, AliasSetCommand, AliasUnsetCommand, AliasDoCommand,
-                        DumpMemoryCommand,
                         GlibcHeapCommand, GlibcHeapArenaCommand, GlibcHeapChunkCommand, GlibcHeapBinsCommand, GlibcHeapFastbinsYCommand, GlibcHeapUnsortedBinsCommand, GlibcHeapSmallBinsCommand, GlibcHeapLargeBinsCommand,
                         PatchCommand,
                         RemoteCommand,
