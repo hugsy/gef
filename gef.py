@@ -3971,19 +3971,6 @@ class AssembleCommand(GenericCommand):
         return
 
 
-class InvokeCommand(GenericCommand):
-    """Invoke an external command and display result."""
-
-    _cmdline_ = "system"
-    _syntax_  = "%s [COMMAND]" % _cmdline_
-
-    @gef_obsolete_function
-    def do_invoke(self, argv):
-        ret = gef_execute_external( argv )
-        print( "%s" % ret )
-        return
-
-
 class ProcessListingCommand(GenericCommand):
     """List and filter process."""
 
@@ -5309,7 +5296,6 @@ class GEFCommand(gdb.Command):
                         EntryPointBreakCommand,
                         ElfInfoCommand,
                         ProcessListingCommand,
-                        InvokeCommand,
                         AssembleCommand,
                         FileDescriptorCommand,
                         ROPgadgetCommand,
