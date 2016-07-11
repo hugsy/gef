@@ -650,7 +650,11 @@ class GlibcChunk:
 def titlify(msg, color=Color.RED):
     cols = get_terminal_size()[1]
     n = int((cols-len(msg)-4)/2)
-    return "{0}[ {1}{2}{3}{4} ]{0}".format(horizontal_line()*n, Color.BOLD, color, msg, Color.NORMAL)
+    if color==Color.RED:
+        title = Color.boldify( Color.redify(msg) )
+    elif color==Color.GREEN:
+        title = Color.boldify( Color.greenify(msg) )
+    return "{0}[ {1} ]{0}".format(horizontal_line()*n, title)
 
 def err(msg):
     gdb.write(Color.BOLD+Color.RED+"[!]"+Color.NORMAL+" "+msg+"\n", gdb.STDERR)
