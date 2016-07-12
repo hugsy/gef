@@ -2272,7 +2272,7 @@ class SearchPatternCommand(GenericCommand):
             start = section.page_start
             end   = section.page_end - 1
             for loc in self.search_pattern_by_address(pattern, start, end):
-                print("""{:#x}-{:#x} {:s}  "{:s}" """.format(loc[0], loc[1], right_arrow(), Color.pinkify(loc[2])))
+                print("""{:#x} - {:#x} {:s}  "{:s}" """.format(loc[0], loc[1], right_arrow(), Color.pinkify(loc[2])))
         return
 
     def do_invoke(self, argv):
