@@ -1,12 +1,16 @@
 ## Install GEF
 
-There is __*NO mandatory*__ dependency to have `gef` running contrarily to other projects.
+There is *NO mandatory* dependency to have `gef` running contrarily to other projects.
 A simple recent GDB compiled with Python scripting support will do.
 
 
 ### Pre-requisites
 Only [GDB 7.x+](https://www.gnu.org/s/gdb) is required. It must compiled with
-Python 2 or 3 support. This can be verified with the following command:
+Python 2 or 3 support. 
+
+All recent distributions of Linux now embeds a GDB version compiled with at least Python2 (although more and more are migrating towards Python3).
+
+You can verify it with the following command:
 
 ``` bash
 $ gdb -nx -ex 'python print (sys.version)' -ex quit
@@ -27,6 +31,8 @@ $ gdb -nx -ex 'python print (sys.version)' -ex quit
 3.4.0 (default, Apr 11 2014, 13:08:40)
 [GCC 4.8.2]
 ```
+
+If you see an error here, it means that your GDB installation does not support Python. 
 
 
 ### Setup from repository
