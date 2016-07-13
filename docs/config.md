@@ -65,8 +65,8 @@ recommended to install the following modules (highly recommended but not require
 - [`unicorn`](https://github.com/unicorn-engine/unicorn) - emulation engine
 - [`keystone`](https://github.com/keystone-engine/keystone) - assembly engine
 
-It is recommended to install those modules through `python-pip`. The following
-commands will work for most distributions.
+Some of those modules can be installed through `python-pip`. The following
+commands will work for most distributions:
 ```bash
 $ pip install capstone
 $ pip install ropgadget
