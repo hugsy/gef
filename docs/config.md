@@ -1,6 +1,6 @@
 ## Install GEF
 
-There is **NO mandatory** dependency to have `gef` running contrarily to other projects.
+There is **NO mandatory dependency** to have `gef` running contrarily to other projects.
 A simple recent GDB compiled with Python scripting support will do.
 
 
