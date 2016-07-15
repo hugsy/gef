@@ -2224,7 +2224,6 @@ class IdaInteractCommand(GenericCommand):
             else:
                 err("Error: retcode={}".format(res))
         except Exception as e:
-            err(e)
             del sock
 
         return
