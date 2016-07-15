@@ -2187,6 +2187,21 @@ class IdaInteractCommand(GenericCommand):
         return self.call(argv)
 
     def call(self, argv):
+        def parsed_arglist(arglist):
+            args = []
+            for arg in arglist:
+                try:
+                    # try to solve the argument using gdb
+                    argval = gdb.parse_and_eval(arg)
+                    argval.fetch_lazy()
+                    # check if value is addressable
+                    argval = long(argval) if argval.address is None else long(argval.address)
+                    args.append( "%x" % (argval,) )
+                except:
+                    # if gdb can't parse the value, let ida deal with it
+                    args.append(arg)
+            return args
+
         sock = self.connect()
         if sock is None:
             return
@@ -2199,7 +2214,7 @@ class IdaInteractCommand(GenericCommand):
         try:
             method = getattr(sock, argv[0])
             if len(argv) > 1:
-                args = argv[1:]
+                args = parsed_arglist(argv[1:])
                 res = method(*args)
             else:
                 res = method()
@@ -2208,7 +2223,8 @@ class IdaInteractCommand(GenericCommand):
                 ok("Success")
             else:
                 err("Error: retcode={}".format(res))
-        except:
+        except Exception as e:
+            err(e)
             del sock
 
         return
@@ -2218,8 +2234,7 @@ class IdaInteractCommand(GenericCommand):
         if sock is None:
             return
 
-        if meth:
-            meth = meth.replace("ida.", "")
+        if meth is not None:
             print(titlify(meth))
             print(sock.system.methodHelp(meth))
             return
