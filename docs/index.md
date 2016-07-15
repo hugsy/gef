@@ -1,4 +1,4 @@
-# GEF - GDB Enhanced Features  [![Documentation Status](https://readthedocs.org/projects/gef/badge/?version=latest)](https://gef.readthedocs.org/en/latest/)
+# GEF - GDB Enhanced Features [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=latest)](https://gef.readthedocs.org/en/latest/) [![Packagist](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)]()
 
 **TL;DR**: `GEF` is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to
 make GDB cool again for exploit dev.
@@ -51,6 +51,13 @@ If your host/VM is connected to Internet, you can update `gef` easily to the lat
 $ python /path/to/gef.py --update
 Updated
 ```
+
+For example, 
+```bash
+$ python ~/.gdbinit-gef.py --update
+Updated
+```
+
 If no updates are available, `gef` will respond `No update` instead.
 
 ## Show me
@@ -91,7 +98,7 @@ $ pip3 install capstone   # for Python3.x
 `capstone` and `keystone` are under very active development and improvement, so it is recommended to compile and install them from git.
 ```bash
 $ git clone https://github.com/keystone-engine/keystone.git
-$ mkdir -p keystone/build && keystone/build
+$ mkdir -p keystone/build && cd keystone/build
 $ cmake .. && make -j8
 $ sudo make install
 $ cd ../bindings/python && sudo make install # or sudo make install3 for Python3

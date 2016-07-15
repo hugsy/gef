@@ -366,7 +366,8 @@ of the entire section.
 
 ![mprotect-after](https://i.imgur.com/9MvyQi8.png)
 
-Or for a full demo video on a PowerPC VM: [![asciicast](https://asciinema.org/a/54noulja01k3cgctawjeio8xl.png)](https://asciinema.org/a/54noulja01k3cgctawjeio8xl)
+Or for a full demo video on a PowerPC VM:
+[![asciicast](https://asciinema.org/a/54noulja01k3cgctawjeio8xl.png)](https://asciinema.org/a/54noulja01k3cgctawjeio8xl)
 
 
 ## `assemble` command ##
@@ -530,3 +531,23 @@ Result:
 
 Please use the `--help` argument to see all the methods available and their
 syntax.
+
+## `hijack-fd` command ##
+
+`gef` can be used to modify file descriptors of the debugged process. The new
+file descriptor can point to a file, a pipe, a socket, a device etc.
+
+To use it, simply run
+```
+gef➤ hijack-fd FDNUM NEWFILE
+```
+
+For instance,
+```
+gef➤ hijack-fd 1 /dev/null
+```
+Will modify the current process file descriptors to redirect STDOUT to
+`/dev/null`.
+
+Check this asciicast for visual example:
+[![asciicast](https://asciinema.org/a/2o9bhveyikb1uvplwakjftxlq.png)](https://asciinema.org/a/2o9bhveyikb1uvplwakjftxlq)
