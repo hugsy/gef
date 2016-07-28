@@ -4427,31 +4427,30 @@ class HexdumpCommand(GenericCommand):
     """Display arranged hexdump (according to architecture endianness) of memory range."""
 
     _cmdline_ = "hexdump"
-    _syntax_  = "%s (q|d|w|b) LOCATION L[SIZE] [UP|DOWN]" % _cmdline_
-    _aliases_ = ["xd",]
+    _syntax_  = "%s (q|d|w|x) LOCATION L[SIZE] [UP|DOWN]" % _cmdline_
+
 
     def do_invoke(self, argv):
+        self.usage()
+        return
+
+    def _invoke(self, fmt, argv):
         argc = len(argv)
         if not is_alive():
             warn("No debugging session active")
             return
 
-        if argc < 2:
+        if argc < 1:
             self.usage()
             return
 
-        if argv[0] not in ("q", "d", "w", "b"):
-            self.usage()
-            return
-
-        fmt = argv[0]
-        read_from = align_address( long(gdb.parse_and_eval(argv[1])) )
+        read_from = align_address( long(gdb.parse_and_eval(argv[0])) )
         read_len = 10
         up_to_down = True
 
         if argc >= 3:
             for arg in argv[2:]:
-                if arg.startswith("L"):
+                if arg.startswith("L") or arg.startswith("l"):
                     if arg[1:].isdigit():
                         read_len = long(arg[1:])
                         continue
@@ -4464,11 +4463,20 @@ class HexdumpCommand(GenericCommand):
                     up_to_down = False
                     continue
 
-        self._hexdump(read_from, read_len, fmt, up_to_down)
+        if fmt == "x":
+            mem = read_memory(read_from, read_len)
+            lines = hexdump(mem).split("\n")
+        else:
+            lines = self._hexdump(read_from, read_len, fmt)
+
+        if not up_to_down:
+            lines.reverse()
+
+        print("\n".join(lines))
         return
 
 
-    def _hexdump(self, start_addr, length, arrange_as, from_up_to_down=True):
+    def _hexdump(self, start_addr, length, arrange_as):
         elf = get_elf_headers()
         if elf is None:
             return
@@ -4478,10 +4486,9 @@ class HexdumpCommand(GenericCommand):
         formats = { 'q': ('Q', 8),
                     'd': ('I', 4),
                     'w': ('H', 2),
-                    'b': ('B', 1),
         }
         r, l = formats[arrange_as]
-        fmt_str = "<%#x+%.4x> %#."+str(l*2)+"x"
+        fmt_str = "%#x+%.4x "+vertical_line()+" %#."+str(l*2)+"x"
         fmt_pack = endianness + r
         lines = []
 
@@ -4492,11 +4499,58 @@ class HexdumpCommand(GenericCommand):
             lines.append(fmt_str % (start_addr, i*l, val))
             i += 1
 
-        if not from_up_to_down:
-            lines.reverse()
+        return lines
 
-        print("\n".join(lines))
+class HexdumpQwordCommand(HexdumpCommand):
+    """
+    Display location as QWORD
+    """
+    _cmdline_ = "hexdump qword"
+    _syntax_  = "%s LOCATION L[SIZE] [UP|DOWN]" % _cmdline_
+    _aliases_ = ["dq",]
+
+    def do_invoke(self, argv):
+        self._invoke("q", argv)
         return
+
+class HexdumpDwordCommand(HexdumpCommand):
+    """
+    Display location as DWORD
+    """
+    _cmdline_ = "hexdump dword"
+    _syntax_  = "%s LOCATION L[SIZE] [UP|DOWN]" % _cmdline_
+    _aliases_ = ["dd",]
+
+    def do_invoke(self, argv):
+        self._invoke("d", argv)
+        return
+
+
+class HexdumpWordCommand(HexdumpCommand):
+    """
+    Display location as WORD
+    """
+    _cmdline_ = "hexdump word"
+    _syntax_  = "%s LOCATION L[SIZE] [UP|DOWN]" % _cmdline_
+    _aliases_ = ["dw",]
+
+    def do_invoke(self, argv):
+        self._invoke("w", argv)
+        return
+
+
+class HexdumpByteCommand(HexdumpCommand):
+    """
+    Display location as bytes
+    """
+    _cmdline_ = "hexdump byte"
+    _syntax_  = "%s LOCATION L[SIZE] [UP|DOWN]" % _cmdline_
+    _aliases_ = ["dc",]
+
+    def do_invoke(self, argv):
+        self._invoke("x", argv)
+        return
+
 
 
 class DereferenceCommand(GenericCommand):
@@ -5270,7 +5324,7 @@ class GEFCommand(gdb.Command):
                         XFilesCommand,
                         ASLRCommand,
                         DereferenceCommand,
-                        HexdumpCommand,
+                        HexdumpCommand, HexdumpQwordCommand, HexdumpDwordCommand, HexdumpWordCommand, HexdumpByteCommand,
                         CapstoneDisassembleCommand,
                         ContextCommand,
                         EntryPointBreakCommand,
