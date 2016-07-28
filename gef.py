@@ -2196,7 +2196,7 @@ class IdaInteractCommand(GenericCommand):
                     argval.fetch_lazy()
                     # check if value is addressable
                     argval = long(argval) if argval.address is None else long(argval.address)
-                    args.append( "%x" % (argval,) )
+                    args.append( "%#x" % (argval,) )
                 except:
                     # if gdb can't parse the value, let ida deal with it
                     args.append(arg)
@@ -2219,11 +2219,13 @@ class IdaInteractCommand(GenericCommand):
             else:
                 res = method()
 
-            if res in (0, True):
+            if res in (0, True, None):
                 ok("Success")
-            else:
-                err("Error: retcode={}".format(res))
+                return
+
+            raise(Exception("Error: retcode={}".format(res)))
         except Exception as e:
+            err(str(e))
             del sock
 
         return

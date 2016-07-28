@@ -91,8 +91,8 @@ There are none: `GEF` works out of the box! However, to enjoy all the coolest fe
 [`capstone`](https://github.com/aquynh/capstone) (by [Nguyen Anh Quynh](https://github.com/aquynh))is an alternative disassembly engine, and [`keystone`](https://github.com/keystone-engine/keystone) is an (arguably the best) assembly engine.
 You can use `pip` to simply and quickly install it.
 ```bash
-$ pip2 install capstone   # for Python2.x
-$ pip3 install capstone   # for Python3.x
+$ pip2 install capstone keystone-engine  # for Python2.x
+$ pip3 install capstone keystone-engine   # for Python3.x
 ```
 
 `capstone` and `keystone` are under very active development and improvement, so it is recommended to compile and install them from git.
