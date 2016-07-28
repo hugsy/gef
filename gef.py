@@ -4467,7 +4467,7 @@ class HexdumpCommand(GenericCommand):
 
         if fmt == "x":
             mem = read_memory(read_from, read_len)
-            lines = hexdump(mem).split("\n")
+            lines = hexdump(mem, base=read_from).split("\n")
         else:
             lines = self._hexdump(read_from, read_len, fmt)
 
