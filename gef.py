@@ -4450,8 +4450,8 @@ class HexdumpCommand(GenericCommand):
         read_len = 10
         up_to_down = True
 
-        if argc >= 3:
-            for arg in argv[2:]:
+        if argc >= 2:
+            for arg in argv[1:]:
                 if arg.startswith("L") or arg.startswith("l"):
                     if arg[1:].isdigit():
                         read_len = long(arg[1:])
