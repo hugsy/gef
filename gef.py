@@ -2127,6 +2127,7 @@ class ChangeFdCommand(GenericCommand):
         new_output = argv[1]
 
         try:
+            disable_context()
             res = gdb.execute("""call open("%s", 66, 0666)""" % new_output, to_string=True)
             # Output example: $1 = 3
             new_fd = int(res.split()[2])
@@ -2135,6 +2136,7 @@ class ChangeFdCommand(GenericCommand):
             info("Duplicated FD #%d %s #%d" % (old_fd, right_arrow(), new_fd))
             gdb.execute("""call close(%d)""" % new_fd, to_string=True)
             ok("Success")
+            enable_context()
         except:
             err("Failed")
         return
