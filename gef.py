@@ -123,6 +123,7 @@ __aliases__ = {}
 __config__ = {}
 __infos_files__ = []
 __loaded__ = []
+__missing__ = {}
 __gef_convenience_vars_index__ = 0
 NO_COLOR = False
 DEFAULT_PAGE_ALIGN_SHIFT = 12
@@ -5384,6 +5385,8 @@ class GEFCommand(gdb.Command):
             self.save()
         elif cmd == "restore":
             self.restore()
+        elif cmd == "missing":
+            self.missing()
         else:
             err("Invalid command '%s' for gef -- type `gef help' for help" % ' '.join(argv))
 
@@ -5395,9 +5398,11 @@ class GEFCommand(gdb.Command):
         Load all the commands defined by GEF into GBD.
         If a configuration file is found, the settings are restored.
         """
-        global __loaded__
+        global __loaded__, __missing__
 
         __loaded__ = []
+        __missing__ = {}
+        nb_missing = 0
 
         def is_loaded(x):
             for (n, c, o) in __loaded__:
@@ -5420,8 +5425,9 @@ class GEFCommand(gdb.Command):
                     for alias in aliases:
                         gdb.execute("alias -a {} = {}".format(alias, cmd, ))
 
-            except Exception as e:
-                warn("Failed to load `%s`: %s" % (cmd, e))
+            except Exception as reason:
+                __missing__[cmd] = reason
+                nb_missing += 1
 
         self.__loaded_cmds = sorted(__loaded__, key=lambda x: x[1]._cmdline_)
 
@@ -5435,6 +5441,10 @@ class GEFCommand(gdb.Command):
         print("%s commands loaded (%s sub-commands), using Python engine %s" % (Color.greenify(str(nb_cmds)),
                                                                                 Color.greenify(str(nb_sub_cmds)),
                                                                                 Color.redify(ver)))
+
+        if nb_missing > 0:
+            warn("%s commands could not be loaded, run `%s` to know why."%(Color.boldify(Color.redify(str(nb_missing))),
+                                                                           Color.boldify(Color.blueify("gef missing"))))
 
         if os.access(GEF_RC, os.R_OK):
             self.restore()
@@ -5574,6 +5584,23 @@ class GEFCommand(gdb.Command):
                     warn("Could not restore '%s'" % optname)
 
         ok("Configuration from '%s' restored" % GEF_RC)
+        return
+
+
+    def missing(self):
+        """
+        Display the GEF commands that could not be loaded, along with the reason of why.
+        """
+        global __missing__
+
+        missing_commands = __missing__.keys()
+        if len(missing_commands)==0:
+            ok("No missing command")
+            return
+
+        for missing_command in missing_commands:
+            reason = __missing__[missing_command]
+            warn("* {} {} {}".format(missing_command, right_arrow(), reason))
         return
 
 
