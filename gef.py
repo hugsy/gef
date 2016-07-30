@@ -19,7 +19,7 @@
 #   cannot work on hardened configurations (such as GrSec)
 # * GEF supports kernel debugging in a limit way (please report crashes & bugs)
 #
-# Works on on
+# Works on
 # * x86-32 & x86-64
 # * arm v5,v6,v7 & aarch64/armv8 (64b)
 # * mips & mips64
