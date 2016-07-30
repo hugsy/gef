@@ -5600,7 +5600,7 @@ class GEFCommand(gdb.Command):
 
         for missing_command in missing_commands:
             reason = __missing__[missing_command]
-            warn("* {} {} {}".format(missing_command, right_arrow(), reason))
+            warn("Command `{}` is missing, reason {} {}".format(missing_command, right_arrow(), reason))
         return
 
 
