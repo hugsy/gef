@@ -58,7 +58,7 @@ import socket
 import fcntl
 import termios
 
-if sys.version_info.major == 2:
+if sys.version_info[0] == 2:
     from HTMLParser import HTMLParser
     from cStringIO import StringIO
     from urllib import urlopen
@@ -70,7 +70,7 @@ if sys.version_info.major == 2:
 
     PYTHON_MAJOR = 2
 
-elif sys.version_info.major == 3:
+elif sys.version_info[0] == 3:
     from html.parser import HTMLParser
     from io import StringIO
     from urllib.request import urlopen
