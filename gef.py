@@ -5310,7 +5310,7 @@ class GEFCommand(gdb.Command):
     """GEF main command: start with `gef help` """
 
     _cmdline_ = "gef"
-    _syntax_  = "%s (config|help|save|restore)" % _cmdline_
+    _syntax_  = "%s (config|help|save|restore|restore)" % _cmdline_
 
     def __init__(self):
         super(GEFCommand, self).__init__(GEFCommand._cmdline_,
