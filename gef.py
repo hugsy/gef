@@ -1273,7 +1273,8 @@ def flag_register_to_human(val=None):
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 def is_conditional_branch(insn):
-    mnemo = insn.strip().split()[1]
+    mnemo = insn.strip()
+    mnemo = mnemo.split()[1] if mnemo.startswith("<") else mnemo.split()[0]
     if   is_arm():       return arm_is_cbranch(mnemo)
     elif is_aarch64():   return aarch64_is_cbranch(mnemo)
     elif is_x86_32():    return x86_is_cbranch(mnemo)
@@ -1286,7 +1287,8 @@ def is_conditional_branch(insn):
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 def is_branch_taken(insn):
-    mnemo = insn.strip().split()[1]
+    mnemo = insn.strip()
+    mnemo = mnemo.split()[1] if mnemo.startswith("<") else mnemo.split()[0]
     if   is_arm():       return arm_is_branch_taken(mnemo)
     elif is_aarch64():   return aarch64_is_branch_taken(mnemo)
     elif is_x86_32():    return x86_is_branch_taken(mnemo)
