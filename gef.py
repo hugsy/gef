@@ -5447,12 +5447,6 @@ class GefCommand(gdb.Command):
             gdb.execute("gef restore")
         return
 
-
-
-    def missing(self):
-        return
-
-
 class GefHelpCommand(gdb.Command):
     """GEF help sub-command."""
     _cmdline_ = "gef help"
@@ -5494,8 +5488,6 @@ class GefHelpCommand(gdb.Command):
             d.append( msg )
         return "\n".join(d)
 
-
-
 class GefConfigCommand(gdb.Command):
     """GEF configuration sub-command
     This command will help set/view GEF settingsfor the current debugging session.
@@ -5503,15 +5495,14 @@ class GefConfigCommand(gdb.Command):
     to this command help), and/or restore previously saved settings by running
     `gef restore` (refer help).
     """
-    # todo : add completer for config settings
     _cmdline_ = "gef config"
-    _syntax_  = "%s" % _cmdline_
+    _syntax_  = "%s [debug_on|debug_off][setting_name] [setting_value]" % _cmdline_
 
     def __init__(self, loaded_commands, *args, **kwargs):
         super(GefConfigCommand, self).__init__(GefConfigCommand._cmdline_,
                                                gdb.COMMAND_SUPPORT,
                                                gdb.COMPLETE_NONE,
-                                             False)
+                                               False)
         self.loaded_commands = loaded_commands
         return
 
@@ -5523,56 +5514,62 @@ class GefConfigCommand(gdb.Command):
             err("Invalid number of arguments")
             return
 
-        if argc==1 and args[0] in ("debug_on", "debug_off"):
-            if args[0] == "debug_on":
-                enable_debug()
-                info("Enabled debug mode")
-            else:
-                disable_debug()
-                info("Disabled debug mode")
+        if argc==1 and args[0]=="debug_on":
+            enable_debug()
+            info("Enabled debug mode")
+            return
+
+        if argc==1 and args[0]=="debug_off":
+            disable_debug()
+            info("Disabled debug mode")
             return
 
         if argc==0 or argc==1:
-            config_items = sorted( __config__ )
-            plugin_name = args[0] if argc==1 and args[0] in self.loaded_commands else ""
-            print( titlify("GEF configuration settings %s" % plugin_name) )
-            for key in config_items:
-                if plugin_name not in key:
-                    continue
-                value, type = __config__.get(key, None)
-                print( ("%-40s  (%s) = %s" % (key, type.__name__, value)) )
+            self.print_settings(argc, argv)
             return
 
-        if "." not in args[0]:
+        self.set_setting(argc, argv)
+        return
+
+    def print_settings(self, argc, argv):
+        config_items = sorted( __config__ )
+        plugin_name = argv[0] if argc==1 and argv[0] in self.loaded_commands else ""
+        print( titlify("GEF configuration settings %s" % plugin_name) )
+        for key in config_items:
+            if plugin_name not in key: continue
+            value, type = __config__.get(key, None)
+            print("%-40s  (%s) = %s" % (key, type.__name__, value))
+        return
+
+    def set_setting(self, argc, argv):
+        if "." not in argv[0]:
             err("Invalid command format")
             return
 
-        plugin_name, setting_name = args[0].split(".", 1)
+        plugin_name, setting_name = argv[0].split(".", 1)
 
         if plugin_name not in self.loaded_commands:
             err("Unknown plugin '%s'" % plugin_name)
             return
 
-        _curval, _type = __config__.get( args[0], (None, None) )
+        _curval, _type = __config__.get( argv[0], (None, None) )
         if _type == None:
-            err("Failed to get '%s' config setting" % (args[0], ))
+            err("Failed to get '%s' config setting" % (argv[0], ))
             return
 
         try:
             if _type == bool:
-                _newval = True if args[1]=="True" else False
+                _newval = True if argv[1]=="True" else False
             else:
-                _newval = args[1]
+                _newval = argv[1]
                 _type( _newval )
 
         except:
-            err("%s expects type '%s'" % (args[0], _type.__name__))
+            err("%s expects type '%s'" % (argv[0], _type.__name__))
             return
 
-        __config__[ args[0] ] = (_newval, _type)
+        __config__[ argv[0] ] = (_newval, _type)
         return
-
-
 
 class GefSaveCommand(gdb.Command):
     """GEF save sub-command
