@@ -5308,15 +5308,17 @@ class FormatStringSearchCommand(GenericCommand):
         return
 
 
-class GEFCommand(gdb.Command):
+class GefCommand(gdb.Command):
     """GEF main command: start with `gef help` """
 
     _cmdline_ = "gef"
     _syntax_  = "%s (config|help|save|restore|restore)" % _cmdline_
 
     def __init__(self):
-        super(GEFCommand, self).__init__(GEFCommand._cmdline_,
-                                         gdb.COMMAND_SUPPORT)
+        super(GefCommand, self).__init__(GefCommand._cmdline_,
+                                         gdb.COMMAND_SUPPORT,
+                                         gdb.COMPLETE_NONE,
+                                         True)
 
         self.classes = [ResetCacheCommand,
                         XAddressInfoCommand,
@@ -5361,9 +5363,14 @@ class GEFCommand(gdb.Command):
 
         self.__cmds = [ (x._cmdline_, x) for x in self.classes ]
         self.__loaded_cmds = []
-
         self.load()
-        self.__doc__ = self.generate_help()
+
+        # loading GEF sub-commands
+        GefHelpCommand(self.__loaded_cmds)
+        GefConfigCommand(self.loaded_command_names)
+        GefSaveCommand()
+        GefRestoreCommand()
+        GefMissingCommand()
         return
 
 
@@ -5374,23 +5381,11 @@ class GEFCommand(gdb.Command):
 
     def invoke(self, args, from_tty):
         argv = gdb.string_to_argv(args)
-        if len(argv) < 1 :
-            err("Missing command for gef -- `gef help` for help -- `gef config` for configuring")
-            return
+        argc = len(argv)
 
-        cmd = argv[0]
-        if cmd == "help":
-            self.help()
-        elif cmd == "config":
-            self.config(*argv[1:])
-        elif cmd == "save":
-            self.save()
-        elif cmd == "restore":
-            self.restore()
-        elif cmd == "missing":
-            self.missing()
-        else:
-            err("Invalid command '%s' for gef -- type `gef help' for help" % ' '.join(argv))
+        if argc < 1 :
+            gdb.execute("gef help")
+            return
 
         return
 
@@ -5449,15 +5444,38 @@ class GEFCommand(gdb.Command):
                                                                            Color.boldify(Color.blueify("gef missing"))))
 
         if os.access(GEF_RC, os.R_OK):
-            self.restore()
+            gdb.execute("gef restore")
         return
 
 
-    def generate_help(self):
+
+    def missing(self):
+        return
+
+
+class GefHelpCommand(gdb.Command):
+    """GEF help sub-command."""
+    _cmdline_ = "gef help"
+    _syntax_  = "%s" % _cmdline_
+
+    def __init__(self, commands, *args, **kwargs):
+        super(GefHelpCommand, self).__init__(GefHelpCommand._cmdline_,
+                                             gdb.COMMAND_SUPPORT,
+                                             gdb.COMPLETE_NONE,
+                                             False)
+        self.__doc__ = self.generate_help(commands)
+        return
+
+    def invoke(self, args, from_tty):
+        print("Syntax: %s\n" % self._syntax_)
+        print(self.__doc__)
+        return
+
+    def generate_help(self, commands):
         d = []
         d.append( titlify("GEF - GDB Enhanced Features") )
 
-        for (cmd, class_name, obj) in self.__loaded_cmds:
+        for (cmd, class_name, obj) in commands:
             if " " in cmd:
                 # do not print out subcommands in main help
                 continue
@@ -5477,14 +5495,29 @@ class GEFCommand(gdb.Command):
         return "\n".join(d)
 
 
-    def help(self):
-        print("Syntax: %s\n" % self._syntax_)
-        print(self.__doc__)
+
+class GefConfigCommand(gdb.Command):
+    """
+    GEF configuration sub-command: this command will help set/view GEF settings
+    for the current debugging session. It is possible to make those changes permanent
+    by running `gef save` (refer to this command help), and/or restore previously
+    saved settings by running `gef restore` (refer help).
+    """
+    # todo : add completer for config settings
+    _cmdline_ = "gef config"
+    _syntax_  = "%s" % _cmdline_
+
+    def __init__(self, loaded_commands, *args, **kwargs):
+        super(GefConfigCommand, self).__init__(GefConfigCommand._cmdline_,
+                                               gdb.COMMAND_SUPPORT,
+                                               gdb.COMPLETE_NONE,
+                                             False)
+        self.loaded_commands = loaded_commands
         return
 
-
-    def config(self, *args):
-        argc = len(args)
+    def invoke(self, args, from_tty):
+        argv = gdb.string_to_argv(args)
+        argc = len(argv)
 
         if not (0 <= argc <= 2):
             err("Invalid number of arguments")
@@ -5501,7 +5534,7 @@ class GEFCommand(gdb.Command):
 
         if argc==0 or argc==1:
             config_items = sorted( __config__ )
-            plugin_name = args[0] if argc==1 and args[0] in self.loaded_command_names else ""
+            plugin_name = args[0] if argc==1 and args[0] in self.loaded_commands else ""
             print( titlify("GEF configuration settings %s" % plugin_name) )
             for key in config_items:
                 if plugin_name not in key:
@@ -5516,7 +5549,7 @@ class GEFCommand(gdb.Command):
 
         plugin_name, setting_name = args[0].split(".", 1)
 
-        if plugin_name not in self.loaded_command_names:
+        if plugin_name not in self.loaded_commands:
             err("Unknown plugin '%s'" % plugin_name)
             return
 
@@ -5540,10 +5573,23 @@ class GEFCommand(gdb.Command):
         return
 
 
-    def save(self):
-        """
-        Saves the current configuration of GEF to disk
-        """
+
+class GefSaveCommand(gdb.Command):
+    """
+    GEF save sub-command: saves the current configuration of GEF to disk (by default in file
+    '%s')
+    """%GEF_RC
+    _cmdline_ = "gef save"
+    _syntax_  = "%s" % _cmdline_
+
+    def __init__(self, *args, **kwargs):
+        super(GefSaveCommand, self).__init__(GefSaveCommand._cmdline_,
+                                             gdb.COMMAND_SUPPORT,
+                                             gdb.COMPLETE_NONE,
+                                             False)
+        return
+
+    def invoke(self, args, from_tty):
         cfg = configparser.RawConfigParser()
         old_sect = None
         for key in sorted( __config__.keys() ):
@@ -5562,12 +5608,22 @@ class GEFCommand(gdb.Command):
         ok("Configuration saved to '%s'" % GEF_RC)
         return
 
+class GefRestoreCommand(gdb.Command):
+    """
+    GEF restore sub-command: loads settings from file '%s' and apply them to the
+    configuration of GEF
+    """ % GEF_RC
+    _cmdline_ = "gef restore"
+    _syntax_  = "%s" % _cmdline_
 
-    def restore(self):
-        """
-        Loads ~/.gef.rc and restore a former configuration of GEF
-        """
+    def __init__(self, *args, **kwargs):
+        super(GefRestoreCommand, self).__init__(GefRestoreCommand._cmdline_,
+                                                gdb.COMMAND_SUPPORT,
+                                                gdb.COMPLETE_NONE,
+                                                False)
+        return
 
+    def invoke(self, args, from_tty):
         cfg = configparser.ConfigParser()
         cfg.read(GEF_RC)
 
@@ -5588,11 +5644,22 @@ class GEFCommand(gdb.Command):
         ok("Configuration from '%s' restored" % GEF_RC)
         return
 
+class GefMissingCommand(gdb.Command):
+    """
+    GEF missing sub-command: display the GEF commands that could not be loaded,
+    along with the reason of why they could not be loaded.
+    """
+    _cmdline_ = "gef missing"
+    _syntax_  = "%s" % _cmdline_
 
-    def missing(self):
-        """
-        Display the GEF commands that could not be loaded, along with the reason of why.
-        """
+    def __init__(self, *args, **kwargs):
+        super(GefMissingCommand, self).__init__(GefMissingCommand._cmdline_,
+                                                gdb.COMMAND_SUPPORT,
+                                                gdb.COMPLETE_NONE,
+                                                False)
+        return
+
+    def invoke(self, args, from_tty):
         global __missing__
 
         missing_commands = __missing__.keys()
@@ -5661,7 +5728,7 @@ if __name__  == "__main__":
     gdb.execute("handle SIGALRM print nopass")
 
     # load GEF
-    GEFCommand()
+    GefCommand()
 
     # post-loading stuff
     define_user_command("hook-stop", "context")
