@@ -5670,7 +5670,11 @@ class GefMissingCommand(gdb.Command):
 
 def __gef_prompt__(current_prompt):
     prompt = "gef> " if PYTHON_MAJOR == 2 else "gef\u27a4  "
-    return "\001\033[1;31m\002{0:s}\001\033[0m\002".format(prompt)
+    if is_alive():
+        fmt_prompt = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(prompt)
+    else:
+        fmt_prompt = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(prompt)
+    return fmt_prompt
 
 
 if __name__  == "__main__":
