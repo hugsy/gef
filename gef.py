@@ -912,6 +912,12 @@ def arm_flags_to_human(val=None):
         val = get_register_ex( reg )
     return flags_to_human(val, arm_flags_table())
 
+def arm_is_cbranch(insn):
+    mnemo = ["beq", "bne", "bleq", "blt", "bgt", "bgez"]
+    return any( filter(lambda x: x in insn, mnemo))
+
+def arm_is_branch_taken(insn):
+    return False
 
 ######################[ Intel x86-64 specific ]######################
 @memoize
@@ -956,6 +962,37 @@ def x86_flags_to_human(val=None):
         val = get_register_ex( reg )
     return flags_to_human(val, x86_flags_table())
 
+def x86_is_cbranch(insn):
+    mnemo = ["ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
+             "jcxz", "jecxz", "jrcxz", "je", "jz", "jg", "jnle", "jge", "jnl",
+             "jl", "jnge", "jle", "jng", "jne", "jnz", "jno", "jnp", "jpo", "jns",
+             "jo", "jp", "jpe", "js",]
+    return any( filter(lambda x: x in insn, mnemo) )
+
+def x86_is_branch_taken(mnemo):
+    # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
+    flags = dict.fromkeys(x86_flags_table().values(), x86_flags_table().keys())
+    val = get_register_ex(x86_flag_register() )
+    rcx = get_register_ex("$rcx")
+
+    if mnemo in ("ja", "jnbe"): return val&flags["carry"] and val&flags["zero"]
+    if mnemo in ("jae", "jnb", "jnc"): return val&flags["carry"]==0
+    if mnemo in ("jb", "jc", "jnae"): return val&flags["carry"]==1
+    if mnemo in ("jbe", "jna"): return val&flags["carry"] or val&flags["zero"]
+    if mnemo in ("jcxz", "jecxz", "jrcxz"): return rcx==0
+    if mnemo in ("je", "jz"): return val&flags["zero"]
+    if mnemo in ("jg", "jnle"): return val&flags["zero"]==0 and val&flags["overflow"]==val&flags["sign"]
+    if mnemo in ("jge", "jnl"): return val&flags["sign"] and val&flags["overflow"]
+    if mnemo in ("jl", "jnge"): return val&flags["overflow"]!=val&flags["sign"]
+    if mnemo in ("jle", "jng"): return val&flags["zero"] and val&flags["overflow"]!=val&flags["sign"]
+    if mnemo in ("jne", "jnz"): return val&flags["zero"]==0
+    if mnemo in ("jno"): return val&flags["overflow"]==0
+    if mnemo in ("jnp", "jpo"): return val&flags["parity"]==0
+    if mnemo in ("jns"): return val&flags["sign"]==0
+    if mnemo in ("jo"): return val&flags["overflow"]
+    if mnemo in ("jpe", "jp"): return val&flags["parity"]
+    if mnemo in ("js"): return val&flags["sign"]
+    return False
 
 ######################[ Intel x86-32 specific ]######################
 @memoize
@@ -1011,6 +1048,11 @@ def powerpc_flags_to_human(val=None):
         val = get_register_ex( reg )
     return flags_to_human(val, powerpc_flags_table())
 
+def powerpc_is_cbranch(insn):
+    return False
+
+def powerpc_is_branch_taken(insn):
+    return False
 
 ######################[ SPARC specific ]######################
 @memoize
@@ -1053,6 +1095,11 @@ def sparc_flags_to_human(val=None):
         val = get_register_ex( reg )
     return flags_to_human(val, sparc_flags_table())
 
+def sparc_is_cbranch(insn):
+    return False
+
+def sparc_is_branch_taken(insn):
+    return False
 
 ######################[ MIPS specific ]######################
 @memoize
@@ -1082,6 +1129,11 @@ def mips_flags_to_human(val=None):
     # mips architecture does not use processor status word (flag register)
     return ""
 
+def mips_is_cbranch(insn):
+    return False
+
+def mips_is_branch_taken(insn):
+    return False
 
 ######################[ AARCH64 specific ]######################
 
@@ -1119,6 +1171,11 @@ def aarch64_flags_to_human(val=None):
         val = get_register_ex( reg )
     return flags_to_human(val, aarch64_flags_table())
 
+def aarch64_is_cbranch(insn):
+    return False
+
+def aarch64_is_branch_taken(insn):
+    return False
 
 ################################################################
 
@@ -1203,6 +1260,29 @@ def flag_register_to_human(val=None):
     elif is_sparc64():   return sparc_flags_to_human(val)
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
+def is_conditional_branch(insns):
+    if   is_arm():       return arm_is_cbranch(insns)
+    elif is_aarch64():   return aarch64_is_cbranch(insns)
+    elif is_x86_32():    return x86_is_cbranch(insns)
+    elif is_x86_64():    return x86_is_cbranch(insns)
+    elif is_powerpc():   return powerpc_is_cbranch(insns)
+    elif is_ppc64():     return powerpc_is_cbranch(insns)
+    elif is_mips():      return mips_is_cbranch(insns)
+    elif is_sparc():     return sparc_is_cbranch(insns)
+    elif is_sparc64():   return sparc_is_cbranch(insns)
+    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+def is_branch_taken(insns):
+    if   is_arm():       return arm_is_branch_taken(insns)
+    elif is_aarch64():   return aarch64_is_branch_taken(insns)
+    elif is_x86_32():    return x86_is_branch_taken(insns)
+    elif is_x86_64():    return x86_is_branch_taken(insns)
+    elif is_powerpc():   return powerpc_is_branch_taken(insns)
+    elif is_ppc64():     return powerpc_is_branch_taken(insns)
+    elif is_mips():      return mips_is_branch_taken(insns)
+    elif is_sparc():     return sparc_is_branch_taken(insns)
+    elif is_sparc64():   return sparc_is_branch_taken(insns)
+    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 def write_memory(address, buffer, length=0x10):
     if PYTHON_MAJOR == 2: buffer = str(buffer)
@@ -4089,14 +4169,10 @@ class ElfInfoCommand(GenericCommand):
                 ("ELF Version", "{:#x}".format( elf.e_version)),
                 ("Header size" , "{0} ({0:#x})".format(elf.e_ehsize)),
                 ("Entry point", "{}".format( format_address(elf.e_entry) )),
-
-                # todo finish
               ]
 
         for title, content in data:
             print("{:<30}: {}".format(Color.boldify(title), content))
-
-        # todo finish
         return
 
 
@@ -4314,6 +4390,13 @@ class ContextCommand(GenericCommand):
                     line+= Color.grayify("%#x\t %s" % (addr, content,) )
                 elif addr == pc:
                     line+= Color.boldify(Color.redify("%#x\t %s \t\t %s $pc" % (addr, content, left_arrow())))
+
+                    if is_conditional_branch(content):
+                        if is_branch_taken(content):
+                            line+= Color.boldify(Color.greenify("\tBranch TAKEN"))
+                        else:
+                            line+= Color.boldify(Color.redify("\tBranch NOT taken"))
+
                 else:
                     line+= "%#x\t %s" % (addr, content)
 
