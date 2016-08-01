@@ -5497,11 +5497,11 @@ class GefHelpCommand(gdb.Command):
 
 
 class GefConfigCommand(gdb.Command):
-    """
-    GEF configuration sub-command: this command will help set/view GEF settings
-    for the current debugging session. It is possible to make those changes permanent
-    by running `gef save` (refer to this command help), and/or restore previously
-    saved settings by running `gef restore` (refer help).
+    """GEF configuration sub-command
+    This command will help set/view GEF settingsfor the current debugging session.
+    It is possible to make those changes permanent by running `gef save` (refer
+    to this command help), and/or restore previously saved settings by running
+    `gef restore` (refer help).
     """
     # todo : add completer for config settings
     _cmdline_ = "gef config"
@@ -5575,10 +5575,9 @@ class GefConfigCommand(gdb.Command):
 
 
 class GefSaveCommand(gdb.Command):
+    """GEF save sub-command
+    Saves the current configuration of GEF to disk (by default in file '~/.gef.rc')
     """
-    GEF save sub-command: saves the current configuration of GEF to disk (by default in file
-    '%s')
-    """%GEF_RC
     _cmdline_ = "gef save"
     _syntax_  = "%s" % _cmdline_
 
@@ -5609,10 +5608,9 @@ class GefSaveCommand(gdb.Command):
         return
 
 class GefRestoreCommand(gdb.Command):
+    """GEF restore sub-command
+    Loads settings from file '~/.gef.rc' and apply them to the configuration of GEF
     """
-    GEF restore sub-command: loads settings from file '%s' and apply them to the
-    configuration of GEF
-    """ % GEF_RC
     _cmdline_ = "gef restore"
     _syntax_  = "%s" % _cmdline_
 
@@ -5645,9 +5643,9 @@ class GefRestoreCommand(gdb.Command):
         return
 
 class GefMissingCommand(gdb.Command):
-    """
-    GEF missing sub-command: display the GEF commands that could not be loaded,
-    along with the reason of why they could not be loaded.
+    """GEF missing sub-command
+    Display the GEF commands that could not be loaded, along with the reason of why
+    they could not be loaded.
     """
     _cmdline_ = "gef missing"
     _syntax_  = "%s" % _cmdline_
