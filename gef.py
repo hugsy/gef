@@ -915,11 +915,11 @@ def arm_flags_to_human(val=None):
 def arm_is_cbranch(insn):
     mnemo = ["beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
              "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"]
-    return any(filter(lambda x: x in insn, mnemo))
+    return any(filter(lambda x: x == insn, mnemo))
 
 def arm_is_branch_taken(mnemo):
     # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
-    flags = dict( (k,arm_flags_table()[k]) for k in arm_flags_table().keys() )
+    flags = dict( (arm_flags_table()[k], k) for k in arm_flags_table().keys() )
     val = get_register_ex(arm_flag_register() )
     if mnemo.endswith("eq"): return val&flags["zero"]
     if mnemo.endswith("ne"): return val&flags["zero"]==0
