@@ -975,9 +975,9 @@ def x86_is_branch_taken(mnemo):
     val = get_register_ex(x86_flag_register() )
     rcx = get_register_ex("$rcx")
 
-    if mnemo in ("ja", "jnbe"): return val&flags["carry"] and val&flags["zero"]
+    if mnemo in ("ja", "jnbe"): return val&flags["carry"]==0 and val&flags["zero"]==0
     if mnemo in ("jae", "jnb", "jnc"): return val&flags["carry"]==0
-    if mnemo in ("jb", "jc", "jnae"): return val&flags["carry"]==1
+    if mnemo in ("jb", "jc", "jnae"): return val&flags["carry"]
     if mnemo in ("jbe", "jna"): return val&flags["carry"] or val&flags["zero"]
     if mnemo in ("jcxz", "jecxz", "jrcxz"): return rcx==0
     if mnemo in ("je", "jz"): return val&flags["zero"]
