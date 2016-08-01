@@ -5559,7 +5559,7 @@ class GefConfigCommand(gdb.Command):
 
         try:
             if _type == bool:
-                _newval = True if argv[1]=="True" else False
+                _newval = True if argv[1] in ("True", "TRUE", "true", "1") else False
             else:
                 _newval = argv[1]
                 _type( _newval )
