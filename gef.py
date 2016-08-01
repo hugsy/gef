@@ -913,10 +913,22 @@ def arm_flags_to_human(val=None):
     return flags_to_human(val, arm_flags_table())
 
 def arm_is_cbranch(insn):
-    mnemo = ["beq", "bne", "bleq", "blt", "bgt", "bgez"]
-    return any( filter(lambda x: x in insn, mnemo))
+    mnemo = ["beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
+             "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"]
+    return any(filter(lambda x: x in insn, mnemo))
 
-def arm_is_branch_taken(insn):
+def arm_is_branch_taken(mnemo):
+    # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
+    flags = dict( (k,arm_flags_table()[k]) for k in arm_flags_table().keys() )
+    val = get_register_ex(arm_flag_register() )
+    if mnemo.endswith("eq"): return val&flags["zero"]
+    if mnemo.endswith("ne"): return val&flags["zero"]==0
+    if mnemo.endswith("lt"): return val&flags["negative"]!=val&flags["overflow"]
+    if mnemo.endswith("le"): return val&flags["zero"] or val&flags["negative"]!=val&flags["overflow"]
+    if mnemo.endswith("gt"): return val&flags["zero"]==0 and val&flags["negative"]==val&flags["overflow"]
+    if mnemo.endswith("ge"): return val&flags["negative"]==val&flags["overflow"]
+    if mnemo.endswith("bvs"): return val&flags["overflow"]
+    if mnemo.endswith("bvc"): return val&flags["overflow"]==0
     return False
 
 ######################[ Intel x86-64 specific ]######################
@@ -967,11 +979,11 @@ def x86_is_cbranch(insn):
              "jcxz", "jecxz", "jrcxz", "je", "jz", "jg", "jnle", "jge", "jnl",
              "jl", "jnge", "jle", "jng", "jne", "jnz", "jno", "jnp", "jpo", "jns",
              "jo", "jp", "jpe", "js",]
-    return any( filter(lambda x: x in insn, mnemo) )
+    return any( filter(lambda x: x == insn, mnemo) )
 
 def x86_is_branch_taken(mnemo):
     # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
-    flags = dict.fromkeys(x86_flags_table().values(), x86_flags_table().keys())
+    flags = dict( (x86_flags_table()[k], k) for k in x86_flags_table().keys() )
     val = get_register_ex(x86_flag_register() )
     rcx = get_register_ex("$rcx")
 
@@ -982,7 +994,7 @@ def x86_is_branch_taken(mnemo):
     if mnemo in ("jcxz", "jecxz", "jrcxz"): return rcx==0
     if mnemo in ("je", "jz"): return val&flags["zero"]
     if mnemo in ("jg", "jnle"): return val&flags["zero"]==0 and val&flags["overflow"]==val&flags["sign"]
-    if mnemo in ("jge", "jnl"): return val&flags["sign"] and val&flags["overflow"]
+    if mnemo in ("jge", "jnl"): return val&flags["sign"]==val&flags["overflow"]
     if mnemo in ("jl", "jnge"): return val&flags["overflow"]!=val&flags["sign"]
     if mnemo in ("jle", "jng"): return val&flags["zero"] and val&flags["overflow"]!=val&flags["sign"]
     if mnemo in ("jne", "jnz"): return val&flags["zero"]==0
@@ -1260,28 +1272,30 @@ def flag_register_to_human(val=None):
     elif is_sparc64():   return sparc_flags_to_human(val)
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
-def is_conditional_branch(insns):
-    if   is_arm():       return arm_is_cbranch(insns)
-    elif is_aarch64():   return aarch64_is_cbranch(insns)
-    elif is_x86_32():    return x86_is_cbranch(insns)
-    elif is_x86_64():    return x86_is_cbranch(insns)
-    elif is_powerpc():   return powerpc_is_cbranch(insns)
-    elif is_ppc64():     return powerpc_is_cbranch(insns)
-    elif is_mips():      return mips_is_cbranch(insns)
-    elif is_sparc():     return sparc_is_cbranch(insns)
-    elif is_sparc64():   return sparc_is_cbranch(insns)
+def is_conditional_branch(insn):
+    mnemo = insn.strip().split()[1]
+    if   is_arm():       return arm_is_cbranch(mnemo)
+    elif is_aarch64():   return aarch64_is_cbranch(mnemo)
+    elif is_x86_32():    return x86_is_cbranch(mnemo)
+    elif is_x86_64():    return x86_is_cbranch(mnemo)
+    elif is_powerpc():   return powerpc_is_cbranch(mnemo)
+    elif is_ppc64():     return powerpc_is_cbranch(mnemo)
+    elif is_mips():      return mips_is_cbranch(mnemo)
+    elif is_sparc():     return sparc_is_cbranch(mnemo)
+    elif is_sparc64():   return sparc_is_cbranch(mnemo)
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
-def is_branch_taken(insns):
-    if   is_arm():       return arm_is_branch_taken(insns)
-    elif is_aarch64():   return aarch64_is_branch_taken(insns)
-    elif is_x86_32():    return x86_is_branch_taken(insns)
-    elif is_x86_64():    return x86_is_branch_taken(insns)
-    elif is_powerpc():   return powerpc_is_branch_taken(insns)
-    elif is_ppc64():     return powerpc_is_branch_taken(insns)
-    elif is_mips():      return mips_is_branch_taken(insns)
-    elif is_sparc():     return sparc_is_branch_taken(insns)
-    elif is_sparc64():   return sparc_is_branch_taken(insns)
+def is_branch_taken(insn):
+    mnemo = insn.strip().split()[1]
+    if   is_arm():       return arm_is_branch_taken(mnemo)
+    elif is_aarch64():   return aarch64_is_branch_taken(mnemo)
+    elif is_x86_32():    return x86_is_branch_taken(mnemo)
+    elif is_x86_64():    return x86_is_branch_taken(mnemo)
+    elif is_powerpc():   return powerpc_is_branch_taken(mnemo)
+    elif is_ppc64():     return powerpc_is_branch_taken(mnemo)
+    elif is_mips():      return mips_is_branch_taken(mnemo)
+    elif is_sparc():     return sparc_is_branch_taken(mnemo)
+    elif is_sparc64():   return sparc_is_branch_taken(mnemo)
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 def write_memory(address, buffer, length=0x10):
