@@ -1385,13 +1385,24 @@ def is_readable_string(address):
 
 
 def is_alive():
+    """Check if GDB is running."""
     try:
         pid = get_frame().pid
         return pid > 0
     except gdb.error as e:
         return False
-
     return False
+
+
+def if_gdb_running(f):
+    """Decorator wrapper to check if GDB is running."""
+    @functools.wraps(f)
+    def wrapper(*args, **kwds):
+        if is_alive():
+            return f(*args, **kwds)
+        else:
+            warn("No debugging session active")
+    return wrapper
 
 
 def get_register(regname):
@@ -2230,11 +2241,12 @@ class RetDecCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
-        # main = gdb.parse_and_eval(argv[0])
-        # main_address = long(main.address)
-        # print (hex(main_address))
-        # block = gdb.block_for_pc(main_address)
-        # print( "main", main.start, main.end)
+        main = gdb.parse_and_eval("main")
+        main_address = long(main.address)
+        print (hex(main_address))
+        block = gdb.block_for_pc(main)
+        print( "main", main.start, main.end)
+        return
 
         if   is_x86_32():  arch = "x86"
         elif is_arm():     arch = "arm"
@@ -2301,7 +2313,7 @@ class RetDecCommand(GenericCommand):
         try:
             path = self.get_setting("path")
             decompilation = self.decompiler.start_decompilation(**params)
-            ok("Task submitted, waiting for decompilation to finish...")
+            info("Task submitted, waiting for decompilation to finish...")
             decompilation.wait_until_finished()
             ok("Done")
             decompilation.save_hll_code(self.get_setting("path"))
@@ -2368,10 +2380,8 @@ class ProcessIdCommand(GenericCommand):
     _cmdline_ = "pid"
     _syntax_  = "%s" % _cmdline_
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            err("No process alive")
-            return
         print("%d" % get_pid())
         return
 
@@ -2514,11 +2524,8 @@ class SearchPatternCommand(GenericCommand):
                 print("""{:#x} - {:#x} {:s}  "{:s}" """.format(loc[0], loc[1], right_arrow(), Color.pinkify(loc[2])))
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            err("No process alive")
-            return
-
         if len(argv)!=1:
             self.usage()
             return
@@ -2592,11 +2599,8 @@ class ChangePermissionCommand(GenericCommand):
             raise GefMissingDependencyException( msg )
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         if len(argv) not in (1, 2):
             err("Incorrect syntax")
             return
@@ -2766,11 +2770,8 @@ class UnicornEmulateCommand(GenericCommand):
     def post_load(self):
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         start_insn = None
         end_insn = -1
         self.nb_insn = -1
@@ -3235,11 +3236,8 @@ class PatchCommand(GenericCommand):
         return
 
 
+    @if_gdb_running
     def onetime_patch(self, loc, retval):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         size = self.get_insn_size( loc )
         nops = nop_insn()
 
@@ -3292,12 +3290,8 @@ class CapstoneDisassembleCommand(GenericCommand):
         super(CapstoneDisassembleCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
-
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         location, length = get_pc(), 0x10
         opts, args = getopt.getopt(argv, 'n:x:')
         for o,a in opts:
@@ -3431,11 +3425,8 @@ class GlibcHeapArenaCommand(GenericCommand):
         super(GlibcHeapArenaCommand, self).__init__()
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("Process not alive")
-            return
-
         ok("Listing active arena(s):")
         try:
             arena = GlibcArena("main_arena")
@@ -3462,11 +3453,8 @@ class GlibcHeapChunkCommand(GenericCommand):
         super(GlibcHeapChunkCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         if len(argv) < 1:
             err("Missing chunk address")
             self.usage()
@@ -3489,11 +3477,8 @@ class GlibcHeapBinsCommand(GenericCommand):
         super(GlibcHeapBinsCommand, self).__init__()
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         if len(argv)==0:
             for bin_t in GlibcHeapBinsCommand._bins_type_:
                 gdb.execute("heap bins %s" % bin_t)
@@ -3538,11 +3523,8 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         super(GlibcHeapFastbinsYCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         if len(argv)==1:
             arena = GlibcArena('*'+argv[0])
         else:
@@ -3587,11 +3569,8 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
         super(GlibcHeapUnsortedBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         arena_addr =  "*%#x"%int(argv[0],16) if len(argv)==1 else "main_arena"
         print(titlify("Information on Unsorted Bin of arena '{:s}'".format(arena_addr)))
         GlibcHeapBinsCommand.pprint_bin(arena_addr, 0)
@@ -3607,11 +3586,8 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
         super(GlibcHeapSmallBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         arena_addr = "*%#x"%int(argv[0],16) if len(argv)==1 else "main_arena"
         print(titlify("Information on Small Bins of arena '{:s}'".format(arena_addr)))
         for i in range(1, 64):
@@ -3628,11 +3604,8 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         super(GlibcHeapLargeBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         arena_addr = "*%#x"%int(argv[0],16) if len(argv)==1 else "main_arena"
         print(titlify("Information on Large Bins of arena '{:s}'".format(arena_addr)))
         for i in range(64, 127):
@@ -3781,12 +3754,9 @@ class DetailRegistersCommand(GenericCommand):
     _cmdline_ = "registers"
     _syntax_  = "%s [Register1] [Register2] ... [RegisterN]" % _cmdline_
 
+    @if_gdb_running
     def do_invoke(self, argv):
         regs = []
-
-        if not is_alive():
-            warn("No debugging session active")
-            return
 
         if len(argv) > 0:
             regs = [ reg for reg in all_registers() if reg.strip() in argv ]
@@ -4078,11 +4048,8 @@ class FileDescriptorCommand(GenericCommand):
     _cmdline_ = "fd"
     _syntax_  = "%s" % _cmdline_
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         if is_remote_debug():
             warn("'%s' cannot be used on remote debugging" % self._cmdline_)
             return
@@ -4391,11 +4358,8 @@ class ContextCommand(GenericCommand):
         return
 
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         if not self.get_setting("enable"):
             return
 
@@ -4663,12 +4627,9 @@ class HexdumpCommand(GenericCommand):
         self.usage()
         return
 
+    @if_gdb_running
     def _invoke(self, fmt, argv):
         argc = len(argv)
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         if argc < 1:
             self.usage()
             return
@@ -4793,11 +4754,8 @@ class DereferenceCommand(GenericCommand):
         self.add_setting("max_recursion", 10)
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         if len(argv) < 1:
             err("Missing argument (register/address)")
             return
@@ -4937,11 +4895,8 @@ class VMMapCommand(GenericCommand):
     _cmdline_ = "vmmap"
     _syntax_  = "%s" % _cmdline_
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         vmmap = get_process_maps()
         if vmmap is None or len(vmmap)==0:
             err("No address mapping information found")
@@ -4974,12 +4929,8 @@ class XFilesCommand(GenericCommand):
     _cmdline_ = "xfiles"
     _syntax_  = "%s [name]" % _cmdline_
 
+    @if_gdb_running
     def do_invoke(self, args):
-        if not is_alive():
-            warn("Debugging session is not active")
-            warn("Result may be incomplete (shared libs, etc.)")
-            return
-
         name = None if len(args)==0 else args[0]
         formats = {"Start": "{:{align}20s}",
                    "End":   "{:{align}20s}",
@@ -5014,12 +4965,8 @@ class XAddressInfoCommand(GenericCommand):
         super(XAddressInfoCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
-
+    @if_gdb_running
     def do_invoke (self, argv):
-        if not is_alive():
-            warn("Debugging session is not active")
-            return
-
         if len(argv) < 1:
             err ("At least one valid address must be specified")
             return
@@ -5083,12 +5030,8 @@ class XorMemoryDisplayCommand(GenericCommand):
     _cmdline_ = "xor-memory display"
     _syntax_  = "%s <address> <size_to_read> <xor_key> [-i]" % _cmdline_
 
-
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         if len(argv) not in (3, 4):
             self.usage()
             return
@@ -5122,12 +5065,8 @@ class XorMemoryPatchCommand(GenericCommand):
     _cmdline_ = "xor-memory patch"
     _syntax_  = "%s <address> <size_to_read> <xor_key>" % _cmdline_
 
-
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         if len(argv) != 3:
             self.usage()
             return
@@ -5155,14 +5094,10 @@ class TraceRunCommand(GenericCommand):
         self.add_setting("tracefile_prefix", "./gef-trace-")
         return
 
-
+    @if_gdb_running
     def do_invoke(self, argv):
         if len(argv) not in (1, 2):
             self.usage()
-            return
-
-        if not is_alive():
-            warn("Debugging session is not active")
             return
 
         if len(argv)==2 and argv[1].isdigit():
@@ -5359,12 +5294,8 @@ class InspectStackCommand(GenericCommand):
     _cmdline_ = "inspect-stack"
     _syntax_  = "%s  [NbStackEntry]" % _cmdline_
 
-
+    @if_gdb_running
     def do_invoke(self, argv):
-        if not is_alive():
-            warn("No debugging session active")
-            return
-
         nb_stack_block = 10
         argc = len(argv)
         if argc >= 1:
