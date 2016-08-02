@@ -2248,10 +2248,10 @@ class RetDecCommand(GenericCommand):
         print( "main", main.start, main.end)
         return
 
-        if   is_x86_32():  arch = "x86"
-        elif is_arm():     arch = "arm"
-        elif is_mips():    arch = "mips"
-        elif is_mips():    arch = "powerpc"
+        if   is_x86_32():   arch = "x86"
+        elif is_arm():      arch = "arm"
+        elif is_mips():     arch = "mips"
+        elif is_powerpc():  arch = "powerpc"
         else:
             err("RetDec does not decompile '%s'" % get_arch())
             return
