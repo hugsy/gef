@@ -1063,24 +1063,34 @@ def powerpc_flags_table():
     table = { 0: "negative",
               1: "positive",
               2: "zero",
-              8: "less",
-              9: "greater",
-              10: "equal",
-              11: "overflow",
+              3: "summary",
+              28: "less",
+              29: "greater",
+              30: "equal",
+              31: "overflow",
     }
     return table
 
 def powerpc_flags_to_human(val=None):
-    # http://www.csit-sun.pub.ro/~cpop/Documentatie_SM/Motorola_PowerPC/PowerPc/GenInfo/pemch2.pdf
-    reg = powerpc_flag_register()
+    # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
     if not val:
+        reg = powerpc_flag_register()
         val = get_register_ex( reg )
     return flags_to_human(val, powerpc_flags_table())
 
 def powerpc_is_cbranch(insn):
-    return False
+    mnemo = ["beq", "bne", "ble", "blt", "bgt", "bge", ]
+    return any( filter(lambda x: x == insn, mnemo) )
 
-def powerpc_is_branch_taken(insn):
+def powerpc_is_branch_taken(mnemo):
+    flags = dict( (powerpc_flags_table()[k], k) for k in powerpc_flags_table().keys() )
+    val = get_register_ex(powerpc_flag_register())
+    if mnemo=="beq": return val&(1<<flags["equal"])
+    if mnemo=="bne": return val&(1<<flags["equal"])!=0
+    if mnemo=="ble": return val&(1<<flags["equal"]) or val&(1<<flags["less"])
+    if mnemo=="blt": return val&(1<<flags["less"])
+    if mnemo=="bge": return val&(1<<flags["equal"]) or val&(1<<flags["greater"])
+    if mnemo=="bgt": return val&(1<<flags["greater"])
     return False
 
 ######################[ SPARC specific ]######################
