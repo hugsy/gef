@@ -1336,6 +1336,7 @@ def is_branch_taken(insn):
     elif is_sparc64():   return sparc_is_branch_taken(mnemo)
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
+
 def write_memory(address, buffer, length=0x10):
     if PYTHON_MAJOR == 2: buffer = str(buffer)
     return gdb.selected_inferior().write_memory(address, buffer, length)
@@ -2206,15 +2207,14 @@ class GenericCommand(gdb.Command):
 
 
 class RetDecCommand(GenericCommand):
-    """Decompile code using RetDec API."""
+    """Decompile code from GDB context using RetDec API."""
 
     _cmdline_ = "retdec"
-    _syntax_  = "%s" % _cmdline_
+    _syntax_  = "%s [-r RANGE1-RANGE2][-s SYMBOL][-a][-h]" % _cmdline_
     _aliases_ = ["decompile", ]
 
     def __init__(self):
-        super(RetDecCommand, self).__init__(complete=gdb.COMPLETE_FILENAME,
-                                            prefix=False)
+        super(RetDecCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL, prefix=False)
         self.add_setting("key", "incorrect-retdec-api-key")
         self.add_setting("path", tempfile.gettempdir())
         self.decompiler = None
@@ -2230,6 +2230,12 @@ class RetDecCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
+        # main = gdb.parse_and_eval(argv[0])
+        # main_address = long(main.address)
+        # print (hex(main_address))
+        # block = gdb.block_for_pc(main_address)
+        # print( "main", main.start, main.end)
+
         if   is_x86_32():  arch = "x86"
         elif is_arm():     arch = "arm"
         elif is_mips():    arch = "mips"
@@ -2241,30 +2247,73 @@ class RetDecCommand(GenericCommand):
         if self.decompiler is None:
             retdec = sys.modules["retdec"]
             retdec_decompiler = sys.modules["retdec.decompiler"]
-            try:
-                self.decompiler = retdec.decompiler.Decompiler(api_key=self.get_setting("key"))
-            except retdec.exceptions.AuthenticationError:
-                err("Invalid RetDec API key")
-                info("You can store your API key using `gef config`")
-                self.decompiler = None
-                return
+            self.decompiler = retdec.decompiler.Decompiler(api_key=self.get_setting("key"))
 
         params = {
-            "input_file": get_filename(),
-            "target_language": "c",
             "architecture": arch,
+            "target_language": "c",
+            "raw_endian": "big" if is_big_endian() else "little",
             "decomp_var_names": "readable",
+            "decomp_emit_addresses": "no",
+            "generate_cg": "no",
+            "generate_cfg": "no",
+            "comp_compiler": "gcc",
         }
-        path = self.get_setting("path")
-        decompilation = self.decompiler.start_decompilation(**params)
-        ok("Task submitted, waiting for decompilation to finish...")
-        decompilation.wait_until_finished()
-        ok("Done")
 
-        decompilation.save_hll_code(self.get_setting("path"))
-        fname = path + '/' + os.path.basename(get_filename()) + '.' + params["target_language"]
-        ok("Saved as '%s'" % fname)
+        opts, args = getopt.getopt(argv, "r:s:ah")
+        for o, a in opts:
+            if   o == "-r":
+                range_from, range_to = map(lambda x: int(x,16), a.split("-", 1))
+                fd, filename = tempfile.mkstemp()
+                with os.fdopen(fd, "wb") as f:
+                    length = range_to - range_from
+                    f.write(read_memory(range_from, length))
+                params["mode"] = "raw"
+                params["file_format"] = "elf"
+                params["raw_section_vma"] = hex(range_from)
+                params["raw_entry_point"] = hex(range_from)
+            elif o == "-s":
+                # todo
+                symbol = a
+                filename =""
+                params["mode"] = "raw"
+            elif o == "-a":
+                filename = get_filename()
+                params["mode"] = "bin"
+            else:
+                self.usage()
+                return
+
+        params["input_file"] = filename
+        if self.send_to_retdec(params)==False:
+            return
+
+        fname = filename + '.c'
+        with open(fname, 'r') as f:
+            print(''.join([x for x in f.readlines() \
+                             if len(x.strip()) and not x.strip().startswith("//") ]))
         return
+
+
+    def send_to_retdec(self, params):
+        retdec = sys.modules["retdec"]
+
+        try:
+            path = self.get_setting("path")
+            decompilation = self.decompiler.start_decompilation(**params)
+            ok("Task submitted, waiting for decompilation to finish...")
+            decompilation.wait_until_finished()
+            ok("Done")
+            decompilation.save_hll_code(self.get_setting("path"))
+            fname = path + '/' + os.path.basename(params["input_file"]) + '.' + params["target_language"]
+            ok("Saved as '%s'" % fname)
+        except retdec.exceptions.AuthenticationError:
+            err("Invalid RetDec API key")
+            info("You can store your API key using `gef config`/`gef restore`")
+            self.decompiler = None
+            return False
+
+        return True
 
 
 class ChangeFdCommand(GenericCommand):
@@ -5547,6 +5596,9 @@ class GefCommand(gdb.Command):
         GefSaveCommand()
         GefRestoreCommand()
         GefMissingCommand()
+
+        if os.access(GEF_RC, os.R_OK):
+            gdb.execute("gef restore")
         return
 
 
@@ -5618,9 +5670,6 @@ class GefCommand(gdb.Command):
         if nb_missing > 0:
             warn("%s commands could not be loaded, run `%s` to know why."%(Color.boldify(Color.redify(str(nb_missing))),
                                                                            Color.boldify(Color.blueify("gef missing"))))
-
-        if os.access(GEF_RC, os.R_OK):
-            gdb.execute("gef restore")
         return
 
 class GefHelpCommand(gdb.Command):
