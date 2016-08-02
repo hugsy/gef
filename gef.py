@@ -907,8 +907,8 @@ def arm_flags_table():
 
 def arm_flags_to_human(val=None):
     # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
-    reg = arm_flag_register()
-    if not val:
+    if val is None:
+        reg = arm_flag_register()
         val = get_register_ex( reg )
     return flags_to_human(val, arm_flags_table())
 
@@ -921,14 +921,15 @@ def arm_is_branch_taken(mnemo):
     # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
     flags = dict( (arm_flags_table()[k], k) for k in arm_flags_table().keys() )
     val = get_register_ex(arm_flag_register() )
-    if mnemo.endswith("eq"): return val&flags["zero"]
-    if mnemo.endswith("ne"): return val&flags["zero"]==0
-    if mnemo.endswith("lt"): return val&flags["negative"]!=val&flags["overflow"]
-    if mnemo.endswith("le"): return val&flags["zero"] or val&flags["negative"]!=val&flags["overflow"]
-    if mnemo.endswith("gt"): return val&flags["zero"]==0 and val&flags["negative"]==val&flags["overflow"]
-    if mnemo.endswith("ge"): return val&flags["negative"]==val&flags["overflow"]
-    if mnemo.endswith("bvs"): return val&flags["overflow"]
-    if mnemo.endswith("bvc"): return val&flags["overflow"]==0
+
+    if mnemo.endswith("eq"): return val&(1<<flags["zero"])
+    if mnemo.endswith("ne"): return val&(1<<flags["zero"])==0
+    if mnemo.endswith("lt"): return val&(1<<flags["negative"])!=val&(1<<flags["overflow"])
+    if mnemo.endswith("le"): return val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"])
+    if mnemo.endswith("gt"): return val&(1<<flags["zero"])==0 and val&(1<<flags["negative"])==val&(1<<flags["overflow"])
+    if mnemo.endswith("ge"): return val&(1<<flags["negative"])==val&(1<<flags["overflow"])
+    if mnemo.endswith("bvs"): return val&(1<<flags["overflow"])
+    if mnemo.endswith("bvc"): return val&(1<<flags["overflow"])==0
     return False
 
 ######################[ Intel x86-64 specific ]######################
@@ -987,23 +988,23 @@ def x86_is_branch_taken(mnemo):
     val = get_register_ex(x86_flag_register() )
     rcx = get_register_ex("$rcx")
 
-    if mnemo in ("ja", "jnbe"): return val&flags["carry"]==0 and val&flags["zero"]==0
-    if mnemo in ("jae", "jnb", "jnc"): return val&flags["carry"]==0
-    if mnemo in ("jb", "jc", "jnae"): return val&flags["carry"]
-    if mnemo in ("jbe", "jna"): return val&flags["carry"] or val&flags["zero"]
+    if mnemo in ("ja", "jnbe"): return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0
+    if mnemo in ("jae", "jnb", "jnc"): return val&(1<<flags["carry"])==0
+    if mnemo in ("jb", "jc", "jnae"): return val&(1<<flags["carry"])
+    if mnemo in ("jbe", "jna"): return val&(1<<flags["carry"]) or val&(1<<flags["zero"])
     if mnemo in ("jcxz", "jecxz", "jrcxz"): return rcx==0
-    if mnemo in ("je", "jz"): return val&flags["zero"]
-    if mnemo in ("jg", "jnle"): return val&flags["zero"]==0 and val&flags["overflow"]==val&flags["sign"]
-    if mnemo in ("jge", "jnl"): return val&flags["sign"]==val&flags["overflow"]
-    if mnemo in ("jl", "jnge"): return val&flags["overflow"]!=val&flags["sign"]
-    if mnemo in ("jle", "jng"): return val&flags["zero"] and val&flags["overflow"]!=val&flags["sign"]
-    if mnemo in ("jne", "jnz"): return val&flags["zero"]==0
-    if mnemo in ("jno"): return val&flags["overflow"]==0
-    if mnemo in ("jnp", "jpo"): return val&flags["parity"]==0
-    if mnemo in ("jns"): return val&flags["sign"]==0
-    if mnemo in ("jo"): return val&flags["overflow"]
-    if mnemo in ("jpe", "jp"): return val&flags["parity"]
-    if mnemo in ("js"): return val&flags["sign"]
+    if mnemo in ("je", "jz"): return val&(1<<flags["zero"])
+    if mnemo in ("jg", "jnle"): return val&(1<<flags["zero"])==0 and val&(1<<flags["overflow"])==val&(1<<flags["sign"])
+    if mnemo in ("jge", "jnl"): return val&(1<<flags["sign"])==val&(1<<flags["overflow"])
+    if mnemo in ("jl", "jnge"): return val&(1<<flags["overflow"])!=val&(1<<flags["sign"])
+    if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) and val&(1<<flags["overflow"])!=val&(1<<flags["sign"])
+    if mnemo in ("jne", "jnz"): return val&(1<<flags["zero"])==0
+    if mnemo in ("jno"): return val&(1<<flags["overflow"])==0
+    if mnemo in ("jnp", "jpo"): return val&(1<<flags["parity"])==0
+    if mnemo in ("jns"): return val&(1<<flags["sign"])==0
+    if mnemo in ("jo"): return val&(1<<flags["overflow"])
+    if mnemo in ("jpe", "jp"): return val&(1<<flags["parity"])
+    if mnemo in ("js"): return val&(1<<flags["sign"])
     return False
 
 ######################[ Intel x86-32 specific ]######################
@@ -1184,10 +1185,12 @@ def aarch64_flags_to_human(val=None):
     return flags_to_human(val, aarch64_flags_table())
 
 def aarch64_is_cbranch(insn):
-    return False
+    # todo: check
+    return arm_is_cbranch(insn)
 
 def aarch64_is_branch_taken(insn):
-    return False
+    # todo: check
+    return arm_is_branch_taken(insn)
 
 ################################################################
 
