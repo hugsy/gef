@@ -2120,30 +2120,6 @@ class ChangePermissionBreakpoint(gdb.Breakpoint):
 
 
 #
-# Functions
-#
-
-# credits: http://tromey.com/blog/?p=515
-class CallerIs (gdb.Function):
-    """Return True if the calling function's name is equal to a string.
-    This function takes one or two arguments."""
-
-    def __init__ (self):
-        super (CallerIs, self).__init__ ("caller_is")
-        return
-
-    def invoke (self, name, nframes = 1):
-        frame = gdb.get_current_frame ()
-        while nframes > 0:
-            frame = frame.get_prev ()
-            nframes = nframes - 1
-        return frame.get_name () == name.string ()
-
-CallerIs()
-
-
-
-#
 # Commands
 #
 
@@ -2163,7 +2139,8 @@ class GenericCommand(gdb.Command):
 
         command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
         complete_type = kwargs.setdefault("complete", gdb.COMPLETE_NONE)
-        super(GenericCommand, self).__init__(self._cmdline_, command_type, complete_type, True)
+        prefix = kwargs.setdefault("prefix", True)
+        super(GenericCommand, self).__init__(self._cmdline_, command_type, complete_type, prefix)
         self.post_load()
         return
 
@@ -2226,6 +2203,68 @@ class GenericCommand(gdb.Command):
     # return
     # def do_invoke(self, argv):
     # return
+
+
+class RetDecCommand(GenericCommand):
+    """Decompile code using RetDec API."""
+
+    _cmdline_ = "retdec"
+    _syntax_  = "%s" % _cmdline_
+    _aliases_ = ["decompile", ]
+
+    def __init__(self):
+        super(RetDecCommand, self).__init__(complete=gdb.COMPLETE_FILENAME,
+                                            prefix=False)
+        self.add_setting("key", "incorrect-retdec-api-key")
+        self.add_setting("path", tempfile.gettempdir())
+        self.decompiler = None
+        return
+
+    def pre_load(self):
+        try:
+            import retdec
+            import retdec.decompiler
+        except ImportError as ioe:
+            msg = "Missing Python `retdec-python` package. "
+            raise GefMissingDependencyException( msg )
+        return
+
+    def do_invoke(self, argv):
+        if   is_x86_32():  arch = "x86"
+        elif is_arm():     arch = "arm"
+        elif is_mips():    arch = "mips"
+        elif is_mips():    arch = "powerpc"
+        else:
+            err("RetDec does not decompile '%s'" % get_arch())
+            return
+
+        if self.decompiler is None:
+            retdec = sys.modules["retdec"]
+            retdec_decompiler = sys.modules["retdec.decompiler"]
+            try:
+                self.decompiler = retdec.decompiler.Decompiler(api_key=self.get_setting("key"))
+            except retdec.exceptions.AuthenticationError:
+                err("Invalid RetDec API key")
+                info("You can store your API key using `gef config`")
+                self.decompiler = None
+                return
+
+        params = {
+            "input_file": get_filename(),
+            "target_language": "c",
+            "architecture": arch,
+            "decomp_var_names": "readable",
+        }
+        path = self.get_setting("path")
+        decompilation = self.decompiler.start_decompilation(**params)
+        ok("Task submitted, waiting for decompilation to finish...")
+        decompilation.wait_until_finished()
+        ok("Done")
+
+        decompilation.save_hll_code(self.get_setting("path"))
+        fname = path + '/' + os.path.basename(get_filename()) + '.' + params["target_language"]
+        ok("Saved as '%s'" % fname)
+        return
 
 
 class ChangeFdCommand(GenericCommand):
@@ -5492,6 +5531,7 @@ class GefCommand(gdb.Command):
                         IdaInteractCommand,
                         ProcessIdCommand,
                         ChangeFdCommand,
+                        RetDecCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
