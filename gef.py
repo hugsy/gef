@@ -1448,6 +1448,15 @@ def get_filename():
         return __config__.get("gef-remote.filename")[0]
     return gdb.current_progspace().filename
 
+
+def get_function_length(sym):
+    """Attempt to get the length of the raw bytes of a function."""
+    dis = gdb.execute("disassemble %s"%sym, to_string=True).splitlines()
+    start_addr = int(dis[1].split()[0], 16)
+    end_addr = int(dis[-2].split()[0], 16)
+    return end_addr - start_addr
+
+
 @memoize
 def get_process_maps():
     sections = []
@@ -2240,14 +2249,8 @@ class RetDecCommand(GenericCommand):
             raise GefMissingDependencyException( msg )
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        main = gdb.parse_and_eval("main")
-        main_address = long(main.address)
-        print (hex(main_address))
-        block = gdb.block_for_pc(main)
-        print( "main", main.start, main.end)
-        return
-
         if   is_x86_32():   arch = "x86"
         elif is_arm():      arch = "arm"
         elif is_mips():     arch = "mips"
@@ -2285,10 +2288,15 @@ class RetDecCommand(GenericCommand):
                 params["raw_section_vma"] = hex(range_from)
                 params["raw_entry_point"] = hex(range_from)
             elif o == "-s":
-                # todo
-                symbol = a
-                filename =""
+                value = gdb.parse_and_eval(a)
+                range_from = long(value.address)
+                fd, filename = tempfile.mkstemp()
+                with os.fdopen(fd, "wb") as f:
+                    f.write(read_memory(range_from, get_function_length(a)))
                 params["mode"] = "raw"
+                params["file_format"] = "elf"
+                params["raw_section_vma"] = hex(range_from)
+                params["raw_entry_point"] = hex(range_from)
             elif o == "-a":
                 filename = get_filename()
                 params["mode"] = "bin"
