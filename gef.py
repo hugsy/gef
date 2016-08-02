@@ -822,13 +822,29 @@ def gef_disassemble(addr, nb_insn, from_top=False):
 
     if len(lines)==0: return []
     result = []
-    patt = re.compile(r'^(0x[0-9a-f]{,16})(.*)$', flags=re.IGNORECASE)
     for line in lines:
-        parts = [ x for x in re.split(patt, line) if len(x)>0 ]
-        addr = int(parts[0], 16)
-        code = parts[1].strip()
-        result.append( (addr, code) )
+        (address, location, mnemo, operands) = gef_parse_gdb_instruction(line)
+        code = "%s     %s   %s" % (location, mnemo, ','.join(operands))
+        result.append( (address, code) )
     return result
+
+
+def gef_parse_gdb_instruction(raw_insn):
+    patt = re.compile(r'^(0x[0-9a-f]{,16})(.*)$', flags=re.IGNORECASE)
+    parts = [ x for x in re.split(patt, raw_insn) if len(x)>0 ]
+    address = int(parts[0], 16)
+    code = parts[1].strip()
+    parts = code.split()
+    if code.startswith("<"):
+        location = parts[0]
+        mnemo = parts[1]
+        operands = " ".join(parts[2:])
+    else:
+        location = ""
+        mnemo = parts[0]
+        operands = " ".join(parts[1:])
+    operands = operands.split(',')
+    return (address, location, mnemo, operands)
 
 
 def gef_execute_external(command, *args, **kwargs):
@@ -1143,9 +1159,18 @@ def mips_flags_to_human(val=None):
     return ""
 
 def mips_is_cbranch(insn):
-    return False
+    mnemo = ["beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez", ]
+    return any( filter(lambda x: x == insn, mnemo) )
 
-def mips_is_branch_taken(insn):
+def mips_is_branch_taken(mnemo, operands):
+    if mnemo=="beq": return get_register_ex(operands[0]) == get_register_ex(operands[1])
+    if mnemo=="bne": return get_register_ex(operands[0]) != get_register_ex(operands[1])
+    if mnemo=="beqz": return get_register_ex(operands[0]) == 0
+    if mnemo=="bnez": return get_register_ex(operands[0]) != 0
+    if mnemo=="bgtz": return get_register_ex(operands[0]) > 0
+    if mnemo=="bgez": return get_register_ex(operands[0]) >= 0
+    if mnemo=="bltz": return get_register_ex(operands[0]) < 0
+    if mnemo=="blez": return get_register_ex(operands[0]) <= 0
     return False
 
 ######################[ AARCH64 specific ]######################
@@ -1276,8 +1301,7 @@ def flag_register_to_human(val=None):
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 def is_conditional_branch(insn):
-    mnemo = insn.strip()
-    mnemo = mnemo.split()[1] if mnemo.startswith("<") else mnemo.split()[0]
+    (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
     if   is_arm():       return arm_is_cbranch(mnemo)
     elif is_aarch64():   return aarch64_is_cbranch(mnemo)
     elif is_x86_32():    return x86_is_cbranch(mnemo)
@@ -1290,15 +1314,14 @@ def is_conditional_branch(insn):
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 def is_branch_taken(insn):
-    mnemo = insn.strip()
-    mnemo = mnemo.split()[1] if mnemo.startswith("<") else mnemo.split()[0]
+    (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
     if   is_arm():       return arm_is_branch_taken(mnemo)
     elif is_aarch64():   return aarch64_is_branch_taken(mnemo)
     elif is_x86_32():    return x86_is_branch_taken(mnemo)
     elif is_x86_64():    return x86_is_branch_taken(mnemo)
     elif is_powerpc():   return powerpc_is_branch_taken(mnemo)
     elif is_ppc64():     return powerpc_is_branch_taken(mnemo)
-    elif is_mips():      return mips_is_branch_taken(mnemo)
+    elif is_mips():      return mips_is_branch_taken(mnemo, operands)
     elif is_sparc():     return sparc_is_branch_taken(mnemo)
     elif is_sparc64():   return sparc_is_branch_taken(mnemo)
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
@@ -4404,14 +4427,15 @@ class ContextCommand(GenericCommand):
 
             lines = gef_disassemble(pc, nb_insn)
             for addr, content in lines:
+                insn = "%#x %s" % (addr,content)
                 line = u""
                 if addr < pc:
                     line+= Color.grayify("%#x\t %s" % (addr, content,) )
                 elif addr == pc:
                     line+= Color.boldify(Color.redify("%#x\t %s \t\t %s $pc" % (addr, content, left_arrow())))
 
-                    if is_conditional_branch(content):
-                        if is_branch_taken(content):
+                    if is_conditional_branch(insn):
+                        if is_branch_taken(insn):
                             line+= Color.boldify(Color.greenify("\tBranch TAKEN"))
                         else:
                             line+= Color.boldify(Color.redify("\tBranch NOT taken"))
