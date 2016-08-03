@@ -2308,7 +2308,7 @@ class RetDecCommand(GenericCommand):
         if self.send_to_retdec(params)==False:
             return
 
-        fname = filename + '.c'
+        fname = self.get_setting("path") + '/' + os.path.basename(filename) + '.c'
         with open(fname, 'r') as f:
             p = re.compile(r'unknown_([a-f0-9]+)')
             for l in f.readlines():
