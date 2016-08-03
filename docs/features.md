@@ -628,6 +628,7 @@ gef➤ gef save
 
 For example, the following code will create the structure `person` for `gef`,
 and its code is be stored at `/tmp/gef/structs/person.py`.
+
 ```
 from ctypes import *
 
@@ -650,6 +651,7 @@ class Template(Structure):
 `pcustom` requires at least one argument, which is the name of the
 structure. With only one argument, `pcustom` will dump all the fields of this
 structure.
+
 ```
 gef➤  dt person
 +0000 age c_int (0x4)
@@ -659,6 +661,7 @@ gef➤  dt person
 
 By providing an address or a GDB symbol, `gef` will apply this user-defined
 structure to the specified address:
+
 ![gef-pcustom-with-address](https://i.imgur.com/vWGnu5g.png)
 
 This means that we can now create very easily new user-defined structures
