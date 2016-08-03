@@ -2279,6 +2279,9 @@ class PCustomCommand(GenericCommand):
             return
         except gdb.error as e:
             self.dump_custom_structure(struct_name)
+            return
+
+        err("Invalid structure name '%s'" % struct_name)
         return
 
     def dump_custom_structure(self, struct_name):
