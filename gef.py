@@ -2288,7 +2288,11 @@ class RetDecCommand(GenericCommand):
                 params["raw_section_vma"] = hex(range_from)
                 params["raw_entry_point"] = hex(range_from)
             elif o == "-s":
-                value = gdb.parse_and_eval(a)
+                try:
+                    value = gdb.parse_and_eval(a)
+                except gdb.error:
+                    err("No symbol named '%s'" % a)
+                    return
                 range_from = long(value.address)
                 fd, filename = tempfile.mkstemp()
                 with os.fdopen(fd, "wb") as f:
