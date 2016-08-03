@@ -223,10 +223,10 @@ class Color:
 
 
 def left_arrow():
-    return "\u2190" if PYTHON_MAJOR == 3 else "<-"
+    return " \u2190 " if PYTHON_MAJOR == 3 else "<-"
 
 def right_arrow():
-    return "\u2192" if PYTHON_MAJOR == 3 else "->"
+    return " \u2192 " if PYTHON_MAJOR == 3 else "->"
 
 def horizontal_line():
     return "\u2500" if PYTHON_MAJOR == 3 else "-"
@@ -2333,6 +2333,11 @@ class PCustomCommand(GenericCommand):
             _name, _type = field
             _size = ctypes.sizeof(_type)
             _value = getattr(template, _name)
+
+            if _type is ctypes.c_void_p:
+                # if it is a pointer, derefence it
+                _value = right_arrow().join( DereferenceCommand.dereference_from(_value) )
+
             line = ("%#x+0x%04x %s " % (addr, _offset, _name)).ljust(40)
             line+= ": %s (%s)" % (_value, _type.__name__)
             print(line)
@@ -2340,9 +2345,15 @@ class PCustomCommand(GenericCommand):
         return
 
     def create_or_edit_structure(self, structure_name):
-        gef_makedirs( self.get_setting("struct_path") )
-        editor = os.getenv("EDITOR") or "nano"
+        path = self.get_setting("struct_path")
         fullname = self.get_custom_structure_filepath(structure_name)
+        if not os.path.isdir(path):
+            info("Creating path '%s'" % path)
+            gef_makedirs(path)
+        else:
+            info("Editing '%s'" % fullname)
+
+        editor = os.getenv("EDITOR") or "nano"
         retcode = subprocess.call([editor, fullname])
         return retcode
 
