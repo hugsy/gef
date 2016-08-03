@@ -2311,7 +2311,13 @@ class PCustomCommand(GenericCommand):
         fullname = self.get_custom_structure_filepath(struct_name)
         defined_struct = imp.load_source("template", fullname)
         template = defined_struct.Template('')
-        data = read_memory(addr, self.get_custom_structure_size(template))
+
+        try:
+            data = read_memory(addr, self.get_custom_structure_size(template))
+        except gdb.MemoryError:
+            err("Cannot reach memory %#x" % addr)
+            return
+
         template = defined_struct.Template(data)
         _offset = 0
         for field in template._fields_:
