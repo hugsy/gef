@@ -2278,15 +2278,15 @@ class PCustomCommand(GenericCommand):
             gdb.execute("ptype struct %s" % struct_name)
             return
         except gdb.error as e:
-            self.dump_custom_structure(struct_name)
-            return
+            pass
 
-        err("Invalid structure name '%s'" % struct_name)
+        if not self.dump_custom_structure(struct_name):
+            err("Invalid structure name '%s'" % struct_name)
         return
 
     def dump_custom_structure(self, struct_name):
         if not self.is_valid_custom_structure(struct_name):
-            return
+            return False
 
         fullname = self.get_custom_structure_filepath(struct_name)
         defined_struct = imp.load_source("template", fullname)
@@ -2296,7 +2296,7 @@ class PCustomCommand(GenericCommand):
             _size = ctypes.sizeof(_type)
             print("+%04x %s %s (%#x)" % (_offset, _name, _type.__name__, _size))
             _offset += _size
-        return
+        return True
 
     def apply_structure_to_address(self, struct_name, addr):
         if not self.is_valid_custom_structure(struct_name):
