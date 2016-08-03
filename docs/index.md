@@ -52,7 +52,7 @@ $ python /path/to/gef.py --update
 Updated
 ```
 
-For example, 
+For example,
 ```bash
 $ python ~/.gdbinit-gef.py --update
 Updated
@@ -151,4 +151,13 @@ SPARC, and so on).
 
 Go [here](https://github.com/hugsy/gef/issues)
 
-### Happy hacking
+## Contributors
+
+`gef` was created and maintained by myself, `@_hugsy_`.
+I would like to thank all the contributors to this project, including:
+
+   * the people who committed some code (https://github.com/hugsy/gef/graphs/contributors)
+   * and others:
+      * @rick2600
+
+## Happy hacking
