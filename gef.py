@@ -2260,7 +2260,12 @@ class PCustomCommand(GenericCommand):
             self.dump_structure(structure_name)
             return
 
-        address = int(argv[1], 16)
+        try:
+            address = long(gdb.parse_and_eval(argv[1]))
+        except gdb.error:
+            err("Failed to parse '%s'" % argv[1])
+            return
+
         self.apply_structure_to_address(structure_name, address)
         return
 
