@@ -2295,13 +2295,18 @@ class PCustomCommand(GenericCommand):
 
         fullname = self.get_custom_structure_filepath(struct_name)
         defined_struct = imp.load_source("template", fullname)
-        template = defined_struct.Template('')
+        template = defined_struct.Template()
         _offset = 0
         for (_name, _type) in template._fields_:
             _size = ctypes.sizeof(_type)
             print("+%04x %s %s (%#x)" % (_offset, _name, _type.__name__, _size))
             _offset += _size
         return True
+
+    def deserialize(self, struct, data):
+        length = min(len(data), ctypes.sizeof(struct))
+        ctypes.memmove(ctypes.addressof(struct), data, length)
+        return
 
     def apply_structure_to_address(self, struct_name, addr):
         if not self.is_valid_custom_structure(struct_name):
@@ -2310,7 +2315,7 @@ class PCustomCommand(GenericCommand):
 
         fullname = self.get_custom_structure_filepath(struct_name)
         defined_struct = imp.load_source("template", fullname)
-        template = defined_struct.Template('')
+        template = defined_struct.Template()
 
         try:
             data = read_memory(addr, self.get_custom_structure_size(template))
@@ -2318,7 +2323,7 @@ class PCustomCommand(GenericCommand):
             err("Cannot reach memory %#x" % addr)
             return
 
-        template = defined_struct.Template(data)
+        self.deserialize(template, data)
         _offset = 0
         for field in template._fields_:
             _name, _type = field
