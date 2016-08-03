@@ -636,6 +636,7 @@ from ctypes import *
 typedef struct {
   int age;
   char name[256];
+  int id;
 } person;
 '''
 
