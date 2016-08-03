@@ -2329,8 +2329,8 @@ class PCustomCommand(GenericCommand):
             _name, _type = field
             _size = ctypes.sizeof(_type)
             _value = getattr(template, _name)
-            line = ("%#x+%#04x %s: " % (addr, _offset, _name)).ljust(30)
-            line+= "%s (%s)" % (_value, _type.__name__)
+            line = ("%#x+0x%04x %s " % (addr, _offset, _name)).ljust(40)
+            line+= ": %s (%s)" % (_value, _type.__name__)
             print(line)
             _offset += _size
         return
