@@ -57,6 +57,8 @@ import hashlib
 import socket
 import fcntl
 import termios
+import imp
+import ctypes
 
 if sys.version_info[0] == 2:
     from HTMLParser import HTMLParser
@@ -836,7 +838,7 @@ def gef_parse_gdb_instruction(raw_insn):
     code = parts[1].strip()
     parts = code.split()
     if code.startswith("<"):
-        location = parts[0][1:-2]
+        location = re.sub(r'<([^>]*)>:', r'\1', parts[0])
         mnemo = parts[1]
         operands = " ".join(parts[2:])
     else:
@@ -1443,10 +1445,14 @@ def get_pid():
     return get_frame().pid
 
 
-def get_filename():
+def get_filepath():
     if "gef-remote.filename" in __config__.keys():
         return __config__.get("gef-remote.filename")[0]
     return gdb.current_progspace().filename
+
+
+def get_filename():
+    return os.path.basename(get_filepath())
 
 
 def get_function_length(sym):
@@ -1566,7 +1572,7 @@ def get_info_files():
         if len(blobs) == 7:
             filename = blobs[6]
         else:
-            filename = get_filename()
+            filename = get_filepath()
 
         info = Zone()
         info.name = section_name
@@ -1804,7 +1810,7 @@ def keystone_assemble(code, arch, mode, *args, **kwargs):
 @memoize
 def get_elf_headers(filename=None):
     if filename is None:
-        filename = get_filename()
+        filename = get_filepath()
 
     if filename.startswith("target:"):
         warn("Your file is remote, you should try using `gef-remote` instead")
@@ -2225,6 +2231,91 @@ class GenericCommand(gdb.Command):
     # def do_invoke(self, argv):
     # return
 
+class PCustomCommand(GenericCommand):
+    """Dump user defined structure.
+    This command attempts to reproduce WinDBG awesome `dt` command for GDB and allows
+    to apply structures (from symbols or custom) directly to an address.
+    Custom structures can be defined in pure Python using ctypes, and should be stored
+    in a specific directory, whose path must be stored in the `pcustom.struct_path`
+    configuration setting."""
+
+    _cmdline_ = "pcustom"
+    _syntax_  = "%s [StructA] [0xADDRESS]" % _cmdline_
+    _aliases_ = ["dt", ]
+
+    def __init__(self):
+        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL)
+        self.add_setting("struct_path", tempfile.gettempdir()+'/gef/structs')
+        return
+
+    @if_gdb_running
+    def do_invoke(self, argv):
+        argc = len(argv)
+        if argc==0:
+            self.usage()
+            return
+
+        structure_name = argv[0]
+        if argc==1:
+            self.dump_structure(structure_name)
+            return
+
+        address = int(argv[1], 16)
+        self.apply_structure_to_address(structure_name, address)
+        return
+
+    def get_custom_structure_filepath(self, struct):
+        return self.get_setting("struct_path") + "/" + struct + ".py"
+
+    def is_valid_custom_structure(self, struct):
+        return os.access(self.get_custom_structure_filepath(struct), os.R_OK)
+
+    def get_custom_structure_size(self, struct):
+        return sum([ctypes.sizeof(x[1]) for x in struct._fields_])
+
+    def dump_structure(self, struct_name):
+        try:
+            gdb.execute("ptype struct %s" % struct_name)
+            return
+        except gdb.error as e:
+            self.dump_custom_structure(struct_name)
+        return
+
+    def dump_custom_structure(self, struct_name):
+        if not self.is_valid_custom_structure(struct_name):
+            return
+
+        fullname = self.get_custom_structure_filepath(struct_name)
+        defined_struct = imp.load_source("template", fullname)
+        template = defined_struct.Template('')
+        _offset = 0
+        for (_name, _type) in template._fields_:
+            _size = ctypes.sizeof(_type)
+            print("+%04x %s %s (%#x)" % (_offset, _name, _type.__name__, _size))
+            _offset += _size
+        return
+
+    def apply_structure_to_address(self, struct_name, addr):
+        if not self.is_valid_custom_structure(struct_name):
+            err("Invalid structure name '%s'" % struct_name)
+            return
+
+        fullname = self.get_custom_structure_filepath(struct_name)
+        defined_struct = imp.load_source("template", fullname)
+        template = defined_struct.Template('')
+        data = read_memory(addr, self.get_custom_structure_size(template))
+        template = defined_struct.Template(data)
+        _offset = 0
+        for field in template._fields_:
+            _name, _type = field
+            _size = ctypes.sizeof(_type)
+            _value = getattr(template, _name)
+            line = ("%#x+%04x %s: " % (addr, _offset, _name)).ljust(30)
+            line+= "%s (%s)" % (_value, _type.__name__)
+            print(line)
+            _offset += _size
+        return
+
 
 class RetDecCommand(GenericCommand):
     """Decompile code from GDB context using RetDec API."""
@@ -2302,7 +2393,7 @@ class RetDecCommand(GenericCommand):
                 params["raw_section_vma"] = hex(range_from)
                 params["raw_entry_point"] = hex(range_from)
             elif o == "-a":
-                filename = get_filename()
+                filename = get_filepath()
                 params["mode"] = "bin"
             else:
                 self.usage()
@@ -3956,7 +4047,7 @@ class RopperCommand(GenericCommand):
     def do_invoke(self, argv):
         ropper = sys.modules['ropper']
         argv.append('--file')
-        argv.append(get_filename())
+        argv.append(get_filepath())
         try:
             ropper.start(argv)
         except SystemExit:
@@ -4060,7 +4151,7 @@ class ROPgadgetCommand(GenericCommand):
                 return False
 
         if getattr(args, "binary") is None:
-            setattr(args, "binary", get_filename())
+            setattr(args, "binary", get_filepath())
 
         info("Using binary: %s" % args.binary)
         return True
@@ -4278,7 +4369,7 @@ class ElfInfoCommand(GenericCommand):
                      0xB7: "AArch64",
         }
 
-        filename = argv[0] if len(argv) > 0 else get_filename()
+        filename = argv[0] if len(argv) > 0 else get_filepath()
         if filename is None:
             return
 
@@ -4314,7 +4405,7 @@ class EntryPointBreakCommand(GenericCommand):
     _syntax_  = "%s" % _cmdline_
 
     def do_invoke(self, argv):
-        if get_filename() is None:
+        if get_filepath() is None:
             warn("No executable to debug, use `file` to load a binary")
             return
 
@@ -5178,7 +5269,7 @@ class TraceRunCommand(GenericCommand):
         frame_count_init = self.get_frames_size()
 
         print("#")
-        print("# Execution tracing of %s" % get_filename())
+        print("# Execution tracing of %s" % get_filepath())
         print("# Start address: %s" % format_address(loc_start))
         print("# End address: %s" % format_address(loc_end))
         print("# Recursion level: %d" % depth)
@@ -5387,7 +5478,7 @@ class ChecksecCommand(GenericCommand):
                 warn("No executable/library specified")
                 return
 
-            filename = get_filename()
+            filename = get_filepath()
 
         elif argc == 1:
             filename = argv[0]
@@ -5536,6 +5627,7 @@ class GefCommand(gdb.Command):
                         ProcessIdCommand,
                         ChangeFdCommand,
                         RetDecCommand,
+                        PCustomCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
