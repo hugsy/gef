@@ -2260,6 +2260,10 @@ class PCustomCommand(GenericCommand):
             self.dump_structure(structure_name)
             return
 
+        if argv[1]=="-e":
+            self.create_or_edit_structure(structure_name)
+            return
+
         try:
             address = long(gdb.parse_and_eval(argv[1]))
         except gdb.error:
@@ -2334,6 +2338,13 @@ class PCustomCommand(GenericCommand):
             print(line)
             _offset += _size
         return
+
+    def create_or_edit_structure(self, structure_name):
+        gef_makedirs( self.get_setting("struct_path") )
+        editor = os.getenv("EDITOR") or "nano"
+        fullname = self.get_custom_structure_filepath(structure_name)
+        retcode = subprocess.call([editor, fullname])
+        return retcode
 
 
 class RetDecCommand(GenericCommand):
