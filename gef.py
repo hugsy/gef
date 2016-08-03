@@ -836,7 +836,7 @@ def gef_parse_gdb_instruction(raw_insn):
     code = parts[1].strip()
     parts = code.split()
     if code.startswith("<"):
-        location = parts[0]
+        location = parts[0][1:-2]
         mnemo = parts[1]
         operands = " ".join(parts[2:])
     else:
@@ -2310,8 +2310,20 @@ class RetDecCommand(GenericCommand):
 
         fname = filename + '.c'
         with open(fname, 'r') as f:
-            print(''.join([x for x in f.readlines() \
-                             if len(x.strip()) and not x.strip().startswith("//") ]))
+            p = re.compile(r'unknown_([a-f0-9]+)')
+            for l in f.readlines():
+                l = l.rstrip()
+                if len(l.strip())==0 or l.strip().startswith("//"):
+                    continue
+                # try to fix the unknown with the current context
+                for match in p.finditer(l):
+                    s = match.group(1)
+                    addr = int(s, 16)
+                    dis = gdb.execute("x/1i %#x" % addr, to_string=True)
+                    addr, loc, mnemo, ops = gef_parse_gdb_instruction(dis.strip())
+                    if len(loc):
+                        l = l.replace("unknown_%s"%s, loc)
+                print(l)
         return
 
 
