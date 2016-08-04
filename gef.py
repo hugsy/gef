@@ -2240,7 +2240,7 @@ class PCustomCommand(GenericCommand):
     configuration setting."""
 
     _cmdline_ = "pcustom"
-    _syntax_  = "%s [StructA] [0xADDRESS]" % _cmdline_
+    _syntax_  = "%s [-l] [StructA [0xADDRESS] [-e]]" % _cmdline_
     _aliases_ = ["dt", ]
 
     def __init__(self):
@@ -2253,6 +2253,10 @@ class PCustomCommand(GenericCommand):
         argc = len(argv)
         if argc==0:
             self.usage()
+            return
+
+        if argv[0]=="-l":
+            self.list_custom_structures()
             return
 
         structure_name = argv[0]
@@ -2350,12 +2354,22 @@ class PCustomCommand(GenericCommand):
         if not os.path.isdir(path):
             info("Creating path '%s'" % path)
             gef_makedirs(path)
+        elif not self.is_valid_custom_structure(structure_name):
+            info("Creating '%s' from template"%fullname)
+            with open(fullname, "wb") as f:
+                f.write(b"from ctypes import *\n\nclass Template(Structure):\n    _fields_ = []\n")
         else:
             info("Editing '%s'" % fullname)
 
         editor = os.getenv("EDITOR") or "nano"
         retcode = subprocess.call([editor, fullname])
         return retcode
+
+    def list_custom_structures(self):
+        info("Listing custom structures:")
+        for filen in os.listdir(self.get_setting("struct_path")):
+            print("%s %s" % (right_arrow(), filen.replace(".py", "")))
+        return
 
 
 class RetDecCommand(GenericCommand):
