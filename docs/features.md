@@ -626,8 +626,24 @@ gef➤ gef save
 
 ### Using user-defined structures
 
-For example, the following code will create the structure `person` for `gef`,
-and its code is be stored at `/tmp/gef/structs/person.py`.
+You can list existing custom structures via
+```
+gef➤  dt -l
+[+] Listing custom structures:
+ →  struct5
+ →  struct6
+```
+
+To create or edit a structure, use `dt <struct_name> -e` to spawn your EDITOR
+with the targeted structure. If the file does not exist, `gef` will nicely
+create the tree and file, and fill it with a `ctypes` template that you can use
+straight away!
+```
+gef➤  dt foo -e
+[+] Creating '/tmp/gef/structs/foo.py' from template
+```
+
+The code can be defined just as any Python (using `ctypes`) code.
 
 ```
 from ctypes import *
