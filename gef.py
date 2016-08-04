@@ -2365,8 +2365,9 @@ class PCustomCommand(GenericCommand):
         else:
             info("Editing '%s'" % fullname)
 
-        editor = os.getenv("EDITOR") or "nano"
-        retcode = subprocess.call([editor, fullname])
+        cmd = os.getenv("EDITOR").split() or ["nano",]
+        cmd.append(fullname)
+        retcode = subprocess.call(cmd)
         return retcode
 
     def list_custom_structures(self):
