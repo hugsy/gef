@@ -4638,7 +4638,7 @@ class ContextCommand(GenericCommand):
                 mem = read_memory(sp, 0x10 * nb_lines)
                 print( hexdump(mem, base=sp) )
             else:
-                InspectStackCommand.inspect_stack(sp, nb_lines)
+                gdb.execute("dereference %#x %d" % (sp, nb_lines))
 
         except gdb.MemoryError:
             err("Cannot read memory from $SP (corrupted stack pointer?)")
@@ -4928,14 +4928,10 @@ class DereferenceCommand(GenericCommand):
     _syntax_  = "%s [LOCATION] [NB]" % _cmdline_
     _aliases_ = ["telescope", ]
 
+
     def __init__(self):
         super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         self.add_setting("max_recursion", 10)
-        return
-
-
-    def post_load(self):
-        # gdb.execute("alias -a inspect-stack = deference $sp")
         return
 
 
