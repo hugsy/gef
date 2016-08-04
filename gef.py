@@ -4926,29 +4926,57 @@ class DereferenceCommand(GenericCommand):
 
     _cmdline_ = "dereference"
     _syntax_  = "%s [LOCATION] [NB]" % _cmdline_
+    _aliases_ = ["telescope", ]
 
     def __init__(self):
         super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         self.add_setting("max_recursion", 10)
         return
 
+
+    def post_load(self):
+        # gdb.execute("alias -a inspect-stack = deference $sp")
+        return
+
+
     @if_gdb_running
     def do_invoke(self, argv):
         if len(argv) < 1:
-            err("Missing argument (register/address)")
+            err("Missing location.")
             return
 
+        memalign = get_memory_alignment(to_byte=True)
+        offset = 0
+        regs = [(k, get_register_ex(k)) for k in all_registers()]
+
+        def _pprint_dereferenced(addr, off):
+            offset = off * memalign
+            current_address = align_address( addr + offset )
+            addrs = DereferenceCommand.dereference_from(current_address)
+            sep = " %s " % right_arrow()
+            l  = Color.boldify(Color.blueify( format_address(long(addrs[0], 16) )))
+            l += vertical_line() + "+%#.4x: " % offset
+            l += sep.join(addrs[1:])
+            values = []
+            for regname, regvalue in regs:
+                if current_address == regvalue:
+                    values.append(regname)
+
+            if len(values)>0:
+                l += Color.boldify(Color.greenify( "\t\t"+ left_arrow() + ','.join(values)))
+
+            offset += memalign
+            return l
+
         nb = int(argv[1]) if len(argv)==2 and argv[1].isdigit() else 1
-        init_addr = align_address( long(gdb.parse_and_eval(argv[0])) )
+        start_address = align_address( long(gdb.parse_and_eval(argv[0])) )
         print("Dereferencing %d entr%s from %s " % (nb,
                                                     "ies" if nb>1 else "y",
-                                                    Color.yellowify(format_address(init_addr))))
+                                                    Color.yellowify(format_address(start_address))))
 
         for i in range(0, nb):
-            addr = init_addr + (get_memory_alignment(to_byte=True) * i)
-            addrs = DereferenceCommand.dereference_from(addr)
-            print("%s" % (Color.boldify("   %s   " % right_arrow()).join(addrs), ))
-
+            line = _pprint_dereferenced(start_address, i)
+            print(line)
         return
 
 
@@ -5466,54 +5494,6 @@ class PatternSearchCommand(GenericCommand):
         return
 
 
-class InspectStackCommand(GenericCommand):
-    """Exploiter-friendly top-down stack inspection command (peda-like)"""
-
-    _cmdline_ = "inspect-stack"
-    _syntax_  = "%s  [NbStackEntry]" % _cmdline_
-    _aliases_ = []
-
-    @if_gdb_running
-    def do_invoke(self, argv):
-        nb_stack_block = 10
-        argc = len(argv)
-        if argc >= 1:
-            try:
-                nb_stack_block = long(argv[0])
-            except ValueError:
-                pass
-
-        top_stack = get_register("$sp")
-        self.inspect_stack(top_stack, nb_stack_block)
-        return
-
-
-    @staticmethod
-    def inspect_stack(sp, nb_stack_block):
-        sp = align_address( long(sp) )
-        memalign = get_memory_alignment() >> 3
-
-        def _do_inspect_stack(i):
-            offset = i*memalign
-            cur_addr = align_address( sp + offset )
-            addrs = DereferenceCommand.dereference_from(cur_addr)
-            sep = " %s " % right_arrow()
-            l  = Color.boldify(Color.blueify( format_address(long(addrs[0], 16) )))
-            l += vertical_line() + "+%#.2x: " % offset
-            l += sep.join(addrs[1:])
-            if cur_addr == sp:
-                l += Color.boldify(Color.greenify( "\t\t"+ left_arrow() + " $sp" ))
-            offset += memalign
-            return l
-
-        for i in range(nb_stack_block):
-            value = _do_inspect_stack(i)
-            print(value)
-
-        return
-
-
-
 class ChecksecCommand(GenericCommand):
     """Checksec.sh (http://www.trapkit.de/tools/checksec.html) port."""
 
@@ -5675,7 +5655,6 @@ class GefCommand(gdb.Command):
                         FileDescriptorCommand,
                         ROPgadgetCommand,
                         RopperCommand,
-                        InspectStackCommand,
                         ShellcodeCommand, ShellcodeSearchCommand, ShellcodeGetCommand,
                         DetailRegistersCommand,
                         SolveKernelSymbolCommand,
