@@ -683,4 +683,6 @@ structure to the specified address:
 
 This means that we can now create very easily new user-defined structures
 
-Watch the [![asciicast](https://asciinema.org/a/bhsguibtf4iqyyuomp3vy8iv2.png)](https://asciinema.org/a/bhsguibtf4iqyyuomp3vy8iv2)
+Watch the demonstration video on Asciinema:
+
+[![asciicast](https://asciinema.org/a/bhsguibtf4iqyyuomp3vy8iv2.png)](https://asciinema.org/a/bhsguibtf4iqyyuomp3vy8iv2)
