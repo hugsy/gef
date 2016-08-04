@@ -2248,7 +2248,6 @@ class PCustomCommand(GenericCommand):
         self.add_setting("struct_path", tempfile.gettempdir()+'/gef/structs')
         return
 
-    @if_gdb_running
     def do_invoke(self, argv):
         argc = len(argv)
         if argc==0:
@@ -2266,6 +2265,9 @@ class PCustomCommand(GenericCommand):
 
         if argv[1]=="-e":
             self.create_or_edit_structure(structure_name)
+            return
+
+        if not is_alive():
             return
 
         try:

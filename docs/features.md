@@ -682,3 +682,5 @@ structure to the specified address:
 ![gef-pcustom-with-address](https://i.imgur.com/vWGnu5g.png)
 
 This means that we can now create very easily new user-defined structures
+
+Watch the [![asciicast](https://asciinema.org/a/bhsguibtf4iqyyuomp3vy8iv2.png)](https://asciinema.org/a/bhsguibtf4iqyyuomp3vy8iv2)
