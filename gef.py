@@ -4433,8 +4433,7 @@ class EntryPointBreakCommand(GenericCommand):
             try:
                 value = gdb.parse_and_eval(sym)
                 info("Breaking at '%s'" % value)
-                gdb.execute("tbreak %s" % sym)
-                info("Starting execution")
+                gdb.execute("tbreak %s" % sym, to_string=True)
                 gdb.execute("run")
                 return
 
@@ -4444,17 +4443,18 @@ class EntryPointBreakCommand(GenericCommand):
                     gdb.execute("continue")
                     return
                 # otherwise, simply continue with next symbol
-                info("Could not solve `%s` symbol" % sym)
+                warn("Could not solve `%s` symbol" % sym)
                 continue
 
         # break at entry point - should never fail
         elf = get_elf_headers()
         if elf is None:
             return
+
         value = elf.e_entry
         if value:
             info("Breaking at entry-point: %#x" % value)
-            gdb.execute("tbreak *%#x" % value)
+            gdb.execute("tbreak *%#x" % value, to_string=True)
             info("Starting execution")
             gdb.execute("run")
             return
@@ -5427,6 +5427,7 @@ class InspectStackCommand(GenericCommand):
 
     _cmdline_ = "inspect-stack"
     _syntax_  = "%s  [NbStackEntry]" % _cmdline_
+    _aliases_ = []
 
     @if_gdb_running
     def do_invoke(self, argv):
