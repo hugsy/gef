@@ -2365,7 +2365,7 @@ class PCustomCommand(GenericCommand):
         else:
             info("Editing '%s'" % fullname)
 
-        cmd = os.getenv("EDITOR").split() or ["nano",]
+        cmd = os.getenv("EDITOR").split() if os.getenv("EDITOR") else ["nano",]
         cmd.append(fullname)
         retcode = subprocess.call(cmd)
         return retcode
