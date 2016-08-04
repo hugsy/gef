@@ -2244,7 +2244,7 @@ class PCustomCommand(GenericCommand):
     _aliases_ = ["dt", ]
 
     def __init__(self):
-        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL)
+        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL, prefix=False)
         self.add_setting("struct_path", tempfile.gettempdir()+'/gef/structs')
         return
 
