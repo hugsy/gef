@@ -2333,13 +2333,17 @@ class PCustomCommand(GenericCommand):
 
         self.deserialize(template, data)
         _offset = 0
+        _regsize = get_memory_alignment(to_byte=True)
+
         for field in template._fields_:
             _name, _type = field
             _size = ctypes.sizeof(_type)
             _value = getattr(template, _name)
 
-            if _type is ctypes.c_void_p:
-                # if it is a pointer, derefence it
+            if    (_regsize==4 and _type is ctypes.c_uint32) \
+               or (_regsize==8 and _type is ctypes.c_uint64) \
+               or (_regsize==ctypes.sizeof(ctypes.c_void_p) and _type is ctypes.c_void_p):
+                # try to parse pointers
                 _value = right_arrow().join( DereferenceCommand.dereference_from(_value) )
 
             line = ("%#x+0x%04x %s " % (addr, _offset, _name)).ljust(40)
@@ -2368,6 +2372,7 @@ class PCustomCommand(GenericCommand):
     def list_custom_structures(self):
         info("Listing custom structures:")
         for filen in os.listdir(self.get_setting("struct_path")):
+            if not filen.endswith("py"): continue
             print("%s %s" % (right_arrow(), filen.replace(".py", "")))
         return
 
