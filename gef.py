@@ -4966,10 +4966,6 @@ class DereferenceCommand(GenericCommand):
 
         nb = int(argv[1]) if len(argv)==2 and argv[1].isdigit() else 1
         start_address = align_address( long(gdb.parse_and_eval(argv[0])) )
-        print("Dereferencing %d entr%s from %s " % (nb,
-                                                    "ies" if nb>1 else "y",
-                                                    Color.yellowify(format_address(start_address))))
-
         for i in range(0, nb):
             line = _pprint_dereferenced(start_address, i)
             print(line)
