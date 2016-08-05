@@ -36,31 +36,34 @@
 
 from __future__ import print_function
 
+import binascii
+import collections
+import ctypes
+import fcntl
+import functools
+import getopt
+import hashlib
+import imp
+import itertools
 import math
+import os
+import re
+import resource
+import socket
+import string
 import struct
 import subprocess
-import functools
 import sys
-import re
 import tempfile
-import os
-import binascii
-import getopt
-import traceback
-import threading
-import collections
-import time
-import resource
-import string
-import itertools
-import hashlib
-import socket
-import fcntl
 import termios
-import imp
-import ctypes
+import threading
+import time
+import traceback
+
 
 if sys.version_info[0] == 2:
+    PYTHON_MAJOR = 2
+
     from HTMLParser import HTMLParser
     from cStringIO import StringIO
     from urllib import urlopen
@@ -70,9 +73,9 @@ if sys.version_info[0] == 2:
     # Compat Py2/3 hacks
     range = xrange
 
-    PYTHON_MAJOR = 2
-
 elif sys.version_info[0] == 3:
+    PYTHON_MAJOR = 3
+
     from html.parser import HTMLParser
     from io import StringIO
     from urllib.request import urlopen
@@ -83,8 +86,6 @@ elif sys.version_info[0] == 3:
     long = int
     unicode = str
     FileNotFoundError = IOError
-
-    PYTHON_MAJOR = 3
 
 else:
     raise Exception("WTF is this Python version??")
@@ -121,16 +122,18 @@ except ImportError:
     sys.exit(0)
 
 
-__aliases__ = {}
-__config__ = {}
-__infos_files__ = []
-__loaded__ = []
-__missing__ = {}
-__gef_convenience_vars_index__ = 0
-NO_COLOR = False
-DEFAULT_PAGE_ALIGN_SHIFT = 12
-DEFAULT_PAGE_SIZE = 1 << DEFAULT_PAGE_ALIGN_SHIFT
-GEF_RC = os.getenv("HOME") + "/.gef.rc"
+__aliases__                            = {}
+__config__                             = {}
+__infos_files__                        = []
+__loaded__                             = []
+__missing__                            = {}
+__gef_convenience_vars_index__         = 0
+
+NO_COLOR                               = False
+DEFAULT_PAGE_ALIGN_SHIFT               = 12
+DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
+GEF_RC                                 = os.getenv("HOME") + "/.gef.rc"
+
 
 class GefGenericException(Exception):
     def __init__(self, value):
@@ -150,9 +153,9 @@ class GefUnsupportedOS(GefGenericException):
     pass
 
 
-# https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
 class memoize(object):
-    """Custom Memoize class with resettable cache"""
+    """Custom Memoize class with resettable cache.
+    Ref: https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize"""
 
     def __init__(self, func):
         self.func = func
@@ -424,9 +427,10 @@ class Elf:
 class GlibcArena:
     """
     Glibc arena class
+    Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671
     """
     def __init__(self, addr=None):
-        # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671
+        #
         arena = gdb.parse_and_eval(addr)
         self.__arena = arena.cast(gdb.lookup_type("struct malloc_state"))
         self.__addr = long(arena.address)
@@ -487,9 +491,9 @@ class GlibcArena:
 
 
 class GlibcChunk:
-    """
-    Glibc chunk class
-    """
+    """ Glibc chunk class.
+    Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/"""
+
     def __init__(self, addr, from_base=False):
         """Init `addr` as a chunk"""
         self.arch = int(get_memory_alignment(to_byte=True))
@@ -533,10 +537,6 @@ class GlibcChunk:
     # endif free-ed functions
 
 
-    #
-    # Best Glibc heap write-up:
-    # https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/
-    #
     def has_P_bit(self):
         """Check for in PREV_INUSE bit
         Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1267"""
@@ -658,25 +658,16 @@ def titlify(msg, color=Color.RED):
         title = Color.boldify( Color.greenify(msg) )
     return "{0}[ {1} ]{0}".format(horizontal_line()*n, title)
 
-def err(msg):
-    gdb.write(Color.boldify(Color.redify("[!]"))+" "+msg+"\n", gdb.STDERR)
+def _xlog(m, stream, cr=True):
+    m += "\n" if cr else ""
+    gdb.write(m, stream)
     gdb.flush()
-    return
+    return 0
 
-def warn(msg):
-    gdb.write(Color.boldify(Color.yellowify("[*]"))+" "+msg+"\n", gdb.STDLOG)
-    gdb.flush()
-    return
-
-def ok(msg):
-    gdb.write(Color.boldify(Color.greenify("[+]"))+" "+msg+"\n", gdb.STDLOG)
-    gdb.flush()
-    return
-
-def info(msg):
-    gdb.write(Color.boldify(Color.blueify("[+]"))+" "+msg+"\n", gdb.STDLOG)
-    gdb.flush()
-    return
+def err(msg, cr=True):   return _xlog(Color.boldify(Color.redify("[!]"))+msg, gdb.STDERR, cr)
+def warn(msg, cr=True):  return _xlog(Color.boldify(Color.yellowify("[*]"))+msg, gdb.STDLOG, cr)
+def ok(msg, cr=True):    return _xlog(Color.boldify(Color.greenify("[+]"))+" "+msg, gdb.STDLOG, cr)
+def info(msg, cr=True):  return _xlog(Color.boldify(Color.blueify("[+]"))+" "+msg, gdb.STDLOG, cr)
 
 
 def which(program):
@@ -2491,9 +2482,9 @@ class RetDecCommand(GenericCommand):
         try:
             path = self.get_setting("path")
             decompilation = self.decompiler.start_decompilation(**params)
-            info("Task submitted, waiting for decompilation to finish...")
+            info("Task submitted, waiting for decompilation to finish... ", cr=False)
             decompilation.wait_until_finished()
-            ok("Done")
+            print("Done")
             decompilation.save_hll_code(self.get_setting("path"))
             fname = path + '/' + os.path.basename(params["input_file"]) + '.' + params["target_language"]
             ok("Saved as '%s'" % fname)
