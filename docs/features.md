@@ -686,3 +686,21 @@ This means that we can now create very easily new user-defined structures
 Watch the demonstration video on Asciinema:
 
 [![asciicast](https://asciinema.org/a/bhsguibtf4iqyyuomp3vy8iv2.png)](https://asciinema.org/a/bhsguibtf4iqyyuomp3vy8iv2)
+
+Additionally, if you have successfully configured your IDA settings (see command
+`ida-interact`), you can also directly import the structure(s) that was(were)
+reverse-engineered in IDA directly in your GDB session:
+
+[ida-structure-examples](https://i.imgur.com/Tnsf6nt.png)
+
+And then use the command `ida ImportStructs` to import all the sutrcutres, or
+`ida ImportStruct <StructName>` to only import a specific one:
+
+```
+gef➤  ida ImportStructs
+[+] Success
+```
+
+Which will become:
+
+[ida-structure-imported](https://i.imgur.com/KVhyopO.png)
