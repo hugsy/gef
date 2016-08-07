@@ -691,7 +691,7 @@ Additionally, if you have successfully configured your IDA settings (see command
 `ida-interact`), you can also directly import the structure(s) that was(were)
 reverse-engineered in IDA directly in your GDB session:
 
-[ida-structure-examples](https://i.imgur.com/Tnsf6nt.png)
+![ida-structure-examples](https://i.imgur.com/Tnsf6nt.png)
 
 And then use the command `ida ImportStructs` to import all the sutrcutres, or
 `ida ImportStruct <StructName>` to only import a specific one:
@@ -703,4 +703,4 @@ gef➤  ida ImportStructs
 
 Which will become:
 
-[ida-structure-imported](https://i.imgur.com/KVhyopO.png)
+![ida-structure-imported](https://i.imgur.com/KVhyopO.png)
