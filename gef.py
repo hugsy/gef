@@ -2614,22 +2614,26 @@ class IdaInteractCommand(GenericCommand):
             return
 
         try:
-            method = getattr(sock, argv[0])
+            method_name = argv[0]
+            method = getattr(sock, method_name)
             if len(argv) > 1:
                 args = parsed_arglist(argv[1:])
                 res = method(*args)
             else:
                 res = method()
 
-            if res in (0, True, None):
+            if res in (0,  None):
                 ok("Success")
                 return
 
-            raise(Exception("Error: retcode={}".format(res)))
+            if method_name in ("ImportStruct", "ImportStructs"):
+                self.import_structures(res)
+            else:
+                print(res)
+            return
         except Exception as e:
             err(str(e))
             del sock
-
         return
 
     def usage(self, sock=None, meth=None):
@@ -2647,6 +2651,23 @@ class IdaInteractCommand(GenericCommand):
             if m.startswith("system."): continue
             print(titlify(m))
             print(sock.system.methodHelp(m))
+        return
+
+    def import_structures(self, structs):
+        path = __config__.get("pcustom.struct_path")[0]
+        for struct_name in structs.keys():
+            fullpath = path + "/" + struct_name + ".py"
+            with open(fullpath, "wb") as f:
+                f.write(b"from ctypes import *\n\nclass Template(Structure):\n    _fields_ = [\n")
+                for offset, name, size in structs[struct_name]:
+                    if   size == 1: csize = b"c_uint8"
+                    elif size == 2: csize = b"c_uint16"
+                    elif size == 4: csize = b"c_uint32"
+                    elif size == 8: csize = b"c_uint64"
+                    else:           csize = b"c_byte * %d" % size
+                    f.write(b"""%s("%s", %s),\n""" % (b" "*8, bytes(name, encoding="utf-8"), csize))
+                f.write(b"]\n")
+        ok("Success")
         return
 
 
