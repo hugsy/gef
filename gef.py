@@ -2582,6 +2582,7 @@ class IdaInteractCommand(GenericCommand):
             sock = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(host, port))
         except:
             err("Failed to connect to '{:s}:{:d}'".format(host, port))
+            info("Did you start the IDA script `ida_gef_xmlrpc.py` (https://github.com/hugsy/stuff/blob/master/ida_scripts/ida_gef_xmlrpc.py)?")
             sock = None
         return sock
 
