@@ -664,8 +664,8 @@ def _xlog(m, stream, cr=True):
     gdb.flush()
     return 0
 
-def err(msg, cr=True):   return _xlog(Color.boldify(Color.redify("[!]"))+msg, gdb.STDERR, cr)
-def warn(msg, cr=True):  return _xlog(Color.boldify(Color.yellowify("[*]"))+msg, gdb.STDLOG, cr)
+def err(msg, cr=True):   return _xlog(Color.boldify(Color.redify("[!]"))+" "+msg, gdb.STDERR, cr)
+def warn(msg, cr=True):  return _xlog(Color.boldify(Color.yellowify("[*]"))+" "+msg, gdb.STDLOG, cr)
 def ok(msg, cr=True):    return _xlog(Color.boldify(Color.greenify("[+]"))+" "+msg, gdb.STDLOG, cr)
 def info(msg, cr=True):  return _xlog(Color.boldify(Color.blueify("[+]"))+" "+msg, gdb.STDLOG, cr)
 
