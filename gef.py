@@ -2764,7 +2764,7 @@ class ChangePermissionCommand(GenericCommand):
         try:
             import keystone
         except ImportError as ioe:
-            msg = "Missing Python `keystone` package. "
+            msg = "Missing Python `keystone-engine` package. "
             raise GefMissingDependencyException( msg )
         return
 
