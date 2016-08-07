@@ -2380,7 +2380,7 @@ class RetDecCommand(GenericCommand):
 
     def __init__(self):
         super(RetDecCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL, prefix=False)
-        self.add_setting("key", "incorrect-retdec-api-key")
+        self.add_setting("key", "1dd7cb8f-ca9f-4663-811b-2095b87d7faa")
         self.add_setting("path", tempfile.gettempdir())
         self.decompiler = None
         return
