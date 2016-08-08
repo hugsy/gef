@@ -693,7 +693,7 @@ reverse-engineered in IDA directly in your GDB session:
 
 ![ida-structure-examples](https://i.imgur.com/Tnsf6nt.png)
 
-And then use the command `ida ImportStructs` to import all the sutrcutres, or
+And then use the command `ida ImportStructs` to import all the structures, or
 `ida ImportStruct <StructName>` to only import a specific one:
 
 ```

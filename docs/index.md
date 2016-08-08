@@ -10,7 +10,7 @@ process of dynamic analysis or exploit development.
 `GEF` fully relies on GDB API and other Linux specific source of information
 (such as `/proc/pid`). As a consequence, some of the features might not work on
 custom or harden systems such as GrSec.
-It has fully support for Python2 and Python3 indifferently (as more and more
+It has full support for Python2 and Python3 indifferently (as more and more
 distro start pushing `gdb` compiled with Python3 support).
 
 
