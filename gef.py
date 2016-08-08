@@ -2656,6 +2656,8 @@ class IdaInteractCommand(GenericCommand):
 
     def import_structures(self, structs):
         path = __config__.get("pcustom.struct_path")[0]
+        if not os.path.isdir(path):
+            gef_makedirs(path)
         for struct_name in structs.keys():
             fullpath = path + "/" + struct_name + ".py"
             with open(fullpath, "wb") as f:
@@ -2668,7 +2670,7 @@ class IdaInteractCommand(GenericCommand):
                     else:           csize = b"c_byte * %d" % size
                     f.write(b"""%s("%s", %s),\n""" % (b" "*8, bytes(name, encoding="utf-8"), csize))
                 f.write(b"]\n")
-        ok("Success")
+        ok("Success, %d structure%s imported"%(len(structs.keys()), "s" if len(structs.keys())>1 else ""))
         return
 
 
