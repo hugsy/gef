@@ -2339,11 +2339,25 @@ class PCustomCommand(GenericCommand):
                 # try to parse pointers
                 _value = right_arrow().join( DereferenceCommand.dereference_from(_value) )
 
-            line = ("%#x+0x%04x %s " % (addr, _offset, _name)).ljust(40)
-            line+= ": %s (%s)" % (_value, _type.__name__)
+            line = ("%#x+0x%04x %s : " % (addr, _offset, _name)).ljust(40)
+            line+= "%s (%s)" % (_value, _type.__name__)
+            parsed_value = self.get_ctypes_value(template, _name, _value)
+            if len(parsed_value):
+                line+= " %s %s" % (right_arrow(), parsed_value)
             print(line)
             _offset += _size
         return
+
+
+    def get_ctypes_value(self, struct, item, value):
+        if not hasattr(struct, "_values_"): return ""
+        values_list = getattr(struct, "_values_")
+        for name, values in values_list:
+            if name != item: continue
+            for val, desc in values:
+                if value==val: return desc
+        return ""
+
 
     def create_or_edit_structure(self, structure_name):
         path = self.get_setting("struct_path")
@@ -4974,7 +4988,7 @@ class DereferenceCommand(GenericCommand):
                     values.append(regname)
 
             if len(values)>0:
-                l += Color.boldify(Color.greenify( "\t\t"+ left_arrow() + ','.join(values)))
+                l += Color.boldify(Color.greenify( "\t\t"+ left_arrow() + ', '.join(values)))
 
             offset += memalign
             return l
