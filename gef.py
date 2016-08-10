@@ -2358,11 +2358,13 @@ class Template(Structure):
     def get_ctypes_value(self, struct, item, value):
         if not hasattr(struct, "_values_"): return ""
         values_list = getattr(struct, "_values_")
+        default = ""
         for name, values in values_list:
             if name != item: continue
             for val, desc in values:
                 if value==val: return desc
-        return ""
+                if val==None: default = desc
+        return default
 
 
     def create_or_edit_structure(self, structure_name):
