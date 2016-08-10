@@ -2237,6 +2237,12 @@ class PCustomCommand(GenericCommand):
     def __init__(self):
         super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL, prefix=False)
         self.add_setting("struct_path", tempfile.gettempdir()+'/gef/structs')
+        self.template_body = b"""from ctypes import *
+
+class Template(Structure):
+    _fields_ = []
+
+"""
         return
 
     def do_invoke(self, argv):
@@ -2368,7 +2374,7 @@ class PCustomCommand(GenericCommand):
         elif not self.is_valid_custom_structure(structure_name):
             info("Creating '%s' from template"%fullname)
             with open(fullname, "wb") as f:
-                f.write(b"from ctypes import *\n\nclass Template(Structure):\n    _fields_ = []\n")
+                f.write(self.template_body)
         else:
             info("Editing '%s'" % fullname)
 
