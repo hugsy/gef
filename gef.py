@@ -4286,11 +4286,11 @@ class AssembleCommand(GenericCommand):
     x86). """
 
     _cmdline_ = "assemble"
-    _syntax_  = "%s [-a ARCH] [-m MODE] [-e] [-s] instruction;[instruction;...instruction;])" % _cmdline_
+    _syntax_  = "%s [-a ARCH] [-m MODE] [-e] [-s] [-l LOCATION] instruction;[instruction;...instruction;])" % _cmdline_
     _aliases_ = ["asm", ]
 
     def __init__(self, *args, **kwargs):
-        super(AssembleCommand, self).__init__()
+        super(AssembleCommand, self).__init__(prefix=False, complete=gdb.COMPLETE_LOCATION)
         return
 
     def pre_load(self):
@@ -4303,13 +4303,14 @@ class AssembleCommand(GenericCommand):
 
     def do_invoke(self, argv):
         keystone = sys.modules["keystone"]
-        arch_s, mode_s, big_endian, as_shellcode = None, None, False, False
-        opts, args = getopt.getopt(argv, "a:m:esh")
+        arch_s, mode_s, big_endian, as_shellcode, write_to_location = None, None, False, False, None
+        opts, args = getopt.getopt(argv, "a:m:l:esh")
         for o,a in opts:
             if o=="-a": arch_s = a.upper()
             if o=="-m": mode_s = a.upper()
             if o=="-e": big_endian = True
             if o=="-s": as_shellcode = True
+            if o=="-l": write_to_location = long(gdb.parse_and_eval(a))
             if o=="-h":
                 self.usage()
                 return
@@ -4344,17 +4345,30 @@ class AssembleCommand(GenericCommand):
         if as_shellcode:
             print("""sc="" """)
 
+        raw = b""
         for insn in insns:
-            res = keystone_assemble(insn, arch, mode, raw=False)
+            res = keystone_assemble(insn, arch, mode, raw=True)
             if res is None:
                 print("(Invalid)")
                 continue
+
+            if write_to_location:
+                raw+= res
+                continue
+
+            s = binascii.hexlify(res)
+            res = b"\\x" + b"\\x".join( [s[i:i+2] for i in range(0, len(s), 2)] )
+            res = res.decode("utf-8")
 
             if as_shellcode:
                 res = """sc+="{0:s}" """.format(res)
 
             print("{0:60s} # {1}".format(res, insn))
 
+        if write_to_location:
+            l = len(raw)
+            info("Overwriting %d bytes at %s" % (l, format_address(write_to_location)))
+            write_memory(write_to_location, raw, len(raw))
         return
 
 
@@ -4366,7 +4380,7 @@ class ProcessListingCommand(GenericCommand):
     _aliases_ = ["ps", ]
 
     def __init__(self):
-        super(ProcessListingCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(ProcessListingCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         self.add_setting("ps_command", "/bin/ps auxww")
         return
 
@@ -4431,6 +4445,11 @@ class ElfInfoCommand(GenericCommand):
 
     _cmdline_ = "elf-info"
     _syntax_  = "%s" % _cmdline_
+
+    def __init__(self, *args, **kwargs):
+        super(ElfInfoCommand, self).__init__(prefix=False, complete=gdb.COMPLETE_LOCATION)
+        return
+
 
     def do_invoke(self, argv):
         # http://www.sco.com/developers/gabi/latest/ch4.eheader.html
