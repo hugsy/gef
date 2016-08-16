@@ -30,7 +30,7 @@ $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 Then just start playing (for local files):
 ```bash
 $ gdb -q /path/to/my/bin
-gef> gef help
+gef➤  gef help
 ```
 
 Or (for remote debugging)
@@ -41,7 +41,7 @@ Running as PID: 666
 And
 ```bash
 local:~ $ gdb -q
-gef> gef-remote -t your.ip.address:1234 -p 666
+gef➤  gef-remote -t your.ip.address:1234 -p 666
 ```
 
 ### Update
@@ -153,11 +153,11 @@ Go [here](https://github.com/hugsy/gef/issues)
 
 ## Contributors
 
-`gef` was created and maintained by myself, `@_hugsy_`.
+`gef` was created and maintained by myself, [`@_hugsy_`](https://twitter.com/_hugsy_).
 I would like to thank all the contributors to this project, including:
 
    * the people who committed some code (https://github.com/hugsy/gef/graphs/contributors)
    * and others:
-      * @rick2600
+      * [`@rick2600`](https://twitter.com/rick2600)
 
 ## Happy hacking
