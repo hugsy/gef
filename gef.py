@@ -205,23 +205,14 @@ class Color:
     ITALIC_ON      = "\033[3m"
     ITALIC_OFF     = "\033[23m"
 
-    @staticmethod
     def redify(msg):     return Color.RED + msg + Color.NORMAL if not NO_COLOR else msg
-    @staticmethod
     def greenify(msg):   return Color.GREEN + msg + Color.NORMAL if not NO_COLOR else msg
-    @staticmethod
     def blueify(msg):    return Color.BLUE + msg + Color.NORMAL if not NO_COLOR else msg
-    @staticmethod
     def yellowify(msg):  return Color.YELLOW + msg + Color.NORMAL if not NO_COLOR else msg
-    @staticmethod
     def grayify(msg):    return Color.GRAY + msg + Color.NORMAL if not NO_COLOR else msg
-    @staticmethod
     def pinkify(msg):    return Color.PINK + msg + Color.NORMAL if not NO_COLOR else msg
-    @staticmethod
     def boldify(msg):    return Color.BOLD + msg + Color.NORMAL if not NO_COLOR else msg
-    @staticmethod
     def underlinify(msg):return Color.UNDERLINE_ON + msg + Color.UNDERLINE_OFF if not NO_COLOR else msg
-    @staticmethod
     def italicify(msg):  return Color.ITALC_ON + msg + Color.ITALIC_OFF if not NO_COLOR else msg
 
 
