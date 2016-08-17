@@ -2526,7 +2526,7 @@ class ChangeFdCommand(GenericCommand):
     _syntax_  = "%s FD_NUM NEW_OUTPUT" % _cmdline_
 
     def __init__(self):
-        super(ChangeFdCommand, self).__init__()
+        super(ChangeFdCommand, self).__init__(prefix=False)
         return
 
     def do_invoke(self, argv):
@@ -2584,7 +2584,7 @@ class IdaInteractCommand(GenericCommand):
     _syntax_  = "%s METHOD [ARGS]" % _cmdline_
 
     def __init__(self):
-        super(IdaInteractCommand, self).__init__()
+        super(IdaInteractCommand, self).__init__(prefix=False)
         host, port = "127.0.1.1", 1337
         self.add_setting("host", host)
         self.add_setting("port", port)
@@ -2704,7 +2704,7 @@ class SearchPatternCommand(GenericCommand):
     _aliases_ = ["grep", ]
 
     def __init__(self):
-        super(SearchPatternCommand, self).__init__()
+        super(SearchPatternCommand, self).__init__(prefix=False)
         return
 
     def search_pattern_by_address(self, pattern, start_address, end_address):
@@ -2759,7 +2759,7 @@ class FlagsCommand(GenericCommand):
     _aliases_ = ["flags", ]
 
     def __init__(self):
-        super(FlagsCommand, self).__init__()
+        super(FlagsCommand, self).__init__(prefix=False)
         return
 
     def do_invoke(self, argv):
@@ -2803,7 +2803,7 @@ class ChangePermissionCommand(GenericCommand):
     _aliases_ = ["mprotect", ]
 
     def __init__(self):
-        super(ChangePermissionCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(ChangePermissionCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
     def pre_load(self):
@@ -2957,7 +2957,7 @@ class UnicornEmulateCommand(GenericCommand):
     _aliases_ = ["emulate", ]
 
     def __init__(self):
-        super(UnicornEmulateCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(UnicornEmulateCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         self.add_setting("verbose", False)
         self.add_setting("show_disassembly", False)
         return
@@ -3244,7 +3244,7 @@ class RemoteCommand(GenericCommand):
     _syntax_  = "%s -t TARGET -p PID [OPTIONS]" % _cmdline_
 
     def __init__(self):
-        super(RemoteCommand, self).__init__()
+        super(RemoteCommand, self).__init__(prefix=False)
         self.add_setting("proc_directory", "/proc")
         return
 
@@ -3393,16 +3393,16 @@ class RemoteCommand(GenericCommand):
         return
 
 
-class PatchCommand(GenericCommand):
+class NopCommand(GenericCommand):
     """Patch the instruction pointed by parameters with NOP. If the return option is
     specified, it will set the return register to the specific value."""
 
-    _cmdline_ = "patch"
+    _cmdline_ = "nop"
     _syntax_  = "%s [-r VALUE] [-p] [-h] [LOCATION]" % _cmdline_
 
 
     def __init__(self):
-        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(NopCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
 
@@ -3502,7 +3502,7 @@ class CapstoneDisassembleCommand(GenericCommand):
 
 
     def __init__(self):
-        super(CapstoneDisassembleCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(CapstoneDisassembleCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
     @if_gdb_running
@@ -3621,10 +3621,6 @@ class GlibcHeapCommand(GenericCommand):
     _cmdline_ = "heap"
     _syntax_  = "%s (chunk|bins|arenas)" % _cmdline_
 
-    def __init__(self):
-        super(GlibcHeapCommand, self).__init__()
-        return
-
     def do_invoke(self, argv):
         self.usage()
         return
@@ -3637,7 +3633,7 @@ class GlibcHeapArenaCommand(GenericCommand):
     _syntax_  = "%s" % _cmdline_
 
     def __init__(self):
-        super(GlibcHeapArenaCommand, self).__init__()
+        super(GlibcHeapArenaCommand, self).__init__(prefix=False)
         return
 
     @if_gdb_running
@@ -3665,7 +3661,7 @@ class GlibcHeapChunkCommand(GenericCommand):
     _syntax_  = "%s MALLOCED_LOCATION" % _cmdline_
 
     def __init__(self):
-        super(GlibcHeapChunkCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(GlibcHeapChunkCommand, self).__init__(prefix=False, complete=gdb.COMPLETE_LOCATION)
         return
 
     @if_gdb_running
@@ -3687,10 +3683,6 @@ class GlibcHeapBinsCommand(GenericCommand):
     _bins_type_ = [ "fast", "unsorted", "small", "large"]
     _cmdline_ = "heap bins"
     _syntax_  = "%s [%s]" % (_cmdline_, '|'.join(_bins_type_))
-
-    def __init__(self):
-        super(GlibcHeapBinsCommand, self).__init__()
-        return
 
     @if_gdb_running
     def do_invoke(self, argv):
@@ -3735,7 +3727,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
     _syntax_  = "%s [ARENA_LOCATION]" % _cmdline_
 
     def __init__(self):
-        super(GlibcHeapFastbinsYCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(GlibcHeapFastbinsYCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
     @if_gdb_running
@@ -3781,7 +3773,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
     _syntax_  = "%s [ARENA_LOCATION]" % _cmdline_
 
     def __init__(self):
-        super(GlibcHeapUnsortedBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(GlibcHeapUnsortedBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
     @if_gdb_running
@@ -3798,7 +3790,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
     _syntax_  = "%s [ARENA_LOCATION]" % _cmdline_
 
     def __init__(self):
-        super(GlibcHeapSmallBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(GlibcHeapSmallBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
     @if_gdb_running
@@ -3816,7 +3808,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
     _syntax_  = "%s [ARENA_LOCATION]" % _cmdline_
 
     def __init__(self):
-        super(GlibcHeapLargeBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(GlibcHeapLargeBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
     @if_gdb_running
@@ -5708,7 +5700,7 @@ class GefCommand(gdb.Command):
                         SolveKernelSymbolCommand,
                         AliasCommand, AliasShowCommand, AliasSetCommand, AliasUnsetCommand, AliasDoCommand,
                         GlibcHeapCommand, GlibcHeapArenaCommand, GlibcHeapChunkCommand, GlibcHeapBinsCommand, GlibcHeapFastbinsYCommand, GlibcHeapUnsortedBinsCommand, GlibcHeapSmallBinsCommand, GlibcHeapLargeBinsCommand,
-                        PatchCommand,
+                        NopCommand,
                         RemoteCommand,
                         UnicornEmulateCommand,
                         ChangePermissionCommand,

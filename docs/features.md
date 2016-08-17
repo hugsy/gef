@@ -42,18 +42,19 @@ It will perform the following actions:
 ![entry-break-example](https://i.imgur.com/zXSERMh.png)
 
 
-## `patch` command ##
+## `nop` command ##
 
-The `patch` command allows to easily bypass a call or syscall. The syntax is as
-following:
+The `nop` command allows to easily bypass a call or syscall, by replacing the
+instruction pointed by the `LOCATION` argument with (per-architecture) NOPs. The
+syntax is as following:
 
 ```
-gef> patch [-r VALUE] [-p] [-h] [LOCATION]
+gef➤ nop [-r VALUE] [-p] [-h] [LOCATION]
 ```
 
 `LOCATION` indicates the instruction to bypass. If none specified, it will use
 the current value of the program counter. `patch` will overwrite the whole
-instruction with `nop` (or equivalent, depending on the architecture).
+instruction with NOPs (or equivalent, depending on the architecture).
 
 If `-r <integer>` option is entered, it will also set the return register to the
 value specified.
@@ -73,17 +74,17 @@ Example:
 
 Patching `fork()` calls:
 
-   * Before `patch`
-![before-patch](https://i.imgur.com/Gr5g45S.png)
+   * Before `nop`
+![before-nop](https://i.imgur.com/Gr5g45S.png)
 
-   * Apply `patch` and force return register to `0`
+   * Apply `nop` and force return register to `0`
 ```
-gef> patch -r 0 0x400596
+gef➤ nop -r 0 0x400596
 ```
-![apply-patch](https://i.imgur.com/hYE2sv2.png)
+![apply-nop](https://i.imgur.com/hYE2sv2.png)
 
-   * After `patch`
-![after-patch](https://i.imgur.com/iEZVJWb.png)
+   * After `nop`
+![after-nop](https://i.imgur.com/iEZVJWb.png)
 
 
 ## `xinfo`/`vmmap`/`xfiles` commands ##
@@ -111,7 +112,7 @@ for  `malloc` structure information). Syntax to the
 subcommands is pretty straight forward :
 
 ```
-gef> heap <sub_commands>
+gef➤ heap <sub_commands>
 ```
 
 ### `heap chunk` command ###
@@ -121,7 +122,7 @@ provide the address to the user memory pointer of the chunk to show the
 information related to the current chunk:
 
 ```
-gef> heap chunk <LOCATION>
+gef➤ heap chunk <LOCATION>
 ```
 
 ![heap-chunks](https://i.imgur.com/SAWNptW.png)
@@ -269,15 +270,15 @@ Listening on port 1234
 And on the client, simply run `gdb`:
 ```
 $ gdb /bin/uname
-gef> target remote 192.168.56.1:1234
+gef➤ target remote 192.168.56.1:1234
 Process /bin/uname created; pid = 10851
 Listening on port 1234
 ```
 Or
 ```
 $ gdb
-gef> file /bin/uname
-gef> target remote 192.168.56.1:1234
+gef➤ file /bin/uname
+gef➤ target remote 192.168.56.1:1234
 ```
 
 
@@ -293,7 +294,7 @@ structure, the command `gef-remote` requires 2 arguments:
 
 ```
 $ gdb
-gef> gef-remote -t 192.168.56.1:1234 -p 10851
+gef➤ gef-remote -t 192.168.56.1:1234 -p 10851
 [+] Connected to '192.168.56.1:1234'
 [+] Downloading remote information
 [+] Remote information loaded, remember to clean '/tmp/10851' when your session is over
@@ -322,7 +323,7 @@ You can use its alias `cs-disassemble` and the location to disassemble (if not
 specified, it will use `$pc`).
 
 ```
-gef> cs main
+gef➤ cs main
 ```
 
 ![cs-disassemble](https://i.imgur.com/wypt7Fo.png)
