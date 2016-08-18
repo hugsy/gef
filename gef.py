@@ -995,13 +995,13 @@ def x86_is_branch_taken(mnemo):
     # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
     flags = dict( (x86_flags_table()[k], k) for k in x86_flags_table().keys() )
     val = get_register_ex(x86_flag_register() )
-    rcx = get_register_ex("$rcx")
+    cx = get_register_ex("$rcx") if is_x86_64() else get_register_ex("$ecx")
 
     if mnemo in ("ja", "jnbe"): return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0
     if mnemo in ("jae", "jnb", "jnc"): return val&(1<<flags["carry"])==0
     if mnemo in ("jb", "jc", "jnae"): return val&(1<<flags["carry"])
     if mnemo in ("jbe", "jna"): return val&(1<<flags["carry"]) or val&(1<<flags["zero"])
-    if mnemo in ("jcxz", "jecxz", "jrcxz"): return rcx==0
+    if mnemo in ("jcxz", "jecxz", "jrcxz"): return cx==0
     if mnemo in ("je", "jz"): return val&(1<<flags["zero"])
     if mnemo in ("jg", "jnle"): return val&(1<<flags["zero"])==0 and val&(1<<flags["overflow"])==val&(1<<flags["sign"])
     if mnemo in ("jge", "jnl"): return val&(1<<flags["sign"])==val&(1<<flags["overflow"])
