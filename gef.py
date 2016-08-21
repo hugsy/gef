@@ -5977,11 +5977,14 @@ class GefRestoreCommand(gdb.Command):
         cfg = configparser.ConfigParser()
         cfg.read(GEF_RC)
 
+        if cfg.sections() is None or len(cfg.sections())==0:
+            return
+
         for section in cfg.sections():
             for optname in cfg.options(section):
-                key = "%s.%s" % (section, optname)
-                old_value, _type = __config__.get(key)
                 try:
+                    key = "%s.%s" % (section, optname)
+                    old_value, _type = __config__.get(key)
                     new_value = cfg.get(section, optname)
                     if _type == bool:
                         new_value = True if new_value=='True' else False
@@ -5989,7 +5992,7 @@ class GefRestoreCommand(gdb.Command):
                         new_value = _type(new_value)
                     __config__[key] = (new_value, _type)
                 except:
-                    warn("Could not restore '%s'" % optname)
+                    warn("Could not restore '%s'" % key)
 
         ok("Configuration from '%s' restored" % GEF_RC)
         return
