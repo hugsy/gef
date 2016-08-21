@@ -6062,7 +6062,7 @@ if __name__  == "__main__":
     gdb.execute("alias -a ptc = finish")
 
     # runtime
-    gdb.execute("alias -a g = run")
+    gdb.execute("alias -a g = continue")
 
     # memory access
     gdb.execute("alias -a uf = disassemble")
