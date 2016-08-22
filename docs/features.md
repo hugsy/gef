@@ -288,16 +288,17 @@ It is possible to use `gdb` internal functions to copy our targeted binary.
 
 In the following of our previous, if we want to debug `uname`, run `gdb` and
 connect to our `gdbserver`. To be able to locate the right process in the `/proc`
-structure, the command `gef-remote` requires 2 arguments:
-   - `-t` to provide the target host and port
-   - `-p` to provide the PID on the remote host
+structure, the command `gef-remote` requires 1 argument, `-t` to provide the
+target host and port.
+The option `-p` must be provided and indicate the process PID on the remote
+host, only if the extended mode (`-E`) is being used.
 
 ```
 $ gdb
-gef➤ gef-remote -t 192.168.56.1:1234 -p 10851
+gef➤ gef-remote 192.168.56.1:1234
 [+] Connected to '192.168.56.1:1234'
 [+] Downloading remote information
-[+] Remote information loaded, remember to clean '/tmp/10851' when your session is over
+[+] Remote information loaded, remember to clean '/tmp/gef/10851' when your session is over
 ```
 
 As you can observe, if it cannot find the debug information, `gef` will try to download

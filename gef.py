@@ -3241,7 +3241,7 @@ class RemoteCommand(GenericCommand):
     information."""
 
     _cmdline_ = "gef-remote"
-    _syntax_  = "%s -t TARGET -p PID [OPTIONS]" % _cmdline_
+    _syntax_  = "%s [OPTIONS] TARGET" % _cmdline_
 
     def __init__(self):
         super(RemoteCommand, self).__init__(prefix=False)
@@ -3252,28 +3252,29 @@ class RemoteCommand(GenericCommand):
         target = None
         rpid = -1
         update_solib = False
-        fetch_all_libs = False
+        download_all_libs = False
         download_lib = None
         is_extended_remote = False
-        opts, args = getopt.getopt(argv, "t:p:UD:AEh")
+        opts, args = getopt.getopt(argv, "p:UD:AEh")
         for o,a in opts:
-            if   o == "-t":   target = a
-            elif o == "-p":   rpid = int(a)
-            elif o == "-U":   update_solib = True
+            if   o == "-U":   update_solib = True
             elif o == "-D":   download_lib = a
-            elif o == "-A":   fetch_all_libs = True
+            elif o == "-A":   download_all_libs = True
             elif o == "-E":   is_extended_remote = True
+            elif o == "-p":   rpid = int(a)
             elif o == "-h":
                 self.help()
                 return
 
-        if rpid not in range(1, 65536):
-            err("A PID is always required.")
+        if args is None or len(args)!=1:
+            err("A target (HOST:PORT) is always required.")
             return
 
-        if target is None:
-            err("A TARGET (HOST:PORT) is always required.")
+        if is_extended_remote and rpid < 0:
+            err("A PID must be provided (-p <PID>) when using remote-extended mode")
             return
+
+        target = args[0]
 
         if self.connect_target(target, is_extended_remote) == False:
             return
@@ -3284,30 +3285,49 @@ class RemoteCommand(GenericCommand):
             disable_context()
             gdb.execute("attach %d" % rpid)
             enable_context()
+        else:
+            rpid = get_frame().pid
+            ok("Targeting PID=%d" % rpid)
 
         self.add_setting("target", target)
         self.setup_remote_environment(rpid, update_solib)
 
-        if download_lib is not None:
-            if not is_remote_debug():
-                warn("No remote session active.")
-                return
+        if not is_remote_debug():
+            warn("No remote session active.")
+            return
 
-            pid = self.get_setting("pid")
-            fil = self.download_file(pid, download_lib)
-            if fil is None:
+        if download_all_libs == True:
+            vmmap = get_process_maps()
+            success = 0
+            for sect in vmmap:
+                if sect.path.startswith("/"):
+                    _file = self.download_file(rpid, sect.path)
+                    if _file is None:
+                        err("Failed to download %s" % sect.path)
+                    else:
+                        success += 1
+
+            ok("Downloaded %d files" % success)
+
+        elif download_lib is not None:
+            _file = self.download_file(rpid, download_lib)
+            if _file is None:
                 err("Failed to download remote file")
                 return
-            ok("Download success: %s %s %s" % (download_lib, right_arrow(), fil))
-            if update_solib:
-                self.refresh_shared_library_path()
-            return
+
+            ok("Download success: %s %s %s" % (download_lib, right_arrow(), _file))
+
+        if update_solib:
+            self.refresh_shared_library_path()
 
         return
 
 
     def setup_remote_environment(self, pid, update_solib=False):
-        # cleaning memoized cache
+        """Clone the remote environment locally in the temporary directory.
+        The command will duplicate the entries in the /proc/<pid> locally and then
+        source those information into the current gdb context to allow gef to use
+        all the extra commands as it was local debugging."""
         gdb.execute("reset-cache")
 
         ok("Downloading remote information")
@@ -3330,10 +3350,7 @@ class RemoteCommand(GenericCommand):
         self.add_setting("pid", pid)
         self.add_setting("filename", infos["exe"])
 
-
         ok("Remote information loaded, remember to clean '%s' when your session is over" % directory)
-        if update_solib:
-            self.refresh_shared_library_path()
         return
 
 
@@ -3342,7 +3359,6 @@ class RemoteCommand(GenericCommand):
         not fetched just yet, we disable the context disable when connection was successful."""
         disable_context()
         try:
-
             gdb.execute("target {0} {1}".format("extended-remote" if is_extended_remote else "remote",
                                                 target))
             ok("Connected to '%s'" % target)
@@ -3383,12 +3399,12 @@ class RemoteCommand(GenericCommand):
 
     def help(self):
         h = "%s\n" % self._syntax_
-        h+= "\t-t TARGET (mandatory) specifies the host:port, serial port or tty to connect to.\n"
-        h+= "\t-p PID (mandatory) specifies PID of the debugged process on gdbserver's end.\n"
+        h+= "\t   TARGET (mandatory) specifies the host:port, serial port or tty to connect to.\n"
         h+= "\t-U will update gdb `solib-search-path` attribute to include the files downloaded from server (default: False).\n"
         h+= "\t-A will download *ALL* the remote shared libraries and store them in the new environment. This command can take a few minutes to complete (default: False).\n"
         h+= "\t-D LIB will download the remote library called LIB.\n"
         h+= "\t-E Use 'extended-remote' to connect to the target.\n"
+        h+= "\t-p PID (mandatory if -E is used) specifies PID of the debugged process on gdbserver's end.\n"
         info(h)
         return
 
