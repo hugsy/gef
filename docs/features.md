@@ -381,7 +381,7 @@ architecture you are currently debugging.
 Call it via `assemble` or its alias `asm`:
 
 ```
-gef➤ asm main
+gef➤ asm [INSTRUCTION [; INSTRUCTION ...]]
 ```
 
 ![gef-assemble](https://i.imgur.com/ShuPF6h.png)
