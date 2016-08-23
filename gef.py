@@ -1642,18 +1642,8 @@ def ishex(pattern):
     return all(c in string.hexdigits for c in pattern)
 
 
-# dirty hack, from https://github.com/longld/peda
-def define_user_command(cmd, code):
-    if PYTHON_MAJOR == 3:
-        commands = bytes( "define {0}\n{1}\nend".format(cmd, code), "UTF-8" )
-    else:
-        commands = "define {0}\n{1}\nend".format(cmd, code)
-
-    fd, fname = tempfile.mkstemp()
-    os.write(fd, commands)
-    os.close(fd)
-    gdb.execute("source %s" % fname)
-    os.unlink(fname)
+def hook_stop_handler(event):
+    gdb.execute("context")
     return
 
 
@@ -6103,5 +6093,5 @@ if __name__  == "__main__":
     # load GEF
     GefCommand()
 
-    # post-loading stuff
-    define_user_command("hook-stop", "context")
+    # gdb events configuration
+    gdb.events.stop.connect(hook_stop_handler)
