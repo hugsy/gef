@@ -5,14 +5,13 @@ A simple recent GDB compiled with Python scripting support will do.
 
 
 ### Pre-requisites
-Only [GDB 7.x+](https://www.gnu.org/s/gdb) is required. It must compiled with
-Python 2 or 3 support. 
+Only [GDB 7.x+](https://www.gnu.org/s/gdb) is required. It must be compiled with Python 2 or 3 support. 
 
-All recent distributions of Linux now embeds a GDB version compiled with at least Python2 (although more and more are migrating towards Python3).
+All recent distributions of Linux now embeds a GDB version compiled with at least Python 2 (although more and more are migrating towards Python 3).
 
 You can verify it with the following command:
 
-``` bash
+```bash
 $ gdb -nx -ex 'python print (sys.version)' -ex quit
 ```
 
@@ -40,7 +39,7 @@ If you see an error here, it means that your GDB installation does not support P
 The best way to use `GEF` is through cloning the git repository from GitHub, and
 source the file from your `~/.gdbinit`.
 
-``` bash
+```bash
 $ git clone https://github.com/hugsy/gef.git  # or git pull to update
 $ echo 'source /path/to/gef.py' >> ~/.gdbinit
 ```
@@ -50,14 +49,14 @@ $ echo 'source /path/to/gef.py' >> ~/.gdbinit
 If you only need `GEF` for a one-time environment (VMs, etc.) that do not
 have/need `git` installed, just go with:
 
-``` bash
+```bash
 $ curl -s -L https://github.com/hugsy/gef/raw/master/gef.sh | sh
 ```
 
 ### Optional dependancies
 
 A few commands were added to `GEF` to extend its possibilities. It is
-recommended to install the following modules (highly recommended but not required):
+highly recommended to install the following modules (but not required):
 
 - [`capstone`](https://github.com/aquynh/capstone) - disassembly engine
 - [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget) - ROP gadget finder
@@ -66,7 +65,7 @@ recommended to install the following modules (highly recommended but not require
 - [`keystone`](https://github.com/keystone-engine/keystone) - assembly engine
 
 Some of those modules can be installed through `python-pip`. The following
-commands will work for most distributions:
+commands will work for most distributions, but substitute `pip3` for versions of `gdb` compiled with Python 3:
 ```bash
 $ pip install capstone
 $ pip install ropgadget
@@ -75,7 +74,7 @@ $ pip install ropper
 
 Please refer to each project for installation and troubleshooting guides. As `gef` works out of the box, please do not send Issues to this project if you have problems while installing those modules.
 
-`gef` will assume the module installations are valid. Otherwise, it will disable automatically all the `gef` commands that require this module.
+`gef` will assume the module installations are valid. Otherwise, it will automatically disable all the `gef` commands that require this invalid module.
 
 
 ### Check setup
