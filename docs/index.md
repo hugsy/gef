@@ -149,7 +149,10 @@ SPARC, and so on).
 
 ## Bugs & Feedbacks
 
-Go [here](https://github.com/hugsy/gef/issues)
+To discuss `gef`, `gdb`, exploitation or other topic, feel free to join the channel `##gef` on Freenode IRC network. You can also to me (`hugsy`) via the channel. For those who do not have an IRC client (like `weechat` or `irssi`), simply [click here](https://webchat.freenode.net/?channels=##gef).
+
+For bugs or feature requests, just go [here](https://github.com/hugsy/gef/issues) and provide thorough description if you want help.
+
 
 ## Contributors
 
@@ -159,5 +162,6 @@ I would like to thank all the contributors to this project, including:
    * the people who committed some code (https://github.com/hugsy/gef/graphs/contributors)
    * and others:
       * [`@rick2600`](https://twitter.com/rick2600)
+
 
 ## Happy hacking
