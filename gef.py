@@ -2745,7 +2745,7 @@ class FlagsCommand(GenericCommand):
     """Edit flags in a human friendly wait"""
 
     _cmdline_ = "edit-flags"
-    _syntax_  = "%s [+|-]FLAGNAME ([+|-]FLAGNAME)*" % _cmdline_
+    _syntax_  = "%s [+|-|~]FLAGNAME ([+|-|~]FLAGNAME)*" % _cmdline_
     _aliases_ = ["flags", ]
 
     def __init__(self):
@@ -2760,7 +2760,7 @@ class FlagsCommand(GenericCommand):
             action = flag[0]
             name = flag[1:].lower()
 
-            if action not in ('+', '-'):
+            if action not in ('+', '-', '~'):
                 err("Invalid action for flag '%s'" % flag)
                 continue
 
@@ -2776,8 +2776,10 @@ class FlagsCommand(GenericCommand):
             old_flag = get_register_ex( flag_register() )
             if action=='+':
                 new_flags = old_flag | (1<<off)
-            else:
+            elif action=='-':
                 new_flags = old_flag & ~(1<<off)
+            else:
+                new_flags = old_flag ^ (1<<off)
 
             gdb.execute("set (%s) = %#x" % (flag_register(), new_flags))
 
