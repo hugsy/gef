@@ -1999,7 +1999,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
 
-        if is_aarch64():
+        elif is_aarch64():
             regs = ['$x0','$x1','$x2','$x3']
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
@@ -2030,8 +2030,6 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             val = sp + (self.num_args * m) + m
             ptr = read_int_from_memory( val )
             addr = lookup_address( ptr )
-
-            # for pretty printing
             ptr = hex(ptr)
 
         else :
