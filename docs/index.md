@@ -17,7 +17,7 @@ distro start pushing `gdb` compiled with Python3 support).
 ## Quick start
 
 ### Install
-Simply make sure you're having a [GDB 7.x+](https://www.gnu.org/s/gdb).
+Simply make sure you have [GDB 7.x+](https://www.gnu.org/s/gdb).
 ``` bash
 # via the install script
 $ wget -q -O- https://github.com/hugsy/gef/raw/master/gef.sh | sh
@@ -33,12 +33,12 @@ $ gdb -q /path/to/my/bin
 gef➤  gef help
 ```
 
-Or (for remote debugging)
+Or (for remote debugging):
 ```bash
 remote:~ $ gdbserver 0.0.0.0:1234 /path/to/file
 Running as PID: 666
 ```
-And
+And:
 ```bash
 local:~ $ gdb -q
 gef➤  gef-remote -t your.ip.address:1234 -p 666
@@ -88,11 +88,11 @@ There are none: `GEF` works out of the box! However, to enjoy all the coolest fe
 - [`Ropper`](https://github.com/sashs/ropper)
 
 ### {Cap,Key}stone
-[`capstone`](https://github.com/aquynh/capstone) (by [Nguyen Anh Quynh](https://github.com/aquynh))is an alternative disassembly engine, and [`keystone`](https://github.com/keystone-engine/keystone) is an (arguably the best) assembly engine.
+[`capstone`](https://github.com/aquynh/capstone) (by [Nguyen Anh Quynh](https://github.com/aquynh)) is an alternative disassembly engine, and [`keystone`](https://github.com/keystone-engine/keystone) is an (arguably the best) assembly engine.
 You can use `pip` to simply and quickly install it.
 ```bash
 $ pip2 install capstone keystone-engine  # for Python2.x
-$ pip3 install capstone keystone-engine   # for Python3.x
+$ pip3 install capstone keystone-engine  # for Python3.x
 ```
 
 `capstone` and `keystone` are under very active development and improvement, so it is recommended to compile and install them from git.
@@ -136,7 +136,7 @@ $ pip[23] install ropper
 Some of the optional dependencies can be installed using Python package
 installer, `pip`. Simply run this
 ```bash
-$ pip install ropgadget ropper capstone
+$ pip[23] install ropgadget ropper capstone
 ```
 
 ## But why not PEDA?
