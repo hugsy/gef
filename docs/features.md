@@ -461,10 +461,10 @@ register flags.
 
 One or many arguments can be provided, following the syntax below:
 ```
-gef> flags [+|-]FLAGNAME ([+|-]FLAGNAME...)
+gef> flags [(+|-|~)FLAGNAME ...]
 ```
-Where `FLAGNAME` is the name of the flag (case insensitive), and `+|-` indicates
-the action on wether to set the flag or not.
+Where `FLAGNAME` is the name of the flag (case insensitive), and `+|-|~` indicates
+the action on wether to set, unset, or toggle the flag.
 
 For instance, on x86 architecture, if we don't want to take a conditional jump
 (`jz` condition), but we want to have the Carry flag set, simply go with:
