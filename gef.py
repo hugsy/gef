@@ -2742,10 +2742,10 @@ class SearchPatternCommand(GenericCommand):
 
 
 class FlagsCommand(GenericCommand):
-    """Edit flags in a human friendly wait"""
+    """Edit flags in a human friendly way"""
 
     _cmdline_ = "edit-flags"
-    _syntax_  = "%s [+|-|~]FLAGNAME ([+|-|~]FLAGNAME)*" % _cmdline_
+    _syntax_  = "%s [(+|-|~)FLAGNAME ...]" % _cmdline_
     _aliases_ = ["flags", ]
 
     def __init__(self):

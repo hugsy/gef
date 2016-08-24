@@ -461,7 +461,7 @@ register flags.
 
 One or many arguments can be provided, following the syntax below:
 ```
-gef> flags [+|-|~]FLAGNAME ([+|-|~]FLAGNAME...)
+gef> flags [(+|-|~)FLAGNAME ...]
 ```
 Where `FLAGNAME` is the name of the flag (case insensitive), and `+|-|~` indicates
 the action on wether to set, unset, or toggle the flag.
