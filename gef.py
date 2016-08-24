@@ -732,6 +732,20 @@ def disable_debug():
     return
 
 
+def disable_output(to_file="/dev/null"):
+    gdb.execute("set logging overwrite")
+    gdb.execute("set logging file %s" % to_file)
+    gdb.execute("set logging redirect on")
+    gdb.execute("set logging on")
+    return
+
+
+def enable_output():
+    gdb.execute( "set logging redirect off" )
+    gdb.execute( "set logging off" )
+    return
+
+
 def gef_makedirs(path, mode=0o755):
     if PYTHON_MAJOR == 3:
         os.makedirs(path, mode=mode, exist_ok=True)
@@ -1988,7 +2002,9 @@ def gef_convenience(value):
 class FormatStringBreakpoint(gdb.Breakpoint):
     """Inspect stack for format string"""
     def __init__(self, spec, num_args):
-        super(FormatStringBreakpoint, self).__init__(spec, gdb.BP_BREAKPOINT, internal=False)
+        super(FormatStringBreakpoint, self).__init__(spec,
+                                                     type=gdb.BP_BREAKPOINT,
+                                                     internal=False)
         self.num_args = num_args
         self.enabled = True
         return
@@ -5386,19 +5402,13 @@ class TraceRunCommand(GenericCommand):
         info("Tracing from %#x to %#x (max depth=%d)" % (loc_start, loc_end,depth))
         logfile = "%s%#x-%#x.txt" % (self.get_setting("tracefile_prefix"), loc_start, loc_end)
 
-        gdb.execute( "set logging overwrite" )
-        gdb.execute( "set logging file %s" % logfile)
-        gdb.execute( "set logging redirect on" )
-        gdb.execute( "set logging on" )
-
+        disable_output(to_file=logfile)
         disable_context()
 
         self._do_trace(loc_start, loc_end, depth)
 
         enable_context()
-
-        gdb.execute( "set logging redirect off" )
-        gdb.execute( "set logging off" )
+        enable_output()
 
         ok("Done, logfile stored as '%s'" % logfile)
         info("Hint: import logfile with `ida_color_gdb_trace.py` script in IDA to visualize path")
@@ -5667,9 +5677,13 @@ class FormatStringSearchCommand(GenericCommand):
             'vsnprintf':  2,
         }
 
+        disable_output()
+
         for func_name, num_arg in dangerous_functions.items():
             FormatStringBreakpoint(func_name, num_arg)
 
+        enable_output()
+        ok("Enabled %d FormatStringBreakpoint" % len(dangerous_functions.keys()))
         return
 
 
