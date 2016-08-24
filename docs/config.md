@@ -53,9 +53,9 @@ have/need `git` installed, just go with:
 $ curl -s -L https://github.com/hugsy/gef/raw/master/gef.sh | sh
 ```
 
-### Optional dependancies
+### Optional dependencies
 
-A few commands were added to `GEF` to extend its possibilities. It is
+A few commands were added to `GEF` to extend its capabilities. It is
 highly recommended to install the following modules (but not required):
 
 - [`capstone`](https://github.com/aquynh/capstone) - disassembly engine
