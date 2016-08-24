@@ -4520,7 +4520,7 @@ class EntryPointBreakCommand(GenericCommand):
 
     _cmdline_ = "entry-break"
     _syntax_  = "%s" % _cmdline_
-    _aliases_ = ["start", ]
+    _aliases_ = ["start-break", ]
 
     def do_invoke(self, argv):
         if get_filepath() is None:
