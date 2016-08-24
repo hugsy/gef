@@ -4522,6 +4522,10 @@ class EntryPointBreakCommand(GenericCommand):
     _syntax_  = "%s" % _cmdline_
     _aliases_ = ["start-break", ]
 
+    def __init__(self):
+        super(EntryPointBreakCommand, self).__init__(prefix=False)
+        return
+
     def do_invoke(self, argv):
         if get_filepath() is None:
             warn("No executable to debug, use `file` to load a binary")
@@ -4572,7 +4576,7 @@ class ContextCommand(GenericCommand):
     old_registers = {}
 
     def __init__(self):
-        super(ContextCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(ContextCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         self.add_setting("enable", True)
         self.add_setting("show_stack_raw", False)
         self.add_setting("nb_registers_per_line", -1)
