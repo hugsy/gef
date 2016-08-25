@@ -153,41 +153,24 @@ class GefUnsupportedOS(GefGenericException):
     pass
 
 
-class memoize(object):
-    """Custom Memoize class with resettable cache.
-    Ref: https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize"""
+def memoize(obj):
+    """Custom memoize function."""
+    obj.cache = {}
 
-    def __init__(self, func):
-        self.func = func
-        self.is_memoized = True
-        self.cache = {}
-        return
-
-    def __call__(self, *args):
-        if args not in self.cache:
-            value = self.func(*args)
-            self.cache[args] = value
-            return value
-        return self.func(*args)
-
-    def __repr__(self):
-        return self.func.__doc__
-
-    def __get__(self, obj, objtype):
-        fn = functools.partial(self.__call__, obj)
-        fn.reset = self._reset
-        return fn
-
-    def reset(self):
-        self.cache = {}
-        return
+    @functools.wraps(obj)
+    def memoizer(*args, **kwargs):
+        key = str(args) + str(kwargs)
+        if key not in obj.cache:
+            obj.cache[key] = obj(*args, **kwargs)
+        return obj.cache[key]
+    return memoizer
 
 
 def reset_all_caches():
     for s in dir(sys.modules['__main__']):
         o = getattr(sys.modules['__main__'], s)
-        if hasattr(o, "is_memoized") and o.is_memoized:
-            o.reset()
+        if hasattr(o, "cache") and len(o.cache)>0:
+            o.cache = {}
     return
 
 
