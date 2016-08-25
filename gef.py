@@ -5811,16 +5811,14 @@ class GefCommand(gdb.Command):
 
         self.__loaded_cmds = sorted(__loaded__, key=lambda x: x[1]._cmdline_)
 
-        print("%s, `%s' to start, `%s' to configure" % (Color.greenify("gef loaded"),
-                                                        Color.redify("gef help"),
-                                                        Color.redify("gef config")))
+        print("%s ready, type `%s' to start, `%s' to configure" % (Color.greenify("GEF"),
+                                                                   Color.yellowify("gef"),
+                                                                   Color.pinkify("gef config")))
 
         ver = "%d.%d" % (sys.version_info.major, sys.version_info.minor)
-        nb_cmds = sum([1 for x in self.loaded_command_names if " " not in x])
-        nb_sub_cmds = sum([1 for x in self.loaded_command_names if " " in x])
-        print("%s commands loaded (%s sub-commands), using Python engine %s" % (Color.greenify(str(nb_cmds)),
-                                                                                Color.greenify(str(nb_sub_cmds)),
-                                                                                Color.redify(ver)))
+        nb_cmds = len(__loaded__)
+        print("%s commands loaded, using Python engine %s" % (Color.boldify(Color.greenify(str(nb_cmds))),
+                                                              Color.boldify(Color.redify(ver))))
 
         if nb_missing > 0:
             warn("%s commands could not be loaded, run `%s` to know why."%(Color.boldify(Color.redify(str(nb_missing))),
