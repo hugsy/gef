@@ -1505,7 +1505,7 @@ def get_process_maps():
         pid = get_pid()
         proc = "/proc/%d/maps" % pid
 
-        f = open_file(proc, use_cache=True)
+        f = open_file(proc, use_cache=False)
         while True:
             line = f.readline()
             if len(line) == 0:
