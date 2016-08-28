@@ -1651,11 +1651,6 @@ def new_objfile_handler(event):
     return
 
 
-def clear_object_handler(event):
-    reset_all_caches()
-    return
-
-
 def get_terminal_size():
     """
     Portable function to retrieve the current terminal size.
@@ -6108,4 +6103,3 @@ if __name__  == "__main__":
     # gdb events configuration
     gdb.events.stop.connect(hook_stop_handler)
     gdb.events.new_objfile.connect(new_objfile_handler)
-    gdb.events.clear_objfiles.connect(clear_object_handler)
