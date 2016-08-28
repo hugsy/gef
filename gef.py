@@ -167,9 +167,11 @@ def memoize(obj):
 
 
 def reset_all_caches():
+    """Free cached value"""
     for s in dir(sys.modules['__main__']):
         o = getattr(sys.modules['__main__'], s)
         if hasattr(o, "cache") and len(o.cache)>0:
+            del(o.cache)
             o.cache = {}
     return
 
@@ -1641,6 +1643,16 @@ def ishex(pattern):
 
 def hook_stop_handler(event):
     gdb.execute("context")
+    return
+
+
+def new_objfile_handler(event):
+    reset_all_caches()
+    return
+
+
+def clear_object_handler(event):
+    reset_all_caches()
     return
 
 
@@ -6095,3 +6107,5 @@ if __name__  == "__main__":
 
     # gdb events configuration
     gdb.events.stop.connect(hook_stop_handler)
+    gdb.events.new_objfile.connect(new_objfile_handler)
+    gdb.events.clear_objfiles.connect(clear_object_handler)
