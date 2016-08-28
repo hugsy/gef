@@ -4635,7 +4635,7 @@ class ContextCommand(GenericCommand):
 
         nb = self.get_setting("nb_registers_per_line")
         if nb == -1:
-            t = 30 if is_elf64() else 22
+            t = 30 if is_elf64() else 20
             nb = int(get_terminal_size()[1]/t)
             self.add_setting("nb_registers_per_line", nb)
 
