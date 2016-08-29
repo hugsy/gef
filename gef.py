@@ -4585,7 +4585,6 @@ class ContextCommand(GenericCommand):
         super(ContextCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         self.add_setting("enable", True)
         self.add_setting("show_stack_raw", False)
-        self.add_setting("nb_registers_per_line", -1)
         self.add_setting("nb_lines_stack", 8)
         self.add_setting("nb_lines_backtrace", 3)
         self.add_setting("nb_lines_code", 5)
@@ -4633,12 +4632,10 @@ class ContextCommand(GenericCommand):
 
         self.context_title("registers")
 
-        nb = self.get_setting("nb_registers_per_line")
-        if nb == -1:
-            t = 30 if is_elf64() else 20
-            nb = int(get_terminal_size()[1]/t)
-            self.add_setting("nb_registers_per_line", nb)
-
+        l = max(map(len, all_registers()))
+        l+= 5
+        l+= 16 if is_elf64() else 8
+        nb = math.floor(get_terminal_size()[1]/l)
         i = 1
         line = ""
 
@@ -4676,7 +4673,7 @@ class ContextCommand(GenericCommand):
                 else:
                     line += "%s " % Color.boldify(Color.redify(format_address(new_value)))
 
-            if (i%nb ==0) :
+            if (i%nb == 0) :
                 print(line)
                 line = ""
             i+=1
