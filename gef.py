@@ -153,25 +153,36 @@ class GefUnsupportedOS(GefGenericException):
     pass
 
 
-def memoize(obj):
-    """Custom memoize function."""
-    obj.cache = {}
+class memoize(object):
+    """Memoizing class to cache."""
+    def __init__(self, f):
+        self.func = f
+        self.cache = {}
+        return
 
-    @functools.wraps(obj)
-    def memoizer(*args, **kwargs):
-        key = str(args) + str(kwargs)
-        if key not in obj.cache:
-            obj.cache[key] = obj(*args, **kwargs)
-        return obj.cache[key]
-    return memoizer
+    def __call__(self, *args):
+        if not isinstance(args, collections.Hashable):
+            return self.func(*args)
+
+        if args in self.cache:
+            return self.cache[args]
+
+        value = self.func(*args)
+        self.cache[args] = value
+        return value
+
+    def __repr__(self):
+        return self.func.__doc__
+
+    def __get__(self, obj, objtype):
+        return functools.partial(self.__call__, obj)
 
 
 def reset_all_caches():
-    """Free cached value"""
+    """Free all memoized values."""
     for s in dir(sys.modules['__main__']):
         o = getattr(sys.modules['__main__'], s)
         if hasattr(o, "cache") and len(o.cache)>0:
-            del(o.cache)
             o.cache = {}
     return
 
@@ -1460,7 +1471,8 @@ def get_process_maps():
     try:
         pid = get_pid()
         proc = __config__.get("gef-remote.proc_directory")[0]
-        f = open('%s/%d/maps' % (proc, pid))
+        path = '%s/%d/maps' % (proc, pid)
+        f = open(path, 'r')
         while True:
             line = f.readline()
             if len(line) == 0:
@@ -1647,6 +1659,11 @@ def hook_stop_handler(event):
 
 
 def new_objfile_handler(event):
+    reset_all_caches()
+    return
+
+
+def exit_handler(event):
     reset_all_caches()
     return
 
@@ -6100,3 +6117,4 @@ if __name__  == "__main__":
     # gdb events configuration
     gdb.events.stop.connect(hook_stop_handler)
     gdb.events.new_objfile.connect(new_objfile_handler)
+    gdb.events.exited.connect(exit_handler)
