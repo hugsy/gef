@@ -5035,7 +5035,7 @@ class DereferenceCommand(GenericCommand):
             values = []
             for regname, regvalue in regs:
                 if current_address == regvalue:
-                    values.append(regname)
+                    values.append(regname.strip())
 
             if len(values)>0:
                 l += Color.boldify(Color.greenify( "\t\t"+ left_arrow() + ', '.join(values)))
