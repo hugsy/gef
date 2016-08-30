@@ -154,40 +154,36 @@ class GefUnsupportedOS(GefGenericException):
 
 
 class memoize(object):
-    """Custom Memoize class with resettable cache.
-    Ref: https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize"""
-
-    def __init__(self, func):
-        self.func = func
-        self.is_memoized = True
+    """Memoizing class to cache."""
+    def __init__(self, f):
+        self.func = f
         self.cache = {}
         return
 
     def __call__(self, *args):
-        if args not in self.cache:
-            value = self.func(*args)
-            self.cache[args] = value
-            return value
-        return self.func(*args)
+        if not isinstance(args, collections.Hashable):
+            return self.func(*args)
+
+        if args in self.cache:
+            return self.cache[args]
+
+        value = self.func(*args)
+        self.cache[args] = value
+        return value
 
     def __repr__(self):
         return self.func.__doc__
 
     def __get__(self, obj, objtype):
-        fn = functools.partial(self.__call__, obj)
-        fn.reset = self._reset
-        return fn
-
-    def reset(self):
-        self.cache = {}
-        return
+        return functools.partial(self.__call__, obj)
 
 
 def reset_all_caches():
+    """Free all memoized values."""
     for s in dir(sys.modules['__main__']):
         o = getattr(sys.modules['__main__'], s)
-        if hasattr(o, "is_memoized") and o.is_memoized:
-            o.reset()
+        if hasattr(o, "cache") and len(o.cache)>0:
+            o.cache = {}
     return
 
 
@@ -729,6 +725,20 @@ def enable_debug():
 
 def disable_debug():
     __config__["global.debug"] = (False, bool)
+    return
+
+
+def disable_output(to_file="/dev/null"):
+    gdb.execute("set logging overwrite")
+    gdb.execute("set logging file %s" % to_file)
+    gdb.execute("set logging redirect on")
+    gdb.execute("set logging on")
+    return
+
+
+def enable_output():
+    gdb.execute( "set logging redirect off" )
+    gdb.execute( "set logging off" )
     return
 
 
@@ -1686,18 +1696,18 @@ def ishex(pattern):
     return all(c in string.hexdigits for c in pattern)
 
 
-# dirty hack, from https://github.com/longld/peda
-def define_user_command(cmd, code):
-    if PYTHON_MAJOR == 3:
-        commands = bytes( "define {0}\n{1}\nend".format(cmd, code), "UTF-8" )
-    else:
-        commands = "define {0}\n{1}\nend".format(cmd, code)
+def hook_stop_handler(event):
+    gdb.execute("context")
+    return
 
-    fd, fname = tempfile.mkstemp()
-    os.write(fd, commands)
-    os.close(fd)
-    gdb.execute("source %s" % fname)
-    os.unlink(fname)
+
+def new_objfile_handler(event):
+    reset_all_caches()
+    return
+
+
+def exit_handler(event):
+    reset_all_caches()
     return
 
 
@@ -2043,7 +2053,9 @@ def gef_convenience(value):
 class FormatStringBreakpoint(gdb.Breakpoint):
     """Inspect stack for format string"""
     def __init__(self, spec, num_args):
-        super(FormatStringBreakpoint, self).__init__(spec, gdb.BP_BREAKPOINT, internal=False)
+        super(FormatStringBreakpoint, self).__init__(spec,
+                                                     type=gdb.BP_BREAKPOINT,
+                                                     internal=False)
         self.num_args = num_args
         self.enabled = True
         return
@@ -2054,7 +2066,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
 
-        if is_aarch64():
+        elif is_aarch64():
             regs = ['$x0','$x1','$x2','$x3']
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
@@ -2085,8 +2097,6 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             val = sp + (self.num_args * m) + m
             ptr = read_int_from_memory( val )
             addr = lookup_address( ptr )
-
-            # for pretty printing
             ptr = hex(ptr)
 
         else :
@@ -2797,10 +2807,10 @@ class SearchPatternCommand(GenericCommand):
 
 
 class FlagsCommand(GenericCommand):
-    """Edit flags in a human friendly wait"""
+    """Edit flags in a human friendly way"""
 
     _cmdline_ = "edit-flags"
-    _syntax_  = "%s [+|-]FLAGNAME ([+|-]FLAGNAME)*" % _cmdline_
+    _syntax_  = "%s [(+|-|~)FLAGNAME ...]" % _cmdline_
     _aliases_ = ["flags", ]
 
     def __init__(self):
@@ -2815,7 +2825,7 @@ class FlagsCommand(GenericCommand):
             action = flag[0]
             name = flag[1:].lower()
 
-            if action not in ('+', '-'):
+            if action not in ('+', '-', '~'):
                 err("Invalid action for flag '%s'" % flag)
                 continue
 
@@ -2831,8 +2841,10 @@ class FlagsCommand(GenericCommand):
             old_flag = get_register_ex( flag_register() )
             if action=='+':
                 new_flags = old_flag | (1<<off)
-            else:
+            elif action=='-':
                 new_flags = old_flag & ~(1<<off)
+            else:
+                new_flags = old_flag ^ (1<<off)
 
             gdb.execute("set (%s) = %#x" % (flag_register(), new_flags))
 
@@ -4572,6 +4584,11 @@ class EntryPointBreakCommand(GenericCommand):
 
     _cmdline_ = "entry-break"
     _syntax_  = "%s" % _cmdline_
+    _aliases_ = ["start-break", ]
+
+    def __init__(self):
+        super(EntryPointBreakCommand, self).__init__(prefix=False)
+        return
 
     def do_invoke(self, argv):
         if get_filepath() is None:
@@ -4623,10 +4640,9 @@ class ContextCommand(GenericCommand):
     old_registers = {}
 
     def __init__(self):
-        super(ContextCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(ContextCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         self.add_setting("enable", True)
         self.add_setting("show_stack_raw", False)
-        self.add_setting("nb_registers_per_line", -1)
         self.add_setting("nb_lines_stack", 8)
         self.add_setting("nb_lines_backtrace", 3)
         self.add_setting("nb_lines_code", 5)
@@ -4674,12 +4690,10 @@ class ContextCommand(GenericCommand):
 
         self.context_title("registers")
 
-        nb = self.get_setting("nb_registers_per_line")
-        if nb == -1:
-            t = 30 if is_elf64() else 22
-            nb = int(get_terminal_size()[1]/t)
-            self.add_setting("nb_registers_per_line", nb)
-
+        l = max(map(len, all_registers()))
+        l+= 5
+        l+= 16 if is_elf64() else 8
+        nb = math.floor(get_terminal_size()[1]/l)
         i = 1
         line = ""
 
@@ -4717,7 +4731,7 @@ class ContextCommand(GenericCommand):
                 else:
                     line += "%s " % Color.boldify(Color.redify(format_address(new_value)))
 
-            if (i%nb ==0) :
+            if (i%nb == 0) :
                 print(line)
                 line = ""
             i+=1
@@ -5062,7 +5076,7 @@ class DereferenceCommand(GenericCommand):
             values = []
             for regname, regvalue in regs:
                 if current_address == regvalue:
-                    values.append(regname)
+                    values.append(regname.strip())
 
             if len(values)>0:
                 l += Color.boldify(Color.greenify( "\t\t"+ left_arrow() + ', '.join(values)))
@@ -5433,19 +5447,13 @@ class TraceRunCommand(GenericCommand):
         info("Tracing from %#x to %#x (max depth=%d)" % (loc_start, loc_end,depth))
         logfile = "%s%#x-%#x.txt" % (self.get_setting("tracefile_prefix"), loc_start, loc_end)
 
-        gdb.execute( "set logging overwrite" )
-        gdb.execute( "set logging file %s" % logfile)
-        gdb.execute( "set logging redirect on" )
-        gdb.execute( "set logging on" )
-
+        disable_output(to_file=logfile)
         disable_context()
 
         self._do_trace(loc_start, loc_end, depth)
 
         enable_context()
-
-        gdb.execute( "set logging redirect off" )
-        gdb.execute( "set logging off" )
+        enable_output()
 
         ok("Done, logfile stored as '%s'" % logfile)
         info("Hint: import logfile with `ida_color_gdb_trace.py` script in IDA to visualize path")
@@ -5714,9 +5722,13 @@ class FormatStringSearchCommand(GenericCommand):
             'vsnprintf':  2,
         }
 
+        disable_output()
+
         for func_name, num_arg in dangerous_functions.items():
             FormatStringBreakpoint(func_name, num_arg)
 
+        enable_output()
+        ok("Enabled %d FormatStringBreakpoint" % len(dangerous_functions.keys()))
         return
 
 
@@ -5844,16 +5856,14 @@ class GefCommand(gdb.Command):
 
         self.__loaded_cmds = sorted(__loaded__, key=lambda x: x[1]._cmdline_)
 
-        print("%s, `%s' to start, `%s' to configure" % (Color.greenify("gef loaded"),
-                                                        Color.redify("gef help"),
-                                                        Color.redify("gef config")))
+        print("%s ready, type `%s' to start, `%s' to configure" % (Color.greenify("GEF"),
+                                                                   Color.yellowify("gef"),
+                                                                   Color.pinkify("gef config")))
 
         ver = "%d.%d" % (sys.version_info.major, sys.version_info.minor)
-        nb_cmds = sum([1 for x in self.loaded_command_names if " " not in x])
-        nb_sub_cmds = sum([1 for x in self.loaded_command_names if " " in x])
-        print("%s commands loaded (%s sub-commands), using Python engine %s" % (Color.greenify(str(nb_cmds)),
-                                                                                Color.greenify(str(nb_sub_cmds)),
-                                                                                Color.redify(ver)))
+        nb_cmds = len(__loaded__)
+        print("%s commands loaded, using Python engine %s" % (Color.boldify(Color.greenify(str(nb_cmds))),
+                                                              Color.boldify(Color.redify(ver))))
 
         if nb_missing > 0:
             warn("%s commands could not be loaded, run `%s` to know why."%(Color.boldify(Color.redify(str(nb_missing))),
@@ -6145,5 +6155,7 @@ if __name__  == "__main__":
     # load GEF
     GefCommand()
 
-    # post-loading stuff
-    define_user_command("hook-stop", "context")
+    # gdb events configuration
+    gdb.events.stop.connect(hook_stop_handler)
+    gdb.events.new_objfile.connect(new_objfile_handler)
+    gdb.events.exited.connect(exit_handler)
