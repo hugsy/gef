@@ -510,10 +510,11 @@ class GlibcChunk:
 
 
     def get_usable_size(self):
+        # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L4537
         cursz = self.get_chunk_size()
         if cursz == 0x00: return cursz
-        return cursz - 2*self.arch
-
+        if self.has_M_bit(): return cursz - 2*self.arch
+        return cursz - self.arch
 
     def get_prev_chunk_size(self):
         return read_int_from_memory( self.prev_size_addr )
