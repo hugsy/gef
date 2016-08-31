@@ -1391,7 +1391,7 @@ def is_readable_string(address):
 def is_alive():
     """Check if GDB is running."""
     try:
-        pid = get_frame().pid
+        pid = get_pid()
         return pid > 0
     except gdb.error as e:
         return False
@@ -1452,7 +1452,7 @@ def get_filepath():
 
         # if no filename specified, try downloading target from /proc
         if filename == None:
-            pid = get_frame().pid
+            pid = get_pid()
 
             if pid > 0:
                 return download_file("/proc/%d/exe" % pid, use_cache=True)
@@ -3349,7 +3349,7 @@ class RemoteCommand(GenericCommand):
             gdb.execute("attach %d" % rpid)
             enable_context()
         else:
-            rpid = get_frame().pid
+            rpid = get_pid()
             ok("Targeting PID=%d" % rpid)
 
         self.add_setting("target", target)
