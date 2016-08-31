@@ -5692,7 +5692,7 @@ class FormatStringSearchCommand(GenericCommand):
 
 
 class GefCommand(gdb.Command):
-    """GEF main command: start with `gef help` """
+    """GEF main command: view all new commands by typing `gef`"""
 
     _cmdline_ = "gef"
     _syntax_  = "%s (config|help|save|restore|restore)" % _cmdline_
@@ -5767,13 +5767,7 @@ class GefCommand(gdb.Command):
 
 
     def invoke(self, args, from_tty):
-        argv = gdb.string_to_argv(args)
-        argc = len(argv)
-
-        if argc < 1 :
-            gdb.execute("gef help")
-            return
-
+        gdb.execute("gef help")
         return
 
 
