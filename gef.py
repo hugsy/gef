@@ -1442,15 +1442,58 @@ def get_sp():
 
 
 def get_pid():
-    if "gef-remote.pid" in __config__.keys():
-        return __config__.get("gef-remote.pid")[0]
     return get_frame().pid
 
 
 def get_filepath():
-    if "gef-remote.filename" in __config__.keys():
-        return __config__.get("gef-remote.filename")[0]
-    return gdb.current_progspace().filename
+    filename = gdb.current_progspace().filename
+
+    if is_remote_debug():
+
+        # if no filename specified, try downloading target from /proc
+        if filename == None:
+            pid = get_frame().pid
+
+            if pid > 0:
+                return download_file("/proc/%d/exe" % pid, use_cache=True)
+            else:
+                return None
+
+        # if target is remote file, download
+        elif filename.startswith("target:"):
+            return download_file(filename[len("target:"):], use_cache=True)
+        else:
+            return filename
+    else:
+        return filename
+
+
+def download_file(target, use_cache=False):
+    """Download filename `target` inside the mirror tree in /tmp"""
+    try:
+        local_root = '{0:s}/gef'.format(tempfile.gettempdir())
+        local_path = local_root + '/' + os.path.dirname( target )
+        local_name = local_path + '/' + os.path.basename( target )
+        if use_cache and os.path.isfile(local_name):
+            return local_name
+        gef_makedirs(local_path)
+        gdb.execute("remote get {0:s} {1:s}".format(target, local_name))
+    except Exception as e:
+        err(str(e))
+        local_name = None
+    return local_name
+
+
+def open_file(path, use_cache=False):
+    """Attempt to open the given file, if remote debugging is active, download
+    it first to the mirror in /tmp/"""
+    if is_remote_debug():
+        lpath = download_file(path, use_cache)
+        if not lpath:
+            raise IOError("cannot open remote path %s" % path)
+        return open(lpath)
+    else:
+        return open(path)
 
 
 def get_filename():
@@ -1471,9 +1514,9 @@ def get_process_maps():
 
     try:
         pid = get_pid()
-        proc = __config__.get("gef-remote.proc_directory")[0]
-        path = '%s/%d/maps' % (proc, pid)
-        f = open(path, 'r')
+        proc = "/proc/%d/maps" % pid
+
+        f = open_file(proc, use_cache=False)
         while True:
             line = f.readline()
             if len(line) == 0:
@@ -1932,9 +1975,10 @@ def endian_str():
         return "<" # LE
     return ">" # BE
 
+
 @memoize
 def is_remote_debug():
-    return "gef-remote.target" in __config__.keys()
+    return "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
 
 def de_bruijn(alphabet, n):
@@ -3259,21 +3303,21 @@ class RemoteCommand(GenericCommand):
 
     def __init__(self):
         super(RemoteCommand, self).__init__(prefix=False)
-        self.add_setting("proc_directory", "/proc")
+        self.handler_connected = False
         return
 
     def do_invoke(self, argv):
         target = None
         rpid = -1
         update_solib = False
-        download_all_libs = False
+        self.download_all_libs = False
         download_lib = None
         is_extended_remote = False
         opts, args = getopt.getopt(argv, "p:UD:AEh")
         for o,a in opts:
             if   o == "-U":   update_solib = True
             elif o == "-D":   download_lib = a
-            elif o == "-A":   download_all_libs = True
+            elif o == "-A":   self.download_all_libs = True
             elif o == "-E":   is_extended_remote = True
             elif o == "-p":   rpid = int(a)
             elif o == "-h":
@@ -3287,6 +3331,11 @@ class RemoteCommand(GenericCommand):
         if is_extended_remote and rpid < 0:
             err("A PID must be provided (-p <PID>) when using remote-extended mode")
             return
+
+        # lazily install handler on first use
+        if not self.handler_connected:
+            gdb.events.new_objfile.connect(self.new_objfile_handler)
+            self.handler_connected = True
 
         target = args[0]
 
@@ -3310,12 +3359,12 @@ class RemoteCommand(GenericCommand):
             warn("No remote session active.")
             return
 
-        if download_all_libs == True:
+        if self.download_all_libs == True:
             vmmap = get_process_maps()
             success = 0
             for sect in vmmap:
                 if sect.path.startswith("/"):
-                    _file = self.download_file(rpid, sect.path)
+                    _file = download_file(sect.path)
                     if _file is None:
                         err("Failed to download %s" % sect.path)
                     else:
@@ -3324,7 +3373,7 @@ class RemoteCommand(GenericCommand):
             ok("Downloaded %d files" % success)
 
         elif download_lib is not None:
-            _file = self.download_file(rpid, download_lib)
+            _file = download_file(download_lib)
             if _file is None:
                 err("Failed to download remote file")
                 return
@@ -3336,6 +3385,17 @@ class RemoteCommand(GenericCommand):
 
         return
 
+    def new_objfile_handler(self, event):
+        """Hook that handles new_objfile events, will update remote environment accordingly"""
+        if not is_remote_debug():
+            return
+
+        # download newly loaded libraries
+        if self.download_all_libs and event.new_objfile.filename.startswith("target:"):
+            lib = event.new_objfile.filename[len("target:"):]
+            llib = download_file(lib, use_cache=True)
+            if llib:
+                ok("Download success: %s %s %s" % (lib, right_arrow(), llib))
 
     def setup_remote_environment(self, pid, update_solib=False):
         """Clone the remote environment locally in the temporary directory.
@@ -3356,17 +3416,13 @@ class RemoteCommand(GenericCommand):
             err("Source binary is not readable")
             return
 
-        directory  = '%s/gef/%d' % (tempfile.gettempdir(), pid)
+        directory  = '%s/gef' % (tempfile.gettempdir())
         gdb.execute("file %s" % infos["exe"])
 
         self.add_setting("root", directory)
-        self.add_setting("proc_directory", directory + '/proc')
-        self.add_setting("pid", pid)
-        self.add_setting("filename", infos["exe"])
 
-        ok("Remote information loaded, remember to clean '%s' when your session is over" % directory)
+        ok("Remote information loaded, remember to clean '%s' when your session is over" % tempfile.gettempdir())
         return
-
 
     def connect_target(self, target, is_extended_remote):
         """Connect to remote target and get symbols. To prevent `gef` from requesting information
@@ -3384,24 +3440,10 @@ class RemoteCommand(GenericCommand):
         return ret
 
 
-    def download_file(self, pid, target):
-        """Download filename `target` inside the mirror tree in /tmp"""
-        try:
-            local_root = '{0:s}/gef/{1:d}'.format(tempfile.gettempdir(), pid)
-            local_path = local_root + '/' + os.path.dirname( target.replace("target:", "") )
-            local_name = local_path + '/' + os.path.basename( target )
-            gef_makedirs(local_path)
-            gdb.execute("remote get {0:s} {1:s}".format(target, local_name))
-        except Exception as e:
-            err(str(e))
-            local_name = None
-        return local_name
-
-
     def load_target_proc(self, pid, info):
         """Download one item from /proc/pid"""
         remote_name = "/proc/{:d}/{:s}".format(pid, info)
-        return self.download_file(pid, remote_name)
+        return download_file(remote_name)
 
 
     def refresh_shared_library_path(self):
@@ -4292,8 +4334,7 @@ class FileDescriptorCommand(GenericCommand):
             return
 
         pid = get_pid()
-        proc = __config__.get("gef-remote.proc_directory")[0]
-        path = "%s/%d/fd" % (proc, pid)
+        path = "/proc/%d/fd" % (pid)
 
         for fname in os.listdir(path):
             fullpath = path+"/"+fname
