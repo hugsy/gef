@@ -952,6 +952,11 @@ def arm_is_branch_taken(mnemo):
     if mnemo.endswith("bvc"): return val&(1<<flags["overflow"])==0
     return False
 
+@memoize
+def arm_function_parameters():
+    return ['$r0','$r1','$r2','$r3']
+
+
 ######################[ Intel x86-64 specific ]######################
 @memoize
 def x86_64_registers():
@@ -967,6 +972,10 @@ def x86_64_nop_insn():
 @memoize
 def x86_64_return_register():
     return "$rax"
+
+@memoize
+def x86_64_function_parameters():
+    return ['$rdi', '$rsi', '$rdx', '$rcx', '$r8', '$r9']
 
 @memoize
 def x86_flag_register():
@@ -1038,6 +1047,10 @@ def x86_32_registers():
 def x86_32_return_register():
     return "$eax"
 
+@memoize
+def x86_32_function_parameters():
+    return ["$esp",]
+
 
 ######################[ PowerPC specific ]######################
 @memoize
@@ -1097,6 +1110,11 @@ def powerpc_is_branch_taken(mnemo):
     if mnemo=="bgt": return val&(1<<flags["greater"])
     return False
 
+@memoize
+def powerpc_function_parameters():
+    return ['$r3', '$r4', '$r4','$r5', '$r6']
+
+
 ######################[ SPARC specific ]######################
 @memoize
 def sparc_registers():
@@ -1144,6 +1162,11 @@ def sparc_is_cbranch(insn):
 def sparc_is_branch_taken(insn):
     return False
 
+@memoize
+def powerpc_function_parameters():
+    return ['$i0', '$i1', '$i2','$i3','$i4', '$i5' ]
+
+
 ######################[ MIPS specific ]######################
 @memoize
 def mips_registers():
@@ -1187,6 +1210,11 @@ def mips_is_branch_taken(mnemo, operands):
     if mnemo=="blez": return get_register_ex(operands[0]) <= 0
     return False
 
+@memoize
+def mips_function_parameters():
+    return ['$a0','$a1','$a2','$a3']
+
+
 ######################[ AARCH64 specific ]######################
 
 @memoize
@@ -1224,12 +1252,15 @@ def aarch64_flags_to_human(val=None):
     return flags_to_human(val, aarch64_flags_table())
 
 def aarch64_is_cbranch(insn):
-    # todo: check
     return arm_is_cbranch(insn)
 
 def aarch64_is_branch_taken(insn):
-    # todo: check
     return arm_is_branch_taken(insn)
+
+@memoize
+def aarch64_function_parameters():
+    return ['$x0','$x1','$x2','$x3']
+
 
 ################################################################
 
@@ -2063,37 +2094,37 @@ class FormatStringBreakpoint(gdb.Breakpoint):
 
     def stop(self):
         if is_arm():
-            regs = ['$r0','$r1','$r2','$r3']
+            regs = arm_function_parameters()
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
 
         elif is_aarch64():
-            regs = ['$x0','$x1','$x2','$x3']
+            regs = aarch64_function_parameters()
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
 
         elif is_x86_64():
-            regs = ['$rdi', '$rsi', '$rdx', '$rcx', '$r8', '$r9']
+            regs = x86_32_function_parameters()
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
 
         elif is_sparc():
-            regs = ['$i0', '$i1', '$i2','$i3','$i4', '$i5' ]
+            regs = powerpc_function_parameters()
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
 
         elif is_mips():
-            regs = ['$a0','$a1','$a2','$a3']
+            regs = mips_function_parameters()
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
 
         elif is_powerpc():
-            regs = ['$r3', '$r4', '$r4','$r5', '$r6']
+            regs = powerpc_function_parameters()
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
 
         elif is_x86_32():
-            sp = get_sp()
+            sp = x86_32_function_parameters()[0]
             m = get_memory_alignment(to_byte=True)
             val = sp + (self.num_args * m) + m
             ptr = read_int_from_memory( val )
