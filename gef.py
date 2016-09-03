@@ -933,6 +933,10 @@ def arm_flags_to_human(val=None):
     return flags_to_human(val, arm_flags_table())
 
 def arm_is_cbranch(insn):
+    mnemo = ["bl", "blr", "blx", ]
+    return any(filter(lambda x: x == insn, mnemo))
+
+def arm_is_cbranch(insn):
     mnemo = ["beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
              "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"]
     return any(filter(lambda x: x == insn, mnemo))
@@ -1003,6 +1007,10 @@ def x86_flags_to_human(val=None):
     if not val:
         val = get_register_ex( reg )
     return flags_to_human(val, x86_flags_table())
+
+def x86_is_call(insn):
+    mnemo = ["call", "callq", ]
+    return any( filter(lambda x: x == insn, mnemo) )
 
 def x86_is_cbranch(insn):
     mnemo = ["ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
@@ -1095,6 +1103,9 @@ def powerpc_flags_to_human(val=None):
         val = get_register_ex( reg )
     return flags_to_human(val, powerpc_flags_table())
 
+def powerpc_is_call(insn):
+    return False
+
 def powerpc_is_cbranch(insn):
     mnemo = ["beq", "bne", "ble", "blt", "bgt", "bge", ]
     return any( filter(lambda x: x == insn, mnemo) )
@@ -1156,6 +1167,9 @@ def sparc_flags_to_human(val=None):
         val = get_register_ex( reg )
     return flags_to_human(val, sparc_flags_table())
 
+def sparc_is_call(insn):
+    return False
+
 def sparc_is_cbranch(insn):
     return False
 
@@ -1194,6 +1208,10 @@ def mips_flag_register():
 def mips_flags_to_human(val=None):
     # mips architecture does not use processor status word (flag register)
     return ""
+
+def mips_is_cbranch(insn):
+    mnemo = ["bl", ]
+    return any( filter(lambda x: x == insn, mnemo) )
 
 def mips_is_cbranch(insn):
     mnemo = ["beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez", ]
@@ -1250,6 +1268,9 @@ def aarch64_flags_to_human(val=None):
     if not val:
         val = get_register_ex( reg )
     return flags_to_human(val, aarch64_flags_table())
+
+def aarch64_is_cbranch(insn):
+    return arm_is_cbranch(insn)
 
 def aarch64_is_cbranch(insn):
     return arm_is_cbranch(insn)
@@ -1345,6 +1366,19 @@ def flag_register_to_human(val=None):
     elif is_sparc64():   return sparc_flags_to_human(val)
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
+def is_call_instruction(insn):
+    (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
+    if   is_arm():       return arm_is_call(mnemo)
+    elif is_aarch64():   return aarch64_is_call(mnemo)
+    elif is_x86_32():    return x86_is_call(mnemo)
+    elif is_x86_64():    return x86_is_call(mnemo)
+    elif is_powerpc():   return powerpc_is_call(mnemo)
+    elif is_ppc64():     return powerpc_is_call(mnemo)
+    elif is_mips():      return mips_is_call(mnemo)
+    elif is_sparc():     return sparc_is_call(mnemo)
+    elif is_sparc64():   return sparc_is_call(mnemo)
+    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
 def is_conditional_branch(insn):
     (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
     if   is_arm():       return arm_is_cbranch(mnemo)
@@ -1371,6 +1405,19 @@ def is_branch_taken(insn):
     elif is_sparc64():   return sparc_is_branch_taken(mnemo)
     raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
+@memoize
+def function_parameters():
+    if   is_arm():       return arm_function_parameters()
+    elif is_aarch64():   return aarch64_function_parameters()
+    elif is_x86_32():    return x86_32_function_parameters()[0]
+    elif is_x86_64():    return x86_64_function_parameters()
+    elif is_powerpc():   return powerpc_function_parameters()
+    elif is_ppc64():     return powerpc_function_parameters()
+    elif is_mips():      return mips_function_parameters()
+    elif is_sparc():     return sparc_function_parameters()
+    elif is_sparc64():   return sparc_function_parameters()
+    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
 
 def write_memory(address, buffer, length=0x10):
     if PYTHON_MAJOR == 2: buffer = str(buffer)
@@ -1380,15 +1427,15 @@ def write_memory(address, buffer, length=0x10):
 def read_memory(addr, length=0x10):
     if PYTHON_MAJOR == 2:
         return gdb.selected_inferior().read_memory(addr, length)
-    else:
-        return gdb.selected_inferior().read_memory(addr, length).tobytes()
+
+    return gdb.selected_inferior().read_memory(addr, length).tobytes()
 
 
 def read_int_from_memory(addr):
-    arch = get_memory_alignment()/8
-    mem = read_memory( addr, arch)
+    arch = get_memory_alignment(to_byte=True)
+    mem = read_memory(addr, arch)
     fmt = endian_str()+"I" if arch==4 else endian_str()+"Q"
-    return struct.unpack( fmt, mem)[0]
+    return struct.unpack(fmt, mem)[0]
 
 
 def read_cstring_from_memory(address):
@@ -2085,9 +2132,7 @@ def gef_convenience(value):
 class FormatStringBreakpoint(gdb.Breakpoint):
     """Inspect stack for format string"""
     def __init__(self, spec, num_args):
-        super(FormatStringBreakpoint, self).__init__(spec,
-                                                     type=gdb.BP_BREAKPOINT,
-                                                     internal=False)
+        super(FormatStringBreakpoint, self).__init__(spec, type=gdb.BP_BREAKPOINT, internal=False)
         self.num_args = num_args
         self.enabled = True
         return
@@ -2130,9 +2175,6 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             ptr = read_int_from_memory( val )
             addr = lookup_address( ptr )
             ptr = hex(ptr)
-
-        else :
-            raise NotImplementedError("Architecture '%s' not supported yet for FormatStringBreakpoint." % get_arch())
 
         if addr is None:
             return False
