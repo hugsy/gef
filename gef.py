@@ -2168,7 +2168,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             addr = lookup_address( get_register_ex( ptr ) )
 
         elif is_x86_32():
-            sp = x86_32_function_parameters()[0]
+            sp = get_sp()
             m = get_memory_alignment(to_byte=True)
             val = sp + (self.num_args * m) + m
             ptr = read_int_from_memory( val )
@@ -5818,6 +5818,7 @@ class GefCommand(gdb.Command):
                                          True)
 
         __config__["gef.no_color"] = (False, bool)
+        __config__["gef.follow_child"] = (True, bool)
 
         self.classes = [ResetCacheCommand,
                         XAddressInfoCommand,
@@ -5874,6 +5875,11 @@ class GefCommand(gdb.Command):
 
         if os.access(GEF_RC, os.R_OK):
             gdb.execute("gef restore")
+
+        if __config__.get("gef.follow_child")[0]:
+            gdb.execute("set follow-fork-mode child")
+        else:
+            gdb.execute("set follow-fork-mode parent")
         return
 
 
@@ -6182,7 +6188,6 @@ if __name__  == "__main__":
     gdb.execute("set verbose off")
     gdb.execute("set height 0"),
     gdb.execute("set width 0")
-    gdb.execute("set follow-fork-mode child")
 
     # gdb history
     gdb.execute("set history filename ~/.gdb_history")
