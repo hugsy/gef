@@ -129,7 +129,6 @@ __loaded__                             = []
 __missing__                            = {}
 __gef_convenience_vars_index__         = 0
 
-NO_COLOR                               = False
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
 GEF_RC                                 = os.getenv("HOME") + "/.gef.rc"
@@ -202,23 +201,23 @@ class Color:
     ITALIC_OFF     = "\033[23m"
 
     @staticmethod
-    def redify(msg):     return Color.RED + msg + Color.NORMAL if not NO_COLOR else msg
+    def redify(msg):     return Color.RED + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
     @staticmethod
-    def greenify(msg):   return Color.GREEN + msg + Color.NORMAL if not NO_COLOR else msg
+    def greenify(msg):   return Color.GREEN + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
     @staticmethod
-    def blueify(msg):    return Color.BLUE + msg + Color.NORMAL if not NO_COLOR else msg
+    def blueify(msg):    return Color.BLUE + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
     @staticmethod
-    def yellowify(msg):  return Color.YELLOW + msg + Color.NORMAL if not NO_COLOR else msg
+    def yellowify(msg):  return Color.YELLOW + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
     @staticmethod
-    def grayify(msg):    return Color.GRAY + msg + Color.NORMAL if not NO_COLOR else msg
+    def grayify(msg):    return Color.GRAY + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
     @staticmethod
-    def pinkify(msg):    return Color.PINK + msg + Color.NORMAL if not NO_COLOR else msg
+    def pinkify(msg):    return Color.PINK + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
     @staticmethod
-    def boldify(msg):    return Color.BOLD + msg + Color.NORMAL if not NO_COLOR else msg
+    def boldify(msg):    return Color.BOLD + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
     @staticmethod
-    def underlinify(msg):return Color.UNDERLINE_ON + msg + Color.UNDERLINE_OFF if not NO_COLOR else msg
+    def underlinify(msg):return Color.UNDERLINE_ON + msg + Color.UNDERLINE_OFF if not __config__["gef.no_color"][0] else msg
     @staticmethod
-    def italicify(msg):  return Color.ITALC_ON + msg + Color.ITALIC_OFF if not NO_COLOR else msg
+    def italicify(msg):  return Color.ITALC_ON + msg + Color.ITALIC_OFF if not __config__["gef.no_color"][0] else msg
 
 
 def left_arrow():
@@ -5818,6 +5817,8 @@ class GefCommand(gdb.Command):
                                          gdb.COMPLETE_NONE,
                                          True)
 
+        __config__["gef.no_color"] = (False, bool)
+
         self.classes = [ResetCacheCommand,
                         XAddressInfoCommand,
                         XorMemoryCommand, XorMemoryDisplayCommand, XorMemoryPatchCommand,
@@ -6039,7 +6040,7 @@ class GefConfigCommand(gdb.Command):
 
         plugin_name, setting_name = argv[0].split(".", 1)
 
-        if plugin_name not in self.loaded_commands:
+        if plugin_name not in (self.loaded_commands, "gef"):
             err("Unknown plugin '%s'" % plugin_name)
             return
 
