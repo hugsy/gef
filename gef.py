@@ -1033,7 +1033,7 @@ def x86_is_branch_taken(mnemo):
     if mnemo in ("jg", "jnle"): return val&(1<<flags["zero"])==0 and val&(1<<flags["overflow"])==val&(1<<flags["sign"])
     if mnemo in ("jge", "jnl"): return val&(1<<flags["sign"])==val&(1<<flags["overflow"])
     if mnemo in ("jl", "jnge"): return val&(1<<flags["overflow"])!=val&(1<<flags["sign"])
-    if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) and val&(1<<flags["overflow"])!=val&(1<<flags["sign"])
+    if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"])
     if mnemo in ("jne", "jnz"): return val&(1<<flags["zero"])==0
     if mnemo in ("jno"): return val&(1<<flags["overflow"])==0
     if mnemo in ("jnp", "jpo"): return val&(1<<flags["parity"])==0
