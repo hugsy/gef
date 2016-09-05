@@ -73,6 +73,11 @@ if sys.version_info[0] == 2:
     # Compat Py2/3 hacks
     range = xrange
 
+    left_arrow = "<-"
+    right_arrow = "->"
+    horizontal_line = "-"
+    vertical_line = "|"
+
 elif sys.version_info[0] == 3:
     PYTHON_MAJOR = 3
 
@@ -86,6 +91,11 @@ elif sys.version_info[0] == 3:
     long = int
     unicode = str
     FileNotFoundError = IOError
+
+    left_arrow = " \u2190 "
+    right_arrow = " \u2192 "
+    horizontal_line = "\u2500"
+    vertical_line = "\u2502"
 
 else:
     raise Exception("WTF is this Python version??")
@@ -197,40 +207,54 @@ class Color:
     BOLD           = "\033[1m"
     UNDERLINE_ON   = "\033[4m"
     UNDERLINE_OFF  = "\033[24m"
-    ITALIC_ON      = "\033[3m"
-    ITALIC_OFF     = "\033[23m"
+    HIGHLIGHT_ON   = "\033[3m"
+    HIGHLIGHT_OFF  = "\033[23m"
+    BLINK_ON       = "\033[5m"
+    BLINK_OFF      = "\033[25m"
 
     @staticmethod
-    def redify(msg):     return Color.RED + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
+    def redify(msg):      return Color.colorify(msg, attrs="red")
     @staticmethod
-    def greenify(msg):   return Color.GREEN + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
+    def greenify(msg):    return Color.colorify(msg, attrs="green")
     @staticmethod
-    def blueify(msg):    return Color.BLUE + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
+    def blueify(msg):     return Color.colorify(msg, attrs="blue")
     @staticmethod
-    def yellowify(msg):  return Color.YELLOW + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
+    def yellowify(msg):   return Color.colorify(msg, attrs="yellow")
     @staticmethod
-    def grayify(msg):    return Color.GRAY + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
+    def grayify(msg):     return Color.colorify(msg, attrs="gray")
     @staticmethod
-    def pinkify(msg):    return Color.PINK + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
+    def pinkify(msg):     return Color.colorify(msg, attrs="pink")
     @staticmethod
-    def boldify(msg):    return Color.BOLD + msg + Color.NORMAL if not __config__["gef.no_color"][0] else msg
+    def boldify(msg):     return Color.colorify(msg, attrs="bold")
     @staticmethod
-    def underlinify(msg):return Color.UNDERLINE_ON + msg + Color.UNDERLINE_OFF if not __config__["gef.no_color"][0] else msg
+    def underlinify(msg): return Color.colorify(msg, attrs="underline")
     @staticmethod
-    def italicify(msg):  return Color.ITALC_ON + msg + Color.ITALIC_OFF if not __config__["gef.no_color"][0] else msg
+    def highlightify(msg): return Color.colorify(msg, attrs="highlight")
+    @staticmethod
+    def blinkify(msg): return Color.colorify(msg, attrs="blink")
 
-
-def left_arrow():
-    return " \u2190 " if PYTHON_MAJOR == 3 else "<-"
-
-def right_arrow():
-    return " \u2192 " if PYTHON_MAJOR == 3 else "->"
-
-def horizontal_line():
-    return "\u2500" if PYTHON_MAJOR == 3 else "-"
-
-def vertical_line():
-    return "\u2502" if PYTHON_MAJOR == 3 else "|"
+    @staticmethod
+    def colorify(msg, attrs):
+        if __config__["gef.no_color"][0]:
+            return msg
+        m = []
+        for attr in attrs.split():
+            if   attr == "bold":       m.append(Color.BOLD)
+            elif attr == "underline":  m.append(Color.UNDERLINE_ON)
+            elif attr == "highlight":  m.append(Color.HIGHLIGHT_ON)
+            elif attr == "blink":      m.append(Color.BLINK_ON)
+            elif attr == "red":        m.append(Color.RED)
+            elif attr == "green":      m.append(Color.GREEN)
+            elif attr == "blue":       m.append(Color.BLUE)
+            elif attr == "yellow":     m.append(Color.YELLOW)
+            elif attr == "gray":       m.append(Color.GRAY)
+            elif attr == "pink":       m.append(Color.PINK)
+        m.append(msg)
+        if   Color.HIGHLIGHT_ON in m :   m.append(Color.HIGHLIGHT_OFF)
+        elif Color.UNDERLINE_ON in m :   m.append(Color.UNDERLINE_OFF)
+        elif Color.BLINK_ON in m :       m.append(Color.BLINK_OFF)
+        m.append(Color.NORMAL)
+        return "".join(m)
 
 
 class Address:
@@ -263,7 +287,7 @@ class Permission:
     READ      = 1
     WRITE     = 2
     EXECUTE   = 4
-    ALL       = 7
+    ALL       = READ | WRITE | EXECUTE
 
     def __init__(self, *args, **kwargs):
         self.value = kwargs.get("value", 0)
@@ -649,10 +673,10 @@ def titlify(msg, color=Color.RED):
     cols = get_terminal_size()[1]
     n = int((cols-len(msg)-4)/2)
     if color==Color.RED:
-        title = Color.boldify( Color.redify(msg) )
+        title = Color.colorify(msg, attrs="bold red")
     elif color==Color.GREEN:
-        title = Color.boldify( Color.greenify(msg) )
-    return "{0}[ {1} ]{0}".format(horizontal_line()*n, title)
+        title = Color.colorify(msg, attrs="bold green")
+    return "{0}[ {1} ]{0}".format(horizontal_line*n, title)
 
 def _xlog(m, stream, cr=True):
     m += "\n" if cr else ""
@@ -660,10 +684,10 @@ def _xlog(m, stream, cr=True):
     gdb.flush()
     return 0
 
-def err(msg, cr=True):   return _xlog(Color.boldify(Color.redify("[!]"))+" "+msg, gdb.STDERR, cr)
-def warn(msg, cr=True):  return _xlog(Color.boldify(Color.yellowify("[*]"))+" "+msg, gdb.STDLOG, cr)
-def ok(msg, cr=True):    return _xlog(Color.boldify(Color.greenify("[+]"))+" "+msg, gdb.STDLOG, cr)
-def info(msg, cr=True):  return _xlog(Color.boldify(Color.blueify("[+]"))+" "+msg, gdb.STDLOG, cr)
+def err(msg, cr=True):   return _xlog(Color.colorify("[!]", attrs="bold red")+" "+msg, gdb.STDERR, cr)
+def warn(msg, cr=True):  return _xlog(Color.colorify("[*]", attrs="bold yellow")+" "+msg, gdb.STDLOG, cr)
+def ok(msg, cr=True):    return _xlog(Color.colorify("[+]", attrs="bold green")+" "+msg, gdb.STDLOG, cr)
+def info(msg, cr=True):  return _xlog(Color.colorify("[+]", attrs="bold blue")+" "+msg, gdb.STDLOG, cr)
 
 
 def which(program):
@@ -2182,7 +2206,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             content = read_cstring_from_memory(addr.value)
 
             print(titlify("Format String Detection"))
-            info("Possible insecure format string '%s' %s %#x: '%s'" % (ptr, right_arrow(), addr.value, content))
+            info("Possible insecure format string '%s' %s %#x: '%s'" % (ptr, right_arrow, addr.value, content))
             info("Triggered by '%s()'" % self.location)
 
             name = addr.info.name if addr.info else addr.section.path
@@ -2471,13 +2495,13 @@ class Template(Structure):
                or (_regsize==8 and _type is ctypes.c_uint64) \
                or (_regsize==ctypes.sizeof(ctypes.c_void_p) and _type is ctypes.c_void_p):
                 # try to parse pointers
-                _value = right_arrow().join( DereferenceCommand.dereference_from(_value) )
+                _value = right_arrow.join( DereferenceCommand.dereference_from(_value) )
 
             line = ("%#x+0x%04x %s : " % (addr, _offset, _name)).ljust(40)
             line+= "%s (%s)" % (_value, _type.__name__)
             parsed_value = self.get_ctypes_value(template, _name, _value)
             if len(parsed_value):
-                line+= " %s %s" % (right_arrow(), parsed_value)
+                line+= " %s %s" % (right_arrow, parsed_value)
             print(line)
             _offset += _size
         return
@@ -2517,7 +2541,7 @@ class Template(Structure):
         info("Listing custom structures:")
         for filen in os.listdir(self.get_setting("struct_path")):
             if not filen.endswith("py"): continue
-            print("%s %s" % (right_arrow(), filen.replace(".py", "")))
+            print("%s %s" % (right_arrow, filen.replace(".py", "")))
         return
 
 
@@ -2684,7 +2708,7 @@ class ChangeFdCommand(GenericCommand):
             new_fd = int(res.split()[2])
             info("Opened '%s' as fd=#%d" % (new_output, new_fd))
             gdb.execute("""call dup2(%d, %d)""" % (new_fd, old_fd), to_string=True)
-            info("Duplicated FD #%d %s #%d" % (old_fd, right_arrow(), new_fd))
+            info("Duplicated FD #%d %s #%d" % (old_fd, right_arrow, new_fd))
             gdb.execute("""call close(%d)""" % new_fd, to_string=True)
             ok("Success")
             enable_context()
@@ -2864,7 +2888,7 @@ class SearchPatternCommand(GenericCommand):
             start = section.page_start
             end   = section.page_end - 1
             for loc in self.search_pattern_by_address(pattern, start, end):
-                print("""{:#x} - {:#x} {:s}  "{:s}" """.format(loc[0], loc[1], right_arrow(), Color.pinkify(loc[2])))
+                print("""{:#x} - {:#x} {:s}  "{:s}" """.format(loc[0], loc[1], right_arrow, Color.pinkify(loc[2])))
         return
 
     @if_gdb_running
@@ -3304,7 +3328,7 @@ def hook_code(emu, address, size, user_data):
             return
 
         ok("Starting emulation: %#x %s %#x" % (start_insn_addr,
-                                               right_arrow(),
+                                               right_arrow,
                                                end_insn_addr))
 
         try:
@@ -3450,7 +3474,7 @@ class RemoteCommand(GenericCommand):
                 err("Failed to download remote file")
                 return
 
-            ok("Download success: %s %s %s" % (download_lib, right_arrow(), _file))
+            ok("Download success: %s %s %s" % (download_lib, right_arrow, _file))
 
         if update_solib:
             self.refresh_shared_library_path()
@@ -3467,7 +3491,7 @@ class RemoteCommand(GenericCommand):
             lib = event.new_objfile.filename[len("target:"):]
             llib = download_file(lib, use_cache=True)
             if llib:
-                ok("Download success: %s %s %s" % (lib, right_arrow(), llib))
+                ok("Download success: %s %s %s" % (lib, right_arrow, llib))
 
     def setup_remote_environment(self, pid, update_solib=False):
         """Clone the remote environment locally in the temporary directory.
@@ -3693,7 +3717,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         code = bytes(code)
 
         for insn in cs.disasm(code, location):
-            m = Color.boldify(Color.blueify(format_address(insn.address))) + "\t"
+            m = Color.colorify(format_address(insn.address), attrs="bold blue") + "\t"
 
             if (insn.address == pc):
                 m+= CapstoneDisassembleCommand.__cs_analyze_insn(insn, arch, True)
@@ -3719,7 +3743,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         m+= Color.yellowify("%s" % insn.op_str)
 
         if is_pc:
-            m+= Color.redify("\t"+left_arrow()+" $pc ")
+            m+= Color.redify("\t"+left_arrow+" $pc ")
 
         m+= '\n' + '\t'*5
 
@@ -3857,7 +3881,7 @@ class GlibcHeapBinsCommand(GenericCommand):
         head = GlibcChunk(bk+2*arena.get_arch()).get_fwd_ptr()
         while fw != head:
             chunk = GlibcChunk(fw+2*arena.get_arch())
-            m+= "{:s}  {:s}  ".format(right_arrow(), str(chunk))
+            m+= "{:s}  {:s}  ".format(right_arrow, str(chunk))
             fw = chunk.get_fwd_ptr()
 
         print(m)
@@ -3897,7 +3921,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
                     break
 
                 try:
-                    m+= "{:s}  {:s}  ".format(right_arrow(), str(chunk))
+                    m+= "{:s}  {:s}  ".format(right_arrow, str(chunk))
                     next_chunk = chunk.get_fwd_ptr()
                     if next_chunk == 0x00:
                         break
@@ -4119,7 +4143,7 @@ class DetailRegistersCommand(GenericCommand):
             if reg.type.code == gdb.TYPE_CODE_VOID:
                 continue
 
-            line = Color.boldify(Color.redify(regname)) + ": "
+            line = Color.colorify(regname, attrs="bold red") + ": "
 
             if str(reg.type) == 'builtin_type_sparc_psr':  # ugly but more explicit
                 line+= "%s" % reg
@@ -4132,11 +4156,11 @@ class DetailRegistersCommand(GenericCommand):
 
             addr = align_address( long(reg) )
 
-            line+= Color.boldify(Color.blueify(format_address(addr)))
+            line+= Color.colorify(format_address(addr), attrs="bold blue")
             addrs = DereferenceCommand.dereference_from(addr)
 
             if len(addrs) > 1:
-                sep = " %s " % right_arrow()
+                sep = " %s " % right_arrow
                 line+= sep + sep.join(addrs[1:])
 
             print(line)
@@ -4411,7 +4435,7 @@ class FileDescriptorCommand(GenericCommand):
         for fname in os.listdir(path):
             fullpath = path+"/"+fname
             if os.path.islink(fullpath):
-                info("- %s %s %s" % (fullpath, right_arrow(), os.readlink(fullpath)))
+                info("- %s %s %s" % (fullpath, right_arrow, os.readlink(fullpath)))
 
         return
 
@@ -4432,7 +4456,7 @@ class AssembleCommand(GenericCommand):
         try:
             import keystone
         except ImportError as ioe:
-            msg = "Missing Python `keystone` package. "
+            msg = "Missing Python `keystone-engine` package. "
             raise GefMissingDependencyException( msg )
         return
 
@@ -4752,10 +4776,10 @@ class ContextCommand(GenericCommand):
         return
 
     def context_title(self, m):
-        trail = horizontal_line()*2
+        trail = horizontal_line*2
         title = "[{}]{}".format(m,trail) if len(m) else "{}".format(trail)
-        title = horizontal_line()*(self.tty_columns-len(title)) + title
-        print( Color.boldify( Color.blueify(title)) )
+        title = horizontal_line*(self.tty_columns-len(title)) + title
+        print(Color.colorify(title, attrs="bold blue"))
         return
 
     def context_regs(self):
@@ -4800,9 +4824,9 @@ class ContextCommand(GenericCommand):
                 old_value = align_address( long(old_value) )
 
                 if new_value == old_value:
-                    line += "%s " % (format_address(new_value))
+                    line += "%s " % format_address(new_value)
                 else:
-                    line += "%s " % Color.boldify(Color.redify(format_address(new_value)))
+                    line += "%s " % Color.colorify(format_address(new_value), attrs="bold red")
 
             if (i%nb == 0) :
                 print(line)
@@ -4865,13 +4889,13 @@ class ContextCommand(GenericCommand):
                 if addr < pc:
                     line+= Color.grayify("%#x\t %s" % (addr, content,) )
                 elif addr == pc:
-                    line+= Color.boldify(Color.redify("%#x\t %s \t\t %s $pc" % (addr, content, left_arrow())))
+                    line+= Color.colorify("%#x\t %s \t\t %s $pc" % (addr, content, left_arrow), attrs="bold red")
 
                     if is_conditional_branch(insn):
                         if is_branch_taken(insn):
-                            line+= Color.boldify(Color.greenify("\tBranch TAKEN"))
+                            line+= Color.colorify("\tBranch TAKEN", attrs="underline bold green")
                         else:
-                            line+= Color.boldify(Color.redify("\tBranch NOT taken"))
+                            line+= Color.redify("\tBranch NOT taken")
 
                 else:
                     line+= "%#x\t %s" % (addr, content)
@@ -4912,7 +4936,7 @@ class ContextCommand(GenericCommand):
 
             if i==line_num:
                 extra_info = self.get_pc_context_info(pc, lines[i])
-                print(Color.boldify(Color.redify("%4d\t %s \t\t %s $pc\t" % (i+1, lines[i], left_arrow(),))) + extra_info)
+                print(Color.colorify("%4d\t %s \t\t %s $pc\t" % (i+1, lines[i], left_arrow,), attrs="bold red") + extra_info)
 
             if i > line_num:
                 try:
@@ -4936,7 +4960,7 @@ class ContextCommand(GenericCommand):
                         if len(addrs) > 2:
                             addrs = [addrs[0], "[...]", addrs[-1]]
 
-                        f = " " + right_arrow() + " "
+                        f = " " + right_arrow + " "
                         val = f.join(addrs)
                     elif val.type.code == gdb.TYPE_CODE_INT:
                         val = hex(long(val))
@@ -5049,7 +5073,7 @@ class HexdumpCommand(GenericCommand):
                     'w': ('H', 2),
         }
         r, l = formats[arrange_as]
-        fmt_str = "%#x+%.4x "+vertical_line()+" %#."+str(l*2)+"x"
+        fmt_str = "%#x+%.4x "+vertical_line+" %#."+str(l*2)+"x"
         fmt_pack = endianness + r
         lines = []
 
@@ -5142,9 +5166,9 @@ class DereferenceCommand(GenericCommand):
             offset = off * memalign
             current_address = align_address( addr + offset )
             addrs = DereferenceCommand.dereference_from(current_address)
-            sep = " %s " % right_arrow()
-            l  = Color.boldify(Color.blueify( format_address(long(addrs[0], 16) )))
-            l += vertical_line() + "+%#.4x: " % offset
+            sep = " %s " % right_arrow
+            l  = Color.colorify(format_address(long(addrs[0], 16)), attrs="bold blue")
+            l += vertical_line + "+%#.4x: " % offset
             l += sep.join(addrs[1:])
             values = []
             for regname, regvalue in regs:
@@ -5152,7 +5176,7 @@ class DereferenceCommand(GenericCommand):
                     values.append(regname.strip())
 
             if len(values)>0:
-                l += Color.boldify(Color.greenify( "\t\t"+ left_arrow() + ', '.join(values)))
+                l += Color.colorify("\t\t"+ left_arrow + ', '.join(values), attrs="bold green")
 
             offset += memalign
             return l
@@ -5304,9 +5328,9 @@ class VMMapCommand(GenericCommand):
             l.append( format_address( entry.offset ))
 
             if entry.permission.value == (Permission.READ|Permission.WRITE|Permission.EXECUTE) :
-                l.append( Color.boldify(Color.redify(str(entry.permission))) )
+                l.append(Color.colorify(str(entry.permission), attrs="blink bold red"))
             else:
-                l.append( str(entry.permission) )
+                l.append(str(entry.permission))
 
             l.append( entry.path )
 
@@ -5386,7 +5410,7 @@ class XAddressInfoCommand(GenericCommand):
         if sect:
             print("Found %s" % format_address(addr.value))
             print("Page: %s %s %s (size=%#x)" % (format_address(sect.page_start),
-                                                  right_arrow(),
+                                                  right_arrow,
                                                   format_address(sect.page_end),
                                                   sect.page_end-sect.page_start))
             print("Permissions: %s" % sect.permission)
@@ -5659,12 +5683,12 @@ class PatternSearchCommand(GenericCommand):
 
         off = buf.find(pattern_le)
         if off >= 0:
-            ok("Found at offset %d (little-endian search) %s" % (off, Color.boldify(Color.redify("likely")) if is_little_endian() else ""))
+            ok("Found at offset %d (little-endian search) %s" % (off, Color.colorify("likely", attrs="bold red") if is_little_endian() else ""))
             found = True
 
         off = buf.find(pattern_be)
         if off >= 0:
-            ok("Found at offset %d (big-endian search) %s" % (off, Color.boldify(Color.redify("likely")) if is_big_endian() else ""))
+            ok("Found at offset %d (big-endian search) %s" % (off, Color.colorify("likely", attrs="bold green") if is_big_endian() else ""))
             found = True
 
         if not found:
@@ -5932,17 +5956,18 @@ class GefCommand(gdb.Command):
         self.__loaded_cmds = sorted(__loaded__, key=lambda x: x[1]._cmdline_)
 
         print("%s ready, type `%s' to start, `%s' to configure" % (Color.greenify("GEF"),
-                                                                   Color.yellowify("gef"),
-                                                                   Color.pinkify("gef config")))
+                                                                   Color.colorify("gef",attrs="underline yellow"),
+                                                                   Color.colorify("gef config", attrs="underline pink")))
 
         ver = "%d.%d" % (sys.version_info.major, sys.version_info.minor)
         nb_cmds = len(__loaded__)
-        print("%s commands loaded, using Python engine %s" % (Color.boldify(Color.greenify(str(nb_cmds))),
-                                                              Color.boldify(Color.redify(ver))))
+        print("%s commands loaded, using Python engine %s" % (Color.colorify(str(nb_cmds), attrs="bold green"),
+                                                              Color.colorify(ver, attrs="bold red")))
 
         if nb_missing > 0:
-            warn("%s commands could not be loaded, run `%s` to know why."%(Color.boldify(Color.redify(str(nb_missing))),
-                                                                           Color.boldify(Color.blueify("gef missing"))))
+            warn("%s commands could not be loaded, run `%s` to know why."%(Color.colorify(str(nb_missing), attrs="bold red"),
+                                                                           Color.colorify("gef missing", attrs="underline pink")))
+
         return
 
 class GefHelpCommand(gdb.Command):
@@ -6165,7 +6190,7 @@ class GefMissingCommand(gdb.Command):
 
         for missing_command in missing_commands:
             reason = __missing__[missing_command]
-            warn("Command `{}` is missing, reason {} {}".format(missing_command, right_arrow(), reason))
+            warn("Command `{}` is missing, reason {} {}".format(missing_command, right_arrow, reason))
         return
 
 
