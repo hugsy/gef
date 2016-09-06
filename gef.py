@@ -969,15 +969,15 @@ def arm_is_branch_taken(mnemo):
     flags = dict( (arm_flags_table()[k], k) for k in arm_flags_table().keys() )
     val = get_register_ex(arm_flag_register() )
 
-    if mnemo.endswith("eq"): return val&(1<<flags["zero"])
-    if mnemo.endswith("ne"): return val&(1<<flags["zero"])==0
-    if mnemo.endswith("lt"): return val&(1<<flags["negative"])!=val&(1<<flags["overflow"])
-    if mnemo.endswith("le"): return val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"])
-    if mnemo.endswith("gt"): return val&(1<<flags["zero"])==0 and val&(1<<flags["negative"])==val&(1<<flags["overflow"])
-    if mnemo.endswith("ge"): return val&(1<<flags["negative"])==val&(1<<flags["overflow"])
-    if mnemo.endswith("bvs"): return val&(1<<flags["overflow"])
-    if mnemo.endswith("bvc"): return val&(1<<flags["overflow"])==0
-    return False
+    if mnemo.endswith("eq"): return val&(1<<flags["zero"]), "Z"
+    if mnemo.endswith("ne"): return val&(1<<flags["zero"])==0, "!Z"
+    if mnemo.endswith("lt"): return val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+    if mnemo.endswith("le"): return val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+    if mnemo.endswith("gt"): return val&(1<<flags["zero"])==0 and val&(1<<flags["negative"])==val&(1<<flags["overflow"]), "!Z && N==O"
+    if mnemo.endswith("ge"): return val&(1<<flags["negative"])==val&(1<<flags["overflow"]), "N==O"
+    if mnemo.endswith("bvs"): return val&(1<<flags["overflow"]), "O"
+    if mnemo.endswith("bvc"): return val&(1<<flags["overflow"])==0, "O"
+    return False, ""
 
 @memoize
 def arm_function_parameters():
@@ -1048,24 +1048,24 @@ def x86_is_branch_taken(mnemo):
     val = get_register_ex(x86_flag_register() )
     cx = get_register_ex("$rcx") if is_x86_64() else get_register_ex("$ecx")
 
-    if mnemo in ("ja", "jnbe"): return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0
-    if mnemo in ("jae", "jnb", "jnc"): return val&(1<<flags["carry"])==0
-    if mnemo in ("jb", "jc", "jnae"): return val&(1<<flags["carry"])
-    if mnemo in ("jbe", "jna"): return val&(1<<flags["carry"]) or val&(1<<flags["zero"])
-    if mnemo in ("jcxz", "jecxz", "jrcxz"): return cx==0
-    if mnemo in ("je", "jz"): return val&(1<<flags["zero"])
-    if mnemo in ("jg", "jnle"): return val&(1<<flags["zero"])==0 and val&(1<<flags["overflow"])==val&(1<<flags["sign"])
-    if mnemo in ("jge", "jnl"): return val&(1<<flags["sign"])==val&(1<<flags["overflow"])
-    if mnemo in ("jl", "jnge"): return val&(1<<flags["overflow"])!=val&(1<<flags["sign"])
-    if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"])
-    if mnemo in ("jne", "jnz"): return val&(1<<flags["zero"])==0
-    if mnemo in ("jno"): return val&(1<<flags["overflow"])==0
-    if mnemo in ("jnp", "jpo"): return val&(1<<flags["parity"])==0
-    if mnemo in ("jns"): return val&(1<<flags["sign"])==0
-    if mnemo in ("jo"): return val&(1<<flags["overflow"])
-    if mnemo in ("jpe", "jp"): return val&(1<<flags["parity"])
-    if mnemo in ("js"): return val&(1<<flags["sign"])
-    return False
+    if mnemo in ("ja", "jnbe"): return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0, "!C && !Z"
+    if mnemo in ("jae", "jnb", "jnc"): return val&(1<<flags["carry"])==0, "!C"
+    if mnemo in ("jb", "jc", "jnae"): return val&(1<<flags["carry"]), "C"
+    if mnemo in ("jbe", "jna"): return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+    if mnemo in ("jcxz", "jecxz", "jrcxz"): return cx==0, "!$CX"
+    if mnemo in ("je", "jz"): return val&(1<<flags["zero"]), "Z"
+    if mnemo in ("jg", "jnle"): return val&(1<<flags["zero"])==0 and val&(1<<flags["overflow"])==val&(1<<flags["sign"]), "!Z && O==S"
+    if mnemo in ("jge", "jnl"): return val&(1<<flags["sign"])==val&(1<<flags["overflow"]), "S==O"
+    if mnemo in ("jl", "jnge"): return val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "S!=O"
+    if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "Z || S!=0"
+    if mnemo in ("jne", "jnz"): return val&(1<<flags["zero"])==0, "!Z"
+    if mnemo in ("jno"): return val&(1<<flags["overflow"])==0, "!O"
+    if mnemo in ("jnp", "jpo"): return val&(1<<flags["parity"])==0, "!P"
+    if mnemo in ("jns"): return val&(1<<flags["sign"])==0, "!S"
+    if mnemo in ("jo"): return val&(1<<flags["overflow"]), "O"
+    if mnemo in ("jpe", "jp"): return val&(1<<flags["parity"]), "P"
+    if mnemo in ("js"): return val&(1<<flags["sign"]), "S"
+    return False, ""
 
 ######################[ Intel x86-32 specific ]######################
 @memoize
@@ -1136,13 +1136,13 @@ def powerpc_is_cbranch(insn):
 def powerpc_is_branch_taken(mnemo):
     flags = dict( (powerpc_flags_table()[k], k) for k in powerpc_flags_table().keys() )
     val = get_register_ex(powerpc_flag_register())
-    if mnemo=="beq": return val&(1<<flags["equal"])
-    if mnemo=="bne": return val&(1<<flags["equal"])!=0
-    if mnemo=="ble": return val&(1<<flags["equal"]) or val&(1<<flags["less"])
-    if mnemo=="blt": return val&(1<<flags["less"])
-    if mnemo=="bge": return val&(1<<flags["equal"]) or val&(1<<flags["greater"])
-    if mnemo=="bgt": return val&(1<<flags["greater"])
-    return False
+    if mnemo=="beq": return val&(1<<flags["equal"]), "E"
+    if mnemo=="bne": return val&(1<<flags["equal"])==0, "!E"
+    if mnemo=="ble": return val&(1<<flags["equal"]) or val&(1<<flags["less"]), "E || L"
+    if mnemo=="blt": return val&(1<<flags["less"]), "L"
+    if mnemo=="bge": return val&(1<<flags["equal"]) or val&(1<<flags["greater"]), "E || G"
+    if mnemo=="bgt": return val&(1<<flags["greater"]), "G"
+    return False, ""
 
 @memoize
 def powerpc_function_parameters():
@@ -1197,7 +1197,7 @@ def sparc_is_cbranch(insn):
     return False
 
 def sparc_is_branch_taken(insn):
-    return False
+    return False, ""
 
 @memoize
 def powerpc_function_parameters():
@@ -1241,15 +1241,15 @@ def mips_is_cbranch(insn):
     return any( filter(lambda x: x == insn, mnemo) )
 
 def mips_is_branch_taken(mnemo, operands):
-    if mnemo=="beq": return get_register_ex(operands[0]) == get_register_ex(operands[1])
-    if mnemo=="bne": return get_register_ex(operands[0]) != get_register_ex(operands[1])
-    if mnemo=="beqz": return get_register_ex(operands[0]) == 0
-    if mnemo=="bnez": return get_register_ex(operands[0]) != 0
-    if mnemo=="bgtz": return get_register_ex(operands[0]) > 0
-    if mnemo=="bgez": return get_register_ex(operands[0]) >= 0
-    if mnemo=="bltz": return get_register_ex(operands[0]) < 0
-    if mnemo=="blez": return get_register_ex(operands[0]) <= 0
-    return False
+    if mnemo=="beq": return get_register_ex(operands[0]) == get_register_ex(operands[1]), ""
+    if mnemo=="bne": return get_register_ex(operands[0]) != get_register_ex(operands[1]), ""
+    if mnemo=="beqz": return get_register_ex(operands[0]) == 0, ""
+    if mnemo=="bnez": return get_register_ex(operands[0]) != 0, ""
+    if mnemo=="bgtz": return get_register_ex(operands[0]) > 0, ""
+    if mnemo=="bgez": return get_register_ex(operands[0]) >= 0, ""
+    if mnemo=="bltz": return get_register_ex(operands[0]) < 0, ""
+    if mnemo=="blez": return get_register_ex(operands[0]) <= 0, ""
+    return False, ""
 
 @memoize
 def mips_function_parameters():
@@ -4892,10 +4892,12 @@ class ContextCommand(GenericCommand):
                     line+= Color.colorify("%#x\t %s \t\t %s $pc" % (addr, content, left_arrow), attrs="bold red")
 
                     if is_conditional_branch(insn):
-                        if is_branch_taken(insn):
-                            line+= Color.colorify("\tBranch TAKEN", attrs="underline bold green")
+                        is_taken, reason = is_branch_taken(insn)
+                        reason = "[Reason: %s]" % reason if len(reason) else ""
+                        if is_taken:
+                            line+= Color.colorify("\tBranch TAKEN %s" % reason, attrs="bold green")
                         else:
-                            line+= Color.redify("\tBranch NOT taken")
+                            line+= Color.colorify("\tBranch NOT taken %s" % reason, attrs="bold red")
 
                 else:
                     line+= "%#x\t %s" % (addr, content)
