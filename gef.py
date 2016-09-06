@@ -5037,7 +5037,7 @@ class HexdumpCommand(GenericCommand):
     """Display arranged hexdump (according to architecture endianness) of memory range."""
 
     _cmdline_ = "hexdump"
-    _syntax_  = "%s (q|d|w|x) LOCATION L[SIZE] [UP|DOWN]" % _cmdline_
+    _syntax_  = "%s (qword|dword|word|byte) LOCATION L[SIZE] [UP|DOWN]" % _cmdline_
 
 
     def do_invoke(self, argv):
