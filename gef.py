@@ -4791,9 +4791,8 @@ class ContextCommand(GenericCommand):
         self.context_code()
         self.context_source()
         self.context_trace()
-        self.update_registers()
-
         self.context_title('')
+        self.update_registers()
         return
 
     def context_title(self, m):
@@ -6094,7 +6093,7 @@ class GefConfigCommand(gdb.Command):
 
         plugin_name, setting_name = argv[0].split(".", 1)
 
-        if plugin_name not in (*self.loaded_commands, "gef"):
+        if plugin_name not in self.loaded_commands + ["gef",]:
             err("Unknown plugin '%s'" % plugin_name)
             return
 
