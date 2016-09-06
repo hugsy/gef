@@ -6094,7 +6094,7 @@ class GefConfigCommand(gdb.Command):
 
         plugin_name, setting_name = argv[0].split(".", 1)
 
-        if plugin_name not in (self.loaded_commands, "gef"):
+        if plugin_name not in (*self.loaded_commands, "gef"):
             err("Unknown plugin '%s'" % plugin_name)
             return
 
