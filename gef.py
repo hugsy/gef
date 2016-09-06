@@ -1194,9 +1194,30 @@ def sparc_is_call(insn):
     return False
 
 def sparc_is_cbranch(insn):
-    return False
+    # http://moss.csc.ncsu.edu/~mueller/codeopt/codeopt00/notes/condbranch.html
+    mnemo = ["be", "bne", "bg", "bge", "bgeu", "bgu", "bl", "ble", "blu", "bleu",
+             "bneg", "bpos", "bvs", "bvc", "bcs", "bcc", ]
+    return any( filter(lambda x: x == insn, mnemo) )
 
 def sparc_is_branch_taken(insn):
+    flags = dict( (sparc_flags_table()[k], k) for k in sparc_flags_table().keys() )
+    val = get_register_ex(sparc_flag_register())
+    if insn=="be": return val&(1<<flags["zero"]), "Z"
+    if insn=="bne": return val&(1<<flags["zero"])==0, "!Z"
+    if insn=="bg": return val&(1<<flags["zero"])==0 and (val&(1<<flags["negative"])==0 or val&(1<<flags["overflow"])==0), "!Z && (!N || !O)"
+    if insn=="bge": return val&(1<<flags["negative"])==0 or val&(1<<flags["overflow"])==0, "!N || !O"
+    if insn=="bgu": return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0, "!C && !C"
+    if insn=="bgeu": return val&(1<<flags["carry"])==0, "!C"
+    if insn=="bl": return val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
+    if insn=="blu": return val&(1<<flags["carry"]), "C"
+    if insn=="ble": return val&(1<<flags["zero"]) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
+    if insn=="bleu": return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+    if insn=="bneg": return val&(1<<flags["negative"]), "N"
+    if insn=="bpos": return val&(1<<flags["negative"])==0, "!N"
+    if insn=="bvs": return val&(1<<flags["overflow"]), "O"
+    if insn=="bvc": return val&(1<<flags["overflow"])==0, "!O"
+    if insn=="bcs": return val&(1<<flags["carry"]), "C"
+    if insn=="bcc": return val&(1<<flags["carry"])==0, "!C"
     return False, ""
 
 @memoize
