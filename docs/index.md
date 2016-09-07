@@ -154,14 +154,11 @@ To discuss `gef`, `gdb`, exploitation or other topic, feel free to join the chan
 For bugs or feature requests, just go [here](https://github.com/hugsy/gef/issues) and provide thorough description if you want help.
 
 
-## Contributors
+## Contribution
 
-`gef` was created and maintained by myself, [`@_hugsy_`](https://twitter.com/_hugsy_).
-I would like to thank all the contributors to this project, including:
-
-   * the people who committed some code (https://github.com/hugsy/gef/graphs/contributors)
-   * and others:
-      * [`@rick2600`](https://twitter.com/rick2600)
+`gef` was created and maintained by
+myself, [`@_hugsy_`](https://twitter.com/_hugsy_), but kept fresh thanks to [all
+the contributors](https://github.com/hugsy/gef/graphs/contributors).
 
 
 ## Happy hacking

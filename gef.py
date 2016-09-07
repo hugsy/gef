@@ -3141,7 +3141,7 @@ class UnicornEmulateCommand(GenericCommand):
         h = "%s\n" % self._syntax_
         h+= "\t-f LOCATION specifies the start address of the emulated run (default $pc).\n"
         h+= "\t-t LOCATION specifies the end address of the emulated run.\n"
-        h+= "\t-e generates a standalone Python script from the current runtime context.\n"
+        h+= "\t-e /PATH/TO/SCRIPT.py generates a standalone Python script from the current runtime context.\n"
         h+= "\t-n NB_INSTRUCTION indicates the number of instructions to execute (mutually exclusive with `-t` and `-g`).\n"
         h+= "\t-g NB_GADGET indicates the number of gadgets to execute (mutually exclusive with `-t` and `-n`).\n"
         h+= "Additional options can be setup via `gef config unicorn-emulate`\n"
@@ -3185,7 +3185,9 @@ class UnicornEmulateCommand(GenericCommand):
                 self.until_next_gadget = -1
                 end_insn = -1
 
-            elif o == "-e":   to_script = a
+            elif o == "-e":
+                to_script = a
+
             elif o == "-h":
                 self.help()
                 return
@@ -3212,13 +3214,18 @@ class UnicornEmulateCommand(GenericCommand):
         content = ""
         arch, mode = get_unicorn_arch(to_string=to_script)
         unicorn_registers = get_unicorn_registers(to_string=to_script)
+        fname = get_filename()
 
         if to_script:
-            content+= "#!/usr/bin/python"
-            content+= """
-
+            content+= """#!/usr/bin/python
+#
+# Emulation script for '%s' from %#x to %#x
+#
+import readline, code
 import capstone, unicorn
 
+regs = {%s}
+uc = None
 
 def disassemble(code, addr):
     cs = capstone.Cs(%s, %s)
@@ -3226,21 +3233,33 @@ def disassemble(code, addr):
         return i
 
 def hook_code(emu, address, size, user_data):
-    print(">> Executing instruction at 0x{:x}".format(address))\n
+    print(">> Executing instruction at 0x{:x}".format(address))
     code = emu.mem_read(address, size)
     insn = disassemble(code, address)
-    print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))\n
+    print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
     return
 
+def interact(emu, regs):
+    readline.parse_and_bind('tab: complete')
+    vars = globals().copy()
+    vars.update(locals())
+    code.InteractiveConsole(vars).interact(banner="[+] Spawning Python interactive shell with Unicorn, use `uc` to interact with the emulated session")
+    return
 
-""" % get_capstone_arch()
+def print_regs(emu, regs):
+    for r in regs.keys():
+        print(">> {:s} = 0x{:x}".format(r, emu.reg_read(regs[r])))
+    return
+
+def reset():
+""" % (fname, start_insn_addr, end_insn_addr, ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers.keys()]), arch, mode)
 
         unicorn = sys.modules['unicorn']
         if verbose:
             info("Initializing Unicorn engine")
 
         if to_script:
-            content += "emu = unicorn.Uc(%s, %s)\n" % (arch, mode)
+            content += "    emu = unicorn.Uc(%s, %s)\n" % (arch, mode)
         else:
             emu = unicorn.Uc(arch, mode)
 
@@ -3250,14 +3269,10 @@ def hook_code(emu, address, size, user_data):
         for r in all_registers():
             gregval = get_register_ex(r)
             if to_script:
-                content += "emu.reg_write(%s, %#x)\n" % (unicorn_registers[r], gregval)
+                content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers[r], gregval)
             else:
                 emu.reg_write(unicorn_registers[r], gregval)
                 start_regs[r] = gregval
-
-        if to_script:
-            for r in all_registers():
-                content += """print(">> %s = 0x{:x}".format(emu.reg_read(%s)))\n""" % (r, unicorn_registers[r])
 
         vmmap = get_process_maps()
         if vmmap is None or len(vmmap)==0:
@@ -3276,10 +3291,10 @@ def hook_code(emu, address, size, user_data):
             FS = 0x00
             GS = FS + page_sz
             if to_script:
-                content += "emu.mem_map(%#x, %d, %d)\n" % (FS, page_sz, 3)
-                content += "emu.mem_map(%#x, %d, %d)\n" % (GS, page_sz, 3)
-                content += "emu.reg_write(%s, %#x)\n" % (unicorn_registers['$fs    '], FS)
-                content += "emu.reg_write(%s, %#x)\n" % (unicorn_registers['$gs    '], GS)
+                content += "    emu.mem_map(%#x, %d, %d)\n" % (FS, page_sz, 3)
+                content += "    emu.mem_map(%#x, %d, %d)\n" % (GS, page_sz, 3)
+                content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers['$fs    '], FS)
+                content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers['$gs    '], GS)
             else:
                 emu.mem_map(FS, page_sz, 3)
                 emu.mem_map(GS, page_sz, 3)
@@ -3296,7 +3311,8 @@ def hook_code(emu, address, size, user_data):
                 path       = sect.path
 
                 if to_script:
-                    content += "emu.mem_map(%#x, %d, %d)\n" % (page_start, size, perm.value)
+                    content += "    # Mapping %s: %#x-%#x\n"%(sect.path, page_start, page_end)
+                    content += "    emu.mem_map(%#x, %#x, %d)\n" % (page_start, size, perm.value)
                 else:
                     emu.mem_map(page_start, size, perm.value)
 
@@ -3310,12 +3326,11 @@ def hook_code(emu, address, size, user_data):
                                                                                   perm))
 
                     if to_script:
-                        with open("/tmp/gef-%#x.raw"%page_start, "wb") as f:
+                        loc = "/tmp/gef-%s-%#x.raw" % (fname, page_start)
+                        with open(loc, "wb") as f:
                             f.write(bytes(code))
 
-                        content += "# Importing %s: %#x-%#x\n"%(sect.path, page_start, page_end)
-                        content += "data=open('/tmp/gef-%#x.raw', 'r').read()\n" % page_start
-                        content += "emu.mem_write(%#x, data)\n" % (page_start, )
+                        content += "    emu.mem_write(%#x, open('%s', 'r').read())\n" % (page_start, loc)
                         content += "\n"
 
                     else:
@@ -3324,23 +3339,37 @@ def hook_code(emu, address, size, user_data):
                 warn("Cannot copy page=%#x-%#x : %s" % (page_start, page_end, e))
                 continue
 
-
         if to_script:
-            content += "emu.hook_add(unicorn.UC_HOOK_CODE, hook_code)\n"
+            content += "    emu.hook_add(unicorn.UC_HOOK_CODE, hook_code)\n"
+            content += "    return emu\n"
         else:
             emu.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
             emu.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
 
         if to_script:
-            content += "\n"*2
-            content += "try:\n    emu.emu_start(%#x, %#x)\n" % (start_insn_addr, end_insn_addr)
-            content += "except Exception as e:\n    emu.emu_stop()\n    print('Error: {}'.format(e))"
-            content += "\n"*2
+            content += """
+def emulate(emu, start_addr, end_addr):
+    # Registers initial states
+    print_regs(emu, regs)
 
-            for r in all_registers():
-                content += """print(">> %s = 0x{:x}".format(emu.reg_read(%s)))\n""" % (r, unicorn_registers[r])
+    try:
+        emu.emu_start(start_addr, end_addr)
+    except Exception as e:
+        emu.emu_stop()
+        print('Error: {}'.format(e))
 
-            content += "\n\n# Unicorn script generated by gef\n"
+    # Registers final states
+    print_regs(emu, regs)
+    return
+
+
+if __name__ == "__main__":
+    uc = reset()
+    emulate(uc, %#x, %#x)
+    interact(uc, regs)
+
+# unicorn-engine script generated by gef
+""" % (start_insn_addr, end_insn_addr)
 
             with open(to_script, 'w') as f:
                 f.write(content)
