@@ -797,7 +797,6 @@ def _gef_disassemble_around(addr, nb_insn):
     """
     Adjust lines to disassemble because of variable length instructions architecture (intel)
     """
-    lines = []
 
     if not ( is_x86_32() or is_x86_64() ):
         # all ABI except x86 are fixed length instructions, easy to process
@@ -807,11 +806,12 @@ def _gef_disassemble_around(addr, nb_insn):
         lines+= _gef_disassemble_top(addr, nb_insn)
         return lines
 
+    lines = []
     cur_insn = gdb.execute("x/1i %#x" % addr, to_string=True).splitlines()[0]
     found = False
 
     # we try to find a good set of previous instructions by guessing incrementally
-    for i in range(255):
+    for i in reversed( range(32+16*nb_insn) ):
         try:
             cmd = "x/%di %#x" % (nb_insn, addr-i)
             lines = gdb.execute(cmd, to_string=True).splitlines()
@@ -4891,7 +4891,6 @@ class ContextCommand(GenericCommand):
             print(line)
 
         print("Flags: " + flag_register_to_human())
-
         return
 
     def context_stack(self):
@@ -4936,8 +4935,7 @@ class ContextCommand(GenericCommand):
                 CapstoneDisassembleCommand.disassemble(pc, nb_insn)
                 return
 
-            lines = gef_disassemble(pc, nb_insn)
-            for addr, content in lines:
+            for addr, content in gef_disassemble(pc, nb_insn):
                 insn = "%#x %s" % (addr,content)
                 line = u""
                 if addr < pc:
