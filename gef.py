@@ -811,7 +811,7 @@ def _gef_disassemble_around(addr, nb_insn):
     found = False
 
     # we try to find a good set of previous instructions by guessing incrementally
-    for i in reversed( range(255) ):
+    for i in range(255):
         try:
             cmd = "x/%di %#x" % (nb_insn, addr-i)
             lines = gdb.execute(cmd, to_string=True).splitlines()
@@ -841,13 +841,14 @@ def _gef_disassemble_around(addr, nb_insn):
 
 
 def gef_disassemble(addr, nb_insn, from_top=False):
-    if nb_insn % 2 == 0: nb_insn += 1
-    if from_top:
-        lines = _gef_disassemble_top(addr, nb_insn)
-    else:
-        lines = _gef_disassemble_around(addr, nb_insn)
+    if (nb_insn & 1) == 1:
+        nb_insn += 1
 
-    if len(lines)==0: return []
+    lines = _gef_disassemble_top(addr, nb_insn) if from_top else _gef_disassemble_around(addr, nb_insn)
+
+    if len(lines)==0:
+        return []
+
     result = []
     for line in lines:
         (address, location, mnemo, operands) = gef_parse_gdb_instruction(line)
@@ -874,10 +875,10 @@ def gef_parse_gdb_instruction(raw_insn):
     return (address, location, mnemo, operands)
 
 
-def gef_execute_external(command, *args, **kwargs):
+def gef_execute_external(command, as_list=False, *args, **kwargs):
     res = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=kwargs.get("shell", False))
 
-    if kwargs.get("as_list", False) == True:
+    if as_list:
         return res.splitlines()
 
     if PYTHON_MAJOR == 3:
