@@ -4941,15 +4941,15 @@ class ContextCommand(GenericCommand):
                 if addr < pc:
                     line+= Color.grayify("%#x\t %s" % (addr, content,) )
                 elif addr == pc:
-                    line+= Color.colorify("%#x\t %s \t\t %s $pc" % (addr, content, left_arrow), attrs="bold red")
+                    line+= Color.colorify("%#x\t%s\t%s $pc" % (addr, content, left_arrow), attrs="bold red")
 
                     if is_conditional_branch(insn):
                         is_taken, reason = is_branch_taken(insn)
                         reason = "[Reason: %s]" % reason if len(reason) else ""
                         if is_taken:
-                            line+= Color.colorify("\tBranch TAKEN %s" % reason, attrs="bold green")
+                            line+= Color.colorify("\TAKEN %s" % reason, attrs="bold green")
                         else:
-                            line+= Color.colorify("\tBranch NOT taken %s" % reason, attrs="bold red")
+                            line+= Color.colorify("\tNOT taken %s" % reason, attrs="bold red")
 
                 else:
                     line+= "%#x\t %s" % (addr, content)
@@ -5201,8 +5201,8 @@ class DereferenceCommand(GenericCommand):
 
 
     def __init__(self):
-        super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
-        self.add_setting("max_recursion", 10)
+        super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
+        self.add_setting("max_recursion", 7)
         return
 
 
@@ -5214,7 +5214,7 @@ class DereferenceCommand(GenericCommand):
 
         memalign = get_memory_alignment(to_byte=True)
         offset = 0
-        regs = [(k, get_register_ex(k)) for k in all_registers()]
+        regs = [(k.strip(), get_register_ex(k)) for k in all_registers()]
 
         def _pprint_dereferenced(addr, off):
             offset = off * memalign
@@ -5224,22 +5224,24 @@ class DereferenceCommand(GenericCommand):
             l  = Color.colorify(format_address(long(addrs[0], 16)), attrs="bold blue")
             l += vertical_line + "+%#.4x: " % offset
             l += sep.join(addrs[1:])
+
             values = []
             for regname, regvalue in regs:
                 if current_address == regvalue:
-                    values.append(regname.strip())
+                    values.append(regname)
 
             if len(values)>0:
-                l += Color.colorify("\t\t"+ left_arrow + ', '.join(values), attrs="bold green")
+                l += Color.colorify("\t"+ left_arrow + ', '.join(list(values)), attrs="bold green")
 
             offset += memalign
             return l
 
         nb = int(argv[1]) if len(argv)==2 and argv[1].isdigit() else 1
         start_address = align_address( long(gdb.parse_and_eval(argv[0])) )
+        l = []
         for i in range(0, nb):
-            line = _pprint_dereferenced(start_address, i)
-            print(line)
+            l.append( _pprint_dereferenced(start_address, i) )
+        print("\n".join(l))
         return
 
 
