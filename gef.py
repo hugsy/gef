@@ -4742,6 +4742,10 @@ class EntryPointBreakCommand(GenericCommand):
             warn("No executable to debug, use `file` to load a binary")
             return
 
+        if is_alive():
+            warn("gdb is already running")
+            return
+
         syms = ["main", "__libc_start_main", "__uClibc_main"]
         for sym in syms:
             try:
