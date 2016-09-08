@@ -6133,7 +6133,7 @@ class GefConfigCommand(gdb.Command):
 
         plugin_name, setting_name = argv[0].split(".", 1)
 
-        if plugin_name not in self.loaded_commands + ["gef",]:
+        if plugin_name not in self.loaded_commands + ["gef"]:
             err("Unknown plugin '%s'" % plugin_name)
             return
 
@@ -6144,10 +6144,10 @@ class GefConfigCommand(gdb.Command):
 
         try:
             if _type == bool:
-                _newval = True if argv[1] in ("True", "TRUE", "true", "1") else False
+                _newval = True if argv[1].upper() in ("TRUE", "T", "1") else False
             else:
                 _newval = argv[1]
-                _type( _newval )
+                _newval = _type(_newval)
 
         except:
             err("%s expects type '%s'" % (argv[0], _type.__name__))
