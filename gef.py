@@ -811,7 +811,7 @@ def _gef_disassemble_around(addr, nb_insn):
     found = False
 
     # we try to find a good set of previous instructions by guessing incrementally
-    for i in reversed( range(32+16*nb_insn) ):
+    for i in range(32+16*nb_insn, 1, -1):
         try:
             cmd = "x/%di %#x" % (nb_insn, addr-i)
             lines = gdb.execute(cmd, to_string=True).splitlines()
@@ -5221,12 +5221,13 @@ class DereferenceCommand(GenericCommand):
         memalign = get_memory_alignment(to_byte=True)
         offset = 0
         regs = [(k.strip(), get_register_ex(k)) for k in all_registers()]
+        sep = " %s " % right_arrow
 
         def _pprint_dereferenced(addr, off):
             offset = off * memalign
             current_address = align_address( addr + offset )
             addrs = DereferenceCommand.dereference_from(current_address)
-            sep = " %s " % right_arrow
+
             l  = Color.colorify(format_address(long(addrs[0], 16)), attrs="bold blue")
             l += vertical_line + "+%#.4x: " % offset
             l += sep.join(addrs[1:])
@@ -5244,10 +5245,9 @@ class DereferenceCommand(GenericCommand):
 
         nb = int(argv[1]) if len(argv)==2 and argv[1].isdigit() else 1
         start_address = align_address( long(gdb.parse_and_eval(argv[0])) )
-        l = []
+
         for i in range(0, nb):
-            l.append( _pprint_dereferenced(start_address, i) )
-        print("\n".join(l))
+            print( _pprint_dereferenced(start_address, i) )
         return
 
 
