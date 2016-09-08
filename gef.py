@@ -4795,6 +4795,7 @@ class ContextCommand(GenericCommand):
         super(ContextCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         self.add_setting("enable", True)
         self.add_setting("show_stack_raw", False)
+        self.add_setting("show_registers_raw", True)
         self.add_setting("nb_lines_stack", 8)
         self.add_setting("nb_lines_backtrace", 3)
         self.add_setting("nb_lines_code", 5)
@@ -4837,9 +4838,14 @@ class ContextCommand(GenericCommand):
         return
 
     def context_regs(self):
-        if self.get_setting("show_registers")==False: return
+        if self.get_setting("show_registers")==False:
+            return
 
         self.context_title("registers")
+
+        if self.get_setting("show_registers_raw")==False:
+            gdb.execute("registers")
+            return
 
         l = max(map(len, all_registers()))
         l+= 5
