@@ -4933,25 +4933,25 @@ class ContextCommand(GenericCommand):
 
             lines = gef_disassemble(pc, nb_insn)
             for addr, content in lines:
-                insn = "%#x %s" % (addr,content)
-                line = u""
+                insn = "%#x %s" % (addr, content)
+                line = []
                 if addr < pc:
-                    line+= Color.grayify("%#x\t %s" % (addr, content,) )
+                    line+= Color.grayify("%#x\t%s" % (addr, content,) )
                 elif addr == pc:
-                    line+= Color.colorify("%#x\t %s \t\t %s $pc" % (addr, content, left_arrow), attrs="bold red")
+                    line+= Color.colorify("%#x\t%s\t\t%s $pc" % (addr, content, left_arrow), attrs="bold red")
 
                     if is_conditional_branch(insn):
                         is_taken, reason = is_branch_taken(insn)
-                        reason = "[Reason: %s]" % reason if len(reason) else ""
+                        reason = "[%s]" % reason if reason else ""
                         if is_taken:
-                            line+= Color.colorify("\tBranch TAKEN %s" % reason, attrs="bold green")
+                            line+= Color.colorify("\tTAKEN %s" % reason, attrs="bold green")
                         else:
-                            line+= Color.colorify("\tBranch NOT taken %s" % reason, attrs="bold red")
+                            line+= Color.colorify("\tNOT taken %s" % reason, attrs="bold red")
 
                 else:
-                    line+= "%#x\t %s" % (addr, content)
+                    line+= "%#x\t%s" % (addr, content)
 
-                print(line)
+                print(u"".join(line))
 
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
