@@ -6147,7 +6147,7 @@ class GefConfigCommand(gdb.Command):
                 _newval = True if argv[1] in ("True", "TRUE", "true", "1") else False
             else:
                 _newval = argv[1]
-                _type( _newval )
+                _newval = _type(_newval)
 
         except:
             err("%s expects type '%s'" % (argv[0], _type.__name__))
