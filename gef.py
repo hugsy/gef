@@ -2191,7 +2191,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             addr = lookup_address( get_register_ex( ptr ) )
 
         elif is_x86_64():
-            regs = x86_32_function_parameters()
+            regs = x86_64_function_parameters()
             ptr = regs[self.num_args]
             addr = lookup_address( get_register_ex( ptr ) )
 
