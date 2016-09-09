@@ -846,9 +846,6 @@ def gef_disassemble(addr, nb_insn, from_top=False):
 
     lines = _gef_disassemble_top(addr, nb_insn) if from_top else _gef_disassemble_around(addr, nb_insn)
 
-    if len(lines)==0:
-        return []
-
     result = []
     for line in lines:
         (address, location, mnemo, operands) = gef_parse_gdb_instruction(line)
@@ -4943,11 +4940,11 @@ class ContextCommand(GenericCommand):
 
             for addr, content in gef_disassemble(pc, nb_insn):
                 insn = "%#x %s" % (addr,content)
-                line = u""
+                line = []
                 if addr < pc:
                     line+= Color.grayify("%#x\t %s" % (addr, content,) )
                 elif addr == pc:
-                    line+= Color.colorify("%#x\t%s\t%s $pc" % (addr, content, left_arrow), attrs="bold red")
+                    line+= Color.colorify("%#x\t%s\t%s$pc" % (addr, content, left_arrow), attrs="bold red")
 
                     if is_conditional_branch(insn):
                         is_taken, reason = is_branch_taken(insn)
@@ -4960,7 +4957,7 @@ class ContextCommand(GenericCommand):
                 else:
                     line+= "%#x\t %s" % (addr, content)
 
-                print(line)
+                print("".join(line))
 
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
