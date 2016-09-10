@@ -78,6 +78,9 @@ if sys.version_info[0] == 2:
     horizontal_line = "-"
     vertical_line = "|"
 
+    gef_prompt = "gef> "
+    gef_prompt_on = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(gef_prompt)
+    gef_prompt_off = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(gef_prompt)
 elif sys.version_info[0] == 3:
     PYTHON_MAJOR = 3
 
@@ -97,6 +100,9 @@ elif sys.version_info[0] == 3:
     horizontal_line = "\u2500"
     vertical_line = "\u2502"
 
+    gef_prompt = "gef\u27a4  "
+    gef_prompt_on = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(gef_prompt)
+    gef_prompt_off = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(gef_prompt)
 else:
     raise Exception("WTF is this Python version??")
 
@@ -1794,12 +1800,8 @@ def lookup_address(address):
         # i.e. there is no info on this address
         return None
 
-    if sect:
-        addr.section = sect
-
-    if info:
-        addr.info = info
-
+    addr.section = sect
+    addr.info = info
     return addr
 
 
@@ -5200,7 +5202,7 @@ class DereferenceCommand(GenericCommand):
 
     _cmdline_ = "dereference"
     _syntax_  = "%s [LOCATION] [NB]" % _cmdline_
-    _aliases_ = ["telescope", ]
+    _aliases_ = ["telescope", "dps", ]
 
 
     def __init__(self):
@@ -5250,13 +5252,15 @@ class DereferenceCommand(GenericCommand):
 
     @staticmethod
     def dereference_from(addr):
+        if not is_alive():
+            return [ format_address(0x00), ]
+
         prev_addr_value = None
         max_recursion = max(int(__config__["dereference.max_recursion"][0]), 1)
         value = align_address( long(addr) )
         addr  = lookup_address( value )
-
-        if addr is None:
-            return [ format_address(value), ]
+        if addr is None or addr.value==0x00:
+            return [ format_address(0x00), ]
 
         msg = []
 
@@ -5955,6 +5959,8 @@ class GefCommand(gdb.Command):
         GefSaveCommand()
         GefRestoreCommand()
         GefMissingCommand()
+        GefSetCommand()
+        GefRunCommand()
 
         if os.access(GEF_RC, os.R_OK):
             gdb.execute("gef restore")
@@ -6253,13 +6259,62 @@ class GefMissingCommand(gdb.Command):
         return
 
 
+class GefSetCommand(gdb.Command):
+    """Override GDB set commands with the context from GEF.
+    """
+    _cmdline_ = "gef set"
+    _syntax_  = "%s [GDB_SET_ARGUMENTS]" % _cmdline_
+
+    def __init__(self, *args, **kwargs):
+        super(GefSetCommand, self).__init__(GefSetCommand._cmdline_,
+                                            gdb.COMMAND_SUPPORT,
+                                            gdb.COMPLETE_SYMBOL,
+                                            False)
+        return
+
+    def invoke(self, args, from_tty):
+        args = args.split()
+        cmd = ["set", args[0], ]
+        for p in args[1:]:
+            if p.startswith("$_gef"):
+                c = gdb.parse_and_eval(p)
+                cmd.append(c.string())
+            else:
+                cmd.append(p)
+
+        gdb.execute(" ".join(cmd))
+        return
+
+class GefRunCommand(gdb.Command):
+    """Override GDB run commands with the context from GEF.
+    Simple wrapper for GDB run command to use arguments set from `gef set args`.
+    """
+    _cmdline_ = "gef run"
+    _syntax_  = "%s [GDB_RUN_ARGUMENTS]" % _cmdline_
+
+    def __init__(self, *args, **kwargs):
+        super(GefRunCommand, self).__init__(GefRunCommand._cmdline_,
+                                            gdb.COMMAND_SUPPORT,
+                                            gdb.COMPLETE_FILENAME,
+                                            False)
+        return
+
+    def invoke(self, args, from_tty):
+        if is_alive():
+            gdb.execute("continue")
+            return
+
+        argv = args.split()
+        gdb.execute("gef set args " + " ".join(argv))
+        gdb.execute("run")
+        return
+
+
 def __gef_prompt__(current_prompt):
-    prompt = "gef> " if PYTHON_MAJOR == 2 else "gef\u27a4  "
     if is_alive():
-        fmt_prompt = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(prompt)
-    else:
-        fmt_prompt = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(prompt)
-    return fmt_prompt
+        return gef_prompt_on
+
+    return gef_prompt_off
 
 
 if __name__  == "__main__":
@@ -6290,9 +6345,6 @@ if __name__  == "__main__":
     gdb.execute("alias -a tba = thbreak")
     gdb.execute("alias -a ptc = finish")
 
-    # runtime
-    gdb.execute("alias -a g = continue")
-
     # memory access
     gdb.execute("alias -a uf = disassemble")
 
@@ -6317,3 +6369,6 @@ if __name__  == "__main__":
     gdb.events.stop.connect(hook_stop_handler)
     gdb.events.new_objfile.connect(new_objfile_handler)
     gdb.events.exited.connect(exit_handler)
+
+    # runtime
+    gdb.execute("alias -a g = gef run")
