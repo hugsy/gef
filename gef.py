@@ -758,7 +758,7 @@ def disable_debug():
     return
 
 
-def disable_output(to_file="/dev/null"):
+def enable_redirect_output(to_file="/dev/null"):
     gdb.execute("set logging overwrite")
     gdb.execute("set logging file %s" % to_file)
     gdb.execute("set logging redirect on")
@@ -766,9 +766,9 @@ def disable_output(to_file="/dev/null"):
     return
 
 
-def enable_output():
-    gdb.execute( "set logging redirect off" )
-    gdb.execute( "set logging off" )
+def disable_redirect_output():
+    gdb.execute("set logging redirect off")
+    gdb.execute("set logging off")
     return
 
 
@@ -2054,8 +2054,14 @@ def get_memory_alignment(to_byte=False):
 
     raise GefUnsupportedMode("GEF is running under an unsupported mode")
 
-def clear_screen():
-    gdb.execute("shell clear")
+def clear_screen(tty=""):
+    if not len(tty):
+        gdb.execute("shell clear")
+        return
+
+    with open(tty, "w") as f:
+        f.write('\x1b[H\x1b[J')
+
     return
 
 def format_address(addr):
@@ -2394,6 +2400,7 @@ class GenericCommand(gdb.Command):
     # return
     # def do_invoke(self, argv):
     # return
+
 
 class PCustomCommand(GenericCommand):
     """Dump user defined structure.
@@ -3128,7 +3135,7 @@ class UnicornEmulateCommand(GenericCommand):
     changed via arguments to the command line. By default, it will emulate the next instruction from current PC."""
 
     _cmdline_ = "unicorn-emulate"
-    _syntax_  = "%s [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-e] [-h]" % _cmdline_
+    _syntax_  = "%s [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-e PATH] [-h]" % _cmdline_
     _aliases_ = ["emulate", ]
 
     def __init__(self):
@@ -4791,7 +4798,7 @@ class ContextCommand(GenericCommand):
     old_registers = {}
 
     def __init__(self):
-        super(ContextCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
+        super(ContextCommand, self).__init__(prefix=False)
         self.add_setting("enable", True)
         self.add_setting("show_stack_raw", False)
         self.add_setting("show_registers_raw", True)
@@ -4800,10 +4807,8 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_code", 5)
         self.add_setting("clear_screen", False)
 
-        self.add_setting("show_registers", True)
-        self.add_setting("show_stack", True)
-        self.add_setting("show_code", True)
-        self.add_setting("show_trace", True)
+        self.add_setting("layout", "regs stack code source trace")
+        self.add_setting("redirect", "")
 
         if "capstone" in list( sys.modules.keys() ):
             self.add_setting("use_capstone", False)
@@ -4815,17 +4820,30 @@ class ContextCommand(GenericCommand):
         if not self.get_setting("enable"):
             return
 
-        if self.get_setting("clear_screen"):
-            clear_screen()
-
         self.tty_rows, self.tty_columns = get_terminal_size()
 
-        self.context_regs()
-        self.context_stack()
-        self.context_code()
-        self.context_source()
-        self.context_trace()
+        current_layout = self.get_setting("layout").split()
+        layout_mapping = {"regs":  self.context_regs,
+                          "stack": self.context_stack,
+                          "code": self.context_code,
+                          "source": self.context_source,
+                          "trace": self.context_trace, }
+
+        redirect = self.get_setting("redirect")
+        if len(redirect)>0 and os.access(redirect, os.W_OK):
+            enable_redirect_output(to_file=redirect)
+
+        if self.get_setting("clear_screen"):
+            clear_screen(redirect)
+
+        for i in current_layout:
+            layout_mapping[i]()
+
         self.context_title('')
+
+        if len(redirect)>0 and os.access(redirect, os.W_OK):
+            disable_redirect_output()
+
         self.update_registers()
         return
 
@@ -4837,9 +4855,6 @@ class ContextCommand(GenericCommand):
         return
 
     def context_regs(self):
-        if self.get_setting("show_registers")==False:
-            return
-
         self.context_title("registers")
 
         if self.get_setting("show_registers_raw")==False:
@@ -4899,9 +4914,6 @@ class ContextCommand(GenericCommand):
         return
 
     def context_stack(self):
-        if self.get_setting("show_stack")==False:
-            return
-
         self.context_title("stack")
 
         show_raw = self.get_setting("show_stack_raw")
@@ -4921,9 +4933,6 @@ class ContextCommand(GenericCommand):
         return
 
     def context_code(self):
-        if self.get_setting("show_code")==False:
-            return
-
         nb_insn = self.get_setting("nb_lines_code")
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
         pc = get_pc()
@@ -4943,10 +4952,11 @@ class ContextCommand(GenericCommand):
             for addr, content in gef_disassemble(pc, nb_insn):
                 insn = "%#x %s" % (addr,content)
                 line = []
+                m = "%#.16x    %s" % (addr, content,)
                 if addr < pc:
-                    line+= Color.grayify("%#x\t %s" % (addr, content,) )
+                    line+= Color.grayify(m)
                 elif addr == pc:
-                    line+= Color.colorify("%#x\t%s\t%s$pc" % (addr, content, left_arrow), attrs="bold red")
+                    line+= Color.colorify("%s  %s$pc" % (m, left_arrow), attrs="bold red")
 
                     if is_conditional_branch(insn):
                         is_taken, reason = is_branch_taken(insn)
@@ -4957,7 +4967,7 @@ class ContextCommand(GenericCommand):
                             line+= Color.colorify("\tNOT taken %s" % reason, attrs="bold red")
 
                 else:
-                    line+= "%#x\t %s" % (addr, content)
+                    line+= m
 
                 print("".join(line))
 
@@ -4979,7 +4989,6 @@ class ContextCommand(GenericCommand):
                 lines = [l.rstrip() for l in f.readlines()]
 
         except Exception as e:
-            # err("in `context_source, exception '%s' raised: %s" % (e.__class__.__name__, e.message))
             return
 
         nb_line = self.get_setting("nb_lines_code")
@@ -5040,9 +5049,6 @@ class ContextCommand(GenericCommand):
         return ""
 
     def context_trace(self):
-        if self.get_setting("show_trace")==False:
-            return
-
         self.context_title("trace")
 
         try:
@@ -5607,13 +5613,13 @@ class TraceRunCommand(GenericCommand):
         info("Tracing from %#x to %#x (max depth=%d)" % (loc_start, loc_end,depth))
         logfile = "%s%#x-%#x.txt" % (self.get_setting("tracefile_prefix"), loc_start, loc_end)
 
-        disable_output(to_file=logfile)
+        enable_redirect_output(to_file=logfile)
         disable_context()
 
         self._do_trace(loc_start, loc_end, depth)
 
         enable_context()
-        enable_output()
+        disable_redirect_output()
 
         ok("Done, logfile stored as '%s'" % logfile)
         info("Hint: import logfile with `ida_color_gdb_trace.py` script in IDA to visualize path")
@@ -5882,12 +5888,12 @@ class FormatStringSearchCommand(GenericCommand):
             'vsnprintf':  2,
         }
 
-        disable_output()
+        enable_redirect_output("/dev/null")
 
         for func_name, num_arg in dangerous_functions.items():
             FormatStringBreakpoint(func_name, num_arg)
 
-        enable_output()
+        disable_redirect_output()
         ok("Enabled %d FormatStringBreakpoint" % len(dangerous_functions.keys()))
         return
 
