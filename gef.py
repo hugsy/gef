@@ -35,6 +35,7 @@
 #
 
 from __future__ import print_function
+from __future__ import division
 
 import binascii
 import collections
@@ -45,7 +46,6 @@ import getopt
 import hashlib
 import imp
 import itertools
-import math
 import os
 import re
 import resource
@@ -56,8 +56,6 @@ import subprocess
 import sys
 import tempfile
 import termios
-import threading
-import time
 import traceback
 
 
@@ -677,7 +675,7 @@ class GlibcChunk:
 
 def titlify(msg, color=Color.RED):
     cols = get_terminal_size()[1]
-    n = int((cols-len(msg)-4)/2)
+    n = (cols-len(msg)-4)//2
     if color==Color.RED:
         title = Color.colorify(msg, attrs="bold red")
     elif color==Color.GREEN:
@@ -4864,7 +4862,7 @@ class ContextCommand(GenericCommand):
         l = max(map(len, all_registers()))
         l+= 5
         l+= 16 if is_elf64() else 8
-        nb = math.floor(get_terminal_size()[1]/l)
+        nb = get_terminal_size()[1]//l
         i = 1
         line = ""
 
