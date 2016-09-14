@@ -4799,6 +4799,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_backtrace", 3)
         self.add_setting("nb_lines_code", 5)
         self.add_setting("clear_screen", False)
+        self.add_setting("title_color", "blue")
 
         self.add_setting("layout", "regs stack code source threads trace")
         self.add_setting("redirect", "")
@@ -4844,7 +4845,10 @@ class ContextCommand(GenericCommand):
         return
 
     def context_title(self, m):
-        color = "bold yellow"
+        color = "bold {:s}".format(self.get_setting("title_color"))
+        if color not in ("pink", "red", "blue", "gray", "yellow"):
+            color = "bold blue"
+
         if len(m)==0:
             print(Color.colorify(horizontal_line*self.tty_columns, color))
             return
