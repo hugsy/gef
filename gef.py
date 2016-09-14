@@ -4845,9 +4845,10 @@ class ContextCommand(GenericCommand):
         return
 
     def context_title(self, m):
-        color = "bold {:s}".format(self.get_setting("title_color"))
+        color = self.get_setting("title_color")
         if color not in ("pink", "red", "blue", "gray", "yellow"):
-            color = "bold blue"
+            color = "blue"
+        color+= " bold"
 
         if len(m)==0:
             print(Color.colorify(horizontal_line*self.tty_columns, color))
