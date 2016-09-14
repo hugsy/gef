@@ -5071,7 +5071,12 @@ class ContextCommand(GenericCommand):
             items = []
             items.append("RetAddr: %#x" % pc)
             if name:
-                items.append("Name: %s()" % Color.greenify(name))
+                frame_args = gdb.FrameDecorator.FrameDecorator(current_frame).frame_args() or []
+                m = "Name: %s(" % Color.greenify(name)
+                m+= ",".join(["%s=%s" % (x.sym, x.sym.value(current_frame)) for x in frame_args])
+                m+= ")"
+                items.append(m)
+
             print("[%s] %s" % (Color.colorify("#"+str(i), "bold pink"),
                                ", ".join(items)))
             current_frame = current_frame.older()
