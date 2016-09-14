@@ -909,12 +909,11 @@ def is_little_endian():
     return not is_big_endian()
 
 def flags_to_human(reg_value, value_table):
-    flags = "["
+    flags = []
     for i in value_table.keys():
         w = Color.boldify( value_table[i].upper() ) if reg_value & (1<<i) else value_table[i].lower()
-        flags += " %s " % w
-    flags += "]"
-    return flags
+        flags.append(w)
+    return "[{}]".format(" ".join(flags))
 
 
 ######################[ ARM specific ]######################
@@ -4200,13 +4199,9 @@ class DetailRegistersCommand(GenericCommand):
 
             line = Color.colorify(regname, attrs="bold red") + ": "
 
-            if str(reg.type) == 'builtin_type_sparc_psr':  # ugly but more explicit
-                line+= "%s" % reg
-                continue
-
             if reg.type.code == gdb.TYPE_CODE_FLAGS:
-                desc_flag = flag_register()
-                line+= "%s" % (Color.boldify(str(reg))) if desc_flag == "" else desc_flag
+                line+= flag_register_to_human()
+                print(line)
                 continue
 
             addr = align_address( long(reg) )
@@ -4805,7 +4800,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_code", 5)
         self.add_setting("clear_screen", False)
 
-        self.add_setting("layout", "regs stack code source trace")
+        self.add_setting("layout", "regs stack code source threads trace")
         self.add_setting("redirect", "")
 
         if "capstone" in list( sys.modules.keys() ):
@@ -4825,7 +4820,8 @@ class ContextCommand(GenericCommand):
                           "stack": self.context_stack,
                           "code": self.context_code,
                           "source": self.context_source,
-                          "trace": self.context_trace, }
+                          "trace": self.context_trace,
+                          "threads": self.context_threads}
 
         redirect = self.get_setting("redirect")
         if len(redirect)>0 and os.access(redirect, os.W_OK):
@@ -4834,8 +4830,10 @@ class ContextCommand(GenericCommand):
         if self.get_setting("clear_screen"):
             clear_screen(redirect)
 
-        for i in current_layout:
-            layout_mapping[i]()
+        for pane in current_layout:
+            if pane[0] in ("!", "-"):
+                continue
+            layout_mapping[pane]()
 
         self.context_title('')
 
@@ -4846,10 +4844,16 @@ class ContextCommand(GenericCommand):
         return
 
     def context_title(self, m):
-        trail = horizontal_line*2
-        title = "[{}]{}".format(m,trail) if len(m) else "{}".format(trail)
-        title = horizontal_line*(self.tty_columns-len(title)) + title
-        print(Color.colorify(title, attrs="bold blue"))
+        color = "bold yellow"
+        if len(m)==0:
+            print(Color.colorify(horizontal_line*self.tty_columns, color))
+            return
+
+        trail_len = len(m)+6
+        title = "{:{padd}<{width}}[{}]{:{padd}<4}".format("", m, "",
+                                                          width=self.tty_columns-trail_len,
+                                                          padd=horizontal_line)
+        print(Color.colorify(title, color))
         return
 
     def context_regs(self):
@@ -5049,10 +5053,47 @@ class ContextCommand(GenericCommand):
     def context_trace(self):
         self.context_title("trace")
 
-        try:
-            gdb.execute("backtrace %d" % self.get_setting("nb_lines_backtrace"))
-        except gdb.MemoryError:
-            err("Cannot backtrace (corrupted frames?)")
+        nb_backtrace = self.get_setting("nb_lines_backtrace")
+        current_frame = gdb.selected_frame()
+        i = 0
+
+        while current_frame:
+            current_frame.select()
+            if not current_frame.is_valid():
+                continue
+
+            pc = current_frame.pc()
+            name = current_frame.name()
+            items = []
+            items.append("RetAddr: %#x" % pc)
+            if name:
+                items.append("Name: %s()" % Color.greenify(name))
+            print("[%s] %s" % (Color.colorify("#"+str(i), "bold pink"),
+                               ", ".join(items)))
+            current_frame = current_frame.older()
+            i+= 1
+        return
+
+    def context_threads(self):
+        self.context_title("threads")
+
+        threads = gdb.selected_inferior().threads()
+        if len(threads)==0:
+            warn("No thread selected")
+            return
+
+        i = 0
+        for thread in threads:
+            line = """[{:s}] """.format(Color.colorify("#%d"%i, attrs="bold pink"))
+            line+= """Id {:d}, Name: "{:s}", """.format(thread.num, thread.name)
+            if thread.is_running():
+                line+= Color.colorify("running", attrs="bold green")
+            elif thread.is_stopped():
+                line+= Color.colorify("stopped", attrs="bold red")
+            elif thread.is_exited():
+                line+= Color.colorify("exited", attrs="bold yellow")
+            print(line)
+            i+= 1
         return
 
     def update_registers(self):
@@ -5900,7 +5941,7 @@ class GefCommand(gdb.Command):
     """GEF main command: view all new commands by typing `gef`"""
 
     _cmdline_ = "gef"
-    _syntax_  = "%s (config|help|save|restore|restore)" % _cmdline_
+    _syntax_  = "%s (help|missing|config|save|restore|set|run)" % _cmdline_
 
     def __init__(self):
         super(GefCommand, self).__init__(GefCommand._cmdline_,
@@ -5910,6 +5951,7 @@ class GefCommand(gdb.Command):
 
         __config__["gef.no_color"] = (False, bool)
         __config__["gef.follow_child"] = (True, bool)
+        __config__["gef.readline_compat"] = (False, bool)
 
         self.classes = [ResetCacheCommand,
                         XAddressInfoCommand,
@@ -6229,7 +6271,8 @@ class GefRestoreCommand(gdb.Command):
                         new_value = _type(new_value)
                     __config__[key] = (new_value, _type)
                 except:
-                    warn("Could not restore '%s'" % key)
+                    # warn("Could not restore '%s'" % key)
+                    pass
 
         ok("Configuration from '%s' restored" % GEF_RC)
         return
@@ -6315,6 +6358,9 @@ class GefRunCommand(gdb.Command):
 
 
 def __gef_prompt__(current_prompt):
+    if __config__.get("gef.readline_compat")[0]:
+        return gef_prompt
+
     if is_alive():
         return gef_prompt_on
 
