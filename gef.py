@@ -5954,6 +5954,7 @@ class GefCommand(gdb.Command):
         __config__["gef.no_color"] = (False, bool)
         __config__["gef.follow_child"] = (True, bool)
         __config__["gef.readline_compat"] = (False, bool)
+        __config__["gef.debug"] = (False, bool)
 
         self.classes = [ResetCacheCommand,
                         XAddressInfoCommand,
@@ -6208,13 +6209,27 @@ class GefConfigCommand(gdb.Command):
     def complete(self, text, word):
         valid_settings = list(__config__.keys())
         valid_settings.sort()
+
         if len(text)==0:
             return valid_settings
 
+        if text.endswith('.'):
+            options = [x.replace(text, "") for x in valid_settings if x.startswith(text)]
+            return options
+
         completion = []
         for setting in valid_settings:
-            if setting.startswith(text) and setting not in completion:
+            if setting.startswith(text):
                 completion.append(setting)
+
+        if len(completion)==1:
+            if '.' not in text:
+                return completion
+
+            choice = completion[0]
+            i = choice.find('.')+1
+            return [choice[i:]]
+
         return completion
 
 
@@ -6284,7 +6299,6 @@ class GefRestoreCommand(gdb.Command):
                         new_value = _type(new_value)
                     __config__[key] = (new_value, _type)
                 except:
-                    # warn("Could not restore '%s'" % key)
                     pass
 
         ok("Configuration from '%s' restored" % GEF_RC)
@@ -6384,8 +6398,6 @@ if __name__  == "__main__":
 
     # setup prompt
     gdb.prompt_hook = __gef_prompt__
-
-    disable_debug()
 
     # setup config
     gdb.execute("set confirm off")
