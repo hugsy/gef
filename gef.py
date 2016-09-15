@@ -6146,9 +6146,8 @@ class GefConfigCommand(gdb.Command):
 
     def __init__(self, loaded_commands, *args, **kwargs):
         super(GefConfigCommand, self).__init__(GefConfigCommand._cmdline_,
-                                               gdb.COMMAND_SUPPORT,
-                                               gdb.COMPLETE_NONE,
-                                               False)
+                                               gdb.COMMAND_USER,
+                                               prefix=False)
         self.loaded_commands = loaded_commands
         return
 
@@ -6170,21 +6169,28 @@ class GefConfigCommand(gdb.Command):
             info("Disabled debug mode")
             return
 
-        if argc==0 or argc==1:
-            self.print_settings(argc, argv)
+        if argc==0:
+            print(titlify("GEF configuration settings"))
+            self.print_settings()
+            return
+
+        if argc==1:
+            plugin_name = argv[0]
+            print(titlify("GEF configuration setting: %s" % plugin_name))
+            self.print_setting(plugin_name)
             return
 
         self.set_setting(argc, argv)
         return
 
-    def print_settings(self, argc, argv):
-        config_items = sorted( __config__ )
-        plugin_name = argv[0] if argc==1 and argv[0] in self.loaded_commands else ""
-        print( titlify("GEF configuration settings %s" % plugin_name) )
-        for key in config_items:
-            if plugin_name not in key: continue
-            value, type = __config__.get(key, None)
-            print("%-40s  (%s) = %s" % (key, type.__name__, value))
+    def print_setting(self, plugin_name):
+        _value, _type = __config__.get(plugin_name, None)
+        print("%-40s  (%s) = %s" % (plugin_name, _type.__name__, _value))
+        return
+
+    def print_settings(self):
+        for x in sorted(__config__.keys()):
+            self.print_setting(x)
         return
 
     def set_setting(self, argc, argv):
@@ -6211,11 +6217,25 @@ class GefConfigCommand(gdb.Command):
                 _newval = _type(_newval)
 
         except:
-            err("%s expects type '%s'" % (argv[0], _type.__name__))
+            err("{} expects type '{}'".format(argv[0], _type.__name__))
             return
 
         __config__[ argv[0] ] = (_newval, _type)
         return
+
+    def complete(self, text, word):
+        valid_settings = list(__config__.keys())
+        valid_settings.append("debug_on") ; valid_settings.append("debug_off")
+        valid_settings.sort()
+        if len(text)==0:
+            return valid_settings
+
+        completion = []
+        for setting in valid_settings:
+            if setting.startswith(text) and setting not in completion:
+                completion.append(setting)
+        return completion
+
 
 class GefSaveCommand(gdb.Command):
     """GEF save sub-command
