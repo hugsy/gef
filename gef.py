@@ -737,23 +737,13 @@ def hexdump(source, length=0x10, separator='.', show_raw=False, base=0x00):
         if show_raw:
             result.append(hexa)
         else:
-            result.append( "%#-.*x     %-*s    %s" % (16, base+i, 3*length, hexa, text) )
+            result.append("%#-.*x     %-*s    %s" % (16, base+i, 3*length, hexa, text))
 
     return '\n'.join(result)
 
 
 def is_debug():
-    return "global.debug" in __config__.keys() and __config__["global.debug"][0]==True
-
-
-def enable_debug():
-    __config__["global.debug"] = (True, bool)
-    return
-
-
-def disable_debug():
-    __config__["global.debug"] = (False, bool)
-    return
+    return "gef.debug" in __config__.keys() and __config__["gef.debug"][0]==True
 
 
 def enable_redirect_output(to_file="/dev/null"):
@@ -6159,16 +6149,6 @@ class GefConfigCommand(gdb.Command):
             err("Invalid number of arguments")
             return
 
-        if argc==1 and args[0]=="debug_on":
-            enable_debug()
-            info("Enabled debug mode")
-            return
-
-        if argc==1 and args[0]=="debug_off":
-            disable_debug()
-            info("Disabled debug mode")
-            return
-
         if argc==0:
             print(titlify("GEF configuration settings"))
             self.print_settings()
@@ -6227,7 +6207,6 @@ class GefConfigCommand(gdb.Command):
 
     def complete(self, text, word):
         valid_settings = list(__config__.keys())
-        valid_settings.append("debug_on") ; valid_settings.append("debug_off")
         valid_settings.sort()
         if len(text)==0:
             return valid_settings
@@ -6405,6 +6384,8 @@ if __name__  == "__main__":
 
     # setup prompt
     gdb.prompt_hook = __gef_prompt__
+
+    disable_debug()
 
     # setup config
     gdb.execute("set confirm off")
