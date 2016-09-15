@@ -6184,8 +6184,10 @@ class GefConfigCommand(gdb.Command):
         return
 
     def print_setting(self, plugin_name):
-        _value, _type = __config__.get(plugin_name, None)
-        print("%-40s  (%s) = %s" % (plugin_name, _type.__name__, _value))
+        res = __config__.get(plugin_name)
+        if res is not None:
+            _value, _type = res
+            print("%-40s  (%s) = %s" % (plugin_name, _type.__name__, _value))
         return
 
     def print_settings(self):
