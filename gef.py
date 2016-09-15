@@ -146,7 +146,7 @@ __gef_convenience_vars_index__         = 0
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
 GEF_RC                                 = os.getenv("HOME") + "/.gef.rc"
-
+GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
 
 class GefGenericException(Exception):
     def __init__(self, value):
@@ -771,14 +771,18 @@ def disable_redirect_output():
 
 
 def gef_makedirs(path, mode=0o755):
+    abspath = os.path.realpath(path)
+    if os.path.isdir(abspath):
+        return abspath
+
     if PYTHON_MAJOR == 3:
         os.makedirs(path, mode=mode, exist_ok=True)
-        return
-    try:
-        os.makedirs(path, mode=mode)
-    except os.error:
-        pass
-    return
+    else:
+        try:
+            os.makedirs(path, mode=mode)
+        except os.error:
+            pass
+    return abspath
 
 
 def gef_obsolete_function(func):
@@ -1594,7 +1598,7 @@ def get_filepath():
 def download_file(target, use_cache=False):
     """Download filename `target` inside the mirror tree in /tmp"""
     try:
-        local_root = '{0:s}/gef'.format(tempfile.gettempdir())
+        local_root = GEF_TEMP_DIR
         local_path = local_root + '/' + os.path.dirname( target )
         local_name = local_path + '/' + os.path.basename( target )
         if use_cache and os.path.isfile(local_name):
@@ -2413,7 +2417,7 @@ class PCustomCommand(GenericCommand):
 
     def __init__(self):
         super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL, prefix=False)
-        self.add_setting("struct_path", tempfile.gettempdir()+'/gef/structs')
+        self.add_setting("struct_path", GEF_TEMP_DIR+'/structs')
         self.template_body = b"""from ctypes import *
 
 class Template(Structure):
@@ -2580,7 +2584,7 @@ class RetDecCommand(GenericCommand):
     def __init__(self):
         super(RetDecCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL, prefix=False)
         self.add_setting("key", "1dd7cb8f-ca9f-4663-811b-2095b87d7faa")
-        self.add_setting("path", tempfile.gettempdir())
+        self.add_setting("path", GEF_TEMP_DIR)
         self.decompiler = None
         return
 
@@ -3540,12 +3544,12 @@ class RemoteCommand(GenericCommand):
         if not is_remote_debug():
             return
 
-        # download newly loaded libraries
         if self.download_all_libs and event.new_objfile.filename.startswith("target:"):
             lib = event.new_objfile.filename[len("target:"):]
             llib = download_file(lib, use_cache=True)
             if llib:
                 ok("Download success: %s %s %s" % (lib, right_arrow, llib))
+        return
 
     def setup_remote_environment(self, pid, update_solib=False):
         """Clone the remote environment locally in the temporary directory.
@@ -3566,12 +3570,10 @@ class RemoteCommand(GenericCommand):
             err("Source binary is not readable")
             return
 
-        directory  = '%s/gef' % (tempfile.gettempdir())
+        directory  = GEF_TEMP_DIR
         gdb.execute("file %s" % infos["exe"])
-
         self.add_setting("root", directory)
-
-        ok("Remote information loaded, remember to clean '%s' when your session is over" % tempfile.gettempdir())
+        ok("Remote information loaded, remember to clean '%s' when your session is over" % directory)
         return
 
     def connect_target(self, target, is_extended_remote):
@@ -3579,9 +3581,9 @@ class RemoteCommand(GenericCommand):
         not fetched just yet, we disable the context disable when connection was successful."""
         disable_context()
         try:
-            gdb.execute("target {0} {1}".format("extended-remote" if is_extended_remote else "remote",
-                                                target))
-            ok("Connected to '%s'" % target)
+            cmd = "target {} {}".format("extended-remote" if is_extended_remote else "remote", target)
+            gdb.execute(cmd)
+            ok("Connected to '{}'".format(target))
             ret = True
         except Exception as e:
             err("Failed to connect to %s: %s" % (target, str(e)))
@@ -6421,6 +6423,10 @@ if __name__  == "__main__":
 
     # SIGALRM will simply display a message, but gdb won't forward the signal to the process
     gdb.execute("handle SIGALRM print nopass")
+
+    # saving GDB indexes in GEF tempdir
+    gef_makedirs(GEF_TEMP_DIR)
+    gdb.execute("save gdb-index {}".format(GEF_TEMP_DIR))
 
     # load GEF
     GefCommand()
