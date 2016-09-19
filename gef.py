@@ -1529,6 +1529,17 @@ def if_gdb_running(f):
     return wrapper
 
 
+def is_linux_command(f):
+    """Decorator wrapper to check if GDB is running."""
+    @functools.wraps(f)
+    def wrapper(*args, **kwds):
+        if sys.platform.startswith("linux"):
+            return f(*args, **kwds)
+        else:
+            warn("This command only runs on Linux")
+    return wrapper
+
+
 def get_register(regname):
     """
     Get register value. Exception will be raised if expression cannot be parse.
@@ -4503,6 +4514,16 @@ class FileDescriptorCommand(GenericCommand):
     _cmdline_ = "fd"
     _syntax_  = "%s" % _cmdline_
 
+
+    def __init__(self, *args, **kwargs):
+        super(FileDescriptorCommand, self).__init__(prefix=False, complete=gdb.COMPLETE_NONE)
+        return
+
+    def pre_load(self):
+        if not sys.platform.startswith("linux"):
+            raise GefUnsupportedOS("'%s' command only runs on Linux" % self._cmdline_)
+        return
+
     @if_gdb_running
     def do_invoke(self, argv):
         if is_remote_debug():
@@ -4516,7 +4537,6 @@ class FileDescriptorCommand(GenericCommand):
             fullpath = path+"/"+fname
             if os.path.islink(fullpath):
                 info("- %s %s %s" % (fullpath, right_arrow, os.readlink(fullpath)))
-
         return
 
 
@@ -5741,8 +5761,10 @@ class TraceRunCommand(GenericCommand):
 
 
 class PatternCommand(GenericCommand):
-    """This command will create or search a De Bruijn cyclic pattern to facilitate determining the offset in
-    memory. The algorithm used is the same as the one used by pwntools, and can therefore be used in conjunction."""
+    """This command will create or search a De Bruijn cyclic pattern to facilitate
+    determining the offset in memory. The algorithm used is the same as the one
+    used by pwntools, and can therefore be used in conjunction.
+    """
 
     _cmdline_ = "pattern"
     _syntax_  = "%s (create|search) <args>" % _cmdline_
