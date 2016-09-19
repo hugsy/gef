@@ -874,10 +874,13 @@ def gef_execute_external(command, as_list=False, *args, **kwargs):
     res = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=kwargs.get("shell", False))
 
     if as_list:
-        return res.splitlines()
+        lines = res.splitlines()
+        if PYTHON_MAJOR == 3:
+            return [str(x, encoding="ascii") for x in lines]
+        return lines
 
     if PYTHON_MAJOR == 3:
-        return str(res, encoding="ascii" )
+        return str(res, encoding="ascii")
 
     return res
 
@@ -1808,6 +1811,11 @@ def ishex(pattern):
     if pattern.startswith("0x") or pattern.startswith("0X"):
         pattern = pattern[2:]
     return all(c in string.hexdigits for c in pattern)
+
+
+def continue_handler(event):
+    reset_all_caches()
+    return
 
 
 def hook_stop_handler(event):
@@ -4198,7 +4206,7 @@ class DetailRegistersCommand(GenericCommand):
 
             addr = align_address( long(reg) )
 
-            line+= Color.colorify(format_address(addr), attrs="bold blue")
+            line+= Color.boldify(format_address(addr))
             addrs = DereferenceCommand.dereference_from(addr)
 
             if len(addrs) > 1:
@@ -4623,7 +4631,7 @@ class ProcessListingCommand(GenericCommand):
 
     def ps(self):
         processes = []
-        output = gef_execute_external(self.get_setting("ps_command").split(), True).splitlines()
+        output = gef_execute_external(self.get_setting("ps_command").split(), True)
         names = [x.lower().replace('%','') for x in output[0].split()]
 
         for line in output[1:]:
@@ -4961,7 +4969,7 @@ class ContextCommand(GenericCommand):
                         is_taken, reason = is_branch_taken(insn)
                         reason = "[Reason: %s]" % reason if len(reason) else ""
                         if is_taken:
-                            line+= Color.colorify("\TAKEN %s" % reason, attrs="bold green")
+                            line+= Color.colorify("\tTAKEN %s" % reason, attrs="bold green")
                         else:
                             line+= Color.colorify("\tNOT taken %s" % reason, attrs="bold red")
 
@@ -6213,10 +6221,6 @@ class GefConfigCommand(gdb.Command):
         if len(text)==0:
             return valid_settings
 
-        if text.endswith('.'):
-            options = [x.replace(text, "") for x in valid_settings if x.startswith(text)]
-            return options
-
         completion = []
         for setting in valid_settings:
             if setting.startswith(text):
@@ -6447,6 +6451,7 @@ if __name__  == "__main__":
     GefCommand()
 
     # gdb events configuration
+    gdb.events.cont.connect(continue_handler)
     gdb.events.stop.connect(hook_stop_handler)
     gdb.events.new_objfile.connect(new_objfile_handler)
     gdb.events.exited.connect(exit_handler)
