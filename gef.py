@@ -1628,45 +1628,75 @@ def get_function_length(sym):
     return end_addr - start_addr
 
 
+def __get_process_maps_linux(proc_map_file):
+    sections = []
+    f = open_file(proc_map_file, use_cache=False)
+    while True:
+        line = f.readline().strip()
+        if len(line) == 0:
+            break
+
+        addr, perm, off, dev, rest = line.split(" ", 4)
+        rest = rest.split(" ", 1)
+        if len(rest) == 1:
+            inode = rest[0]
+            pathname = ""
+        else:
+            inode = rest[0]
+            pathname = rest[1].replace(' ', '')
+
+        addr_start, addr_end = addr.split("-")
+        addr_start, addr_end = long(addr_start, 16), long(addr_end, 16)
+        off = long(off, 16)
+        perm = Permission.from_process_maps(perm)
+
+        section = Section(page_start  = addr_start,
+                          page_end    = addr_end,
+                          offset      = off,
+                          permission  = perm,
+                          inode       = inode,
+                          path        = pathname)
+
+        sections.append( section )
+    return sections
+
+
+def __get_process_maps_freebsd(proc_map_file):
+    sections = []
+    f = open_file(proc_map_file, use_cache=False)
+    while True:
+        line = f.readline().strip()
+        if len(line) == 0:
+            break
+
+        start_addr, end_addr, _, _, _, perm, _, _, _, _, _, inode, pathname, _, _ = line.split()
+        start_addr, end_addr = long(start_addr, 0x10), long(end_addr, 0x10)
+        offset = 0
+        perm = Permission.from_process_maps(perm)
+
+        section = Section(page_start  = start_addr,
+                          page_end    = end_addr,
+                          offset      = offset,
+                          permission  = perm,
+                          inode       = inode,
+                          path        = pathname)
+
+        sections.append( section )
+
+    return sections
+
+
 @memoize
 def get_process_maps():
-    sections = []
-
     try:
         pid = get_pid()
-        proc = "/proc/%d/maps" % pid
 
-        f = open_file(proc, use_cache=False)
-        while True:
-            line = f.readline()
-            if len(line) == 0:
-                break
-
-            line = line.strip()
-            addr, perm, off, dev, rest = line.split(" ", 4)
-            rest = rest.split(" ", 1)
-            if len(rest) == 1:
-                inode = rest[0]
-                pathname = ""
-            else:
-                inode = rest[0]
-                pathname = rest[1].replace(' ', '')
-
-            addr_start, addr_end = addr.split("-")
-            addr_start, addr_end = long(addr_start, 16), long(addr_end, 16)
-            off = long(off, 16)
-
-            perm = Permission.from_process_maps(perm)
-
-            section = Section(page_start  = addr_start,
-                              page_end    = addr_end,
-                              offset      = off,
-                              permission  = perm,
-                              inode       = inode,
-                              path        = pathname)
-
-            sections.append( section )
-
+        if sys.platform.startswith("linux"):
+            sections = __get_process_maps_linux("/proc/%d/maps" % pid)
+        elif sys.platform.startswith("freebsd"):
+            sections = __get_process_maps_freebsd("/proc/%d/map" % pid)
+        else:
+            sections = []
     except Exception as e:
         if is_debug():
             warn("Failed to read /proc/<PID>/maps, using GDB sections info")
@@ -4876,16 +4906,15 @@ class ContextCommand(GenericCommand):
         line = ""
 
         for reg in all_registers():
-
             try:
                 r = gdb.parse_and_eval(reg)
                 if r.type.code == gdb.TYPE_CODE_VOID:
                     continue
 
                 new_value_type_flag = (r.type.code == gdb.TYPE_CODE_FLAGS)
-                new_value = r
+                new_value = long(r)
 
-            except gdb.MemoryError:
+            except (gdb.MemoryError, gdb.error):
                 # If this exception is triggered, it means that the current register
                 # is corrupted. Just use the register "raw" value (not eval-ed)
                 new_value = get_register_ex( reg )
@@ -4901,8 +4930,8 @@ class ContextCommand(GenericCommand):
             if new_value_type_flag:
                 line += "%s " % (new_value)
             else:
-                new_value = align_address( long(new_value) )
-                old_value = align_address( long(old_value) )
+                new_value = align_address(new_value)
+                old_value = align_address(old_value)
 
                 if new_value == old_value:
                     line += "%s " % format_address(new_value)
