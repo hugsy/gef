@@ -5896,6 +5896,8 @@ class ChecksecCommand(GenericCommand):
 
 
     def pre_load(self):
+        command_only_works_for(["linux", "freebsd"])
+
         try:
             fpath = which("readelf")
             self.add_setting("readelf_path", fpath)
@@ -6143,9 +6145,10 @@ class GefCommand(gdb.Command):
 
         self.__loaded_cmds = sorted(__loaded__, key=lambda x: x[1]._cmdline_)
 
-        print("%s ready, type `%s' to start, `%s' to configure" % (Color.greenify("GEF"),
-                                                                   Color.colorify("gef",attrs="underline yellow"),
-                                                                   Color.colorify("gef config", attrs="underline pink")))
+        print("%s for %s ready, type `%s' to start, `%s' to configure" % (Color.greenify("GEF"),
+                                                                          get_os(),
+                                                                          Color.colorify("gef",attrs="underline yellow"),
+                                                                          Color.colorify("gef config", attrs="underline pink")))
 
         ver = "%d.%d" % (sys.version_info.major, sys.version_info.minor)
         nb_cmds = len(__loaded__)
