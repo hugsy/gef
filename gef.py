@@ -47,6 +47,7 @@ import hashlib
 import imp
 import itertools
 import os
+import platform
 import re
 import resource
 import socket
@@ -1571,7 +1572,12 @@ def get_sp():
     except:
         return get_register_ex("$sp")
 
+@memoize
+def get_os():
+    return platform.system().lower()
 
+
+@memoize
 def get_pid():
     return get_frame().pid
 
@@ -1580,7 +1586,6 @@ def get_filepath():
     filename = gdb.current_progspace().filename
 
     if is_remote_debug():
-
         # if no filename specified, try downloading target from /proc
         if filename == None:
             pid = get_pid()
@@ -1637,6 +1642,15 @@ def get_function_length(sym):
     start_addr = int(dis[1].split()[0], 16)
     end_addr = int(dis[-2].split()[0], 16)
     return end_addr - start_addr
+
+
+def command_only_works_for(os):
+    """Use this command in the `pre_load()`, to filter the Operating Systems this
+    command is working on."""
+    curos = get_os()
+    if not any(filter(lambda x: x==curos, os)):
+        raise GefUnsupportedOS("This command only works for %s" % ", ".join(os))
+    return
 
 
 def __get_process_maps_linux(proc_map_file):
@@ -4240,6 +4254,11 @@ class DetailRegistersCommand(GenericCommand):
 
             line = Color.colorify(regname, attrs="bold red") + ": "
 
+            if str(reg)=="<unavailable>":
+                line+= Color.colorify("no value", attrs="yellow underline")
+                print(line)
+                continue
+
             if reg.type.code == gdb.TYPE_CODE_FLAGS:
                 line+= flag_register_to_human()
                 print(line)
@@ -4520,8 +4539,7 @@ class FileDescriptorCommand(GenericCommand):
         return
 
     def pre_load(self):
-        if not sys.platform.startswith("linux"):
-            raise GefUnsupportedOS("'%s' command only runs on Linux" % self._cmdline_)
+        command_only_works_for(["linux",])
         return
 
     @if_gdb_running
@@ -6102,10 +6120,7 @@ class GefCommand(gdb.Command):
         nb_missing = 0
 
         def is_loaded(x):
-            for (n, c, o) in __loaded__:
-                if x == n:
-                    return True
-            return False
+            return any(filter(lambda u: x==u[0], __loaded__ ))
 
         for (cmd, class_name) in self.__cmds:
             try:
