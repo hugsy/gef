@@ -2119,11 +2119,10 @@ def clear_screen(tty=""):
     return
 
 def format_address(addr):
-    memalign_size = get_memory_alignment()
-    if memalign_size == 32:
-        print
+    memalign_size = get_memory_alignment(to_byte=True)
+    if memalign_size == 4:
         return "%#.8x" % (addr & 0xFFFFFFFF)
-    elif memalign_size == 64:
+    elif memalign_size == 8:
         return "%#.16x" % (addr & 0xFFFFFFFFFFFFFFFF)
 
 def align_address(address):
@@ -5026,7 +5025,7 @@ class ContextCommand(GenericCommand):
             for addr, content in gef_disassemble(pc, nb_insn):
                 insn = "%#x %s" % (addr,content)
                 line = []
-                m = "%#.16x    %s" % (addr, content,)
+                m = format_address(addr) + "    " + content
                 if addr < pc:
                     line+= Color.grayify(m)
                 elif addr == pc:
