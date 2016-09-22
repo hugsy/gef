@@ -6213,7 +6213,6 @@ class GefConfigCommand(gdb.Command):
 
     def __init__(self, loaded_commands, *args, **kwargs):
         super(GefConfigCommand, self).__init__(GefConfigCommand._cmdline_,
-                                               gdb.COMMAND_USER,
                                                prefix=False)
         self.loaded_commands = loaded_commands
         return
