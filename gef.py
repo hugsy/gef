@@ -267,6 +267,7 @@ class Address:
         self.value = kwargs.get("value", 0)
         self.section = kwargs.get("section", None)
         self.info = kwargs.get("info", None)
+        self.valid = kwargs.get("valid", True)
         return
 
     def __str__(self):
@@ -1842,16 +1843,15 @@ def file_lookup_address(address):
 
 
 def lookup_address(address):
-    addr = Address(value=address)
+    """Tries to find the address in the process address space.
+    Return an Address object, with validity flag set based on success."""
     sect = process_lookup_address(address)
     info = file_lookup_address(address)
     if sect is None and info is None:
         # i.e. there is no info on this address
-        return None
-
-    addr.section = sect
-    addr.info = info
-    return addr
+        return Address(value=address, valid=False)
+    else:
+        return Address(value=address, section=sect, info=info)
 
 
 def XOR(data, key):
@@ -2279,7 +2279,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
             addr = lookup_address( ptr )
             ptr = hex(ptr)
 
-        if addr is None:
+        if not addr.valid:
             return False
 
         if addr.section.permission.value & Permission.WRITE:
@@ -2576,7 +2576,7 @@ class Template(Structure):
                or (_regsize==8 and _type is ctypes.c_uint64) \
                or (_regsize==ctypes.sizeof(ctypes.c_void_p) and _type is ctypes.c_void_p):
                 # try to parse pointers
-                _value = right_arrow.join( DereferenceCommand.dereference_from(_value) )
+                _value = right_arrow.join(DereferenceCommand.dereference_from(_value))
 
             line = ("%#x+0x%04x %s : " % (addr, _offset, _name)).ljust(40)
             line+= "%s (%s)" % (_value, _type.__name__)
@@ -5374,14 +5374,14 @@ class DereferenceCommand(GenericCommand):
     @staticmethod
     def dereference_from(addr):
         if not is_alive():
-            return [ format_address(0x00), ]
+            return [ format_address(addr), ]
 
         prev_addr_value = None
         max_recursion = max(int(__config__["dereference.max_recursion"][0]), 1)
         value = align_address( long(addr) )
-        addr  = lookup_address( value )
-        if addr is None or addr.value==0x00:
-            return [ format_address(0x00), ]
+        addr = lookup_address( value )
+        if not addr.valid or addr.value==0x00:
+            return [ format_address(addr.value), ]
 
         msg = []
 
@@ -5399,7 +5399,7 @@ class DereferenceCommand(GenericCommand):
             # can we derefence more ?
             deref = addr.dereference()
             new_addr = lookup_address(deref)
-            if new_addr is not None:
+            if new_addr.valid:
                 addr = new_addr
                 continue
 
@@ -5584,7 +5584,7 @@ class XAddressInfoCommand(GenericCommand):
 
     def infos(self, address):
         addr = lookup_address(address)
-        if addr is None:
+        if not addr.valid:
             warn("Cannot reach %#x in memory space" % address)
             return
 
