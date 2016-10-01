@@ -685,8 +685,9 @@ New structures can be stored in the location given by the configuration setting:
 ```
 gef➤ gef config pcustom.struct_path
 ```
-By default, this location is in `/tmp/gef/structs`. The structure can be created
-as a simple `ctypes` structure, in a file called `<struct_name>.py`.
+By default, this location is in `$TEMP/gef/structs` (e.g. `/tmp/user/1000/gef/structs`).
+The structure can be created as a simple `ctypes` structure, in a file called
+`<struct_name>.py`.
 
 You can naturally set this path to a new location
 ```

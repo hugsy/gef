@@ -2510,7 +2510,7 @@ class Template(Structure):
         return
 
     def get_custom_structure_filepath(self, struct):
-        return self.get_setting("struct_path") + "/" + struct + ".py"
+        return os.path.join(self.get_setting("struct_path"), struct + ".py")
 
     def is_valid_custom_structure(self, struct):
         return os.access(self.get_custom_structure_filepath(struct), os.R_OK)
@@ -2620,9 +2620,14 @@ class Template(Structure):
 
     def list_custom_structures(self):
         info("Listing custom structures:")
-        for filen in os.listdir(self.get_setting("struct_path")):
-            if not filen.endswith("py"): continue
-            print("%s %s" % (right_arrow, filen.replace(".py", "")))
+        path = self.get_setting("struct_path")
+        try:
+            for filen in os.listdir(path):
+                name, ext = os.path.splitext(filen)
+                if ext != ".py": continue
+                ok("%s %s" % (right_arrow, name))
+        except OSError:
+            err("Cannot open %s. Create struct directory or set pcustom.struct_path" % path)
         return
 
 
