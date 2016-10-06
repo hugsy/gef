@@ -5130,7 +5130,7 @@ class ContextCommand(GenericCommand):
         self.context_title("trace")
 
         nb_backtrace = self.get_setting("nb_lines_backtrace")
-        current_frame = gdb.selected_frame()
+        orig_frame = current_frame = gdb.selected_frame()
         i = 0
 
         while current_frame:
@@ -5153,6 +5153,8 @@ class ContextCommand(GenericCommand):
                                ", ".join(items)))
             current_frame = current_frame.older()
             i+= 1
+
+        orig_frame.select()
         return
 
     def context_threads(self):
