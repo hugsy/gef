@@ -4868,7 +4868,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("show_stack_raw", False)
         self.add_setting("show_registers_raw", True)
         self.add_setting("nb_lines_stack", 8)
-        self.add_setting("nb_lines_backtrace", 3)
+        self.add_setting("nb_lines_backtrace", 10)
         self.add_setting("nb_lines_code", 5)
         self.add_setting("clear_screen", False)
         self.add_setting("title_color", "blue")
@@ -5153,6 +5153,9 @@ class ContextCommand(GenericCommand):
                                ", ".join(items)))
             current_frame = current_frame.older()
             i+= 1
+            nb_backtrace-=1
+            if nb_backtrace==0:
+                break
 
         orig_frame.select()
         return
