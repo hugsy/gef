@@ -956,10 +956,6 @@ def arm_flags_to_human(val=None):
     return flags_to_human(val, arm_flags_table())
 
 def arm_is_cbranch(insn):
-    mnemo = ["bl", "blr", "blx", ]
-    return any(filter(lambda x: x == insn, mnemo))
-
-def arm_is_cbranch(insn):
     mnemo = ["beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
              "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"]
     return any(filter(lambda x: x == insn, mnemo))
@@ -1254,10 +1250,6 @@ def mips_flags_to_human(val=None):
     return ""
 
 def mips_is_cbranch(insn):
-    mnemo = ["bl", ]
-    return any( filter(lambda x: x == insn, mnemo) )
-
-def mips_is_cbranch(insn):
     mnemo = ["beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez", ]
     return any( filter(lambda x: x == insn, mnemo) )
 
@@ -1312,9 +1304,6 @@ def aarch64_flags_to_human(val=None):
     if not val:
         val = get_register_ex( reg )
     return flags_to_human(val, aarch64_flags_table())
-
-def aarch64_is_cbranch(insn):
-    return arm_is_cbranch(insn)
 
 def aarch64_is_cbranch(insn):
     return arm_is_cbranch(insn)
