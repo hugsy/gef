@@ -915,541 +915,402 @@ def flags_to_human(reg_value, value_table):
     return "[{}]".format(" ".join(flags))
 
 
-######################[ ARM specific ]######################
-@memoize
-def arm_registers():
-    return ["$r0   ", "$r1   ", "$r2   ", "$r3   ", "$r4   ", "$r5   ", "$r6   ",
-            "$r7   ", "$r8   ", "$r9   ", "$r10  ", "$r11  ", "$r12  ", "$sp   ",
-            "$lr   ", "$pc   ", "$cpsr ", ]
-
-@memoize
-def arm_nop_insn():
-    # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
-    # return b"\x00\x00\xa0\xe1" # mov r0,r0
-    return b"\x01\x10\xa0\xe1" # mov r1,r1
-
-@memoize
-def arm_return_register():
-    return "$r0"
-
-@memoize
-def arm_flag_register():
-    return "$cpsr"
-
-@memoize
-def arm_flags_table():
-    table = { 31: "negative",
-              30: "zero",
-              29: "carry",
-              28: "overflow",
-              7: "interrupt",
-              6: "fast",
-              5: "thumb"
-    }
-    return table
-
-def arm_flags_to_human(val=None):
-    # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
-    if val is None:
-        reg = arm_flag_register()
-        val = get_register_ex( reg )
-    return flags_to_human(val, arm_flags_table())
-
-def arm_is_cbranch(insn):
-    mnemo = ["beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
-             "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"]
-    return any(filter(lambda x: x == insn, mnemo))
-
-def arm_is_branch_taken(mnemo):
-    # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
-    flags = dict( (arm_flags_table()[k], k) for k in arm_flags_table().keys() )
-    val = get_register_ex(arm_flag_register() )
-
-    if mnemo.endswith("eq"): return val&(1<<flags["zero"]), "Z"
-    if mnemo.endswith("ne"): return val&(1<<flags["zero"])==0, "!Z"
-    if mnemo.endswith("lt"): return val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
-    if mnemo.endswith("le"): return val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
-    if mnemo.endswith("gt"): return val&(1<<flags["zero"])==0 and val&(1<<flags["negative"])==val&(1<<flags["overflow"]), "!Z && N==O"
-    if mnemo.endswith("ge"): return val&(1<<flags["negative"])==val&(1<<flags["overflow"]), "N==O"
-    if mnemo.endswith("bvs"): return val&(1<<flags["overflow"]), "O"
-    if mnemo.endswith("bvc"): return val&(1<<flags["overflow"])==0, "O"
-    return False, ""
-
-@memoize
-def arm_function_parameters():
-    return ['$r0','$r1','$r2','$r3']
-
-
-######################[ Intel x86-64 specific ]######################
-@memoize
-def x86_64_registers():
-    return [ "$rax   ", "$rbx   ", "$rcx   ", "$rdx   ", "$rsp   ", "$rbp   ", "$rsi   ",
-             "$rdi   ", "$rip   ", "$r8    ", "$r9    ", "$r10   ", "$r11   ", "$r12   ",
-             "$r13   ", "$r14   ", "$r15   ",
-             "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags", ]
-
-@memoize
-def x86_64_nop_insn():
-    return b'\x90'
-
-@memoize
-def x86_64_return_register():
-    return "$rax"
-
-@memoize
-def x86_64_function_parameters():
-    return ['$rdi', '$rsi', '$rdx', '$rcx', '$r8', '$r9']
-
-@memoize
-def x86_flag_register():
-    return "$eflags"
-
-@memoize
-def x86_flags_table():
-    table = { 6: "zero",
-              0: "carry",
-              2: "parity",
-              4: "adjust",
-              7: "sign",
-              8: "trap",
-              9: "interrupt",
-              10: "direction",
-              11: "overflow",
-              16: "resume",
-              17: "virtualx86",
-              21: "identification",
-    }
-    return table
-
-def x86_flags_to_human(val=None):
-    reg = x86_flag_register()
-    if not val:
-        val = get_register_ex( reg )
-    return flags_to_human(val, x86_flags_table())
-
-def x86_is_call(insn):
-    mnemo = ["call", "callq", ]
-    return any( filter(lambda x: x == insn, mnemo) )
-
-def x86_is_cbranch(insn):
-    mnemo = ["ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
-             "jcxz", "jecxz", "jrcxz", "je", "jz", "jg", "jnle", "jge", "jnl",
-             "jl", "jnge", "jle", "jng", "jne", "jnz", "jno", "jnp", "jpo", "jns",
-             "jo", "jp", "jpe", "js",]
-    return any( filter(lambda x: x == insn, mnemo) )
-
-def x86_is_branch_taken(mnemo):
-    # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
-    flags = dict( (x86_flags_table()[k], k) for k in x86_flags_table().keys() )
-    val = get_register_ex(x86_flag_register() )
-    cx = get_register_ex("$rcx") if is_x86_64() else get_register_ex("$ecx")
-
-    if mnemo in ("ja", "jnbe"): return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0, "!C && !Z"
-    if mnemo in ("jae", "jnb", "jnc"): return val&(1<<flags["carry"])==0, "!C"
-    if mnemo in ("jb", "jc", "jnae"): return val&(1<<flags["carry"]), "C"
-    if mnemo in ("jbe", "jna"): return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
-    if mnemo in ("jcxz", "jecxz", "jrcxz"): return cx==0, "!$CX"
-    if mnemo in ("je", "jz"): return val&(1<<flags["zero"]), "Z"
-    if mnemo in ("jg", "jnle"): return val&(1<<flags["zero"])==0 and val&(1<<flags["overflow"])==val&(1<<flags["sign"]), "!Z && O==S"
-    if mnemo in ("jge", "jnl"): return val&(1<<flags["sign"])==val&(1<<flags["overflow"]), "S==O"
-    if mnemo in ("jl", "jnge"): return val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "S!=O"
-    if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "Z || S!=0"
-    if mnemo in ("jne", "jnz"): return val&(1<<flags["zero"])==0, "!Z"
-    if mnemo in ("jno"): return val&(1<<flags["overflow"])==0, "!O"
-    if mnemo in ("jnp", "jpo"): return val&(1<<flags["parity"])==0, "!P"
-    if mnemo in ("jns"): return val&(1<<flags["sign"])==0, "!S"
-    if mnemo in ("jo"): return val&(1<<flags["overflow"]), "O"
-    if mnemo in ("jpe", "jp"): return val&(1<<flags["parity"]), "P"
-    if mnemo in ("js"): return val&(1<<flags["sign"]), "S"
-    return False, ""
-
-######################[ Intel x86-32 specific ]######################
-@memoize
-def x86_32_registers():
-    return [ "$eax   ", "$ebx   ", "$ecx   ", "$edx   ", "$esp   ", "$ebp   ", "$esi   ",
-             "$edi   ", "$eip   ", "$cs    ", "$ss    ", "$ds    ", "$es    ",
-             "$fs    ", "$gs    ", "$eflags", ]
-
-@memoize
-def x86_32_return_register():
-    return "$eax"
-
-@memoize
-def x86_32_function_parameters():
-    return ["$esp",]
-
-
-######################[ PowerPC specific ]######################
-@memoize
-def powerpc_registers():
-    return ["$r0  ", "$r1  ", "$r2  ", "$r3  ", "$r4  ", "$r5  ", "$r6  ", "$r7  ",
-            "$r8  ", "$r9  ", "$r10 ", "$r11 ", "$r12 ", "$r13 ", "$r14 ", "$r15 ",
-            "$r16 ", "$r17 ", "$r18 ", "$r19 ", "$r20 ", "$r21 ", "$r22 ", "$r23 ",
-            "$r24 ", "$r25 ", "$r26 ", "$r27 ", "$r28 ", "$r29 ", "$r30 ", "$r31 ",
-            "$pc  ", "$msr ", "$cr  ", "$lr  ", "$ctr ", "$xer ", "$trap" ]
-
-@memoize
-def powerpc_nop_insn():
-    # http://www.ibm.com/developerworks/library/l-ppc/index.html
-    # nop
-    return b'\x60\x00\x00\x00'
-
-@memoize
-def powerpc_return_register():
-    return "$r0"
-
-@memoize
-def powerpc_flag_register():
-    return "$cr"
-
-@memoize
-def powerpc_flags_table():
-    table = { 0: "negative",
-              1: "positive",
-              2: "zero",
-              3: "summary",
-              28: "less",
-              29: "greater",
-              30: "equal",
-              31: "overflow",
-    }
-    return table
-
-def powerpc_flags_to_human(val=None):
-    # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
-    if not val:
-        reg = powerpc_flag_register()
-        val = get_register_ex( reg )
-    return flags_to_human(val, powerpc_flags_table())
-
-def powerpc_is_call(insn):
-    return False
-
-def powerpc_is_cbranch(insn):
-    mnemo = ["beq", "bne", "ble", "blt", "bgt", "bge", ]
-    return any( filter(lambda x: x == insn, mnemo) )
-
-def powerpc_is_branch_taken(mnemo):
-    flags = dict( (powerpc_flags_table()[k], k) for k in powerpc_flags_table().keys() )
-    val = get_register_ex(powerpc_flag_register())
-    if mnemo=="beq": return val&(1<<flags["equal"]), "E"
-    if mnemo=="bne": return val&(1<<flags["equal"])==0, "!E"
-    if mnemo=="ble": return val&(1<<flags["equal"]) or val&(1<<flags["less"]), "E || L"
-    if mnemo=="blt": return val&(1<<flags["less"]), "L"
-    if mnemo=="bge": return val&(1<<flags["equal"]) or val&(1<<flags["greater"]), "E || G"
-    if mnemo=="bgt": return val&(1<<flags["greater"]), "G"
-    return False, ""
-
-@memoize
-def powerpc_function_parameters():
-    return ['$r3', '$r4', '$r4','$r5', '$r6']
-
-
-######################[ SPARC specific ]######################
-@memoize
-def sparc_registers():
-    return ["$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
-            "$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",
-            "$l0 ", "$l1 ", "$l2 ", "$l3 ", "$l4 ", "$l5 ", "$l6 ", "$l7 ",
-            "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ", "$i7 ",
-            "$pc ", "$npc", "$sp ", "$fp ", "$psr", ]
-
-@memoize
-def sparc_nop_insn():
-    # http://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
-    # sethi 0, %g0
-    return b'\x00\x00\x00\x00'
-
-@memoize
-def sparc_return_register():
-    return "$i0"
-
-@memoize
-def sparc_flag_register():
-    return "$psr"
-
-@memoize
-def sparc_flags_table():
-    table = { 23: "negative",
-              20: "carry",
-              22: "zero",
-              5: "trap",
-              7: "supervisor",
-              21: "overflow",
-    }
-    return table
-
-def sparc_flags_to_human(val=None):
-    # http://www.gaisler.com/doc/sparcv8.pdf
-    reg = sparc_flag_register()
-    if not val:
-        val = get_register_ex( reg )
-    return flags_to_human(val, sparc_flags_table())
-
-def sparc_is_call(insn):
-    return False
-
-def sparc_is_cbranch(insn):
-    # http://moss.csc.ncsu.edu/~mueller/codeopt/codeopt00/notes/condbranch.html
-    mnemo = ["be", "bne", "bg", "bge", "bgeu", "bgu", "bl", "ble", "blu", "bleu",
-             "bneg", "bpos", "bvs", "bvc", "bcs", "bcc", ]
-    return any( filter(lambda x: x == insn, mnemo) )
-
-def sparc_is_branch_taken(insn):
-    flags = dict( (sparc_flags_table()[k], k) for k in sparc_flags_table().keys() )
-    val = get_register_ex(sparc_flag_register())
-    if insn=="be": return val&(1<<flags["zero"]), "Z"
-    if insn=="bne": return val&(1<<flags["zero"])==0, "!Z"
-    if insn=="bg": return val&(1<<flags["zero"])==0 and (val&(1<<flags["negative"])==0 or val&(1<<flags["overflow"])==0), "!Z && (!N || !O)"
-    if insn=="bge": return val&(1<<flags["negative"])==0 or val&(1<<flags["overflow"])==0, "!N || !O"
-    if insn=="bgu": return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0, "!C && !C"
-    if insn=="bgeu": return val&(1<<flags["carry"])==0, "!C"
-    if insn=="bl": return val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
-    if insn=="blu": return val&(1<<flags["carry"]), "C"
-    if insn=="ble": return val&(1<<flags["zero"]) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
-    if insn=="bleu": return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
-    if insn=="bneg": return val&(1<<flags["negative"]), "N"
-    if insn=="bpos": return val&(1<<flags["negative"])==0, "!N"
-    if insn=="bvs": return val&(1<<flags["overflow"]), "O"
-    if insn=="bvc": return val&(1<<flags["overflow"])==0, "!O"
-    if insn=="bcs": return val&(1<<flags["carry"]), "C"
-    if insn=="bcc": return val&(1<<flags["carry"])==0, "!C"
-    return False, ""
-
-@memoize
-def powerpc_function_parameters():
-    return ['$i0', '$i1', '$i2','$i3','$i4', '$i5' ]
-
-
-######################[ MIPS specific ]######################
-@memoize
-def mips_registers():
-    # http://vhouten.home.xs4all.nl/mipsel/r3000-isa.html
-    return ["$zero     ", "$at       ", "$v0       ", "$v1       ", "$a0       ", "$a1       ", "$a2       ", "$a3       ",
-            "$t0       ", "$t1       ", "$t2       ", "$t3       ", "$t4       ", "$t5       ", "$t6       ", "$t7       ",
-            "$s0       ", "$s1       ", "$s2       ", "$s3       ", "$s4       ", "$s5       ", "$s6       ", "$s7       ",
-            "$t8       ", "$t9       ", "$k0       ", "$k1       ", "$s8       ", "$status   ", "$badvaddr ", "$cause    ",
-            "$pc       ", "$sp       ", "$hi       ", "$lo       ", "$fir      ", "$fcsr     ", "$ra       ", "$gp       ", ]
-
-@memoize
-def mips_nop_insn():
-    # https://en.wikipedia.org/wiki/MIPS_instruction_set
-    # sll $0,$0,0
-    return b"\x00\x00\x00\x00"
-
-@memoize
-def mips_return_register():
-    return "$v0"
-
-@memoize
-def mips_flag_register():
-    return "$fcsr"
-
-def mips_flags_to_human(val=None):
-    # mips architecture does not use processor status word (flag register)
-    return ""
-
-def mips_is_cbranch(insn):
-    mnemo = ["beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez", ]
-    return any( filter(lambda x: x == insn, mnemo) )
-
-def mips_is_branch_taken(mnemo, operands):
-    if mnemo=="beq": return get_register_ex(operands[0]) == get_register_ex(operands[1]), ""
-    if mnemo=="bne": return get_register_ex(operands[0]) != get_register_ex(operands[1]), ""
-    if mnemo=="beqz": return get_register_ex(operands[0]) == 0, ""
-    if mnemo=="bnez": return get_register_ex(operands[0]) != 0, ""
-    if mnemo=="bgtz": return get_register_ex(operands[0]) > 0, ""
-    if mnemo=="bgez": return get_register_ex(operands[0]) >= 0, ""
-    if mnemo=="bltz": return get_register_ex(operands[0]) < 0, ""
-    if mnemo=="blez": return get_register_ex(operands[0]) <= 0, ""
-    return False, ""
-
-@memoize
-def mips_function_parameters():
-    return ['$a0','$a1','$a2','$a3']
-
-
-######################[ AARCH64 specific ]######################
-
-@memoize
-def aarch64_registers():
-    return ["$x0       ", "$x1       ", "$x2       ", "$x3       ", "$x4       ", "$x5       ", "$x6       ", "$x7       ",
-            "$x8       ", "$x9       ", "$x10      ", "$x11      ", "$x12      ", "$x13      ", "$x14      ", "$x15      ",
-            "$x16      ", "$x17      ", "$x18      ", "$x19      ", "$x20      ", "$x21      ", "$x22      ", "$x23      ",
-            "$x24      ", "$x25      ", "$x26      ", "$x27      ", "$x28      ", "$x29      ", "$x30      ", "$sp       ",
-            "$pc       ", "$cpsr     ", "$fpsr     ", "$fpcr     ", ]
-
-@memoize
-def aarch64_return_register():
-    return "$x0"
-
-@memoize
-def aarch64_flag_register():
-    return "$cpsr"
-
-@memoize
-def aarch64_flags_table():
-    table = { 31: "negative",
-              30: "zero",
-              29: "carry",
-              28: "overflow",
-              7: "interrupt",
-              6: "fast"
-    }
-    return table
-
-def aarch64_flags_to_human(val=None):
-    # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
-    reg = aarch64_flag_register()
-    if not val:
-        val = get_register_ex( reg )
-    return flags_to_human(val, aarch64_flags_table())
-
-def aarch64_is_cbranch(insn):
-    return arm_is_cbranch(insn)
-
-def aarch64_is_branch_taken(insn):
-    return arm_is_branch_taken(insn)
-
-@memoize
-def aarch64_function_parameters():
-    return ['$x0','$x1','$x2','$x3']
-
-
-################################################################
-
-@memoize
-def all_registers():
-    if is_arm():         return arm_registers()
-    elif is_aarch64():   return aarch64_registers()
-    elif is_x86_32():    return x86_32_registers()
-    elif is_x86_64():    return x86_64_registers()
-    elif is_powerpc():   return powerpc_registers()
-    elif is_ppc64():     return powerpc_registers()
-    elif is_sparc():     return sparc_registers()
-    elif is_sparc64():   return sparc_registers()
-    elif is_mips():      return mips_registers()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-
-@memoize
-def nop_insn():
-    if is_arm():         return arm_nop_insn()
-    elif is_aarch64():   return arm_nop_insn()
-    elif is_x86_32():    return x86_32_nop_insn()
-    elif is_x86_64():    return x86_32_nop_insn()
-    elif is_powerpc():   return powerpc_nop_insn()
-    elif is_ppc64():     return powerpc_nop_insn()
-    elif is_sparc():     return sparc_nop_insn()
-    elif is_sparc64():   return sparc_nop_insn()
-    elif is_mips():      return mips_nop_insn()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-
-@memoize
-def return_register():
-    if is_arm():         return arm_return_register()
-    elif is_aarch64():   return aarch64_return_register()
-    elif is_x86_32():    return x86_32_return_register()
-    elif is_x86_64():    return x86_64_return_register()
-    elif is_powerpc():   return powerpc_return_register()
-    elif is_ppc64():     return powerpc_return_register()
-    elif is_sparc():     return sparc_return_register()
-    elif is_sparc64():   return sparc_return_register()
-    elif is_mips():      return mips_return_register()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-
-@memoize
-def flag_register():
-    if is_arm():         return arm_flag_register()
-    elif is_aarch64():   return aarch64_flag_register()
-    elif is_x86_32():    return x86_flag_register()
-    elif is_x86_64():    return x86_flag_register()
-    elif is_powerpc():   return powerpc_flag_register()
-    elif is_ppc64():     return powerpc_flag_register()
-    elif is_mips():      return mips_flag_register()
-    elif is_sparc():     return sparc_flag_register()
-    elif is_sparc64():   return sparc_flag_register()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-
-@memoize
-def flags_table():
-    if is_x86_32():       return x86_flags_table()
-    elif is_x86_64():     return x86_flags_table()
-    elif is_arm():        return arm_flags_table()
-    elif is_aarch64():    return aarch64_flags_table()
-    elif is_powerpc():    return powerpc_flags_table()
-    elif is_ppc64():      return powerpc_flags_table()
-    elif is_sparc():      return sparc_flags_table()
-    elif is_sparc64():    return sparc_flags_table()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-
-def flag_register_to_human(val=None):
-    if is_arm():         return arm_flags_to_human(val)
-    elif is_aarch64():   return aarch64_flags_to_human(val)
-    elif is_x86_32():    return x86_flags_to_human(val)
-    elif is_x86_64():    return x86_flags_to_human(val)
-    elif is_powerpc():   return powerpc_flags_to_human(val)
-    elif is_ppc64():     return powerpc_flags_to_human(val)
-    elif is_mips():      return mips_flags_to_human(val)
-    elif is_sparc():     return sparc_flags_to_human(val)
-    elif is_sparc64():   return sparc_flags_to_human(val)
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-def is_call_instruction(insn):
-    (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
-    if   is_arm():       return arm_is_call(mnemo)
-    elif is_aarch64():   return aarch64_is_call(mnemo)
-    elif is_x86_32():    return x86_is_call(mnemo)
-    elif is_x86_64():    return x86_is_call(mnemo)
-    elif is_powerpc():   return powerpc_is_call(mnemo)
-    elif is_ppc64():     return powerpc_is_call(mnemo)
-    elif is_mips():      return mips_is_call(mnemo)
-    elif is_sparc():     return sparc_is_call(mnemo)
-    elif is_sparc64():   return sparc_is_call(mnemo)
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-def is_conditional_branch(insn):
-    (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
-    if   is_arm():       return arm_is_cbranch(mnemo)
-    elif is_aarch64():   return aarch64_is_cbranch(mnemo)
-    elif is_x86_32():    return x86_is_cbranch(mnemo)
-    elif is_x86_64():    return x86_is_cbranch(mnemo)
-    elif is_powerpc():   return powerpc_is_cbranch(mnemo)
-    elif is_ppc64():     return powerpc_is_cbranch(mnemo)
-    elif is_mips():      return mips_is_cbranch(mnemo)
-    elif is_sparc():     return sparc_is_cbranch(mnemo)
-    elif is_sparc64():   return sparc_is_cbranch(mnemo)
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-def is_branch_taken(insn):
-    (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
-    if   is_arm():       return arm_is_branch_taken(mnemo)
-    elif is_aarch64():   return aarch64_is_branch_taken(mnemo)
-    elif is_x86_32():    return x86_is_branch_taken(mnemo)
-    elif is_x86_64():    return x86_is_branch_taken(mnemo)
-    elif is_powerpc():   return powerpc_is_branch_taken(mnemo)
-    elif is_ppc64():     return powerpc_is_branch_taken(mnemo)
-    elif is_mips():      return mips_is_branch_taken(mnemo, operands)
-    elif is_sparc():     return sparc_is_branch_taken(mnemo)
-    elif is_sparc64():   return sparc_is_branch_taken(mnemo)
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-@memoize
-def function_parameters():
-    if   is_arm():       return arm_function_parameters()
-    elif is_aarch64():   return aarch64_function_parameters()
-    elif is_x86_32():    return x86_32_function_parameters()[0]
-    elif is_x86_64():    return x86_64_function_parameters()
-    elif is_powerpc():   return powerpc_function_parameters()
-    elif is_ppc64():     return powerpc_function_parameters()
-    elif is_mips():      return mips_function_parameters()
-    elif is_sparc():     return sparc_function_parameters()
-    elif is_sparc64():   return sparc_function_parameters()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+class Architecture(object):
+    def all_registers():
+        return []
+
+    def nop_insn(self):
+        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+    def return_register(self):
+        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+    def flag_register(self):
+        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+    def flags_table(self):
+        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+    def flag_register_to_human(selfval=None):
+        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+    def is_call(self, insn):
+        (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
+        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+    def is_conditional_branch(self, insn):
+        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+    def is_branch_taken(self, insn):
+        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+    def function_parameters(self):
+        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+
+
+class ARM(Architecture):
+    def all_registers(self):
+        return ["$r0   ", "$r1   ", "$r2   ", "$r3   ", "$r4   ", "$r5   ", "$r6   ",
+                "$r7   ", "$r8   ", "$r9   ", "$r10  ", "$r11  ", "$r12  ", "$sp   ",
+                "$lr   ", "$pc   ", "$cpsr ", ]
+
+    def nop_insn(self):
+        # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
+        # return b"\x00\x00\xa0\xe1" # mov r0,r0
+        return b"\x01\x10\xa0\xe1" # mov r1,r1
+
+    def return_register(self):
+        return "$r0"
+
+    def flag_register(self):
+        return "$cpsr"
+
+    def flags_table(self):
+        table = { 31: "negative",
+                  30: "zero",
+                  29: "carry",
+                  28: "overflow",
+                  7: "interrupt",
+                  6: "fast",
+                  5: "thumb"
+        }
+        return table
+
+    def flag_register_to_human(self, val=None):
+        # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
+        if val is None:
+            reg = self.flag_register()
+            val = get_register_ex( reg )
+        return flags_to_human(val, self.flags_table())
+
+    def is_conditional_branch(self, insn):
+        mnemo = ["beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
+                 "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"]
+        return any(filter(lambda x: x == insn, mnemo))
+
+    def is_branch_taken(self, mnemo):
+        # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
+        flags = dict( (self.flags_table()[k], k) for k in self.flags_table().keys() )
+        val = get_register_ex(self.flag_register() )
+
+        if mnemo.endswith("eq"): return val&(1<<flags["zero"]), "Z"
+        if mnemo.endswith("ne"): return val&(1<<flags["zero"])==0, "!Z"
+        if mnemo.endswith("lt"): return val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+        if mnemo.endswith("le"): return val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+        if mnemo.endswith("gt"): return val&(1<<flags["zero"])==0 and val&(1<<flags["negative"])==val&(1<<flags["overflow"]), "!Z && N==O"
+        if mnemo.endswith("ge"): return val&(1<<flags["negative"])==val&(1<<flags["overflow"]), "N==O"
+        if mnemo.endswith("bvs"): return val&(1<<flags["overflow"]), "O"
+        if mnemo.endswith("bvc"): return val&(1<<flags["overflow"])==0, "O"
+        return False, ""
+
+    def function_parameters(self):
+        return ['$r0','$r1','$r2','$r3']
+
+
+class AARCH64(ARM):
+    def all_registers(self):
+        return ["$x0       ", "$x1       ", "$x2       ", "$x3       ", "$x4       ", "$x5       ", "$x6       ", "$x7       ",
+                "$x8       ", "$x9       ", "$x10      ", "$x11      ", "$x12      ", "$x13      ", "$x14      ", "$x15      ",
+                "$x16      ", "$x17      ", "$x18      ", "$x19      ", "$x20      ", "$x21      ", "$x22      ", "$x23      ",
+                "$x24      ", "$x25      ", "$x26      ", "$x27      ", "$x28      ", "$x29      ", "$x30      ", "$sp       ",
+                "$pc       ", "$cpsr     ", "$fpsr     ", "$fpcr     ", ]
+
+    def return_register(self):
+        return "$x0"
+
+    def flag_register(self):
+        return "$cpsr"
+
+    def flags_table(self):
+        table = { 31: "negative",
+                  30: "zero",
+                  29: "carry",
+                  28: "overflow",
+                  7: "interrupt",
+                  6: "fast"
+        }
+        return table
+
+    def flag_register_to_human(self, val=None):
+        # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
+        reg = self.flag_register()
+        if not val:
+            val = get_register_ex( reg )
+        return flags_to_human(val, self.flags_table())
+
+    def function_parameters():
+        return ['$x0','$x1','$x2','$x3']
+
+
+class X86(Architecture):
+    def all_registers(self):
+        return [ "$eax   ", "$ebx   ", "$ecx   ", "$edx   ", "$esp   ", "$ebp   ", "$esi   ",
+                 "$edi   ", "$eip   ", "$cs    ", "$ss    ", "$ds    ", "$es    ",
+                 "$fs    ", "$gs    ", "$eflags", ]
+
+    def return_register(self):
+        return "$eax"
+
+    def function_parameters(self):
+        return ["$esp",]
+
+    def flag_register(self):
+        return "$eflags"
+
+    def x86_flags_table():
+        table = { 6: "zero",
+                  0: "carry",
+                  2: "parity",
+                  4: "adjust",
+                  7: "sign",
+                  8: "trap",
+                  9: "interrupt",
+                  10: "direction",
+                  11: "overflow",
+                  16: "resume",
+                  17: "virtualx86",
+                  21: "identification",
+        }
+        return table
+
+    def flag_register_to_human(self, val=None):
+        reg = self.flag_register()
+        if not val:
+            val = get_register_ex( reg )
+        return flags_to_human(val, self.flags_table())
+
+    def is_call(insn):
+        mnemo = ["call", "callq", ]
+        return any( filter(lambda x: x == insn, mnemo) )
+
+    def is_conditional_branch(insn):
+        mnemo = ["ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
+                 "jcxz", "jecxz", "jrcxz", "je", "jz", "jg", "jnle", "jge", "jnl",
+                 "jl", "jnge", "jle", "jng", "jne", "jnz", "jno", "jnp", "jpo", "jns",
+                 "jo", "jp", "jpe", "js",]
+        return any( filter(lambda x: x == insn, mnemo) )
+
+    def is_branch_taken(self, mnemo):
+        # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
+        flags = dict( (self.flags_table()[k], k) for k in self.flags_table().keys() )
+        val = get_register_ex(self.flag_register() )
+        # TODO: Move this special condition into x86_64
+        cx = get_register_ex("$rcx") if is_x86_64() else get_register_ex("$ecx")
+
+        if mnemo in ("ja", "jnbe"): return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0, "!C && !Z"
+        if mnemo in ("jae", "jnb", "jnc"): return val&(1<<flags["carry"])==0, "!C"
+        if mnemo in ("jb", "jc", "jnae"): return val&(1<<flags["carry"]), "C"
+        if mnemo in ("jbe", "jna"): return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+        if mnemo in ("jcxz", "jecxz", "jrcxz"): return cx==0, "!$CX"
+        if mnemo in ("je", "jz"): return val&(1<<flags["zero"]), "Z"
+        if mnemo in ("jg", "jnle"): return val&(1<<flags["zero"])==0 and val&(1<<flags["overflow"])==val&(1<<flags["sign"]), "!Z && O==S"
+        if mnemo in ("jge", "jnl"): return val&(1<<flags["sign"])==val&(1<<flags["overflow"]), "S==O"
+        if mnemo in ("jl", "jnge"): return val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "S!=O"
+        if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "Z || S!=0"
+        if mnemo in ("jne", "jnz"): return val&(1<<flags["zero"])==0, "!Z"
+        if mnemo in ("jno"): return val&(1<<flags["overflow"])==0, "!O"
+        if mnemo in ("jnp", "jpo"): return val&(1<<flags["parity"])==0, "!P"
+        if mnemo in ("jns"): return val&(1<<flags["sign"])==0, "!S"
+        if mnemo in ("jo"): return val&(1<<flags["overflow"]), "O"
+        if mnemo in ("jpe", "jp"): return val&(1<<flags["parity"]), "P"
+        if mnemo in ("js"): return val&(1<<flags["sign"]), "S"
+        return False, ""
+
+
+class X86_64(X86):
+    def all_registers(self):
+        return [ "$rax   ", "$rbx   ", "$rcx   ", "$rdx   ", "$rsp   ", "$rbp   ", "$rsi   ",
+                 "$rdi   ", "$rip   ", "$r8    ", "$r9    ", "$r10   ", "$r11   ", "$r12   ",
+                 "$r13   ", "$r14   ", "$r15   ",
+                 "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags", ]
+
+    def return_register(self):
+        return "$rax"
+
+    def function_parameters(self):
+        return ['$rdi', '$rsi', '$rdx', '$rcx', '$r8', '$r9']
+
+
+class PowerPC(Architecture):
+    def all_registers(self):
+        return ["$r0  ", "$r1  ", "$r2  ", "$r3  ", "$r4  ", "$r5  ", "$r6  ", "$r7  ",
+                "$r8  ", "$r9  ", "$r10 ", "$r11 ", "$r12 ", "$r13 ", "$r14 ", "$r15 ",
+                "$r16 ", "$r17 ", "$r18 ", "$r19 ", "$r20 ", "$r21 ", "$r22 ", "$r23 ",
+                "$r24 ", "$r25 ", "$r26 ", "$r27 ", "$r28 ", "$r29 ", "$r30 ", "$r31 ",
+                "$pc  ", "$msr ", "$cr  ", "$lr  ", "$ctr ", "$xer ", "$trap" ]
+
+    @memoize
+    def nop_insn(self):
+        # http://www.ibm.com/developerworks/library/l-ppc/index.html
+        # nop
+        return b'\x60\x00\x00\x00'
+
+    @memoize
+    def return_register(self):
+        return "$r0"
+
+    @memoize
+    def flag_register(self):
+        return "$cr"
+
+    @memoize
+    def flags_table(self):
+        table = { 0: "negative",
+                  1: "positive",
+                  2: "zero",
+                  3: "summary",
+                  28: "less",
+                  29: "greater",
+                  30: "equal",
+                  31: "overflow",
+        }
+        return table
+
+    def flag_register_to_human(self, val=None):
+        # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
+        if not val:
+            reg = self.flag_register()
+            val = get_register_ex( reg )
+        return flags_to_human(val, self.flags_table())
+
+    def is_call(self, insn):
+        return False
+
+    def is_conditional_branch(self, insn):
+        mnemo = ["beq", "bne", "ble", "blt", "bgt", "bge", ]
+        return any( filter(lambda x: x == insn, mnemo) )
+
+    def is_branch_taken(self, mnemo):
+        flags = dict( (self.flags_table()[k], k) for k in self.flags_table().keys() )
+        val = get_register_ex(self.flag_register())
+        if mnemo=="beq": return val&(1<<flags["equal"]), "E"
+        if mnemo=="bne": return val&(1<<flags["equal"])==0, "!E"
+        if mnemo=="ble": return val&(1<<flags["equal"]) or val&(1<<flags["less"]), "E || L"
+        if mnemo=="blt": return val&(1<<flags["less"]), "L"
+        if mnemo=="bge": return val&(1<<flags["equal"]) or val&(1<<flags["greater"]), "E || G"
+        if mnemo=="bgt": return val&(1<<flags["greater"]), "G"
+        return False, ""
+
+    def function_parameters(self):
+        return ['$i0', '$i1', '$i2','$i3','$i4', '$i5' ]
+
+
+class PowerPC64(PowerPC):
+    pass
+
+
+class SPARC(Architecture):
+    def all_registers(self):
+        return ["$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
+                "$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",
+                "$l0 ", "$l1 ", "$l2 ", "$l3 ", "$l4 ", "$l5 ", "$l6 ", "$l7 ",
+                "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ", "$i7 ",
+                "$pc ", "$npc", "$sp ", "$fp ", "$psr", ]
+
+    def nop_insn(self):
+        # http://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
+        # sethi 0, %g0
+        return b'\x00\x00\x00\x00'
+
+    def return_register(self):
+        return "$i0"
+
+    def flag_register(self):
+        return "$psr"
+
+    def flags_table(self):
+        table = { 23: "negative",
+                  20: "carry",
+                  22: "zero",
+                  5: "trap",
+                  7: "supervisor",
+                  21: "overflow",
+        }
+        return table
+
+    def flag_register_to_human(self, val=None):
+        # http://www.gaisler.com/doc/sparcv8.pdf
+        reg = self.flag_register()
+        if not val:
+            val = get_register_ex( reg )
+        return flags_to_human(val, self.flags_table())
+
+    def is_call(self, insn):
+        return False
+
+    def is_conditional_branch(self, insn):
+        # http://moss.csc.ncsu.edu/~mueller/codeopt/codeopt00/notes/condbranch.html
+        mnemo = ["be", "bne", "bg", "bge", "bgeu", "bgu", "bl", "ble", "blu", "bleu",
+                 "bneg", "bpos", "bvs", "bvc", "bcs", "bcc", ]
+        return any( filter(lambda x: x == insn, mnemo) )
+
+    def is_branch_taken(self, insn):
+        flags = dict( (self.flags_table()[k], k) for k in self.flags_table().keys() )
+        val = get_register_ex(self.flag_register())
+        if insn=="be": return val&(1<<flags["zero"]), "Z"
+        if insn=="bne": return val&(1<<flags["zero"])==0, "!Z"
+        if insn=="bg": return val&(1<<flags["zero"])==0 and (val&(1<<flags["negative"])==0 or val&(1<<flags["overflow"])==0), "!Z && (!N || !O)"
+        if insn=="bge": return val&(1<<flags["negative"])==0 or val&(1<<flags["overflow"])==0, "!N || !O"
+        if insn=="bgu": return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0, "!C && !C"
+        if insn=="bgeu": return val&(1<<flags["carry"])==0, "!C"
+        if insn=="bl": return val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
+        if insn=="blu": return val&(1<<flags["carry"]), "C"
+        if insn=="ble": return val&(1<<flags["zero"]) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
+        if insn=="bleu": return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+        if insn=="bneg": return val&(1<<flags["negative"]), "N"
+        if insn=="bpos": return val&(1<<flags["negative"])==0, "!N"
+        if insn=="bvs": return val&(1<<flags["overflow"]), "O"
+        if insn=="bvc": return val&(1<<flags["overflow"])==0, "!O"
+        if insn=="bcs": return val&(1<<flags["carry"]), "C"
+        if insn=="bcc": return val&(1<<flags["carry"])==0, "!C"
+        return False, ""
+
+
+class SPARC64(SPARC):
+    pass
+
+
+class MIPS(Architecture):
+    def all_registers(self):
+        # http://vhouten.home.xs4all.nl/mipsel/r3000-isa.html
+        return ["$zero     ", "$at       ", "$v0       ", "$v1       ", "$a0       ", "$a1       ", "$a2       ", "$a3       ",
+                "$t0       ", "$t1       ", "$t2       ", "$t3       ", "$t4       ", "$t5       ", "$t6       ", "$t7       ",
+                "$s0       ", "$s1       ", "$s2       ", "$s3       ", "$s4       ", "$s5       ", "$s6       ", "$s7       ",
+                "$t8       ", "$t9       ", "$k0       ", "$k1       ", "$s8       ", "$status   ", "$badvaddr ", "$cause    ",
+                "$pc       ", "$sp       ", "$hi       ", "$lo       ", "$fir      ", "$fcsr     ", "$ra       ", "$gp       ", ]
+
+    def nop_insn(self):
+        # https://en.wikipedia.org/wiki/MIPS_instruction_set
+        # sll $0,$0,0
+        return b"\x00\x00\x00\x00"
+
+    def return_register(self):
+        return "$v0"
+
+    def flag_register(self):
+        return "$fcsr"
+
+    def flag_register_to_human(self, val=None):
+        # mips architecture does not use processor status word (flag register)
+        return ""
+
+    def is_conditional_branch(self, insn):
+        mnemo = ["beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez", ]
+        return any( filter(lambda x: x == insn, mnemo) )
+
+    def is_branch_taken(selfmnemo, operands):
+        if mnemo=="beq": return get_register_ex(operands[0]) == get_register_ex(operands[1]), ""
+        if mnemo=="bne": return get_register_ex(operands[0]) != get_register_ex(operands[1]), ""
+        if mnemo=="beqz": return get_register_ex(operands[0]) == 0, ""
+        if mnemo=="bnez": return get_register_ex(operands[0]) != 0, ""
+        if mnemo=="bgtz": return get_register_ex(operands[0]) > 0, ""
+        if mnemo=="bgez": return get_register_ex(operands[0]) >= 0, ""
+        if mnemo=="bltz": return get_register_ex(operands[0]) < 0, ""
+        if mnemo=="blez": return get_register_ex(operands[0]) <= 0, ""
+        return False, ""
+
+    def function_parameters(self):
+        return ['$a0','$a1','$a2','$a3']
 
 
 def write_memory(address, buffer, length=0x10):
