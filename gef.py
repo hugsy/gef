@@ -949,6 +949,9 @@ class Architecture(object):
 
 
 class ARM(Architecture):
+    arch = "ARM"
+    mode = "ARM"
+
     def all_registers(self):
         return ["$r0   ", "$r1   ", "$r2   ", "$r3   ", "$r4   ", "$r5   ", "$r6   ",
                 "$r7   ", "$r8   ", "$r9   ", "$r10  ", "$r11  ", "$r12  ", "$sp   ",
@@ -1008,6 +1011,9 @@ class ARM(Architecture):
 
 
 class AARCH64(ARM):
+    arch = "ARM"
+    mode = "ARM"
+
     def all_registers(self):
         return ["$x0       ", "$x1       ", "$x2       ", "$x3       ", "$x4       ", "$x5       ", "$x6       ", "$x7       ",
                 "$x8       ", "$x9       ", "$x10      ", "$x11      ", "$x12      ", "$x13      ", "$x14      ", "$x15      ",
@@ -1043,6 +1049,9 @@ class AARCH64(ARM):
 
 
 class X86(Architecture):
+    arch = "X86"
+    mode = "32"
+
     def all_registers(self):
         return [ "$eax   ", "$ebx   ", "$ecx   ", "$edx   ", "$esp   ", "$ebp   ", "$esi   ",
                  "$edi   ", "$eip   ", "$cs    ", "$ss    ", "$ds    ", "$es    ",
@@ -1118,6 +1127,9 @@ class X86(Architecture):
 
 
 class X86_64(X86):
+    arch = "X86"
+    mode = "64"
+
     def all_registers(self):
         return [ "$rax   ", "$rbx   ", "$rcx   ", "$rdx   ", "$rsp   ", "$rbp   ", "$rsi   ",
                  "$rdi   ", "$rip   ", "$r8    ", "$r9    ", "$r10   ", "$r11   ", "$r12   ",
@@ -1132,6 +1144,9 @@ class X86_64(X86):
 
 
 class PowerPC(Architecture):
+    arch = "PPC"
+    mode = "PPC32"
+
     def all_registers(self):
         return ["$r0  ", "$r1  ", "$r2  ", "$r3  ", "$r4  ", "$r5  ", "$r6  ", "$r7  ",
                 "$r8  ", "$r9  ", "$r10 ", "$r11 ", "$r12 ", "$r13 ", "$r14 ", "$r15 ",
@@ -1196,10 +1211,14 @@ class PowerPC(Architecture):
 
 
 class PowerPC64(PowerPC):
-    pass
+    arch = "PPC"
+    mode = "PPC64"
 
 
 class SPARC(Architecture):
+    arch = "SPARC"
+    mode = None
+
     def all_registers(self):
         return ["$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
                 "$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",
@@ -1267,10 +1286,14 @@ class SPARC(Architecture):
 
 
 class SPARC64(SPARC):
-    pass
+    arch = "SPARC"
+    mode = "V9"
 
 
 class MIPS(Architecture):
+    arch = "MIPS"
+    mode = "MIPS32"
+
     def all_registers(self):
         # http://vhouten.home.xs4all.nl/mipsel/r3000-isa.html
         return ["$zero     ", "$at       ", "$v0       ", "$v1       ", "$a0       ", "$a1       ", "$a2       ", "$a3       ",
@@ -1785,15 +1808,8 @@ def get_generic_running_arch(module, prefix, to_string=False):
     if not is_alive():
         return None, None
 
-    if   is_x86_32():    arch, mode = "X86", "32"
-    elif is_x86_64():    arch, mode = "X86", "64"
-    elif is_powerpc():   arch, mode = "PPC", "PPC32"
-    elif is_ppc64():     arch, mode = "PPC", "PPC64"
-    elif is_mips():      arch, mode = "MIPS", "MIPS32"
-    elif is_sparc():     arch, mode = "SPARC", None
-    elif is_sparc64():   arch, mode = "SPARC", "V9"
-    elif is_arm():       arch, mode = "ARM", "ARM"
-    elif is_aarch64():   arch, mode = "ARM", "ARM"
+    if current_arch is not None:
+        arch, mode = current_arch.arch, current_arch.mode
     else:
         raise GefUnsupportedOS("Emulation not supported for your OS")
 
@@ -1835,19 +1851,13 @@ def get_unicorn_registers(to_string=False):
     unicorn = sys.modules['unicorn']
     regs = {}
 
-    if is_x86_32() or is_x86_64():   arch = "x86"
-    elif is_powerpc():               arch = "ppc"
-    elif is_ppc64():                 arch = "ppc"
-    elif is_mips():                  arch = "mips"
-    elif is_sparc():                 arch = "sparc"
-    elif is_sparc64():               arch = "sparc"
-    elif is_arm():                   arch = "arm"
-    elif is_aarch64():               arch = "arm64"
+    if current_arch is not None:
+        arch = current_arch.arch.lower()
     else:
         raise GefUnsupportedOS("Oops")
 
     const = getattr(unicorn, arch + "_const")
-    for r in all_registers():
+    for r in current_arch.all_registers():
         regname = "UC_%s_REG_%s" % (arch.upper(), r.strip()[1:].upper())
         if to_string:
             regs[r] = "%s.%s" % (const.__name__, regname)
@@ -1949,6 +1959,22 @@ def is_sparc64():
 def is_aarch64():
     elf = get_elf_headers()
     return elf.e_machine==0xb7
+
+current_arch = None
+
+# TODO: Call this on bin load?
+def set_arch():
+    global current_arch
+    if is_arm():         current_arch = ARM()
+    elif is_aarch64():   current_arch = AARCH64()
+    elif is_x86_32():    current_arch = X86()
+    elif is_x86_64():    current_arch = X86_64()
+    elif is_powerpc():   current_arch = PowerPC()
+    elif is_ppc64():     current_arch = PowerPC64()
+    elif is_sparc():     current_arch = SPARC()
+    elif is_sparc64():   current_arch = SPARC64()
+    elif is_mips():      current_arch = MIPS()
+    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
 
 def get_memory_alignment(to_byte=False):
     if is_elf32():
@@ -2091,43 +2117,18 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
-        if is_arm():
-            regs = arm_function_parameters()
-            ptr = regs[self.num_args]
-            addr = lookup_address( get_register_ex( ptr ) )
 
-        elif is_aarch64():
-            regs = aarch64_function_parameters()
-            ptr = regs[self.num_args]
-            addr = lookup_address( get_register_ex( ptr ) )
-
-        elif is_x86_64():
-            regs = x86_64_function_parameters()
-            ptr = regs[self.num_args]
-            addr = lookup_address( get_register_ex( ptr ) )
-
-        elif is_sparc():
-            regs = powerpc_function_parameters()
-            ptr = regs[self.num_args]
-            addr = lookup_address( get_register_ex( ptr ) )
-
-        elif is_mips():
-            regs = mips_function_parameters()
-            ptr = regs[self.num_args]
-            addr = lookup_address( get_register_ex( ptr ) )
-
-        elif is_powerpc():
-            regs = powerpc_function_parameters()
-            ptr = regs[self.num_args]
-            addr = lookup_address( get_register_ex( ptr ) )
-
-        elif is_x86_32():
+        if is_x86_32():
             sp = get_sp()
             m = get_memory_alignment(to_byte=True)
             val = sp + (self.num_args * m) + m
             ptr = read_int_from_memory( val )
             addr = lookup_address( ptr )
             ptr = hex(ptr)
+        else:
+            regs = current_arch.function_parameters()
+            ptr = regs[self.num_args]
+            addr = lookup_address( get_register_ex( ptr ) )
 
         if not addr.valid:
             return False
@@ -2166,7 +2167,7 @@ class PatchBreakpoint(gdb.Breakpoint):
 
     def stop(self):
         retaddr = gdb.selected_frame().older().pc()
-        retreg  = return_register()
+        retreg  = current_arch.return_register()
 
         if self.retval is not None:
             cmd = "set %s = %#x" % (retreg, self.retval)
