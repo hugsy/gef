@@ -920,32 +920,32 @@ class Architecture(object):
         return []
 
     def nop_insn(self):
-        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
 
     def return_register(self):
-        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
 
     def flag_register(self):
-        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
 
     def flags_table(self):
-        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
 
     def flag_register_to_human(selfval=None):
-        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
 
     def is_call(self, insn):
         (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
-        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
 
     def is_conditional_branch(self, insn):
-        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
 
     def is_branch_taken(self, insn):
-        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
 
     def function_parameters(self):
-        raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
 
 
 class ARM(Architecture):
@@ -1044,7 +1044,7 @@ class AARCH64(ARM):
             val = get_register_ex( reg )
         return flags_to_human(val, self.flags_table())
 
-    def function_parameters():
+    def function_parameters(self):
         return ['$x0','$x1','$x2','$x3']
 
 
@@ -1066,7 +1066,7 @@ class X86(Architecture):
     def flag_register(self):
         return "$eflags"
 
-    def x86_flags_table():
+    def flags_table(self):
         table = { 6: "zero",
                   0: "carry",
                   2: "parity",
@@ -1088,11 +1088,11 @@ class X86(Architecture):
             val = get_register_ex( reg )
         return flags_to_human(val, self.flags_table())
 
-    def is_call(insn):
+    def is_call(self, insn):
         mnemo = ["call", "callq", ]
         return any( filter(lambda x: x == insn, mnemo) )
 
-    def is_conditional_branch(insn):
+    def is_conditional_branch(self, insn):
         mnemo = ["ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
                  "jcxz", "jecxz", "jrcxz", "je", "jz", "jg", "jnle", "jge", "jnl",
                  "jl", "jnge", "jle", "jng", "jne", "jnz", "jno", "jnp", "jpo", "jns",
@@ -1941,6 +1941,7 @@ def is_powerpc():
     elf = get_elf_headers()
     return elf.e_machine==0x14 # http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
 
+@memoize
 def is_ppc64():
     elf = get_elf_headers()
     return elf.e_machine==0x15 # http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
@@ -1974,7 +1975,10 @@ def set_arch():
     elif is_sparc():     current_arch = SPARC()
     elif is_sparc64():   current_arch = SPARC64()
     elif is_mips():      current_arch = MIPS()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+    else:
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+
+    return
 
 def get_memory_alignment(to_byte=False):
     if is_elf32():
@@ -2507,11 +2511,8 @@ class RetDecCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, argv):
-        if   is_x86_32():   arch = "x86"
-        elif is_arm():      arch = "arm"
-        elif is_mips():     arch = "mips"
-        elif is_powerpc():  arch = "powerpc"
-        else:
+        arch = current_arch.arch.lower()
+        if not arch:
             err("RetDec does not decompile '%s'" % get_arch())
             return
 
@@ -2863,16 +2864,16 @@ class FlagsCommand(GenericCommand):
                 err("Invalid action for flag '%s'" % flag)
                 continue
 
-            if name not in flags_table().values():
+            if name not in current_arch.flags_table().values():
                 err("Invalid flag name '%s'" % flag[1:])
                 continue
 
-            for k in flags_table().keys():
-                if flags_table()[k] == name:
+            for k in current_arch.flags_table().keys():
+                if current_arch.flags_table()[k] == name:
                     off = k
                     break
 
-            old_flag = get_register_ex( flag_register() )
+            old_flag = get_register_ex( current_arch.flag_register() )
             if action=='+':
                 new_flags = old_flag | (1<<off)
             elif action=='-':
@@ -2880,9 +2881,9 @@ class FlagsCommand(GenericCommand):
             else:
                 new_flags = old_flag ^ (1<<off)
 
-            gdb.execute("set (%s) = %#x" % (flag_register(), new_flags))
+            gdb.execute("set (%s) = %#x" % (current_arch.flag_register(), new_flags))
 
-        print(flag_register_to_human())
+        print(current_arch.flag_register_to_human())
         return
 
 
@@ -3182,7 +3183,7 @@ def reset():
         if verbose:
             info("Populating registers")
 
-        for r in all_registers():
+        for r in current_arch.all_registers():
             gregval = get_register_ex(r)
             if to_script:
                 content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers[r], gregval)
@@ -3306,7 +3307,7 @@ if __name__ == "__main__":
 
         ok("Emulation ended, showing %s registers:" % Color.redify("tainted"))
 
-        for r in all_registers():
+        for r in current_arch.all_registers():
             # ignoring $fs and $gs because of the dirty hack we did to emulate the selectors
             if r in ('$gs    ', '$fs    '): continue
 
@@ -3317,11 +3318,11 @@ if __name__ == "__main__":
                 continue
 
             msg = ""
-            if r != flag_register():
+            if r != current_arch.flag_register():
                 msg = "%-10s : old=%#.16x || new=%#.16x" % (r.strip(), start_regs[r], end_regs[r])
             else:
-                msg = "%-10s : old=%s \n" % (r.strip(), flag_register_to_human(start_regs[r]))
-                msg+= "%-16s new=%s" % ("", flag_register_to_human(end_regs[r]),)
+                msg = "%-10s : old=%s \n" % (r.strip(), current_arch.flag_register_to_human(start_regs[r]))
+                msg+= "%-16s new=%s" % ("", current_arch.flag_register_to_human(end_regs[r]),)
 
             ok(msg)
 
@@ -4098,9 +4099,9 @@ class DetailRegistersCommand(GenericCommand):
         regs = []
 
         if len(argv) > 0:
-            regs = [ reg for reg in all_registers() if reg.strip() in argv ]
+            regs = [ reg for reg in current_arch.all_registers() if reg.strip() in argv ]
         else:
-            regs = all_registers()
+            regs = current_arch.all_registers()
 
         for regname in regs:
             reg = gdb.parse_and_eval(regname)
@@ -4115,7 +4116,7 @@ class DetailRegistersCommand(GenericCommand):
                 continue
 
             if reg.type.code == gdb.TYPE_CODE_FLAGS:
-                line+= flag_register_to_human()
+                line+= current_arch.flag_register_to_human()
                 print(line)
                 continue
 
@@ -4791,14 +4792,14 @@ class ContextCommand(GenericCommand):
             gdb.execute("registers")
             return
 
-        l = max(map(len, all_registers()))
+        l = max(map(len, current_arch.all_registers()))
         l+= 5
         l+= 16 if is_elf64() else 8
         nb = get_terminal_size()[1]//l
         i = 1
         line = ""
 
-        for reg in all_registers():
+        for reg in current_arch.all_registers():
             try:
                 r = gdb.parse_and_eval(reg)
                 if r.type.code == gdb.TYPE_CODE_VOID:
@@ -4839,7 +4840,7 @@ class ContextCommand(GenericCommand):
         if len(line) > 0:
             print(line)
 
-        print("Flags: " + flag_register_to_human())
+        print("Flags: " + current_arch.flag_register_to_human())
         return
 
     def context_stack(self):
@@ -4887,8 +4888,8 @@ class ContextCommand(GenericCommand):
                 elif addr == pc:
                     line+= Color.colorify("%s  %s$pc" % (m, left_arrow), attrs="bold red")
 
-                    if is_conditional_branch(insn):
-                        is_taken, reason = is_branch_taken(insn)
+                    if current_arch.is_conditional_branch(insn):
+                        is_taken, reason = current_arch.is_branch_taken(insn)
                         reason = "[Reason: %s]" % reason if len(reason) else ""
                         if is_taken:
                             line+= Color.colorify("\tTAKEN %s" % reason, attrs="bold green")
@@ -5034,7 +5035,7 @@ class ContextCommand(GenericCommand):
         return
 
     def update_registers(self):
-        for reg in all_registers():
+        for reg in current_arch.all_registers():
             try:
                 self.old_registers[reg] = get_register_ex(reg)
             except:
@@ -5201,7 +5202,7 @@ class DereferenceCommand(GenericCommand):
 
         memalign = get_memory_alignment(to_byte=True)
         offset = 0
-        regs = [(k.strip(), get_register_ex(k)) for k in all_registers()]
+        regs = [(k.strip(), get_register_ex(k)) for k in current_arch.all_registers()]
         sep = " %s " % right_arrow
 
         def _pprint_dereferenced(addr, off):
