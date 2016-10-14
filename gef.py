@@ -4662,6 +4662,9 @@ class EntryPointBreakCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
+        # TODO: Do this on binary load?
+        set_arch()
+
         if get_filepath() is None:
             warn("No executable to debug, use `file` to load a binary")
             return
