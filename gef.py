@@ -2920,6 +2920,7 @@ class ChangePermissionCommand(GenericCommand):
     def do_invoke(self, argv):
         if len(argv) not in (1, 2):
             err("Incorrect syntax")
+            self.usage()
             return
 
         if len(argv)==2:
@@ -4146,19 +4147,20 @@ class DetailRegistersCommand(GenericCommand):
 
 class ShellcodeCommand(GenericCommand):
     """ShellcodeCommand uses @JonathanSalwan simple-yet-awesome shellcode API to
-    download shellcodes"""
+    download shellcodes."""
 
     _cmdline_ = "shellcode"
-    _syntax_  = "%s (search|get)" % _cmdline_
+    _syntax_  = "%s <search|get>" % _cmdline_
 
 
     def do_invoke(self, argv):
+        err("Missing subcommand <search|get>")
         self.usage()
         return
 
 
 class ShellcodeSearchCommand(GenericCommand):
-    """Search patthern in shellcodes database."""
+    """Search pattern in shellcodes database."""
 
     _cmdline_ = "shellcode search"
     _syntax_  = "%s <pattern1> <pattern2>" % _cmdline_
@@ -5443,6 +5445,7 @@ class XAddressInfoCommand(GenericCommand):
     def do_invoke (self, argv):
         if len(argv) < 1:
             err ("At least one valid address must be specified")
+            self.usage()
             return
 
         for sym in argv:
@@ -5489,12 +5492,12 @@ class XorMemoryCommand(GenericCommand):
     """XOR a block of memory."""
 
     _cmdline_ = "xor-memory"
-    _syntax_  = "%s (display|patch) <address> <size_to_read> <xor_key> " % _cmdline_
+    _syntax_  = "%s <display|patch> <address> <size_to_read> <xor_key> " % _cmdline_
 
 
     def do_invoke(self, argv):
         if len(argv) == 0:
-            err("Missing subcommand (display|patch)")
+            err("Missing subcommand <display|patch>")
             self.usage()
         return
 
