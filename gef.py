@@ -2490,7 +2490,7 @@ class RetDecCommand(GenericCommand):
     """Decompile code from GDB context using RetDec API."""
 
     _cmdline_ = "retdec"
-    _syntax_  = "%s [-r RANGE1-RANGE2][-s SYMBOL][-a][-h]" % _cmdline_
+    _syntax_  = "%s [-r RANGE1-RANGE2] [-s SYMBOL] [-a] [-h]" % _cmdline_
     _aliases_ = ["decompile", ]
 
     def __init__(self):
@@ -2512,6 +2512,7 @@ class RetDecCommand(GenericCommand):
     @if_gdb_running
     def do_invoke(self, argv):
         arch = current_arch.arch.lower()
+        # TODO: Make this a method in the base class
         if not arch:
             err("RetDec does not decompile '%s'" % get_arch())
             return
@@ -2533,37 +2534,46 @@ class RetDecCommand(GenericCommand):
         }
 
         opts, args = getopt.getopt(argv, "r:s:ah")
-        for o, a in opts:
-            if   o == "-r":
-                range_from, range_to = map(lambda x: int(x,16), a.split("-", 1))
-                fd, filename = tempfile.mkstemp()
-                with os.fdopen(fd, "wb") as f:
-                    length = range_to - range_from
-                    f.write(read_memory(range_from, length))
-                params["mode"] = "raw"
-                params["file_format"] = "elf"
-                params["raw_section_vma"] = hex(range_from)
-                params["raw_entry_point"] = hex(range_from)
-            elif o == "-s":
-                try:
-                    value = gdb.parse_and_eval(a)
-                except gdb.error:
-                    err("No symbol named '%s'" % a)
+        if not opts:
+            self.usage()
+            return
+
+        try:
+            for o, a in opts:
+                if o == "-r":
+                    range_from, range_to = map(lambda x: int(x,16), a.split("-", 1))
+                    fd, filename = tempfile.mkstemp()
+                    with os.fdopen(fd, "wb") as f:
+                        length = range_to - range_from
+                        f.write(read_memory(range_from, length))
+                    params["mode"] = "raw"
+                    params["file_format"] = "elf"
+                    params["raw_section_vma"] = hex(range_from)
+                    params["raw_entry_point"] = hex(range_from)
+                elif o == "-s":
+                    try:
+                        value = gdb.parse_and_eval(a)
+                    except gdb.error:
+                        err("No symbol named '%s'" % a)
+                        return
+                    range_from = long(value.address)
+                    fd, filename = tempfile.mkstemp()
+                    with os.fdopen(fd, "wb") as f:
+                        f.write(read_memory(range_from, get_function_length(a)))
+                    params["mode"] = "raw"
+                    params["file_format"] = "elf"
+                    params["raw_section_vma"] = hex(range_from)
+                    params["raw_entry_point"] = hex(range_from)
+                elif o == "-a":
+                    filename = get_filepath()
+                    params["mode"] = "bin"
+                else:
+                    self.usage()
                     return
-                range_from = long(value.address)
-                fd, filename = tempfile.mkstemp()
-                with os.fdopen(fd, "wb") as f:
-                    f.write(read_memory(range_from, get_function_length(a)))
-                params["mode"] = "raw"
-                params["file_format"] = "elf"
-                params["raw_section_vma"] = hex(range_from)
-                params["raw_entry_point"] = hex(range_from)
-            elif o == "-a":
-                filename = get_filepath()
-                params["mode"] = "bin"
-            else:
-                self.usage()
-                return
+        except Exception as e:
+            print(e)
+            self.usage()
+            return
 
         params["input_file"] = filename
         if self.send_to_retdec(params)==False:
