@@ -1728,6 +1728,7 @@ def lookup_address(address):
 
 
 def XOR(data, key):
+    key = key.lstrip("0x")
     key = binascii.unhexlify(key)
     if PYTHON_MAJOR == 2:
         return b''.join([chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key))])
@@ -5514,7 +5515,7 @@ class XorMemoryDisplayCommand(GenericCommand):
             return
 
         address = long(gdb.parse_and_eval(argv[0]))
-        length = long(argv[1])
+        length = long(argv[1], 0)
         key = argv[2]
         show_as_instructions = True if len(argv)==4 and argv[3]=="-i" else False
         block = read_memory(address, length)
@@ -5549,7 +5550,8 @@ class XorMemoryPatchCommand(GenericCommand):
             return
 
         address = parse_address( argv[0] )
-        length, key = long(argv[1]), argv[2]
+        length = long(argv[1], 0)
+        key = argv[2]
         block = read_memory(address, length)
         info("Patching XOR-ing %#x-%#x with '%s'" % (address, address+len(block), key))
 
