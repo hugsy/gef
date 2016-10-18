@@ -1753,6 +1753,7 @@ def hook_stop_handler(event):
 
 
 def new_objfile_handler(event):
+    set_arch()
     reset_all_caches()
     return
 
@@ -1964,7 +1965,6 @@ def is_aarch64():
 
 current_arch = None
 
-# TODO: Call this on bin load?
 def set_arch():
     global current_arch
     if is_arm():         current_arch = ARM()
@@ -4675,9 +4675,6 @@ class EntryPointBreakCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
-        # TODO: Do this on binary load?
-        set_arch()
-
         if get_filepath() is None:
             warn("No executable to debug, use `file` to load a binary")
             return
