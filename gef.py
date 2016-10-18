@@ -942,7 +942,6 @@ class Architecture(object):
         raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
 
     def is_call(self, insn):
-        (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
         raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
 
     def is_conditional_branch(self, insn):
@@ -984,9 +983,9 @@ class ARM(Architecture):
         return flags_to_human(val, self.flags_table)
 
     def is_conditional_branch(self, insn):
-        mnemo = ["beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
-                 "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"]
-        return any(filter(lambda x: x == insn, mnemo))
+        mnemos = {"beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
+                 "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"}
+        return insn in mnemos
 
     def is_branch_taken(self, mnemo):
         # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
@@ -1068,15 +1067,15 @@ class X86(Architecture):
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn):
-        mnemo = ["call", "callq", ]
-        return any( filter(lambda x: x == insn, mnemo) )
+        mnemos = {"call", "callq"}
+        return insn in mnemos
 
     def is_conditional_branch(self, insn):
-        mnemo = ["ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
+        mnemos = {"ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
                  "jcxz", "jecxz", "jrcxz", "je", "jz", "jg", "jnle", "jge", "jnl",
                  "jl", "jnge", "jle", "jng", "jne", "jnz", "jno", "jnp", "jpo", "jns",
-                 "jo", "jp", "jpe", "js",]
-        return any( filter(lambda x: x == insn, mnemo) )
+                 "jo", "jp", "jpe", "js"}
+        return insn in mnemos
 
     def is_branch_taken(self, mnemo):
         # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
@@ -1154,8 +1153,8 @@ class PowerPC(Architecture):
         return False
 
     def is_conditional_branch(self, insn):
-        mnemo = ["beq", "bne", "ble", "blt", "bgt", "bge", ]
-        return any( filter(lambda x: x == insn, mnemo) )
+        mnemos = {"beq", "bne", "ble", "blt", "bgt", "bge"}
+        return insn in mnemos
 
     def is_branch_taken(self, mnemo):
         flags = dict( (self.flags_table[k], k) for k in self.flags_table.keys() )
@@ -1209,9 +1208,9 @@ class SPARC(Architecture):
 
     def is_conditional_branch(self, insn):
         # http://moss.csc.ncsu.edu/~mueller/codeopt/codeopt00/notes/condbranch.html
-        mnemo = ["be", "bne", "bg", "bge", "bgeu", "bgu", "bl", "ble", "blu", "bleu",
-                 "bneg", "bpos", "bvs", "bvc", "bcs", "bcc", ]
-        return any( filter(lambda x: x == insn, mnemo) )
+        mnemos = {"be", "bne", "bg", "bge", "bgeu", "bgu", "bl", "ble", "blu", "bleu",
+                 "bneg", "bpos", "bvs", "bvc", "bcs", "bcc"}
+        return insn in mnemos
 
     def is_branch_taken(self, insn):
         flags = dict( (self.flags_table[k], k) for k in self.flags_table.keys() )
@@ -1262,8 +1261,8 @@ class MIPS(Architecture):
         return ""
 
     def is_conditional_branch(self, insn):
-        mnemo = ["beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez", ]
-        return any( filter(lambda x: x == insn, mnemo) )
+        mnemos = {"beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez"}
+        return insn in mnemos
 
     def is_branch_taken(self, mnemo, operands):
         if mnemo == "beq": return get_register_ex(operands[0]) == get_register_ex(operands[1]), ""
