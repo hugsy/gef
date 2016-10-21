@@ -5817,11 +5817,11 @@ class FormatStringSearchCommand(GenericCommand):
 
     def do_invoke(self, argv):
         dangerous_functions = {
-            'printf':     0,
-            'sprintf':    1,
-            'fprintf':    1,
-            'snprintf':   2,
-            'vsnprintf':  2,
+            '*printf':     0,
+            '*sprintf':    1,
+            '*fprintf':    1,
+            '*snprintf':   2,
+            '*vsnprintf':  2,
         }
 
         enable_redirect_output("/dev/null")
