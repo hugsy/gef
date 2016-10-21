@@ -2869,7 +2869,7 @@ class ChangePermissionCommand(GenericCommand):
         else:
             perm = Permission.READ | Permission.WRITE | Permission.EXECUTE
 
-        loc = int(argv[0], 16)
+        loc = long(gdb.parse_and_eval(argv[0]))
         sect = process_lookup_address(loc)
         size = sect.page_end - sect.page_start
         original_pc = get_pc()
