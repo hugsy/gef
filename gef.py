@@ -3535,12 +3535,8 @@ class RemoteCommand(GenericCommand):
                 self.help()
                 return
 
-        if args is None or len(args)!=1:
-            err("A target (HOST:PORT) is always required.")
-            return
-
-        if is_extended_remote and rpid < 0:
-            err("A PID must be provided (-p <PID>) when using remote-extended mode")
+        if args is None or len(args)!=1 or rpid < 0:
+            err("A target (HOST:PORT) *and* a PID (-p PID) must always be provided.")
             return
 
         # lazily install handler on first use
@@ -3560,7 +3556,6 @@ class RemoteCommand(GenericCommand):
             gdb.execute("attach %d" % rpid)
             enable_context()
         else:
-            rpid = get_pid()
             ok("Targeting PID=%d" % rpid)
 
         self.add_setting("target", target)
@@ -5170,8 +5165,8 @@ class ContextCommand(GenericCommand):
 
         i = 0
         for thread in threads:
-            line = """[{:s}] """.format(Color.colorify("#%d"%i, attrs="bold pink"))
-            line+= """Id {:d}, Name: "{:s}", """.format(thread.num, thread.name)
+            line = """[{:s}] Id {:d}, Name: "{:s}",  """.format(Color.colorify("#%d"%i, attrs="bold pink"),
+                                                                thread.num, thread.name or "")
             if thread.is_running():
                 line+= Color.colorify("running", attrs="bold green")
             elif thread.is_stopped():
