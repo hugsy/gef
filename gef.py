@@ -3398,6 +3398,8 @@ class RemoteCommand(GenericCommand):
         if update_solib:
             self.refresh_shared_library_path()
 
+        set_arch()
+
         return
 
     def new_objfile_handler(self, event):
