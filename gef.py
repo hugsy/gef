@@ -800,8 +800,7 @@ def _gef_disassemble_around(addr, nb_insn):
     if not ( is_x86_32() or is_x86_64() ):
         # all ABI except x86 are fixed length instructions, easy to process
         insn_len = 4 if is_aarch64() or is_ppc64() else get_memory_alignment(to_byte=True)
-        top = addr - (nb_insn-3)*insn_len*2
-        lines = _gef_disassemble_top(top,  nb_insn-1)
+        lines = _gef_disassemble_top(addr-insn_len - nb_insn*insn_len, nb_insn-1)
         lines+= _gef_disassemble_top(addr, nb_insn)
         return lines
 
@@ -5147,6 +5146,11 @@ class ContextCommand(GenericCommand):
         nb_backtrace = self.get_setting("nb_lines_backtrace")
         orig_frame = current_frame = gdb.selected_frame()
         i = 0
+
+        # backward compat for gdb (gdb < 7.10)
+        if not hasattr(gdb, "FrameDecorator"):
+            gdb.execute("backtrace %d" % nb_backtrace)
+            return
 
         while current_frame:
             current_frame.select()
