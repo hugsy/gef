@@ -4865,10 +4865,11 @@ class ContextCommand(GenericCommand):
 
                     if current_arch.is_conditional_branch(insn):
                         is_taken, reason = current_arch.is_branch_taken(insn)
-                        reason = "[Reason: %s]" % reason if len(reason) else ""
                         if is_taken:
+                            reason = "[Reason: %s]" % reason if len(reason) else ""
                             line+= Color.colorify("\tTAKEN %s" % reason, attrs="bold green")
                         else:
+                            reason = "[Reason: !(%s)]" % reason if len(reason) else ""
                             line+= Color.colorify("\tNOT taken %s" % reason, attrs="bold red")
 
                 else:
