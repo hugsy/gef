@@ -1276,14 +1276,22 @@ class MIPS(Architecture):
 
     def is_branch_taken(self, insn):
         _, _, mnemo, ops = gef_parse_gdb_instruction(insn)
-        if mnemo == "beq": return get_register_ex(ops[0]) == get_register_ex(ops[1]), ""
-        if mnemo == "bne": return get_register_ex(ops[0]) != get_register_ex(ops[1]), ""
-        if mnemo == "beqz": return get_register_ex(ops[0]) == 0, ""
-        if mnemo == "bnez": return get_register_ex(ops[0]) != 0, ""
-        if mnemo == "bgtz": return get_register_ex(ops[0]) > 0, ""
-        if mnemo == "bgez": return get_register_ex(ops[0]) >= 0, ""
-        if mnemo == "bltz": return get_register_ex(ops[0]) < 0, ""
-        if mnemo == "blez": return get_register_ex(ops[0]) <= 0, ""
+        if mnemo == "beq":
+            return get_register_ex(ops[0]) == get_register_ex(ops[1]), "{0[0]} == {0[1]}".format(ops)
+        if mnemo == "bne":
+            return get_register_ex(ops[0]) != get_register_ex(ops[1]), "{0[0]} != {0[1]}".format(ops)
+        if mnemo == "beqz":
+            return get_register_ex(ops[0]) == 0, "{0[0]} == 0".format(ops)
+        if mnemo == "bnez":
+            return get_register_ex(ops[0]) != 0, "{0[0]} != 0".format(ops)
+        if mnemo == "bgtz":
+            return get_register_ex(ops[0]) > 0, "{0[0]} > 0".format(ops)
+        if mnemo == "bgez":
+            return get_register_ex(ops[0]) >= 0, "{0[0]} >= 0".format(ops)
+        if mnemo == "bltz":
+            return get_register_ex(ops[0]) < 0, "{0[0]} < 0".format(ops)
+        if mnemo == "blez":
+            return get_register_ex(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
         return False, ""
 
 
