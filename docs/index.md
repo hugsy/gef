@@ -89,6 +89,7 @@ There are none: `GEF` works out of the box! However, to enjoy all the coolest fe
 
 - [`capstone`](https://github.com/aquynh/capstone)
 - [`keystone`](https://github.com/keystone-engine/keystone)
+- [`cmake`](Required for keystone build: apt-get install cmake, packman -S cmake)
 - [`unicorn`](https://github.com/unicorn-engine/unicorn)
 - [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget)
 - [`Ropper`](https://github.com/sashs/ropper)
@@ -106,9 +107,10 @@ $ pip3 install capstone keystone-engine  # for Python3.x
 ```bash
 $ git clone https://github.com/keystone-engine/keystone.git
 $ mkdir -p keystone/build && cd keystone/build
-$ cmake .. && make -j8
+$ ../make-share.sh
 $ sudo make install
-$ cd ../bindings/python && sudo make install # or sudo make install3 for Python3
+$ sudo ldconfig
+$ cd ../bindings/python && sudo ./setup.py build && sudo ./setup.py install
 ```
 
 `capstone` provides an alternative to the `gdb` disassembler, which could be useful specifically when dealing with complex/uncommon instructions.
