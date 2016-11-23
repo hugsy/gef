@@ -4846,25 +4846,36 @@ class EntryPointBreakCommand(GenericCommand):
                     # this case can happen when doing remote debugging
                     gdb.execute("continue")
                     return
-                # otherwise, simply continue with next symbol
-                warn("Could not solve `%s` symbol" % sym)
+
                 continue
 
-        # break at entry point - should never fail
+        # break at entry point
         elf = get_elf_headers()
         if elf is None:
             return
 
-        value = elf.e_entry
-        if value:
-            info("Breaking at entry-point: %#x" % value)
-            gdb.execute("tbreak *%#x" % value, to_string=True)
-            info("Starting execution")
-            gdb.execute("run")
-            return
-
+        self.set_init_tbreak_pic(elf.e_entry)
+        gdb.execute("run")
         return
 
+    def set_init_tbreak(self, addr):
+        info("Breaking at entry-point: %#x" % addr)
+        bp_num = gdb.execute("tbreak *%#x" % addr, to_string=True)
+        bp_num = int(bp_num.split()[2])
+        return bp_num
+
+    def set_init_tbreak_pic(self, addr, do_run=True):
+        warn("PIC binary detected, retrieving text base address")
+        enable_redirect_output()
+        gdb.execute("set stop-on-solib-events 1")
+        disable_context()
+        gdb.execute("run")
+        enable_context()
+        gdb.execute("set stop-on-solib-events 0")
+        vmmap = get_process_maps()
+        base_address = [x.page_start for x in vmmap if x.path==get_filepath()][0]
+        disable_redirect_output()
+        return self.set_init_tbreak(base_address + addr)
 
 
 class ContextCommand(GenericCommand):
