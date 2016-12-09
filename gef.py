@@ -1886,6 +1886,11 @@ def exit_handler(event):
     return
 
 
+def interact_sync(event):
+    gdb.execute("ida-interact Sync")
+    return
+
+
 def get_terminal_size():
     """
     Portable function to retrieve the current terminal size.
@@ -2441,16 +2446,11 @@ class GenericCommand(gdb.Command):
     # _cmdline_ = "template-fake"
     # _syntax_  = "%s" % _cmdline_
     # _aliases_ = ["tpl-fk", ]
-
     # def __init__(self):
-    # super(TemplateCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
-    # return
-    # def pre_load(self):
-    # return
-    # def post_load(self):
-    # return
+    #     super(TemplateCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+    #     return
     # def do_invoke(self, argv):
-    # return
+    #     return
 
 
 class PCustomCommand(GenericCommand):
@@ -2814,40 +2814,68 @@ class ProcessIdCommand(GenericCommand):
 
 
 class IdaInteractCommand(GenericCommand):
-    """IDA Interact: set of commands to interact with IDA."""
+    """IDA Interact: set of commands to interact with IDA via a XML RPC service
+    deployed via the IDA script `ida_gef.py`. It should be noted that this command
+    can also be used to interact with Binary Ninja (using the script `binja_gef.py`)
+    using the same interface."""
 
     _cmdline_ = "ida-interact"
     _syntax_  = "%s METHOD [ARGS]" % _cmdline_
+    _aliases_ = ["binaryninja-interact", "bn", "binja"]
 
     def __init__(self):
         super(IdaInteractCommand, self).__init__(prefix=False)
         host, port = "127.0.1.1", 1337
         self.add_setting("host", host)
         self.add_setting("port", port)
+        self.sock = None
+        self.version = ("", "")
+
+        if self.is_target_alive(host, port):
+            # if the target responds, we add 2 new handlers to synchronize the
+            # info between gdb and ida/binja
+            self.connect()
         return
 
-    def connect(self):
-        """
-        Connect to the XML-RPC service.
-        """
-        host = self.get_setting("host")
-        port = self.get_setting("port")
+    def is_target_alive(self, host, port):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(1)
             s.connect((host, port))
             s.close()
+        except socket.error:
+            return False
+        return True
+
+    def connect(self, host=None, port=None):
+        """
+        Connect to the XML-RPC service.
+        """
+        if host is None:
+            host = self.get_setting("host")
+        if port is None:
+            port = self.get_setting("port")
+
+        try:
             sock = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(host, port))
+            gdb.events.stop.connect(interact_sync)
+            gdb.events.cont.connect(interact_sync)
+            self.version = sock.version()
         except:
             err("Failed to connect to '{:s}:{:d}'".format(host, port))
-            info("Did you start the IDA script `ida_gef_xmlrpc.py` (https://github.com/hugsy/stuff/blob/master/ida_scripts/ida_gef_xmlrpc.py)?")
             sock = None
-        return sock
+        self.sock = sock
+        return
+
+    def disconnect(self):
+        # we really cannot connect, remove the events
+        gdb.events.stop.disconnect(interact_sync)
+        gdb.events.cont.disconnect(interact_sync)
+        self.sock = None
+        return
+
 
     def do_invoke(self, argv):
-        return self.call(argv)
-
-    def call(self, argv):
         def parsed_arglist(arglist):
             args = []
             for arg in arglist:
@@ -2863,18 +2891,32 @@ class IdaInteractCommand(GenericCommand):
                     args.append(arg)
             return args
 
-        sock = self.connect()
-        if sock is None:
-            return
+        if self.sock is None:
+            warn("Trying to reconnect to %s" % self.version[0])
+            self.connect()
+            if self.sock is None:
+                self.disconnect()
+                return
 
         if len(argv)==0 or argv[0] in ("-h", "--help"):
             method_name = argv[1] if len(argv)>1 else None
-            self.usage(sock, method_name)
+            self.usage(method_name)
             return
 
         try:
             method_name = argv[0]
-            method = getattr(sock, method_name)
+            if method_name == "version":
+                self.version = self.sock.version()
+                info("Enhancing %s with %s (v.%s)" % (Color.greenify("gef"),
+                                                      Color.redify(self.version[0]),
+                                                      Color.yellowify(self.version[1])))
+                return
+
+            if method_name == "Sync":
+                self.synchronize()
+                return
+
+            method = getattr(self.sock, method_name)
             if len(argv) > 1:
                 args = parsed_arglist(argv[1:])
                 res = method(*args)
@@ -2889,27 +2931,65 @@ class IdaInteractCommand(GenericCommand):
                 self.import_structures(res)
             else:
                 print(res)
-            return
+
+        except socket.error:
+            self.disconnect()
+
         except Exception as e:
             err(str(e))
-            del sock
+
         return
 
-    def usage(self, sock=None, meth=None):
-        super(IdaInteractCommand, self).usage()
-        if sock is None:
+
+    def synchronize(self):
+        # submit all active breakpoint addresses to IDA/BN
+        breakpoints = gdb.breakpoints() or []
+        old_bps = []
+
+        for x in breakpoints:
+            if x.enabled and not x.temporary:
+                val = gdb.parse_and_eval(x.location).address
+                addr = str(val).strip().split()[0]
+                addr = long(addr, 16)
+                old_bps.append(addr)
+
+        pc = get_pc()
+        cur_bps = self.sock.Sync(str(pc), old_bps)
+        if cur_bps == old_bps:
+            # no change
+            return
+
+        # add new BP defined in IDA/BN to gef
+        added = set(cur_bps) - set(old_bps)
+        for new_bp in added:
+            gdb.Breakpoint("*%#x" % new_bp, type=gdb.BP_BREAKPOINT).enabled
+
+        # and remove the old ones
+        removed = set(old_bps) - set(cur_bps)
+        for bp in breakpoints:
+            val = gdb.parse_and_eval(bp.location).address
+            addr = str(val).strip().split()[0]
+            addr = long(addr, 16)
+            if addr in removed:
+                bp.delete()
+
+        return
+
+
+    def usage(self, meth=None):
+        if self.sock is None:
             return
 
         if meth is not None:
             print(titlify(meth))
-            print(sock.system.methodHelp(meth))
+            print(self.sock.system.methodHelp(meth))
             return
 
-        info("Listing methods: ")
-        for m in sock.system.listMethods():
+        info("Listing available methods and syntax examples: ")
+        for m in self.sock.system.listMethods():
             if m.startswith("system."): continue
             print(titlify(m))
-            print(sock.system.methodHelp(m))
+            print(self.sock.system.methodHelp(m))
         return
 
     def import_structures(self, structs):
