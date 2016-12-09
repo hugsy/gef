@@ -174,6 +174,7 @@ class Gef:
         for bp in bps:
             if bp not in _breakpoints:
                 gef_add_breakpoint_to_list(self.view, bp)
+            highlight(self.view, bp, BP_HL_COLOR)
 
         # if new breakpoints were manually added, sync them with gef
         _new = [ x for x in _breakpoints ]
