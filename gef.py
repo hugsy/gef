@@ -694,6 +694,10 @@ def warn(msg, cr=True):  return _xlog(Color.colorify("[*]", attrs="bold yellow")
 def ok(msg, cr=True):    return _xlog(Color.colorify("[+]", attrs="bold green")+" "+msg, gdb.STDLOG, cr)
 def info(msg, cr=True):  return _xlog(Color.colorify("[+]", attrs="bold blue")+" "+msg, gdb.STDLOG, cr)
 
+def show_exception():
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    print("".join(traceback.format_exception(exc_type, exc_value,exc_traceback)))
+    return
 
 def which(program):
     def is_exe(fpath):
@@ -1887,7 +1891,7 @@ def exit_handler(event):
 
 
 def interact_sync(event):
-    gdb.execute("ida-interact Sync")
+    gdb.execute("ida-interact Sync", from_tty=True, to_string=True)
     return
 
 
@@ -2936,8 +2940,7 @@ class IdaInteractCommand(GenericCommand):
             self.disconnect()
 
         except Exception as e:
-            err(str(e))
-
+            err("[%s] Exception: %s" % (self._cmdline_, str(e)))
         return
 
 
