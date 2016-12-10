@@ -2992,6 +2992,7 @@ class IdaInteractCommand(GenericCommand):
             print(self.sock.system.methodHelp(m))
         return
 
+
     def import_structures(self, structs):
         path = __config__.get("pcustom.struct_path")[0]
         if not os.path.isdir(path):
@@ -3001,12 +3002,14 @@ class IdaInteractCommand(GenericCommand):
             with open(fullpath, "wb") as f:
                 f.write(b"from ctypes import *\n\nclass Template(Structure):\n    _fields_ = [\n")
                 for offset, name, size in structs[struct_name]:
+                    name = bytes(name, encoding="utf-8")
                     if   size == 1: csize = b"c_uint8"
                     elif size == 2: csize = b"c_uint16"
                     elif size == 4: csize = b"c_uint32"
                     elif size == 8: csize = b"c_uint64"
-                    else:           csize = b"c_byte * %d" % size
-                    f.write(b"""%s("%s", %s),\n""" % (b" "*8, bytes(name, encoding="utf-8"), csize))
+                    else:           csize = b"c_byte * " + bytes(str(size), encoding="utf-8")
+                    m = [b'        ("', name, b'", ', csize, b'),\n']
+                    f.write(b''.join(m))
                 f.write(b"]\n")
         ok("Success, %d structure%s imported"%(len(structs.keys()), "s" if len(structs.keys())>1 else ""))
         return
