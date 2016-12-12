@@ -37,6 +37,7 @@
 from __future__ import print_function
 from __future__ import division
 
+import abc
 import binascii
 import collections
 import ctypes
@@ -2381,19 +2382,12 @@ class ChangePermissionBreakpoint(gdb.Breakpoint):
 #
 
 class GenericCommand(gdb.Command):
-    """Generic class for invoking commands"""
+    """This is a meta-class for invoking commands, should not be invoked"""
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, *args, **kwargs):
         self.pre_load()
-
-        required_attrs = ["do_invoke", "_cmdline_", "_syntax_"]
-
-        for attr in required_attrs:
-            if not hasattr(self, attr):
-                raise NotImplemented("Invalid class: missing '%s'" % attr)
-
         self.__doc__  += "\n" + "Syntax: " + self._syntax_
-
         command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
         complete_type = kwargs.setdefault("complete", gdb.COMPLETE_NONE)
         prefix = kwargs.setdefault("prefix", True)
@@ -2401,45 +2395,46 @@ class GenericCommand(gdb.Command):
         self.post_load()
         return
 
-
     def invoke(self, args, from_tty):
         argv = gdb.string_to_argv(args)
         self.do_invoke(argv)
         return
 
-
     def usage(self):
         err("Syntax\n" + self._syntax_ )
         return
 
+    @abc.abstractproperty
+    def _cmdline_(self): pass
 
-    def pre_load(self):
-        return
+    @abc.abstractproperty
+    def _syntax_(self): pass
 
+    @abc.abstractmethod
+    def do_invoke(self, argv): pass
 
-    def post_load(self):
-        return
+    def pre_load(self): pass
+    def post_load(self): pass
 
+    @property
+    def settings(self): pass
+
+    @settings.getter
+    def settings(self):
+        return { x.split('.', 1)[1]: __config__[x] for x in __config__.keys() \
+                 if x.startswith("%s."%self._cmdline_) }
+
+    def get_setting(self, name): return self.settings[name]
+    def has_setting(self, name): return name in self.settings.keys()
 
     def add_setting(self, name, value):
         key = "%s.%s" % (self.__class__._cmdline_, name)
         __config__[ key ] = (value, type(value))
         return
 
-
-    def get_setting(self, name):
-        key = "%s.%s" % (self.__class__._cmdline_, name)
-        return __config__[ key ][0]
-
-
-    def has_setting(self, name):
-        key = "%s.%s" % (self.__class__._cmdline_, name)
-        return key in list( __config__.keys() )
-
-
     def del_setting(self, name):
         key = "%s.%s" % (self.__class__._cmdline_, name)
-        del ( __config__[ key ] )
+        __config__.pop(key)
         return
 
 
@@ -2839,6 +2834,7 @@ class IdaInteractCommand(GenericCommand):
             # if the target responds, we add 2 new handlers to synchronize the
             # info between gdb and ida/binja
             self.connect()
+
         return
 
     def is_target_alive(self, host, port):
@@ -2997,6 +2993,9 @@ class IdaInteractCommand(GenericCommand):
 
 
     def import_structures(self, structs):
+        if self.version[0] != "IDA Pro":
+            return
+
         path = __config__.get("pcustom.struct_path")[0]
         if not os.path.isdir(path):
             gef_makedirs(path)
