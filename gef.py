@@ -2299,10 +2299,8 @@ class PCustomCommand(GenericCommand):
             self.list_custom_structures()
             return
 
-        if ":" in argv[0]:
-            modname, structname  = argv[0].split(":", 1)
-        else:
-            modname = structname = argv[0]
+        modname, structname  = argv[0].split(":", 1) if ":" in argv[0] else argv[0], argv[0]
+        structname, param  = argv[0].split(".", 1) if "." in structname else structname, None
 
         if argc==1:
             self.dump_structure(modname, structname)
