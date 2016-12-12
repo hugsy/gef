@@ -1,7 +1,7 @@
 ### Step 0: Preliminary
 
   * Did you read the [documentation](https://gef.readthedocs.org/en/latest/) first?
-  * Did you check closed [issues](https://github.com/hugsy/issues)?
+  * Did you check closed [issues](https://github.com/hugsy/gef/issues)?
 
 
 ### Step 1: Describe your environment
