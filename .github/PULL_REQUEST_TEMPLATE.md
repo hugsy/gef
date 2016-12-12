@@ -22,7 +22,7 @@ Has this patch been tested on (example)
 | Architecture | Yes/No                   | Comments               |
 |--------------|:------------------------:|------------------------|
 | x86-32       | :heavy_check_mark:       | rock'n roll            |
-| x86-32       | :heavy_multiplication_x: |                        |
+| x86-64       | :heavy_multiplication_x: |                        |
 | ARM          | :heavy_check_mark:       |                        |
 | AARCH64      | :heavy_multiplication_x: |                        |
 | MIPS         | :heavy_check_mark:       |                        |
