@@ -700,6 +700,16 @@ def show_exception():
     print("".join(traceback.format_exception(exc_type, exc_value,exc_traceback)))
     return
 
+def gef_pystring(x):
+    if PYTHON_MAJOR == 3:
+        return str(x, encoding="ascii")
+    return x
+
+def gef_pybytes(x):
+    if PYTHON_MAJOR == 3:
+        return bytes(str(x), encoding="utf-8")
+    return x
+
 def which(program):
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
@@ -880,14 +890,9 @@ def gef_execute_external(command, as_list=False, *args, **kwargs):
 
     if as_list:
         lines = res.splitlines()
-        if PYTHON_MAJOR == 3:
-            return [str(x, encoding="ascii") for x in lines]
-        return lines
+        return [gef_pystring(x) for x in lines]
 
-    if PYTHON_MAJOR == 3:
-        return str(res, encoding="ascii")
-
-    return res
+    return gef_pystring(res)
 
 
 def get_frame():
@@ -2017,7 +2022,7 @@ def get_unicorn_registers(to_string=False):
 def keystone_assemble(code, arch, mode, *args, **kwargs):
     """Assembly encoding function based on keystone."""
     keystone = sys.modules["keystone"]
-    if PYTHON_MAJOR==3: code = bytes(code, encoding="utf-8")
+    code = gef_pybytes(code)
     addr = kwargs.get("addr", 0x1000)
 
     try:
@@ -2424,7 +2429,7 @@ class GenericCommand(gdb.Command):
         return { x.split('.', 1)[1]: __config__[x] for x in __config__.keys() \
                  if x.startswith("%s."%self._cmdline_) }
 
-    def get_setting(self, name): return self.settings[name]
+    def get_setting(self, name): return self.settings[name][1](self.settings[name][0])
     def has_setting(self, name): return name in self.settings.keys()
 
     def add_setting(self, name, value):
@@ -2467,12 +2472,6 @@ class PCustomCommand(GenericCommand):
     def __init__(self):
         super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL, prefix=False)
         self.add_setting("struct_path", GEF_TEMP_DIR+'/structs')
-        self.template_body = b"""from ctypes import *
-
-class Template(Structure):
-    _fields_ = []
-
-"""
         return
 
     def do_invoke(self, argv):
@@ -2531,10 +2530,13 @@ class Template(Structure):
             return False
 
         fullname = self.get_custom_structure_filepath(struct_name)
-        defined_struct = imp.load_source("template", fullname)
-        template = defined_struct.Template()
+        module_name = struct_name
+        class_name = module_name
+        defined_struct = imp.load_source(module_name, fullname)
+        _class = getattr(defined_struct, class_name)()
         _offset = 0
-        for (_name, _type) in template._fields_:
+
+        for (_name, _type) in _class._fields_:
             _size = ctypes.sizeof(_type)
             print("+%04x %s %s (%#x)" % (_offset, _name, _type.__name__, _size))
             _offset += _size
@@ -2551,23 +2553,26 @@ class Template(Structure):
             return
 
         fullname = self.get_custom_structure_filepath(struct_name)
-        defined_struct = imp.load_source("template", fullname)
-        template = defined_struct.Template()
+        defined_struct = imp.load_source(struct_name, fullname)
+        module_name = struct_name
+        class_name = module_name
+        defined_struct = imp.load_source(module_name, fullname)
+        _class = getattr(defined_struct, class_name)()
 
         try:
-            data = read_memory(addr, self.get_custom_structure_size(template))
+            data = read_memory(addr, self.get_custom_structure_size(_class))
         except gdb.MemoryError:
             err("Cannot reach memory %#x" % addr)
             return
 
-        self.deserialize(template, data)
+        self.deserialize(_class, data)
         _offset = 0
         _regsize = get_memory_alignment(to_byte=True)
 
-        for field in template._fields_:
+        for field in _class._fields_:
             _name, _type = field
             _size = ctypes.sizeof(_type)
-            _value = getattr(template, _name)
+            _value = getattr(_class, _name)
 
             if    (_regsize==4 and _type is ctypes.c_uint32) \
                or (_regsize==8 and _type is ctypes.c_uint64) \
@@ -2577,7 +2582,7 @@ class Template(Structure):
 
             line = ("%#x+0x%04x %s : " % (addr, _offset, _name)).ljust(40)
             line+= "%s (%s)" % (_value, _type.__name__)
-            parsed_value = self.get_ctypes_value(template, _name, _value)
+            parsed_value = self.get_ctypes_value(_class, _name, _value)
             if len(parsed_value):
                 line+= " %s %s" % (right_arrow, parsed_value)
             print(line)
@@ -2604,9 +2609,9 @@ class Template(Structure):
             info("Creating path '%s'" % path)
             gef_makedirs(path)
         elif not self.is_valid_custom_structure(structure_name):
-            info("Creating '%s' from template"%fullname)
+            info("Creating '%s' from template" % fullname)
             with open(fullname, "wb") as f:
-                f.write(self.template_body)
+                f.write(self.get_template(structure_name))
         else:
             info("Editing '%s'" % fullname)
 
@@ -2615,16 +2620,26 @@ class Template(Structure):
         retcode = subprocess.call(cmd)
         return retcode
 
+    def get_template(self, sname):
+        d = [
+            b"from ctypes import *\n\n",
+            b"class ",
+            gef_pybytes(sname),
+            b"(Structure):\n",
+            b"    _fields_ = []\n"
+        ]
+        return b''.join(d)
+
     def list_custom_structures(self):
         info("Listing custom structures:")
-        path = self.get_setting("struct_path")
         try:
+            path = self.get_setting("struct_path")
             for filen in os.listdir(path):
                 name, ext = os.path.splitext(filen)
                 if ext != ".py": continue
                 ok("%s %s" % (right_arrow, name))
         except OSError:
-            err("Cannot open %s. Create struct directory or set pcustom.struct_path" % path)
+            err("Cannot open %s. Create struct directory or use `gef config pcustom.struct_path` to set it correctly." % path)
         return
 
 
@@ -3002,7 +3017,11 @@ class IdaInteractCommand(GenericCommand):
         for struct_name in structs.keys():
             fullpath = path + "/" + struct_name + ".py"
             with open(fullpath, "wb") as f:
-                f.write(b"from ctypes import *\n\nclass Template(Structure):\n    _fields_ = [\n")
+                f.write(b"from ctypes import *\n\n")
+                f.write(b"class ")
+                f.write( bytes(str(struct_name), encoding="utf-8") )
+                f.write(b"(Structure):\n")
+                f.write(b"    _fields_ = [\n")
                 for offset, name, size in structs[struct_name]:
                     name = bytes(name, encoding="utf-8")
                     if   size == 1: csize = b"c_uint8"
@@ -3030,9 +3049,7 @@ class SearchPatternCommand(GenericCommand):
 
     def search_pattern_by_address(self, pattern, start_address, end_address):
         """Search a pattern within a range defined by arguments."""
-        if PYTHON_MAJOR==3:
-            pattern = bytes(pattern, "utf-8")
-
+        pattern = gef_pybytes(pattern)
         length = end_address - start_address
         buf = read_memory(start_address, length)
         locations = []
@@ -4423,9 +4440,7 @@ class ShellcodeSearchCommand(GenericCommand):
             err("Could not query search page: got %d" % http.getcode())
             return
 
-        ret = http.read()
-        if PYTHON_MAJOR == 3:
-            ret = str( ret, encoding="ascii" )
+        ret = gef_pystring( http.read() )
 
         # format: [author, OS/arch, cmd, id, link]
         lines = ret.split("\n")
@@ -4478,20 +4493,14 @@ class ShellcodeGetCommand(GenericCommand):
             err("Could not query search page: got %d" % http.getcode())
             return
 
-        ret  = http.read()
-        if PYTHON_MAJOR == 3:
-            ret = str( ret, encoding="ascii" )
+        ret  = gef_pystring(http.read())
 
         info("Downloading shellcode id=%d" % sid)
         fd, fname = tempfile.mkstemp(suffix=".txt", prefix="sc-", text=True, dir='/tmp')
         data = ret.split("\n")[7:-11]
         buf = "\n".join(data)
         buf = HTMLParser().unescape( buf )
-
-        if PYTHON_MAJOR == 3:
-            buf = bytes(buf, "UTF-8")
-
-        os.write(fd, buf)
+        os.write(fd, gef_pybytes(buf))
         os.close(fd)
         info("Shellcode written as '%s'" % fname)
         return
