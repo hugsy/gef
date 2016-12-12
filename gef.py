@@ -917,552 +917,384 @@ def flags_to_human(reg_value, value_table):
     return "[{}]".format(" ".join(flags))
 
 
-######################[ ARM specific ]######################
-@memoize
-def arm_registers():
-    return ["$r0   ", "$r1   ", "$r2   ", "$r3   ", "$r4   ", "$r5   ", "$r6   ",
-            "$r7   ", "$r8   ", "$r9   ", "$r10  ", "$r11  ", "$r12  ", "$sp   ",
-            "$lr   ", "$pc   ", "$cpsr ", ]
+class Architecture(object):
+    all_registers = []
 
-@memoize
-def arm_nop_insn():
+    @property
+    def nop_insn(self):
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+
+    @property
+    def return_register(self):
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+
+    @property
+    def flag_register(self):
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+
+    @property
+    def flags_table(self):
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+
+    @property
+    def function_parameters(self):
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+
+    def flag_register_to_human(self, val=None):
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+
+    def is_call(self, insn):
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+
+    def is_conditional_branch(self, insn):
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+
+    def is_branch_taken(self, insn):
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+
+
+class ARM(Architecture):
+    arch = "ARM"
+    mode = "ARM"
+
+    all_registers = ["$r0   ", "$r1   ", "$r2   ", "$r3   ", "$r4   ", "$r5   ", "$r6   ",
+                     "$r7   ", "$r8   ", "$r9   ", "$r10  ", "$r11  ", "$r12  ", "$sp   ",
+                     "$lr   ", "$pc   ", "$cpsr ",]
+
     # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
     # return b"\x00\x00\xa0\xe1" # mov r0,r0
-    return b"\x01\x10\xa0\xe1" # mov r1,r1
-
-@memoize
-def arm_return_register():
-    return "$r0"
-
-@memoize
-def arm_flag_register():
-    return "$cpsr"
-
-@memoize
-def arm_flags_table():
-    table = { 31: "negative",
-              30: "zero",
-              29: "carry",
-              28: "overflow",
-              7: "interrupt",
-              6: "fast",
-              5: "thumb"
+    nop_insn = b"\x01\x10\xa0\xe1" # mov r1,r1
+    return_register = "$r0"
+    flag_register = "$cpsr"
+    flags_table = {
+        31: "negative",
+        30: "zero",
+        29: "carry",
+        28: "overflow",
+        7: "interrupt",
+        6: "fast",
+        5: "thumb"
     }
-    return table
+    function_parameters = ['$r0','$r1','$r2','$r3']
 
-def arm_flags_to_human(val=None):
-    # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
-    if val is None:
-        reg = arm_flag_register()
-        val = get_register_ex( reg )
-    return flags_to_human(val, arm_flags_table())
+    def flag_register_to_human(self, val=None):
+        # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
+        if val is None:
+            reg = self.flag_register
+            val = get_register_ex( reg )
+        return flags_to_human(val, self.flags_table)
 
-def arm_is_cbranch(insn):
-    mnemo = ["bl", "blr", "blx", ]
-    return any(filter(lambda x: x == insn, mnemo))
+    def is_conditional_branch(self, insn):
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        mnemos = {"beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
+                 "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"}
+        return mnemo in mnemos
 
-def arm_is_cbranch(insn):
-    mnemo = ["beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
-             "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"]
-    return any(filter(lambda x: x == insn, mnemo))
+    def is_branch_taken(self, insn):
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
+        flags = dict( (self.flags_table[k], k) for k in self.flags_table.keys() )
+        val = get_register_ex(self.flag_register)
 
-def arm_is_branch_taken(mnemo):
-    # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
-    flags = dict( (arm_flags_table()[k], k) for k in arm_flags_table().keys() )
-    val = get_register_ex(arm_flag_register() )
-
-    if mnemo.endswith("eq"): return val&(1<<flags["zero"]), "Z"
-    if mnemo.endswith("ne"): return val&(1<<flags["zero"])==0, "!Z"
-    if mnemo.endswith("lt"): return val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
-    if mnemo.endswith("le"): return val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
-    if mnemo.endswith("gt"): return val&(1<<flags["zero"])==0 and val&(1<<flags["negative"])==val&(1<<flags["overflow"]), "!Z && N==O"
-    if mnemo.endswith("ge"): return val&(1<<flags["negative"])==val&(1<<flags["overflow"]), "N==O"
-    if mnemo.endswith("bvs"): return val&(1<<flags["overflow"]), "O"
-    if mnemo.endswith("bvc"): return val&(1<<flags["overflow"])==0, "O"
-    return False, ""
-
-@memoize
-def arm_function_parameters():
-    return ['$r0','$r1','$r2','$r3']
+        if mnemo.endswith("eq"): return val&(1<<flags["zero"]), "Z"
+        if mnemo.endswith("ne"): return val&(1<<flags["zero"])==0, "!Z"
+        if mnemo.endswith("lt"): return val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+        if mnemo.endswith("le"): return val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+        if mnemo.endswith("gt"): return val&(1<<flags["zero"])==0 and val&(1<<flags["negative"])==val&(1<<flags["overflow"]), "!Z && N==O"
+        if mnemo.endswith("ge"): return val&(1<<flags["negative"])==val&(1<<flags["overflow"]), "N==O"
+        if mnemo.endswith("bvs"): return val&(1<<flags["overflow"]), "O"
+        if mnemo.endswith("bvc"): return val&(1<<flags["overflow"])==0, "O"
+        return False, ""
 
 
-######################[ Intel x86-64 specific ]######################
-@memoize
-def x86_64_registers():
-    return [ "$rax   ", "$rbx   ", "$rcx   ", "$rdx   ", "$rsp   ", "$rbp   ", "$rsi   ",
-             "$rdi   ", "$rip   ", "$r8    ", "$r9    ", "$r10   ", "$r11   ", "$r12   ",
-             "$r13   ", "$r14   ", "$r15   ",
-             "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags", ]
+class AARCH64(ARM):
+    arch = "ARM"
+    mode = "ARM"
 
-@memoize
-def x86_64_nop_insn():
-    return b'\x90'
-
-@memoize
-def x86_64_return_register():
-    return "$rax"
-
-@memoize
-def x86_64_function_parameters():
-    return ['$rdi', '$rsi', '$rdx', '$rcx', '$r8', '$r9']
-
-@memoize
-def x86_flag_register():
-    return "$eflags"
-
-@memoize
-def x86_flags_table():
-    table = { 6: "zero",
-              0: "carry",
-              2: "parity",
-              4: "adjust",
-              7: "sign",
-              8: "trap",
-              9: "interrupt",
-              10: "direction",
-              11: "overflow",
-              16: "resume",
-              17: "virtualx86",
-              21: "identification",
+    all_registers = [
+        "$x0       ", "$x1       ", "$x2       ", "$x3       ", "$x4       ", "$x5       ", "$x6       ", "$x7       ",
+        "$x8       ", "$x9       ", "$x10      ", "$x11      ", "$x12      ", "$x13      ", "$x14      ", "$x15      ",
+        "$x16      ", "$x17      ", "$x18      ", "$x19      ", "$x20      ", "$x21      ", "$x22      ", "$x23      ",
+        "$x24      ", "$x25      ", "$x26      ", "$x27      ", "$x28      ", "$x29      ", "$x30      ", "$sp       ",
+        "$pc       ", "$cpsr     ", "$fpsr     ", "$fpcr     ",]
+    return_register = "$x0"
+    flag_register = "$cpsr"
+    flags_table = {
+        31: "negative",
+        30: "zero",
+        29: "carry",
+        28: "overflow",
+        7: "interrupt",
+        6: "fast"
     }
-    return table
+    function_parameters = ['$x0','$x1','$x2','$x3']
 
-def x86_flags_to_human(val=None):
-    reg = x86_flag_register()
-    if not val:
-        val = get_register_ex( reg )
-    return flags_to_human(val, x86_flags_table())
-
-def x86_is_call(insn):
-    mnemo = ["call", "callq", ]
-    return any( filter(lambda x: x == insn, mnemo) )
-
-def x86_is_cbranch(insn):
-    mnemo = ["ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
-             "jcxz", "jecxz", "jrcxz", "je", "jz", "jg", "jnle", "jge", "jnl",
-             "jl", "jnge", "jle", "jng", "jne", "jnz", "jno", "jnp", "jpo", "jns",
-             "jo", "jp", "jpe", "js",]
-    return any( filter(lambda x: x == insn, mnemo) )
-
-def x86_is_branch_taken(mnemo):
-    # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
-    flags = dict( (x86_flags_table()[k], k) for k in x86_flags_table().keys() )
-    val = get_register_ex(x86_flag_register() )
-    cx = get_register_ex("$rcx") if is_x86_64() else get_register_ex("$ecx")
-
-    if mnemo in ("ja", "jnbe"): return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0, "!C && !Z"
-    if mnemo in ("jae", "jnb", "jnc"): return val&(1<<flags["carry"])==0, "!C"
-    if mnemo in ("jb", "jc", "jnae"): return val&(1<<flags["carry"]), "C"
-    if mnemo in ("jbe", "jna"): return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
-    if mnemo in ("jcxz", "jecxz", "jrcxz"): return cx==0, "!$CX"
-    if mnemo in ("je", "jz"): return val&(1<<flags["zero"]), "Z"
-    if mnemo in ("jg", "jnle"): return val&(1<<flags["zero"])==0 and val&(1<<flags["overflow"])==val&(1<<flags["sign"]), "!Z && O==S"
-    if mnemo in ("jge", "jnl"): return val&(1<<flags["sign"])==val&(1<<flags["overflow"]), "S==O"
-    if mnemo in ("jl", "jnge"): return val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "S!=O"
-    if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "Z || S!=0"
-    if mnemo in ("jne", "jnz"): return val&(1<<flags["zero"])==0, "!Z"
-    if mnemo in ("jno"): return val&(1<<flags["overflow"])==0, "!O"
-    if mnemo in ("jnp", "jpo"): return val&(1<<flags["parity"])==0, "!P"
-    if mnemo in ("jns"): return val&(1<<flags["sign"])==0, "!S"
-    if mnemo in ("jo"): return val&(1<<flags["overflow"]), "O"
-    if mnemo in ("jpe", "jp"): return val&(1<<flags["parity"]), "P"
-    if mnemo in ("js"): return val&(1<<flags["sign"]), "S"
-    return False, ""
-
-######################[ Intel x86-32 specific ]######################
-@memoize
-def x86_32_registers():
-    return [ "$eax   ", "$ebx   ", "$ecx   ", "$edx   ", "$esp   ", "$ebp   ", "$esi   ",
-             "$edi   ", "$eip   ", "$cs    ", "$ss    ", "$ds    ", "$es    ",
-             "$fs    ", "$gs    ", "$eflags", ]
-
-@memoize
-def x86_32_return_register():
-    return "$eax"
-
-@memoize
-def x86_32_function_parameters():
-    return ["$esp",]
+    def flag_register_to_human(self, val=None):
+        # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
+        reg = self.flag_register
+        if not val:
+            val = get_register_ex( reg )
+        return flags_to_human(val, self.flags_table)
 
 
-######################[ PowerPC specific ]######################
-@memoize
-def powerpc_registers():
-    return ["$r0  ", "$r1  ", "$r2  ", "$r3  ", "$r4  ", "$r5  ", "$r6  ", "$r7  ",
-            "$r8  ", "$r9  ", "$r10 ", "$r11 ", "$r12 ", "$r13 ", "$r14 ", "$r15 ",
-            "$r16 ", "$r17 ", "$r18 ", "$r19 ", "$r20 ", "$r21 ", "$r22 ", "$r23 ",
-            "$r24 ", "$r25 ", "$r26 ", "$r27 ", "$r28 ", "$r29 ", "$r30 ", "$r31 ",
-            "$pc  ", "$msr ", "$cr  ", "$lr  ", "$ctr ", "$xer ", "$trap" ]
+class X86(Architecture):
+    arch = "X86"
+    mode = "32"
 
-@memoize
-def powerpc_nop_insn():
-    # http://www.ibm.com/developerworks/library/l-ppc/index.html
-    # nop
-    return b'\x60\x00\x00\x00'
-
-@memoize
-def powerpc_return_register():
-    return "$r0"
-
-@memoize
-def powerpc_flag_register():
-    return "$cr"
-
-@memoize
-def powerpc_flags_table():
-    table = { 0: "negative",
-              1: "positive",
-              2: "zero",
-              3: "summary",
-              28: "less",
-              29: "greater",
-              30: "equal",
-              31: "overflow",
+    nop_insn = b"\x90"
+    all_registers = [
+        "$eax   ", "$ebx   ", "$ecx   ", "$edx   ", "$esp   ", "$ebp   ", "$esi   ",
+        "$edi   ", "$eip   ", "$cs    ", "$ss    ", "$ds    ", "$es    ",
+        "$fs    ", "$gs    ", "$eflags",]
+    return_register = "$eax"
+    function_parameters = ["$esp",]
+    flag_register = "$eflags"
+    flags_table = {
+        6: "zero",
+        0: "carry",
+        2: "parity",
+        4: "adjust",
+        7: "sign",
+        8: "trap",
+        9: "interrupt",
+        10: "direction",
+        11: "overflow",
+        16: "resume",
+        17: "virtualx86",
+        21: "identification",
     }
-    return table
 
-def powerpc_flags_to_human(val=None):
-    # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
-    if not val:
-        reg = powerpc_flag_register()
-        val = get_register_ex( reg )
-    return flags_to_human(val, powerpc_flags_table())
+    def flag_register_to_human(self, val=None):
+        reg = self.flag_register
+        if not val:
+            val = get_register_ex( reg )
+        return flags_to_human(val, self.flags_table)
 
-def powerpc_is_call(insn):
-    return False
+    def is_call(self, insn):
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        mnemos = {"call", "callq"}
+        return mnemo in mnemos
 
-def powerpc_is_cbranch(insn):
-    mnemo = ["beq", "bne", "ble", "blt", "bgt", "bge", ]
-    return any( filter(lambda x: x == insn, mnemo) )
+    def is_conditional_branch(self, insn):
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        mnemos = {"ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
+                 "jcxz", "jecxz", "jrcxz", "je", "jz", "jg", "jnle", "jge", "jnl",
+                 "jl", "jnge", "jle", "jng", "jne", "jnz", "jno", "jnp", "jpo", "jns",
+                 "jo", "jp", "jpe", "js"}
+        return mnemo in mnemos
 
-def powerpc_is_branch_taken(mnemo):
-    flags = dict( (powerpc_flags_table()[k], k) for k in powerpc_flags_table().keys() )
-    val = get_register_ex(powerpc_flag_register())
-    if mnemo=="beq": return val&(1<<flags["equal"]), "E"
-    if mnemo=="bne": return val&(1<<flags["equal"])==0, "!E"
-    if mnemo=="ble": return val&(1<<flags["equal"]) or val&(1<<flags["less"]), "E || L"
-    if mnemo=="blt": return val&(1<<flags["less"]), "L"
-    if mnemo=="bge": return val&(1<<flags["equal"]) or val&(1<<flags["greater"]), "E || G"
-    if mnemo=="bgt": return val&(1<<flags["greater"]), "G"
-    return False, ""
+    def is_branch_taken(self, insn):
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
+        flags = dict( (self.flags_table[k], k) for k in self.flags_table.keys() )
+        val = get_register_ex(self.flag_register)
+        # TODO: Move this special condition into x86_64
+        cx = get_register_ex("$rcx") if is_x86_64() else get_register_ex("$ecx")
 
-@memoize
-def powerpc_function_parameters():
-    return ['$r3', '$r4', '$r4','$r5', '$r6']
+        if mnemo in ("ja", "jnbe"): return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0, "!C && !Z"
+        if mnemo in ("jae", "jnb", "jnc"): return val&(1<<flags["carry"])==0, "!C"
+        if mnemo in ("jb", "jc", "jnae"): return val&(1<<flags["carry"]), "C"
+        if mnemo in ("jbe", "jna"): return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+        if mnemo in ("jcxz", "jecxz", "jrcxz"): return cx==0, "!$CX"
+        if mnemo in ("je", "jz"): return val&(1<<flags["zero"]), "Z"
+        if mnemo in ("jg", "jnle"): return val&(1<<flags["zero"])==0 and val&(1<<flags["overflow"])==val&(1<<flags["sign"]), "!Z && O==S"
+        if mnemo in ("jge", "jnl"): return val&(1<<flags["sign"])==val&(1<<flags["overflow"]), "S==O"
+        if mnemo in ("jl", "jnge"): return val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "S!=O"
+        if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "Z || S!=0"
+        if mnemo in ("jne", "jnz"): return val&(1<<flags["zero"])==0, "!Z"
+        if mnemo in ("jno"): return val&(1<<flags["overflow"])==0, "!O"
+        if mnemo in ("jnp", "jpo"): return val&(1<<flags["parity"])==0, "!P"
+        if mnemo in ("jns"): return val&(1<<flags["sign"])==0, "!S"
+        if mnemo in ("jo"): return val&(1<<flags["overflow"]), "O"
+        if mnemo in ("jpe", "jp"): return val&(1<<flags["parity"]), "P"
+        if mnemo in ("js"): return val&(1<<flags["sign"]), "S"
+        return False, ""
 
 
-######################[ SPARC specific ]######################
-@memoize
-def sparc_registers():
-    return ["$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
-            "$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",
-            "$l0 ", "$l1 ", "$l2 ", "$l3 ", "$l4 ", "$l5 ", "$l6 ", "$l7 ",
-            "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ", "$i7 ",
-            "$pc ", "$npc", "$sp ", "$fp ", "$psr", ]
+class X86_64(X86):
+    arch = "X86"
+    mode = "64"
 
-@memoize
-def sparc_nop_insn():
+    all_registers = [
+        "$rax   ", "$rbx   ", "$rcx   ", "$rdx   ", "$rsp   ", "$rbp   ", "$rsi   ",
+        "$rdi   ", "$rip   ", "$r8    ", "$r9    ", "$r10   ", "$r11   ", "$r12   ",
+        "$r13   ", "$r14   ", "$r15   ",
+        "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags",]
+    return_register = "$rax"
+    function_parameters = ['$rdi', '$rsi', '$rdx', '$rcx', '$r8', '$r9']
+
+
+class PowerPC(Architecture):
+    arch = "PPC"
+    mode = "PPC32"
+
+    all_registers = [
+        "$r0  ", "$r1  ", "$r2  ", "$r3  ", "$r4  ", "$r5  ", "$r6  ", "$r7  ",
+        "$r8  ", "$r9  ", "$r10 ", "$r11 ", "$r12 ", "$r13 ", "$r14 ", "$r15 ",
+        "$r16 ", "$r17 ", "$r18 ", "$r19 ", "$r20 ", "$r21 ", "$r22 ", "$r23 ",
+        "$r24 ", "$r25 ", "$r26 ", "$r27 ", "$r28 ", "$r29 ", "$r30 ", "$r31 ",
+        "$pc  ", "$msr ", "$cr  ", "$lr  ", "$ctr ", "$xer ", "$trap",]
+    nop_insn = b'\x60\x00\x00\x00' # http://www.ibm.com/developerworks/library/l-ppc/index.html
+    return_register = "$r0"
+    flag_register = "$cr"
+    flags_table = {
+        0: "negative",
+        1: "positive",
+        2: "zero",
+        3: "summary",
+        28: "less",
+        29: "greater",
+        30: "equal",
+        31: "overflow",
+    }
+    function_parameters = ['$i0', '$i1', '$i2','$i3','$i4', '$i5' ]
+
+    def flag_register_to_human(self, val=None):
+        # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
+        if not val:
+            reg = self.flag_register
+            val = get_register_ex( reg )
+        return flags_to_human(val, self.flags_table)
+
+    def is_call(self, insn):
+        return False
+
+    def is_conditional_branch(self, insn):
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        mnemos = {"beq", "bne", "ble", "blt", "bgt", "bge"}
+        return mnemo in mnemos
+
+    def is_branch_taken(self, insn):
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        flags = dict( (self.flags_table[k], k) for k in self.flags_table.keys() )
+        val = get_register_ex(self.flag_register)
+        if mnemo=="beq": return val&(1<<flags["equal"]), "E"
+        if mnemo=="bne": return val&(1<<flags["equal"])==0, "!E"
+        if mnemo=="ble": return val&(1<<flags["equal"]) or val&(1<<flags["less"]), "E || L"
+        if mnemo=="blt": return val&(1<<flags["less"]), "L"
+        if mnemo=="bge": return val&(1<<flags["equal"]) or val&(1<<flags["greater"]), "E || G"
+        if mnemo=="bgt": return val&(1<<flags["greater"]), "G"
+        return False, ""
+
+
+class PowerPC64(PowerPC):
+    arch = "PPC"
+    mode = "PPC64"
+
+
+class SPARC(Architecture):
+    arch = "SPARC"
+    mode = None
+
+    all_registers = [
+        "$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
+        "$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",
+        "$l0 ", "$l1 ", "$l2 ", "$l3 ", "$l4 ", "$l5 ", "$l6 ", "$l7 ",
+        "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ", "$i7 ",
+        "$pc ", "$npc", "$sp ", "$fp ", "$psr",]
     # http://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
-    # sethi 0, %g0
-    return b'\x00\x00\x00\x00'
-
-@memoize
-def sparc_return_register():
-    return "$i0"
-
-@memoize
-def sparc_flag_register():
-    return "$psr"
-
-@memoize
-def sparc_flags_table():
-    table = { 23: "negative",
-              20: "carry",
-              22: "zero",
-              5: "trap",
-              7: "supervisor",
-              21: "overflow",
+    nop_insn = b'\x00\x00\x00\x00' # sethi 0, %g0
+    return_register = "$i0"
+    flag_register = "$psr"
+    flags_table = {
+        23: "negative",
+        20: "carry",
+        22: "zero",
+        5: "trap",
+        7: "supervisor",
+        21: "overflow",
     }
-    return table
 
-def sparc_flags_to_human(val=None):
-    # http://www.gaisler.com/doc/sparcv8.pdf
-    reg = sparc_flag_register()
-    if not val:
-        val = get_register_ex( reg )
-    return flags_to_human(val, sparc_flags_table())
+    def flag_register_to_human(self, val=None):
+        # http://www.gaisler.com/doc/sparcv8.pdf
+        reg = self.flag_register
+        if not val:
+            val = get_register_ex( reg )
+        return flags_to_human(val, self.flags_table)
 
-def sparc_is_call(insn):
-    return False
+    def is_call(self, insn):
+        return False
 
-def sparc_is_cbranch(insn):
-    # http://moss.csc.ncsu.edu/~mueller/codeopt/codeopt00/notes/condbranch.html
-    mnemo = ["be", "bne", "bg", "bge", "bgeu", "bgu", "bl", "ble", "blu", "bleu",
-             "bneg", "bpos", "bvs", "bvc", "bcs", "bcc", ]
-    return any( filter(lambda x: x == insn, mnemo) )
+    def is_conditional_branch(self, insn):
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        # http://moss.csc.ncsu.edu/~mueller/codeopt/codeopt00/notes/condbranch.html
+        mnemos = {"be", "bne", "bg", "bge", "bgeu", "bgu", "bl", "ble", "blu", "bleu",
+                 "bneg", "bpos", "bvs", "bvc", "bcs", "bcc"}
+        return mnemo in mnemos
 
-def sparc_is_branch_taken(insn):
-    flags = dict( (sparc_flags_table()[k], k) for k in sparc_flags_table().keys() )
-    val = get_register_ex(sparc_flag_register())
-    if insn=="be": return val&(1<<flags["zero"]), "Z"
-    if insn=="bne": return val&(1<<flags["zero"])==0, "!Z"
-    if insn=="bg": return val&(1<<flags["zero"])==0 and (val&(1<<flags["negative"])==0 or val&(1<<flags["overflow"])==0), "!Z && (!N || !O)"
-    if insn=="bge": return val&(1<<flags["negative"])==0 or val&(1<<flags["overflow"])==0, "!N || !O"
-    if insn=="bgu": return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0, "!C && !C"
-    if insn=="bgeu": return val&(1<<flags["carry"])==0, "!C"
-    if insn=="bl": return val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
-    if insn=="blu": return val&(1<<flags["carry"]), "C"
-    if insn=="ble": return val&(1<<flags["zero"]) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
-    if insn=="bleu": return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
-    if insn=="bneg": return val&(1<<flags["negative"]), "N"
-    if insn=="bpos": return val&(1<<flags["negative"])==0, "!N"
-    if insn=="bvs": return val&(1<<flags["overflow"]), "O"
-    if insn=="bvc": return val&(1<<flags["overflow"])==0, "!O"
-    if insn=="bcs": return val&(1<<flags["carry"]), "C"
-    if insn=="bcc": return val&(1<<flags["carry"])==0, "!C"
-    return False, ""
-
-@memoize
-def powerpc_function_parameters():
-    return ['$i0', '$i1', '$i2','$i3','$i4', '$i5' ]
+    def is_branch_taken(self, insn):
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        flags = dict( (self.flags_table[k], k) for k in self.flags_table.keys() )
+        val = get_register_ex(self.flag_register)
+        if insn=="be": return val&(1<<flags["zero"]), "Z"
+        if insn=="bne": return val&(1<<flags["zero"])==0, "!Z"
+        if insn=="bg": return val&(1<<flags["zero"])==0 and (val&(1<<flags["negative"])==0 or val&(1<<flags["overflow"])==0), "!Z && (!N || !O)"
+        if insn=="bge": return val&(1<<flags["negative"])==0 or val&(1<<flags["overflow"])==0, "!N || !O"
+        if insn=="bgu": return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0, "!C && !C"
+        if insn=="bgeu": return val&(1<<flags["carry"])==0, "!C"
+        if insn=="bl": return val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
+        if insn=="blu": return val&(1<<flags["carry"]), "C"
+        if insn=="ble": return val&(1<<flags["zero"]) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
+        if insn=="bleu": return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+        if insn=="bneg": return val&(1<<flags["negative"]), "N"
+        if insn=="bpos": return val&(1<<flags["negative"])==0, "!N"
+        if insn=="bvs": return val&(1<<flags["overflow"]), "O"
+        if insn=="bvc": return val&(1<<flags["overflow"])==0, "!O"
+        if insn=="bcs": return val&(1<<flags["carry"]), "C"
+        if insn=="bcc": return val&(1<<flags["carry"])==0, "!C"
+        return False, ""
 
 
-######################[ MIPS specific ]######################
-@memoize
-def mips_registers():
+class SPARC64(SPARC):
+    arch = "SPARC"
+    mode = "V9"
+
+
+class MIPS(Architecture):
+    arch = "MIPS"
+    mode = "MIPS32"
+
     # http://vhouten.home.xs4all.nl/mipsel/r3000-isa.html
-    return ["$zero     ", "$at       ", "$v0       ", "$v1       ", "$a0       ", "$a1       ", "$a2       ", "$a3       ",
-            "$t0       ", "$t1       ", "$t2       ", "$t3       ", "$t4       ", "$t5       ", "$t6       ", "$t7       ",
-            "$s0       ", "$s1       ", "$s2       ", "$s3       ", "$s4       ", "$s5       ", "$s6       ", "$s7       ",
-            "$t8       ", "$t9       ", "$k0       ", "$k1       ", "$s8       ", "$status   ", "$badvaddr ", "$cause    ",
-            "$pc       ", "$sp       ", "$hi       ", "$lo       ", "$fir      ", "$fcsr     ", "$ra       ", "$gp       ", ]
-
-@memoize
-def mips_nop_insn():
+    all_registers = [
+        "$zero     ", "$at       ", "$v0       ", "$v1       ", "$a0       ", "$a1       ", "$a2       ", "$a3       ",
+        "$t0       ", "$t1       ", "$t2       ", "$t3       ", "$t4       ", "$t5       ", "$t6       ", "$t7       ",
+        "$s0       ", "$s1       ", "$s2       ", "$s3       ", "$s4       ", "$s5       ", "$s6       ", "$s7       ",
+        "$t8       ", "$t9       ", "$k0       ", "$k1       ", "$s8       ", "$status   ", "$badvaddr ", "$cause    ",
+        "$pc       ", "$sp       ", "$hi       ", "$lo       ", "$fir      ", "$fcsr     ", "$ra       ", "$gp       ",]
     # https://en.wikipedia.org/wiki/MIPS_instruction_set
-    # sll $0,$0,0
-    return b"\x00\x00\x00\x00"
+    nop_insn = b"\x00\x00\x00\x00" # sll $0,$0,0
+    return_register = "$v0"
+    flag_register = "$fcsr"
+    function_parameters = ['$a0','$a1','$a2','$a3']
 
-@memoize
-def mips_return_register():
-    return "$v0"
+    def flag_register_to_human(self, val=None):
+        # mips architecture does not use processor status word (flag register)
+        return ""
 
-@memoize
-def mips_flag_register():
-    return "$fcsr"
+    def is_conditional_branch(self, insn):
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        mnemos = {"beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez"}
+        return mnemo in mnemos
 
-def mips_flags_to_human(val=None):
-    # mips architecture does not use processor status word (flag register)
-    return ""
-
-def mips_is_cbranch(insn):
-    mnemo = ["bl", ]
-    return any( filter(lambda x: x == insn, mnemo) )
-
-def mips_is_cbranch(insn):
-    mnemo = ["beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez", ]
-    return any( filter(lambda x: x == insn, mnemo) )
-
-def mips_is_branch_taken(mnemo, operands):
-    if mnemo=="beq": return get_register_ex(operands[0]) == get_register_ex(operands[1]), ""
-    if mnemo=="bne": return get_register_ex(operands[0]) != get_register_ex(operands[1]), ""
-    if mnemo=="beqz": return get_register_ex(operands[0]) == 0, ""
-    if mnemo=="bnez": return get_register_ex(operands[0]) != 0, ""
-    if mnemo=="bgtz": return get_register_ex(operands[0]) > 0, ""
-    if mnemo=="bgez": return get_register_ex(operands[0]) >= 0, ""
-    if mnemo=="bltz": return get_register_ex(operands[0]) < 0, ""
-    if mnemo=="blez": return get_register_ex(operands[0]) <= 0, ""
-    return False, ""
-
-@memoize
-def mips_function_parameters():
-    return ['$a0','$a1','$a2','$a3']
-
-
-######################[ AARCH64 specific ]######################
-
-@memoize
-def aarch64_registers():
-    return ["$x0       ", "$x1       ", "$x2       ", "$x3       ", "$x4       ", "$x5       ", "$x6       ", "$x7       ",
-            "$x8       ", "$x9       ", "$x10      ", "$x11      ", "$x12      ", "$x13      ", "$x14      ", "$x15      ",
-            "$x16      ", "$x17      ", "$x18      ", "$x19      ", "$x20      ", "$x21      ", "$x22      ", "$x23      ",
-            "$x24      ", "$x25      ", "$x26      ", "$x27      ", "$x28      ", "$x29      ", "$x30      ", "$sp       ",
-            "$pc       ", "$cpsr     ", "$fpsr     ", "$fpcr     ", ]
-
-@memoize
-def aarch64_return_register():
-    return "$x0"
-
-@memoize
-def aarch64_flag_register():
-    return "$cpsr"
-
-@memoize
-def aarch64_flags_table():
-    table = { 31: "negative",
-              30: "zero",
-              29: "carry",
-              28: "overflow",
-              7: "interrupt",
-              6: "fast"
-    }
-    return table
-
-def aarch64_flags_to_human(val=None):
-    # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
-    reg = aarch64_flag_register()
-    if not val:
-        val = get_register_ex( reg )
-    return flags_to_human(val, aarch64_flags_table())
-
-def aarch64_is_cbranch(insn):
-    return arm_is_cbranch(insn)
-
-def aarch64_is_cbranch(insn):
-    return arm_is_cbranch(insn)
-
-def aarch64_is_branch_taken(insn):
-    return arm_is_branch_taken(insn)
-
-@memoize
-def aarch64_function_parameters():
-    return ['$x0','$x1','$x2','$x3']
-
-
-################################################################
-
-@memoize
-def all_registers():
-    if is_arm():         return arm_registers()
-    elif is_aarch64():   return aarch64_registers()
-    elif is_x86_32():    return x86_32_registers()
-    elif is_x86_64():    return x86_64_registers()
-    elif is_powerpc():   return powerpc_registers()
-    elif is_ppc64():     return powerpc_registers()
-    elif is_sparc():     return sparc_registers()
-    elif is_sparc64():   return sparc_registers()
-    elif is_mips():      return mips_registers()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-
-@memoize
-def nop_insn():
-    if is_arm():         return arm_nop_insn()
-    elif is_aarch64():   return arm_nop_insn()
-    elif is_x86_32():    return x86_32_nop_insn()
-    elif is_x86_64():    return x86_32_nop_insn()
-    elif is_powerpc():   return powerpc_nop_insn()
-    elif is_ppc64():     return powerpc_nop_insn()
-    elif is_sparc():     return sparc_nop_insn()
-    elif is_sparc64():   return sparc_nop_insn()
-    elif is_mips():      return mips_nop_insn()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-
-@memoize
-def return_register():
-    if is_arm():         return arm_return_register()
-    elif is_aarch64():   return aarch64_return_register()
-    elif is_x86_32():    return x86_32_return_register()
-    elif is_x86_64():    return x86_64_return_register()
-    elif is_powerpc():   return powerpc_return_register()
-    elif is_ppc64():     return powerpc_return_register()
-    elif is_sparc():     return sparc_return_register()
-    elif is_sparc64():   return sparc_return_register()
-    elif is_mips():      return mips_return_register()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-
-@memoize
-def flag_register():
-    if is_arm():         return arm_flag_register()
-    elif is_aarch64():   return aarch64_flag_register()
-    elif is_x86_32():    return x86_flag_register()
-    elif is_x86_64():    return x86_flag_register()
-    elif is_powerpc():   return powerpc_flag_register()
-    elif is_ppc64():     return powerpc_flag_register()
-    elif is_mips():      return mips_flag_register()
-    elif is_sparc():     return sparc_flag_register()
-    elif is_sparc64():   return sparc_flag_register()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-
-@memoize
-def flags_table():
-    if is_x86_32():       return x86_flags_table()
-    elif is_x86_64():     return x86_flags_table()
-    elif is_arm():        return arm_flags_table()
-    elif is_aarch64():    return aarch64_flags_table()
-    elif is_powerpc():    return powerpc_flags_table()
-    elif is_ppc64():      return powerpc_flags_table()
-    elif is_sparc():      return sparc_flags_table()
-    elif is_sparc64():    return sparc_flags_table()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-
-def flag_register_to_human(val=None):
-    if is_arm():         return arm_flags_to_human(val)
-    elif is_aarch64():   return aarch64_flags_to_human(val)
-    elif is_x86_32():    return x86_flags_to_human(val)
-    elif is_x86_64():    return x86_flags_to_human(val)
-    elif is_powerpc():   return powerpc_flags_to_human(val)
-    elif is_ppc64():     return powerpc_flags_to_human(val)
-    elif is_mips():      return mips_flags_to_human(val)
-    elif is_sparc():     return sparc_flags_to_human(val)
-    elif is_sparc64():   return sparc_flags_to_human(val)
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-def is_call_instruction(insn):
-    (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
-    if   is_arm():       return arm_is_call(mnemo)
-    elif is_aarch64():   return aarch64_is_call(mnemo)
-    elif is_x86_32():    return x86_is_call(mnemo)
-    elif is_x86_64():    return x86_is_call(mnemo)
-    elif is_powerpc():   return powerpc_is_call(mnemo)
-    elif is_ppc64():     return powerpc_is_call(mnemo)
-    elif is_mips():      return mips_is_call(mnemo)
-    elif is_sparc():     return sparc_is_call(mnemo)
-    elif is_sparc64():   return sparc_is_call(mnemo)
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-def is_conditional_branch(insn):
-    (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
-    if   is_arm():       return arm_is_cbranch(mnemo)
-    elif is_aarch64():   return aarch64_is_cbranch(mnemo)
-    elif is_x86_32():    return x86_is_cbranch(mnemo)
-    elif is_x86_64():    return x86_is_cbranch(mnemo)
-    elif is_powerpc():   return powerpc_is_cbranch(mnemo)
-    elif is_ppc64():     return powerpc_is_cbranch(mnemo)
-    elif is_mips():      return mips_is_cbranch(mnemo)
-    elif is_sparc():     return sparc_is_cbranch(mnemo)
-    elif is_sparc64():   return sparc_is_cbranch(mnemo)
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-def is_branch_taken(insn):
-    (address, location, mnemo, operands) = gef_parse_gdb_instruction(insn)
-    if   is_arm():       return arm_is_branch_taken(mnemo)
-    elif is_aarch64():   return aarch64_is_branch_taken(mnemo)
-    elif is_x86_32():    return x86_is_branch_taken(mnemo)
-    elif is_x86_64():    return x86_is_branch_taken(mnemo)
-    elif is_powerpc():   return powerpc_is_branch_taken(mnemo)
-    elif is_ppc64():     return powerpc_is_branch_taken(mnemo)
-    elif is_mips():      return mips_is_branch_taken(mnemo, operands)
-    elif is_sparc():     return sparc_is_branch_taken(mnemo)
-    elif is_sparc64():   return sparc_is_branch_taken(mnemo)
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
-
-@memoize
-def function_parameters():
-    if   is_arm():       return arm_function_parameters()
-    elif is_aarch64():   return aarch64_function_parameters()
-    elif is_x86_32():    return x86_32_function_parameters()[0]
-    elif is_x86_64():    return x86_64_function_parameters()
-    elif is_powerpc():   return powerpc_function_parameters()
-    elif is_ppc64():     return powerpc_function_parameters()
-    elif is_mips():      return mips_function_parameters()
-    elif is_sparc():     return sparc_function_parameters()
-    elif is_sparc64():   return sparc_function_parameters()
-    raise GefUnsupportedOS("OS type is currently not supported: %s" % get_arch())
+    def is_branch_taken(self, insn):
+        _, _, mnemo, ops = gef_parse_gdb_instruction(insn)
+        if mnemo == "beq":
+            return get_register_ex(ops[0]) == get_register_ex(ops[1]), "{0[0]} == {0[1]}".format(ops)
+        if mnemo == "bne":
+            return get_register_ex(ops[0]) != get_register_ex(ops[1]), "{0[0]} != {0[1]}".format(ops)
+        if mnemo == "beqz":
+            return get_register_ex(ops[0]) == 0, "{0[0]} == 0".format(ops)
+        if mnemo == "bnez":
+            return get_register_ex(ops[0]) != 0, "{0[0]} != 0".format(ops)
+        if mnemo == "bgtz":
+            return get_register_ex(ops[0]) > 0, "{0[0]} > 0".format(ops)
+        if mnemo == "bgez":
+            return get_register_ex(ops[0]) >= 0, "{0[0]} >= 0".format(ops)
+        if mnemo == "bltz":
+            return get_register_ex(ops[0]) < 0, "{0[0]} < 0".format(ops)
+        if mnemo == "blez":
+            return get_register_ex(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
+        return False, ""
 
 
 def write_memory(address, buffer, length=0x10):
@@ -1857,6 +1689,7 @@ def lookup_address(address):
 
 
 def XOR(data, key):
+    key = key.lstrip("0x")
     key = binascii.unhexlify(key)
     if PYTHON_MAJOR == 2:
         return b''.join([chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key))])
@@ -1881,6 +1714,7 @@ def hook_stop_handler(event):
 
 
 def new_objfile_handler(event):
+    set_arch()
     reset_all_caches()
     return
 
@@ -1942,15 +1776,8 @@ def get_generic_running_arch(module, prefix, to_string=False):
     if not is_alive():
         return None, None
 
-    if   is_x86_32():    arch, mode = "X86", "32"
-    elif is_x86_64():    arch, mode = "X86", "64"
-    elif is_powerpc():   arch, mode = "PPC", "PPC32"
-    elif is_ppc64():     arch, mode = "PPC", "PPC64"
-    elif is_mips():      arch, mode = "MIPS", "MIPS32"
-    elif is_sparc():     arch, mode = "SPARC", None
-    elif is_sparc64():   arch, mode = "SPARC", "V9"
-    elif is_arm():       arch, mode = "ARM", "ARM"
-    elif is_aarch64():   arch, mode = "ARM", "ARM"
+    if current_arch is not None:
+        arch, mode = current_arch.arch, current_arch.mode
     else:
         raise GefUnsupportedOS("Emulation not supported for your OS")
 
@@ -1992,19 +1819,13 @@ def get_unicorn_registers(to_string=False):
     unicorn = sys.modules['unicorn']
     regs = {}
 
-    if is_x86_32() or is_x86_64():   arch = "x86"
-    elif is_powerpc():               arch = "ppc"
-    elif is_ppc64():                 arch = "ppc"
-    elif is_mips():                  arch = "mips"
-    elif is_sparc():                 arch = "sparc"
-    elif is_sparc64():               arch = "sparc"
-    elif is_arm():                   arch = "arm"
-    elif is_aarch64():               arch = "arm64"
+    if current_arch is not None:
+        arch = current_arch.arch.lower()
     else:
         raise GefUnsupportedOS("Oops")
 
     const = getattr(unicorn, arch + "_const")
-    for r in all_registers():
+    for r in current_arch.all_registers:
         regname = "UC_%s_REG_%s" % (arch.upper(), r.strip()[1:].upper())
         if to_string:
             regs[r] = "%s.%s" % (const.__name__, regname)
@@ -2088,6 +1909,7 @@ def is_powerpc():
     elf = get_elf_headers()
     return elf.e_machine==0x14 # http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
 
+@memoize
 def is_ppc64():
     elf = get_elf_headers()
     return elf.e_machine==0x15 # http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
@@ -2106,6 +1928,24 @@ def is_sparc64():
 def is_aarch64():
     elf = get_elf_headers()
     return elf.e_machine==0xb7
+
+current_arch = None
+
+def set_arch():
+    global current_arch
+    if is_arm():         current_arch = ARM()
+    elif is_aarch64():   current_arch = AARCH64()
+    elif is_x86_32():    current_arch = X86()
+    elif is_x86_64():    current_arch = X86_64()
+    elif is_powerpc():   current_arch = PowerPC()
+    elif is_ppc64():     current_arch = PowerPC64()
+    elif is_sparc():     current_arch = SPARC()
+    elif is_sparc64():   current_arch = SPARC64()
+    elif is_mips():      current_arch = MIPS()
+    else:
+        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+
+    return
 
 def get_memory_alignment(to_byte=False):
     if is_elf32():
@@ -2248,43 +2088,18 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
-        if is_arm():
-            regs = arm_function_parameters()
-            ptr = regs[self.num_args]
-            addr = lookup_address( get_register_ex( ptr ) )
 
-        elif is_aarch64():
-            regs = aarch64_function_parameters()
-            ptr = regs[self.num_args]
-            addr = lookup_address( get_register_ex( ptr ) )
-
-        elif is_x86_64():
-            regs = x86_64_function_parameters()
-            ptr = regs[self.num_args]
-            addr = lookup_address( get_register_ex( ptr ) )
-
-        elif is_sparc():
-            regs = powerpc_function_parameters()
-            ptr = regs[self.num_args]
-            addr = lookup_address( get_register_ex( ptr ) )
-
-        elif is_mips():
-            regs = mips_function_parameters()
-            ptr = regs[self.num_args]
-            addr = lookup_address( get_register_ex( ptr ) )
-
-        elif is_powerpc():
-            regs = powerpc_function_parameters()
-            ptr = regs[self.num_args]
-            addr = lookup_address( get_register_ex( ptr ) )
-
-        elif is_x86_32():
+        if is_x86_32():
             sp = get_sp()
             m = get_memory_alignment(to_byte=True)
             val = sp + (self.num_args * m) + m
             ptr = read_int_from_memory( val )
             addr = lookup_address( ptr )
             ptr = hex(ptr)
+        else:
+            regs = current_arch.function_parameters
+            ptr = regs[self.num_args]
+            addr = lookup_address( get_register_ex( ptr ) )
 
         if not addr.valid:
             return False
@@ -2323,7 +2138,7 @@ class PatchBreakpoint(gdb.Breakpoint):
 
     def stop(self):
         retaddr = gdb.selected_frame().older().pc()
-        retreg  = return_register()
+        retreg  = current_arch.return_register
 
         if self.retval is not None:
             cmd = "set %s = %#x" % (retreg, self.retval)
@@ -2521,19 +2336,20 @@ class Template(Structure):
         return sum([ctypes.sizeof(x[1]) for x in struct._fields_])
 
     def dump_structure(self, struct_name):
+        # If it's a builtin or defined in the ELF use gdb's `ptype`
         try:
             gdb.execute("ptype struct %s" % struct_name)
             return
-        except gdb.error as e:
+        except gdb.error:
             pass
 
-        if not self.dump_custom_structure(struct_name):
-            err("Invalid structure name '%s'" % struct_name)
+        self.dump_custom_structure(struct_name)
         return
 
     def dump_custom_structure(self, struct_name):
         if not self.is_valid_custom_structure(struct_name):
-            return False
+            err("Invalid structure name '%s'" % struct_name)
+            return
 
         fullname = self.get_custom_structure_filepath(struct_name)
         defined_struct = imp.load_source("template", fullname)
@@ -2543,7 +2359,7 @@ class Template(Structure):
             _size = ctypes.sizeof(_type)
             print("+%04x %s %s (%#x)" % (_offset, _name, _type.__name__, _size))
             _offset += _size
-        return True
+        return
 
     def deserialize(self, struct, data):
         length = min(len(data), ctypes.sizeof(struct))
@@ -2637,7 +2453,7 @@ class RetDecCommand(GenericCommand):
     """Decompile code from GDB context using RetDec API."""
 
     _cmdline_ = "retdec"
-    _syntax_  = "%s [-r RANGE1-RANGE2][-s SYMBOL][-a][-h]" % _cmdline_
+    _syntax_  = "%s [-r RANGE1-RANGE2] [-s SYMBOL] [-a] [-h]" % _cmdline_
     _aliases_ = ["decompile", ]
 
     def __init__(self):
@@ -2658,11 +2474,9 @@ class RetDecCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, argv):
-        if   is_x86_32():   arch = "x86"
-        elif is_arm():      arch = "arm"
-        elif is_mips():     arch = "mips"
-        elif is_powerpc():  arch = "powerpc"
-        else:
+        arch = current_arch.arch.lower()
+        # TODO: Make this a method in the base class
+        if not arch:
             err("RetDec does not decompile '%s'" % get_arch())
             return
 
@@ -2683,37 +2497,46 @@ class RetDecCommand(GenericCommand):
         }
 
         opts, args = getopt.getopt(argv, "r:s:ah")
-        for o, a in opts:
-            if   o == "-r":
-                range_from, range_to = map(lambda x: int(x,16), a.split("-", 1))
-                fd, filename = tempfile.mkstemp()
-                with os.fdopen(fd, "wb") as f:
-                    length = range_to - range_from
-                    f.write(read_memory(range_from, length))
-                params["mode"] = "raw"
-                params["file_format"] = "elf"
-                params["raw_section_vma"] = hex(range_from)
-                params["raw_entry_point"] = hex(range_from)
-            elif o == "-s":
-                try:
-                    value = gdb.parse_and_eval(a)
-                except gdb.error:
-                    err("No symbol named '%s'" % a)
+        if not opts:
+            self.usage()
+            return
+
+        try:
+            for o, a in opts:
+                if o == "-r":
+                    range_from, range_to = map(lambda x: int(x,16), a.split("-", 1))
+                    fd, filename = tempfile.mkstemp()
+                    with os.fdopen(fd, "wb") as f:
+                        length = range_to - range_from
+                        f.write(read_memory(range_from, length))
+                    params["mode"] = "raw"
+                    params["file_format"] = "elf"
+                    params["raw_section_vma"] = hex(range_from)
+                    params["raw_entry_point"] = hex(range_from)
+                elif o == "-s":
+                    try:
+                        value = gdb.parse_and_eval(a)
+                    except gdb.error:
+                        err("No symbol named '%s'" % a)
+                        return
+                    range_from = long(value.address)
+                    fd, filename = tempfile.mkstemp()
+                    with os.fdopen(fd, "wb") as f:
+                        f.write(read_memory(range_from, get_function_length(a)))
+                    params["mode"] = "raw"
+                    params["file_format"] = "elf"
+                    params["raw_section_vma"] = hex(range_from)
+                    params["raw_entry_point"] = hex(range_from)
+                elif o == "-a":
+                    filename = get_filepath()
+                    params["mode"] = "bin"
+                else:
+                    self.usage()
                     return
-                range_from = long(value.address)
-                fd, filename = tempfile.mkstemp()
-                with os.fdopen(fd, "wb") as f:
-                    f.write(read_memory(range_from, get_function_length(a)))
-                params["mode"] = "raw"
-                params["file_format"] = "elf"
-                params["raw_section_vma"] = hex(range_from)
-                params["raw_entry_point"] = hex(range_from)
-            elif o == "-a":
-                filename = get_filepath()
-                params["mode"] = "bin"
-            else:
-                self.usage()
-                return
+        except Exception as e:
+            print(e)
+            self.usage()
+            return
 
         params["input_file"] = filename
         if self.send_to_retdec(params)==False:
@@ -3096,16 +2919,16 @@ class FlagsCommand(GenericCommand):
                 err("Invalid action for flag '%s'" % flag)
                 continue
 
-            if name not in flags_table().values():
+            if name not in current_arch.flags_table.values():
                 err("Invalid flag name '%s'" % flag[1:])
                 continue
 
-            for k in flags_table().keys():
-                if flags_table()[k] == name:
+            for k in current_arch.flags_table.keys():
+                if current_arch.flags_table[k] == name:
                     off = k
                     break
 
-            old_flag = get_register_ex( flag_register() )
+            old_flag = get_register_ex(current_arch.flag_register)
             if action=='+':
                 new_flags = old_flag | (1<<off)
             elif action=='-':
@@ -3113,9 +2936,9 @@ class FlagsCommand(GenericCommand):
             else:
                 new_flags = old_flag ^ (1<<off)
 
-            gdb.execute("set (%s) = %#x" % (flag_register(), new_flags))
+            gdb.execute("set (%s) = %#x" % (current_arch.flag_register, new_flags))
 
-        print(flag_register_to_human())
+        print(current_arch.flag_register_to_human())
         return
 
 
@@ -3142,6 +2965,7 @@ class ChangePermissionCommand(GenericCommand):
     def do_invoke(self, argv):
         if len(argv) not in (1, 2):
             err("Incorrect syntax")
+            self.usage()
             return
 
         if len(argv)==2:
@@ -3149,7 +2973,7 @@ class ChangePermissionCommand(GenericCommand):
         else:
             perm = Permission.READ | Permission.WRITE | Permission.EXECUTE
 
-        loc = int(argv[0], 16)
+        loc = long(gdb.parse_and_eval(argv[0]))
         sect = process_lookup_address(loc)
         size = sect.page_end - sect.page_start
         original_pc = get_pc()
@@ -3415,7 +3239,7 @@ def reset():
         if verbose:
             info("Populating registers")
 
-        for r in all_registers():
+        for r in current_arch.all_registers:
             gregval = get_register_ex(r)
             if to_script:
                 content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers[r], gregval)
@@ -3539,7 +3363,7 @@ if __name__ == "__main__":
 
         ok("Emulation ended, showing %s registers:" % Color.redify("tainted"))
 
-        for r in all_registers():
+        for r in current_arch.all_registers:
             # ignoring $fs and $gs because of the dirty hack we did to emulate the selectors
             if r in ('$gs    ', '$fs    '): continue
 
@@ -3550,11 +3374,11 @@ if __name__ == "__main__":
                 continue
 
             msg = ""
-            if r != flag_register():
+            if r != current_arch.flag_register:
                 msg = "%-10s : old=%#.16x || new=%#.16x" % (r.strip(), start_regs[r], end_regs[r])
             else:
-                msg = "%-10s : old=%s \n" % (r.strip(), flag_register_to_human(start_regs[r]))
-                msg+= "%-16s new=%s" % ("", flag_register_to_human(end_regs[r]),)
+                msg = "%-10s : old=%s \n" % (r.strip(), current_arch.flag_register_to_human(start_regs[r]))
+                msg+= "%-16s new=%s" % ("", current_arch.flag_register_to_human(end_regs[r]),)
 
             ok(msg)
 
@@ -3672,6 +3496,8 @@ class RemoteCommand(GenericCommand):
 
         if update_solib:
             self.refresh_shared_library_path()
+
+        set_arch()
 
         return
 
@@ -3814,7 +3640,7 @@ class NopCommand(GenericCommand):
     @if_gdb_running
     def onetime_patch(self, loc, retval):
         size = self.get_insn_size( loc )
-        nops = nop_insn()
+        nops = current_arch.nop_insn
 
         if len(nops) > size:
             err("Cannot patch instruction at %#x (nop_size is:%d,insn_size is:%d)" % (loc, len(nops), size))
@@ -3823,7 +3649,7 @@ class NopCommand(GenericCommand):
         if len(nops) < size:
             warn("Adjusting NOPs to size %d" % size)
             while len(nops) < size:
-                nops += nop_insn()
+                nops += current_arch.nop_insn
 
         if len(nops) != size:
             err("Cannot patch instruction at %#x (unexpected NOP length)" % (loc))
@@ -3833,7 +3659,7 @@ class NopCommand(GenericCommand):
         write_memory(loc, nops, size)
 
         if retval is not None:
-            reg = return_register()
+            reg = current_arch.return_register
             addr = '*'+format_address(loc)
             SetRegisterBreakpoint(addr, reg, retval)
         return
@@ -4347,9 +4173,9 @@ class DetailRegistersCommand(GenericCommand):
         regs = []
 
         if len(argv) > 0:
-            regs = [ reg for reg in all_registers() if reg.strip() in argv ]
+            regs = [ reg for reg in current_arch.all_registers if reg.strip() in argv ]
         else:
-            regs = all_registers()
+            regs = current_arch.all_registers
 
         for regname in regs:
             reg = gdb.parse_and_eval(regname)
@@ -4364,7 +4190,7 @@ class DetailRegistersCommand(GenericCommand):
                 continue
 
             if reg.type.code == gdb.TYPE_CODE_FLAGS:
-                line+= flag_register_to_human()
+                line+= current_arch.flag_register_to_human()
                 print(line)
                 continue
 
@@ -4384,19 +4210,20 @@ class DetailRegistersCommand(GenericCommand):
 
 class ShellcodeCommand(GenericCommand):
     """ShellcodeCommand uses @JonathanSalwan simple-yet-awesome shellcode API to
-    download shellcodes"""
+    download shellcodes."""
 
     _cmdline_ = "shellcode"
-    _syntax_  = "%s (search|get)" % _cmdline_
+    _syntax_  = "%s <search|get>" % _cmdline_
 
 
     def do_invoke(self, argv):
+        err("Missing subcommand <search|get>")
         self.usage()
         return
 
 
 class ShellcodeSearchCommand(GenericCommand):
-    """Search patthern in shellcodes database."""
+    """Search pattern in shellcodes database."""
 
     _cmdline_ = "shellcode search"
     _syntax_  = "%s <pattern1> <pattern2>" % _cmdline_
@@ -5053,14 +4880,14 @@ class ContextCommand(GenericCommand):
             gdb.execute("registers")
             return
 
-        l = max(map(len, all_registers()))
+        l = max(map(len, current_arch.all_registers))
         l+= 5
         l+= 16 if is_elf64() else 8
         nb = get_terminal_size()[1]//l
         i = 1
         line = ""
 
-        for reg in all_registers():
+        for reg in current_arch.all_registers:
             try:
                 r = gdb.parse_and_eval(reg)
                 if r.type.code == gdb.TYPE_CODE_VOID:
@@ -5101,7 +4928,7 @@ class ContextCommand(GenericCommand):
         if len(line) > 0:
             print(line)
 
-        print("Flags: " + flag_register_to_human())
+        print("Flags: " + current_arch.flag_register_to_human())
         return
 
     def context_stack(self):
@@ -5149,12 +4976,13 @@ class ContextCommand(GenericCommand):
                 elif addr == pc:
                     line+= Color.colorify("%s  %s$pc" % (m, left_arrow), attrs="bold red")
 
-                    if is_conditional_branch(insn):
-                        is_taken, reason = is_branch_taken(insn)
-                        reason = "[Reason: %s]" % reason if len(reason) else ""
+                    if current_arch.is_conditional_branch(insn):
+                        is_taken, reason = current_arch.is_branch_taken(insn)
                         if is_taken:
+                            reason = "[Reason: %s]" % reason if len(reason) else ""
                             line+= Color.colorify("\tTAKEN %s" % reason, attrs="bold green")
                         else:
+                            reason = "[Reason: !(%s)]" % reason if len(reason) else ""
                             line+= Color.colorify("\tNOT taken %s" % reason, attrs="bold red")
 
                 else:
@@ -5302,6 +5130,7 @@ class ContextCommand(GenericCommand):
 
     def update_registers(self, event):
         for reg in all_registers():
+
             try:
                 self.old_registers[reg] = get_register_ex(reg)
             except:
@@ -5468,7 +5297,7 @@ class DereferenceCommand(GenericCommand):
 
         memalign = get_memory_alignment(to_byte=True)
         offset = 0
-        regs = [(k.strip(), get_register_ex(k)) for k in all_registers()]
+        regs = [(k.strip(), get_register_ex(k)) for k in current_arch.all_registers]
         sep = " %s " % right_arrow
 
         def _pprint_dereferenced(addr, off):
@@ -5696,6 +5525,7 @@ class XAddressInfoCommand(GenericCommand):
     def do_invoke (self, argv):
         if len(argv) < 1:
             err ("At least one valid address must be specified")
+            self.usage()
             return
 
         for sym in argv:
@@ -5742,12 +5572,12 @@ class XorMemoryCommand(GenericCommand):
     """XOR a block of memory."""
 
     _cmdline_ = "xor-memory"
-    _syntax_  = "%s (display|patch) <address> <size_to_read> <xor_key> " % _cmdline_
+    _syntax_  = "%s <display|patch> <address> <size_to_read> <xor_key> " % _cmdline_
 
 
     def do_invoke(self, argv):
         if len(argv) == 0:
-            err("Missing subcommand (display|patch)")
+            err("Missing subcommand <display|patch>")
             self.usage()
         return
 
@@ -5764,7 +5594,7 @@ class XorMemoryDisplayCommand(GenericCommand):
             return
 
         address = long(gdb.parse_and_eval(argv[0]))
-        length = long(argv[1])
+        length = long(argv[1], 0)
         key = argv[2]
         show_as_instructions = True if len(argv)==4 and argv[3]=="-i" else False
         block = read_memory(address, length)
@@ -5799,7 +5629,8 @@ class XorMemoryPatchCommand(GenericCommand):
             return
 
         address = parse_address( argv[0] )
-        length, key = long(argv[1]), argv[2]
+        length = long(argv[1], 0)
+        key = argv[2]
         block = read_memory(address, length)
         info("Patching XOR-ing %#x-%#x with '%s'" % (address, address+len(block), key))
 
@@ -6128,11 +5959,11 @@ class FormatStringSearchCommand(GenericCommand):
 
     def do_invoke(self, argv):
         dangerous_functions = {
-            'printf':     0,
-            'sprintf':    1,
-            'fprintf':    1,
-            'snprintf':   2,
-            'vsnprintf':  2,
+            '*printf':     0,
+            '*sprintf':    1,
+            '*fprintf':    1,
+            '*snprintf':   2,
+            '*vsnprintf':  2,
         }
 
         enable_redirect_output("/dev/null")
