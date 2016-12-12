@@ -5137,10 +5137,9 @@ class ContextCommand(GenericCommand):
         return
 
     def update_registers(self, event):
-        for reg in all_registers():
-
+        for reg in current_arch.all_registers:
             try:
-                self.old_registers[reg] = get_register_ex(reg)
+                self.old_registers[reg] = get_register(reg)
             except:
                 self.old_registers[reg] = 0
         return
