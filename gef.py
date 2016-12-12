@@ -2299,13 +2299,17 @@ class PCustomCommand(GenericCommand):
             self.list_custom_structures()
             return
 
-        structure_name = argv[0]
+        if ":" in argv[0]:
+            modname, structname  = argv[0].split(":", 1)
+        else:
+            modname = structname = argv[0]
+
         if argc==1:
-            self.dump_structure(structure_name)
+            self.dump_structure(modname, structname)
             return
 
         if argv[1]=="-e":
-            self.create_or_edit_structure(structure_name)
+            self.create_or_edit_structure(modname, structname)
             return
 
         if not is_alive():
@@ -2317,19 +2321,19 @@ class PCustomCommand(GenericCommand):
             err("Failed to parse '%s'" % argv[1])
             return
 
-        self.apply_structure_to_address(structure_name, address)
+        self.apply_structure_to_address(modname, structname, address)
         return
 
-    def get_custom_structure_filepath(self, struct):
-        return os.path.join(self.get_setting("struct_path"), struct + ".py")
+    def pcustom_filepath(self, x):
+        return os.path.join(self.get_setting("struct_path"), x + ".py")
 
-    def is_valid_custom_structure(self, struct):
-        return os.access(self.get_custom_structure_filepath(struct), os.R_OK)
+    def is_valid_struct(self, x):
+        return os.access(self.pcustom_filepath(x), os.R_OK)
 
     def get_custom_structure_size(self, struct):
         return sum([ctypes.sizeof(x[1]) for x in struct._fields_])
 
-    def dump_structure(self, struct_name):
+    def dump_structure(self, mod_name, struct_name):
         # If it's a builtin or defined in the ELF use gdb's `ptype`
         try:
             gdb.execute("ptype struct %s" % struct_name)
@@ -2337,19 +2341,15 @@ class PCustomCommand(GenericCommand):
         except gdb.error:
             pass
 
-        self.dump_custom_structure(struct_name)
+        self.dump_custom_structure(mod_name, struct_name)
         return
 
-    def dump_custom_structure(self, struct_name):
-        if not self.is_valid_custom_structure(struct_name):
+    def dump_custom_structure(self, mod_name, struct_name):
+        if not self.is_valid_struct(mod_name):
             err("Invalid structure name '%s'" % struct_name)
             return
 
-        fullname = self.get_custom_structure_filepath(struct_name)
-        module_name = struct_name
-        class_name = module_name
-        defined_struct = imp.load_source(module_name, fullname)
-        _class = getattr(defined_struct, class_name)()
+        _class = self.get_class(mod_name, struct_name)
         _offset = 0
 
         for (_name, _type) in _class._fields_:
@@ -2363,17 +2363,17 @@ class PCustomCommand(GenericCommand):
         ctypes.memmove(ctypes.addressof(struct), data, length)
         return
 
-    def apply_structure_to_address(self, struct_name, addr):
-        if not self.is_valid_custom_structure(struct_name):
+    def get_class(self, modname, classname):
+        _fullname = self.pcustom_filepath(modname)
+        _struct = imp.load_source(modname, _fullname)
+        return getattr(_struct, classname)()
+
+    def apply_structure_to_address(self, mod_name, struct_name, addr, depth=0):
+        if not self.is_valid_struct(mod_name):
             err("Invalid structure name '%s'" % struct_name)
             return
 
-        fullname = self.get_custom_structure_filepath(struct_name)
-        defined_struct = imp.load_source(struct_name, fullname)
-        module_name = struct_name
-        class_name = module_name
-        defined_struct = imp.load_source(module_name, fullname)
-        _class = getattr(defined_struct, class_name)()
+        _class = self.get_class(mod_name, struct_name)
 
         try:
             data = read_memory(addr, self.get_custom_structure_size(_class))
@@ -2382,8 +2382,9 @@ class PCustomCommand(GenericCommand):
             return
 
         self.deserialize(_class, data)
-        _offset = 0
+
         _regsize = get_memory_alignment(to_byte=True)
+        _offset = 0
 
         for field in _class._fields_:
             _name, _type = field
@@ -2393,16 +2394,23 @@ class PCustomCommand(GenericCommand):
             if    (_regsize==4 and _type is ctypes.c_uint32) \
                or (_regsize==8 and _type is ctypes.c_uint64) \
                or (_regsize==ctypes.sizeof(ctypes.c_void_p) and _type is ctypes.c_void_p):
-                # try to parse pointers
+                # try to dereference pointers
                 _value = right_arrow.join(DereferenceCommand.dereference_from(_value))
 
-            line = ("%#x+0x%04x %s : " % (addr, _offset, _name)).ljust(40)
+            line = ""
+            line+= "  "*depth
+            line+= ("%#x+0x%04x %s : " % (addr, _offset, _name)).ljust(40)
             line+= "%s (%s)" % (_value, _type.__name__)
             parsed_value = self.get_ctypes_value(_class, _name, _value)
             if len(parsed_value):
                 line+= " %s %s" % (right_arrow, parsed_value)
             print(line)
-            _offset += _size
+
+            if issubclass(_type, ctypes.Structure):
+                self.apply_structure_to_address(mod_name, _type.__name__, addr + _offset, depth+1)
+                _offset += ctypes.sizeof(_type)
+            else:
+                _offset += _size
         return
 
 
@@ -2418,16 +2426,17 @@ class PCustomCommand(GenericCommand):
         return default
 
 
-    def create_or_edit_structure(self, structure_name):
+    def create_or_edit_structure(self, mod_name, struct_name):
         path = self.get_setting("struct_path")
-        fullname = self.get_custom_structure_filepath(structure_name)
+        fullname = self.pcustom_filepath(mod_name)
         if not os.path.isdir(path):
             info("Creating path '%s'" % path)
             gef_makedirs(path)
-        elif not self.is_valid_custom_structure(structure_name):
+        elif not self.is_valid_struct(mod_name):
             info("Creating '%s' from template" % fullname)
             with open(fullname, "wb") as f:
-                f.write(self.get_template(structure_name))
+                f.write(self.get_template(struct_name))
+                f.flush()
         else:
             info("Editing '%s'" % fullname)
 
@@ -2436,26 +2445,29 @@ class PCustomCommand(GenericCommand):
         retcode = subprocess.call(cmd)
         return retcode
 
-    def get_template(self, sname):
+
+    def get_template(self, structname):
         d = [
             b"from ctypes import *\n\n",
             b"class ",
-            gef_pybytes(sname),
+            gef_pybytes(structname),
             b"(Structure):\n",
             b"    _fields_ = []\n"
         ]
         return b''.join(d)
 
+
     def list_custom_structures(self):
-        info("Listing custom structures:")
+        path = self.get_setting("struct_path")
+        info("Listing custom structures from '%s'" % path)
         try:
-            path = self.get_setting("struct_path")
             for filen in os.listdir(path):
                 name, ext = os.path.splitext(filen)
                 if ext != ".py": continue
                 ok("%s %s" % (right_arrow, name))
         except OSError:
-            err("Cannot open %s. Create struct directory or use `gef config pcustom.struct_path` to set it correctly." % path)
+            err("Cannot open '%s'." % path)
+            warn("Create struct directory or use `gef config pcustom.struct_path` to set it correctly.")
         return
 
 
