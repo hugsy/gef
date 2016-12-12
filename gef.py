@@ -455,7 +455,6 @@ class GlibcArena:
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671
     """
     def __init__(self, addr=None):
-        #
         arena = gdb.parse_and_eval(addr)
         self.__arena = arena.cast(gdb.lookup_type("struct malloc_state"))
         self.__addr = long(arena.address)
@@ -695,6 +694,10 @@ def warn(msg, cr=True):  return _xlog(Color.colorify("[*]", attrs="bold yellow")
 def ok(msg, cr=True):    return _xlog(Color.colorify("[+]", attrs="bold green")+" "+msg, gdb.STDLOG, cr)
 def info(msg, cr=True):  return _xlog(Color.colorify("[+]", attrs="bold blue")+" "+msg, gdb.STDLOG, cr)
 
+def show_exception():
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    print("".join(traceback.format_exception(exc_type, exc_value,exc_traceback)))
+    return
 
 def which(program):
     def is_exe(fpath):
@@ -801,8 +804,7 @@ def _gef_disassemble_around(addr, nb_insn):
     if not ( is_x86_32() or is_x86_64() ):
         # all ABI except x86 are fixed length instructions, easy to process
         insn_len = 4 if is_aarch64() or is_ppc64() else get_memory_alignment(to_byte=True)
-        top = addr - (nb_insn-3)*insn_len*2
-        lines = _gef_disassemble_top(top,  nb_insn-1)
+        lines = _gef_disassemble_top(addr-insn_len - nb_insn*insn_len, nb_insn-1)
         lines+= _gef_disassemble_top(addr, nb_insn)
         return lines
 
@@ -1722,6 +1724,11 @@ def exit_handler(event):
     return
 
 
+def interact_sync(event):
+    gdb.execute("ida-interact Sync", from_tty=True, to_string=True)
+    return
+
+
 def get_terminal_size():
     """
     Portable function to retrieve the current terminal size.
@@ -2258,16 +2265,11 @@ class GenericCommand(gdb.Command):
     # _cmdline_ = "template-fake"
     # _syntax_  = "%s" % _cmdline_
     # _aliases_ = ["tpl-fk", ]
-
     # def __init__(self):
-    # super(TemplateCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
-    # return
-    # def pre_load(self):
-    # return
-    # def post_load(self):
-    # return
+    #     super(TemplateCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+    #     return
     # def do_invoke(self, argv):
-    # return
+    #     return
 
 
 class PCustomCommand(GenericCommand):
@@ -2639,40 +2641,68 @@ class ProcessIdCommand(GenericCommand):
 
 
 class IdaInteractCommand(GenericCommand):
-    """IDA Interact: set of commands to interact with IDA."""
+    """IDA Interact: set of commands to interact with IDA via a XML RPC service
+    deployed via the IDA script `ida_gef.py`. It should be noted that this command
+    can also be used to interact with Binary Ninja (using the script `binja_gef.py`)
+    using the same interface."""
 
     _cmdline_ = "ida-interact"
     _syntax_  = "%s METHOD [ARGS]" % _cmdline_
+    _aliases_ = ["binaryninja-interact", "bn", "binja"]
 
     def __init__(self):
         super(IdaInteractCommand, self).__init__(prefix=False)
         host, port = "127.0.1.1", 1337
         self.add_setting("host", host)
         self.add_setting("port", port)
+        self.sock = None
+        self.version = ("", "")
+
+        if self.is_target_alive(host, port):
+            # if the target responds, we add 2 new handlers to synchronize the
+            # info between gdb and ida/binja
+            self.connect()
         return
 
-    def connect(self):
-        """
-        Connect to the XML-RPC service.
-        """
-        host = self.get_setting("host")
-        port = self.get_setting("port")
+    def is_target_alive(self, host, port):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(1)
             s.connect((host, port))
             s.close()
+        except socket.error:
+            return False
+        return True
+
+    def connect(self, host=None, port=None):
+        """
+        Connect to the XML-RPC service.
+        """
+        if host is None:
+            host = self.get_setting("host")
+        if port is None:
+            port = self.get_setting("port")
+
+        try:
             sock = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(host, port))
+            gdb.events.stop.connect(interact_sync)
+            gdb.events.cont.connect(interact_sync)
+            self.version = sock.version()
         except:
             err("Failed to connect to '{:s}:{:d}'".format(host, port))
-            info("Did you start the IDA script `ida_gef_xmlrpc.py` (https://github.com/hugsy/stuff/blob/master/ida_scripts/ida_gef_xmlrpc.py)?")
             sock = None
-        return sock
+        self.sock = sock
+        return
+
+    def disconnect(self):
+        # we really cannot connect, remove the events
+        gdb.events.stop.disconnect(interact_sync)
+        gdb.events.cont.disconnect(interact_sync)
+        self.sock = None
+        return
+
 
     def do_invoke(self, argv):
-        return self.call(argv)
-
-    def call(self, argv):
         def parsed_arglist(arglist):
             args = []
             for arg in arglist:
@@ -2688,18 +2718,32 @@ class IdaInteractCommand(GenericCommand):
                     args.append(arg)
             return args
 
-        sock = self.connect()
-        if sock is None:
-            return
+        if self.sock is None:
+            warn("Trying to reconnect to %s" % self.version[0])
+            self.connect()
+            if self.sock is None:
+                self.disconnect()
+                return
 
         if len(argv)==0 or argv[0] in ("-h", "--help"):
             method_name = argv[1] if len(argv)>1 else None
-            self.usage(sock, method_name)
+            self.usage(method_name)
             return
 
         try:
             method_name = argv[0]
-            method = getattr(sock, method_name)
+            if method_name == "version":
+                self.version = self.sock.version()
+                info("Enhancing %s with %s (v.%s)" % (Color.greenify("gef"),
+                                                      Color.redify(self.version[0]),
+                                                      Color.yellowify(self.version[1])))
+                return
+
+            if method_name == "Sync":
+                self.synchronize()
+                return
+
+            method = getattr(self.sock, method_name)
             if len(argv) > 1:
                 args = parsed_arglist(argv[1:])
                 res = method(*args)
@@ -2714,28 +2758,66 @@ class IdaInteractCommand(GenericCommand):
                 self.import_structures(res)
             else:
                 print(res)
-            return
+
+        except socket.error:
+            self.disconnect()
+
         except Exception as e:
-            err(str(e))
-            del sock
+            err("[%s] Exception: %s" % (self._cmdline_, str(e)))
         return
 
-    def usage(self, sock=None, meth=None):
-        super(IdaInteractCommand, self).usage()
-        if sock is None:
+
+    def synchronize(self):
+        # submit all active breakpoint addresses to IDA/BN
+        breakpoints = gdb.breakpoints() or []
+        old_bps = []
+
+        for x in breakpoints:
+            if x.enabled and not x.temporary:
+                val = gdb.parse_and_eval(x.location).address
+                addr = str(val).strip().split()[0]
+                addr = long(addr, 16)
+                old_bps.append(addr)
+
+        pc = get_pc()
+        cur_bps = self.sock.Sync(str(pc), old_bps)
+        if cur_bps == old_bps:
+            # no change
+            return
+
+        # add new BP defined in IDA/BN to gef
+        added = set(cur_bps) - set(old_bps)
+        for new_bp in added:
+            gdb.Breakpoint("*%#x" % new_bp, type=gdb.BP_BREAKPOINT).enabled
+
+        # and remove the old ones
+        removed = set(old_bps) - set(cur_bps)
+        for bp in breakpoints:
+            val = gdb.parse_and_eval(bp.location).address
+            addr = str(val).strip().split()[0]
+            addr = long(addr, 16)
+            if addr in removed:
+                bp.delete()
+
+        return
+
+
+    def usage(self, meth=None):
+        if self.sock is None:
             return
 
         if meth is not None:
             print(titlify(meth))
-            print(sock.system.methodHelp(meth))
+            print(self.sock.system.methodHelp(meth))
             return
 
-        info("Listing methods: ")
-        for m in sock.system.listMethods():
+        info("Listing available methods and syntax examples: ")
+        for m in self.sock.system.listMethods():
             if m.startswith("system."): continue
             print(titlify(m))
-            print(sock.system.methodHelp(m))
+            print(self.sock.system.methodHelp(m))
         return
+
 
     def import_structures(self, structs):
         path = __config__.get("pcustom.struct_path")[0]
@@ -2746,12 +2828,14 @@ class IdaInteractCommand(GenericCommand):
             with open(fullpath, "wb") as f:
                 f.write(b"from ctypes import *\n\nclass Template(Structure):\n    _fields_ = [\n")
                 for offset, name, size in structs[struct_name]:
+                    name = bytes(name, encoding="utf-8")
                     if   size == 1: csize = b"c_uint8"
                     elif size == 2: csize = b"c_uint16"
                     elif size == 4: csize = b"c_uint32"
                     elif size == 8: csize = b"c_uint64"
-                    else:           csize = b"c_byte * %d" % size
-                    f.write(b"""%s("%s", %s),\n""" % (b" "*8, bytes(name, encoding="utf-8"), csize))
+                    else:           csize = b"c_byte * " + bytes(str(size), encoding="utf-8")
+                    m = [b'        ("', name, b'", ', csize, b'),\n']
+                    f.write(b''.join(m))
                 f.write(b"]\n")
         ok("Success, %d structure%s imported"%(len(structs.keys()), "s" if len(structs.keys())>1 else ""))
         return
@@ -3359,12 +3443,8 @@ class RemoteCommand(GenericCommand):
                 self.help()
                 return
 
-        if args is None or len(args)!=1:
-            err("A target (HOST:PORT) is always required.")
-            return
-
-        if is_extended_remote and rpid < 0:
-            err("A PID must be provided (-p <PID>) when using remote-extended mode")
+        if args is None or len(args)!=1 or rpid < 0:
+            err("A target (HOST:PORT) *and* a PID (-p PID) must always be provided.")
             return
 
         # lazily install handler on first use
@@ -3384,7 +3464,6 @@ class RemoteCommand(GenericCommand):
             gdb.execute("attach %d" % rpid)
             enable_context()
         else:
-            rpid = get_pid()
             ok("Targeting PID=%d" % rpid)
 
         self.add_setting("target", target)
@@ -3732,6 +3811,15 @@ class GlibcHeapCommand(GenericCommand):
         self.usage()
         return
 
+    @staticmethod
+    def get_main_arena():
+        try:
+            arena = GlibcArena("main_arena")
+        except:
+            warn("Failed to get `main_arena` symbol. heap commands may not work properly")
+            arena = None
+        return arena
+
 
 class GlibcHeapArenaCommand(GenericCommand):
     """Display information on a heap chunk."""
@@ -3757,8 +3845,8 @@ class GlibcHeapArenaCommand(GenericCommand):
             arena = arena.get_next()
             if arena is None:
                 break
-
         return
+
 
 class GlibcHeapChunkCommand(GenericCommand):
     """Display information on a heap chunk.
@@ -3777,6 +3865,8 @@ class GlibcHeapChunkCommand(GenericCommand):
             err("Missing chunk address")
             self.usage()
             return
+
+        GlibcHeapCommand.get_main_arena()
 
         addr = long(gdb.parse_and_eval( argv[0] ))
         chunk = GlibcChunk(addr)
@@ -3839,13 +3929,11 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, argv):
-        if len(argv)==1:
-            arena = GlibcArena('*'+argv[0])
-        else:
-            arena = GlibcArena("main_arena")
+        main_arena = GlibcHeapCommand.get_main_arena()
+        arena = GlibcArena('*'+argv[0]) if len(argv)==1 else main_arena
 
         if arena is None:
-            err("No main_arena (linked statically?)")
+            err("Invalid Glibc arena")
             return
 
         print(titlify("Information on FastBins of arena %#x" % int(arena)))
@@ -3885,7 +3973,11 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, argv):
-        arena_addr =  "*%#x"%int(argv[0],16) if len(argv)==1 else "main_arena"
+        if GlibcHeapCommand.get_main_arena() is None:
+            err("Incorrect Glibc arenas")
+            return
+
+        arena_addr =  "*%#x"%int(argv[0], 16) if len(argv)==1 else "main_arena"
         print(titlify("Information on Unsorted Bin of arena '{:s}'".format(arena_addr)))
         GlibcHeapBinsCommand.pprint_bin(arena_addr, 0)
         return
@@ -3902,6 +3994,10 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, argv):
+        if GlibcHeapCommand.get_main_arena() is None:
+            err("Incorrect Glibc arenas")
+            return
+
         arena_addr = "*%#x"%int(argv[0],16) if len(argv)==1 else "main_arena"
         print(titlify("Information on Small Bins of arena '{:s}'".format(arena_addr)))
         for i in range(1, 64):
@@ -3920,6 +4016,10 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, argv):
+        if GlibcHeapCommand.get_main_arena() is None:
+            err("Incorrect Glibc arenas")
+            return
+
         arena_addr = "*%#x"%int(argv[0],16) if len(argv)==1 else "main_arena"
         print(titlify("Information on Large Bins of arena '{:s}'".format(arena_addr)))
         for i in range(64, 127):
@@ -4659,25 +4759,36 @@ class EntryPointBreakCommand(GenericCommand):
                     # this case can happen when doing remote debugging
                     gdb.execute("continue")
                     return
-                # otherwise, simply continue with next symbol
-                warn("Could not solve `%s` symbol" % sym)
+
                 continue
 
-        # break at entry point - should never fail
+        # break at entry point
         elf = get_elf_headers()
         if elf is None:
             return
 
-        value = elf.e_entry
-        if value:
-            info("Breaking at entry-point: %#x" % value)
-            gdb.execute("tbreak *%#x" % value, to_string=True)
-            info("Starting execution")
-            gdb.execute("run")
-            return
-
+        self.set_init_tbreak_pic(elf.e_entry)
+        gdb.execute("run")
         return
 
+    def set_init_tbreak(self, addr):
+        info("Breaking at entry-point: %#x" % addr)
+        bp_num = gdb.execute("tbreak *%#x" % addr, to_string=True)
+        bp_num = int(bp_num.split()[2])
+        return bp_num
+
+    def set_init_tbreak_pic(self, addr, do_run=True):
+        warn("PIC binary detected, retrieving text base address")
+        enable_redirect_output()
+        gdb.execute("set stop-on-solib-events 1")
+        disable_context()
+        gdb.execute("run")
+        enable_context()
+        gdb.execute("set stop-on-solib-events 0")
+        vmmap = get_process_maps()
+        base_address = [x.page_start for x in vmmap if x.path==get_filepath()][0]
+        disable_redirect_output()
+        return self.set_init_tbreak(base_address + addr)
 
 
 class ContextCommand(GenericCommand):
@@ -4707,6 +4818,10 @@ class ContextCommand(GenericCommand):
             self.add_setting("use_capstone", False)
         return
 
+    def post_load(self):
+        # create a gdb.event to update the register table on every "continue"
+        gdb.events.cont.connect(self.update_registers)
+        return
 
     @if_gdb_running
     def do_invoke(self, argv):
@@ -4739,8 +4854,6 @@ class ContextCommand(GenericCommand):
 
         if len(redirect)>0 and os.access(redirect, os.W_OK):
             disable_redirect_output()
-
-        self.update_registers()
         return
 
     def context_title(self, m):
@@ -4961,6 +5074,11 @@ class ContextCommand(GenericCommand):
         orig_frame = current_frame = gdb.selected_frame()
         i = 0
 
+        # backward compat for gdb (gdb < 7.10)
+        if not hasattr(gdb, "FrameDecorator"):
+            gdb.execute("backtrace %d" % nb_backtrace)
+            return
+
         while current_frame:
             current_frame.select()
             if not current_frame.is_valid():
@@ -4998,8 +5116,8 @@ class ContextCommand(GenericCommand):
 
         i = 0
         for thread in threads:
-            line = """[{:s}] """.format(Color.colorify("#%d"%i, attrs="bold pink"))
-            line+= """Id {:d}, Name: "{:s}", """.format(thread.num, thread.name)
+            line = """[{:s}] Id {:d}, Name: "{:s}",  """.format(Color.colorify("#%d"%i, attrs="bold pink"),
+                                                                thread.num, thread.name or "")
             if thread.is_running():
                 line+= Color.colorify("running", attrs="bold green")
             elif thread.is_stopped():
@@ -5010,8 +5128,9 @@ class ContextCommand(GenericCommand):
             i+= 1
         return
 
-    def update_registers(self):
-        for reg in current_arch.all_registers:
+    def update_registers(self, event):
+        for reg in all_registers():
+
             try:
                 self.old_registers[reg] = get_register_ex(reg)
             except:
