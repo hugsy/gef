@@ -4991,6 +4991,10 @@ class ContextCommand(GenericCommand):
             self.add_setting("use_capstone", False)
         return
 
+    def post_load(self):
+        # create a gdb.event to update the register table on every "continue"
+        gdb.events.cont.connect(self.update_registers)
+        return
 
     @if_gdb_running
     def do_invoke(self, argv):
@@ -5023,8 +5027,6 @@ class ContextCommand(GenericCommand):
 
         if len(redirect)>0 and os.access(redirect, os.W_OK):
             disable_redirect_output()
-
-        self.update_registers()
         return
 
     def context_title(self, m):
@@ -5298,7 +5300,7 @@ class ContextCommand(GenericCommand):
             i+= 1
         return
 
-    def update_registers(self):
+    def update_registers(self, event):
         for reg in all_registers():
             try:
                 self.old_registers[reg] = get_register_ex(reg)
