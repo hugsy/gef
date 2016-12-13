@@ -46,6 +46,7 @@ import functools
 import getopt
 import hashlib
 import imp
+import inspect
 import itertools
 import os
 import platform
@@ -2358,10 +2359,21 @@ class PCustomCommand(GenericCommand):
         ctypes.memmove(ctypes.addressof(struct), data, length)
         return
 
-    def get_class(self, modname, classname):
+    def get_module(self, modname):
         _fullname = self.pcustom_filepath(modname)
-        _struct = imp.load_source(modname, _fullname)
-        return getattr(_struct, classname)()
+        return imp.load_source(modname, _fullname)
+
+    def get_class(self, modname, classname):
+        _mod = self.get_module(modname)
+        return getattr(_mod, classname)()
+
+    def list_all_structs(self, modname):
+        _mod = self.get_module(modname)
+        _invalid = set(['BigEndianStructure', 'LittleEndianStructure', 'Structure',])
+        _structs = set([ x for x in dir(_mod) \
+                         if inspect.isclass(getattr(_mod, x)) \
+                         and issubclass( getattr(_mod, x), ctypes.Structure) ])
+        return _structs - _invalid
 
     def apply_structure_to_address(self, mod_name, struct_name, addr, depth=0):
         if not self.is_valid_struct(mod_name):
@@ -2459,7 +2471,8 @@ class PCustomCommand(GenericCommand):
             for filen in os.listdir(path):
                 name, ext = os.path.splitext(filen)
                 if ext != ".py": continue
-                ok("%s %s" % (right_arrow, name))
+                _modz = self.list_all_structs(name)
+                ok("%s %s (%s)" % (right_arrow, name, ", ".join(_modz)))
         except OSError:
             err("Cannot open '%s'." % path)
             warn("Create struct directory or use `gef config pcustom.struct_path` to set it correctly.")
