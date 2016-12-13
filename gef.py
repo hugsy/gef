@@ -2299,8 +2299,8 @@ class PCustomCommand(GenericCommand):
             self.list_custom_structures()
             return
 
-        modname, structname  = argv[0].split(":", 1) if ":" in argv[0] else argv[0], argv[0]
-        structname, param  = argv[0].split(".", 1) if "." in structname else structname, None
+        modname, structname  = argv[0].split(":", 1) if ":" in argv[0] else (argv[0], argv[0])
+        structname, param  = structname.split(".", 1) if "." in structname else (structname, None)
 
         if argc==1:
             self.dump_structure(modname, structname)
@@ -2327,9 +2327,6 @@ class PCustomCommand(GenericCommand):
 
     def is_valid_struct(self, x):
         return os.access(self.pcustom_filepath(x), os.R_OK)
-
-    def get_custom_structure_size(self, struct):
-        return sum([ctypes.sizeof(x[1]) for x in struct._fields_])
 
     def dump_structure(self, mod_name, struct_name):
         # If it's a builtin or defined in the ELF use gdb's `ptype`
@@ -2374,7 +2371,7 @@ class PCustomCommand(GenericCommand):
         _class = self.get_class(mod_name, struct_name)
 
         try:
-            data = read_memory(addr, self.get_custom_structure_size(_class))
+            data = read_memory(addr, ctypes.sizeof(_class))
         except gdb.MemoryError:
             err("Cannot reach memory %#x" % addr)
             return
