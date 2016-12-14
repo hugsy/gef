@@ -688,7 +688,8 @@ def titlify(msg, color=Color.RED):
 def _xlog(m, stream, cr=True):
     m += "\n" if cr else ""
     gdb.write(m, stream)
-    gdb.flush()
+    if cr:
+        gdb.flush()
     return 0
 
 def err(msg, cr=True):   return _xlog(Color.colorify("[!]", attrs="bold red")+" "+msg, gdb.STDERR, cr)
@@ -844,7 +845,7 @@ def _gef_disassemble_around(addr, nb_insn):
 
         # we assume here that it was successful
         found = True
-        lines = [ re.sub(r'(\t|:)', r' ', x.replace("=>", "").strip()) for x in lines[-nb_insn:-1] ]
+        lines = [ x.replace('=>', '') for x in lines[-nb_insn:-1] ]
         break
 
     if not found:
@@ -869,13 +870,16 @@ def gef_disassemble(addr, nb_insn, from_top=False):
 
 
 def gef_parse_gdb_instruction(raw_insn):
+    raw_insn = raw_insn.strip().replace('\t', ' ').replace(':', ' ')
     patt = re.compile(r'^(0x[0-9a-f]{,16})(.*)$', flags=re.IGNORECASE)
     parts = [ x for x in re.split(patt, raw_insn) if len(x)>0 ]
     address = int(parts[0], 16)
     code = parts[1].strip()
     parts = code.split()
     if code.startswith("<"):
-        location = re.sub(r'<([^>]*)>:', r'\1', parts[0])
+        i = 1
+        j = parts[0].find('>')
+        location = parts[0][i:j]
         mnemo = parts[1]
         operands = " ".join(parts[2:])
     else:
@@ -948,6 +952,20 @@ class Architecture(object):
     def is_conditional_branch(self, insn):         pass
     @abc.abstractmethod
     def is_branch_taken(self, insn):               pass
+
+    @property
+    def pc(self):
+        try:
+            return get_register("$pc")
+        except:
+            return get_register_ex("$pc")
+
+    @property
+    def sp(self):
+        try:
+            return get_register("$sp")
+        except:
+            return get_register_ex("$sp")
 
 
 
@@ -1487,17 +1505,6 @@ def get_register_ex(regname):
             return long(v.strip().split("\t",1)[0], 16)
     return 0
 
-def get_pc():
-    try:
-        return get_register("$pc")
-    except:
-        return get_register_ex("$pc")
-
-def get_sp():
-    try:
-        return get_register("$sp")
-    except:
-        return get_register_ex("$sp")
 
 @memoize
 def get_os():
@@ -2182,7 +2189,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
     def stop(self):
 
         if is_x86_32():
-            sp = get_sp()
+            sp = current_arch.sp
             m = get_memory_alignment(to_byte=True)
             val = sp + (self.num_args * m) + m
             ptr = read_int_from_memory( val )
@@ -2895,7 +2902,7 @@ class IdaInteractCommand(GenericCommand):
                 addr = long(addr, 16)
                 old_bps.append(addr)
 
-        pc = get_pc()
+        pc = current_arch.pc
         cur_bps = self.sock.Sync(str(pc), old_bps)
         if cur_bps == old_bps:
             # no change
@@ -3097,7 +3104,7 @@ class ChangePermissionCommand(GenericCommand):
         loc = long(gdb.parse_and_eval(argv[0]))
         sect = process_lookup_address(loc)
         size = sect.page_end - sect.page_start
-        original_pc = get_pc()
+        original_pc = current_arch.pc
 
         info("Generating sys_mprotect(%#x, %#x, '%s') stub for arch %s"%(sect.page_start, size, Permission(value=perm), get_arch()))
         stub = self.get_stub_by_arch(sect.page_start, size, perm)
@@ -3194,7 +3201,7 @@ class UnicornEmulateCommand(GenericCommand):
                 return
 
         if start_insn is None:
-            start_insn = get_pc()
+            start_insn = current_arch.pc
 
         if end_insn == -1 and self.nb_insn == -1 and self.until_next_gadget == -1:
             err("No stop condition (-t|-n|-g) defined.")
@@ -3649,7 +3656,7 @@ class NopCommand(GenericCommand):
         if len(args):
             loc = parse_address(args[0])
         else:
-            loc = get_pc()
+            loc = current_arch.pc
 
         self.onetime_patch(loc, retval)
         return
@@ -3721,7 +3728,7 @@ class CapstoneDisassembleCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, argv):
-        location, length = get_pc(), 0x10
+        location, length = current_arch.pc, 0x10
         opts, args = getopt.getopt(argv, 'n:x:')
         for o,a in opts:
             if  o == "-n":
@@ -3754,7 +3761,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         page_start  = align_address_to_page(location)
         offset      = location - page_start
         inst_num    = 0
-        pc          = get_pc()
+        pc          = current_arch.pc
 
         code        = kwargs.get("code", None)
         if code is None:
@@ -4958,7 +4965,7 @@ class ContextCommand(GenericCommand):
         nb_lines = self.get_setting("nb_lines_stack")
 
         try:
-            sp = get_sp()
+            sp = current_arch.sp
             if show_raw == True:
                 mem = read_memory(sp, 0x10 * nb_lines)
                 print( hexdump(mem, base=sp) )
@@ -4973,7 +4980,7 @@ class ContextCommand(GenericCommand):
     def context_code(self):
         nb_insn = self.get_setting("nb_lines_code")
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
-        pc = get_pc()
+        pc = current_arch.pc
 
         arch = get_arch().lower()
         if is_arm_thumb():
@@ -5016,7 +5023,7 @@ class ContextCommand(GenericCommand):
 
     def context_source(self):
         try:
-            pc = get_pc()
+            pc = current_arch.pc
             symtabline = gdb.find_pc_line(pc)
             symtab = symtabline.symtab
             line_num = symtabline.line - 1     # we substract one because line number returned by gdb start at 1
@@ -5383,8 +5390,10 @@ class DereferenceCommand(GenericCommand):
             if addr.section:
                 if addr.section.is_executable() and addr.is_in_text_segment():
                     cmd = gdb.execute("x/i %#x" % addr.value, to_string=True).replace("=>", '')
-                    cmd = re.sub('\s+',' ', cmd.strip()).split(" ", 1)[1]
-                    msg.append( "%s" % Color.redify(cmd) )
+                    (_, _, mnemo, operands)  = gef_parse_gdb_instruction(cmd)
+                    ops = ", ".join(operands)
+                    insn = " ".join([mnemo, ops])
+                    msg.append( Color.redify(insn) )
                     break
 
                 elif addr.section.permission.value & Permission.READ:
@@ -5555,7 +5564,6 @@ class XAddressInfoCommand(GenericCommand):
 
             except gdb.error as gdb_err:
                 err("%s" % gdb_err)
-
         return
 
 
@@ -5583,7 +5591,6 @@ class XAddressInfoCommand(GenericCommand):
             print("Segment: %s (%s-%s)" % (info.name,
                                             format_address(info.zone_start),
                                             format_address(info.zone_end)))
-
         return
 
 
@@ -5683,7 +5690,7 @@ class TraceRunCommand(GenericCommand):
             depth = 1
 
         try:
-            loc_start   = get_pc()
+            loc_start   = current_arch.pc
             loc_end     = long(gdb.parse_and_eval(argv[0]))
         except gdb.error as e:
             err("Invalid location: %s" % e)
@@ -5741,7 +5748,7 @@ class TraceRunCommand(GenericCommand):
                 else:
                     gdb.execute( "finish" )
 
-                loc_cur = get_pc()
+                loc_cur = current_arch.pc
                 gdb.flush()
 
             except Exception as e:
@@ -5773,7 +5780,6 @@ class PatternCommand(GenericCommand):
         self.usage()
         return
 
-
 class PatternCreateCommand(GenericCommand):
     """Cyclic pattern generation"""
 
@@ -5802,7 +5808,6 @@ class PatternCreateCommand(GenericCommand):
         ok("Saved as '%s'" % var_name)
         return
 
-
 class PatternSearchCommand(GenericCommand):
     """Cyclic pattern search"""
 
@@ -5827,7 +5832,6 @@ class PatternSearchCommand(GenericCommand):
         info("Searching '%s'" % pattern)
         self.search(pattern, size)
         return
-
 
     def search(self, pattern, size):
         try:
