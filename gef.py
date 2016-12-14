@@ -925,39 +925,30 @@ def flags_to_human(reg_value, value_table):
 
 
 class Architecture(object):
-    all_registers = []
+    """Generic metaclass for the architecture supported by GEF."""
+    __metaclass__ = abc.ABCMeta
 
-    @property
-    def nop_insn(self):
-        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+    @abc.abstractproperty
+    def all_registers(self):                       pass
+    @abc.abstractproperty
+    def nop_insn(self):                            pass
+    @abc.abstractproperty
+    def return_register(self):                     pass
+    @abc.abstractproperty
+    def flag_register(self):                       pass
+    @abc.abstractproperty
+    def flags_table(self):                         pass
+    @abc.abstractproperty
+    def function_parameters(self):                 pass
+    @abc.abstractmethod
+    def flag_register_to_human(self, val=None):    pass
+    @abc.abstractmethod
+    def is_call(self, insn):                       pass
+    @abc.abstractmethod
+    def is_conditional_branch(self, insn):         pass
+    @abc.abstractmethod
+    def is_branch_taken(self, insn):               pass
 
-    @property
-    def return_register(self):
-        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
-
-    @property
-    def flag_register(self):
-        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
-
-    @property
-    def flags_table(self):
-        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
-
-    @property
-    def function_parameters(self):
-        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
-
-    def flag_register_to_human(self, val=None):
-        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
-
-    def is_call(self, insn):
-        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
-
-    def is_conditional_branch(self, insn):
-        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
-
-    def is_branch_taken(self, insn):
-        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
 
 
 class ARM(Architecture):
