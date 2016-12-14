@@ -3,34 +3,7 @@
 This section will explain in details some non-trivial commands available in `GEF`
 with examples and screenshots to make it easier to reproduce.
 
-__Note__: a long standing bug in the `readline` library can make `gef` crash GDB
-when displaying certain characters (SOH/ETX). As a result, this would SIGSEGV
-GDB as `gef` is loading, a bit like this:
-
-```
-root@debian-aarch64:~# gdb -q ./test-bin-aarch64
-GEF ready, type `gef' to start, `gef config' to configure
-53 commands loaded, using Python engine 3.4
-[*] 5 commands could not be loaded, run `gef missing` to know why.
-[+] Configuration from '/root/.gef.rc' restored
-Reading symbols from ./bof-aarch64...(no debugging symbols found)...done.
-Segmentation fault (core dumped)
-```
-
-If so, this can be fixed easily by setting the `gef.readline_compat` variable to
-`True` in the `~/.gef.rc` file. Something like this:
-
-```
-root@debian-aarch64:~# nano ~/.gef.rc
-[...]
-[gef]
-readline_compat = True
-```
-
-You can now use all features of `gef` even on versions of GDB compiled against
-old `readline` library.
-
-__Other note__: if you consider the documentation to be imprecise/incomplete,
+__Note__: if you consider the documentation to be imprecise/incomplete,
 drop an [Issue](https://github.com/hugsy/gef/issues/86) or better,
 a [Pull Request](https://github.com/hugsy/gef/pulls) to the project to help
 improving it.
