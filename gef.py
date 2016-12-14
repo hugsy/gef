@@ -6088,7 +6088,7 @@ class GefCommand(gdb.Command):
 
     def load(self, mod=None):
         """
-        Load all the commands defined by GEF into GBD.
+        Load all the commands defined by GEF into GDB.
         If a configuration file is found, the settings are restored.
         """
         global __loaded__, __missing__
@@ -6128,8 +6128,9 @@ class GefCommand(gdb.Command):
 
         ver = "%d.%d" % (sys.version_info.major, sys.version_info.minor)
         nb_cmds = len(__loaded__)
-        print("%s commands loaded, using Python engine %s" % (Color.colorify(str(nb_cmds), attrs="bold green"),
-                                                              Color.colorify(ver, attrs="bold red")))
+        print("%s commands loaded for GDB %s using Python engine %s" % (Color.colorify(str(nb_cmds), attrs="bold green"),
+                                                                        Color.colorify(gdb.VERSION, attrs="bold yellow"),
+                                                                        Color.colorify(ver, attrs="bold red")))
 
         if nb_missing > 0:
             warn("%s commands could not be loaded, run `%s` to know why."%(Color.colorify(str(nb_missing), attrs="bold red"),
