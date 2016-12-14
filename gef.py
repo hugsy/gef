@@ -59,6 +59,7 @@ import subprocess
 import sys
 import tempfile
 import termios
+import time
 import traceback
 
 
@@ -805,8 +806,20 @@ def gef_obsolete_function(func):
 
 def _gef_disassemble_top(addr, nb_insn):
     lines = gdb.execute("x/%di %#x" % (nb_insn, addr), to_string=True).splitlines()
-    lines = [ re.sub(r'(\t|:)', r' ', x.replace("=>", "").strip()) for x in lines ]
+    lines = [ x.replace("=>", "").strip() for x in lines ]
     return lines
+
+
+def gef_current_instruction(addr):
+    line = gdb.execute("x/1i %#x" % addr, to_string=True).splitlines()[-1]
+    line = line.replace("=>", "").strip()
+    return gef_parse_gdb_instruction(line)
+
+
+def gef_next_instruction(addr):
+    line = gdb.execute("x/2i %#x" % addr, to_string=True).splitlines()[-1]
+    line = line.replace("=>", "").strip()
+    return gef_parse_gdb_instruction(line)
 
 
 def _gef_disassemble_around(addr, nb_insn):
@@ -822,28 +835,33 @@ def _gef_disassemble_around(addr, nb_insn):
         return lines
 
     lines = []
-    cur_insn = gdb.execute("x/1i %#x" % addr, to_string=True).splitlines()[0]
+    next_addr = gef_next_instruction(addr)[0]
+    cur_insn = gdb.execute("disassemble %#x,%#x" % (addr,next_addr), to_string=True).splitlines()[1]
     found = False
 
     # we try to find a good set of previous instructions by guessing incrementally
     for i in range(32+16*nb_insn, 1, -1):
         try:
-            cmd = "x/%di %#x" % (nb_insn, addr-i)
-            lines = gdb.execute(cmd, to_string=True).splitlines()
+            cmd = "disassemble %#x,%#x" % (addr-i, next_addr)
+            lines = gdb.execute(cmd, to_string=True).splitlines()[1:-1]
         except gdb.MemoryError as me:
             # we can hit an unmapped page trying to read backward, if so just print forward disass lines
             break
 
-        # 1. check no bad instructions in found
+        # 1. check if `disass` result is not empty
+        if len(lines)==0:
+            continue
+
+        # 2. check no bad instructions in found
         if any( map(lambda x: "(bad)" in x, lines) ):
             continue
 
-        # 2. if cur_insn is not in the "middle" of the set, it is invalid
+        # 3. if cur_insn is not at the end of the set, it is invalid
         insn = lines[-1]
         if insn != cur_insn:
             continue
 
-        # we assume here that it was successful
+        # we assume here that it was successful (very likely)
         found = True
         lines = [ x.replace('=>', '') for x in lines[-nb_insn:-1] ]
         break
@@ -852,6 +870,7 @@ def _gef_disassemble_around(addr, nb_insn):
         lines = []
 
     lines += _gef_disassemble_top(addr, nb_insn)
+
     return lines
 
 
@@ -860,7 +879,6 @@ def gef_disassemble(addr, nb_insn, from_top=False):
         nb_insn += 1
 
     lines = _gef_disassemble_top(addr, nb_insn) if from_top else _gef_disassemble_around(addr, nb_insn)
-
     result = []
     for line in lines:
         (address, location, mnemo, operands) = gef_parse_gdb_instruction(line)
@@ -877,9 +895,8 @@ def gef_parse_gdb_instruction(raw_insn):
     code = parts[1].strip()
     parts = code.split()
     if code.startswith("<"):
-        i = 1
         j = parts[0].find('>')
-        location = parts[0][i:j]
+        location = '<'+parts[0][1:j]+'>'
         mnemo = parts[1]
         operands = " ".join(parts[2:])
     else:
@@ -4994,7 +5011,8 @@ class ContextCommand(GenericCommand):
                 CapstoneDisassembleCommand.disassemble(pc, nb_insn)
                 return
 
-            for addr, content in gef_disassemble(pc, nb_insn):
+            disassembled_lines = gef_disassemble(pc, nb_insn)
+            for addr, content in disassembled_lines:
                 insn = "%#x %s" % (addr,content)
                 line = []
                 m = format_address(addr) + "    " + content
