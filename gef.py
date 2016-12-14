@@ -975,6 +975,9 @@ class ARM(Architecture):
     }
     function_parameters = ['$r0','$r1','$r2','$r3']
 
+    def is_call(self, insn):
+        return False
+
     def flag_register_to_human(self, val=None):
         # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
         if val is None:
@@ -1003,6 +1006,17 @@ class ARM(Architecture):
         if mnemo.endswith("bvs"): return val&(1<<flags["overflow"]), "O"
         if mnemo.endswith("bvc"): return val&(1<<flags["overflow"])==0, "O"
         return False, ""
+
+    def mprotect_asm(self, addr, size, perm):
+        _NR_mprotect = 125
+        insns = [ "push {r0-r2, r7}",
+                  "mov r0, %d" % addr,
+                  "mov r1, %d" % size,
+                  "mov r2, %d" % perm,
+                  "mov r7, %d" % _NR_mprotect,
+                  "svc 0",
+                  "pop {r0-r2, r7}",]
+        return "; ".join(insns)
 
 
 class AARCH64(ARM):
@@ -1033,6 +1047,9 @@ class AARCH64(ARM):
         if not val:
             val = get_register_ex( reg )
         return flags_to_human(val, self.flags_table)
+
+    def mprotect_asm(self, addr, size, perm):
+        GefUnsupportedOS("Architecture %s not supported yet" % get_arch())
 
 
 class X86(Architecture):
@@ -1108,6 +1125,17 @@ class X86(Architecture):
         if mnemo in ("js"): return val&(1<<flags["sign"]), "S"
         return False, ""
 
+    def mprotect_asm(self, addr, size, perm):
+        _NR_mprotect = 125
+        insns = [ "pushad",
+                  "mov eax, %d"  % _NR_mprotect,
+                  "mov ebx, %d"  % addr,
+                  "mov ecx, %d"  % size,
+                  "mov edx, %d"  % perm,
+                  "int 0x80",
+                  "popad",]
+        return "; ".join(insns)
+
 
 class X86_64(X86):
     arch = "X86"
@@ -1120,6 +1148,17 @@ class X86_64(X86):
         "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags",]
     return_register = "$rax"
     function_parameters = ['$rdi', '$rsi', '$rdx', '$rcx', '$r8', '$r9']
+
+    def mprotect_asm(self, addr, size, perm):
+        _NR_mprotect = 10
+        insns = ["push rax", "push rdi", "push rsi", "push rdx",
+                 "mov rax, %d"  % _NR_mprotect,
+                 "mov rdi, %d"  % addr,
+                 "mov rsi, %d"  % size,
+                 "mov rdx, %d"  % perm,
+                 "syscall",
+                 "pop rdx", "pop rsi", "pop rdi", "pop rax"]
+        return "; ".join(insns)
 
 
 class PowerPC(Architecture):
@@ -1173,6 +1212,24 @@ class PowerPC(Architecture):
         if mnemo=="bge": return val&(1<<flags["equal"]) or val&(1<<flags["greater"]), "E || G"
         if mnemo=="bgt": return val&(1<<flags["greater"]), "G"
         return False, ""
+
+    def mprotect_asm(self, addr, size, perm):
+        """Ref: http://www.ibm.com/developerworks/library/l-ppc/index.html"""
+        _NR_mprotect = 125
+        insns = ["addi 1, 1, -16",                 # 1 = r1 = sp
+                 "stw 0, 0(1)", "stw 3, 4(1)",     # r0 = syscall_code | r3, r4, r5 = args
+                 "stw 4, 8(1)", "stw 5, 12(1)",
+                 "li 0, %d" % _NR_mprotect,
+                 "lis 3, %#x@h" % addr,
+                 "ori 3, 3, %#x@l" % addr,
+                 "lis 4, %#x@h" % size,
+                 "ori 4, 4, %#x@l" % size,
+                 "li 5, %d" % perm,
+                 "sc",
+                 "lwz 0, 0(1)", "lwz 3, 4(1)",
+                 "lwz 4, 8(1)", "lwz 5, 12(1)",
+                 "addi 1, 1, 16",]
+        return ";".join(insns)
 
 
 class PowerPC64(PowerPC):
@@ -1242,6 +1299,25 @@ class SPARC(Architecture):
         if insn=="bcc": return val&(1<<flags["carry"])==0, "!C"
         return False, ""
 
+    def mprotect_asm(self, addr, size, perm):
+        hi = (addr & 0xffff0000) >> 16
+        lo = (addr & 0x0000ffff)
+        _NR_mprotect = 125
+        syscall = "t 0x6d" if is_sparc64() else "t 0x10"
+        insns = ["add %sp, -16, %sp",
+                 "st %g1, [ %sp ]", "st %o0, [ %sp + 4 ]",
+                 "st %o1, [ %sp + 8 ]", "st %o2, [ %sp + 12 ]",
+                 "sethi  %hi({}), %o0".format(hi),
+                 "or  %o0, {}, %o0".format(lo),
+                 "clr  %o1",
+                 "clr  %o2",
+                 "mov  {}, %g1".format(_NR_mprotect),
+                 syscall,
+                 "ld [ %sp ], %g1", "ld [ %sp + 4 ], %o0",
+                 "ld [ %sp + 8 ], %o1", "ld [ %sp + 12 ], %o2",
+                 "add %sp, 16, %sp",]
+        return "; ".join(insns)
+
 
 class SPARC64(SPARC):
     arch = "SPARC"
@@ -1269,6 +1345,9 @@ class MIPS(Architecture):
         # mips architecture does not use processor status word (flag register)
         return ""
 
+    def is_call(self, insn):
+        return False
+
     def is_conditional_branch(self, insn):
         _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
         mnemos = {"beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez"}
@@ -1293,6 +1372,21 @@ class MIPS(Architecture):
         if mnemo == "blez":
             return get_register_ex(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
         return False, ""
+
+    def mprotect_asm(self, addr, size, perm):
+        _NR_mprotect = 4125
+        insns = ["addi $sp, $sp, -16",
+                 "sw $v0, 0($sp)", "sw $a0, 4($sp)",
+                 "sw $a3, 8($sp)", "sw $a3, 12($sp)",
+                 "li $v0, %d" % _NR_mprotect,
+                 "li $a0, %d" % addr,
+                 "li $a1, %d" % size,
+                 "li $a2, %d" % perm,
+                 "syscall",
+                 "lw $v0, 0($sp)", "lw $a1, 4($sp)",
+                 "lw $a3, 8($sp)", "lw $a3, 12($sp)",
+                 "addi $sp, $sp, 16",]
+        return "; ".join(insns)
 
 
 def write_memory(address, buffer, length=0x10):
@@ -3026,104 +3120,14 @@ class ChangePermissionCommand(GenericCommand):
         return
 
     def get_stub_by_arch(self, addr, size, perm):
-        hi = (addr & 0xffff0000) >> 16
-        lo = (addr & 0x0000ffff)
-
-        if is_x86_64():
-            _NR_mprotect = 10
-            insns = [
-                "push rax", "push rdi", "push rsi", "push rdx",
-                "mov rax, %d"  % _NR_mprotect,
-                "mov rdi, %d"  % addr,
-                "mov rsi, %d"  % size,
-                "mov rdx, %d"  % perm,
-                "syscall",
-                "pop rdx", "pop rsi", "pop rdi", "pop rax"
-            ]
-        elif is_x86_32():
-            _NR_mprotect = 125
-            insns = [
-                "pushad",
-                "mov eax, %d"  % _NR_mprotect,
-                "mov ebx, %d"  % addr,
-                "mov ecx, %d"  % size,
-                "mov edx, %d"  % perm,
-                "int 0x80",
-                "popad",
-            ]
-        elif is_arm():
-            _NR_mprotect = 125
-            insns = [
-                "push {r0-r2, r7}",
-                "mov r0, %d" % addr,
-                "mov r1, %d" % size,
-                "mov r2, %d" % perm,
-                "mov r7, %d" % _NR_mprotect,
-                "svc 0",
-                "pop {r0-r2, r7}",
-            ]
-        elif is_mips():
-            _NR_mprotect = 4125
-            insns = [
-                "addi $sp, $sp, -16",
-                "sw $v0, 0($sp)", "sw $a0, 4($sp)",
-                "sw $a3, 8($sp)", "sw $a3, 12($sp)",
-                "li $v0, %d" % _NR_mprotect,
-                "li $a0, %d" % addr,
-                "li $a1, %d" % size,
-                "li $a2, %d" % perm,
-                "syscall",
-                "lw $v0, 0($sp)", "lw $a1, 4($sp)",
-                "lw $a3, 8($sp)", "lw $a3, 12($sp)",
-                "addi $sp, $sp, 16",
-            ]
-        elif is_powerpc() or is_ppc64():
-            _NR_mprotect = 125
-            insns = [
-                # http://www.ibm.com/developerworks/library/l-ppc/index.html
-                "addi 1, 1, -16",                 # 1 = r1 = sp
-                "stw 0, 0(1)", "stw 3, 4(1)",     # r0 = syscall_code | r3, r4, r5 = args
-                "stw 4, 8(1)", "stw 5, 12(1)",
-                "li 0, %d" % _NR_mprotect,
-                "lis 3, %#x@h" % addr,
-                "ori 3, 3, %#x@l" % addr,
-                "lis 4, %#x@h" % size,
-                "ori 4, 4, %#x@l" % size,
-                "li 5, %d" % perm,
-                "sc",
-                "lwz 0, 0(1)", "lwz 3, 4(1)",
-                "lwz 4, 8(1)", "lwz 5, 12(1)",
-                "addi 1, 1, 16",
-            ]
-        elif is_sparc() or is_sparc64():
-            _NR_mprotect = 125
-            syscall = "t 0x6d" if is_sparc64() else "t 0x10"
-            insns = [
-                # man 2 syscall
-                "add %sp, -16, %sp",
-                "st %g1, [ %sp ]", "st %o0, [ %sp + 4 ]",
-                "st %o1, [ %sp + 8 ]", "st %o2, [ %sp + 12 ]",
-                "sethi  %hi({}), %o0".format(hi),
-                "or  %o0, {}, %o0".format(lo),
-                "clr  %o1",
-                "clr  %o2",
-                "mov  {}, %g1".format(_NR_mprotect),
-                syscall,
-                "ld [ %sp ], %g1", "ld [ %sp + 4 ], %o0",
-                "ld [ %sp + 8 ], %o1", "ld [ %sp + 12 ], %o2",
-                "add %sp, 16, %sp",
-                ]
-        else:
-            raise GefUnsupportedOS("Architecture %s not supported yet" % get_arch())
-
+        code = current_arch.mprotect_asm(addr, size, perm)
         arch, mode = get_keystone_arch()
-        insns = " ; ".join(insns)
-        raw_insns = keystone_assemble(insns, arch, mode, raw=True)
+        raw_insns = keystone_assemble(code, arch, mode, raw=True)
         return raw_insns
 
 
 class UnicornEmulateCommand(GenericCommand):
-    """Unicorn emulate: Use Unicorn-Engine to emulate the behavior of the binary, without affecting the GDB runtime.
+    """Use Unicorn-Engine to emulate the behavior of the binary, without affecting the GDB runtime.
     By default the command will emulate only the next instruction, but location and number of instruction can be
     changed via arguments to the command line. By default, it will emulate the next instruction from current PC."""
 
@@ -3144,7 +3148,7 @@ class UnicornEmulateCommand(GenericCommand):
         h+= "\t-e /PATH/TO/SCRIPT.py generates a standalone Python script from the current runtime context.\n"
         h+= "\t-n NB_INSTRUCTION indicates the number of instructions to execute (mutually exclusive with `-t` and `-g`).\n"
         h+= "\t-g NB_GADGET indicates the number of gadgets to execute (mutually exclusive with `-t` and `-n`).\n"
-        h+= "Additional options can be setup via `gef config unicorn-emulate`\n"
+        h+= "\nAdditional options can be setup via `gef config unicorn-emulate`\n"
         info(h)
         return
 
@@ -3155,9 +3159,6 @@ class UnicornEmulateCommand(GenericCommand):
         except ImportError as ie:
             msg = "This command requires the following packages: `unicorn` and `capstone`."
             raise GefMissingDependencyException( msg )
-        return
-
-    def post_load(self):
         return
 
     @if_gdb_running
@@ -6381,7 +6382,6 @@ class GefMissingCommand(gdb.Command):
             reason = __missing__[missing_command]
             warn("Command `{}` is missing, reason {} {}".format(missing_command, right_arrow, reason))
         return
-
 
 class GefSetCommand(gdb.Command):
     """Override GDB set commands with the context from GEF.
