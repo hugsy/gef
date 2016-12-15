@@ -746,16 +746,16 @@ def hexdump(source, length=0x10, separator='.', show_raw=False, base=0x00):
         s = source[i:i+length]
 
         if PYTHON_MAJOR == 3:
-            hexa = ' '.join(["%02X" % c for c in s])
+            hexa = ' '.join(["{:02x}".format(c) for c in s])
             text = ''.join( [chr(c) if 0x20 <= c < 0x7F else separator for c in s] )
         else:
-            hexa = ' '.join(["%02X" % ord(c) for c in s])
+            hexa = ' '.join(["{:02x}".format(ord(c)) for c in s])
             text = ''.join( [c if 0x20 <= ord(c) < 0x7F else separator for c in s] )
 
         if show_raw:
             result.append(hexa)
         else:
-            result.append("{:<#16x}     {:<{padd}s}    {:s}".format(base+i, hexa, text, padd=3*length))
+            result.append("{addr:#0{aw}x}     {data:<{dw}}    {text}".format(aw=18, addr=base+i, dw=3*length, data=hexa, text=text))
 
     return '\n'.join(result)
 
@@ -805,19 +805,22 @@ def gef_obsolete_function(func):
 
 def _gef_disassemble_top(addr, nb_insn):
     lines = gdb.execute("x/{:d}i {:#x}".format(nb_insn, addr), to_string=True).splitlines()
-    lines = [ x.replace("=>", "").strip() for x in lines ]
+    lines = [x.replace("=>", "").strip() for x in lines]
     return lines
 
+
 def gef_instruction_n(addr, n):
-    line = gdb.execute("x/{:d}i {:#x}".format(n+1, addr), to_string=True).splitlines()[-n]
-    line = line.replace("=>", "").strip()
+    line = _gef_disassemble_top(addr, n+1)[-1]
     return gef_parse_gdb_instruction(line)
+
 
 def gef_current_instruction(addr):
     return gef_instruction_n(addr, 0)
 
+
 def gef_next_instruction(addr):
     return gef_instruction_n(addr, 1)
+
 
 def _gef_disassemble_around(addr, nb_insn):
     """
