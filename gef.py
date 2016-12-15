@@ -5494,10 +5494,11 @@ class VMMapCommand(GenericCommand):
             err("No address mapping information found")
             return
 
+        headers = [Color.colorify(x, attrs="blue bold") for x in ["Start", "End", "Offset", "Perm", "Path"]]
         if is_elf64():
-            print("{:<16s} {:<16s} {:<16s} {:<4s} {:s}".format ("Start", "End", "Offset", "Perm", "Path"))
+            print("{:<31s} {:<31s} {:<31s} {:<4s} {:s}".format (*headers))
         else:
-            print("{:<10s} {:<10s} {:<10s} {:<4s} {:s}".format ("Start", "End", "Offset", "Perm", "Path"))
+            print("{:<23s} {:<23s} {:<23s} {:<4s} {:s}".format (*headers))
 
         for entry in vmmap:
             l = []
