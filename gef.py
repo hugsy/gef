@@ -59,7 +59,6 @@ import subprocess
 import sys
 import tempfile
 import termios
-import time
 import traceback
 
 
@@ -810,17 +809,16 @@ def _gef_disassemble_top(addr, nb_insn):
     return lines
 
 
-def gef_current_instruction(addr):
-    line = gdb.execute("x/1i %#x" % addr, to_string=True).splitlines()[-1]
+def gef_instruction_n(addr, n):
+    line = gdb.execute("x/%di %#x" % (n+1, addr), to_string=True).splitlines()[-n]
     line = line.replace("=>", "").strip()
     return gef_parse_gdb_instruction(line)
 
+def gef_current_instruction(addr):
+    return gef_instruction_n(addr, 0)
 
 def gef_next_instruction(addr):
-    line = gdb.execute("x/2i %#x" % addr, to_string=True).splitlines()[-1]
-    line = line.replace("=>", "").strip()
-    return gef_parse_gdb_instruction(line)
-
+    return gef_instruction_n(addr, 1)
 
 def _gef_disassemble_around(addr, nb_insn):
     """
@@ -849,11 +847,11 @@ def _gef_disassemble_around(addr, nb_insn):
             break
 
         # 1. check if `disass` result is not empty
-        if len(lines)==0:
+        if not lines:
             continue
 
         # 2. check no bad instructions in found
-        if any( map(lambda x: "(bad)" in x, lines) ):
+        if any(["(bad)" in line for line in lines]):
             continue
 
         # 3. if cur_insn is not at the end of the set, it is invalid
@@ -896,7 +894,7 @@ def gef_parse_gdb_instruction(raw_insn):
     parts = code.split()
     if code.startswith("<"):
         j = parts[0].find('>')
-        location = '<'+parts[0][1:j]+'>'
+        location = parts[0][:j+1]
         mnemo = parts[1]
         operands = " ".join(parts[2:])
     else:
