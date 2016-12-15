@@ -1077,7 +1077,7 @@ class AARCH64(ARM):
         return flags_to_human(val, self.flags_table)
 
     def mprotect_asm(self, addr, size, perm):
-        GefUnsupportedOS("Architecture %s not supported yet" % get_arch())
+        GefUnsupportedOS("Architecture {:s} not supported yet".format(get_arch()))
 
 
 class X86(Architecture):
@@ -1180,10 +1180,10 @@ class X86_64(X86):
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
         insns = ["push rax", "push rdi", "push rsi", "push rdx",
-                 "mov rax, %d"  % _NR_mprotect,
-                 "mov rdi, %d"  % addr,
-                 "mov rsi, %d"  % size,
-                 "mov rdx, %d"  % perm,
+                 "mov rax, {:d}".format(_NR_mprotect),
+                 "mov rdi, {:d}".format(addr),
+                 "mov rsi, {:d}".format(size),
+                 "mov rdx, {:d}".format(perm),
                  "syscall",
                  "pop rdx", "pop rsi", "pop rdi", "pop rax"]
         return "; ".join(insns)
@@ -1934,9 +1934,9 @@ def get_unicorn_registers(to_string=False):
 
     const = getattr(unicorn, arch + "_const")
     for r in current_arch.all_registers:
-        regname = "UC_%s_REG_%s" % (arch.upper(), r.strip()[1:].upper())
+        regname = "UC_{:s}_REG_{:s}".format(arch.upper(), r.strip()[1:].upper())
         if to_string:
-            regs[r] = "%s.%s" % (const.__name__, regname)
+            regs[r] = "{:s}.{:s}".format(const.__name__, regname)
         else:
             regs[r] = getattr(const, regname)
     return regs
@@ -2051,7 +2051,7 @@ def set_arch():
     elif is_sparc64():   current_arch = SPARC64()
     elif is_mips():      current_arch = MIPS()
     else:
-        raise GefUnsupportedOS("CPU type is currently not supported: %s" % get_arch())
+        raise GefUnsupportedOS("CPU type is currently not supported: {:s}".format(get_arch()))
 
     return
 
@@ -2076,9 +2076,9 @@ def clear_screen(tty=""):
 def format_address(addr):
     memalign_size = get_memory_alignment(to_byte=True)
     if memalign_size == 4:
-        return "%#.8x" % (addr & 0xFFFFFFFF)
+        return "{:#08x}".format(addr & 0xFFFFFFFF)
     elif memalign_size == 8:
-        return "%#.16x" % (addr & 0xFFFFFFFFFFFFFFFF)
+        return "{:#016x}".format(addr & 0xFFFFFFFFFFFFFFFF)
 
 def align_address(address):
     if get_memory_alignment()==32:
@@ -2546,7 +2546,7 @@ class PCustomCommand(GenericCommand):
                 f.write(self.get_template(struct_name))
                 f.flush()
         else:
-            info("Editing '{:s}'" % fullname)
+            info("Editing '{:s}'".format(fullname))
 
         cmd = os.getenv("EDITOR").split() if os.getenv("EDITOR") else ["nano",]
         cmd.append(fullname)
@@ -2608,7 +2608,7 @@ class RetDecCommand(GenericCommand):
         arch = current_arch.arch.lower()
         # TODO: Make this a method in the base class
         if not arch:
-            err("RetDec does not decompile '{s}'".format(get_arch()))
+            err("RetDec does not decompile '{:s}'".format(get_arch()))
             return
 
         if self.decompiler is None:
@@ -3424,7 +3424,7 @@ if __name__ == "__main__":
 
             msg = ""
             if r != current_arch.flag_register:
-                msg = "%-10s : old=%#.16x || new=%#.16x" % (r.strip(), start_regs[r], end_regs[r])
+                msg = "%-10s : old=%#016x || new=%#016x" % (r.strip(), start_regs[r], end_regs[r])
             else:
                 msg = "%-10s : old=%s \n" % (r.strip(), current_arch.flag_register_to_human(start_regs[r]))
                 msg+= "%-16s new=%s" % ("", current_arch.flag_register_to_human(end_regs[r]),)
@@ -3986,7 +3986,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        print(titlify("Information on FastBins of arena {#x}".format(int(arena))))
+        print(titlify("Information on FastBins of arena {:#x}".format(int(arena))))
         for i in range(10):
             m = "Fastbin[{:d}] ".format(i,)
             # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1680
@@ -4789,7 +4789,7 @@ class EntryPointBreakCommand(GenericCommand):
         for sym in syms:
             try:
                 value = gdb.parse_and_eval(sym)
-                info("Breaking at '{:s}'".format (value))
+                info("Breaking at '{:s}'".format (str(value)))
                 gdb.execute("tbreak {:s}".format (sym), to_string=True)
                 gdb.execute("run {}".format(" ".join(argv)))
                 return
@@ -4948,19 +4948,17 @@ class ContextCommand(GenericCommand):
             old_value = self.old_registers[reg] if reg in self.old_registers else 0x00
 
             line += "{:s}  ".format (Color.greenify(reg))
-
             if new_value_type_flag:
-                line += "{:s} ".format (new_value)
+                line += "{:s} ".format (str(new_value))
             else:
                 new_value = align_address(new_value)
                 old_value = align_address(old_value)
-
                 if new_value == old_value:
                     line += "{:s} ".format (format_address(new_value))
                 else:
                     line += "{:s} ".format (Color.colorify(format_address(new_value), attrs="bold red"))
 
-            if (i%nb == 0) :
+            if (i % nb == 0) :
                 print(line)
                 line = ""
             i+=1
@@ -4968,7 +4966,7 @@ class ContextCommand(GenericCommand):
         if len(line) > 0:
             print(line)
 
-        print("Flags: {}".format(current_arch.flag_register_to_human()))
+        print("Flags: {:s}".format(current_arch.flag_register_to_human()))
         return
 
     def context_stack(self):
@@ -5088,7 +5086,7 @@ class ContextCommand(GenericCommand):
                         if len(addrs) > 2:
                             addrs = [addrs[0], "[...]", addrs[-1]]
 
-                        f = " " + right_arrow + " "
+                        f = " {:s} ".format(right_arrow)
                         val = f.join(addrs)
                     elif val.type.code == gdb.TYPE_CODE_INT:
                         val = hex(long(val))
@@ -5129,7 +5127,7 @@ class ContextCommand(GenericCommand):
             if name:
                 frame_args = gdb.FrameDecorator.FrameDecorator(current_frame).frame_args() or []
                 m = "Name: {:s}(".format (Color.greenify(name))
-                m+= ",".join(["{:s}={:s}".format (x.sym, x.sym.value(current_frame)) for x in frame_args])
+                m+= ",".join(["{!s}={!s}".format (x.sym, x.sym.value(current_frame)) for x in frame_args])
                 m+= ")"
                 items.append(m)
 
@@ -5335,16 +5333,16 @@ class DereferenceCommand(GenericCommand):
         memalign = get_memory_alignment(to_byte=True)
         offset = 0
         regs = [(k.strip(), get_register_ex(k)) for k in current_arch.all_registers]
-        sep = " {:s} ".format (right_arrow)
+        sep = " {:s} ".format(right_arrow)
 
         def _pprint_dereferenced(addr, off):
             offset = off * memalign
             current_address = align_address( addr + offset )
             addrs = DereferenceCommand.dereference_from(current_address)
 
-            l  = Color.colorify(format_address(long(addrs[0], 16)), attrs="bold blue")
+            l  = ""
             addr_l = format_address(long(addrs[0], 16))
-            l += "{:s}{:s}+{:#.4x}: {:s}".format(Color.colorify(addr_l, attrs="bold blue"),
+            l += "{:s}{:s}+{:#04x}: {:s}".format(Color.colorify(addr_l, attrs="bold blue"),
                                                  vertical_line, offset,
                                                  sep.join(addrs[1:]))
 
@@ -5354,7 +5352,7 @@ class DereferenceCommand(GenericCommand):
                     values.append(regname)
 
             if len(values)>0:
-                m = "\t{:s}{{:s}}".format(left_arrow, ', '.join(list(values)))
+                m = "\t{:s}{:s}".format(left_arrow, ', '.join(list(values)))
                 l += Color.colorify(m, attrs="bold green")
 
             offset += memalign
@@ -5403,7 +5401,7 @@ class DereferenceCommand(GenericCommand):
             # otherwise try to parse the value
             if addr.section:
                 if addr.section.is_executable() and addr.is_in_text_segment():
-                    cmd = gdb.execute("x/i {#x}".format(addr.value), to_string=True).replace("=>", '')
+                    cmd = gdb.execute("x/i {:#x}".format(addr.value), to_string=True).replace("=>", '')
                     (_, _, mnemo, operands)  = gef_parse_gdb_instruction(cmd)
                     ops = ", ".join(operands)
                     insn = " ".join([mnemo, ops])
@@ -5424,7 +5422,7 @@ class DereferenceCommand(GenericCommand):
                         break
 
             # if not able to parse cleanly, simply display and break
-            msg.append( "{:#x}".format( long(deref) & 0xffffffffffffffff ))
+            msg.append("{:#x}".format( long(deref) & 0xffffffffffffffff ))
             break
 
         return msg
@@ -5634,7 +5632,7 @@ class XorMemoryDisplayCommand(GenericCommand):
         key = argv[2]
         show_as_instructions = True if len(argv)==4 and argv[3]=="-i" else False
         block = read_memory(address, length)
-        info("Displaying XOR-ing :{#x}-{:#x} with {:s}".format (address, address+len(block), repr(key)))
+        info("Displaying XOR-ing {:#x}-{:#x} with {:s}".format (address, address+len(block), repr(key)))
 
         print( titlify("Original block") )
         if show_as_instructions:
@@ -5813,7 +5811,7 @@ class PatternCreateCommand(GenericCommand):
         if size < 1024:
             print(patt)
 
-        var_name = gef_convenience('"{:s}"' % patt)
+        var_name = gef_convenience('"{:s}"'.format(patt))
         ok("Saved as '{:s}'".format (var_name))
         return
 
@@ -6231,7 +6229,7 @@ class GefConfigCommand(gdb.Command):
         res = __config__.get(plugin_name)
         if res is not None:
             _value, _type = res
-            print("{:<40s}  ({:s}) = {:s}".format(plugin_name, _type.__name__, _value))
+            print("{:<40s}  ({:s}) = {:s}".format(plugin_name, _type.__name__, str(_value)))
         return
 
     def print_settings(self):
