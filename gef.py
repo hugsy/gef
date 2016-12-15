@@ -2070,15 +2070,14 @@ def clear_screen(tty=""):
 
     with open(tty, "w") as f:
         f.write('\x1b[H\x1b[J')
-
     return
 
 def format_address(addr):
     memalign_size = get_memory_alignment(to_byte=True)
     if memalign_size == 4:
-        return "{:#08x}".format(addr & 0xFFFFFFFF)
+        return "0x{:08x}".format(addr & 0xFFFFFFFF)
     elif memalign_size == 8:
-        return "{:#016x}".format(addr & 0xFFFFFFFFFFFFFFFF)
+        return "0x{:016x}".format(addr & 0xFFFFFFFFFFFFFFFF)
 
 def align_address(address):
     if get_memory_alignment()==32:
@@ -5496,9 +5495,10 @@ class VMMapCommand(GenericCommand):
             return
 
         if is_elf64():
-            print("{:18s} {:18s} {:18s} {:4s} {:s}".format ("Start", "End", "Offset", "Perm", "Path"))
+            print("{:<16s} {:<16s} {:<16s} {:<4s} {:s}".format ("Start", "End", "Offset", "Perm", "Path"))
         else:
-            print("{:10s} {:10s} {:10s} {:4s} {:s}".format ("Start", "End", "Offset", "Perm", "Path"))
+            print("{:<10s} {:<10s} {:<10s} {:<4s} {:s}".format ("Start", "End", "Offset", "Perm", "Path"))
+
         for entry in vmmap:
             l = []
             l.append( format_address( entry.page_start ))
