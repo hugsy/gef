@@ -80,8 +80,8 @@ if sys.version_info[0] == 2:
     vertical_line = "|"
 
     gef_prompt = "gef> "
-    gef_prompt_on = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(gef_prompt)
-    gef_prompt_off = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(gef_prompt)
+    gef_prompt_on = "\001\033[1;32m\002%s\001\033[0m\002" % gef_prompt
+    gef_prompt_off = "\001\033[1;31m\002%s\001\033[0m\002" % gef_prompt
 elif sys.version_info[0] == 3:
     PYTHON_MAJOR = 3
 
