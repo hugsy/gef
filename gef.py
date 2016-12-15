@@ -1832,11 +1832,6 @@ def exit_handler(event):
     return
 
 
-def interact_sync(event):
-    gdb.execute("ida-interact Sync", from_tty=True, to_string=True)
-    return
-
-
 def get_terminal_size():
     """
     Portable function to retrieve the current terminal size.
@@ -2815,8 +2810,6 @@ class IdaInteractCommand(GenericCommand):
 
         try:
             sock = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(host, port))
-            # gdb.events.stop.connect(interact_sync)
-            # gdb.events.cont.connect(interact_sync)
             gdb.events.stop.connect(self.synchronize)
             gdb.events.cont.connect(self.synchronize)
             self.version = sock.version()
@@ -2827,10 +2820,6 @@ class IdaInteractCommand(GenericCommand):
         return
 
     def disconnect(self):
-        # TODO retest, if work, remove interact_sync()
-        # we really cannot connect, remove the events
-        # gdb.events.stop.disconnect(interact_sync)
-        # gdb.events.cont.disconnect(interact_sync)
         gdb.events.stop.disconnect(self.synchronize)
         gdb.events.cont.disconnect(self.synchronize)
         self.sock = None
@@ -2874,10 +2863,6 @@ class IdaInteractCommand(GenericCommand):
                                                                  Color.yellowify(self.version[1])))
                 return
 
-            if method_name == "Sync":
-                self.synchronize()
-                return
-
             method = getattr(self.sock, method_name)
             if len(argv) > 1:
                 args = parsed_arglist(argv[1:])
@@ -2902,7 +2887,7 @@ class IdaInteractCommand(GenericCommand):
         return
 
 
-    def synchronize(self):
+    def synchronize(self, event):
         # submit all active breakpoint addresses to IDA/BN
         breakpoints = gdb.breakpoints() or []
         old_bps = []
