@@ -2902,10 +2902,10 @@ class IdaInteractCommand(GenericCommand):
         """Submit all active breakpoint addresses to IDA/BN"""
         breakpoints = gdb.breakpoints() or []
         old_bps = []
-        print("sync-ing")
+
         for x in breakpoints:
             if x.enabled and not x.temporary:
-                val = gdb.parse_and_eval(x.location).address
+                val = gdb.parse_and_eval(x.location)
                 addr = str(val).strip().split()[0]
                 addr = long(addr, 16)
                 old_bps.append(addr)
