@@ -2814,7 +2814,7 @@ class IdaInteractCommand(GenericCommand):
         try:
             sock = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(host, port))
             gdb.events.stop.connect(self.synchronize)
-            gdb.events.cont.connect(self.synchronize)
+            # gdb.events.cont.connect(self.synchronize)
             self.version = sock.version()
         except:
             err("Failed to connect to '{:s}:{:d}'".format(host, port))
@@ -2824,10 +2824,9 @@ class IdaInteractCommand(GenericCommand):
 
     def disconnect(self):
         gdb.events.stop.disconnect(self.synchronize)
-        gdb.events.cont.disconnect(self.synchronize)
+        # gdb.events.cont.disconnect(self.synchronize)
         self.sock = None
         return
-
 
     def do_invoke(self, argv):
         def parsed_arglist(arglist):
@@ -2846,7 +2845,7 @@ class IdaInteractCommand(GenericCommand):
             return args
 
         if self.sock is None:
-            warn("Trying to reconnect to {:s}".format(self.version[0]))
+            warn("Trying to reconnect")
             self.connect()
             if self.sock is None:
                 self.disconnect()
@@ -2859,6 +2858,10 @@ class IdaInteractCommand(GenericCommand):
 
         try:
             method_name = argv[0]
+            if method_name == "Sync":
+                warn("Sync() is an internal method. It mustn't be called from command-line")
+                return
+
             if method_name == "version":
                 self.version = self.sock.version()
                 info("Enhancing {:s} with {:s} (v.{:s})".format (Color.greenify("gef"),
@@ -2891,7 +2894,7 @@ class IdaInteractCommand(GenericCommand):
 
 
     def synchronize(self, event):
-        # submit all active breakpoint addresses to IDA/BN
+        """Submit all active breakpoint addresses to IDA/BN"""
         breakpoints = gdb.breakpoints() or []
         old_bps = []
 
@@ -2921,7 +2924,6 @@ class IdaInteractCommand(GenericCommand):
             addr = long(addr, 16)
             if addr in removed:
                 bp.delete()
-
         return
 
 
@@ -2949,6 +2951,7 @@ class IdaInteractCommand(GenericCommand):
         path = __config__.get("pcustom.struct_path")[0]
         if not os.path.isdir(path):
             gef_makedirs(path)
+
         for struct_name in structs.keys():
             fullpath = path + "/" + struct_name + ".py"
             with open(fullpath, "wb") as f:
