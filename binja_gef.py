@@ -190,7 +190,8 @@ def highlight(bv, addr, color):
         log_info("Trying to highlight %#x with color %d" % (addr, color))
     start_addr = bv.get_previous_function_start_before(addr)
     func = bv.get_function_at(bv.platform, start_addr)
-    func.set_user_instr_highlight(func.arch, addr, color)
+    if func is not None:
+        func.set_user_instr_highlight(func.arch, addr, color)
     return
 
 

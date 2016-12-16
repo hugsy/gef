@@ -1814,6 +1814,11 @@ def ishex(pattern):
     return all(c in string.hexdigits for c in pattern)
 
 
+def ida_synchronize_handler(event):
+    gdb.execute("ida-interact Sync", from_tty=True, to_string=True)
+    return
+
+
 def continue_handler(event):
     reset_all_caches()
     return
@@ -2813,8 +2818,8 @@ class IdaInteractCommand(GenericCommand):
 
         try:
             sock = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(host, port))
-            gdb.events.stop.connect(self.synchronize)
-            # gdb.events.cont.connect(self.synchronize)
+            gdb.events.stop.connect(ida_synchronize_handler)
+            gdb.events.cont.connect(ida_synchronize_handler)
             self.version = sock.version()
         except:
             err("Failed to connect to '{:s}:{:d}'".format(host, port))
@@ -2823,8 +2828,8 @@ class IdaInteractCommand(GenericCommand):
         return
 
     def disconnect(self):
-        gdb.events.stop.disconnect(self.synchronize)
-        # gdb.events.cont.disconnect(self.synchronize)
+        gdb.events.stop.disconnect(ida_synchronize_handler)
+        gdb.events.cont.disconnect(ida_synchronize_handler)
         self.sock = None
         return
 
@@ -2858,15 +2863,15 @@ class IdaInteractCommand(GenericCommand):
 
         try:
             method_name = argv[0]
-            if method_name == "Sync":
-                warn("Sync() is an internal method. It mustn't be called from command-line")
-                return
-
             if method_name == "version":
                 self.version = self.sock.version()
                 info("Enhancing {:s} with {:s} (v.{:s})".format (Color.greenify("gef"),
                                                                  Color.redify(self.version[0]),
                                                                  Color.yellowify(self.version[1])))
+                return
+
+            elif method_name == "Sync":
+                self.synchronize()
                 return
 
             method = getattr(self.sock, method_name)
@@ -2893,11 +2898,11 @@ class IdaInteractCommand(GenericCommand):
         return
 
 
-    def synchronize(self, event):
+    def synchronize(self):
         """Submit all active breakpoint addresses to IDA/BN"""
         breakpoints = gdb.breakpoints() or []
         old_bps = []
-
+        print("sync-ing")
         for x in breakpoints:
             if x.enabled and not x.temporary:
                 val = gdb.parse_and_eval(x.location).address
@@ -2906,7 +2911,13 @@ class IdaInteractCommand(GenericCommand):
                 old_bps.append(addr)
 
         pc = current_arch.pc
-        cur_bps = self.sock.Sync(str(pc), old_bps)
+        try:
+            # it is possible that the server was stopped between now and the last sync
+            cur_bps = self.sock.Sync(str(pc), old_bps)
+        except ConnectionRefusedError:
+            self.disconnect()
+            return
+
         if cur_bps == old_bps:
             # no change
             return
@@ -4780,7 +4791,7 @@ class EntryPointBreakCommand(GenericCommand):
             try:
                 value = gdb.parse_and_eval(sym)
                 info("Breaking at '{:s}'".format (str(value)))
-                gdb.execute("tbreak {:s}".format (sym), to_string=True)
+                gdb.Breakpoint("*{:#x}".format(long(value.address)), type=gdb.BP_BREAKPOINT, temporary=True).enabled
                 gdb.execute("run {}".format(" ".join(argv)))
                 return
 
