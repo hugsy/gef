@@ -4899,8 +4899,8 @@ class ContextCommand(GenericCommand):
         return
 
     def context_title(self, m):
-        line_color= "blue bold"
-        msg_color = "yellow bold"
+        line_color= "green bold"
+        msg_color = "red bold"
 
         if len(m)==0:
             # print just the line
