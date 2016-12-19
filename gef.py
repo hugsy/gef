@@ -681,9 +681,11 @@ def titlify(msg, color=Color.RED):
     n = (cols-len(msg)-4)//2
     if color==Color.RED:
         title = Color.colorify(msg, attrs="bold red")
+        line  = Color.colorify(horizontal_line*n, attrs="bold green")
     elif color==Color.GREEN:
         title = Color.colorify(msg, attrs="bold green")
-    return "{0}[ {1} ]{0}".format(horizontal_line*n, title)
+        line  = Color.colorify(horizontal_line*n, attrs="bold red")
+    return "{0}[ {1} ]{0}".format(line, title)
 
 def _xlog(m, stream, cr=True):
     m += "\n" if cr else ""
@@ -4905,12 +4907,16 @@ class ContextCommand(GenericCommand):
             print(Color.colorify(horizontal_line*self.tty_columns, line_color))
             return
 
-        colored_message = Color.colorify(m, msg_color)
-        trail_len = len(m)+6
-        title = "{:{padd}<{width}}[{}]{:{padd}<4}".format("", m, "",
-                                                          width=self.tty_columns-trail_len,
-                                                          padd=horizontal_line)
-        print(Color.colorify(title, line_color))
+        trail_len = len(m)+8
+        title = ""
+        title+= Color.colorify("{:{padd}<{width}}[ ".format('',
+                                                            width=self.tty_columns-trail_len,
+                                                            padd=horizontal_line),
+                               attrs=line_color)
+        title+= Color.colorify(m, msg_color)
+        title+= Color.colorify(" ]{:{padd}<4}".format("", padd=horizontal_line),
+                               attrs=line_color)
+        print(title)
         return
 
     def context_regs(self):
@@ -5592,7 +5598,7 @@ class XAddressInfoCommand(GenericCommand):
                                                                right_arrow,
                                                                format_address(sect.page_end),
                                                                sect.page_end-sect.page_start))
-            print("Permissions: {:s}".format (sect.permission))
+            print("Permissions: {:s}".format (str(sect.permission)))
             print("Pathname: {:s}".format (sect.path))
             print("Offset (from page): +{:#x}".format (addr.value-sect.page_start))
             print("Inode: {:s}".format (sect.inode))
