@@ -1,17 +1,30 @@
 # GEF - GDB Enhanced Features  [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=latest)](https://gef.readthedocs.org/en/latest/) [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) [![Python 2](https://img.shields.io/badge/Python-2-brightgreen.svg)](https://github.com/hugsy/gef/)  [![Python 3](https://img.shields.io/badge/Python-3-brightgreen.svg)](https://github.com/hugsy/gef/) #
 
-**TL;DR**: `GEF` is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to
-make GDB cool again for exploit dev.
-
-`GEF` is aimed to be used mostly by exploiters and reverse-engineers. It
+`GEF` is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to
+make GDB cool again for exploit dev. It is aimed to be used mostly by exploiters
+and reverse-engineers, to
 provides additional features to GDB using the Python API to assist during the
-process of dynamic analysis or exploit development.
+process of dynamic analysis and exploit development.
 
 `GEF` fully relies on GDB API and other Linux specific source of information
 (such as `/proc/pid`). As a consequence, some of the features might not work on
 custom or harden systems such as GrSec.
 It has full support for Python2 and Python3 indifferently (as more and more
 distro start pushing `gdb` compiled with Python3 support).
+
+![gef-context](https://i.imgur.com/Fl8yuiO.png)
+
+*Some* of `GEF` features include:
+
+  * **One** single GDB script.
+  * **No** dependencies, `GEF` is battery-included and is litterally installable
+    within 5 seconds.
+  * Provides more than **50** commands to drastically change your experience in
+    GDB.
+  * Works indifferently on Python 2 or 3 engine.
+  * Built around an architecture abstraction layer, so all commands work in any
+    GDB-supported architecture (x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS,
+    PowerPC, etc.).
 
 
 ## Quick start ##
@@ -61,38 +74,43 @@ Updated
 
 If no updates are available, `gef` will respond `No update` instead.
 
-## Show me ##
+## Screenshots ##
 
-#### x86 ####
+This shows a few examples of new features available to you when installing
+`GEF`, with the supported architecture.
+
+#### Emulating code in GDB via Unicorn-Engine (x86-64) ####
 
 ![gef-x86](https://i.imgur.com/emhEsol.png)
 
-#### ARM ####
+#### Displaying ELF information, memory mapping and using Capstone/Keystone integration (ARM v6) ####
 
 ![gef-arm](http://i.imgur.com/qOL8CnL.png)
 
-#### PowerPC ####
+#### Automatic dereferencing of registers values and identifying binary protections (PowerPC) ####
 
 ![gef-ppc](https://i.imgur.com/IN6x6lw.png)
 
-#### MIPS ####
+#### Showing current context and heap information (MIPS) ####
 
 ![gef-mips](https://i.imgur.com/dBaB9os.png)
 
-#### SPARC v9 ####
+#### Playing with Capstone engine (SPARC v9) ####
 
 ![gef-sparc](https://i.imgur.com/VD2FpDt.png)
 
+
 ## Dependencies ##
 
-There are none: `GEF` works out of the box! However, to enjoy all the coolest features, it is **highly** recommended to install:
+There are none: `GEF` works out of the box! However, to enjoy all the coolest
+features, it is **highly** recommended to install:
 
 - [`capstone`](https://github.com/aquynh/capstone)
-- [`keystone`](https://github.com/keystone-engine/keystone)
-- [`cmake`](Required for keystone build: apt-get install cmake, packman -S cmake)
+- [`keystone`](https://github.com/keystone-engine/keystone): requires `cmake`
 - [`unicorn`](https://github.com/unicorn-engine/unicorn)
 - [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget)
 - [`Ropper`](https://github.com/sashs/ropper)
+
 
 ### {Cap,Key}stone ###
 
