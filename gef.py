@@ -5348,7 +5348,7 @@ class DereferenceCommand(GenericCommand):
 
             l  = ""
             addr_l = format_address(long(addrs[0], 16))
-            l += "{:s}{:s}+{:#04x}: {:s}".format(Color.colorify(addr_l, attrs="bold blue"),
+            l += "{:s}{:s}+{:#04x}: {:s}".format(Color.colorify(addr_l, attrs="bold green"),
                                                  vertical_line, offset,
                                                  sep.join(addrs[1:]))
 
