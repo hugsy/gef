@@ -5149,6 +5149,27 @@ class ContextCommand(GenericCommand):
         return
 
     def context_threads(self):
+        def reason():
+            # todo: improve (using gdb python api?)
+            res = gdb.execute("info program", to_string=True).splitlines()
+            if len(res)==0:
+                return ""
+
+            for line in res:
+                line = line.strip()
+                if line.startswith("It stopped with signal "):
+                    return line.replace("It stopped with signal ", "").split(",", 1)[0]
+                if  line == "The program being debugged is not being run.":
+                    return "STOPPED"
+                if line == "It stopped at a breakpoint that has since been deleted.":
+                    return "TEMPORARY BREAKPOINT"
+                if line.startswith("It stopped at breakpoint "):
+                    return "BREAKPOINT"
+                if line == "It stopped after being stepped.":
+                    return "SINGLE STEP"
+
+            return "UNKNOWN"
+
         self.context_title("threads")
 
         threads = gdb.selected_inferior().threads()
@@ -5158,12 +5179,13 @@ class ContextCommand(GenericCommand):
 
         i = 0
         for thread in threads:
-            line = """[{:s}] Id {:d}, Name: "{:s}",  """.format(Color.colorify("#{:d}".format(i), attrs="bold pink"),
-                                                                thread.num, thread.name or "")
+            line = """[{:s}] Id {:d}, Name: "{:s}", """.format(Color.colorify("#{:d}".format(i), attrs="bold pink"),
+                                                               thread.num, thread.name or "")
             if thread.is_running():
                 line+= Color.colorify("running", attrs="bold green")
             elif thread.is_stopped():
                 line+= Color.colorify("stopped", attrs="bold red")
+                line+= ", reason: {}".format( Color.colorify(reason(), attrs="bold pink") )
             elif thread.is_exited():
                 line+= Color.colorify("exited", attrs="bold yellow")
             print(line)
@@ -6484,6 +6506,7 @@ if __name__  == "__main__":
     gdb.execute("alias -a bc = delete breakpoints")
     gdb.execute("alias -a tbp = tbreak")
     gdb.execute("alias -a tba = thbreak")
+    gdb.execute("alias -a pa = advance")
     gdb.execute("alias -a ptc = finish")
 
     # memory access
