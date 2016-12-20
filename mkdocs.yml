@@ -12,7 +12,6 @@ pages:
 - [commands/config.md, Command config]
 - [commands/context.md, Command context]
 - [commands/dereference.md, Command dereference]
-- [commands/download.md, Command download]
 - [commands/edit-flags.md, Command edit-flags]
 - [commands/elf-info.md, Command elf-info]
 - [commands/entry-break.md, Command entry-break]
