@@ -1,4 +1,6 @@
-# GEF - GDB Enhanced Features  [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=latest)](https://gef.readthedocs.org/en/latest/) [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) [![Python 2](https://img.shields.io/badge/Python-2-brightgreen.svg)](https://github.com/hugsy/gef/)  [![Python 3](https://img.shields.io/badge/Python-3-brightgreen.svg)](https://github.com/hugsy/gef/) #
+# GEF - GDB Enhanced Features #
+
+[![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=latest)](https://gef.readthedocs.org/en/latest/) [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) [![Python 2](https://img.shields.io/badge/Python-2-brightgreen.svg)](https://github.com/hugsy/gef/) [![Python 3](https://img.shields.io/badge/Python-3-brightgreen.svg)](https://github.com/hugsy/gef/) [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef)
 
 `GEF` is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to
 make GDB cool again for exploit dev. It is aimed to be used mostly by exploiters
