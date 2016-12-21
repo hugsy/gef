@@ -1491,7 +1491,7 @@ def if_gdb_running(f):
 
 
 def is_linux_command(f):
-    """Decorator wrapper to check if GDB is running."""
+    """Decorator wrapper to check if the command is run on a linux system."""
     @functools.wraps(f)
     def wrapper(*args, **kwds):
         if sys.platform.startswith("linux"):
@@ -4780,8 +4780,13 @@ class EntryPointBreakCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
-        if get_filepath() is None:
+        fpath = get_filepath()
+        if fpath is None:
             warn("No executable to debug, use `file` to load a binary")
+            return
+
+        if not os.access(fpath, os.X_OK):
+            warn("The file '{}' is not executable.".format(fpath))
             return
 
         if is_alive():
