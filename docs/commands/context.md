@@ -1,7 +1,7 @@
 ## Command context ##
 
 
-![gef-x86](https://pbs.twimg.com/media/BvdRAJKIUAA8R6_.png:large)
+![gef-context](https://i.imgur.com/aZiG8Yb.png)
 
 
 `gef` (not unlike `PEDA` or `fG! famous gdbinit`) provides comprehensive context

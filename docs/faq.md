@@ -69,7 +69,7 @@ Some interesting plugins highly recommended too:
 - [Voltron](https://github.com/snare/voltron)
 
 ![voltron](https://pbs.twimg.com/media/CsSkk0EUkAAJVPJ.jpg:large)
-src: https://twitter.com/rick2600/status/775926070566490113
+Src: [@rick2600: terminator + gdb + gef + voltron cc: @snare @_hugsy_](https://twitter.com/rick2600/status/775926070566490113)
 
 
 ## I want to contribute, where should I head first? ##
