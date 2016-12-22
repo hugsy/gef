@@ -1,1 +1,24 @@
 ## Command checksec
+
+The `checksec` command is inspired
+from [`checksec.sh`](www.trapkit.de/tools/checksec.html). It provides a
+convenient way to determine all the security protections from a binary.
+
+You can use the command on the currently debugged process:
+```
+gef➤  checksec
+[+] checksec for '/vagrant/test-bin'
+Canary:                                           No
+NX Support:                                       Yes
+PIE Support:                                      No
+No RPATH:                                         Yes
+No RUNPATH:                                       Yes
+Partial RelRO:                                    Yes
+Full RelRO:                                       No
+```
+
+Or specify directly the binary to check, for example:
+
+```
+$ gdb -ex "checksec ./tests/test-x86"
+```
