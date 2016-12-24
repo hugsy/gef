@@ -919,6 +919,17 @@ def gef_execute_external(command, as_list=False, *args, **kwargs):
     return gef_pystring(res)
 
 
+def gef_execute_gdb_script(source):
+    fd, fname = tempfile.mkstemp(suffix='.gdb', prefix='gef_')
+    with os.fdopen(fd, "w") as f:
+        f.write(source)
+        f.flush()
+    if os.access(fname, os.R_OK):
+        gdb.execute("source {:s}".format(fname))
+        os.unlink(fname)
+    return
+
+
 def get_frame():
     return gdb.selected_inferior()
 
@@ -2313,6 +2324,7 @@ class GenericCommand(gdb.Command):
 
     def __init__(self, *args, **kwargs):
         self.pre_load()
+        self.dont_repeat()
         self.__doc__  += "\n" + "Syntax: " + self._syntax_
         command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
         complete_type = kwargs.setdefault("complete", gdb.COMPLETE_NONE)
@@ -6053,6 +6065,7 @@ class GefCommand(gdb.Command):
         __config__["gef.follow_child"] = (True, bool)
         __config__["gef.readline_compat"] = (False, bool)
         __config__["gef.debug"] = (False, bool)
+        __config__["gef.autosave_breakpoints_file"] = (None, str)
 
         self.classes = [ResetCacheCommand,
                         XAddressInfoCommand,
@@ -6109,13 +6122,29 @@ class GefCommand(gdb.Command):
         GefSetCommand()
         GefRunCommand()
 
+        # restore saved settings (if any)
         if os.access(GEF_RC, os.R_OK):
             gdb.execute("gef restore")
 
+        # restore the follow-fork-mode policy
         if __config__.get("gef.follow_child")[0]:
             gdb.execute("set follow-fork-mode child")
         else:
             gdb.execute("set follow-fork-mode parent")
+
+        # restore the autosave/autoreload breakpoints policy (if any)
+        bkp_fname = __config__.get("gef.autosave_breakpoints_file")[0]
+        if bkp_fname and len(bkp_fname)>0:
+            # restore if existing
+            if os.access(bkp_fname, os.R_OK):
+                gdb.execute("source {:s}".format(bkp_fname))
+
+            # add hook for autosave breakpoints on quit command
+            source = ["define hook-quit",
+                      " save breakpoints {:s}".format(bkp_fname),
+                      "end"]
+            gef_execute_gdb_script('\n'.join(source) + '\n')
+
         return
 
 
@@ -6179,6 +6208,7 @@ class GefCommand(gdb.Command):
             warn("{:s} commands could not be loaded, run `{:s}` to know why.".format(Color.colorify(str(nb_missing), attrs="bold red"),
                                                                                      Color.colorify("gef missing", attrs="underline pink")))
         return
+
 
 class GefHelpCommand(gdb.Command):
     """GEF help sub-command."""
@@ -6495,6 +6525,7 @@ if __name__  == "__main__":
     gdb.execute("set verbose off")
     gdb.execute("set height 0"),
     gdb.execute("set width 0")
+    gdb.execute("set step-mode on")
 
     # gdb history
     gdb.execute("set history filename ~/.gdb_history")
@@ -6546,3 +6577,5 @@ if __name__  == "__main__":
 
     # runtime
     gdb.execute("alias -a g = gef run")
+    # gdb.execute("alias -a t = stepi")
+    # gdb.execute("alias -a p = nexti")
