@@ -2365,9 +2365,9 @@ class GenericCommand(gdb.Command):
     def get_setting(self, name): return self.settings[name][1](self.settings[name][0])
     def has_setting(self, name): return name in self.settings.keys()
 
-    def add_setting(self, name, value):
+    def add_setting(self, name, value, description=""):
         key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
-        __config__[ key ] = (value, type(value))
+        __config__[ key ] = (value, type(value), description)
         return
 
     def del_setting(self, name):
@@ -2404,7 +2404,7 @@ class PCustomCommand(GenericCommand):
 
     def __init__(self):
         super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL, prefix=False)
-        self.add_setting("struct_path", GEF_TEMP_DIR+'/structs')
+        self.add_setting("struct_path", GEF_TEMP_DIR+'/structs', "Path to store/load the structure ctypes files")
         return
 
     def do_invoke(self, argv):
@@ -2605,8 +2605,8 @@ class RetDecCommand(GenericCommand):
 
     def __init__(self):
         super(RetDecCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL, prefix=False)
-        self.add_setting("key", "1dd7cb8f-ca9f-4663-811b-2095b87d7faa")
-        self.add_setting("path", GEF_TEMP_DIR)
+        self.add_setting("key", "1dd7cb8f-ca9f-4663-811b-2095b87d7faa", "RetDec decompilator API key")
+        self.add_setting("path", GEF_TEMP_DIR, "Path to store the decompiled code")
         self.decompiler = None
         return
 
@@ -2800,8 +2800,8 @@ class IdaInteractCommand(GenericCommand):
     def __init__(self):
         super(IdaInteractCommand, self).__init__(prefix=False)
         host, port = "127.0.1.1", 1337
-        self.add_setting("host", host)
-        self.add_setting("port", port)
+        self.add_setting("host", host, "IP address to use connect to IDA/Binary Ninja script")
+        self.add_setting("port", port, "Port to use connect to IDA/Binary Ninja script")
         self.sock = None
         self.version = ("", "")
 
@@ -3173,8 +3173,8 @@ class UnicornEmulateCommand(GenericCommand):
 
     def __init__(self):
         super(UnicornEmulateCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
-        self.add_setting("verbose", False)
-        self.add_setting("show_disassembly", False)
+        self.add_setting("verbose", False, "Set unicorn-engine in verbose mode")
+        self.add_setting("show_disassembly", False, "Show every instruction executed")
         return
 
     def help(self):
@@ -3530,7 +3530,7 @@ class RemoteCommand(GenericCommand):
         else:
             ok("Targeting PID={:d}".format( rpid))
 
-        self.add_setting("target", target)
+        self.add_setting("target", target, "Remote target to connect to")
         self.setup_remote_environment(rpid, update_solib)
 
         if not is_remote_debug():
@@ -3598,7 +3598,7 @@ class RemoteCommand(GenericCommand):
 
         directory  = GEF_TEMP_DIR
         gdb.execute("file {:s}".format(infos["exe"]))
-        self.add_setting("root", directory)
+        self.add_setting("root", directory, "Path to store the remote data")
         ok("Remote information loaded, remember to clean '{:s}' when your session is over".format(directory))
         return
 
@@ -4644,7 +4644,7 @@ class ProcessListingCommand(GenericCommand):
 
     def __init__(self):
         super(ProcessListingCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
-        self.add_setting("ps_command", "/bin/ps auxww")
+        self.add_setting("ps_command", "/bin/ps auxww", "`ps` command to get process information")
         return
 
     def do_invoke(self, argv):
@@ -4862,19 +4862,19 @@ class ContextCommand(GenericCommand):
 
     def __init__(self):
         super(ContextCommand, self).__init__(prefix=False)
-        self.add_setting("enable", True)
-        self.add_setting("show_stack_raw", False)
-        self.add_setting("show_registers_raw", True)
-        self.add_setting("nb_lines_stack", 8)
-        self.add_setting("nb_lines_backtrace", 10)
-        self.add_setting("nb_lines_code", 5)
-        self.add_setting("clear_screen", False)
+        self.add_setting("enable", True, "Enable/disable printing the context when breaking")
+        self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
+        self.add_setting("show_registers_raw", True, "Show the registers pane with raw values (no dereference)")
+        self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
+        self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
+        self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
+        self.add_setting("clear_screen", False, "Clear the screen before printing the context")
 
-        self.add_setting("layout", "regs stack code source threads trace")
-        self.add_setting("redirect", "")
+        self.add_setting("layout", "regs stack code source threads trace", "Change the order/display of the context")
+        self.add_setting("redirect", "", "Redirect the context information to another TTY")
 
         if "capstone" in list( sys.modules.keys() ):
-            self.add_setting("use_capstone", False)
+            self.add_setting("use_capstone", False, "Use capstone as disassembler in the code pane (instead of GDB)")
         return
 
     def post_load(self):
@@ -5219,12 +5219,12 @@ class ContextCommand(GenericCommand):
 
 
 def disable_context():
-    __config__["context.enable"] = (False, bool)
+    __config__["context.enable"][0] = False
     return
 
 
 def enable_context():
-    __config__["context.enable"] = (True, bool)
+    __config__["context.enable"][0] = True
     return
 
 
@@ -5365,7 +5365,7 @@ class DereferenceCommand(GenericCommand):
 
     def __init__(self):
         super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
-        self.add_setting("max_recursion", 7)
+        self.add_setting("max_recursion", 7, "Maximum level of pointer recursion")
         return
 
 
@@ -5729,8 +5729,8 @@ class TraceRunCommand(GenericCommand):
 
     def __init__(self):
         super(TraceRunCommand, self).__init__(self._cmdline_, complete=gdb.COMPLETE_LOCATION)
-        self.add_setting("max_tracing_recursion", 1)
-        self.add_setting("tracefile_prefix", "./gef-trace-")
+        self.add_setting("max_tracing_recursion", 1, "Maximum depth of tracing")
+        self.add_setting("tracefile_prefix", "./gef-trace-", "Specify the tracing output file prefix")
         return
 
     @if_gdb_running
@@ -5828,7 +5828,7 @@ class PatternCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(PatternCommand, self).__init__()
-        self.add_setting("length", 1024)
+        self.add_setting("length", 1024, "Initial length of a cyclic buffer to generate")
         return
 
     def do_invoke(self, argv):
@@ -5934,7 +5934,7 @@ class ChecksecCommand(GenericCommand):
 
         try:
             fpath = which("readelf")
-            self.add_setting("readelf_path", fpath)
+            self.add_setting("readelf_path", fpath, "`readelf` binary path")
         except IOError as e :
             raise GefMissingDependencyException( str(e) )
         return
@@ -6061,11 +6061,11 @@ class GefCommand(gdb.Command):
                                          gdb.COMPLETE_NONE,
                                          True)
 
-        __config__["gef.no_color"] = (False, bool)
-        __config__["gef.follow_child"] = (True, bool)
-        __config__["gef.readline_compat"] = (False, bool)
-        __config__["gef.debug"] = (False, bool)
-        __config__["gef.autosave_breakpoints_file"] = (None, str)
+        __config__["gef.no_color"] = (False, bool, "Disable colors in gef")
+        __config__["gef.follow_child"] = (True, bool, "Automatically set GDB to follow child when forking")
+        __config__["gef.readline_compat"] = (False, bool, "Workaround for readline SOH/ETX issue (SEGV)")
+        __config__["gef.debug"] = (False, bool, "Enable debug mode for gef")
+        __config__["gef.autosave_breakpoints_file"] = (None, str, "Automatically save and restore breakpoints")
 
         self.classes = [ResetCacheCommand,
                         XAddressInfoCommand,
@@ -6293,8 +6293,11 @@ class GefConfigCommand(gdb.Command):
     def print_setting(self, plugin_name):
         res = __config__.get(plugin_name)
         if res is not None:
-            _value, _type = res
-            print("{:<40s}  ({:s}) = {:s}".format(plugin_name, _type.__name__, str(_value)))
+            _value, _type, desc = res
+            print("{:<35s}  ({:<5s}) = {:<50s}   {:s}".format(plugin_name,
+                                                              _type.__name__,
+                                                              str(_value),
+                                                              Color.greenify(desc)))
         return
 
     def print_settings(self):
@@ -6313,7 +6316,7 @@ class GefConfigCommand(gdb.Command):
             err("Unknown plugin '{:s}'".format(plugin_name))
             return
 
-        _curval, _type = __config__.get( argv[0], (None, None) )
+        _curval, _type, _desc = __config__.get( argv[0], (None, None, None) )
         if _type == None:
             err("Failed to get '{:s}' config setting".format(argv[0], ))
             return
@@ -6322,14 +6325,13 @@ class GefConfigCommand(gdb.Command):
             if _type == bool:
                 _newval = True if argv[1].upper() in ("TRUE", "T", "1") else False
             else:
-                _newval = argv[1]
-                _newval = _type(_newval)
+                _newval = _type( argv[1] )
 
         except:
             err("{} expects type '{}'".format(argv[0], _type.__name__))
             return
 
-        __config__[ argv[0] ] = (_newval, _type)
+        __config__[ argv[0] ][0] = _newval
         return
 
     def complete(self, text, word):
@@ -6374,7 +6376,7 @@ class GefSaveCommand(gdb.Command):
         old_sect = None
         for key in sorted( __config__.keys() ):
             sect, optname = key.split(".", 1)
-            value, type = __config__.get(key, None)
+            value, type, _ = __config__.get(key, None)
 
             if old_sect != sect:
                 cfg.add_section(sect)
@@ -6419,7 +6421,7 @@ class GefRestoreCommand(gdb.Command):
                         new_value = True if new_value=='True' else False
                     else:
                         new_value = _type(new_value)
-                    __config__[key] = (new_value, _type)
+                    __config__[key][0] = new_value
                 except:
                     pass
 
