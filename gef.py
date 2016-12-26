@@ -4815,7 +4815,7 @@ class EntryPointBreakCommand(GenericCommand):
             try:
                 value = gdb.parse_and_eval(sym)
                 info("Breaking at '{:s}'".format (str(value)))
-                gdb.execute("tbreak *{:#x}".format(long(value.address)))
+                gdb.execute("tbreak *{:#x}".format(long(value.address), from_tty=True, to_string=True))
                 gdb.execute("run {}".format(" ".join(argv)))
                 return
 

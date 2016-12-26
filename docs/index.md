@@ -199,6 +199,10 @@ if you want help.
 myself, [`@_hugsy_`](https://twitter.com/_hugsy_), but kept fresh thanks to [all
 the contributors](https://github.com/hugsy/gef/graphs/contributors).
 
+Or if you just like the tool, feel free to drop a simple *Thanks* on IRC,
+Twitter or other, it is **always** very appreciated.
+
+
 ## Open-Source Rewards ##
 
 I love Open-Source, and just like
