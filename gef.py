@@ -832,7 +832,7 @@ def _gef_disassemble_around(addr, nb_insn):
     if not ( is_x86_32() or is_x86_64() ):
         # all ABI except x86 are fixed length instructions, easy to process
         insn_len = 4 if is_aarch64() or is_ppc64() else get_memory_alignment(to_byte=True)
-        lines = _gef_disassemble_top(addr-insn_len - nb_insn*insn_len, nb_insn-1)
+        lines = _gef_disassemble_top(addr-(insn_len*(nb_insn-1)), nb_insn-1)
         lines+= _gef_disassemble_top(addr, nb_insn)
         return lines
 
@@ -3476,7 +3476,7 @@ if __name__ == "__main__":
 
 
 class RemoteCommand(GenericCommand):
-    """gef wrapper for the `target remote` command. This command will automatically
+    """gef wrapper for the `target remote` command. T<his command will automatically
     download the target binary in the local temporary directory (defaut /tmp) and then
     source it. Additionally, it will fetch all the /proc/PID/maps and loads all its
     information."""
@@ -4810,7 +4810,7 @@ class EntryPointBreakCommand(GenericCommand):
             try:
                 value = gdb.parse_and_eval(sym)
                 info("Breaking at '{:s}'".format (str(value)))
-                gdb.Breakpoint("*{:#x}".format(long(value.address)), type=gdb.BP_BREAKPOINT, temporary=True).enabled
+                gdb.execute("tbreak *{:#x}".format(long(value.address)))
                 gdb.execute("run {}".format(" ".join(argv)))
                 return
 
@@ -6070,7 +6070,7 @@ class GefCommand(gdb.Command):
         __config__["gef.follow_child"] = [True, bool, "Automatically set GDB to follow child when forking"]
         __config__["gef.readline_compat"] = [False, bool, "Workaround for readline SOH/ETX issue (SEGV)"]
         __config__["gef.debug"] = [False, bool, "Enable debug mode for gef"]
-        __config__["gef.autosave_breakpoints_file"] = [None, str, "Automatically save and restore breakpoints"]
+        __config__["gef.autosave_breakpoints_file"] = ["", str, "Automatically save and restore breakpoints"]
 
         self.classes = [ResetCacheCommand,
                         XAddressInfoCommand,
@@ -6420,7 +6420,7 @@ class GefRestoreCommand(gdb.Command):
             for optname in cfg.options(section):
                 try:
                     key = "{:s}.{:s}".format(section, optname)
-                    old_value, _type = __config__.get(key)
+                    old_value, _type, _ = __config__.get(key)
                     new_value = cfg.get(section, optname)
                     if _type == bool:
                         new_value = True if new_value=='True' else False
