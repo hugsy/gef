@@ -831,7 +831,12 @@ def _gef_disassemble_around(addr, nb_insn):
 
     if not ( is_x86_32() or is_x86_64() ):
         # all ABI except x86 are fixed length instructions, easy to process
-        insn_len = 4 if is_aarch64() or is_ppc64() else get_memory_alignment(to_byte=True)
+        if is_aarch64() or is_ppc64():
+            insn_len = 4
+        elif is_arm_thumb():
+            insn_len = 2
+        else:
+            insn_len = get_memory_alignment(to_byte=True)
         lines = _gef_disassemble_top(addr-(insn_len*(nb_insn-1)), nb_insn-1)
         lines+= _gef_disassemble_top(addr, nb_insn)
         return lines
