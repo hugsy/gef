@@ -2367,7 +2367,7 @@ class GenericCommand(gdb.Command):
 
     def add_setting(self, name, value, description=""):
         key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
-        __config__[ key ] = (value, type(value), description)
+        __config__[ key ] = [value, type(value), description]
         return
 
     def del_setting(self, name):
@@ -4878,8 +4878,8 @@ class ContextCommand(GenericCommand):
         return
 
     def post_load(self):
-        # create a gdb.event to update the register table on every "continue"
         gdb.events.cont.connect(self.update_registers)
+        gdb.events.cont.connect(self.clear_screen)
         return
 
     @if_gdb_running
@@ -4901,8 +4901,8 @@ class ContextCommand(GenericCommand):
         if len(redirect)>0 and os.access(redirect, os.W_OK):
             enable_redirect_output(to_file=redirect)
 
-        if self.get_setting("clear_screen"):
-            clear_screen(redirect)
+        # if self.get_setting("clear_screen"):
+        #     clear_screen(redirect)
 
         for pane in current_layout:
             if pane[0] in ("!", "-"):
@@ -5216,6 +5216,14 @@ class ContextCommand(GenericCommand):
             except:
                 self.old_registers[reg] = 0
         return
+
+
+    def clear_screen(self, event):
+        redirect = self.get_setting("redirect")
+        if self.get_setting("clear_screen"):
+            clear_screen(redirect)
+        return
+
 
 
 def disable_context():
@@ -5847,7 +5855,7 @@ class PatternCreateCommand(GenericCommand):
             if not argv[0].isdigit():
                 err("Invalid size")
                 return
-            __config__["pattern.length"] = (long(argv[0]), long)
+            __config__["pattern.length"][0] = long(argv[0])
         elif len(argv) > 1:
             err("Invalid syntax")
             return
@@ -6061,11 +6069,11 @@ class GefCommand(gdb.Command):
                                          gdb.COMPLETE_NONE,
                                          True)
 
-        __config__["gef.no_color"] = (False, bool, "Disable colors in gef")
-        __config__["gef.follow_child"] = (True, bool, "Automatically set GDB to follow child when forking")
-        __config__["gef.readline_compat"] = (False, bool, "Workaround for readline SOH/ETX issue (SEGV)")
-        __config__["gef.debug"] = (False, bool, "Enable debug mode for gef")
-        __config__["gef.autosave_breakpoints_file"] = (None, str, "Automatically save and restore breakpoints")
+        __config__["gef.no_color"] = [False, bool, "Disable colors in gef"]
+        __config__["gef.follow_child"] = [True, bool, "Automatically set GDB to follow child when forking"]
+        __config__["gef.readline_compat"] = [False, bool, "Workaround for readline SOH/ETX issue (SEGV)"]
+        __config__["gef.debug"] = [False, bool, "Enable debug mode for gef"]
+        __config__["gef.autosave_breakpoints_file"] = [None, str, "Automatically save and restore breakpoints"]
 
         self.classes = [ResetCacheCommand,
                         XAddressInfoCommand,
@@ -6316,7 +6324,7 @@ class GefConfigCommand(gdb.Command):
             err("Unknown plugin '{:s}'".format(plugin_name))
             return
 
-        _curval, _type, _desc = __config__.get( argv[0], (None, None, None) )
+        _curval, _type, _desc = __config__.get( argv[0], [None, None, None] )
         if _type == None:
             err("Failed to get '{:s}' config setting".format(argv[0], ))
             return
