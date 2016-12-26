@@ -4901,9 +4901,6 @@ class ContextCommand(GenericCommand):
         if len(redirect)>0 and os.access(redirect, os.W_OK):
             enable_redirect_output(to_file=redirect)
 
-        # if self.get_setting("clear_screen"):
-        #     clear_screen(redirect)
-
         for pane in current_layout:
             if pane[0] in ("!", "-"):
                 continue
