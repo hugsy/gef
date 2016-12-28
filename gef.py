@@ -1388,11 +1388,12 @@ class MIPS(Architecture):
     nop_insn = b"\x00\x00\x00\x00" # sll $0,$0,0
     return_register = "$v0"
     flag_register = "$fcsr"
+    flags_table = {}
     function_parameters = ['$a0','$a1','$a2','$a3']
 
     def flag_register_to_human(self, val=None):
         # mips architecture does not use processor status word (flag register)
-        return ""
+        return Color.colorify("No flag", attrs="yellow underline")
 
     def is_call(self, insn):
         return False
@@ -4832,7 +4833,8 @@ class EntryPointBreakCommand(GenericCommand):
         if elf is None:
             return
 
-        self.set_init_tbreak_pic(elf.e_entry)
+        self.set_init_tbreak(elf.e_entry)
+        # TODO : check if PIC, then call set_init_tbreak_pic(), else set_init_tbreak()
         gdb.execute("run")
         return
 
@@ -5394,7 +5396,6 @@ class DereferenceCommand(GenericCommand):
             offset = off * memalign
             current_address = align_address( addr + offset )
             addrs = DereferenceCommand.dereference_from(current_address)
-
             l  = ""
             addr_l = format_address(long(addrs[0], 16))
             l += "{:s}{:s}+{:#04x}: {:s}".format(Color.colorify(addr_l, attrs="bold green"),
@@ -5436,7 +5437,6 @@ class DereferenceCommand(GenericCommand):
         msg = []
 
         while max_recursion:
-
             if addr.value == prev_addr_value:
                 msg.append( "[loop detected]")
                 break
@@ -5456,7 +5456,12 @@ class DereferenceCommand(GenericCommand):
             # otherwise try to parse the value
             if addr.section:
                 if addr.section.is_executable() and addr.is_in_text_segment():
-                    cmd = gdb.execute("x/i {:#x}".format(addr.value), to_string=True).replace("=>", '')
+                    cmd = gdb.execute("x/1i {:#x}".format(addr.value), to_string=True).replace("=>", '')
+                    # GDB bug
+                    # sometimes on some archs, GDB will return 2 (or more) insns when given x/1i @addr
+                    # we address that bug by ensuring that only 1 line is given
+                    cmd = cmd.splitlines()[0]
+
                     (_, _, mnemo, operands)  = gef_parse_gdb_instruction(cmd)
                     ops = ", ".join(operands)
                     insn = " ".join([mnemo, ops])
@@ -5941,12 +5946,10 @@ class ChecksecCommand(GenericCommand):
 
     def pre_load(self):
         command_only_works_for(["linux", "freebsd"])
-
-        try:
-            fpath = which("readelf")
-            self.add_setting("readelf_path", fpath, "`readelf` binary path")
-        except IOError as e :
-            raise GefMissingDependencyException( str(e) )
+        fpath = which("readelf")
+        if not os.access(fpath, os.R_OK | os.X_OK):
+            raise GefMissingDependencyException("Failed to locate `readelf` binary")
+        self.add_setting("readelf_path", fpath, "`readelf` binary path")
         return
 
 
@@ -5954,11 +5957,10 @@ class ChecksecCommand(GenericCommand):
         argc = len(argv)
 
         if argc == 0:
-            if not is_alive():
+            filename = get_filepath()
+            if filename is None:
                 warn("No executable/library specified")
                 return
-
-            filename = get_filepath()
 
         elif argc == 1:
             filename = argv[0]
