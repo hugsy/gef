@@ -4886,7 +4886,6 @@ class ContextCommand(GenericCommand):
 
     def post_load(self):
         gdb.events.cont.connect(self.update_registers)
-        gdb.events.cont.connect(self.clear_screen)
         return
 
     @if_gdb_running
@@ -4907,6 +4906,9 @@ class ContextCommand(GenericCommand):
         redirect = self.get_setting("redirect")
         if len(redirect)>0 and os.access(redirect, os.W_OK):
             enable_redirect_output(to_file=redirect)
+
+        if self.get_setting("clear_screen"):
+            clear_screen(redirect)
 
         for pane in current_layout:
             if pane[0] in ("!", "-"):
@@ -5219,13 +5221,6 @@ class ContextCommand(GenericCommand):
                 self.old_registers[reg] = get_register(reg)
             except:
                 self.old_registers[reg] = 0
-        return
-
-
-    def clear_screen(self, event):
-        redirect = self.get_setting("redirect")
-        if self.get_setting("clear_screen"):
-            clear_screen(redirect)
         return
 
 
