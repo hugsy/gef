@@ -1152,8 +1152,11 @@ class X86(Architecture):
         # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
         flags = dict( (self.flags_table[k], k) for k in self.flags_table.keys() )
         val = get_register_ex(self.flag_register)
-        # TODO: Move this special condition into x86_64
-        cx = get_register_ex("$rcx") if is_x86_64() else get_register_ex("$ecx")
+
+        if self.mode == 64:
+            cx = get_register_ex("$rcx")
+        else:
+            cx = get_register_ex("$ecx")
 
         if mnemo in ("ja", "jnbe"): return val&(1<<flags["carry"])==0 and val&(1<<flags["zero"])==0, "!C && !Z"
         if mnemo in ("jae", "jnb", "jnc"): return val&(1<<flags["carry"])==0, "!C"
@@ -2628,7 +2631,6 @@ class RetDecCommand(GenericCommand):
     @if_gdb_running
     def do_invoke(self, argv):
         arch = current_arch.arch.lower()
-        # TODO: Make this a method in the base class
         if not arch:
             err("RetDec does not decompile '{:s}'".format(get_arch()))
             return
@@ -5173,7 +5175,6 @@ class ContextCommand(GenericCommand):
 
     def context_threads(self):
         def reason():
-            # todo: improve (using gdb python api?)
             res = gdb.execute("info program", to_string=True).splitlines()
             if len(res)==0:
                 return ""
@@ -6012,7 +6013,6 @@ class ChecksecCommand(GenericCommand):
 
         # check for PIE support
         self.do_check("PIE Support", "-h", filename, r'Type:.*EXEC', is_match=False)
-        # todo : add check for (DEBUG) if .so
 
         # check for RPATH
         self.do_check("No RPATH", "-d -l", filename, r'rpath', is_match=False)
