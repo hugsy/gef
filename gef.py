@@ -935,6 +935,67 @@ def gef_execute_gdb_script(source):
     return
 
 
+def check_security_property(title, opt, filename, pattern, is_match, do_print=True):
+    cmd   = [which("readelf"), ]
+    cmd  += opt.split()
+    cmd  += [filename, ]
+    lines = gef_execute_external( cmd ).splitlines()
+
+    for line in lines:
+        if re.search(pattern, line):
+            if is_match:
+                msg = Color.greenify("Yes")
+                res = True
+            else:
+                msg = Color.redify("No")
+                res = False
+            if do_print:
+                print("{:<30s} {:s}".format(title+":", msg))
+            return res
+
+    # if here, then not found
+    if is_match:
+        msg = Color.redify("No")
+        res = False
+    else:
+        msg = Color.greenify("Yes")
+        res = True
+
+    if do_print:
+        print("{:<30s} {:s}".format(title+":", msg))
+
+    return res
+
+
+@memoize
+def checksec(filename, prop, print_result):
+    """Global function to get the security properties of a binary."""
+    try:
+        which("readelf")
+    except IOError:
+        err("Missing `readelf`")
+        return
+
+    res = 0
+
+    if prop == "canary" or prop == "all":
+        res += check_security_property("Canary", "-s", filename, r'__stack_chk_fail', True, print_result)
+    if prop == "nx" or prop == "all":
+        res += check_security_property("NX Support", "-W -l", filename, r'GNU_STACK.*RWE', False, print_result)
+    if prop == "pie" or prop == "all":
+        res += check_security_property("PIE Support", "-h", filename, r'Type:.*EXEC', False, print_result)
+    if prop == "rpath" or prop == "all":
+        res += check_security_property("No RPATH", "-d -l", filename, r'rpath', False, print_result)
+    if prop == "runpath" or prop == "all":
+        res += check_security_property("No RUNPATH", "-d -l", filename, r'runpath', False, print_result)
+    if prop == "lazy_relro" or prop == "all":
+        res += check_security_property("Partial RelRO", "-l", filename, r'GNU_RELRO', True, print_result)
+    if prop == "full_relro" or prop == "all":
+        res += check_security_property("Full RelRO", "-d", filename, r'BIND_NOW', True, print_result)
+
+    return res
+
+
 def get_frame():
     return gdb.selected_inferior()
 
@@ -4864,7 +4925,7 @@ class EntryPointBreakCommand(GenericCommand):
         return self.set_init_tbreak(base_address + addr)
 
     def is_pie(self, fpath):
-        return ChecksecCommand.do_check("PIE Support", "-h", fpath, r'Type:.*EXEC', False, False)
+        return checksec(fpath, "canary", False)
 
 
 class ContextCommand(GenericCommand):
@@ -5942,19 +6003,14 @@ class ChecksecCommand(GenericCommand):
     _cmdline_ = "checksec"
     _syntax_  = "{:s} (filename)".format(_cmdline_)
 
+
     def __init__(self):
         super(ChecksecCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
         return
 
-
     def pre_load(self):
-        command_only_works_for(["linux", "freebsd"])
-        fpath = which("readelf")
-        if not os.access(fpath, os.R_OK | os.X_OK):
-            raise GefMissingDependencyException("Failed to locate `readelf` binary")
-        self.add_setting("readelf_path", fpath, "`readelf` binary path")
+        which("readelf")
         return
-
 
     def do_invoke(self, argv):
         argc = len(argv)
@@ -5972,55 +6028,8 @@ class ChecksecCommand(GenericCommand):
             self.usage()
             return
 
-        if not os.access(self.get_setting("readelf_path"), os.X_OK):
-            err("Could not access readelf")
-            return
-
         info("{:s} for '{:s}'".format(self._cmdline_, filename))
-        self.checksec(filename)
-        return
-
-    @staticmethod
-    def do_check(title, opt, filename, pattern, is_match, do_print=True):
-        cmd   = [__config__.get("checksec.readelf_path")[0], ]
-        cmd  += opt.split()
-        cmd  += [filename, ]
-        lines = gef_execute_external( cmd ).splitlines()
-
-        for line in lines:
-            if re.search(pattern, line):
-                if is_match:
-                    msg = Color.greenify("Yes")
-                    res = True
-                else:
-                    msg = Color.redify("No")
-                    res = False
-                if do_print:
-                    print("{:<30s} {:s}".format(title+":", msg))
-                return res
-
-        # if here, then not found
-        if is_match:
-            msg = Color.redify("No")
-            res = False
-        else:
-            msg = Color.greenify("Yes")
-            res = True
-
-        if do_print:
-            print("{:<30s} {:s}".format(title+":", msg))
-
-        return res
-
-
-    def checksec(self, filename):
-        ChecksecCommand.do_check("Canary", "-s", filename, r'__stack_chk_fail', True)
-        ChecksecCommand.do_check("NX Support", "-W -l", filename, r'GNU_STACK.*RWE', False)
-        ChecksecCommand.do_check("PIE Support", "-h", filename, r'Type:.*EXEC', False)
-        ChecksecCommand.do_check("No RPATH", "-d -l", filename, r'rpath', False)
-        ChecksecCommand.do_check("No RUNPATH", "-d -l", filename, r'runpath', False)
-        ChecksecCommand.do_check("Partial RelRO", "-l", filename, r'GNU_RELRO', True)
-        ChecksecCommand.do_check("Full RelRO", "-d", filename, r'BIND_NOW', True)
+        checksec(filename, "all", True)
         return
 
 
