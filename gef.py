@@ -4835,8 +4835,12 @@ class EntryPointBreakCommand(GenericCommand):
         if elf is None:
             return
 
+        if self.is_pie(fpath):
+            self.set_init_tbreak_pie(elf.e_entry)
+            gdb.execute("continue")
+            return
+
         self.set_init_tbreak(elf.e_entry)
-        # TODO : check if PIC, then call set_init_tbreak_pic(), else set_init_tbreak()
         gdb.execute("run")
         return
 
@@ -4846,7 +4850,7 @@ class EntryPointBreakCommand(GenericCommand):
         bp_num = int(bp_num.split()[2])
         return bp_num
 
-    def set_init_tbreak_pic(self, addr, do_run=True):
+    def set_init_tbreak_pie(self, addr):
         warn("PIC binary detected, retrieving text base address")
         enable_redirect_output()
         gdb.execute("set stop-on-solib-events 1")
@@ -4858,6 +4862,9 @@ class EntryPointBreakCommand(GenericCommand):
         base_address = [x.page_start for x in vmmap if x.path==get_filepath()][0]
         disable_redirect_output()
         return self.set_init_tbreak(base_address + addr)
+
+    def is_pie(self, fpath):
+        return ChecksecCommand.do_check("PIE Support", "-h", fpath, r'Type:.*EXEC', False, False)
 
 
 class ContextCommand(GenericCommand):
@@ -5973,56 +5980,47 @@ class ChecksecCommand(GenericCommand):
         self.checksec(filename)
         return
 
-
-    def do_check(self, title, opt, filename, pattern, is_match):
-        options = opt.split(" ")
-        buf   = "{:<50s}".format(title+":")
-        cmd   = [self.get_setting("readelf_path"), ]
-        cmd  += options
+    @staticmethod
+    def do_check(title, opt, filename, pattern, is_match, do_print=True):
+        cmd   = [__config__.get("checksec.readelf_path")[0], ]
+        cmd  += opt.split()
         cmd  += [filename, ]
-
         lines = gef_execute_external( cmd ).splitlines()
-        found = False
 
         for line in lines:
             if re.search(pattern, line):
-                buf += Color.GREEN
                 if is_match:
-                    buf += Color.greenify("Yes")
+                    msg = Color.greenify("Yes")
+                    res = True
                 else:
-                    buf += Color.redify("No")
-                found = True
-                break
+                    msg = Color.redify("No")
+                    res = False
+                if do_print:
+                    print("{:<30s} {:s}".format(title+":", msg))
+                return res
 
-        if not found:
-            if is_match:
-                buf+= Color.redify("No")
-            else:
-                buf+= Color.greenify("Yes")
+        # if here, then not found
+        if is_match:
+            msg = Color.redify("No")
+            res = False
+        else:
+            msg = Color.greenify("Yes")
+            res = True
 
-        print("{:s}".format(buf))
-        return
+        if do_print:
+            print("{:<30s} {:s}".format(title+":", msg))
+
+        return res
 
 
     def checksec(self, filename):
-        # check for canary
-        self.do_check("Canary", "-s", filename, r'__stack_chk_fail', is_match=True)
-
-        # check for NX
-        self.do_check("NX Support", "-W -l", filename, r'GNU_STACK.*RWE', is_match=False)
-
-        # check for PIE support
-        self.do_check("PIE Support", "-h", filename, r'Type:.*EXEC', is_match=False)
-
-        # check for RPATH
-        self.do_check("No RPATH", "-d -l", filename, r'rpath', is_match=False)
-
-        # check for RUNPATH
-        self.do_check("No RUNPATH", "-d -l", filename, r'runpath', is_match=False)
-
-        # check for RELRO
-        self.do_check("Partial RelRO", "-l", filename, r'GNU_RELRO', is_match=True)
-        self.do_check("Full RelRO", "-d", filename, r'BIND_NOW', is_match=True)
+        ChecksecCommand.do_check("Canary", "-s", filename, r'__stack_chk_fail', True)
+        ChecksecCommand.do_check("NX Support", "-W -l", filename, r'GNU_STACK.*RWE', False)
+        ChecksecCommand.do_check("PIE Support", "-h", filename, r'Type:.*EXEC', False)
+        ChecksecCommand.do_check("No RPATH", "-d -l", filename, r'rpath', False)
+        ChecksecCommand.do_check("No RUNPATH", "-d -l", filename, r'runpath', False)
+        ChecksecCommand.do_check("Partial RelRO", "-l", filename, r'GNU_RELRO', True)
+        ChecksecCommand.do_check("Full RelRO", "-d", filename, r'BIND_NOW', True)
         return
 
 

@@ -235,10 +235,12 @@ def gef_stop(bv):
 def gef_start_stop(bv):
     if t is None:
         gef_start(bv)
+        show_message_box("GEF", "Service successfully started, you can now have gef connect to it", OKButtonSet, InformationIcon)
     else:
         cli = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(HOST, PORT))
         cli.shutdown()
         gef_stop(bv)
+        show_message_box("GEF", "Service successfully stopped", OKButtonSet, InformationIcon)
     return
 
 
@@ -273,6 +275,6 @@ def create_binja_menu():
     return
 
 
-PluginCommand.register("gef : start/stop server",
+PluginCommand.register("Start/stop server GEF interaction",
                        "Start/stop the XMLRPC server for communicating with gef",
                        gef_start_stop)
