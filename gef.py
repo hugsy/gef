@@ -976,6 +976,10 @@ def checksec(filename, prop, print_result):
         err("Missing `readelf`")
         return
 
+    if prop not in ("all", "canary", "nx", "pie", "rpath", "runpath", "lazy_relro", "full_relro"):
+        err("Invalid security property {}".format(prop))
+        return
+
     res = 0
 
     if prop == "canary" or prop == "all":
