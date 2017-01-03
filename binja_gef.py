@@ -203,7 +203,7 @@ def start_service(host, port, bv):
                                 allow_none=True)
     server.register_introspection_functions()
     server.register_instance(Gef(server, bv))
-    print("[+] Registered {} functions.".format( len(server.system_listMethods()) ))
+    log_info("[+] Registered {} functions.".format( len(server.system_listMethods()) ))
     while True:
         if hasattr(server, "shutdown") and server.shutdown==True:
             break

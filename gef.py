@@ -2679,7 +2679,7 @@ class RetDecCommand(GenericCommand):
 
     def __init__(self):
         super(RetDecCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL, prefix=False)
-        self.add_setting("key", "1dd7cb8f-ca9f-4663-811b-2095b87d7faa", "RetDec decompilator API key")
+        self.add_setting("key", "", "RetDec decompilator API key")
         self.add_setting("path", GEF_TEMP_DIR, "Path to store the decompiled code")
         self.decompiler = None
         return
@@ -2700,10 +2700,15 @@ class RetDecCommand(GenericCommand):
             err("RetDec does not decompile '{:s}'".format(get_arch()))
             return
 
+        api_key = self.get_setting("key")
+        if api_key is None or len(api_key):
+            warn("No RetDec API key provided, use `gef config` to add your own key")
+            return
+
         if self.decompiler is None:
             retdec = sys.modules["retdec"]
             retdec_decompiler = sys.modules["retdec.decompiler"]
-            self.decompiler = retdec.decompiler.Decompiler(api_key=self.get_setting("key"))
+            self.decompiler = retdec.decompiler.Decompiler(api_key=api_key)
 
         params = {
             "architecture": arch,
