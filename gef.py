@@ -2700,8 +2700,8 @@ class RetDecCommand(GenericCommand):
             err("RetDec does not decompile '{:s}'".format(get_arch()))
             return
 
-        api_key = self.get_setting("key")
-        if api_key is None or len(api_key):
+        api_key = self.get_setting("key").strip()
+        if api_key is None or len(api_key)==0:
             warn("No RetDec API key provided, use `gef config` to add your own key")
             return
 
