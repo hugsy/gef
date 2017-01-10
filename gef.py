@@ -4884,11 +4884,13 @@ class EntryPointBreakCommand(GenericCommand):
             return
 
         syms = ["main", "__libc_start_main", "__uClibc_main"]
+        bp = -1
         for sym in syms:
             try:
                 value = gdb.parse_and_eval(sym)
                 info("Breaking at '{:s}'".format (str(value)))
-                gdb.execute("tbreak *{:#x}".format(long(value.address), from_tty=True, to_string=True))
+                bp = gdb.execute("tbreak {:s}".format(sym, from_tty=True, to_string=True))
+                bp = int(bp.split()[2])
                 gdb.execute("run {}".format(" ".join(argv)))
                 return
 
@@ -4897,8 +4899,11 @@ class EntryPointBreakCommand(GenericCommand):
                     # this case can happen when doing remote debugging
                     gdb.execute("continue")
                     return
-
                 continue
+
+        # if here, clear the breakpoint if any set
+        if bp >= 0:
+            gdb.execute("bc {:d}".format(bp))
 
         # break at entry point
         elf = get_elf_headers()
