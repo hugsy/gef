@@ -478,14 +478,14 @@ class GlibcArena:
 
     def fastbin(self, i):
         addr = self.deref_as_long(self.fastbinsY[i])
-        if addr == 0x00:
+        if addr == 0:
             return None
-        return GlibcChunk(addr+2*self.__arch)
+        return GlibcChunk(addr + 2*self.__arch)
 
     def bin(self, i):
         idx = i * 2
         fd = self.deref_as_long(self.bins[idx])
-        bw = self.deref_as_long(self.bins[idx+1])
+        bw = self.deref_as_long(self.bins[idx + 1])
         return (fd, bw)
 
     def get_next(self):
@@ -517,7 +517,7 @@ class GlibcArena:
 
 
 class GlibcChunk:
-    """ Glibc chunk class.
+    """Glibc chunk class.
     Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/"""
 
     def __init__(self, addr, from_base=False):
@@ -542,7 +542,7 @@ class GlibcChunk:
     def get_usable_size(self):
         # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L4537
         cursz = self.get_chunk_size()
-        if cursz == 0x00: return cursz
+        if cursz == 0: return cursz
         if self.has_M_bit(): return cursz - 2*self.arch
         return cursz - self.arch
 
@@ -694,10 +694,10 @@ def _xlog(m, stream, cr=True):
         gdb.flush()
     return 0
 
-def err(msg, cr=True):   return _xlog(Color.colorify("[!]", attrs="bold red")+" "+msg, gdb.STDERR, cr)
-def warn(msg, cr=True):  return _xlog(Color.colorify("[*]", attrs="bold yellow")+" "+msg, gdb.STDLOG, cr)
-def ok(msg, cr=True):    return _xlog(Color.colorify("[+]", attrs="bold green")+" "+msg, gdb.STDLOG, cr)
-def info(msg, cr=True):  return _xlog(Color.colorify("[+]", attrs="bold blue")+" "+msg, gdb.STDLOG, cr)
+def err(msg, cr=True):   return _xlog("{} {}".format(Color.colorify("[!]", attrs="bold red"), msg), gdb.STDERR, cr)
+def warn(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[*]", attrs="bold yellow"), msg), gdb.STDLOG, cr)
+def ok(msg, cr=True):    return _xlog("{} {}".format(Color.colorify("[+]", attrs="bold green"), msg), gdb.STDLOG, cr)
+def info(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[+]", attrs="bold blue"), msg), gdb.STDLOG, cr)
 
 def show_exception():
     exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -4040,11 +4040,11 @@ class GlibcHeapBinsCommand(GenericCommand):
         return
 
     @staticmethod
-    def pprint_bin(arena_addr, bin_idx):
+    def pprint_bin(arena_addr, index):
         arena = GlibcArena(arena_addr)
-        fw, bk = arena.bin(bin_idx)
+        fw, bk = arena.bin(index)
 
-        ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(bin_idx, fw, bk))
+        ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(index, fw, bk))
         if bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF)):
             ok("Empty")
             return
