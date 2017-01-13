@@ -4081,26 +4081,26 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
         print(titlify("Fastbins for arena {:#x}".format(int(arena))))
         for i in range(10):
-            m = "Fastbin[{:d}] ".format(i)
+            print("Fastbin[{:d}] ".format(i), end="")
             # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1680
             chunk = arena.fastbin(i)
 
             while True:
                 if chunk is None:
-                    m+= "0x00"
+                    print("0x00", end="")
                     break
 
+                print("{:s}  {:s}  ".format(right_arrow, str(chunk)), end="")
                 try:
-                    m+= "{:s}  {:s}  ".format(right_arrow, str(chunk))
                     next_chunk = chunk.get_fwd_ptr()
-                    if next_chunk == 0x00:
+                    if next_chunk == 0:
                         break
 
                     chunk = GlibcChunk(next_chunk, from_base=True)
                 except gdb.MemoryError:
                     break
+            print()
 
-            print(m)
         return
 
 class GlibcHeapUnsortedBinsCommand(GenericCommand):
