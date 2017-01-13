@@ -8,22 +8,23 @@ and reverse-engineers, to
 provides additional features to GDB using the Python API to assist during the
 process of dynamic analysis and exploit development.
 
-`GEF` fully relies on GDB API and other Linux specific source of information
-(such as `/proc/pid`). As a consequence, some of the features might not work on
-custom or harden systems such as GrSec.
-It has full support for Python2 and Python3 indifferently (as more and more
-distro start pushing `gdb` compiled with Python3 support).
+`GEF` fully relies on GDB API and other Linux-specific sources of information
+(such as `/proc/<pid>`). As a consequence, some of the features might not work on
+custom or hardened systems such as GrSec.
+
+It has full support for both Python2 and Python3 indifferently (as more and more
+distros start pushing `gdb` compiled with Python3 support).
 
 ![gef-context](https://i.imgur.com/Fl8yuiO.png)
 
 *Some* of `GEF` features include:
 
   * **One** single GDB script.
-  * **No** dependencies, `GEF` is battery-included and is litterally installable
+  * **No** dependencies, `GEF` is battery-included and is literally installable
     within 5 seconds.
   * Provides more than **50** commands to drastically change your experience in
     GDB.
-  * Works indifferently on Python 2 or 3 engine.
+  * Works consistently on both Python2 and Python3.
   * Built around an architecture abstraction layer, so all commands work in any
     GDB-supported architecture (x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS,
     PowerPC, etc.).
@@ -34,7 +35,8 @@ distro start pushing `gdb` compiled with Python3 support).
 ### Install ###
 
 Simply make sure you have [GDB 7.x+](https://www.gnu.org/s/gdb).
-``` bash
+
+```bash
 # via the install script
 $ wget -q -O- https://github.com/hugsy/gef/raw/master/gef.sh | sh
 
@@ -44,17 +46,21 @@ $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 ```
 
 Then just start playing (for local files):
+
 ```bash
 $ gdb -q /path/to/my/bin
 gef➤  gef help
 ```
 
 Or (for remote debugging):
+
 ```bash
 remote:~ $ gdbserver 0.0.0.0:1234 /path/to/file
 Running as PID: 666
 ```
+
 And:
+
 ```bash
 local:~ $ gdb -q
 gef➤  gef-remote -t your.ip.address:1234 -p 666
@@ -62,13 +68,10 @@ gef➤  gef-remote -t your.ip.address:1234 -p 666
 
 ### Update ###
 
-If your host/VM is connected to Internet, you can update `gef` easily to the latest version (even without `git` installed)
-```bash
-$ python /path/to/gef.py --update
-Updated
-```
+If your host/VM is connected to the Internet, you can update `gef` easily to the latest version (even without `git` installed). with `python /path/to/gef.py --update`
 
-For example,
+For example:
+
 ```bash
 $ python ~/.gdbinit-gef.py --update
 Updated
@@ -173,33 +176,32 @@ $ pip[23] install ropgadget ropper capstone
 
 ## But why not PEDA? ##
 
-Yes ! Why not ?! [PEDA](https://github.com/longld/peda) is a fantastic tool to
-do the same, but is **only** to be used for x86-32 or x86-64. Whereas
-`GEF` supports all the architecture supported by `GDB` (currently x86, ARM,
-AARCH64, MIPS, PowerPC, SPARC) but is designed to integrate new architectures
-very easily as well!
-
+Yes! Why not?! [PEDA](https://github.com/longld/peda) is a fantastic tool to
+do the same, but **only** works for x86-32 or x86-64x whereas `GEF` supports
+all the architecture supported by `GDB` (currently x86, ARM, AARCH64, MIPS,
+PowerPC, SPARC) but is designed to integrate new architectures very easily as
+well!
 
 
 ## Bugs & Feedbacks ##
 
-To discuss `gef`, `gdb`, exploitation or other topic, feel free to join the
-channel `##gef` on Freenode IRC network. You can also to me (`hugsy`) via the
+To discuss `gef`, `gdb`, exploitation or other topics, feel free to join the
+`##gef` channel on the Freenode IRC network. You can also to me (`hugsy`) via the
 channel. For those who do not have an IRC client (like `weechat` or `irssi`),
 simply [click here](https://webchat.freenode.net/?channels=##gef).
 
 For bugs or feature requests, just
-go [here](https://github.com/hugsy/gef/issues) and provide thorough description
+go [here](https://github.com/hugsy/gef/issues) and provide a thorough description
 if you want help.
 
 
 ## Contribution ##
 
-`gef` was created and maintained by
-myself, [`@_hugsy_`](https://twitter.com/_hugsy_), but kept fresh thanks to [all
+`gef` was created and maintained by myself,
+[`@_hugsy_`](https://twitter.com/_hugsy_), but kept fresh thanks to [all
 the contributors](https://github.com/hugsy/gef/graphs/contributors).
 
-Or if you just like the tool, feel free to drop a simple *Thanks* on IRC,
+Or if you just like the tool, feel free to drop a simple *"thanks"* on IRC,
 Twitter or other, it is **always** very appreciated.
 
 
@@ -213,15 +215,15 @@ better.
 
 The rule is simple, provide a (substantial) contribution to `GEF`, such as:
 
-   1. Submitting a Pull-Request for a new feature/command
-   1. Submitting a Pull-Request for a new architecture support
-   1. Or sending a relevant issue request (like a bug, crash, or else)
+   1. Submitting a Pull-Request for a new feature/command.
+   1. Submitting a Pull-Request for a new architecture support.
+   1. Or sending a relevant issue request (like a bug, crash, or else).
 
 Poke me on the IRC `##gef` channel about it, and next time we meet in person
 (like at a conference), I'll be happy to pay you a beer.
 
-I do also accept beers if you think that the tool is cool :wink:
+I do also accept beers if you think that the tool is cool! :wink:
 
 Cheers :beers:
 
-# Happy hacking #
+# Happy Hacking #
