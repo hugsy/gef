@@ -139,7 +139,7 @@ except ImportError:
     sys.exit(0)
 
 
-__aliases__                            = {}
+__aliases__                            = []
 __config__                             = {}
 __infos_files__                        = []
 __loaded__                             = []
@@ -4170,109 +4170,6 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         return
 
 
-class AliasCommand(GenericCommand):
-    """GEF defined aliases"""
-
-    _cmdline_ = "gef-alias"
-    _syntax_  = "{:s} (set|show|do|unset)".format(_cmdline_)
-
-    def do_invoke(self, argv):
-        argc = len(argv)
-        if argc == 0:
-            err("Missing action")
-            self.usage()
-        return
-
-class AliasSetCommand(GenericCommand):
-    """GEF add alias command"""
-    _cmdline_ = "gef-alias set"
-    _syntax_  = "{:s} NAME CMD1 [; CMD2] [; CMDN]".format (_cmdline_)
-
-    def do_invoke(self, argv):
-        argc = len(argv)
-        if argc < 2:
-            err("Requires at least 2 params")
-            return
-        alias_name = argv[0]
-        alias_cmds  = " ".join(argv[1:]).split(";")
-
-        if alias_name in list( __aliases__.keys() ):
-            warn("Replacing alias '{:s}'".format (alias_name))
-            __aliases__[ alias_name ] = alias_cmds
-            ok("'{:s}': '{:s}'".format (alias_name, "; ".join(alias_cmds)))
-        return
-
-class AliasUnsetCommand(GenericCommand):
-    """GEF remove alias command"""
-    _cmdline_ = "gef-alias unset"
-    _syntax_  = "{:s}".format (_cmdline_)
-
-    def do_invoke(self, argv):
-        if len(argv) != 1:
-            err("'{:s}' requires 1 param".format (self._cmdline_))
-            return
-        if  argv[1] in  __aliases__:
-            del __aliases__[ argv[1] ]
-        else:
-            err("'{:s}' not an alias".format (argv[1]))
-        return
-
-class AliasShowCommand(GenericCommand):
-    """GEF show alias command"""
-    _cmdline_ = "gef-alias show"
-    _syntax_  = "{:s}".format (_cmdline_)
-
-    def do_invoke(self, argv):
-        for alias_name in list( __aliases__.keys() ):
-            print("'{:s}'\t'{:s}'".format(alias_name, ";".join(__aliases__[alias_name])))
-        return
-
-class AliasDoCommand(GenericCommand):
-    """GEF do alias command"""
-    _cmdline_ = "gef-alias do"
-    _syntax_  = "{:s}".format (_cmdline_)
-
-    def do_invoke(self, argv):
-        argc = len(argv)
-        if argc != 1:
-            err("'{:s} do' requires 1 param".format(self._cmdline_))
-            return
-
-        alias_name = argv[0]
-        if alias_name not in list( __aliases__.keys() ):
-            err("No alias '{:s}'".format (alias_name))
-            return
-
-        alias_cmds = __aliases__[alias_name]
-        for cmd in alias_cmds:
-            try:
-                if " >> " in cmd:
-                    cmd, outfile = cmd.split(" >> ")
-                    cmd = cmd.strip()
-                    outfile = outfile.strip()
-
-                    with open(outfile, "a") as f:
-                        lines_out = gdb.execute(cmd, to_string=True)
-                        f.write(lines_out)
-
-                elif " > " in cmd:
-                    cmd, outfile = cmd.split(" > ")
-                    cmd = cmd.strip()
-                    outfile = outfile.strip()
-
-                    with open(outfile, "w") as f:
-                        lines_out = gdb.execute(cmd, to_string=True)
-                        f.write(lines_out)
-
-                else:
-                    gdb.execute(cmd)
-
-            except:
-                continue
-
-        return
-
-
 class SolveKernelSymbolCommand(GenericCommand):
     """Solve kernel symbols from kallsyms table."""
 
@@ -6119,7 +6016,6 @@ class GefCommand(gdb.Command):
                         ShellcodeCommand, ShellcodeSearchCommand, ShellcodeGetCommand,
                         DetailRegistersCommand,
                         SolveKernelSymbolCommand,
-                        AliasCommand, AliasShowCommand, AliasSetCommand, AliasUnsetCommand, AliasDoCommand,
                         GlibcHeapCommand, GlibcHeapArenaCommand, GlibcHeapChunkCommand, GlibcHeapBinsCommand, GlibcHeapFastbinsYCommand, GlibcHeapUnsortedBinsCommand, GlibcHeapSmallBinsCommand, GlibcHeapLargeBinsCommand,
                         NopCommand,
                         RemoteCommand,
@@ -6213,7 +6109,7 @@ class GefCommand(gdb.Command):
                 if hasattr(class_name, "_aliases_"):
                     aliases = getattr(class_name, "_aliases_")
                     for alias in aliases:
-                        gdb.execute("alias -a {} = {}".format(alias, cmd, ))
+                        GefAlias(alias, cmd)
 
             except Exception as reason:
                 __missing__[cmd] = reason
@@ -6512,8 +6408,7 @@ class GefSetCommand(gdb.Command):
 
 class GefRunCommand(gdb.Command):
     """Override GDB run commands with the context from GEF.
-    Simple wrapper for GDB run command to use arguments set from `gef set args`.
-    """
+    Simple wrapper for GDB run command to use arguments set from `gef set args`. """
     _cmdline_ = "gef run"
     _syntax_  = "{:s} [GDB_RUN_ARGUMENTS]".format(_cmdline_)
 
@@ -6532,6 +6427,63 @@ class GefRunCommand(gdb.Command):
         argv = args.split()
         gdb.execute("gef set args {:s}".format(" ".join(argv)))
         gdb.execute("run")
+        return
+
+
+class GefAlias(gdb.Command):
+    """Simple aliasing wrapper because GDB doesn't do what it should.
+    """
+    def __init__(self, alias, command):
+        global __aliases__
+
+        p = command.split()
+        if len(p)==0:
+            return
+
+        self._command = command
+        self._alias = alias
+        c = command.split()[0]
+        r = self.lookup_command(c)
+        self.__doc__ = "Alias for '{}'".format(Color.greenify(command))
+        if r is not None:
+            _name, _class, _instance = r
+            self.__doc__ += ": " + _instance.__doc__
+
+            if hasattr(_instance,  "complete"):
+                self.complete = _instance.complete
+
+        super(GefAlias, self).__init__(alias, gdb.COMMAND_NONE)
+        __aliases__.append(self)
+        return
+
+    def invoke(self, args, from_tty):
+        self.dont_repeat()
+        gdb.execute("{} {}".format(self._command, args), from_tty=from_tty)
+        return
+
+    def lookup_command(self, cmd):
+        global __loaded__
+
+        for _name, _class, _instance in __loaded__:
+            if cmd == _name:
+                return _name, _class, _instance
+
+        return None
+
+
+class GefAliases(gdb.Command):
+    """List all custom aliases.    """
+    def __init__(self):
+        super(GefAliases, self).__init__("aliases", gdb.COMMAND_NONE)
+        return
+
+    def invoke(self, args, from_tty):
+        global __aliases__
+
+        self.dont_repeat()
+        ok("Aliases defined:")
+        for _alias in __aliases__:
+            print("{:30s} {} {}".format(_alias._alias, right_arrow, _alias._command))
         return
 
 
@@ -6556,31 +6508,16 @@ if __name__  == "__main__":
     gdb.execute("set height 0"),
     gdb.execute("set width 0")
     gdb.execute("set step-mode on")
+    gdb.execute("set print pretty on")
+    gdb.execute("set history expansion on")
 
     # gdb history
+    gdb.execute("set history save on")
     gdb.execute("set history filename ~/.gdb_history")
-    gdb.execute("set history save")
 
-    # aliases
-    # WinDBG-like aliases (I like them)
-
-    # breakpoints
-    gdb.execute("alias -a bl = info breakpoints")
-    gdb.execute("alias -a bp = break")
-    gdb.execute("alias -a be = enable breakpoints")
-    gdb.execute("alias -a bd = disable breakpoints")
-    gdb.execute("alias -a bc = delete breakpoints")
-    gdb.execute("alias -a tbp = tbreak")
-    gdb.execute("alias -a tba = thbreak")
-    gdb.execute("alias -a pa = advance")
-    gdb.execute("alias -a ptc = finish")
-
-    # memory access
-    gdb.execute("alias -a uf = disassemble")
-
-    # context
-    gdb.execute("alias -a argv = show args")
-    gdb.execute("alias -a kp = info stack")
+    # gdb input and output bases
+    gdb.execute("set input-radix 0x10")
+    gdb.execute("set output-radix 0x10")
 
     try:
         # this will raise a gdb.error unless we're on x86
@@ -6605,7 +6542,34 @@ if __name__  == "__main__":
     gdb.events.new_objfile.connect(new_objfile_handler)
     gdb.events.exited.connect(exit_handler)
 
-    # runtime
-    gdb.execute("alias -a g = gef run")
-    # gdb.execute("alias -a t = stepi")
-    # gdb.execute("alias -a p = nexti")
+
+    # WinDBG-like aliases (and others)
+    aliases = {
+        # breaks and steps
+        "bl":       "info breakpoints",
+        "bp":       "break",
+        "be":       "enable breakpoints",
+        "bd":       "disable breakpoints",
+        "bc":       "delete breakpoints",
+        "tbp":      "tbreak",
+        "tba":      "thbreak",
+        "pa":       "advance",
+        "ptc":      "finish",
+        "t":        "stepi",
+        "p":        "nexti",
+        "g":        "gef run",
+        "start":    "entry-break",
+
+        # memory access
+        "uf":      "disassemble",
+        "stack":   "dereference $sp 10",
+
+        # context
+        "argv":    "show args",
+        "kp":      "info stack",
+    }
+
+    for alias in aliases.keys():
+        GefAlias(alias, aliases[alias])
+
+    GefAliases()
