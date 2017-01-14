@@ -4888,8 +4888,8 @@ class EntryPointBreakCommand(GenericCommand):
         for sym in syms:
             try:
                 value = gdb.parse_and_eval(sym)
-                info("Breaking at '{:s}'".format (str(value)))
-                bp = gdb.execute("tbreak {:s}".format(sym, from_tty=True, to_string=True))
+                info("Breaking at '{:s}'".format(str(value)))
+                bp = gdb.execute("tbreak {:s}".format(sym), from_tty=True, to_string=True)
                 bp = int(bp.split()[2])
                 gdb.execute("run {}".format(" ".join(argv)))
                 return
