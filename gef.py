@@ -478,14 +478,14 @@ class GlibcArena:
 
     def fastbin(self, i):
         addr = self.deref_as_long(self.fastbinsY[i])
-        if addr == 0x00:
+        if addr == 0:
             return None
-        return GlibcChunk(addr+2*self.__arch)
+        return GlibcChunk(addr + 2*self.__arch)
 
     def bin(self, i):
         idx = i * 2
         fd = self.deref_as_long(self.bins[idx])
-        bw = self.deref_as_long(self.bins[idx+1])
+        bw = self.deref_as_long(self.bins[idx + 1])
         return (fd, bw)
 
     def get_next(self):
@@ -517,7 +517,7 @@ class GlibcArena:
 
 
 class GlibcChunk:
-    """ Glibc chunk class.
+    """Glibc chunk class.
     Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/"""
 
     def __init__(self, addr, from_base=False):
@@ -542,7 +542,7 @@ class GlibcChunk:
     def get_usable_size(self):
         # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L4537
         cursz = self.get_chunk_size()
-        if cursz == 0x00: return cursz
+        if cursz == 0: return cursz
         if self.has_M_bit(): return cursz - 2*self.arch
         return cursz - self.arch
 
@@ -694,10 +694,10 @@ def _xlog(m, stream, cr=True):
         gdb.flush()
     return 0
 
-def err(msg, cr=True):   return _xlog(Color.colorify("[!]", attrs="bold red")+" "+msg, gdb.STDERR, cr)
-def warn(msg, cr=True):  return _xlog(Color.colorify("[*]", attrs="bold yellow")+" "+msg, gdb.STDLOG, cr)
-def ok(msg, cr=True):    return _xlog(Color.colorify("[+]", attrs="bold green")+" "+msg, gdb.STDLOG, cr)
-def info(msg, cr=True):  return _xlog(Color.colorify("[+]", attrs="bold blue")+" "+msg, gdb.STDLOG, cr)
+def err(msg, cr=True):   return _xlog("{} {}".format(Color.colorify("[!]", attrs="bold red"), msg), gdb.STDERR, cr)
+def warn(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[*]", attrs="bold yellow"), msg), gdb.STDLOG, cr)
+def ok(msg, cr=True):    return _xlog("{} {}".format(Color.colorify("[+]", attrs="bold green"), msg), gdb.STDLOG, cr)
+def info(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[+]", attrs="bold blue"), msg), gdb.STDLOG, cr)
 
 def show_exception():
     exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -3984,7 +3984,7 @@ class GlibcHeapArenaCommand(GenericCommand):
             return
 
         while True:
-            print("{:s}".format(arena,))
+            print("{}".format(arena))
             arena = arena.get_next()
             if arena is None:
                 break
@@ -4036,15 +4036,15 @@ class GlibcHeapBinsCommand(GenericCommand):
             self.usage()
             return
 
-        gdb.execute("heap bins {:s}".format(bin_t))
+        gdb.execute("heap bins {}".format(bin_t))
         return
 
     @staticmethod
-    def pprint_bin(arena_addr, bin_idx):
+    def pprint_bin(arena_addr, index):
         arena = GlibcArena(arena_addr)
-        fw, bk = arena.bin(bin_idx)
+        fw, bk = arena.bin(index)
 
-        ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(bin_idx, fw, bk))
+        ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(index, fw, bk))
         if bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF)):
             ok("Empty")
             return
@@ -4064,7 +4064,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
 
     _cmdline_ = "heap bins fast"
-    _syntax_  = "{:s} [ARENA_LOCATION]".format(_cmdline_)
+    _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)
 
     def __init__(self):
         super(GlibcHeapFastbinsYCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
@@ -4073,34 +4073,34 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
     @if_gdb_running
     def do_invoke(self, argv):
         main_arena = GlibcHeapCommand.get_main_arena()
-        arena = GlibcArena('*'+argv[0]) if len(argv)==1 else main_arena
+        arena = GlibcArena("*{:s}".format(argv[0])) if len(argv)==1 else main_arena
 
         if arena is None:
             err("Invalid Glibc arena")
             return
 
-        print(titlify("Information on FastBins of arena {:#x}".format(int(arena))))
+        print(titlify("Fastbins for arena {:#x}".format(int(arena))))
         for i in range(10):
-            m = "Fastbin[{:d}] ".format(i,)
+            print("Fastbin[{:d}] ".format(i), end="")
             # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1680
             chunk = arena.fastbin(i)
 
             while True:
                 if chunk is None:
-                    m+= "0x00"
+                    print("0x00", end="")
                     break
 
+                print("{:s}  {:s}  ".format(right_arrow, str(chunk)), end="")
                 try:
-                    m+= "{:s}  {:s}  ".format(right_arrow, str(chunk))
                     next_chunk = chunk.get_fwd_ptr()
-                    if next_chunk == 0x00:
+                    if next_chunk == 0:
                         break
 
                     chunk = GlibcChunk(next_chunk, from_base=True)
                 except gdb.MemoryError:
                     break
+            print()
 
-            print(m)
         return
 
 class GlibcHeapUnsortedBinsCommand(GenericCommand):
@@ -4108,7 +4108,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
     See: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1689"""
 
     _cmdline_ = "heap bins unsorted"
-    _syntax_  = "{:s} [ARENA_LOCATION]".format(_cmdline_)
+    _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)
 
     def __init__(self):
         super(GlibcHeapUnsortedBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
@@ -4120,16 +4120,16 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
             err("Incorrect Glibc arenas")
             return
 
-        arena_addr = "*{:#x}".format(int(argv[0], 16)) if len(argv)==1 else "main_arena"
-        print(titlify("Information on Unsorted Bin of arena '{:s}'".format(arena_addr)))
+        arena_addr = "*{:s}".format(argv[0]) if len(argv)==1 else "main_arena"
+        print(titlify("Unsorted Bin for arena '{:s}'".format(arena_addr)))
         GlibcHeapBinsCommand.pprint_bin(arena_addr, 0)
         return
 
 class GlibcHeapSmallBinsCommand(GenericCommand):
-    """Convience command for viewing small bins"""
+    """Convenience command for viewing small bins."""
 
     _cmdline_ = "heap bins small"
-    _syntax_  = "{:s} [ARENA_LOCATION]".format(_cmdline_)
+    _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)
 
     def __init__(self):
         super(GlibcHeapSmallBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
@@ -4141,17 +4141,17 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
             err("Incorrect Glibc arenas")
             return
 
-        arena_addr = "*{:#x}".format(int(argv[0],16)) if len(argv)==1 else "main_arena"
-        print(titlify("Information on Small Bins of arena '{:s}'".format(arena_addr)))
+        arena_addr = "*{:s}".format(argv[0]) if len(argv)==1 else "main_arena"
+        print(titlify("Small Bins for arena '{:s}'".format(arena_addr)))
         for i in range(1, 64):
             GlibcHeapBinsCommand.pprint_bin(arena_addr, i)
         return
 
 class GlibcHeapLargeBinsCommand(GenericCommand):
-    """Convience command for viewing large bins"""
+    """Convenience command for viewing large bins."""
 
     _cmdline_ = "heap bins large"
-    _syntax_  = "{:s} [ARENA_LOCATION]".format(_cmdline_)
+    _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)
 
     def __init__(self):
         super(GlibcHeapLargeBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
@@ -4163,8 +4163,8 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
             err("Incorrect Glibc arenas")
             return
 
-        arena_addr = "*{:#x}".format(int(argv[0],16)) if len(argv)==1 else "main_arena"
-        print(titlify("Information on Large Bins of arena '{:s}'".format(arena_addr)))
+        arena_addr = "*{:s}".format(argv[0]) if len(argv)==1 else "main_arena"
+        print(titlify("Large Bins for arena '{:s}'".format(arena_addr)))
         for i in range(64, 127):
             GlibcHeapBinsCommand.pprint_bin(arena_addr, i)
         return
