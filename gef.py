@@ -460,7 +460,7 @@ class GlibcArena:
         arena = gdb.parse_and_eval(addr)
         self.__arena = arena.cast(gdb.lookup_type("struct malloc_state"))
         self.__addr = long(arena.address)
-        self.__arch = long(get_memory_alignment(to_byte=True))
+        self.__arch = long(get_memory_alignment())
         return
 
     def __getitem__(self, item):
@@ -522,7 +522,7 @@ class GlibcChunk:
 
     def __init__(self, addr, from_base=False):
         """Init `addr` as a chunk"""
-        self.arch = int(get_memory_alignment(to_byte=True))
+        self.arch = int(get_memory_alignment())
         if from_base:
             self.start_addr = addr
             self.addr = addr + 2*self.arch
@@ -836,7 +836,7 @@ def _gef_disassemble_around(addr, nb_insn):
         elif is_arm_thumb():
             insn_len = 2
         else:
-            insn_len = get_memory_alignment(to_byte=True)
+            insn_len = get_memory_alignment()
         lines = _gef_disassemble_top(addr-(insn_len*(nb_insn-1)), nb_insn-1)
         lines+= _gef_disassemble_top(addr, nb_insn)
         return lines
@@ -1520,7 +1520,7 @@ def read_memory(addr, length=0x10):
 
 
 def read_int_from_memory(addr):
-    arch = get_memory_alignment(to_byte=True)
+    arch = get_memory_alignment()
     mem = read_memory(addr, arch)
     fmt = endian_str()+"I" if arch==4 else endian_str()+"Q"
     return struct.unpack(fmt, mem)[0]
@@ -1534,7 +1534,7 @@ def read_cstring_from_memory(address):
     res = gdb.Value(address).cast(char_ptr).string().strip()
 
     i = res.find('\n')
-    if i!=-1 and len(res) > get_memory_alignment(to_byte=True):
+    if i!=-1 and len(res) > get_memory_alignment():
         res = res[:i] + "[...]"
 
     return res
@@ -2145,11 +2145,11 @@ def set_arch():
 
     return
 
-def get_memory_alignment(to_byte=False):
+def get_memory_alignment(in_bits=False):
     if is_elf32():
-        return 32 if not to_byte else 4
+        return 4 if not in_bits else 32
     elif is_elf64():
-        return 64 if not to_byte else 8
+        return 8 if not in_bits else 64
 
     raise GefUnsupportedMode("GEF is running under an unsupported mode")
 
@@ -2163,14 +2163,14 @@ def clear_screen(tty=""):
     return
 
 def format_address(addr):
-    memalign_size = get_memory_alignment(to_byte=True)
+    memalign_size = get_memory_alignment()
     if memalign_size == 4:
         return "0x{:08x}".format(addr & 0xFFFFFFFF)
     elif memalign_size == 8:
         return "0x{:016x}".format(addr & 0xFFFFFFFFFFFFFFFF)
 
 def align_address(address):
-    if get_memory_alignment()==32:
+    if get_memory_alignment(in_bits=True)==32:
         ret = address & 0x00000000FFFFFFFF
     else:
         ret = address & 0xFFFFFFFFFFFFFFFF
@@ -2190,7 +2190,7 @@ def parse_address(address):
 
 def is_in_x86_kernel(address):
     address = align_address(address)
-    memalign = get_memory_alignment()-1
+    memalign = get_memory_alignment(in_bits=True)-1
     return (address >> memalign) == 0xF
 
 @memoize
@@ -2236,7 +2236,7 @@ def generate_cyclic_pattern(length):
     Create a cyclic pattern based on de Bruijn sequence.
     """
     charset = b"""abcdefghijklmnopqrstuvwxyz"""
-    cycle = get_memory_alignment(to_byte=True) if is_alive() else 4
+    cycle = get_memory_alignment() if is_alive() else 4
     i = 0
     res = []
 
@@ -2288,7 +2288,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
 
         if is_x86_32():
             sp = current_arch.sp
-            m = get_memory_alignment(to_byte=True)
+            m = get_memory_alignment()
             val = sp + (self.num_args * m) + m
             ptr = read_int_from_memory( val )
             addr = lookup_address( ptr )
@@ -2581,7 +2581,7 @@ class PCustomCommand(GenericCommand):
 
         self.deserialize(_class, data)
 
-        _regsize = get_memory_alignment(to_byte=True)
+        _regsize = get_memory_alignment()
         _offset = 0
 
         for field in _class._fields_:
@@ -5465,7 +5465,7 @@ class DereferenceCommand(GenericCommand):
             err("Missing location.")
             return
 
-        memalign = get_memory_alignment(to_byte=True)
+        memalign = get_memory_alignment()
         offset = 0
         regs = [(k.strip(), get_register_ex(k)) for k in current_arch.all_registers]
         sep = " {:s} ".format(right_arrow)
@@ -5549,7 +5549,7 @@ class DereferenceCommand(GenericCommand):
                 elif addr.section.permission.value & Permission.READ:
                     if is_readable_string(addr.value):
                         s = read_cstring_from_memory(addr.value)
-                        if len(s) < get_memory_alignment(to_byte=True):
+                        if len(s) < get_memory_alignment():
                             txt = '{:s} ("{:s}"?)'.format(format_address(deref), Color.greenify(s))
                         elif len(s) >= 50:
                             txt = Color.greenify('"{:s}[...]"'.format(s[:50]))
@@ -5983,7 +5983,7 @@ class PatternSearchCommand(GenericCommand):
     def search(self, pattern, size):
         try:
             addr = long( gdb.parse_and_eval(pattern) )
-            if get_memory_alignment() == 32:
+            if get_memory_alignment(in_bits=True) == 32:
                 pattern_be = struct.pack(">I", addr)
                 pattern_le = struct.pack("<I", addr)
             else:
