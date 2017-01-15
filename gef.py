@@ -196,9 +196,9 @@ class memoize(object):
 
 def reset_all_caches():
     """Free all memoized values."""
-    for s in dir(sys.modules['__main__']):
-        o = getattr(sys.modules['__main__'], s)
-        if hasattr(o, "cache") and len(o.cache)>0:
+    for s in dir(sys.modules["__main__"]):
+        o = getattr(sys.modules["__main__"], s)
+        if hasattr(o, "cache") and len(o.cache) > 0:
             o.cache = {}
     return
 
@@ -460,7 +460,7 @@ class GlibcArena:
         arena = gdb.parse_and_eval(addr)
         self.__arena = arena.cast(gdb.lookup_type("struct malloc_state"))
         self.__addr = long(arena.address)
-        self.__arch = long(get_memory_alignment(to_byte=True))
+        self.__arch = long(get_memory_alignment())
         return
 
     def __getitem__(self, item):
@@ -522,7 +522,7 @@ class GlibcChunk:
 
     def __init__(self, addr, from_base=False):
         """Init `addr` as a chunk"""
-        self.arch = int(get_memory_alignment(to_byte=True))
+        self.arch = int(get_memory_alignment())
         if from_base:
             self.start_addr = addr
             self.addr = addr + 2*self.arch
@@ -652,7 +652,7 @@ class GlibcChunk:
         return self._str_sizes()
 
     def str_as_freeed(self):
-        return self._str_sizes() + '\n'*2 + self._str_pointers()
+        return self._str_sizes() + "\n" * 2 + self._str_pointers()
 
     def __str__(self):
         m = ""
@@ -732,7 +732,7 @@ def which(program):
     raise IOError("Missing file `{:s}`".format(program))
 
 
-def hexdump(source, length=0x10, separator='.', show_raw=False, base=0x00):
+def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
     """
     Return the hexdump of `src` argument.
     @param source *MUST* be of type bytes or bytearray
@@ -748,18 +748,18 @@ def hexdump(source, length=0x10, separator='.', show_raw=False, base=0x00):
         s = source[i:i+length]
 
         if PYTHON_MAJOR == 3:
-            hexa = ' '.join(["{:02x}".format(c) for c in s])
-            text = ''.join( [chr(c) if 0x20 <= c < 0x7F else separator for c in s] )
+            hexa = " ".join(["{:02x}".format(c) for c in s])
+            text = "".join([chr(c) if 0x20 <= c < 0x7F else separator for c in s])
         else:
-            hexa = ' '.join(["{:02x}".format(ord(c)) for c in s])
-            text = ''.join( [c if 0x20 <= ord(c) < 0x7F else separator for c in s] )
+            hexa = " ".join(["{:02x}".format(ord(c)) for c in s])
+            text = "".join([c if 0x20 <= ord(c) < 0x7F else separator for c in s])
 
         if show_raw:
             result.append(hexa)
         else:
             result.append("{addr:#0{aw}x}     {data:<{dw}}    {text}".format(aw=18, addr=base+i, dw=3*length, data=hexa, text=text))
 
-    return '\n'.join(result)
+    return "\n".join(result)
 
 
 def is_debug():
@@ -836,7 +836,7 @@ def _gef_disassemble_around(addr, nb_insn):
         elif is_arm_thumb():
             insn_len = 2
         else:
-            insn_len = get_memory_alignment(to_byte=True)
+            insn_len = get_memory_alignment()
         lines = _gef_disassemble_top(addr-(insn_len*(nb_insn-1)), nb_insn-1)
         lines+= _gef_disassemble_top(addr, nb_insn)
         return lines
@@ -870,7 +870,7 @@ def _gef_disassemble_around(addr, nb_insn):
 
         # we assume here that it was successful (very likely)
         found = True
-        lines = [ x.replace('=>', '') for x in lines[-nb_insn:-1] ]
+        lines = [x.replace("=>", "") for x in lines[-nb_insn:-1]]
         break
 
     if not found:
@@ -889,28 +889,28 @@ def gef_disassemble(addr, nb_insn, from_top=False):
     result = []
     for line in lines:
         (address, location, mnemo, operands) = gef_parse_gdb_instruction(line)
-        code = "{:s}     {:s}   {:s}".format(location, mnemo, ','.join(operands))
-        result.append( (address, code) )
+        code = "{:s}     {:s}   {:s}".format(location, mnemo, ",".join(operands))
+        result.append((address, code))
     return result
 
 
 def gef_parse_gdb_instruction(raw_insn):
-    raw_insn = raw_insn.strip().replace('\t', ' ').replace(':', ' ')
-    patt = re.compile(r'^(0x[0-9a-f]{,16})(.*)$', flags=re.IGNORECASE)
-    parts = [ x for x in re.split(patt, raw_insn) if len(x)>0 ]
+    raw_insn = raw_insn.strip().replace("\t", " ").replace(":", " ")
+    patt = re.compile(r"^(0x[0-9a-f]{,16})(.*)$", flags=re.IGNORECASE)
+    parts = [x for x in re.split(patt, raw_insn) if len(x) > 0]
     address = int(parts[0], 16)
     code = parts[1].strip()
     parts = code.split()
     if code.startswith("<"):
-        j = parts[0].find('>')
-        location = parts[0][:j+1]
+        j = parts[0].find(">")
+        location = parts[0][:j + 1]
         mnemo = parts[1]
         operands = " ".join(parts[2:])
     else:
         location = ""
         mnemo = parts[0]
         operands = " ".join(parts[1:])
-    operands = operands.split(',')
+    operands = operands.split(",")
     return (address, location, mnemo, operands)
 
 
@@ -925,7 +925,7 @@ def gef_execute_external(command, as_list=False, *args, **kwargs):
 
 
 def gef_execute_gdb_script(source):
-    fd, fname = tempfile.mkstemp(suffix='.gdb', prefix='gef_')
+    fd, fname = tempfile.mkstemp(suffix=".gdb", prefix="gef_")
     with os.fdopen(fd, "w") as f:
         f.write(source)
         f.flush()
@@ -983,19 +983,19 @@ def checksec(filename, prop, print_result):
     res = 0
 
     if prop == "canary" or prop == "all":
-        res += check_security_property("Canary", "-s", filename, r'__stack_chk_fail', True, print_result)
+        res += check_security_property("Canary", "-s", filename, r"__stack_chk_fail", True, print_result)
     if prop == "nx" or prop == "all":
-        res += check_security_property("NX Support", "-W -l", filename, r'GNU_STACK.*RWE', False, print_result)
+        res += check_security_property("NX Support", "-W -l", filename, r"GNU_STACK.*RWE", False, print_result)
     if prop == "pie" or prop == "all":
-        res += check_security_property("PIE Support", "-h", filename, r'Type:.*EXEC', False, print_result)
+        res += check_security_property("PIE Support", "-h", filename, r"Type:.*EXEC", False, print_result)
     if prop == "rpath" or prop == "all":
-        res += check_security_property("No RPATH", "-d -l", filename, r'rpath', False, print_result)
+        res += check_security_property("No RPATH", "-d -l", filename, r"rpath", False, print_result)
     if prop == "runpath" or prop == "all":
-        res += check_security_property("No RUNPATH", "-d -l", filename, r'runpath', False, print_result)
+        res += check_security_property("No RUNPATH", "-d -l", filename, r"runpath", False, print_result)
     if prop == "lazy_relro" or prop == "all":
-        res += check_security_property("Partial RelRO", "-l", filename, r'GNU_RELRO', True, print_result)
+        res += check_security_property("Partial RelRO", "-l", filename, r"GNU_RELRO", True, print_result)
     if prop == "full_relro" or prop == "all":
-        res += check_security_property("Full RelRO", "-d", filename, r'BIND_NOW', True, print_result)
+        res += check_security_property("Full RelRO", "-d", filename, r"BIND_NOW", True, print_result)
 
     return res
 
@@ -1087,7 +1087,7 @@ class ARM(Architecture):
         6: "fast",
         5: "thumb"
     }
-    function_parameters = ['$r0','$r1','$r2','$r3']
+    function_parameters = ["$r0", "$r1", "$r2", "$r3"]
 
     def is_call(self, insn):
         return False
@@ -1153,7 +1153,7 @@ class AARCH64(ARM):
         7: "interrupt",
         6: "fast"
     }
-    function_parameters = ['$x0','$x1','$x2','$x3']
+    function_parameters = ["$x0", "$x1", "$x2", "$x3"]
 
     def flag_register_to_human(self, val=None):
         # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
@@ -1264,7 +1264,7 @@ class X86_64(X86):
         "$r13   ", "$r14   ", "$r15   ",
         "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags",]
     return_register = "$rax"
-    function_parameters = ['$rdi', '$rsi', '$rdx', '$rcx', '$r8', '$r9']
+    function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
@@ -1288,7 +1288,7 @@ class PowerPC(Architecture):
         "$r16 ", "$r17 ", "$r18 ", "$r19 ", "$r20 ", "$r21 ", "$r22 ", "$r23 ",
         "$r24 ", "$r25 ", "$r26 ", "$r27 ", "$r28 ", "$r29 ", "$r30 ", "$r31 ",
         "$pc  ", "$msr ", "$cr  ", "$lr  ", "$ctr ", "$xer ", "$trap",]
-    nop_insn = b'\x60\x00\x00\x00' # http://www.ibm.com/developerworks/library/l-ppc/index.html
+    nop_insn = b"\x60\x00\x00\x00" # http://www.ibm.com/developerworks/library/l-ppc/index.html
     return_register = "$r0"
     flag_register = "$cr"
     flags_table = {
@@ -1301,7 +1301,7 @@ class PowerPC(Architecture):
         30: "equal",
         31: "overflow",
     }
-    function_parameters = ['$i0', '$i1', '$i2','$i3','$i4', '$i5' ]
+    function_parameters = ["$i0", "$i1", "$i2", "$i3", "$i4", "$i5"]
 
     def flag_register_to_human(self, val=None):
         # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
@@ -1365,7 +1365,7 @@ class SPARC(Architecture):
         "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ", "$i7 ",
         "$pc ", "$npc", "$sp ", "$fp ", "$psr",]
     # http://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
-    nop_insn = b'\x00\x00\x00\x00' # sethi 0, %g0
+    nop_insn = b"\x00\x00\x00\x00"  # sethi 0, %g0
     return_register = "$i0"
     flag_register = "$psr"
     flags_table = {
@@ -1457,7 +1457,7 @@ class MIPS(Architecture):
     return_register = "$v0"
     flag_register = "$fcsr"
     flags_table = {}
-    function_parameters = ['$a0','$a1','$a2','$a3']
+    function_parameters = ["$a0", "$a1", "$a2", "$a3"]
 
     def flag_register_to_human(self, val=None):
         # mips architecture does not use processor status word (flag register)
@@ -1520,7 +1520,7 @@ def read_memory(addr, length=0x10):
 
 
 def read_int_from_memory(addr):
-    arch = get_memory_alignment(to_byte=True)
+    arch = get_memory_alignment()
     mem = read_memory(addr, arch)
     fmt = endian_str()+"I" if arch==4 else endian_str()+"Q"
     return struct.unpack(fmt, mem)[0]
@@ -1533,8 +1533,8 @@ def read_cstring_from_memory(address):
     char_ptr = gdb.lookup_type("char").pointer()
     res = gdb.Value(address).cast(char_ptr).string().strip()
 
-    i = res.find('\n')
-    if i!=-1 and len(res) > get_memory_alignment(to_byte=True):
+    i = res.find("\n")
+    if i != -1 and len(res) > get_memory_alignment():
         res = res[:i] + "[...]"
 
     return res
@@ -1642,8 +1642,8 @@ def download_file(target, use_cache=False):
     """Download filename `target` inside the mirror tree in /tmp"""
     try:
         local_root = GEF_TEMP_DIR
-        local_path = local_root + '/' + os.path.dirname( target )
-        local_name = local_path + '/' + os.path.basename( target )
+        local_path = local_root + "/" + os.path.dirname(target)
+        local_name = local_path + "/" + os.path.basename(target)
         if use_cache and os.path.isfile(local_name):
             return local_name
         gef_makedirs(local_path)
@@ -1702,7 +1702,7 @@ def __get_process_maps_linux(proc_map_file):
             pathname = ""
         else:
             inode = rest[0]
-            pathname = rest[1].replace(' ', '')
+            pathname = rest[1].replace(" ", "")
 
         addr_start, addr_end = addr.split("-")
         addr_start, addr_end = long(addr_start, 16), long(addr_end, 16)
@@ -1818,7 +1818,7 @@ def get_info_files():
         if not line.startswith("0x"):
             continue
 
-        blobs = [x.strip() for x in line.split(' ')]
+        blobs = [x.strip() for x in line.split(" ")]
         addr_start = long(blobs[0], 16)
         addr_end = long(blobs[2], 16)
         section_name = blobs[4]
@@ -1890,7 +1890,7 @@ def XOR(data, key):
     key = key.lstrip("0x")
     key = binascii.unhexlify(key)
     if PYTHON_MAJOR == 2:
-        return b''.join([chr(ord(x) ^ ord(y)) for (x,y) in zip(data, itertools.cycle(key))])
+        return b"".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(data, itertools.cycle(key))])
 
     return bytearray([x ^ y for (x,y) in zip(data, itertools.cycle(key))])
 
@@ -1931,7 +1931,7 @@ def get_terminal_size():
     """
     Portable function to retrieve the current terminal size.
     """
-    cmd = struct.unpack('hh',  fcntl.ioctl(1, termios.TIOCGWINSZ, '1234'))
+    cmd = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, "1234"))
     tty_rows, tty_columns = int(cmd[0]), int(cmd[1])
     return tty_rows, tty_columns
 
@@ -2014,7 +2014,7 @@ def get_keystone_arch(arch=None, mode=None, endian=None, to_string=False):
 
 def get_unicorn_registers(to_string=False):
     "Returns a dict matching the Unicorn identifier for a specific register."
-    unicorn = sys.modules['unicorn']
+    unicorn = sys.modules["unicorn"]
     regs = {}
 
     if current_arch is not None:
@@ -2145,11 +2145,11 @@ def set_arch():
 
     return
 
-def get_memory_alignment(to_byte=False):
+def get_memory_alignment(in_bits=False):
     if is_elf32():
-        return 32 if not to_byte else 4
+        return 4 if not in_bits else 32
     elif is_elf64():
-        return 64 if not to_byte else 8
+        return 8 if not in_bits else 64
 
     raise GefUnsupportedMode("GEF is running under an unsupported mode")
 
@@ -2159,18 +2159,18 @@ def clear_screen(tty=""):
         return
 
     with open(tty, "w") as f:
-        f.write('\x1b[H\x1b[J')
+        f.write("\x1b[H\x1b[J")
     return
 
 def format_address(addr):
-    memalign_size = get_memory_alignment(to_byte=True)
+    memalign_size = get_memory_alignment()
     if memalign_size == 4:
         return "0x{:08x}".format(addr & 0xFFFFFFFF)
     elif memalign_size == 8:
         return "0x{:016x}".format(addr & 0xFFFFFFFFFFFFFFFF)
 
 def align_address(address):
-    if get_memory_alignment()==32:
+    if get_memory_alignment(in_bits=True)==32:
         ret = address & 0x00000000FFFFFFFF
     else:
         ret = address & 0xFFFFFFFFFFFFFFFF
@@ -2190,7 +2190,7 @@ def parse_address(address):
 
 def is_in_x86_kernel(address):
     address = align_address(address)
-    memalign = get_memory_alignment()-1
+    memalign = get_memory_alignment(in_bits=True)-1
     return (address >> memalign) == 0xF
 
 @memoize
@@ -2236,7 +2236,7 @@ def generate_cyclic_pattern(length):
     Create a cyclic pattern based on de Bruijn sequence.
     """
     charset = b"""abcdefghijklmnopqrstuvwxyz"""
-    cycle = get_memory_alignment(to_byte=True) if is_alive() else 4
+    cycle = get_memory_alignment() if is_alive() else 4
     i = 0
     res = []
 
@@ -2253,7 +2253,7 @@ def dereference(addr):
     gef-wrapper for gdb dereference fonction.
     """
     try:
-        unsigned_long_type = gdb.lookup_type('unsigned long').pointer()
+        unsigned_long_type = gdb.lookup_type("unsigned long").pointer()
         ret = gdb.Value(addr).cast(unsigned_long_type).dereference()
     except gdb.MemoryError:
         if is_debug():
@@ -2288,7 +2288,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
 
         if is_x86_32():
             sp = current_arch.sp
-            m = get_memory_alignment(to_byte=True)
+            m = get_memory_alignment()
             val = sp + (self.num_args * m) + m
             ptr = read_int_from_memory( val )
             addr = lookup_address( ptr )
@@ -2433,7 +2433,7 @@ class GenericCommand(gdb.Command):
 
     @settings.getter
     def settings(self):
-        return { x.split('.', 1)[1]: __config__[x] for x in __config__.keys() \
+        return { x.split(".", 1)[1]: __config__[x] for x in __config__.keys() \
                  if x.startswith("{:s}.".format(self._cmdline_)) }
 
     def get_setting(self, name): return self.settings[name][1](self.settings[name][0])
@@ -2478,7 +2478,7 @@ class PCustomCommand(GenericCommand):
 
     def __init__(self):
         super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL, prefix=False)
-        self.add_setting("struct_path", GEF_TEMP_DIR+'/structs', "Path to store/load the structure ctypes files")
+        self.add_setting("struct_path", GEF_TEMP_DIR + "/structs", "Path to store/load the structure ctypes files")
         return
 
     def do_invoke(self, argv):
@@ -2560,7 +2560,7 @@ class PCustomCommand(GenericCommand):
 
     def list_all_structs(self, modname):
         _mod = self.get_module(modname)
-        _invalid = set(['BigEndianStructure', 'LittleEndianStructure', 'Structure',])
+        _invalid = set(["BigEndianStructure", "LittleEndianStructure", "Structure"])
         _structs = set([ x for x in dir(_mod) \
                          if inspect.isclass(getattr(_mod, x)) \
                          and issubclass( getattr(_mod, x), ctypes.Structure) ])
@@ -2581,7 +2581,7 @@ class PCustomCommand(GenericCommand):
 
         self.deserialize(_class, data)
 
-        _regsize = get_memory_alignment(to_byte=True)
+        _regsize = get_memory_alignment()
         _offset = 0
 
         for field in _class._fields_:
@@ -2652,7 +2652,7 @@ class PCustomCommand(GenericCommand):
             b"(Structure):\n",
             b"    _fields_ = []\n"
         ]
-        return b''.join(d)
+        return b"".join(d)
 
 
     def list_custom_structures(self):
@@ -2767,9 +2767,9 @@ class RetDecCommand(GenericCommand):
         if self.send_to_retdec(params)==False:
             return
 
-        fname = self.get_setting("path") + '/' + os.path.basename(filename) + '.c'
-        with open(fname, 'r') as f:
-            p = re.compile(r'unknown_([a-f0-9]+)')
+        fname = os.path.join(self.get_setting("path"), "{}.c".format(os.path.basename( filename)))
+        with open(fname, "r") as f:
+            p = re.compile(r"unknown_([a-f0-9]+)")
             for l in f.readlines():
                 l = l.rstrip()
                 if len(l.strip())==0 or l.strip().startswith("//"):
@@ -3071,7 +3071,7 @@ class IdaInteractCommand(GenericCommand):
                     elif size == 8: csize = b"c_uint64"
                     else:           csize = b"c_byte * " + bytes(str(size), encoding="utf-8")
                     m = [b'        ("', name, b'", ', csize, b'),\n']
-                    f.write(b''.join(m))
+                    f.write(b"".join(m))
                 f.write(b"]\n")
         ok("Success, {:d} structure{:s} imported".format(len(structs.keys()),
                                                          "s" if len(structs.keys())>1 else ""))
@@ -3150,7 +3150,7 @@ class FlagsCommand(GenericCommand):
             action = flag[0]
             name = flag[1:].lower()
 
-            if action not in ('+', '-', '~'):
+            if action not in ("+", "-", "~"):
                 err("Invalid action for flag '{:s}'".format(flag))
                 continue
 
@@ -3164,10 +3164,10 @@ class FlagsCommand(GenericCommand):
                     break
 
             old_flag = get_register_ex(current_arch.flag_register)
-            if action=='+':
-                new_flags = old_flag | (1<<off)
-            elif action=='-':
-                new_flags = old_flag & ~(1<<off)
+            if action == "+":
+                new_flags = old_flag | (1 << off)
+            elif action == "-":
+                new_flags = old_flag & ~(1 << off)
             else:
                 new_flags = old_flag ^ (1<<off)
 
@@ -3355,7 +3355,7 @@ def hook_code(emu, address, size, user_data):
     return
 
 def interact(emu, regs):
-    readline.parse_and_bind('tab: complete')
+    readline.parse_and_bind("tab: complete")
     vars = globals().copy()
     vars.update(locals())
     code.InteractiveConsole(vars).interact(banner="[+] Spawning Python interactive shell with Unicorn, use `uc` to interact with the emulated session")
@@ -3369,7 +3369,7 @@ def print_regs(emu, regs):
 def reset():
 """ % (fname, start_insn_addr, end_insn_addr, ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers.keys()]), arch, mode)
 
-        unicorn = sys.modules['unicorn']
+        unicorn = sys.modules["unicorn"]
         if verbose:
             info("Initializing Unicorn engine")
 
@@ -3408,13 +3408,13 @@ def reset():
             if to_script:
                 content += "    emu.mem_map(%#x, %d, %d)\n" % (FS, page_sz, 3)
                 content += "    emu.mem_map(%#x, %d, %d)\n" % (GS, page_sz, 3)
-                content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers['$fs    '], FS)
-                content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers['$gs    '], GS)
+                content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers["$fs    "], FS)
+                content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers["$gs    "], GS)
             else:
                 emu.mem_map(FS, page_sz, 3)
                 emu.mem_map(GS, page_sz, 3)
-                emu.reg_write(unicorn_registers['$fs    '], FS)
-                emu.reg_write(unicorn_registers['$gs    '], GS)
+                emu.reg_write(unicorn_registers["$fs    "], FS)
+                emu.reg_write(unicorn_registers["$gs    "], GS)
 
 
         for sect in vmmap:
@@ -3471,7 +3471,7 @@ def emulate(emu, start_addr, end_addr):
         emu.emu_start(start_addr, end_addr)
     except Exception as e:
         emu.emu_stop()
-        print('Error: {}'.format(e))
+        print("Error: {}".format(e))
 
     # Registers final states
     print_regs(emu, regs)
@@ -3486,7 +3486,7 @@ if __name__ == "__main__":
 # unicorn-engine script generated by gef
 """ % (start_insn_addr, end_insn_addr)
 
-            with open(to_script, 'w') as f:
+            with open(to_script, "w") as f:
                 f.write(content)
 
             info("Unicorn script generated as '%s'" % to_script)
@@ -3507,7 +3507,7 @@ if __name__ == "__main__":
 
         for r in current_arch.all_registers:
             # ignoring $fs and $gs because of the dirty hack we did to emulate the selectors
-            if r in ('$gs    ', '$fs    '): continue
+            if r in ("$gs    ", "$fs    "): continue
 
             end_regs[r] = emu.reg_read(unicorn_registers[r])
             tainted = ( start_regs[r] != end_regs[r] )
@@ -3803,7 +3803,7 @@ class NopCommand(GenericCommand):
 
         if retval is not None:
             reg = current_arch.return_register
-            addr = '*'+format_address(loc)
+            addr = "*{}".format(format_address(loc))
             SetRegisterBreakpoint(addr, reg, retval)
         return
 
@@ -3837,9 +3837,9 @@ class CapstoneDisassembleCommand(GenericCommand):
     @if_gdb_running
     def do_invoke(self, argv):
         location, length = current_arch.pc, 0x10
-        opts, args = getopt.getopt(argv, 'n:x:')
-        for o,a in opts:
-            if  o == "-n":
+        opts, args = getopt.getopt(argv, "n:x:")
+        for o, a in opts:
+            if o == "-n":
                 length = long(a)
             elif o == "-x":
                 k, v = a.split(":", 1)
@@ -3861,7 +3861,7 @@ class CapstoneDisassembleCommand(GenericCommand):
 
     @staticmethod
     def disassemble(location, max_inst, *args, **kwargs):
-        capstone    = sys.modules['capstone']
+        capstone    = sys.modules["capstone"]
         arch, mode  = get_capstone_arch()
         cs          = capstone.Cs(arch, mode)
         cs.detail   = True
@@ -3896,7 +3896,7 @@ class CapstoneDisassembleCommand(GenericCommand):
 
     @staticmethod
     def __cs_analyze_insn(insn, arch, is_pc=True):
-        cs = sys.modules['capstone']
+        cs = sys.modules["capstone"]
 
         m = ""
         m+= Color.greenify(insn.mnemonic)
@@ -3906,17 +3906,17 @@ class CapstoneDisassembleCommand(GenericCommand):
         if is_pc:
             m+= Color.redify("\t"+left_arrow+" $pc ")
 
-        m+= '\n' + '\t'*5
+        m+= "\n" + "\t"*5
 
         # implicit read
         if len(insn.regs_read) > 0:
-            m+= "Read:[{:s}] ".fornat( ','.join([insn.reg_name(x) for x in insn.regs_read]) )
-            m+= '\n' + '\t'*5
+            m+= "Read:[{:s}] ".fornat( ",".join([insn.reg_name(x) for x in insn.regs_read]) )
+            m+= "\n" + "\t"*5
 
         # implicit write
         if len(insn.regs_write) > 0:
-            m+= "Write:[{:s}] ".format( ','.join([insn.reg_name(x) for x in insn.regs_write]) )
-            m+= '\n' + '\t'*5
+            m+= "Write:[{:s}] ".format( ",".join([insn.reg_name(x) for x in insn.regs_write]) )
+            m+= "\n" + "\t"*5
 
         if   is_x86_32():  reg, imm, mem = cs.x86.X86_OP_REG, cs.x86.X86_OP_IMM, cs.x86.X86_OP_MEM
         elif is_x86_64():  reg, imm, mem = cs.x86.X86_OP_REG, cs.x86.X86_OP_IMM, cs.x86.X86_OP_MEM
@@ -3939,7 +3939,7 @@ class CapstoneDisassembleCommand(GenericCommand):
                 elif op.value.mem.disp < 0:
                     m+="MEM={:s}{:#x} ".format(insn.reg_name(op.value.mem.base), op.value.mem.disp,)
 
-            m+= '\n' + '\t'*5
+            m += "\n" + "\t" * 5
 
         return m
 
@@ -4022,7 +4022,7 @@ class GlibcHeapBinsCommand(GenericCommand):
 
     _bins_type_ = [ "fast", "unsorted", "small", "large"]
     _cmdline_ = "heap bins"
-    _syntax_  = "{:s} [{:s}]".format(_cmdline_, '|'.join(_bins_type_))
+    _syntax_ = "{:s} [{:s}]".format(_cmdline_, "|".join(_bins_type_))
 
     @if_gdb_running
     def do_invoke(self, argv):
@@ -4449,8 +4449,8 @@ class ShellcodeGetCommand(GenericCommand):
 
         ret  = gef_pystring(http.read())
 
-        info("Downloading shellcode id={:d}".format (sid))
-        fd, fname = tempfile.mkstemp(suffix=".txt", prefix="sc-", text=True, dir='/tmp')
+        info("Downloading shellcode id={:d}".format(sid))
+        fd, fname = tempfile.mkstemp(suffix=".txt", prefix="sc-", text=True, dir="/tmp")
         data = ret.split("\n")[7:-11]
         buf = "\n".join(data)
         buf = HTMLParser().unescape( buf )
@@ -4481,8 +4481,8 @@ class RopperCommand(GenericCommand):
 
 
     def do_invoke(self, argv):
-        ropper = sys.modules['ropper']
-        argv.append('--file')
+        ropper = sys.modules["ropper"]
+        argv.append("--file")
         argv.append(get_filepath())
         try:
             ropper.start(argv)
@@ -4535,7 +4535,7 @@ class ROPgadgetCommand(GenericCommand):
             multibr    = None
 
 
-        ropgadget = sys.modules['ropgadget']
+        ropgadget = sys.modules["ropgadget"]
         args = FakeArgs()
         if self.parse_args(args, argv):
             ropgadget.core.Core( args ).analyze()
@@ -4571,8 +4571,8 @@ class ROPgadgetCommand(GenericCommand):
                     depth = value
                     info("Using depth {:d}".format (depth))
                 elif name == "range":
-                    off_min = long(value.split('-')[0], 16)
-                    off_max = long(value.split('-')[1], 16)
+                    off_min = long(value.split("-")[0], 16)
+                    off_max = long(value.split("-")[1], 16)
                     if off_max < off_min:
                         raise ValueError("{:#x} must be higher that {:#x}".format (off_max, off_min))
                     info("Using range [{:#x}:{:#x}] ({:ld} bytes)".format (off_min, off_max, (off_max-off_min)))
@@ -4739,7 +4739,7 @@ class ProcessListingCommand(GenericCommand):
 
         for process in processes:
             pid = int(process["pid"])
-            command = process['command']
+            command = process["command"]
 
             if not re.search(pattern, command):
                 continue
@@ -4755,8 +4755,8 @@ class ProcessListingCommand(GenericCommand):
                 gdb.execute("attach {:d}".format (pid))
                 return None
 
-            line = [ process[i] for i in ("pid", "user", "cpu", "mem", "tty", "command") ]
-            print ( '\t\t'.join(line) )
+            line = [process[i] for i in ("pid", "user", "cpu", "mem", "tty", "command")]
+            print("\t\t".join(line))
 
         return None
 
@@ -4764,15 +4764,15 @@ class ProcessListingCommand(GenericCommand):
     def ps(self):
         processes = []
         output = gef_execute_external(self.get_setting("ps_command").split(), True)
-        names = [x.lower().replace('%','') for x in output[0].split()]
+        names = [x.lower().replace("%", "") for x in output[0].split()]
 
         for line in output[1:]:
             fields = line.split()
             t = {}
 
             for i in range(len(names)):
-                if i==len(names)-1:
-                    t[ names[i] ] = ' '.join(fields[i:])
+                if i == len(names) - 1:
+                    t[names[i]] = " ".join(fields[i:])
                 else:
                     t[ names[i] ] = fields[i]
 
@@ -4999,7 +4999,7 @@ class ContextCommand(GenericCommand):
                 continue
             layout_mapping[pane]()
 
-        self.context_title('')
+        self.context_title("")
 
         if len(redirect)>0 and os.access(redirect, os.W_OK):
             disable_redirect_output()
@@ -5016,7 +5016,7 @@ class ContextCommand(GenericCommand):
 
         trail_len = len(m)+8
         title = ""
-        title+= Color.colorify("{:{padd}<{width}}[ ".format('',
+        title+= Color.colorify("{:{padd}<{width}}[ ".format("",
                                                             width=self.tty_columns-trail_len,
                                                             padd=horizontal_line),
                                attrs=line_color)
@@ -5156,7 +5156,7 @@ class ContextCommand(GenericCommand):
                 return
 
             fpath = symtab.fullname()
-            with open(fpath, 'r') as f:
+            with open(fpath, "r") as f:
                 lines = [l.rstrip() for l in f.readlines()]
 
         except Exception as e:
@@ -5375,9 +5375,10 @@ class HexdumpCommand(GenericCommand):
         endianness = "<" if elf.e_endianness == 0x01 else ">"
         i = 0
 
-        formats = { 'q': ('Q', 8),
-                    'd': ('I', 4),
-                    'w': ('H', 2),
+        formats = {
+            "q": ("Q", 8),
+            "d": ("I", 4),
+            "w": ("H", 2),
         }
         r, l = formats[arrange_as]
         fmt_str = "#x+%.4x "+vertical_line+" %#."+str(l*2)+"x"
@@ -5465,7 +5466,7 @@ class DereferenceCommand(GenericCommand):
             err("Missing location.")
             return
 
-        memalign = get_memory_alignment(to_byte=True)
+        memalign = get_memory_alignment()
         offset = 0
         regs = [(k.strip(), get_register_ex(k)) for k in current_arch.all_registers]
         sep = " {:s} ".format(right_arrow)
@@ -5485,8 +5486,8 @@ class DereferenceCommand(GenericCommand):
                 if current_address == regvalue:
                     values.append(regname)
 
-            if len(values)>0:
-                m = "\t{:s}{:s}".format(left_arrow, ', '.join(list(values)))
+            if len(values) > 0:
+                m = "\t{:s}{:s}".format(left_arrow, ", ".join(list(values)))
                 l += Color.colorify(m, attrs="bold green")
 
             offset += memalign
@@ -5534,7 +5535,7 @@ class DereferenceCommand(GenericCommand):
             # otherwise try to parse the value
             if addr.section:
                 if addr.section.is_executable() and addr.is_in_text_segment():
-                    cmd = gdb.execute("x/1i {:#x}".format(addr.value), to_string=True).replace("=>", '')
+                    cmd = gdb.execute("x/1i {:#x}".format(addr.value), to_string=True).replace("=>", "")
                     # GDB bug
                     # sometimes on some archs, GDB will return 2 (or more) insns when given x/1i @addr
                     # we address that bug by ensuring that only 1 line is given
@@ -5549,7 +5550,7 @@ class DereferenceCommand(GenericCommand):
                 elif addr.section.permission.value & Permission.READ:
                     if is_readable_string(addr.value):
                         s = read_cstring_from_memory(addr.value)
-                        if len(s) < get_memory_alignment(to_byte=True):
+                        if len(s) < get_memory_alignment():
                             txt = '{:s} ("{:s}"?)'.format(format_address(deref), Color.greenify(s))
                         elif len(s) >= 50:
                             txt = Color.greenify('"{:s}[...]"'.format(s[:50]))
@@ -5983,7 +5984,7 @@ class PatternSearchCommand(GenericCommand):
     def search(self, pattern, size):
         try:
             addr = long( gdb.parse_and_eval(pattern) )
-            if get_memory_alignment() == 32:
+            if get_memory_alignment(in_bits=True) == 32:
                 pattern_be = struct.pack(">I", addr)
                 pattern_le = struct.pack("<I", addr)
             else:
@@ -6060,11 +6061,11 @@ class FormatStringSearchCommand(GenericCommand):
 
     def do_invoke(self, argv):
         dangerous_functions = {
-            'printf':     0,
-            'sprintf':    1,
-            'fprintf':    1,
-            'snprintf':   2,
-            'vsnprintf':  2,
+            "printf": 0,
+            "sprintf": 1,
+            "fprintf": 1,
+            "snprintf": 2,
+            "vsnprintf": 2,
         }
 
         enable_redirect_output("/dev/null")
@@ -6168,10 +6169,12 @@ class GefCommand(gdb.Command):
                 gdb.execute("source {:s}".format(bkp_fname))
 
             # add hook for autosave breakpoints on quit command
-            source = ["define hook-quit",
-                      " save breakpoints {:s}".format(bkp_fname),
-                      "end"]
-            gef_execute_gdb_script('\n'.join(source) + '\n')
+            source = [
+                "define hook-quit",
+                " save breakpoints {:s}".format(bkp_fname),
+                "end"
+            ]
+            gef_execute_gdb_script("\n".join(source) + "\n")
 
         return
 
@@ -6204,7 +6207,7 @@ class GefCommand(gdb.Command):
             try:
                 if " " in cmd:
                     # if subcommand, check root command is loaded
-                    root = cmd.split(' ', 1)[0]
+                    root = cmd.split(" ", 1)[0]
                     if not is_loaded(root):
                         continue
 
@@ -6374,12 +6377,12 @@ class GefConfigCommand(gdb.Command):
             if setting.startswith(text):
                 completion.append(setting)
 
-        if len(completion)==1:
-            if '.' not in text:
+        if len(completion) == 1:
+            if "." not in text:
                 return completion
 
             choice = completion[0]
-            i = choice.find('.')+1
+            i = choice.find(".") + 1
             return [choice[i:]]
 
         return completion
@@ -6446,7 +6449,7 @@ class GefRestoreCommand(gdb.Command):
                     old_value, _type, _ = __config__.get(key)
                     new_value = cfg.get(section, optname)
                     if _type == bool:
-                        new_value = True if new_value=='True' else False
+                        new_value = True if new_value == "True" else False
                     else:
                         new_value = _type(new_value)
                     __config__[key][0] = new_value
