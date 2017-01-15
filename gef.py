@@ -59,6 +59,7 @@ import subprocess
 import sys
 import tempfile
 import termios
+import time
 import traceback
 
 
@@ -6475,9 +6476,9 @@ class GefAlias(gdb.Command):
 
 
 class GefAliases(gdb.Command):
-    """List all custom aliases.    """
+    """List all custom aliases."""
     def __init__(self):
-        super(GefAliases, self).__init__("aliases", gdb.COMMAND_NONE)
+        super(GefAliases, self).__init__("aliases", gdb.COMMAND_USER, gdb.COMPLETE_NONE)
         return
 
     def invoke(self, args, from_tty):
@@ -6487,6 +6488,77 @@ class GefAliases(gdb.Command):
         ok("Aliases defined:")
         for _alias in __aliases__:
             print("{:30s} {} {}".format(_alias._alias, right_arrow, _alias._command))
+        return
+
+
+class GefTmuxSetup(gdb.Command):
+    """Setup a confortable tmux debugging environment."""
+    def __init__(self):
+        super(GefTmuxSetup, self).__init__("tmux-setup", gdb.COMMAND_USER, gdb.COMPLETE_NONE)
+        GefAlias("screen-setup", "tmux-setup")
+        return
+
+    def invoke(self, args, from_tty):
+        self.dont_repeat()
+
+        tmux = os.getenv("TMUX")
+        if tmux is not None and len(tmux)>0:
+            self.tmux_setup()
+            return
+
+        screen = os.getenv("TERM")
+        if screen is not None and screen=="screen":
+            self.screen_setup()
+            return
+
+        warn("Not in a tmux/screen session")
+        return
+
+
+    def tmux_setup(self):
+        """Prepare the tmux environment by vertically splitting the current pane, and
+        forcing the context to be redirected there."""
+        tmux = which("tmux")
+        ok("tmux session found, splitting window...")
+        old_ptses = set(os.listdir("/dev/pts"))
+        gdb.execute("! {} split-window -h 'clear ; cat'".format(tmux))
+        gdb.execute("! {} select-pane -L".format(tmux))
+        new_ptses = set(os.listdir("/dev/pts"))
+        pty = list(new_ptses - old_ptses)[0]
+        pty = "/dev/pts/{}".format(pty)
+        ok("Setting `context.redirect` to '{}'...".format(pty))
+        gdb.execute("gef config context.redirect {}".format(pty))
+        ok("Done!")
+        return
+
+
+    def screen_setup(self):
+        """Hackish equivalent of the tmux_setup() function for screen."""
+        screen = which("screen")
+        sty = os.getenv("STY")
+        ok("screen session found, splitting window...")
+        fd_script, script_path = tempfile.mkstemp()
+        fd_tty, tty_path = tempfile.mkstemp()
+        os.close(fd_tty)
+
+        with os.fdopen(fd_script, "w") as f:
+            f.write("startup_message off\n")
+            f.write("split -v\n")
+            f.write("focus right\n")
+            f.write("screen /bin/bash -c 'tty > {}; clear; cat'\n".format(tty_path))
+            f.write("focus left\n")
+
+        gdb.execute("""! {} -r {} -m -d -X source {}""".format(screen, sty, script_path))
+        # artificial delay to make sure `tty_path` is populated
+        time.sleep(0.25)
+        with open(tty_path, 'r') as f:
+            pty = f.read().strip()
+        ok("Setting `context.redirect` to '{}'...".format(pty))
+        gdb.execute("gef config context.redirect {}".format(pty))
+        gdb.execute("set height unlimited")
+        ok("Done!")
+        os.unlink(script_path)
+        os.unlink(tty_path)
         return
 
 
@@ -6508,11 +6580,10 @@ if __name__  == "__main__":
     # setup config
     gdb.execute("set confirm off")
     gdb.execute("set verbose off")
-    gdb.execute("set height 0"),
-    gdb.execute("set width 0")
+    gdb.execute("set height unlimited")
+    gdb.execute("set width unlimited")
     gdb.execute("set step-mode on")
     gdb.execute("set print pretty on")
-    gdb.execute("set history expansion on")
 
     # gdb history
     gdb.execute("set history save on")
@@ -6576,3 +6647,4 @@ if __name__  == "__main__":
         GefAlias(alias, aliases[alias])
 
     GefAliases()
+    GefTmuxSetup()
