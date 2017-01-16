@@ -150,6 +150,7 @@ DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
 GEF_RC                                 = os.path.join(os.getenv("HOME"), "/.gef.rc")
 GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
 
+
 class GefGenericException(Exception):
     def __init__(self, value):
         self.message = value
@@ -158,11 +159,14 @@ class GefGenericException(Exception):
     def __str__(self):
         return repr(self.message)
 
+
 class GefMissingDependencyException(GefGenericException):
     pass
 
+
 class GefUnsupportedMode(GefGenericException):
     pass
+
 
 class GefUnsupportedOS(GefGenericException):
     pass
@@ -533,10 +537,8 @@ class GlibcChunk:
         self.prev_size_addr = self.start_addr
         return
 
-
     def get_chunk_size(self):
         return read_int_from_memory(self.size_addr) & (~0x03)
-
 
     def get_usable_size(self):
         # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L4537
@@ -686,6 +688,7 @@ def titlify(msg, color=Color.RED):
         line  = Color.colorify(horizontal_line* n, attrs="bold red")
     return "{0}[ {1} ]{0}".format(line, title)
 
+
 def _xlog(m, stream, cr=True):
     m += "\n" if cr else ""
     gdb.write(m, stream)
@@ -693,25 +696,30 @@ def _xlog(m, stream, cr=True):
         gdb.flush()
     return 0
 
+
 def err(msg, cr=True):   return _xlog("{} {}".format(Color.colorify("[!]", attrs="bold red"), msg), gdb.STDERR, cr)
 def warn(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[*]", attrs="bold yellow"), msg), gdb.STDLOG, cr)
 def ok(msg, cr=True):    return _xlog("{} {}".format(Color.colorify("[+]", attrs="bold green"), msg), gdb.STDLOG, cr)
 def info(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[+]", attrs="bold blue"), msg), gdb.STDLOG, cr)
+
 
 def show_exception():
     exc_type, exc_value, exc_traceback = sys.exc_info()
     print("".join(traceback.format_exception(exc_type, exc_value,exc_traceback)))
     return
 
+
 def gef_pystring(x):
     if PYTHON_MAJOR == 3:
         return str(x, encoding="ascii")
     return x
 
+
 def gef_pybytes(x):
     if PYTHON_MAJOR == 3:
         return bytes(str(x), encoding="utf-8")
     return x
+
 
 def which(program):
     def is_exe(fpath):
@@ -1007,14 +1015,18 @@ def get_frame():
 def get_arch():
     return gdb.execute("show architecture", to_string=True).strip().split()[7][:-1]
 
+
 @memoize
 def get_endian():
     if gdb.execute("show endian", to_string=True).strip().split()[7] == "little" :
         return Elf.LITTLE_ENDIAN
     return Elf.BIG_ENDIAN
 
+
 def is_big_endian():     return get_endian() == Elf.BIG_ENDIAN
 def is_little_endian():  return not is_big_endian()
+
+
 def flags_to_human(reg_value, value_table):
     flags = []
     for i in value_table.keys():
@@ -1061,7 +1073,6 @@ class Architecture(object):
             return get_register("$sp")
         except:
             return get_register_ex("$sp")
-
 
 
 class ARM(Architecture):
@@ -1596,6 +1607,7 @@ def get_register(regname):
     reg = gdb.parse_and_eval(regname)
     return long(reg.cast(t))
 
+
 def get_register_ex(regname):
     t = gdb.execute("info register {:s}".format(regname), to_string=True)
     for v in t.split():
@@ -1987,6 +1999,7 @@ def get_unicorn_arch(arch=None, mode=None, endian=None, to_string=False):
         return get_generic_running_arch(unicorn, "UC", to_string)
     return get_generic_arch(unicorn, "UC", arch, mode, endian, to_string)
 
+
 def get_capstone_arch(arch=None, mode=None, endian=None, to_string=False):
     capstone = sys.modules["capstone"]
 
@@ -2005,11 +2018,13 @@ def get_capstone_arch(arch=None, mode=None, endian=None, to_string=False):
         return get_generic_running_arch(capstone, "CS", to_string)
     return get_generic_arch(capstone, "CS", arch, mode, endian, to_string)
 
+
 def get_keystone_arch(arch=None, mode=None, endian=None, to_string=False):
     keystone = sys.modules["keystone"]
     if (arch, mode, endian) == (None,None,None):
         return get_generic_running_arch(keystone, "KS", to_string)
     return get_generic_arch(keystone, "KS", arch, mode, endian, to_string)
+
 
 def get_unicorn_registers(to_string=False):
     "Returns a dict matching the Unicorn identifier for a specific register."
@@ -2071,62 +2086,75 @@ def is_elf64(filename=None):
     elf = get_elf_headers(filename)
     return elf.e_class == 0x02
 
+
 @memoize
 def is_elf32(filename=None):
     elf = get_elf_headers(filename)
     return elf.e_class == 0x01
+
 
 @memoize
 def is_x86_64(filename=None):
     elf = get_elf_headers(filename)
     return elf.e_machine == 0x3e
 
+
 @memoize
 def is_x86_32(filename=None):
     elf = get_elf_headers(filename)
     return elf.e_machine == 0x03
+
 
 @memoize
 def is_arm(filename=None):
     elf = get_elf_headers(filename)
     return elf.e_machine == 0x28
 
+
 @memoize
 def is_arm_thumb():
     # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
     return is_arm() and get_register("$cpsr") & (1<<5)
+
 
 @memoize
 def is_mips():
     elf = get_elf_headers()
     return elf.e_machine == 0x08
 
+
 @memoize
 def is_powerpc():
     elf = get_elf_headers()
     return elf.e_machine == 0x14 # http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
+
 
 @memoize
 def is_ppc64():
     elf = get_elf_headers()
     return elf.e_machine == 0x15 # http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
 
+
 @memoize
 def is_sparc():
     elf = get_elf_headers()
     return elf.e_machine == 0x02
+
 
 @memoize
 def is_sparc64():
     elf = get_elf_headers()
     return elf.e_machine == 0x12
 
+
 @memoize
 def is_aarch64():
     elf = get_elf_headers()
     return elf.e_machine == 0xb7
 
+
 current_arch = None
+
 
 def set_arch():
     global current_arch
@@ -2144,6 +2172,7 @@ def set_arch():
 
     return
 
+
 def get_memory_alignment(in_bits=False):
     if is_elf32():
         return 4 if not in_bits else 32
@@ -2151,6 +2180,7 @@ def get_memory_alignment(in_bits=False):
         return 8 if not in_bits else 64
 
     raise GefUnsupportedMode("GEF is running under an unsupported mode")
+
 
 def clear_screen(tty=""):
     if not len(tty):
@@ -2161,12 +2191,14 @@ def clear_screen(tty=""):
         f.write("\x1b[H\x1b[J")
     return
 
+
 def format_address(addr):
     memalign_size = get_memory_alignment()
     if memalign_size == 4:
         return "0x{:08x}".format(addr & 0xFFFFFFFF)
     elif memalign_size == 8:
         return "0x{:016x}".format(addr & 0xFFFFFFFFFFFFFFFF)
+
 
 def align_address(address):
     if get_memory_alignment(in_bits=True) == 32:
@@ -2175,9 +2207,11 @@ def align_address(address):
         ret = address & 0xFFFFFFFFFFFFFFFF
     return ret
 
+
 def align_address_to_page(address):
     a = align_address(address) >> DEFAULT_PAGE_ALIGN_SHIFT
     return a << DEFAULT_PAGE_ALIGN_SHIFT
+
 
 def parse_address(address):
     if ishex(address):
@@ -2187,10 +2221,12 @@ def parse_address(address):
     a = gdb.parse_and_eval(address).cast(t)
     return long(a)
 
+
 def is_in_x86_kernel(address):
     address = align_address(address)
     memalign = get_memory_alignment(in_bits=True) - 1
     return (address >> memalign) == 0xF
+
 
 @memoize
 def endian_str():
@@ -3341,10 +3377,12 @@ import capstone, unicorn
 regs = {%s}
 uc = None
 
+
 def disassemble(code, addr):
     cs = capstone.Cs(%s, %s)
     for i in cs.disasm(str(code),addr):
         return i
+
 
 def hook_code(emu, address, size, user_data):
     print(">> Executing instruction at 0x{:x}".format(address))
@@ -3353,6 +3391,7 @@ def hook_code(emu, address, size, user_data):
     print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
     return
 
+
 def interact(emu, regs):
     readline.parse_and_bind("tab: complete")
     vars = globals().copy()
@@ -3360,10 +3399,12 @@ def interact(emu, regs):
     code.InteractiveConsole(vars).interact(banner="[+] Spawning Python interactive shell with Unicorn, use `uc` to interact with the emulated session")
     return
 
+
 def print_regs(emu, regs):
     for r in regs.keys():
         print(">> {:s} = 0x{:x}".format(r, emu.reg_read(regs[r])))
     return
+
 
 def reset():
 """ % (fname, start_insn_addr, end_insn_addr, ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers.keys()]), arch, mode)
@@ -4058,6 +4099,7 @@ class GlibcHeapBinsCommand(GenericCommand):
         print(m)
         return
 
+
 class GlibcHeapFastbinsYCommand(GenericCommand):
     """Display information on the fastbinsY on an arena (default: main_arena).
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
@@ -4102,6 +4144,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
         return
 
+
 class GlibcHeapUnsortedBinsCommand(GenericCommand):
     """Display information on the Unsorted Bins of an arena (default: main_arena).
     See: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1689"""
@@ -4124,6 +4167,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
         GlibcHeapBinsCommand.pprint_bin(arena_addr, 0)
         return
 
+
 class GlibcHeapSmallBinsCommand(GenericCommand):
     """Convenience command for viewing small bins."""
 
@@ -4145,6 +4189,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
         for i in range(1, 64):
             GlibcHeapBinsCommand.pprint_bin(arena_addr, i)
         return
+
 
 class GlibcHeapLargeBinsCommand(GenericCommand):
     """Convenience command for viewing large bins."""
@@ -5290,6 +5335,7 @@ class HexdumpCommand(GenericCommand):
 
         return lines
 
+
 class HexdumpQwordCommand(HexdumpCommand):
     """
     Display location as QWORD
@@ -5301,6 +5347,7 @@ class HexdumpQwordCommand(HexdumpCommand):
     def do_invoke(self, argv):
         self._invoke("q", argv)
         return
+
 
 class HexdumpDwordCommand(HexdumpCommand):
     """
@@ -5339,7 +5386,6 @@ class HexdumpByteCommand(HexdumpCommand):
     def do_invoke(self, argv):
         self._invoke("x", argv)
         return
-
 
 
 class DereferenceCommand(GenericCommand):
@@ -5463,7 +5509,6 @@ class DereferenceCommand(GenericCommand):
         return msg
 
 
-
 class ASLRCommand(GenericCommand):
     """View/modify GDB ASLR behavior."""
 
@@ -5504,7 +5549,6 @@ class ASLRCommand(GenericCommand):
         return
 
 
-
 class ResetCacheCommand(GenericCommand):
     """Reset cache of all stored data."""
 
@@ -5514,7 +5558,6 @@ class ResetCacheCommand(GenericCommand):
     def do_invoke(self, argv):
         reset_all_caches()
         return
-
 
 
 class VMMapCommand(GenericCommand):
@@ -5651,6 +5694,7 @@ class XorMemoryCommand(GenericCommand):
             err("Missing subcommand <display|patch>")
             self.usage()
         return
+
 
 class XorMemoryDisplayCommand(GenericCommand):
     """Display a block of memory by XOR-ing each key with a key."""
@@ -5806,7 +5850,6 @@ class TraceRunCommand(GenericCommand):
         return
 
 
-
 class PatternCommand(GenericCommand):
     """This command will create or search a De Bruijn cyclic pattern to facilitate
     determining the offset in memory. The algorithm used is the same as the one
@@ -5824,6 +5867,7 @@ class PatternCommand(GenericCommand):
     def do_invoke(self, argv):
         self.usage()
         return
+
 
 class PatternCreateCommand(GenericCommand):
     """Cyclic pattern generation"""
@@ -5851,6 +5895,7 @@ class PatternCreateCommand(GenericCommand):
         var_name = gef_convenience('"{:s}"'.format(patt))
         ok("Saved as '{:s}'".format (var_name))
         return
+
 
 class PatternSearchCommand(GenericCommand):
     """Cyclic pattern search"""
@@ -5942,7 +5987,6 @@ class ChecksecCommand(GenericCommand):
         info("{:s} for '{:s}'".format(self._cmdline_, filename))
         checksec(filename, "all", True)
         return
-
 
 
 class FormatStringSearchCommand(GenericCommand):
@@ -6177,6 +6221,7 @@ class GefHelpCommand(gdb.Command):
             d.append(msg)
         return "\n".join(d)
 
+
 class GefConfigCommand(gdb.Command):
     """GEF configuration sub-command
     This command will help set/view GEF settingsfor the current debugging session.
@@ -6323,6 +6368,7 @@ class GefSaveCommand(gdb.Command):
         ok("Configuration saved to '{:s}'".format(GEF_RC))
         return
 
+
 class GefRestoreCommand(gdb.Command):
     """GEF restore sub-command
     Loads settings from file '~/.gef.rc' and apply them to the configuration of GEF
@@ -6368,6 +6414,7 @@ class GefRestoreCommand(gdb.Command):
         ok("Configuration from '{:s}' restored".format(GEF_RC))
         return
 
+
 class GefMissingCommand(gdb.Command):
     """GEF missing sub-command
     Display the GEF commands that could not be loaded, along with the reason of why
@@ -6396,6 +6443,7 @@ class GefMissingCommand(gdb.Command):
             warn("Command `{}` is missing, reason {} {}".format(missing_command, right_arrow, reason))
         return
 
+
 class GefSetCommand(gdb.Command):
     """Override GDB set commands with the context from GEF.
     """
@@ -6421,6 +6469,7 @@ class GefSetCommand(gdb.Command):
 
         gdb.execute(" ".join(cmd))
         return
+
 
 class GefRunCommand(gdb.Command):
     """Override GDB run commands with the context from GEF.
