@@ -6302,6 +6302,8 @@ class GefSaveCommand(gdb.Command):
     def invoke(self, args, from_tty):
         cfg = configparser.RawConfigParser()
         old_sect = None
+
+        # save the configuration
         for key in sorted( __config__.keys() ):
             sect, optname = key.split(".", 1)
             value, type, _ = __config__.get(key, None)
@@ -6311,6 +6313,11 @@ class GefSaveCommand(gdb.Command):
                 old_sect = sect
 
             cfg.set(sect, optname, value)
+
+        # save the aliases
+        cfg.add_section("aliases")
+        for alias in __aliases__:
+            cfg.set("aliases", alias._alias, alias._command)
 
         with open(GEF_RC, "w") as fd:
             cfg.write(fd)
@@ -6340,6 +6347,13 @@ class GefRestoreCommand(gdb.Command):
             return
 
         for section in cfg.sections():
+            if section == "aliases":
+                # load the aliases
+                for key in cfg.options(section):
+                    GefAlias(key, cfg.get(section, key))
+                continue
+
+            # load the other options
             for optname in cfg.options(section):
                 try:
                     key = "{:s}.{:s}".format(section, optname)
@@ -6442,6 +6456,9 @@ class GefAlias(gdb.Command):
 
         p = command.split()
         if len(p)==0:
+            return
+
+        if len( list( filter(lambda x: x._alias == alias, __aliases__) ) ) > 0:
             return
 
         self._command = command
@@ -6615,36 +6632,6 @@ if __name__  == "__main__":
     gdb.events.stop.connect(hook_stop_handler)
     gdb.events.new_objfile.connect(new_objfile_handler)
     gdb.events.exited.connect(exit_handler)
-
-
-    # WinDBG-like aliases (and others)
-    aliases = {
-        # breaks and steps
-        "bl":       "info breakpoints",
-        "bp":       "break",
-        "be":       "enable breakpoints",
-        "bd":       "disable breakpoints",
-        "bc":       "delete breakpoints",
-        "tbp":      "tbreak",
-        "tba":      "thbreak",
-        "pa":       "advance",
-        "ptc":      "finish",
-        "t":        "stepi",
-        "p":        "nexti",
-        "g":        "gef run",
-        "start":    "entry-break",
-
-        # memory access
-        "uf":      "disassemble",
-        "stack":   "dereference $sp 10",
-
-        # context
-        "argv":    "show args",
-        "kp":      "info stack",
-    }
-
-    for alias in aliases.keys():
-        GefAlias(alias, aliases[alias])
 
     GefAliases()
     GefTmuxSetup()
