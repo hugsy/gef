@@ -4335,7 +4335,7 @@ class ShellcodeSearchCommand(GenericCommand):
         http = urlopen(self.search_url + args)
 
         if http.getcode() != 200:
-            err("Could not query search page: got {:d}".format(http.getcode()))
+            err("Could not query search page. Got {:d}".format(http.getcode()))
             return
 
         ret = gef_pystring(http.read())
@@ -4370,12 +4370,12 @@ class ShellcodeGetCommand(GenericCommand):
 
     def do_invoke(self, argv):
         if len(argv) != 1:
-            err("Missing pattern to search")
+            err("Missing ID to download")
             self.usage()
             return
 
         if not argv[0].isdigit():
-            err("ID is not a digit")
+            err("ID is not a number")
             self.usage()
             return
 
@@ -4386,7 +4386,7 @@ class ShellcodeGetCommand(GenericCommand):
         http = urlopen(self.get_url.format(sid))
 
         if http.getcode() != 200:
-            err("Could not query search page: got {:d}".format (http.getcode()))
+            err("Could not find shellcode. Got {:d}".format (http.getcode()))
             return
 
         ret  = gef_pystring(http.read())
@@ -4398,7 +4398,7 @@ class ShellcodeGetCommand(GenericCommand):
         buf = HTMLParser().unescape(buf)
         os.write(fd, gef_pybytes(buf))
         os.close(fd)
-        info("Shellcode written as '{:s}'".format (fname))
+        info("Shellcode written to '{:s}'".format (fname))
         return
 
 
