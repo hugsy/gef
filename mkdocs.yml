@@ -18,7 +18,6 @@ pages:
 - [commands/entry-break.md, Command entry-break]
 - [commands/fd.md, Command fd]
 - [commands/format-string-helper.md, Command format-string-helper]
-- [commands/gef-alias.md, Command gef-alias]
 - [commands/gef-remote.md, Command gef-remote]
 - [commands/heap.md, Command heap]
 - [commands/help.md, Command help]
