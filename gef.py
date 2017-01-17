@@ -147,7 +147,7 @@ __gef_convenience_vars_index__         = 0
 
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
-GEF_RC                                 = os.path.join(os.getenv("HOME"), "/.gef.rc")
+GEF_RC                                 = os.path.join(os.getenv("HOME"), ".gef.rc")
 GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
 
 
@@ -483,7 +483,7 @@ class GlibcArena:
         addr = self.deref_as_long(self.fastbinsY[i])
         if addr == 0:
             return None
-        return GlibcChunk(addr + 2* self.__arch)
+        return GlibcChunk(addr + 2 * self.__arch)
 
     def bin(self, i):
         idx = i * 2
@@ -528,9 +528,9 @@ class GlibcChunk:
         self.arch = int(get_memory_alignment())
         if from_base:
             self.start_addr = addr
-            self.addr = addr + 2* self.arch
+            self.addr = addr + 2 * self.arch
         else:
-            self.start_addr = int(addr - 2* self.arch)
+            self.start_addr = int(addr - 2 * self.arch)
             self.addr = addr
 
         self.size_addr  = int(self.addr - self.arch)
@@ -544,7 +544,7 @@ class GlibcChunk:
         # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L4537
         cursz = self.get_chunk_size()
         if cursz == 0: return cursz
-        if self.has_M_bit(): return cursz - 2* self.arch
+        if self.has_M_bit(): return cursz - 2 * self.arch
         return cursz - self.arch
 
     def get_prev_chunk_size(self):
@@ -682,10 +682,10 @@ def titlify(msg, color=Color.RED):
     n = (cols - len(msg) - 4)//2
     if color == Color.RED:
         title = Color.colorify(msg, attrs="bold red")
-        line  = Color.colorify(horizontal_line* n, attrs="bold green")
+        line  = Color.colorify(horizontal_line * n, attrs="bold green")
     elif color == Color.GREEN:
         title = Color.colorify(msg, attrs="bold green")
-        line  = Color.colorify(horizontal_line* n, attrs="bold red")
+        line  = Color.colorify(horizontal_line * n, attrs="bold red")
     return "{0}[ {1} ]{0}".format(line, title)
 
 
@@ -764,7 +764,7 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
         if show_raw:
             result.append(hexa)
         else:
-            result.append("{addr:#0{aw}x}     {data:<{dw}}    {text}".format(aw=18, addr=base + i, dw=3* length, data=hexa, text=text))
+            result.append("{addr:#0{aw}x}     {data:<{dw}}    {text}".format(aw=18, addr=base + i, dw=3 * length, data=hexa, text=text))
 
     return "\n".join(result)
 
@@ -844,7 +844,7 @@ def _gef_disassemble_around(addr, nb_insn):
             insn_len = 2
         else:
             insn_len = get_memory_alignment()
-        lines = _gef_disassemble_top(addr - (insn_len* (nb_insn - 1)), nb_insn - 1)
+        lines = _gef_disassemble_top(addr - (insn_len * (nb_insn - 1)), nb_insn - 1)
         lines += _gef_disassemble_top(addr, nb_insn)
         return lines
 
@@ -854,7 +854,7 @@ def _gef_disassemble_around(addr, nb_insn):
     found = False
 
     # we try to find a good set of previous instructions by guessing incrementally
-    for i in range(32 + 16* nb_insn, 1, -1):
+    for i in range(32 + 16 * nb_insn, 1, -1):
         try:
             cmd = "disassemble {:#x},{:#x}".format(addr - i, next_addr)
             lines = gdb.execute(cmd, to_string=True).splitlines()[1:-1]
@@ -4952,7 +4952,7 @@ class ContextCommand(GenericCommand):
 
         if len(m) == 0:
             # print just the line
-            print(Color.colorify(horizontal_line*self.tty_columns, line_color))
+            print(Color.colorify(horizontal_line * self.tty_columns, line_color))
             return
 
         trail_len = len(m) + 8
