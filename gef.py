@@ -109,16 +109,30 @@ else:
     raise Exception("WTF is this Python version??")
 
 
-def __update_gef(argv):
+def http_get(url):
+    """Basic HTTP wrapper for GET request. Returns the body of the page if HTTP code is OK,
+    else returns None."""
+    try:
+        http = urlopen(url)
+        if http.getcode() != 200:
+            return None
+        return http.read()
+
+    except:
+        return None
+
+
+def update_gef(argv):
+    """Tries to update `gef` to the latest version pushed on GitHub. Returns 0 on success,
+    1 on failure. """
     gef_local = os.path.realpath(argv[0])
     hash_gef_local = hashlib.sha512( open(gef_local, "rb").read() ).digest()
     gef_remote = "https://raw.githubusercontent.com/hugsy/gef/master/gef.py"
-    http = urlopen(gef_remote)
-    if http.getcode() != 200:
+    gef_remote_data = http_get(gef_remote)
+    if gef_remote_data is None:
         print("[-] Failed to get remote gef")
         return 1
 
-    gef_remote_data = http.read()
     hash_gef_remote = hashlib.sha512( gef_remote_data ).digest()
 
     if hash_gef_local==hash_gef_remote:
@@ -135,7 +149,7 @@ try:
 except ImportError:
     # if out of gdb, the only action allowed is to update gef.py
     if len(sys.argv)==2 and sys.argv[1]=="--update":
-        sys.exit( __update_gef(sys.argv) )
+        sys.exit( update_gef(sys.argv) )
     print("[-] gef cannot run as standalone")
     sys.exit(0)
 
@@ -4286,13 +4300,13 @@ class ShellcodeSearchCommand(GenericCommand):
     def search_shellcode(self, search_options):
         # API : http://shell-storm.org/shellcode/
         args = "*".join(search_options)
-        http = urlopen(self.search_url + args)
 
-        if http.getcode() != 200:
-            err("Could not query search page: got {:d}".format(http.getcode()))
+        res = http_get(self.search_url + args)
+        if res is None:
+            err("Could not query search page")
             return
 
-        ret = gef_pystring( http.read() )
+        ret = gef_pystring(res)
 
         # format: [author, OS/arch, cmd, id, link]
         lines = ret.split("\n")
@@ -4339,13 +4353,12 @@ class ShellcodeGetCommand(GenericCommand):
 
 
     def get_shellcode(self, sid):
-        http = urlopen(self.get_url.format(sid))
-
-        if http.getcode() != 200:
-            err("Could not query search page: got {:d}".format (http.getcode()))
+        res = http_get(self.get_url.format(sid))
+        if res is None:
+            err("Failed to fetch shellcode #{:d}".format(sid))
             return
 
-        ret  = gef_pystring(http.read())
+        ret  = gef_pystring(res)
 
         info("Downloading shellcode id={:d}".format(sid))
         fd, fname = tempfile.mkstemp(suffix=".txt", prefix="sc-", text=True, dir="/tmp")
@@ -4761,7 +4774,7 @@ class EntryPointBreakCommand(GenericCommand):
 
     _cmdline_ = "entry-break"
     _syntax_  = _cmdline_
-    _aliases_ = ["start-break", ]
+    _aliases_ = ["start", ]
 
     def __init__(self):
         super(EntryPointBreakCommand, self).__init__(prefix=False)
