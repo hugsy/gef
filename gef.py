@@ -6568,7 +6568,7 @@ class GefTmuxSetup(gdb.Command):
         gdb.execute("""! {} -r {} -m -d -X source {}""".format(screen, sty, script_path))
         # artificial delay to make sure `tty_path` is populated
         time.sleep(0.25)
-        with open(tty_path, 'r') as f:
+        with open(tty_path, "r") as f:
             pty = f.read().strip()
         ok("Setting `context.redirect` to '{}'...".format(pty))
         gdb.execute("gef config context.redirect {}".format(pty))
