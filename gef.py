@@ -6491,7 +6491,6 @@ class GefAlias(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
-        self.dont_repeat()
         gdb.execute("{} {}".format(self._command, args), from_tty=from_tty)
         return
 
