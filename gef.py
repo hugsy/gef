@@ -4101,10 +4101,14 @@ class GlibcHeapBinsCommand(GenericCommand):
         arena = GlibcArena(arena_addr)
         fw, bk = arena.bin(index)
 
+        if (bk==0x00 and fw==0x00):
+            warn("Invalid backward and forward bin pointers(fw==bk==NULL)")
+            return -1
+
         ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(index, fw, bk))
-        if bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF)):
+        if (bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF))):
             ok("Empty")
-            return
+            return 0
 
         m = ""
         head = GlibcChunk(bk + 2 * arena.get_arch()).get_fwd_ptr()
@@ -4114,7 +4118,7 @@ class GlibcHeapBinsCommand(GenericCommand):
             fw = chunk.get_fwd_ptr()
 
         print(m)
-        return
+        return 0
 
 
 class GlibcHeapFastbinsYCommand(GenericCommand):
@@ -4204,7 +4208,9 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
         print(titlify("Small Bins for arena '{:s}'".format(arena_addr)))
         for i in range(1, 64):
-            GlibcHeapBinsCommand.pprint_bin(arena_addr, i)
+            if GlibcHeapBinsCommand.pprint_bin(arena_addr, i) < 0:
+                break
+
         return
 
 
@@ -4227,7 +4233,8 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
         print(titlify("Large Bins for arena '{:s}'".format(arena_addr)))
         for i in range(64, 127):
-            GlibcHeapBinsCommand.pprint_bin(arena_addr, i)
+            if GlibcHeapBinsCommand.pprint_bin(arena_addr, i)<0:
+                break
         return
 
 
