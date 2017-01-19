@@ -15,20 +15,18 @@ addons:
       - gdb
       - python-pip
 
-
 before_script:
-  - echo "source ${HOME}/${TRAVIS_REPO_SLUG}/gef.py" > ~/.gdbinit
+  - echo "source `pwd`/gef.py" > ~/.gdbinit
 
 script:
-  - gdb -ex 'gef help' -ex 'gef config' -ex 'quit' /bin/ls
+  - gdb -q -ex 'gef help' -ex 'gef config' -ex 'quit' /bin/ls
 
 after_script:
-  - $HOME/$TRAVIS_REPO_SLUG/tests-runner.py
+  - `pwd`/tests/test-runner.py
 
 notifications:
   email:
     recipients:
       - hugsy+github@blah.cat
-
     on_success: change
     on_failure: always
