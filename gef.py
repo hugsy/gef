@@ -215,7 +215,7 @@ def reset_all_caches():
     """Free all memoized values."""
     for s in dir(sys.modules["__main__"]):
         o = getattr(sys.modules["__main__"], s)
-        if hasattr(o, "cache") and len(o.cache) > 0:
+        if hasattr(o, "cache") and o.cache:
             o.cache = {}
     return
 
@@ -918,7 +918,7 @@ def gef_disassemble(addr, nb_insn, from_top=False):
 def gef_parse_gdb_instruction(raw_insn):
     raw_insn = raw_insn.strip().replace("\t", " ").replace(":", " ")
     patt = re.compile(r"^(0x[0-9a-f]{,16})(.*)$", flags=re.IGNORECASE)
-    parts = [x for x in re.split(patt, raw_insn) if len(x) > 0]
+    parts = [x for x in re.split(patt, raw_insn) if x]
     address = int(parts[0], 16)
     code = parts[1].strip()
     parts = code.split()
@@ -1575,7 +1575,7 @@ def is_readable_string(address):
     """
     try:
         cstr = read_cstring_from_memory(address)
-        return type(cstr) == unicode and len(cstr) > 0 and all([x in string.printable for x in cstr])
+        return type(cstr) == unicode and cstr and all([x in string.printable for x in cstr])
     except UnicodeDecodeError as e:
         return False
 
@@ -1719,7 +1719,7 @@ def __get_process_maps_linux(proc_map_file):
     f = open_file(proc_map_file, use_cache=False)
     while True:
         line = f.readline().strip()
-        if len(line) == 0:
+        if not line:
             break
 
         addr, perm, off, dev, rest = line.split(" ", 4)
@@ -1752,7 +1752,7 @@ def __get_process_maps_freebsd(proc_map_file):
     f = open_file(proc_map_file, use_cache=False)
     while True:
         line = f.readline().strip()
-        if len(line) == 0:
+        if not line:
             break
 
         start_addr, end_addr, _, _, _, perm, _, _, _, _, _, inode, pathname, _, _ = line.split()
@@ -1798,7 +1798,7 @@ def get_info_sections():
 
     while True:
         line = stream.readline()
-        if len(line) == 0:
+        if not line:
             break
 
         try:
@@ -1839,7 +1839,7 @@ def get_info_files():
     for line in lines:
         line = line.strip().rstrip()
 
-        if len(line) == 0:
+        if not line:
             break
 
         if not line.startswith("0x"):
@@ -2202,7 +2202,7 @@ def get_memory_alignment(in_bits=False):
 
 
 def clear_screen(tty=""):
-    if not len(tty):
+    if not tty:
         gdb.execute("shell clear")
         return
 
@@ -2655,7 +2655,7 @@ class PCustomCommand(GenericCommand):
             line += ("{:#x}+0x{:04x} {:s} : ".format(addr, _offset, _name)).ljust(40)
             line += "{:s} ({:s})".format(_value, _type.__name__)
             parsed_value = self.get_ctypes_value(_class, _name, _value)
-            if len(parsed_value):
+            if parsed_value:
                 line += " {:s} {:s}".format(right_arrow, parsed_value)
             print(line)
 
@@ -2756,7 +2756,7 @@ class RetDecCommand(GenericCommand):
             return
 
         api_key = self.get_setting("key").strip()
-        if api_key is None or len(api_key) == 0:
+        if not api_key:
             warn("No RetDec API key provided, use `gef config` to add your own key")
             return
 
@@ -2826,8 +2826,8 @@ class RetDecCommand(GenericCommand):
         with open(fname, "r") as f:
             p = re.compile(r"unknown_([a-f0-9]+)")
             for l in f.readlines():
-                l = l.rstrip()
-                if len(l.strip()) == 0 or l.strip().startswith("//"):
+                l = l.strip()
+                if not l or l.startswith("//"):
                     continue
                 # try to fix the unknown with the current context
                 for match in p.finditer(l):
@@ -2835,7 +2835,7 @@ class RetDecCommand(GenericCommand):
                     addr = int(s, 16)
                     dis = gdb.execute("x/1i {:#x}".format(addr), to_string=True)
                     addr, loc, mnemo, ops = gef_parse_gdb_instruction(dis.strip())
-                    if len(loc):
+                    if loc:
                         l = l.replace("unknown_{:s}".format(s), loc)
                 print(l)
         return
@@ -3814,13 +3814,13 @@ class NopCommand(GenericCommand):
                 return
 
         if perm_mode:
-            if len(args) == 0:
+            if not args:
                 err("Missing location")
                 return
             self.permanent_patch(args[0], retval)
             return
 
-        if len(args):
+        if args:
             loc = parse_address(args[0])
         else:
             loc = current_arch.pc
@@ -3905,7 +3905,7 @@ class CapstoneDisassembleCommand(GenericCommand):
                 k, v = a.split(":", 1)
                 self.add_setting(k, v)
 
-        if len(args):
+        if args:
             location = parse_address(args[0])
 
         kwargs = {}
@@ -3969,12 +3969,12 @@ class CapstoneDisassembleCommand(GenericCommand):
         m += "\n" + "\t" * 5
 
         # implicit read
-        if len(insn.regs_read) > 0:
+        if insn.regs_read:
             m += "Read:[{:s}] ".format(",".join([insn.reg_name(x) for x in insn.regs_read]))
             m += "\n" + "\t" * 5
 
         # implicit write
-        if len(insn.regs_write) > 0:
+        if insn.regs_write:
             m += "Write:[{:s}] ".format(",".join([insn.reg_name(x) for x in insn.regs_write]))
             m += "\n" + "\t" * 5
 
@@ -4283,7 +4283,7 @@ class DetailRegistersCommand(GenericCommand):
     def do_invoke(self, argv):
         regs = []
 
-        if len(argv) > 0:
+        if argv:
             regs = [reg for reg in current_arch.all_registers if reg.strip() in argv]
         else:
             regs = current_arch.all_registers
@@ -4368,7 +4368,7 @@ class ShellcodeSearchCommand(GenericCommand):
         lines = ret.split("\n")
         refs = [line.split("::::") for line in lines]
 
-        if len(refs) > 0:
+        if refs:
             info("Showing matching shellcodes")
             info("\t".join(["Id", "Platform", "Description"]))
             for ref in refs:
@@ -4621,7 +4621,7 @@ class AssembleCommand(GenericCommand):
                 self.usage()
                 return
 
-        if len(args) == 0:
+        if not args:
             return
 
         if (arch_s, mode_s) == (None, None):
@@ -4674,7 +4674,7 @@ class AssembleCommand(GenericCommand):
         if write_to_location:
             l = len(raw)
             info("Overwriting {:d} bytes at {:s}".format (l, format_address(write_to_location)))
-            write_memory(write_to_location, raw, len(raw))
+            write_memory(write_to_location, raw, l)
         return
 
 
@@ -4700,7 +4700,7 @@ class ProcessListingCommand(GenericCommand):
             if o == "-a": do_attach  = True
             if o == "-s": smart_scan = True
 
-        pattern = re.compile("^.*$") if len(args) == 0 else re.compile(args[0])
+        pattern = re.compile("^.*$") if not args else re.compile(args[0])
 
         for process in processes:
             pid = int(process["pid"])
@@ -4715,7 +4715,7 @@ class ProcessListingCommand(GenericCommand):
                 if command.startswith("grep "): continue
                 if command.startswith("gdb "): continue
 
-            if len(args) and do_attach:
+            if args and do_attach:
                 ok("Attaching to process='{:s}' pid={:d}".format (process["command"], pid))
                 gdb.execute("attach {:d}".format (pid))
                 return None
@@ -4735,11 +4735,11 @@ class ProcessListingCommand(GenericCommand):
             fields = line.split()
             t = {}
 
-            for i in range(len(names)):
+            for i, name in enumerate(names):
                 if i == len(names) - 1:
-                    t[names[i]] = " ".join(fields[i:])
+                    t[name] = " ".join(fields[i:])
                 else:
-                    t[names[i]] = fields[i]
+                    t[name] = fields[i]
 
             processes.append(t)
 
@@ -4794,7 +4794,7 @@ class ElfInfoCommand(GenericCommand):
                      0xB7: "AArch64",
         }
 
-        filename = argv[0] if len(argv) > 0 else get_filepath()
+        filename = argv[0] if argv else get_filepath()
         if filename is None:
             return
 
@@ -4942,10 +4942,7 @@ class ContextCommand(GenericCommand):
         if not self.get_setting("enable"):
             return
 
-        current_layout = self.get_setting("layout").strip().split()
-        if len(current_layout)==0:
-            return
-
+        if not current_layout:
         self.tty_rows, self.tty_columns = get_terminal_size()
         layout_mapping = {"regs":  self.context_regs,
                           "stack": self.context_stack,
@@ -4955,7 +4952,7 @@ class ContextCommand(GenericCommand):
                           "threads": self.context_threads}
 
         redirect = self.get_setting("redirect")
-        if len(redirect)>0 and os.access(redirect, os.W_OK):
+        if redirect and os.access(redirect, os.W_OK):
             enable_redirect_output(to_file=redirect)
 
         if self.get_setting("clear_screen"):
@@ -4968,7 +4965,7 @@ class ContextCommand(GenericCommand):
 
         self.context_title("")
 
-        if len(redirect)>0 and os.access(redirect, os.W_OK):
+        if redirect and os.access(redirect, os.W_OK):
             disable_redirect_output()
         return
 
@@ -4976,7 +4973,7 @@ class ContextCommand(GenericCommand):
         line_color= "green bold"
         msg_color = "red bold"
 
-        if len(m) == 0:
+        if not m:
             # print just the line
             print(Color.colorify(horizontal_line * self.tty_columns, line_color))
             return
@@ -5043,7 +5040,7 @@ class ContextCommand(GenericCommand):
                 line = ""
             i += 1
 
-        if len(line) > 0:
+        if line:
             print(line)
 
         print("Flags: {:s}".format(current_arch.flag_register_to_human()))
@@ -5098,10 +5095,10 @@ class ContextCommand(GenericCommand):
                     if current_arch.is_conditional_branch(insn):
                         is_taken, reason = current_arch.is_branch_taken(insn)
                         if is_taken:
-                            reason = "[Reason: {:s}]".format (reason) if len(reason) else ""
+                            reason = "[Reason: {:s}]".format (reason) if reason else ""
                             line += Color.colorify("\tTAKEN {:s}".format (reason), attrs="bold green")
                         else:
-                            reason = "[Reason: !({:s})]".format (reason) if len(reason) else ""
+                            reason = "[Reason: !({:s})]".format (reason) if reason else ""
                             line += Color.colorify("\tNOT taken {:s}".format (reason), attrs="bold red")
 
                 else:
@@ -5177,7 +5174,7 @@ class ContextCommand(GenericCommand):
                     if not found:
                         m.append((key, val))
 
-            if len(m) > 0:
+            if m:
                 return "; " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for (a,b) in m])
         except Exception as e:
             pass
@@ -5225,7 +5222,7 @@ class ContextCommand(GenericCommand):
     def context_threads(self):
         def reason():
             res = gdb.execute("info program", to_string=True).splitlines()
-            if len(res) == 0:
+            if not res:
                 return ""
 
             for line in res:
@@ -5246,7 +5243,7 @@ class ContextCommand(GenericCommand):
         self.context_title("threads")
 
         threads = gdb.selected_inferior().threads()
-        if len(threads) == 0:
+        if not threads:
             warn("No thread selected")
             return
 
@@ -5412,7 +5409,7 @@ class DereferenceCommand(GenericCommand):
                 if current_address == regvalue:
                     values.append(regname)
 
-            if len(values) > 0:
+            if values:
                 m = "\t{:s}{:s}".format(left_arrow, ", ".join(list(values)))
                 l += Color.colorify(m, attrs="bold green")
 
@@ -5553,7 +5550,7 @@ class VMMapCommand(GenericCommand):
     @if_gdb_running
     def do_invoke(self, argv):
         vmmap = get_process_maps()
-        if vmmap is None or len(vmmap) == 0:
+        if not vmmap:
             err("No address mapping information found")
             return
 
@@ -5587,7 +5584,7 @@ class XFilesCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, args):
-        name = None if len(args) == 0 else args[0]
+        name = None if not args else args[0]
         formats = {"Start": "{:{align}20s}",
                    "End":   "{:{align}20s}",
                    "Name":  "{:{align}30s}",
@@ -5623,7 +5620,7 @@ class XAddressInfoCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke (self, argv):
-        if len(argv) < 1:
+        if len(argv) == 0:
             err ("At least one valid address must be specified")
             self.usage()
             return
@@ -6086,7 +6083,7 @@ class GefCommand(gdb.Command):
 
         # restore the autosave/autoreload breakpoints policy (if any)
         bkp_fname = __config__.get("gef.autosave_breakpoints_file")[0]
-        if bkp_fname and len(bkp_fname)>0:
+        if bkp_fname:
             # restore if existing
             if os.access(bkp_fname, os.R_OK):
                 gdb.execute("source {:s}".format(bkp_fname))
@@ -6291,7 +6288,7 @@ class GefConfigCommand(gdb.Command):
         valid_settings = list(__config__.keys())
         valid_settings.sort()
 
-        if len(text) == 0:
+        if text:
             return valid_settings
 
         completion = []
@@ -6369,7 +6366,7 @@ class GefRestoreCommand(gdb.Command):
         cfg = configparser.ConfigParser()
         cfg.read(GEF_RC)
 
-        if cfg.sections() is None or len(cfg.sections()) == 0:
+        if not cfg.sections():
             return
 
         for section in cfg.sections():
@@ -6416,7 +6413,7 @@ class GefMissingCommand(gdb.Command):
         global __missing__
 
         missing_commands = __missing__.keys()
-        if len(missing_commands) == 0:
+        if not missing_commands:
             ok("No missing command")
             return
 
@@ -6484,10 +6481,10 @@ class GefAlias(gdb.Command):
         global __aliases__
 
         p = command.split()
-        if len(p) == 0:
+        if not p:
             return
 
-        if len( list( filter(lambda x: x._alias == alias, __aliases__) ) ) > 0:
+        if list(filter(lambda x: x._alias == alias, __aliases__)):
             return
 
         self._command = command
@@ -6547,7 +6544,7 @@ class GefTmuxSetup(gdb.Command):
         self.dont_repeat()
 
         tmux = os.getenv("TMUX")
-        if tmux is not None and len(tmux)>0:
+        if tmux:
             self.tmux_setup()
             return
 
