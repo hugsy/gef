@@ -5280,17 +5280,25 @@ class HexdumpCommand(GenericCommand):
     _syntax_  = "{:s} (qword|dword|word|byte) LOCATION L[SIZE] [UP|DOWN]".format(_cmdline_)
 
 
-    def do_invoke(self, argv):
-        self.usage()
+    def post_load(self):
+        GefAlias("dq", "hexdump qword")
+        GefAlias("dd", "hexdump dword")
+        GefAlias("dw", "hexdump word")
+        GefAlias("dc", "hexdump byte")
         return
 
     @if_gdb_running
-    def _invoke(self, fmt, argv):
+    def do_invoke(self, argv):
         argc = len(argv)
-        if argc < 1:
+        if argc < 2:
             self.usage()
             return
 
+        if argv[0] not in ("qword", "dword", "word", "byte"):
+            self.usage()
+            return
+
+        fmt, argv = argv[0], argv[1:]
         read_from = align_address(long(gdb.parse_and_eval(argv[0])))
         read_len = 10
         up_to_down = True
@@ -5310,9 +5318,9 @@ class HexdumpCommand(GenericCommand):
                     up_to_down = False
                     continue
 
-        if fmt == "x":
+        if fmt == "byte":
             mem = read_memory(read_from, read_len)
-            lines = hexdump(mem, base=read_from).split("\n")
+            lines = hexdump(mem, base=read_from).splitlines()
         else:
             lines = self._hexdump(read_from, read_len, fmt)
 
@@ -5327,16 +5335,17 @@ class HexdumpCommand(GenericCommand):
         elf = get_elf_headers()
         if elf is None:
             return
-        endianness = "<" if elf.e_endianness == 0x01 else ">"
+        endianness = "<" if elf.e_endianness == Elf.LITTLE_ENDIAN else ">"
         i = 0
 
         formats = {
-            "q": ("Q", 8),
-            "d": ("I", 4),
-            "w": ("H", 2),
+            "qword": ("Q", 8),
+            "dword": ("I", 4),
+            "word": ("H", 2),
         }
+
         r, l = formats[arrange_as]
-        fmt_str = "#x+%.4x {:s} %#.{:s}x".format(vertical_line, str(l * 2))
+        fmt_str = "%#x+%.4x {:s} %#.{:s}x".format(vertical_line, str(l * 2))
         fmt_pack = endianness + r
         lines = []
 
@@ -5349,57 +5358,6 @@ class HexdumpCommand(GenericCommand):
 
         return lines
 
-
-class HexdumpQwordCommand(HexdumpCommand):
-    """
-    Display location as QWORD
-    """
-    _cmdline_ = "hexdump qword"
-    _syntax_  = "{:s} LOCATION L[SIZE] [UP|DOWN]".format (_cmdline_)
-    _aliases_ = ["dq",]
-
-    def do_invoke(self, argv):
-        self._invoke("q", argv)
-        return
-
-
-class HexdumpDwordCommand(HexdumpCommand):
-    """
-    Display location as DWORD
-    """
-    _cmdline_ = "hexdump dword"
-    _syntax_  = "{:s} LOCATION L[SIZE] [UP|DOWN]".format (_cmdline_)
-    _aliases_ = ["dd",]
-
-    def do_invoke(self, argv):
-        self._invoke("d", argv)
-        return
-
-
-class HexdumpWordCommand(HexdumpCommand):
-    """
-    Display location as WORD
-    """
-    _cmdline_ = "hexdump word"
-    _syntax_  = "{:s} LOCATION L[SIZE] [UP|DOWN]".format (_cmdline_)
-    _aliases_ = ["dw",]
-
-    def do_invoke(self, argv):
-        self._invoke("w", argv)
-        return
-
-
-class HexdumpByteCommand(HexdumpCommand):
-    """
-    Display location as bytes
-    """
-    _cmdline_ = "hexdump byte"
-    _syntax_  = "{:s} LOCATION L[SIZE] [UP|DOWN]".format (_cmdline_)
-    _aliases_ = ["dc",]
-
-    def do_invoke(self, argv):
-        self._invoke("x", argv)
-        return
 
 
 class DereferenceCommand(GenericCommand):
@@ -6061,7 +6019,7 @@ class GefCommand(gdb.Command):
                         XFilesCommand,
                         ASLRCommand,
                         DereferenceCommand,
-                        HexdumpCommand, HexdumpQwordCommand, HexdumpDwordCommand, HexdumpWordCommand, HexdumpByteCommand,
+                        HexdumpCommand, #HexdumpQwordCommand, HexdumpDwordCommand, HexdumpWordCommand, HexdumpByteCommand,
                         CapstoneDisassembleCommand,
                         ContextCommand,
                         EntryPointBreakCommand,
