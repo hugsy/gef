@@ -3970,7 +3970,7 @@ class CapstoneDisassembleCommand(GenericCommand):
 
         # implicit read
         if len(insn.regs_read) > 0:
-            m += "Read:[{:s}] ".fornat(",".join([insn.reg_name(x) for x in insn.regs_read]))
+            m += "Read:[{:s}] ".format(",".join([insn.reg_name(x) for x in insn.regs_read]))
             m += "\n" + "\t" * 5
 
         # implicit write
