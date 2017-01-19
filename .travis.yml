@@ -1,0 +1,32 @@
+language: python
+
+os:
+    - linux
+
+branches:
+  only:
+    - master
+
+addons:
+  apt:
+    packages:
+      - python
+      - gcc
+      - gdb
+      - python-pip
+      - python3-pip
+
+
+script:
+- echo `pwd`/gef.py > ~/.gdbinit
+
+after_script:
+- ./tests/tests-runner.py
+
+notifications:
+  email:
+    recipients:
+      - hugsy+github@blah.cat
+
+    on_success: change
+    on_failure: always
