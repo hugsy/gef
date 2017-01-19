@@ -6019,7 +6019,7 @@ class GefCommand(gdb.Command):
                         XFilesCommand,
                         ASLRCommand,
                         DereferenceCommand,
-                        HexdumpCommand, #HexdumpQwordCommand, HexdumpDwordCommand, HexdumpWordCommand, HexdumpByteCommand,
+                        HexdumpCommand,
                         CapstoneDisassembleCommand,
                         ContextCommand,
                         EntryPointBreakCommand,
