@@ -53,4 +53,4 @@ docs/_build/
 # PyBuilder
 target/
 site
-tests
+tests/bins

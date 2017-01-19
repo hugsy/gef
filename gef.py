@@ -1958,6 +1958,9 @@ def get_terminal_size():
     """
     Portable function to retrieve the current terminal size.
     """
+    if is_debug():
+        return 600, 100
+
     cmd = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, "1234"))
     tty_rows, tty_columns = int(cmd[0]), int(cmd[1])
     return tty_rows, tty_columns
@@ -2212,8 +2215,8 @@ def format_address(addr):
     memalign_size = get_memory_alignment()
     if memalign_size == 4:
         return "0x{:08x}".format(addr & 0xFFFFFFFF)
-    elif memalign_size == 8:
-        return "0x{:016x}".format(addr & 0xFFFFFFFFFFFFFFFF)
+
+    return "0x{:016x}".format(addr & 0xFFFFFFFFFFFFFFFF)
 
 
 def align_address(address):
@@ -3611,7 +3614,7 @@ if __name__ == "__main__":
 
 
 class RemoteCommand(GenericCommand):
-    """gef wrapper for the `target remote` command. T<his command will automatically
+    """gef wrapper for the `target remote` command. This command will automatically
     download the target binary in the local temporary directory (defaut /tmp) and then
     source it. Additionally, it will fetch all the /proc/PID/maps and loads all its
     information."""
@@ -4939,9 +4942,11 @@ class ContextCommand(GenericCommand):
         if not self.get_setting("enable"):
             return
 
-        self.tty_rows, self.tty_columns = get_terminal_size()
+        current_layout = self.get_setting("layout").strip().split()
+        if len(current_layout)==0:
+            return
 
-        current_layout = self.get_setting("layout").split()
+        self.tty_rows, self.tty_columns = get_terminal_size()
         layout_mapping = {"regs":  self.context_regs,
                           "stack": self.context_stack,
                           "code": self.context_code,
@@ -6173,14 +6178,12 @@ class GefHelpCommand(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
-        print("Syntax:")
-        print(self._syntax_)
+        print(titlify("GEF - GDB Enhanced Features"))
         print(self.__doc__)
         return
 
     def generate_help(self, commands):
         d = []
-        d.append(titlify("GEF - GDB Enhanced Features"))
 
         for (cmd, class_name, obj) in commands:
             if " " in cmd:
