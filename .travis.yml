@@ -16,11 +16,14 @@ addons:
       - python-pip
 
 
+before_script:
+  - echo $HOME/$TRAVIS_REPO_SLUG/gef.py > ~/.gdbinit
+
 script:
-- echo `pwd`/gef.py > ~/.gdbinit
+  - gdb -ex 'gef help' -ex 'gef config' /bin/ls
 
 after_script:
-- ./tests/tests-runner.py
+  - $HOME/$TRAVIS_REPO_SLUG/tests-runner.py
 
 notifications:
   email:
