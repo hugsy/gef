@@ -1120,6 +1120,12 @@ def gef_instruction_n(addr, n):
     return list(gdb_disassemble(addr, count=n+1))[n]
 
 
+def gef_get_instruction_at(addr):
+    """Return the full Instruction found at the specified address."""
+    insn = list(gef_disassemble(addr, 1, from_top=True))[0]
+    return insn
+
+
 def gef_current_instruction(addr):
     """Return the current instruction as an Instruction object."""
     return gef_instruction_n(addr, 0)
@@ -1313,6 +1319,8 @@ class Architecture(object):
     def is_conditional_branch(self, insn):         pass
     @abc.abstractmethod
     def is_branch_taken(self, insn):               pass
+    @abc.abstractmethod
+    def print_call_args(self):                     pass
 
     @property
     def pc(self):
@@ -1389,6 +1397,40 @@ class ARM(Architecture):
         elif mnemo.endswith("bvs"): taken, reason = val&(1<<flags["overflow"]), "O"
         elif mnemo.endswith("bvc"): taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
         return taken, reason
+
+    def print_call_args(self):
+        # Go back a few instructions, until we see a call, to see which args are set
+        if is_arm_thumb():
+            addr_size = 2
+        else:
+            addr_size = 4
+        addr = self.pc - addr_size
+        insn = gef_get_instruction_at(addr)
+        arg_regs = set()
+        while not self.is_call(insn) and insn.mnemo != "push":
+            # Check which registers are being written
+            if insn.mnemo in ("mov", "ldr", "sub", "add"):
+                arg_regs.add(insn.operands[0])
+
+            # Next instruction back
+            addr -= addr_size
+            insn = gef_get_instruction_at(addr)
+
+        for i, reg in enumerate(["r0", "r1", "r2", "r3"]):
+            # If we didn't see an arg set, then it must not be an arg
+            if reg not in arg_regs: break
+
+            addr = long(gdb.parse_and_eval("${}".format(reg)))
+            line = "Arg {:d} ({:s}) ".format(i, reg)
+
+            line += Color.boldify(format_address(addr))
+            addrs = DereferenceCommand.dereference_from(addr)
+
+            if len(addrs) > 1:
+                sep = " {:s} ".format(right_arrow)
+                line += sep + sep.join(addrs[1:])
+
+            print(line)
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 125
@@ -1575,6 +1617,24 @@ class X86(Architecture):
             taken, reason = val&(1<<flags["sign"]), "S"
         return taken, reason
 
+    def print_call_args(self):
+        offsets = [0, 4, 8, 12, 16, 20]
+        sp = long(gdb.parse_and_eval("$esp"))
+        for i, offset in enumerate(offsets):
+            addr = sp + offset
+            line = "Arg {:d} (sp+{:#x}) ".format(i, offset)
+
+            line += Color.boldify(format_address(addr))
+            addrs = DereferenceCommand.dereference_from(addr)
+
+            if len(addrs) > 1:
+                sep = " {:s} ".format(right_arrow)
+                line += sep + sep.join(addrs[1:])
+
+            print(line)
+
+        return
+
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 125
         insns = [
@@ -1599,6 +1659,23 @@ class X86_64(X86):
         "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags",]
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
+
+    def print_call_args(self):
+        regs = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
+        for i, reg in enumerate(regs):
+            addr = long(gdb.parse_and_eval(reg))
+            line = "Arg {:d} ({:s}) ".format(i, reg)
+
+            line += Color.boldify(format_address(addr))
+            addrs = DereferenceCommand.dereference_from(addr)
+
+            if len(addrs) > 1:
+                sep = " {:s} ".format(right_arrow)
+                line += sep + sep.join(addrs[1:])
+
+            print(line)
+
+        return
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
@@ -5301,7 +5378,6 @@ class CapstoneDisassembleCommand(GenericCommand):
 
         location = location or current_arch.pc
         length = int(kwargs.get("length", get_gef_setting("context.nb_lines_code")))
-
         for insn in capstone_disassemble(location, length, **kwargs):
             text_insn = str(insn)
             msg = ""
@@ -5318,7 +5394,6 @@ class CapstoneDisassembleCommand(GenericCommand):
 
             print(msg)
         return
-
 
     def capstone_analyze_pc(self, insn, nb_insn):
         cs = sys.modules["capstone"]
@@ -5564,11 +5639,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         if get_main_arena() is None:
-<<<<<<< HEAD
             err("Invalid Glibc arena")
-=======
-            err("Incorrect Glibc arenas or arenas not found")
->>>>>>> fixed wrong error handling when no main_arena found
             return
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
@@ -6234,6 +6305,7 @@ class ContextCommand(GenericCommand):
     def __init__(self):
         super(ContextCommand, self).__init__()
         self.add_setting("enable", True, "Enable/disable printing the context when breaking")
+        self.add_setting("show_args", True, "Take a guess at the args")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", False, "Show the registers pane with raw values (no dereference)")
         self.add_setting("peek_calls", True, "Peek into calls")
@@ -6242,8 +6314,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
         self.add_setting("ignore_registers", "", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
         self.add_setting("clear_screen", False, "Clear the screen before printing the context")
-        self.add_setting("layout", "regs stack code source memory threads trace extra",
-                         "Change the order/presence of the context sections")
+        self.add_setting("layout", "regs args stack code source threads trace extra", "Change the order/display of the context")
         self.add_setting("redirect", "", "Redirect the context information to another TTY")
 
         if "capstone" in list(sys.modules.keys()):
@@ -6267,6 +6338,7 @@ class ContextCommand(GenericCommand):
         self.tty_rows, self.tty_columns = get_terminal_size()
         layout_mapping = {
             "regs":  self.context_regs,
+            "args": self.context_args,
             "stack": self.context_stack,
             "code": self.context_code,
             "memory": self.context_memory,
@@ -6385,6 +6457,15 @@ class ContextCommand(GenericCommand):
 
         print("Flags: {:s}".format(current_arch.flag_register_to_human()))
         return
+
+    def context_args(self):
+        pc = current_arch.pc
+        insn = gef_get_instruction_at(pc)
+        if not current_arch.is_call(insn):
+            return
+
+        self.context_title("args")
+        args = current_arch.print_call_args()
 
     def context_stack(self):
         self.context_title("stack")
@@ -6974,7 +7055,8 @@ class DereferenceCommand(GenericCommand):
         GefAlias("dps", "dereference", completer_class=gdb.COMPLETE_LOCATION)
         return
 
-    def pprint_dereferenced(self, addr, off):
+    @staticmethod
+    def pprint_dereferenced(addr, off):
         base_address_color = get_gef_setting("theme.dereference_base_address")
         registers_color = get_gef_setting("theme.dereference_register_value")
 
