@@ -76,6 +76,7 @@ if PYTHON_MAJOR == 2:
 
     left_arrow = "<-"
     right_arrow = "->"
+    down_arrow = "\->"
     horizontal_line = "-"
     vertical_line = "|"
 
@@ -97,6 +98,7 @@ elif PYTHON_MAJOR == 3:
 
     left_arrow = " \u2190 "
     right_arrow = " \u2192 "
+    down_arrow = "\u21b3"
     horizontal_line = "\u2500"
     vertical_line = "\u2502"
 
@@ -910,7 +912,7 @@ def gef_disassemble(addr, nb_insn, from_top=False):
     result = []
     for line in lines:
         (address, location, mnemo, operands) = gef_parse_gdb_instruction(line)
-        code = "{:s}     {:s}   {:s}".format(location, mnemo, ",".join(operands))
+        code = "{:s}     {:s}   {:s}".format(location, mnemo, ", ".join(operands))
         result.append((address, code))
     return result
 
@@ -1318,14 +1320,16 @@ class PowerPC(Architecture):
     return_register = "$r0"
     flag_register = "$cr"
     flags_table = {
-        0: "negative",
-        1: "positive",
-        2: "zero",
-        3: "summary",
-        28: "less",
-        29: "greater",
-        30: "equal",
-        31: "overflow",
+        3: "negative[0]",
+        2: "positive[0]",
+        1: "equal[0]",
+        0: "overflow[0]",
+
+        # cr7
+        31: "less[7]",
+        30: "greater[7]",
+        29: "equal[7]",
+        28: "overflow[7]",
     }
     function_parameters = ["$i0", "$i1", "$i2", "$i3", "$i4", "$i5"]
 
@@ -1348,12 +1352,12 @@ class PowerPC(Architecture):
         _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
         flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
         val = get_register_ex(self.flag_register)
-        if mnemo == "beq": return val&(1<<flags["equal"]), "E"
-        if mnemo == "bne": return val&(1<<flags["equal"]) == 0, "!E"
-        if mnemo == "ble": return val&(1<<flags["equal"]) or val&(1<<flags["less"]), "E || L"
-        if mnemo == "blt": return val&(1<<flags["less"]), "L"
-        if mnemo == "bge": return val&(1<<flags["equal"]) or val&(1<<flags["greater"]), "E || G"
-        if mnemo == "bgt": return val&(1<<flags["greater"]), "G"
+        if mnemo == "beq": return val&(1<<flags["equal[7]"]), "E"
+        if mnemo == "bne": return val&(1<<flags["equal[7]"]) == 0, "!E"
+        if mnemo == "ble": return val&(1<<flags["equal[7]"]) or val&(1<<flags["less[7]"]), "E || L"
+        if mnemo == "blt": return val&(1<<flags["less[7]"]), "L"
+        if mnemo == "bge": return val&(1<<flags["equal[7]"]) or val&(1<<flags["greater[7]"]), "E || G"
+        if mnemo == "bgt": return val&(1<<flags["greater[7]"]), "G"
         return False, ""
 
     def mprotect_asm(self, addr, size, perm):
@@ -2250,9 +2254,7 @@ def is_in_x86_kernel(address):
 @memoize
 def endian_str():
     elf = get_elf_headers()
-    if elf.e_endianness == 0x01:
-        return "<" # LE
-    return ">" # BE
+    return "<" if elf.e_endianness == Elf.LITTLE_ENDIAN else ">"
 
 
 @memoize
@@ -4984,12 +4986,12 @@ class ContextCommand(GenericCommand):
         trail_len = len(m) + 8
         title = ""
         title += Color.colorify("{:{padd}<{width}}[ ".format("",
-                                                            width=self.tty_columns - trail_len,
-                                                            padd=horizontal_line),
-                               attrs=line_color)
+                                                             width=self.tty_columns - trail_len,
+                                                             padd=horizontal_line),
+                                attrs=line_color)
         title += Color.colorify(m, msg_color)
         title += Color.colorify(" ]{:{padd}<4}".format("", padd=horizontal_line),
-                               attrs=line_color)
+                                attrs=line_color)
         print(title)
         return
 
@@ -5089,25 +5091,45 @@ class ContextCommand(GenericCommand):
             for addr, content in disassembled_lines:
                 insn = "{:#x} {:s}".format (addr,content)
                 line = []
+                is_taken = False
                 m = "{}    {}".format(format_address(addr), content)
+
                 if addr < pc:
                     line += Color.grayify(m)
+
                 elif addr == pc:
-                    line += Color.colorify("{:s}  {:s}$pc".format (m, left_arrow), attrs="bold red")
+                    line += Color.colorify("{:s}  {:s}$pc".format(m, left_arrow), attrs="bold red")
 
                     if current_arch.is_conditional_branch(insn):
                         is_taken, reason = current_arch.is_branch_taken(insn)
                         if is_taken:
-                            reason = "[Reason: {:s}]".format (reason) if reason else ""
-                            line += Color.colorify("\tTAKEN {:s}".format (reason), attrs="bold green")
+                            reason = "[Reason: {:s}]".format(reason) if reason else ""
+                            line += Color.colorify("\tTAKEN {:s}".format(reason), attrs="bold green")
                         else:
-                            reason = "[Reason: !({:s})]".format (reason) if reason else ""
-                            line += Color.colorify("\tNOT taken {:s}".format (reason), attrs="bold red")
+                            reason = "[Reason: !({:s})]".format(reason) if reason else ""
+                            line += Color.colorify("\tNOT taken {:s}".format(reason), attrs="bold red")
 
                 else:
                     line += m
 
                 print("".join(line))
+
+                if is_taken:
+                    # we're not using gef_current_instruction(addr) because gdb/mips disassembles 2 instructions when hitting a branch
+                    cur = gdb.execute("x/i $pc", to_string=True).splitlines()[0]
+                    cur = cur.replace("=>", "").strip()
+                    (_, _, _, operands) = gef_parse_gdb_instruction(cur)
+                    target = operands[-1].split()[0]
+                    target = int(target, 16)
+                    disassembled_lines = gef_disassemble(target, nb_insn, True)
+                    for i, _ in enumerate(disassembled_lines):
+                        addr, content = _
+                        insn = ""
+                        insn+= down_arrow if i==0 else " "
+                        insn+= "\t{:#x} {:s}".format (addr,content)
+                        print(insn)
+                    break
+
 
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
@@ -6523,7 +6545,7 @@ class GefAlias(gdb.Command):
 class GefAliases(gdb.Command):
     """List all custom aliases."""
     def __init__(self):
-        super(GefAliases, self).__init__("aliases", gdb.COMMAND_USER, gdb.COMPLETE_NONE)
+        super(GefAliases, self).__init__("aliases", gdb.COMMAND_OBSCURE, gdb.COMPLETE_NONE)
         return
 
     def invoke(self, args, from_tty):
@@ -6539,7 +6561,7 @@ class GefAliases(gdb.Command):
 class GefTmuxSetup(gdb.Command):
     """Setup a confortable tmux debugging environment."""
     def __init__(self):
-        super(GefTmuxSetup, self).__init__("tmux-setup", gdb.COMMAND_USER, gdb.COMPLETE_NONE)
+        super(GefTmuxSetup, self).__init__("tmux-setup", gdb.COMMAND_NONE, gdb.COMPLETE_NONE)
         GefAlias("screen-setup", "tmux-setup")
         return
 
