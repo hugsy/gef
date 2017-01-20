@@ -4942,14 +4942,17 @@ class ContextCommand(GenericCommand):
         if not self.get_setting("enable"):
             return
 
+        current_layout = self.get_setting("layout").strip().split()
         if not current_layout:
-            self.tty_rows, self.tty_columns = get_terminal_size()
-            layout_mapping = {"regs":  self.context_regs,
-                            "stack": self.context_stack,
-                            "code": self.context_code,
-                            "source": self.context_source,
-                            "trace": self.context_trace,
-                            "threads": self.context_threads}
+            return
+
+        self.tty_rows, self.tty_columns = get_terminal_size()
+        layout_mapping = {"regs":  self.context_regs,
+                          "stack": self.context_stack,
+                          "code": self.context_code,
+                          "source": self.context_source,
+                          "trace": self.context_trace,
+                          "threads": self.context_threads}
 
         redirect = self.get_setting("redirect")
         if redirect and os.access(redirect, os.W_OK):
