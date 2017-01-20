@@ -938,7 +938,9 @@ def gef_disassemble(addr, nb_insn, from_top=False):
         code = "{:s}     {:s}   {:s}".format(location, mnemo, ", ".join(operands))
         yield((address, code))
 
+
 ParsedInstruction = collections.namedtuple("ParsedInstruction", "address location mnemo operands")
+
 
 def gef_parse_gdb_instruction(raw_insn):
     raw_insn = raw_insn.strip().replace("\t", " ").replace(":", " ")
@@ -1069,6 +1071,8 @@ class Architecture(object):
     def is_conditional_branch(self, insn):         pass
     @abc.abstractmethod
     def is_branch_taken(self, insn):               pass
+    @abc.abstractmethod
+    def print_call_args(self):                     pass
 
     @property
     def pc(self):
@@ -1110,7 +1114,9 @@ class ARM(Architecture):
     function_parameters = ["$r0", "$r1", "$r2", "$r3"]
 
     def is_call(self, insn):
-        return False
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        mnemos = {"bl", "blx"}
+        return mnemo in mnemos
 
     def flag_register_to_human(self, val=None):
         # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
@@ -1141,6 +1147,21 @@ class ARM(Architecture):
         elif mnemo.endswith("bvs"): taken, reason = val&(1<<flags["overflow"]), "O"
         elif mnemo.endswith("bvc"): taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
         return taken, reason
+
+    def print_call_args(self):
+        regs = ["$r0", "$r1", "$r2", "$r3"]
+        for i, reg in enumerate(regs):
+            addr = long(gdb.parse_and_eval(reg))
+            line = "Arg {:d} ({:s}) ".format(i, reg)
+
+            line += Color.boldify(format_address(addr))
+            addrs = DereferenceCommand.dereference_from(addr)
+
+            if len(addrs) > 1:
+                sep = " {:s} ".format(right_arrow)
+                line += sep + sep.join(addrs[1:])
+
+            print(line)
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 125
@@ -1322,6 +1343,24 @@ class X86(Architecture):
             taken, reason = val&(1<<flags["sign"]), "S"
         return taken, reason
 
+    def print_call_args(self):
+        offsets = [0, 4, 8, 12, 16, 20]
+        sp = long(gdb.parse_and_eval("$esp"))
+        for i, offset in enumerate(offsets):
+            addr = sp + offset
+            line = "Arg {:d} (sp+{:#x}) ".format(i, offset)
+
+            line += Color.boldify(format_address(addr))
+            addrs = DereferenceCommand.dereference_from(addr)
+
+            if len(addrs) > 1:
+                sep = " {:s} ".format(right_arrow)
+                line += sep + sep.join(addrs[1:])
+
+            print(line)
+
+        return
+
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 125
         insns = [
@@ -1346,6 +1385,23 @@ class X86_64(X86):
         "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags",]
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
+
+    def print_call_args(self):
+        regs = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
+        for i, reg in enumerate(regs):
+            addr = long(gdb.parse_and_eval(reg))
+            line = "Arg {:d} ({:s}) ".format(i, reg)
+
+            line += Color.boldify(format_address(addr))
+            addrs = DereferenceCommand.dereference_from(addr)
+
+            if len(addrs) > 1:
+                sep = " {:s} ".format(right_arrow)
+                line += sep + sep.join(addrs[1:])
+
+            print(line)
+
+        return
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
@@ -5137,6 +5193,7 @@ class ContextCommand(GenericCommand):
     def __init__(self):
         super(ContextCommand, self).__init__(prefix=False)
         self.add_setting("enable", True, "Enable/disable printing the context when breaking")
+        self.add_setting("show_args", True, "Take a guess at the args")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", True, "Show the registers pane with raw values (no dereference)")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
@@ -5145,7 +5202,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("ignore_registers", "", "Specify here a space-separated list of registers you do not here to display (for example: '$cs $ds $status')")
         self.add_setting("clear_screen", False, "Clear the screen before printing the context")
 
-        self.add_setting("layout", "regs stack code source threads trace", "Change the order/display of the context")
+        self.add_setting("layout", "regs args stack code source threads trace", "Change the order/display of the context")
         self.add_setting("redirect", "", "Redirect the context information to another TTY")
 
         if "capstone" in list(sys.modules.keys()):
@@ -5168,6 +5225,7 @@ class ContextCommand(GenericCommand):
         self.tty_rows, self.tty_columns = get_terminal_size()
         layout_mapping = {
             "regs":  self.context_regs,
+            "args": self.context_args,
             "stack": self.context_stack,
             "code": self.context_code,
             "source": self.context_source,
@@ -5273,6 +5331,16 @@ class ContextCommand(GenericCommand):
 
         print("Flags: {:s}".format(current_arch.flag_register_to_human()))
         return
+
+    def context_args(self):
+        pc = current_arch.pc
+        disassembled_lines = list(gef_disassemble(pc, 1, from_top=True))
+        insn = "{:#x} {:s}".format(*disassembled_lines[0])
+        if not current_arch.is_call(insn):
+            return
+
+        self.context_title("args")
+        args = current_arch.print_call_args()
 
     def context_stack(self):
         self.context_title("stack")
@@ -5627,7 +5695,8 @@ class DereferenceCommand(GenericCommand):
         self.add_setting("max_recursion", 7, "Maximum level of pointer recursion")
         return
 
-    def pprint_dereferenced(self, addr, off):
+    @staticmethod
+    def pprint_dereferenced(addr, off):
         base_address_color = __config__.get("theme.dereference_base_address")[0]
         registers_color = __config__.get("theme.dereference_register_value")[0]
 
