@@ -5176,12 +5176,13 @@ class ContextCommand(GenericCommand):
             return
 
         self.tty_rows, self.tty_columns = get_terminal_size()
-        layout_mapping = {"regs":  self.context_regs,
-                        "stack": self.context_stack,
-                        "code": self.context_code,
-                        "source": self.context_source,
-                        "trace": self.context_trace,
-                        "threads": self.context_threads}
+        layout_mapping = {
+            "regs":  self.context_regs,
+            "stack": self.context_stack,
+            "code": self.context_code,
+            "source": self.context_source,
+            "trace": self.context_trace,
+            "threads": self.context_threads}
 
         redirect = self.get_setting("redirect")
         if redirect and os.access(redirect, os.W_OK):
@@ -5634,6 +5635,31 @@ class DereferenceCommand(GenericCommand):
         self.add_setting("max_recursion", 7, "Maximum level of pointer recursion")
         return
 
+    def pprint_dereferenced(self, addr, off):
+        regs = [(k.strip(), get_register_ex(k)) for k in current_arch.all_registers]
+        sep = " {:s} ".format(right_arrow)
+        memalign = get_memory_alignment()
+
+        offset = off * memalign
+        current_address = align_address(addr + offset)
+        addrs = DereferenceCommand.dereference_from(current_address)
+        l  = ""
+        addr_l = format_address(long(addrs[0], 16))
+        l += "{:s}{:s}+{:#04x}: {:s}".format(Color.colorify(addr_l, attrs="bold green"),
+                                             vertical_line, offset,
+                                             sep.join(addrs[1:]))
+
+        values = []
+        for regname, regvalue in regs:
+            if current_address == regvalue:
+                values.append(regname)
+
+        if values:
+            m = "\t{:s}{:s}".format(left_arrow, ", ".join(list(values)))
+            l += Color.colorify(m, attrs="bold green")
+
+        offset += memalign
+        return l
 
     @if_gdb_running
     def do_invoke(self, argv):
@@ -5641,38 +5667,11 @@ class DereferenceCommand(GenericCommand):
             err("Missing location.")
             return
 
-        memalign = get_memory_alignment()
-        offset = 0
-        regs = [(k.strip(), get_register_ex(k)) for k in current_arch.all_registers]
-        sep = " {:s} ".format(right_arrow)
-
-        def _pprint_dereferenced(addr, off):
-            offset = off * memalign
-            current_address = align_address(addr + offset)
-            addrs = DereferenceCommand.dereference_from(current_address)
-            l  = ""
-            addr_l = format_address(long(addrs[0], 16))
-            l += "{:s}{:s}+{:#04x}: {:s}".format(Color.colorify(addr_l, attrs="bold green"),
-                                                 vertical_line, offset,
-                                                 sep.join(addrs[1:]))
-
-            values = []
-            for regname, regvalue in regs:
-                if current_address == regvalue:
-                    values.append(regname)
-
-            if values:
-                m = "\t{:s}{:s}".format(left_arrow, ", ".join(list(values)))
-                l += Color.colorify(m, attrs="bold green")
-
-            offset += memalign
-            return l
-
         nb = int(argv[1]) if len(argv) == 2 and argv[1].isdigit() else 1
         start_address = align_address(long(gdb.parse_and_eval(argv[0])))
 
         for i in range(0, nb):
-            print(_pprint_dereferenced(start_address, i))
+            print(self.pprint_dereferenced(start_address, i))
         return
 
 
