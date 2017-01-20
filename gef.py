@@ -2371,7 +2371,7 @@ def generate_cyclic_pattern(length):
 
 def dereference(addr):
     """
-    gef-wrapper for gdb dereference fonction.
+    gef-wrapper for gdb dereference function.
     """
     try:
         unsigned_long_type = gdb.lookup_type("unsigned long").pointer()
@@ -3274,7 +3274,7 @@ class IdaInteractCommand(GenericCommand):
             method_name = argv[0]
             if method_name == "version":
                 self.version = self.sock.version()
-                info("Enhancing {:s} with {:s} (v.{:s})".format (Color.greenify("gef"),
+                info("Enhancing {:s} with {:s} (v.{:s})".format(Color.greenify("gef"),
                                                                  Color.redify(self.version[0]),
                                                                  Color.yellowify(self.version[1])))
                 return
@@ -4507,7 +4507,7 @@ class SolveKernelSymbolCommand(GenericCommand):
     """Solve kernel symbols from kallsyms table."""
 
     _cmdline_ = "ksymaddr"
-    _syntax_  = "{:s} SymbolToSearch".format (_cmdline_)
+    _syntax_  = "{:s} SymbolToSearch".format(_cmdline_)
 
     def do_invoke(self, argv):
         if len(argv) != 1:
@@ -4522,16 +4522,16 @@ class SolveKernelSymbolCommand(GenericCommand):
                     symaddr, symtype, symname = line.strip().split(" ", 3)
                     symaddr = long(symaddr, 16)
                     if symname == sym:
-                        ok("Found matching symbol for '{:s}' at {:#x} (type={:s})".format (sym, symaddr, symtype))
+                        ok("Found matching symbol for '{:s}' at {:#x} (type={:s})".format(sym, symaddr, symtype))
                         found = True
                     if sym in symname:
-                        warn("Found partial match for '{:s}' at {:#x} (type={:s}): {:s}".format (sym, symaddr, symtype, symname))
+                        warn("Found partial match for '{:s}' at {:#x} (type={:s}): {:s}".format(sym, symaddr, symtype, symname))
                         found = True
                 except ValueError:
                     pass
 
         if not found:
-            err("No match for '{:s}'".format (sym))
+            err("No match for '{:s}'".format(sym))
         return
 
 
@@ -4539,7 +4539,7 @@ class DetailRegistersCommand(GenericCommand):
     """Display full details on one, many or all registers value from current architecture."""
 
     _cmdline_ = "registers"
-    _syntax_  = "{:s} [Register1] [Register2] ... [RegisterN]".format (_cmdline_)
+    _syntax_  = "{:s} [Register1] [Register2] ... [RegisterN]".format(_cmdline_)
 
     @if_gdb_running
     def do_invoke(self, argv):
@@ -4573,7 +4573,7 @@ class DetailRegistersCommand(GenericCommand):
             addrs = DereferenceCommand.dereference_from(addr)
 
             if len(addrs) > 1:
-                sep = " {:s} ".format (right_arrow)
+                sep = " {:s} ".format(right_arrow)
                 line += sep + sep.join(addrs[1:])
 
             print(line)
@@ -4586,7 +4586,7 @@ class ShellcodeCommand(GenericCommand):
     download shellcodes."""
 
     _cmdline_ = "shellcode"
-    _syntax_  = "{:s} <search|get>".format (_cmdline_)
+    _syntax_  = "{:s} <search|get>".format(_cmdline_)
 
 
     def do_invoke(self, argv):
@@ -4599,7 +4599,7 @@ class ShellcodeSearchCommand(GenericCommand):
     """Search pattern in shellcodes database."""
 
     _cmdline_ = "shellcode search"
-    _syntax_  = "{:s} <pattern1> <pattern2>".format (_cmdline_)
+    _syntax_  = "{:s} <pattern1> <pattern2>".format(_cmdline_)
     _aliases_ = ["sc-search",]
 
     api_base = "http://shell-storm.org"
@@ -4648,7 +4648,7 @@ class ShellcodeGetCommand(GenericCommand):
     """Download shellcode from shellcodes database"""
 
     _cmdline_ = "shellcode get"
-    _syntax_  = "{:s} <shellcode_id>".format (_cmdline_)
+    _syntax_  = "{:s} <shellcode_id>".format(_cmdline_)
     _aliases_ = ["sc-get",]
 
     api_base = "http://shell-storm.org"
@@ -4683,7 +4683,7 @@ class ShellcodeGetCommand(GenericCommand):
         buf = HTMLParser().unescape(buf)
         os.write(fd, gef_pybytes(buf))
         os.close(fd)
-        info("Shellcode written to '{:s}'".format (fname))
+        info("Shellcode written to '{:s}'".format(fname))
         return
 
 
@@ -4691,7 +4691,7 @@ class RopperCommand(GenericCommand):
     """Ropper (http://scoding.de/ropper) plugin"""
 
     _cmdline_ = "ropper"
-    _syntax_  = "{:s} [OPTIONS]".format (_cmdline_)
+    _syntax_  = "{:s} [OPTIONS]".format(_cmdline_)
 
 
     def __init__(self):
@@ -4721,7 +4721,7 @@ class ROPgadgetCommand(GenericCommand):
     """ROPGadget (http://shell-storm.org/project/ROPgadget) plugin"""
 
     _cmdline_ = "ropgadget"
-    _syntax_  = "{:s} [OPTIONS]".format (_cmdline_)
+    _syntax_  = "{:s} [OPTIONS]".format(_cmdline_)
 
 
     def __init__(self):
@@ -4775,7 +4775,7 @@ class ROPgadgetCommand(GenericCommand):
         #
         def __usage__():
             arr = [x for x in dir(args) if not x.startswith("__")]
-            info("Valid options for {:s} are:\n{:s}".format (self._cmdline_, ", ".join(arr)))
+            info("Valid options for {:s} are:\n{:s}".format(self._cmdline_, ", ".join(arr)))
             return
 
         for opt in argv:
@@ -4796,25 +4796,25 @@ class ROPgadgetCommand(GenericCommand):
                 elif name == "depth":
                     value = long(value)
                     depth = value
-                    info("Using depth {:d}".format (depth))
+                    info("Using depth {:d}".format(depth))
                 elif name == "range":
                     off_min = long(value.split("-")[0], 16)
                     off_max = long(value.split("-")[1], 16)
                     if off_max < off_min:
-                        raise ValueError("{:#x} must be higher that {:#x}".format (off_max, off_min))
-                    info("Using range [{:#x}:{:#x}] ({:ld} bytes)".format (off_min, off_max, (off_max - off_min)))
+                        raise ValueError("{:#x} must be higher that {:#x}".format(off_max, off_min))
+                    info("Using range [{:#x}:{:#x}] ({:ld} bytes)".format(off_min, off_max, (off_max - off_min)))
 
                 setattr(args, name, value)
 
             else:
-                err("'{:s}' is not a valid ropgadget option".format (name))
+                err("'{:s}' is not a valid ropgadget option".format(name))
                 __usage__()
                 return False
 
         if getattr(args, "binary") is None:
             setattr(args, "binary", get_filepath())
 
-        info("Using binary: {:s}".format (args.binary))
+        info("Using binary: {:s}".format(args.binary))
         return True
 
 
@@ -4823,7 +4823,7 @@ class AssembleCommand(GenericCommand):
     x86). """
 
     _cmdline_ = "assemble"
-    _syntax_  = "{:s} [-a ARCH] [-m MODE] [-e] [-s] [-l LOCATION] instruction;[instruction;...instruction;])".format (_cmdline_)
+    _syntax_  = "{:s} [-a ARCH] [-m MODE] [-e] [-s] [-l LOCATION] instruction;[instruction;...instruction;])".format(_cmdline_)
     _aliases_ = ["asm",]
 
     def __init__(self, *args, **kwargs):
@@ -4904,7 +4904,7 @@ class AssembleCommand(GenericCommand):
 
         if write_to_location:
             l = len(raw)
-            info("Overwriting {:d} bytes at {:s}".format (l, format_address(write_to_location)))
+            info("Overwriting {:d} bytes at {:s}".format(l, format_address(write_to_location)))
             write_memory(write_to_location, raw, l)
         return
 
@@ -4913,7 +4913,7 @@ class ProcessListingCommand(GenericCommand):
     """List and filter process."""
 
     _cmdline_ = "process-search"
-    _syntax_  = "{:s} [PATTERN]".format (_cmdline_)
+    _syntax_  = "{:s} [PATTERN]".format(_cmdline_)
     _aliases_ = ["ps",]
 
     def __init__(self):
@@ -4946,8 +4946,8 @@ class ProcessListingCommand(GenericCommand):
                 if command.startswith("gdb "): continue
 
             if args and do_attach:
-                ok("Attaching to process='{:s}' pid={:d}".format (process["command"], pid))
-                gdb.execute("attach {:d}".format (pid))
+                ok("Attaching to process='{:s}' pid={:d}".format(process["command"], pid))
+                gdb.execute("attach {:d}".format(pid))
                 return None
 
             line = [process[i] for i in ("pid", "user", "cpu", "mem", "tty", "command")]
@@ -5114,8 +5114,8 @@ class EntryPointBreakCommand(GenericCommand):
         return
 
     def set_init_tbreak(self, addr):
-        info("Breaking at entry-point: {:#x}".format (addr))
-        bp_num = gdb.execute("tbreak *{:#x}".format (addr), to_string=True)
+        info("Breaking at entry-point: {:#x}".format(addr))
+        bp_num = gdb.execute("tbreak *{:#x}".format(addr), to_string=True)
         bp_num = int(bp_num.split()[2])
         return bp_num
 
@@ -5257,16 +5257,16 @@ class ContextCommand(GenericCommand):
 
             old_value = self.old_registers[reg] if reg in self.old_registers else 0x00
 
-            line += "{:s}  ".format (Color.greenify(reg))
+            line += "{:s}  ".format(Color.greenify(reg))
             if new_value_type_flag:
-                line += "{:s} ".format (str(new_value))
+                line += "{:s} ".format(str(new_value))
             else:
                 new_value = align_address(new_value)
                 old_value = align_address(old_value)
                 if new_value == old_value:
-                    line += "{:s} ".format (format_address(new_value))
+                    line += "{:s} ".format(format_address(new_value))
                 else:
-                    line += "{:s} ".format (Color.colorify(format_address(new_value), attrs="bold red"))
+                    line += "{:s} ".format(Color.colorify(format_address(new_value), attrs="bold red"))
 
             if (i % nb == 0) :
                 print(line)
@@ -5291,7 +5291,7 @@ class ContextCommand(GenericCommand):
                 mem = read_memory(sp, 0x10 * nb_lines)
                 print(hexdump(mem, base=sp))
             else:
-                gdb.execute("dereference {:#x} {:d}".format (sp, nb_lines))
+                gdb.execute("dereference {:#x} {:d}".format(sp, nb_lines))
 
         except gdb.MemoryError:
             err("Cannot read memory from $SP (corrupted stack pointer?)")
@@ -5317,7 +5317,7 @@ class ContextCommand(GenericCommand):
 
             disassembled_lines = gef_disassemble(pc, nb_insn)
             for addr, content in disassembled_lines:
-                insn = "{:#x} {:s}".format (addr,content)
+                insn = "{:#x} {:s}".format(addr,content)
                 line = []
                 is_taken = False
                 m = "{}    {}".format(format_address(addr), content)
@@ -5396,7 +5396,7 @@ class ContextCommand(GenericCommand):
 
             if i > line_num:
                 try:
-                    print("{:4d}\t {:s}".format (i + 1, lines[i],))
+                    print("{:4d}\t {:s}".format(i + 1, lines[i],))
                 except IndexError:
                     break
         return
@@ -5456,12 +5456,12 @@ class ContextCommand(GenericCommand):
             items.append("RetAddr: {:#x}".format(pc))
             if name:
                 frame_args = gdb.FrameDecorator.FrameDecorator(current_frame).frame_args() or []
-                m = "Name: {:s}(".format (Color.greenify(name))
-                m += ", ".join(["{!s}={!s}".format (x.sym, x.sym.value(current_frame)) for x in frame_args])
+                m = "Name: {:s}(".format(Color.greenify(name))
+                m += ",".join(["{!s}={!s}".format(x.sym, x.sym.value(current_frame)) for x in frame_args])
                 m += ")"
                 items.append(m)
 
-            print("[{:s}] {:s}".format (Color.colorify("#{:d}".format(i), "bold pink"),
+            print("[{:s}] {:s}".format(Color.colorify("#{:d}".format(i), "bold pink"),
                                         ", ".join(items)))
             current_frame = current_frame.older()
             i += 1
@@ -5626,7 +5626,7 @@ class DereferenceCommand(GenericCommand):
     """Dereference recursively an address and display information"""
 
     _cmdline_ = "dereference"
-    _syntax_  = "{:s} [LOCATION] [NB]".format (_cmdline_)
+    _syntax_  = "{:s} [LOCATION] [NB]".format(_cmdline_)
     _aliases_ = ["telescope", "dps",]
 
 
@@ -5809,7 +5809,7 @@ class VMMapCommand(GenericCommand):
     """Display virtual memory mapping"""
 
     _cmdline_ = "vmmap"
-    _syntax_  = "{:s}".format (_cmdline_)
+    _syntax_  = "{:s}".format(_cmdline_)
 
     @if_gdb_running
     def do_invoke(self, argv):
@@ -5821,9 +5821,9 @@ class VMMapCommand(GenericCommand):
         color = __config__.get("theme.xinfo_title_message")[0]
         headers = [Color.colorify(x, attrs=color) for x in ["Start", "End", "Offset", "Perm", "Path"]]
         if is_elf64():
-            print("{:<31s} {:<31s} {:<31s} {:<4s} {:s}".format (*headers))
+            print("{:<31s} {:<31s} {:<31s} {:<4s} {:s}".format(*headers))
         else:
-            print("{:<23s} {:<23s} {:<23s} {:<4s} {:s}".format (*headers))
+            print("{:<23s} {:<23s} {:<23s} {:<4s} {:s}".format(*headers))
 
         for entry in vmmap:
             l = []
@@ -5897,32 +5897,32 @@ class XAddressInfoCommand(GenericCommand):
                 self.infos(addr)
 
             except gdb.error as gdb_err:
-                err("{:s}".format (gdb_err))
+                err("{:s}".format(gdb_err))
         return
 
 
     def infos(self, address):
         addr = lookup_address(address)
         if not addr.valid:
-            warn("Cannot reach {:#x} in memory space".format (address))
+            warn("Cannot reach {:#x} in memory space".format(address))
             return
 
         sect = addr.section
         info = addr.info
 
         if sect:
-            print("Found {:s}".format (format_address(addr.value)))
-            print("Page: {:s} {:s} {:s} (size={:#x})".format (format_address(sect.page_start),
+            print("Found {:s}".format(format_address(addr.value)))
+            print("Page: {:s} {:s} {:s} (size={:#x})".format(format_address(sect.page_start),
                                                                right_arrow,
                                                                format_address(sect.page_end),
                                                                sect.page_end-sect.page_start))
-            print("Permissions: {:s}".format (str(sect.permission)))
-            print("Pathname: {:s}".format (sect.path))
-            print("Offset (from page): +{:#x}".format (addr.value-sect.page_start))
-            print("Inode: {:s}".format (sect.inode))
+            print("Permissions: {:s}".format(str(sect.permission)))
+            print("Pathname: {:s}".format(sect.path))
+            print("Offset (from page): +{:#x}".format(addr.value-sect.page_start))
+            print("Inode: {:s}".format(sect.inode))
 
         if info:
-            print("Segment: {:s} ({:s}-{:s})".format (info.name,
+            print("Segment: {:s} ({:s}-{:s})".format(info.name,
                                                       format_address(info.zone_start),
                                                       format_address(info.zone_end)))
         return
@@ -5932,7 +5932,7 @@ class XorMemoryCommand(GenericCommand):
     """XOR a block of memory."""
 
     _cmdline_ = "xor-memory"
-    _syntax_  = "{:s} <display|patch> <address> <size_to_read> <xor_key> ".format (_cmdline_)
+    _syntax_  = "{:s} <display|patch> <address> <size_to_read> <xor_key> ".format(_cmdline_)
 
 
     def do_invoke(self, argv):
@@ -5946,7 +5946,7 @@ class XorMemoryDisplayCommand(GenericCommand):
     """Display a block of memory by XOR-ing each key with a key."""
 
     _cmdline_ = "xor-memory display"
-    _syntax_  = "{:s} <address> <size_to_read> <xor_key> [-i]".format (_cmdline_)
+    _syntax_  = "{:s} <address> <size_to_read> <xor_key> [-i]".format(_cmdline_)
 
     @if_gdb_running
     def do_invoke(self, argv):
@@ -5959,7 +5959,7 @@ class XorMemoryDisplayCommand(GenericCommand):
         key = argv[2]
         show_as_instructions = True if len(argv) == 4 and argv[3] == "-i" else False
         block = read_memory(address, length)
-        info("Displaying XOR-ing {:#x}-{:#x} with {:s}".format (address, address + len(block), repr(key)))
+        info("Displaying XOR-ing {:#x}-{:#x} with {:s}".format(address, address + len(block), repr(key)))
 
         print(titlify("Original block"))
         if show_as_instructions:
@@ -5981,7 +5981,7 @@ class XorMemoryPatchCommand(GenericCommand):
     """Patch a block of memory by XOR-ing each key with a key."""
 
     _cmdline_ = "xor-memory patch"
-    _syntax_  = "{:s} <address> <size_to_read> <xor_key>".format (_cmdline_)
+    _syntax_  = "{:s} <address> <size_to_read> <xor_key>".format(_cmdline_)
 
     @if_gdb_running
     def do_invoke(self, argv):
@@ -6004,7 +6004,7 @@ class TraceRunCommand(GenericCommand):
     """Create a runtime trace of all instructions executed from $pc to LOCATION specified."""
 
     _cmdline_ = "trace-run"
-    _syntax_  = "{:s} LOCATION [MAX_CALL_DEPTH]".format (_cmdline_)
+    _syntax_  = "{:s} LOCATION [MAX_CALL_DEPTH]".format(_cmdline_)
 
 
     def __init__(self):
@@ -6045,7 +6045,7 @@ class TraceRunCommand(GenericCommand):
 
 
     def trace(self, loc_start, loc_end, depth):
-        info("Tracing from {:#x} to {:#x} (max depth={:d})".format (loc_start, loc_end,depth))
+        info("Tracing from {:#x} to {:#x} (max depth={:d})".format(loc_start, loc_end,depth))
         logfile = "{:s}{:#x}-{:#x}.txt".format(self.get_setting("tracefile_prefix"), loc_start, loc_end)
 
         enable_redirect_output(to_file=logfile)
@@ -6067,10 +6067,10 @@ class TraceRunCommand(GenericCommand):
         frame_count_init = self.get_frames_size()
 
         print("#")
-        print("# Execution tracing of {:s}".format (get_filepath()))
-        print("# Start address: {:s}".format (format_address(loc_start)))
-        print("# End address: {:s}".format (format_address(loc_end)))
-        print("# Recursion level: {:d}".format (depth))
+        print("# Execution tracing of {:s}".format(get_filepath()))
+        print("# Start address: {:s}".format(format_address(loc_start)))
+        print("# End address: {:s}".format(format_address(loc_end)))
+        print("# Recursion level: {:d}".format(depth))
         print("# automatically generated by gef.py")
         print("#\n")
 
@@ -6119,7 +6119,7 @@ class PatternCreateCommand(GenericCommand):
     """Cyclic pattern generation"""
 
     _cmdline_ = "pattern create"
-    _syntax_  = "{:s} [SIZE]".format (_cmdline_)
+    _syntax_  = "{:s} [SIZE]".format(_cmdline_)
 
 
     def do_invoke(self, argv):
@@ -6139,7 +6139,7 @@ class PatternCreateCommand(GenericCommand):
             print(patt)
 
         var_name = gef_convenience('"{:s}"'.format(patt))
-        ok("Saved as '{:s}'".format (var_name))
+        ok("Saved as '{:s}'".format(var_name))
         return
 
 
@@ -6420,7 +6420,7 @@ class GefCommand(gdb.Command):
                                                                                       Color.colorify("gef",attrs="underline yellow"),
                                                                                       Color.colorify("gef config", attrs="underline pink")))
 
-        ver = "{:d}.{:d}".format (sys.version_info.major, sys.version_info.minor)
+        ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
         nb_cmds = len(__loaded__)
         print("{:s} commands loaded for GDB {:s} using Python engine {:s}".format(Color.colorify(str(nb_cmds), attrs="bold green"),
                                                                                   Color.colorify(gdb.VERSION, attrs="bold yellow"),
