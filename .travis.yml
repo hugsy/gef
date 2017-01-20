@@ -1,0 +1,33 @@
+language: python
+
+os:
+    - linux
+
+branches:
+  only:
+    - master
+    - dev
+
+addons:
+  apt:
+    packages:
+      - python
+      - gcc
+      - gdb
+      - python-pip
+
+before_script:
+  - echo "source `pwd`/gef.py" > ~/.gdbinit
+
+script:
+  - gdb -q -ex 'gef help' -ex 'gef config' -ex 'quit' /bin/ls
+
+after_script:
+  - python ./tests/test-runner.py
+
+notifications:
+  email:
+    recipients:
+      - hugsy+github@blah.cat
+    on_success: change
+    on_failure: always
