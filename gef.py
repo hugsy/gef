@@ -4942,7 +4942,10 @@ class ContextCommand(GenericCommand):
         if not self.get_setting("enable"):
             return
 
+        current_layout = self.get_setting("layout").strip().split()
         if not current_layout:
+            return
+
         self.tty_rows, self.tty_columns = get_terminal_size()
         layout_mapping = {"regs":  self.context_regs,
                           "stack": self.context_stack,
