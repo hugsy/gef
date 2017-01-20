@@ -4942,6 +4942,7 @@ class ContextCommand(GenericCommand):
         if not self.get_setting("enable"):
             return
 
+        current_layout = self.get_setting("layout").strip().split()
         if not current_layout:
             return
 
