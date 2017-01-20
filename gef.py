@@ -1126,6 +1126,12 @@ def gef_get_instruction_at(addr):
     return insn
 
 
+def gef_get_instruction_at(addr):
+    """Return the full Instruction found at the specified address."""
+    insn = list(gef_disassemble(addr, 1, from_top=True))[0]
+    return insn
+
+
 def gef_current_instruction(addr):
     """Return the current instruction as an Instruction object."""
     return gef_instruction_n(addr, 0)
@@ -1319,6 +1325,8 @@ class Architecture(object):
     def is_conditional_branch(self, insn):         pass
     @abc.abstractmethod
     def is_branch_taken(self, insn):               pass
+    @abc.abstractmethod
+    def print_call_args(self):                     pass
 
     @property
     def pc(self):
@@ -1633,7 +1641,6 @@ class X86(Architecture):
         for i, offset in enumerate(offsets):
             addr = sp + offset
             line = "arg[{:d}] (sp+{:#x}) ".format(i, offset)
-
             line += Color.boldify(format_address(addr))
             addrs = DereferenceCommand.dereference_from(addr)
 
@@ -1669,6 +1676,23 @@ class X86_64(X86):
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
     print_call_args = Architecture.print_call_args
+
+    def print_call_args(self):
+        regs = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
+        for i, reg in enumerate(regs):
+            addr = long(gdb.parse_and_eval(reg))
+            line = "Arg {:d} ({:s}) ".format(i, reg)
+
+            line += Color.boldify(format_address(addr))
+            addrs = DereferenceCommand.dereference_from(addr)
+
+            if len(addrs) > 1:
+                sep = " {:s} ".format(right_arrow)
+                line += sep + sep.join(addrs[1:])
+
+            print(line)
+
+        return
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
@@ -6457,8 +6481,7 @@ class ContextCommand(GenericCommand):
         if not current_arch.is_call(insn):
             return
 
-        self.context_title("function arguments")
-        print("Showing guessed arguments:")
+        self.context_title("args")
         args = current_arch.print_call_args()
         return
 
