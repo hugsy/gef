@@ -1190,7 +1190,29 @@ class AARCH64(ARM):
         return flags_to_human(val, self.flags_table)
 
     def mprotect_asm(self, addr, size, perm):
-        GefUnsupportedOS("Architecture {:s} not supported yet".format(get_arch()))
+        GefUnsupportedOS("Architecture {:s} not supported yet".format(self.arch))
+        return
+
+    def is_conditional_branch(self, insn):
+        # https://www.element14.com/community/servlet/JiveServlet/previewBody/41836-102-1-229511/ARM.Reference_Manual.pdf
+        # sect. 5.1.1
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        others = {"cbnz", "cbz", "tbnz"}
+        return mnemo.startswith("b.") or mnemo in others
+
+    def is_branch_taken(self, insn):
+        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+
+        flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
+        val = get_register_ex(self.flag_register)
+
+        if mnemo.endswith("eq"): return val&(1<<flags["zero"]), "Z"
+        if mnemo.endswith("ne"): return val&(1<<flags["zero"]) == 0, "!Z"
+        if mnemo.endswith("lt"): return val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+        if mnemo.endswith("le"): return val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+        if mnemo.endswith("gt"): return val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
+        if mnemo.endswith("ge"): return val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+        return False, ""
 
 
 class X86(Architecture):
