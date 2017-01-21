@@ -1142,7 +1142,7 @@ class ARM(Architecture):
         if mnemo.endswith("gt"): return val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
         if mnemo.endswith("ge"): return val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
         if mnemo.endswith("bvs"): return val&(1<<flags["overflow"]), "O"
-        if mnemo.endswith("bvc"): return val&(1<<flags["overflow"]) == 0, "O"
+        if mnemo.endswith("bvc"): return val&(1<<flags["overflow"]) == 0, "!O"
         return False, ""
 
     def mprotect_asm(self, addr, size, perm):
@@ -1259,12 +1259,12 @@ class X86(Architecture):
         if mnemo in ("jl", "jnge"): return val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "S!=O"
         if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "Z || S!=0"
         if mnemo in ("jne", "jnz"): return val&(1<<flags["zero"]) == 0, "!Z"
-        if mnemo in ("jno"): return val&(1<<flags["overflow"]) == 0, "!O"
+        if mnemo in ("jno",): return val&(1<<flags["overflow"]) == 0, "!O"
         if mnemo in ("jnp", "jpo"): return val&(1<<flags["parity"]) == 0, "!P"
-        if mnemo in ("jns"): return val&(1<<flags["sign"]) == 0, "!S"
-        if mnemo in ("jo"): return val&(1<<flags["overflow"]), "O"
+        if mnemo in ("jns",): return val&(1<<flags["sign"]) == 0, "!S"
+        if mnemo in ("jo",): return val&(1<<flags["overflow"]), "O"
         if mnemo in ("jpe", "jp"): return val&(1<<flags["parity"]), "P"
-        if mnemo in ("js"): return val&(1<<flags["sign"]), "S"
+        if mnemo in ("js",): return val&(1<<flags["sign"]), "S"
         return False, ""
 
     def mprotect_asm(self, addr, size, perm):
@@ -1428,7 +1428,7 @@ class SPARC(Architecture):
         if insn == "bne": return val&(1<<flags["zero"]) == 0, "!Z"
         if insn == "bg": return val&(1<<flags["zero"]) == 0 and (val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0), "!Z && (!N || !O)"
         if insn == "bge": return val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0, "!N || !O"
-        if insn == "bgu": return val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !C"
+        if insn == "bgu": return val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
         if insn == "bgeu": return val&(1<<flags["carry"]) == 0, "!C"
         if insn == "bl": return val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
         if insn == "blu": return val&(1<<flags["carry"]), "C"
