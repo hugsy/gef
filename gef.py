@@ -939,6 +939,13 @@ def gef_disassemble(addr, nb_insn, from_top=False):
         yield((address, code))
 
 
+def gef_get_instruction_at(addr):
+    """Return the full instruction found at the specified address."""
+    insn_tuple = list(gef_disassemble(addr, 1, from_top=True))[0]
+    insn = "{:#x} {:s}".format(*insn_tuple)
+    return insn
+
+
 ParsedInstruction = collections.namedtuple("ParsedInstruction", "address location mnemo operands")
 
 
@@ -1114,9 +1121,9 @@ class ARM(Architecture):
     function_parameters = ["$r0", "$r1", "$r2", "$r3"]
 
     def is_call(self, insn):
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
-        mnemos = {"bl", "blx"}
-        return mnemo in mnemos
+        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        call_mnemos = {"bl", "blx"}
+        return mnemo in call_mnemos
 
     def flag_register_to_human(self, val=None):
         # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
@@ -1149,9 +1156,30 @@ class ARM(Architecture):
         return taken, reason
 
     def print_call_args(self):
-        regs = ["$r0", "$r1", "$r2", "$r3"]
-        for i, reg in enumerate(regs):
-            addr = long(gdb.parse_and_eval(reg))
+        # Go back a few instructions, until we see a call, to see which args are set
+        if is_arm_thumb():
+            addr_size = 2
+        else:
+            addr_size = 4
+        addr = self.pc - addr_size
+        insn = gef_get_instruction_at(addr)
+        _, _, mnemo, ops = gef_parse_gdb_instruction(insn)
+        arg_regs = set()
+        while not self.is_call(insn) and mnemo != "push":
+            # Check which registers are being written
+            if mnemo in ("mov", "ldr", "sub", "add"):
+                arg_regs.add(ops[0])
+
+            # Next instruction back
+            addr -= addr_size
+            insn = gef_get_instruction_at(addr)
+            _, _, mnemo, ops = gef_parse_gdb_instruction(insn)
+
+        for i, reg in enumerate(["r0", "r1", "r2", "r3"]):
+            # If we didn't see an arg set, then it must not be an arg
+            if reg not in arg_regs: break
+
+            addr = long(gdb.parse_and_eval("${}".format(reg)))
             line = "Arg {:d} ({:s}) ".format(i, reg)
 
             line += Color.boldify(format_address(addr))
@@ -4225,7 +4253,6 @@ class CapstoneDisassembleCommand(GenericCommand):
         CapstoneDisassembleCommand.disassemble(location, length, **kwargs)
         return
 
-
     @staticmethod
     def disassemble(location, max_inst, *args, **kwargs):
         capstone    = sys.modules["capstone"]
@@ -5334,8 +5361,7 @@ class ContextCommand(GenericCommand):
 
     def context_args(self):
         pc = current_arch.pc
-        disassembled_lines = list(gef_disassemble(pc, 1, from_top=True))
-        insn = "{:#x} {:s}".format(*disassembled_lines[0])
+        insn = gef_get_instruction_at(pc)
         if not current_arch.is_call(insn):
             return
 
