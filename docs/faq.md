@@ -72,6 +72,35 @@ Some interesting plugins highly recommended too:
 Src: [@rick2600: terminator + gdb + gef + voltron cc: @snare @_hugsy_](https://twitter.com/rick2600/status/775926070566490113)
 
 
+## GEF says missing modules, but I'm sure I've installed them, what's up with that? ##
+
+99.999% of the time, this happens because the module(s) were **not** installed
+for the Python version GDB is compiled to work with! For example, GDB is
+compiled for Python3 support, but the module(s) was(were) installed using `pip2`
+(and therefore Python2).
+
+To verify this, you can simply start GDB with GEF, which will show you the
+Python version currently supported by your GDB, or run the command:
+
+```bash
+vagrant@kali2-x64:~$ gdb -nx -ex 'python print (sys.version)' -ex quit
+3.5.2+ (default, Dec 13 2016, 14:16:35)
+[GCC 6.2.1 20161124]
+```
+
+It immediately shows that GDB was compiled for Python3. You have to install the
+modules (such as `capstone`, `keystone`, etc.) for this version and it will
+work, guaranteed.
+
+And if this does not work, it is simply that the modules was not installed
+properly. To avoid incorrect behavior, if importing the Python module fails,
+GEF will simply discard altogether the command that uses it, and it will be
+shown when running the `gef missing` command.
+
+To see the proper stacktrace, simply open a Python interpreter and try importing
+the module. This will show you an error.
+
+
 ## I want to contribute, where should I head first? ##
 
 I would suggest reading thoroughly this documentation, just having a look to the
