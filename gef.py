@@ -1144,7 +1144,7 @@ class ARM(Architecture):
         if mnemo.endswith("gt"): return val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
         if mnemo.endswith("ge"): return val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
         if mnemo.endswith("bvs"): return val&(1<<flags["overflow"]), "O"
-        if mnemo.endswith("bvc"): return val&(1<<flags["overflow"]) == 0, "O"
+        if mnemo.endswith("bvc"): return val&(1<<flags["overflow"]) == 0, "!O"
         return False, ""
 
     def mprotect_asm(self, addr, size, perm):
@@ -1283,12 +1283,12 @@ class X86(Architecture):
         if mnemo in ("jl", "jnge"): return val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "S!=O"
         if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "Z || S!=0"
         if mnemo in ("jne", "jnz"): return val&(1<<flags["zero"]) == 0, "!Z"
-        if mnemo in ("jno"): return val&(1<<flags["overflow"]) == 0, "!O"
+        if mnemo in ("jno",): return val&(1<<flags["overflow"]) == 0, "!O"
         if mnemo in ("jnp", "jpo"): return val&(1<<flags["parity"]) == 0, "!P"
-        if mnemo in ("jns"): return val&(1<<flags["sign"]) == 0, "!S"
-        if mnemo in ("jo"): return val&(1<<flags["overflow"]), "O"
+        if mnemo in ("jns",): return val&(1<<flags["sign"]) == 0, "!S"
+        if mnemo in ("jo",): return val&(1<<flags["overflow"]), "O"
         if mnemo in ("jpe", "jp"): return val&(1<<flags["parity"]), "P"
-        if mnemo in ("js"): return val&(1<<flags["sign"]), "S"
+        if mnemo in ("js",): return val&(1<<flags["sign"]), "S"
         return False, ""
 
     def mprotect_asm(self, addr, size, perm):
@@ -1408,7 +1408,7 @@ class PowerPC64(PowerPC):
 
 class SPARC(Architecture):
     arch = "SPARC"
-    mode = None
+    mode = ""
 
     all_registers = [
         "$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
@@ -1428,6 +1428,7 @@ class SPARC(Architecture):
         7: "supervisor",
         21: "overflow",
     }
+    function_parameters = ["$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",]
 
     def flag_register_to_human(self, val=None):
         # http://www.gaisler.com/doc/sparcv8.pdf
@@ -1450,22 +1451,22 @@ class SPARC(Architecture):
         _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
         flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
         val = get_register_ex(self.flag_register)
-        if insn == "be": return val&(1<<flags["zero"]), "Z"
-        if insn == "bne": return val&(1<<flags["zero"]) == 0, "!Z"
-        if insn == "bg": return val&(1<<flags["zero"]) == 0 and (val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0), "!Z && (!N || !O)"
-        if insn == "bge": return val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0, "!N || !O"
-        if insn == "bgu": return val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !C"
-        if insn == "bgeu": return val&(1<<flags["carry"]) == 0, "!C"
-        if insn == "bl": return val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
-        if insn == "blu": return val&(1<<flags["carry"]), "C"
-        if insn == "ble": return val&(1<<flags["zero"]) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
-        if insn == "bleu": return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
-        if insn == "bneg": return val&(1<<flags["negative"]), "N"
-        if insn == "bpos": return val&(1<<flags["negative"]) == 0, "!N"
-        if insn == "bvs": return val&(1<<flags["overflow"]), "O"
-        if insn == "bvc": return val&(1<<flags["overflow"]) == 0, "!O"
-        if insn == "bcs": return val&(1<<flags["carry"]), "C"
-        if insn == "bcc": return val&(1<<flags["carry"]) == 0, "!C"
+        if mnemo == "be": return val&(1<<flags["zero"]), "Z"
+        if mnemo == "bne": return val&(1<<flags["zero"]) == 0, "!Z"
+        if mnemo == "bg": return val&(1<<flags["zero"]) == 0 and (val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0), "!Z && (!N || !O)"
+        if mnemo == "bge": return val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0, "!N || !O"
+        if mnemo == "bgu": return val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !C"
+        if mnemo == "bgeu": return val&(1<<flags["carry"]) == 0, "!C"
+        if mnemo == "bl": return val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
+        if mnemo == "blu": return val&(1<<flags["carry"]), "C"
+        if mnemo == "ble": return val&(1<<flags["zero"]) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
+        if mnemo == "bleu": return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+        if mnemo == "bneg": return val&(1<<flags["negative"]), "N"
+        if mnemo == "bpos": return val&(1<<flags["negative"]) == 0, "!N"
+        if mnemo == "bvs": return val&(1<<flags["overflow"]), "O"
+        if mnemo == "bvc": return val&(1<<flags["overflow"]) == 0, "!O"
+        if mnemo == "bcs": return val&(1<<flags["carry"]), "C"
+        if mnemo == "bcc": return val&(1<<flags["carry"]) == 0, "!C"
         return False, ""
 
     def mprotect_asm(self, addr, size, perm):
@@ -6679,7 +6680,6 @@ if __name__  == "__main__":
     gdb.execute("set history filename ~/.gdb_history")
 
     # gdb input and output bases
-    gdb.execute("set input-radix 0x10")
     gdb.execute("set output-radix 0x10")
 
     try:
