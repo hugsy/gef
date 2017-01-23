@@ -2,35 +2,56 @@
 # -*- coding: utf-8 -*-
 #
 #
-################################################################################################################
+#######################################################################################
 # GEF - Multi-Architecture GDB Enhanced Features for Exploiters & Reverse-Engineers
 #
 # by  @_hugsy_
 #
-################################################################################################################
+#######################################################################################
 #
-# GEF provides additional functions to GDB using its powerful Python API. Some
-# functions were inspired by PEDA (https://github.com/longld/peda) which is totally
-# awesome *but* is x86 (32/64bits) specific, whereas GEF supports almost all archs
-# supported by GDB.
+# GEF is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to
+# make GDB cool again for exploit dev. It is aimed to be used mostly by exploit
+# devs and reversers, to provides additional features to GDB using the Python
+# API to assist during the process of dynamic analysis.
 #
-# Notes:
-# * Since GEF relies on /proc for mapping addresses in memory or other features, it
-#   cannot work on hardened configurations (such as GrSec)
-# * GEF supports kernel debugging in a limit way (please report crashes & bugs)
+# GEF fully relies on GDB API and other Linux-specific sources of information
+# (such as /proc/<pid>). As a consequence, some of the features might not work
+# on custom or hardened systems such as GrSec.
 #
-# Works on
-# * x86-32 & x86-64
-# * arm v5,v6,v7 & aarch64/armv8 (64b)
-# * mips & mips64
-# * powerpc & powerpc64
-# * sparc & sparc64(v8+)
-#
+# It has full support for both Python2 and Python3 and works on
+#   * x86-32 & x86-64
+#   * arm v5,v6,v7
+#   * aarch64 (armv8)
+#   * mips & mips64
+#   * powerpc & powerpc64
+#   * sparc & sparc64(v9)
 #
 # Requires GDB 7.x compiled with Python (2.x, or 3.x)
 #
 # To start: in gdb, type `source /path/to/gef.py`
 #
+#######################################################################################
+#
+# gef is distributed under the MIT License (MIT)
+# Copyright (c) 2013-2016 crazy rabbidz
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 #
 
