@@ -2267,15 +2267,17 @@ current_arch = None
 def set_arch():
     global current_arch
 
-    if is_arm():         current_arch = ARM()
-    elif is_aarch64():   current_arch = AARCH64()
-    elif is_x86_32():    current_arch = X86()
-    elif is_x86_64():    current_arch = X86_64()
-    elif is_powerpc():   current_arch = PowerPC()
-    elif is_ppc64():     current_arch = PowerPC64()
-    elif is_sparc():     current_arch = SPARC()
-    elif is_sparc64():   current_arch = SPARC64()
-    elif is_mips():      current_arch = MIPS()
+    elf = get_elf_headers()
+
+    if   elf.e_machine == Elf.ARM:        current_arch = ARM()
+    elif elf.e_machine == Elf.AARCH64:    current_arch = AARCH64()
+    elif elf.e_machine == Elf.X86_32:     current_arch = X86()
+    elif elf.e_machine == Elf.X86_64:     current_arch = X86_64()
+    elif elf.e_machine == Elf.POWERPC:    current_arch = PowerPC()
+    elif elf.e_machine == Elf.POWERPC64:  current_arch = PowerPC64()
+    elif elf.e_machine == Elf.SPARC:      current_arch = SPARC()
+    elif elf.e_machine == Elf.SPARC64:    current_arch = SPARC64()
+    elif elf.e_machine == Elf.MIPS:       current_arch = MIPS()
     else:
         raise GefUnsupportedOS("CPU type is currently not supported: {:s}".format(get_arch()))
     return
