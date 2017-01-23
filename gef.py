@@ -453,6 +453,19 @@ class Elf:
     BIG_ENDIAN        = 0
     LITTLE_ENDIAN     = 1
 
+    ELF_32_BITS       = 0x01
+    ELF_64_BITS       = 0x02
+
+    X86_64            = 0x3e
+    X86_32            = 0x03
+    ARM               = 0x28
+    MIPS              = 0x08
+    POWERPC           = 0x14 # http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
+    POWERPC64         = 0x15 # http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
+    SPARC             = 0x02
+    SPARC64           = 0x2b
+    AARCH64           = 0xb7
+
 
     def __init__(self, elf):
 
@@ -478,7 +491,7 @@ class Elf:
             # off 0x10
             self.e_type, self.e_machine, self.e_version = struct.unpack("{}HHI".format(endian), f.read(8))
             # off 0x18
-            if self.e_class == 0x02:
+            if self.e_class == Elf.ELF_64_BITS:
                 # if arch 64bits
                 self.e_entry, self.e_phoff, self.e_shoff = struct.unpack("{}QQQ".format(endian), f.read(24))
             else:
@@ -1428,6 +1441,9 @@ class PowerPC64(PowerPC):
 
 
 class SPARC(Architecture):
+    """ Refs:
+    - http://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
+    """
     arch = "SPARC"
     mode = ""
 
@@ -1437,7 +1453,7 @@ class SPARC(Architecture):
         "$l0 ", "$l1 ", "$l2 ", "$l3 ", "$l4 ", "$l5 ", "$l6 ", "$l7 ",
         "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ", "$i7 ",
         "$pc ", "$npc", "$sp ", "$fp ", "$psr",]
-    # http://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
+
     nop_insn = b"\x00\x00\x00\x00"  # sethi 0, %g0
     return_register = "$i0"
     flag_register = "$psr"
@@ -1511,8 +1527,33 @@ class SPARC(Architecture):
 
 
 class SPARC64(SPARC):
+    """ Refs:
+    - http://math-atlas.sourceforge.net/devel/assembly/abi_sysV_sparc.pdf
+    """
+
     arch = "SPARC"
     mode = "V9"
+
+    all_registers = [
+        "$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
+        "$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",
+        "$l0 ", "$l1 ", "$l2 ", "$l3 ", "$l4 ", "$l5 ", "$l6 ", "$l7 ",
+        "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ", "$i7 ",
+        "$pc ", "$npc", "$sp ", "$fp ", "$fsr",]
+
+    nop_insn = b"\x00\x00\x00\x00"
+    return_register = "$i0"
+    flag_register = "$fsr"
+    flags_table = {
+        23: "negative",
+        20: "carry",
+        22: "zero",
+        5: "trap",
+        7: "supervisor",
+        21: "overflow",
+    }
+    function_parameters = ["$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",]
+
 
 
 class MIPS(Architecture):
@@ -2151,31 +2192,31 @@ def get_elf_headers(filename=None):
 @memoize
 def is_elf64(filename=None):
     elf = get_elf_headers(filename)
-    return elf.e_class == 0x02
+    return elf.e_class == Elf.ELF_64_BITS
 
 
 @memoize
 def is_elf32(filename=None):
     elf = get_elf_headers(filename)
-    return elf.e_class == 0x01
+    return elf.e_class == Elf.ELF_32_BITS
 
 
 @memoize
 def is_x86_64(filename=None):
     elf = get_elf_headers(filename)
-    return elf.e_machine == 0x3e
+    return elf.e_machine == Elf.X86_64
 
 
 @memoize
 def is_x86_32(filename=None):
     elf = get_elf_headers(filename)
-    return elf.e_machine == 0x03
+    return elf.e_machine == Elf.X86_32
 
 
 @memoize
 def is_arm(filename=None):
     elf = get_elf_headers(filename)
-    return elf.e_machine == 0x28
+    return elf.e_machine == Elf.ARM
 
 
 @memoize
@@ -2187,37 +2228,37 @@ def is_arm_thumb():
 @memoize
 def is_mips():
     elf = get_elf_headers()
-    return elf.e_machine == 0x08
+    return elf.e_machine == Elf.MIPS
 
 
 @memoize
 def is_powerpc():
     elf = get_elf_headers()
-    return elf.e_machine == 0x14 # http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
+    return elf.e_machine == Elf.POWERPC
 
 
 @memoize
 def is_ppc64():
     elf = get_elf_headers()
-    return elf.e_machine == 0x15 # http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
+    return elf.e_machine == Elf.POWERPC64
 
 
 @memoize
 def is_sparc():
     elf = get_elf_headers()
-    return elf.e_machine == 0x02
+    return elf.e_machine == Elf.SPARC
 
 
 @memoize
 def is_sparc64():
     elf = get_elf_headers()
-    return elf.e_machine == 0x12
+    return elf.e_machine == Elf.SPARC64
 
 
 @memoize
 def is_aarch64():
     elf = get_elf_headers()
-    return elf.e_machine == 0xb7
+    return elf.e_machine == Elf.AARCH64
 
 
 current_arch = None
@@ -2225,6 +2266,7 @@ current_arch = None
 
 def set_arch():
     global current_arch
+
     if is_arm():         current_arch = ARM()
     elif is_aarch64():   current_arch = AARCH64()
     elif is_x86_32():    current_arch = X86()
@@ -2236,7 +2278,6 @@ def set_arch():
     elif is_mips():      current_arch = MIPS()
     else:
         raise GefUnsupportedOS("CPU type is currently not supported: {:s}".format(get_arch()))
-
     return
 
 
