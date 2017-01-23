@@ -888,7 +888,7 @@ def _gef_disassemble_around(addr, nb_insn):
 
     if not (is_x86_32() or is_x86_64()):
         # all ABI except x86 are fixed length instructions, easy to process
-        if is_aarch64() or is_ppc64():
+        if is_aarch64() or is_ppc64() or is_sparc64():
             insn_len = 4
         elif is_arm_thumb():
             insn_len = 2
@@ -1196,7 +1196,7 @@ class ARM(Architecture):
 
 class AARCH64(ARM):
     arch = "ARM"
-    mode = "ARM"
+    mode = "AARCH64"
 
     all_registers = [
         "$x0       ", "$x1       ", "$x2       ", "$x3       ", "$x4       ", "$x5       ", "$x6       ", "$x7       ",
@@ -1459,11 +1459,11 @@ class SPARC(Architecture):
     flag_register = "$psr"
     flags_table = {
         23: "negative",
-        20: "carry",
         22: "zero",
-        5: "trap",
-        7: "supervisor",
         21: "overflow",
+        20: "carry",
+        7: "supervisor",
+        5: "trap",
     }
     function_parameters = ["$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",]
 
@@ -1529,30 +1529,25 @@ class SPARC(Architecture):
 class SPARC64(SPARC):
     """ Refs:
     - http://math-atlas.sourceforge.net/devel/assembly/abi_sysV_sparc.pdf
+    - https://cr.yp.to/2005-590/sparcv9.pdf
     """
-
     arch = "SPARC"
     mode = "V9"
 
     all_registers = [
-        "$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
-        "$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",
-        "$l0 ", "$l1 ", "$l2 ", "$l3 ", "$l4 ", "$l5 ", "$l6 ", "$l7 ",
-        "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ", "$i7 ",
-        "$pc ", "$npc", "$sp ", "$fp ", "$fsr",]
+        "$g0   ", "$g1   ", "$g2   ", "$g3   ", "$g4   ", "$g5   ", "$g6   ", "$g7   ",
+        "$o0   ", "$o1   ", "$o2   ", "$o3   ", "$o4   ", "$o5   ", "$o7   ",
+        "$l0   ", "$l1   ", "$l2   ", "$l3   ", "$l4   ", "$l5   ", "$l6   ", "$l7   ",
+        "$i0   ", "$i1   ", "$i2   ", "$i3   ", "$i4   ", "$i5   ", "$i7   ",
+        "$pc   ", "$npc  ", "$sp   ", "$fp   ", "$state", ]
 
-    nop_insn = b"\x00\x00\x00\x00"
-    return_register = "$i0"
-    flag_register = "$fsr"
+    flag_register = "$state" # sparcv9.pdf, 5.1.5.1 (ccr)
     flags_table = {
-        23: "negative",
-        20: "carry",
-        22: "zero",
-        5: "trap",
-        7: "supervisor",
-        21: "overflow",
+        35: "negative",
+        34: "zero",
+        33: "overflow",
+        32: "carry",
     }
-    function_parameters = ["$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",]
 
 
 
