@@ -727,16 +727,18 @@ class GlibcChunk:
         return
 
 
-def titlify(msg, color=Color.RED):
+def titlify(msg, color=None, msg_color=None):
     cols = get_terminal_size()[1]
     n = (cols - len(msg) - 4)//2
-    if color == Color.RED:
-        title = Color.colorify(msg, attrs="bold red")
-        line  = Color.colorify(horizontal_line * n, attrs="bold green")
-    elif color == Color.GREEN:
-        title = Color.colorify(msg, attrs="bold green")
-        line  = Color.colorify(horizontal_line * n, attrs="bold red")
-    return "{0}[ {1} ]{0}".format(line, title)
+    if color is None:
+        color = __config__.get("theme.default_title_line")[0]
+    if msg_color is None:
+        msg_color = __config__.get("theme.default_title_message")[0]
+
+    m = Color.colorify(horizontal_line * n + '[ ', attrs=color)
+    m+= Color.colorify(msg, attrs=msg_color)
+    m+= Color.colorify(' ]' + horizontal_line * n, attrs=color)
+    return m
 
 
 def _xlog(m, stream, cr=True):
@@ -2536,7 +2538,6 @@ class GenericCommand(gdb.Command):
 
     def __init__(self, *args, **kwargs):
         self.pre_load()
-        self.dont_repeat()
         self.__doc__  += "\nSyntax: {}".format(self._syntax_)
         command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
         complete_type = kwargs.setdefault("complete", gdb.COMPLETE_NONE)
@@ -2600,6 +2601,46 @@ class GenericCommand(gdb.Command):
     #     return
     # def do_invoke(self, argv):
     #     return
+
+
+class GefThemeCommand(GenericCommand):
+    """Customize GEF appearance."""
+    _cmdline_ = "theme"
+    _syntax_  = "{:s} [KEY [VALUE]]".format(_cmdline_)
+
+    def __init__(self, *args, **kwargs):
+        super(GefThemeCommand, self).__init__(GefThemeCommand._cmdline_, prefix=False)
+        self.add_setting("context_title_line", "green bold")
+        self.add_setting("context_title_message", "red bold")
+        self.add_setting("default_title_line", "green bold")
+        self.add_setting("default_title_message", "red bold")
+        self.add_setting("xinfo_title_message", "blue bold")
+        return
+
+    def do_invoke(self, args):
+        self.dont_repeat()
+        argc = len(args)
+
+        if argc==0:
+            for item in self.settings:
+                value = self.settings[item][0]
+                value = Color.colorify(value, attrs=value)
+                print("{:40s}: {:s}".format(item, value))
+            return
+
+        key = args[0]
+        if not self.has_setting(key):
+            err("Invalid key")
+            return
+
+        if argc==1:
+            value = self.settings[key][0]
+            value = Color.colorify(value, attrs=value)
+            print("{:40s}: {:s}".format(item, value))
+            return
+
+        self.add_setting(key, " ".join(args[1:]))
+        return
 
 
 class PCustomCommand(GenericCommand):
@@ -5057,8 +5098,8 @@ class ContextCommand(GenericCommand):
         return
 
     def context_title(self, m):
-        line_color= "green bold"
-        msg_color = "red bold"
+        line_color= __config__.get("theme.context_title_line")[0]
+        msg_color = __config__.get("theme.context_title_message")[0]
 
         if not m:
             # print just the line
@@ -5661,7 +5702,8 @@ class VMMapCommand(GenericCommand):
             err("No address mapping information found")
             return
 
-        headers = [Color.colorify(x, attrs="blue bold") for x in ["Start", "End", "Offset", "Perm", "Path"]]
+        color = __config__.get("theme.xinfo_title_message")[0]
+        headers = [Color.colorify(x, attrs=color) for x in ["Start", "End", "Offset", "Perm", "Path"]]
         if is_elf64():
             print("{:<31s} {:<31s} {:<31s} {:<4s} {:s}".format (*headers))
         else:
@@ -6160,6 +6202,7 @@ class GefCommand(gdb.Command):
                         ChangeFdCommand,
                         RetDecCommand,
                         PCustomCommand,
+                        GefThemeCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first
@@ -6732,7 +6775,6 @@ if __name__  == "__main__":
     gdb.execute("set height 0")
     gdb.execute("set width 0")
     gdb.execute("set step-mode on")
-    gdb.execute("set print pretty on")
 
     # gdb history
     gdb.execute("set history save on")
@@ -6740,6 +6782,9 @@ if __name__  == "__main__":
 
     # gdb input and output bases
     gdb.execute("set output-radix 0x10")
+
+    # pretty print
+    gdb.execute("set print pretty on")
 
     try:
         # this will raise a gdb.error unless we're on x86
