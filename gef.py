@@ -1044,7 +1044,15 @@ def checksec(filename, prop, print_result):
     if prop == "canary" or prop == "all":
         res += check_security_property("Canary", "-s", filename, r"__stack_chk_fail", True, print_result)
     if prop == "nx" or prop == "all":
-        res += check_security_property("NX Support", "-W -l", filename, r"GNU_STACK.*RWE", False, print_result)
+        has_gnu_stack = check_security_property("NX Support", "-W -l", filename, r"GNU_STACK", True, False)
+        if has_gnu_stack:
+            # stripped down bins won't have a GNU_STACK segment, so we check for it first
+            res += check_security_property("NX Support", "-W -l", filename, r"GNU_STACK.*RWE", False, print_result)
+        else:
+            if print_result:
+                print("{:<30s}: {:s}".format("NX Support", Color.colorify("No", attrs="red")))
+            else:
+                res += False
     if prop == "pie" or prop == "all":
         res += check_security_property("PIE Support", "-h", filename, r"Type:.*EXEC", False, print_result)
     if prop == "rpath" or prop == "all":
