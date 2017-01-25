@@ -1233,14 +1233,33 @@ class AARCH64(ARM):
         # https://www.element14.com/community/servlet/JiveServlet/previewBody/41836-102-1-229511/ARM.Reference_Manual.pdf
         # sect. 5.1.1
         _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
-        others = {"cbnz", "cbz", "tbnz"}
+        others = ["cbnz", "cbz", "tbnz", "tbz"]
         return mnemo.startswith("b.") or mnemo in others
 
     def is_branch_taken(self, insn):
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        _, _, mnemo, operands = gef_parse_gdb_instruction(insn)
 
         flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
         val = get_register_ex(self.flag_register)
+
+        if mnemo in ["cbnz", "cbz", "tbnz", "tbz"]:
+            reg = operands[0]
+            op = get_register(reg)
+            if mnemo=="cbnz":
+                if op!=0: return True, "{}!=0".format(reg)
+                return False, "{}==0".format(reg)
+            if mnemo=="cbz":
+                if op==0: return True, "{}==0".format(reg)
+                return False, "{}!=0".format(reg)
+            if mnemo=="tbnz":
+                i = int(operands[1])
+                if (op & 1<<i) != 0: return True, "{}&1<<{}!=0".format(reg,i)
+                return False, "{}&1<<{}==0".format(reg,i)
+            if mnemo=="tbz":
+                i = int(operands[1])
+                if (op & 1<<i) == 0: return True, "{}&1<<{}==0".format(reg,i)
+                return False, "{}&1<<{}!=0".format(reg,i)
+            return
 
         if mnemo.endswith("eq"): return val&(1<<flags["zero"]), "Z"
         if mnemo.endswith("ne"): return val&(1<<flags["zero"]) == 0, "!Z"
