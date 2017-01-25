@@ -1513,7 +1513,7 @@ class SPARC(Architecture):
         if mnemo == "bne": return val&(1<<flags["zero"]) == 0, "!Z"
         if mnemo == "bg": return val&(1<<flags["zero"]) == 0 and (val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0), "!Z && (!N || !O)"
         if mnemo == "bge": return val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0, "!N || !O"
-        if mnemo == "bgu": return val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !C"
+        if mnemo == "bgu": return val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
         if mnemo == "bgeu": return val&(1<<flags["carry"]) == 0, "!C"
         if mnemo == "bl": return val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
         if mnemo == "blu": return val&(1<<flags["carry"]), "C"
