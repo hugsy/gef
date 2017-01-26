@@ -1599,8 +1599,7 @@ class MIPS(Architecture):
     function_parameters = ["$a0", "$a1", "$a2", "$a3"]
 
     def flag_register_to_human(self, val=None):
-        # mips architecture does not use processor status word (flag register)
-        return Color.colorify("No flag", attrs="yellow underline")
+        return Color.colorify("No flag register", attrs="yellow underline")
 
     def is_call(self, insn):
         return False
@@ -5398,14 +5397,14 @@ class ContextCommand(GenericCommand):
         def reason():
             res = gdb.execute("info program", to_string=True).splitlines()
             if not res:
-                return ""
+                return "NOT RUNNING"
 
             for line in res:
                 line = line.strip()
                 if line.startswith("It stopped with signal "):
                     return line.replace("It stopped with signal ", "").split(",", 1)[0]
                 if  line == "The program being debugged is not being run.":
-                    return "STOPPED"
+                    return "NOT RUNNING"
                 if line == "It stopped at a breakpoint that has since been deleted.":
                     return "TEMPORARY BREAKPOINT"
                 if line.startswith("It stopped at breakpoint "):
@@ -5413,7 +5412,7 @@ class ContextCommand(GenericCommand):
                 if line == "It stopped after being stepped.":
                     return "SINGLE STEP"
 
-            return "UNKNOWN"
+            return "STOPPED"
 
         self.context_title("threads")
 
