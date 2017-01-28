@@ -994,7 +994,7 @@ def gef_execute_gdb_script(source):
     return
 
 
-def check_security_property(title, opt, filename, pattern, is_match, do_print=True):
+def check_security_property(opt, filename, pattern):
     cmd   = [which("readelf"),]
     cmd  += opt.split()
     cmd  += [filename,]
@@ -1002,32 +1002,13 @@ def check_security_property(title, opt, filename, pattern, is_match, do_print=Tr
 
     for line in lines:
         if re.search(pattern, line):
-            if is_match:
-                msg = Color.greenify("Yes")
-                res = True
-            else:
-                msg = Color.redify("No")
-                res = False
-            if do_print:
-                print("{:<30s}: {:s}".format(title, msg))
-            return res
+            return True
 
-    # if here, then not found
-    if is_match:
-        msg = Color.redify("No")
-        res = False
-    else:
-        msg = Color.greenify("Yes")
-        res = True
-
-    if do_print:
-        print("{:<30s}: {:s}".format(title, msg))
-
-    return res
+    return False
 
 
 @memoize
-def checksec(filename, prop, print_result):
+def checksec(filename):
     """Global function to get the security properties of a binary."""
     try:
         which("readelf")
@@ -1035,36 +1016,18 @@ def checksec(filename, prop, print_result):
         err("Missing `readelf`")
         return
 
-    if prop not in ("all", "canary", "nx", "pie", "rpath", "runpath", "lazy_relro", "full_relro"):
-        err("Invalid security property {}".format(prop))
-        return
-
-    res = 0
-
-    if prop == "canary" or prop == "all":
-        res += check_security_property("Canary", "-s", filename, r"__stack_chk_fail", True, print_result)
-    if prop == "nx" or prop == "all":
-        has_gnu_stack = check_security_property("NX Support", "-W -l", filename, r"GNU_STACK", True, False)
-        if has_gnu_stack:
-            # stripped down bins won't have a GNU_STACK segment, so we check for it first
-            res += check_security_property("NX Support", "-W -l", filename, r"GNU_STACK.*RWE", False, print_result)
-        else:
-            if print_result:
-                print("{:<30s}: {:s}".format("NX Support", Color.colorify("No", attrs="red")))
-            else:
-                res += False
-    if prop == "pie" or prop == "all":
-        res += check_security_property("PIE Support", "-h", filename, r"Type:.*EXEC", False, print_result)
-    if prop == "rpath" or prop == "all":
-        res += check_security_property("No RPATH", "-d -l", filename, r"rpath", False, print_result)
-    if prop == "runpath" or prop == "all":
-        res += check_security_property("No RUNPATH", "-d -l", filename, r"runpath", False, print_result)
-    if prop == "lazy_relro" or prop == "all":
-        res += check_security_property("Partial RelRO", "-l", filename, r"GNU_RELRO", True, print_result)
-    if prop == "full_relro" or prop == "all":
-        res += check_security_property("Full RelRO", "-d", filename, r"BIND_NOW", True, print_result)
-
-    return res
+    results = []
+    results.append(["Canary", check_security_property("-s", filename, r"__stack_chk_fail") is True])
+    has_gnu_stack = check_security_property("-W -l", filename, r"GNU_STACK") is True
+    if has_gnu_stack:
+        results.append(["NX", check_security_property("-W -l", filename, r"GNU_STACK.*RWE") is False])
+    else:
+        results.append(["NX", False])
+    results.append(["PIE", check_security_property("-h", filename, r"Type:.*EXEC") is False])
+    results.append(["Fortify", check_security_property("-s", filename, r"_chk@GLIBC") is True])
+    results.append(["Partial RelRO", check_security_property("-l", filename, r"GNU_RELRO") is True])
+    results.append(["Full RelRO", check_security_property("-d", filename, r"BIND_NOW") is True])
+    return results
 
 
 def get_frame():
@@ -5055,7 +5018,8 @@ class EntryPointBreakCommand(GenericCommand):
         return self.set_init_tbreak(base_address + addr)
 
     def is_pie(self, fpath):
-        return checksec(fpath, "canary", False)
+        sec = list(filter(lambda x: x[0]=="PIE", checksec(fpath)))[0]
+        return sec[1]
 
 
 class ContextCommand(GenericCommand):
@@ -6132,16 +6096,21 @@ class ChecksecCommand(GenericCommand):
             if filename is None:
                 warn("No executable/library specified")
                 return
-
         elif argc == 1:
             filename = argv[0]
-
         else:
             self.usage()
             return
 
         info("{:s} for '{:s}'".format(self._cmdline_, filename))
-        checksec(filename, "all", True)
+        self.print_security_properties(filename)
+        return
+
+    def print_security_properties(self, filename):
+        sec = checksec(filename)
+        for prop, val in sec:
+            msg = Color.greenify("Yes") if val is True else Color.redify("No")
+            print("{:<30s}: {:s}".format(prop, msg))
         return
 
 
