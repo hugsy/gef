@@ -6250,6 +6250,7 @@ class GefCommand(gdb.Command):
 
 
     def invoke(self, args, from_tty):
+        self.dont_repeat()
         gdb.execute("gef help")
         return
 
@@ -6320,6 +6321,7 @@ class GefHelpCommand(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
+        self.dont_repeat()
         print(titlify("GEF - GDB Enhanced Features"))
         print(self.__doc__)
         return
@@ -6364,6 +6366,7 @@ class GefConfigCommand(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
+        self.dont_repeat()
         argv = gdb.string_to_argv(args)
         argc = len(argv)
 
@@ -6467,6 +6470,7 @@ class GefSaveCommand(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
+        self.dont_repeat()
         cfg = configparser.RawConfigParser()
         old_sect = None
 
@@ -6508,6 +6512,7 @@ class GefRestoreCommand(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
+        self.dont_repeat()
         cfg = configparser.ConfigParser()
         cfg.read(GEF_RC)
 
@@ -6557,6 +6562,7 @@ class GefMissingCommand(gdb.Command):
     def invoke(self, args, from_tty):
         global __missing__
 
+        self.dont_repeat()
         missing_commands = __missing__.keys()
         if not missing_commands:
             ok("No missing command")
@@ -6582,6 +6588,7 @@ class GefSetCommand(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
+        self.dont_repeat()
         args = args.split()
         cmd = ["set", args[0],]
         for p in args[1:]:
@@ -6609,6 +6616,7 @@ class GefRunCommand(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
+        self.dont_repeat()
         if is_alive():
             gdb.execute("continue")
             return
@@ -6649,6 +6657,7 @@ class GefAlias(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
+        self.dont_repeat()
         gdb.execute("{} {}".format(self._command, args), from_tty=from_tty)
         return
 
