@@ -854,16 +854,6 @@ def gef_makedirs(path, mode=0o755):
     return abspath
 
 
-def gef_obsolete_function(func):
-    def new_func(*args, **kwargs):
-        warn("Call to deprecated function '{}'.".format(func.__name__))
-        return func(*args, **kwargs)
-    new_func.__name__ = func.__name__
-    new_func.__doc__ = func.__doc__
-    new_func.__dict__.update(func.__dict__)
-    return new_func
-
-
 def _gef_disassemble_top(addr, nb_insn):
     lines = gdb.execute("x/{:d}i {:#x}".format(nb_insn, addr), to_string=True).splitlines()
     lines = [x.replace("=>", "").strip() for x in lines]
@@ -2592,6 +2582,102 @@ class GenericCommand(gdb.Command):
     #     return
 
 
+class ProcessStatusCommand(GenericCommand):
+    """
+    Extends the info given by GDB `info proc`, by giving an exhaustive description of the
+    process status (file descriptors, ancestor, descendants, etc.).
+    """
+
+    _cmdline_ = "process-status"
+    _syntax_  = "{:s}".format(_cmdline_)
+    _aliases_ = ["status", ]
+
+    def __init__(self):
+        super(ProcessStatusCommand, self).__init__(complete=gdb.COMPLETE_NONE, prefix=False)
+        return
+
+    @if_gdb_running
+    def do_invoke(self, argv):
+        if is_remote_debug():
+            warn("'{:s}' cannot be used while remote debugging".format(self._cmdline_))
+            return
+
+        self.show_info_proc()
+        self.show_ancestor()
+        self.show_descendants()
+        self.show_fds()
+        return
+
+    def get_state_of(self, pid):
+        res = {}
+        for l in open("/proc/{}/status".format(pid), "r").readlines():
+            key, value = l.split(":", 1)
+            res[key.strip()] = value.strip()
+        return res
+
+    def get_cmdline_of(self, pid):
+        return open("/proc/{}/cmdline".format(pid), "r").read().replace("\x00", "\x20").strip()
+
+    def get_process_path_of(self, pid):
+        return os.readlink("/proc/{}/exe".format(pid))
+
+    def get_children_pids(self, pid):
+        ps = which("ps")
+        cmd = [ps, "-o", "pid", "--ppid","{}".format(pid), "--noheaders"]
+        try:
+            return gef_execute_external(cmd, as_list=True)
+        except Exception as e:
+            return []
+
+    def show_info_proc(self):
+        info("Process Information")
+        pid = get_pid()
+        state = self.get_state_of(pid)
+        cmdline = self.get_cmdline_of(pid)
+        process = self.get_process_path_of(pid)
+        print("\tPID {} {}".format(right_arrow, pid))
+        print("\tExecutable {} {}".format(right_arrow, self.get_process_path_of(pid)))
+        print("\tCommand line {} '{}'".format(right_arrow, cmdline))
+        return
+
+    def show_ancestor(self):
+        info("Parent Process Information")
+        ppid = int(self.get_state_of(get_pid())["PPid"])
+        state = self.get_state_of(ppid)
+        cmdline = self.get_cmdline_of(ppid)
+        print("\tParent PID {} {}".format(right_arrow, state["Pid"]))
+        print("\tCommand line {} '{}'".format(right_arrow, cmdline))
+        return
+
+    def show_descendants(self):
+        info("Children Process Information")
+        children = self.get_children_pids(get_pid())
+        if len(children)==0:
+            print("\tNo child process")
+            return
+
+        for child_pid in children:
+            state = self.get_state_of(child_pid)
+            pid = state["Pid"]
+            print("\tPID {} {} (Name: '{}', CmdLine: '{}')".format(right_arrow,
+                                                                   pid,
+                                                                   self.get_process_path_of(pid),
+                                                                   self.get_cmdline_of(pid)))
+            return
+
+    def show_fds(self):
+        pid = get_pid()
+        path = "/proc/{:d}/fd".format(pid)
+
+        info("File Descriptors:")
+        for fname in os.listdir(path):
+            fullpath = os.path.join(path, fname)
+            if os.path.islink(fullpath):
+                print("\t{:s} {:s} {:s}".format (fullpath, right_arrow, os.readlink(fullpath)))
+        return
+
+
+
 class GefThemeCommand(GenericCommand):
     """Customize GEF appearance."""
     _cmdline_ = "theme"
@@ -2604,6 +2690,7 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("default_title_line", "green bold")
         self.add_setting("default_title_message", "red bold")
         self.add_setting("xinfo_title_message", "blue bold")
+        # TODO: add more customizable items
         return
 
     def do_invoke(self, args):
@@ -3019,18 +3106,6 @@ class ChangeFdCommand(GenericCommand):
             enable_context()
         except:
             err("Failed")
-        return
-
-
-class ProcessIdCommand(GenericCommand):
-    """ProcessIdCommand: print the process id of the process being debugged."""
-
-    _cmdline_ = "pid"
-    _syntax_  = _cmdline_
-
-    @if_gdb_running
-    def do_invoke(self, argv):
-        print("{:d}".format(get_pid()))
         return
 
 
@@ -4670,37 +4745,6 @@ class ROPgadgetCommand(GenericCommand):
         return True
 
 
-class FileDescriptorCommand(GenericCommand):
-    """Enumerate file descriptors opened by process."""
-
-    _cmdline_ = "fd"
-    _syntax_  = _cmdline_
-
-
-    def __init__(self, *args, **kwargs):
-        super(FileDescriptorCommand, self).__init__(prefix=False, complete=gdb.COMPLETE_NONE)
-        return
-
-    def pre_load(self):
-        command_only_works_for(["linux",])
-        return
-
-    @if_gdb_running
-    def do_invoke(self, argv):
-        if is_remote_debug():
-            warn("'{:s}' cannot be used on remote debugging".format (self._cmdline_))
-            return
-
-        pid = get_pid()
-        path = "/proc/{:d}/fd".format (pid)
-
-        for fname in os.listdir(path):
-            fullpath = os.path.join(path, fname)
-            if os.path.islink(fullpath):
-                info("- {:s} {:s} {:s}".format (fullpath, right_arrow, os.readlink(fullpath)))
-        return
-
-
 class AssembleCommand(GenericCommand):
     """Inline code assemble. Architecture can be set in GEF runtime config (default is
     x86). """
@@ -5342,7 +5386,7 @@ class ContextCommand(GenericCommand):
             if name:
                 frame_args = gdb.FrameDecorator.FrameDecorator(current_frame).frame_args() or []
                 m = "Name: {:s}(".format (Color.greenify(name))
-                m += ",".join(["{!s}={!s}".format (x.sym, x.sym.value(current_frame)) for x in frame_args])
+                m += ", ".join(["{!s}={!s}".format (x.sym, x.sym.value(current_frame)) for x in frame_args])
                 m += ")"
                 items.append(m)
 
@@ -6179,7 +6223,6 @@ class GefCommand(gdb.Command):
                         ElfInfoCommand,
                         ProcessListingCommand,
                         AssembleCommand,
-                        FileDescriptorCommand,
                         ROPgadgetCommand,
                         RopperCommand,
                         ShellcodeCommand, ShellcodeSearchCommand, ShellcodeGetCommand,
@@ -6193,11 +6236,11 @@ class GefCommand(gdb.Command):
                         FlagsCommand,
                         SearchPatternCommand,
                         IdaInteractCommand,
-                        ProcessIdCommand,
                         ChangeFdCommand,
                         RetDecCommand,
                         PCustomCommand,
                         GefThemeCommand,
+                        ProcessStatusCommand,
 
                         # add new commands here
                         # when subcommand, main command must be placed first

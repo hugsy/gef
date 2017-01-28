@@ -19,7 +19,6 @@ improving it.
 |edit-flags                | Edit flags in a human friendly way (alias: flags)|
 |elf-info                  | Display ELF header informations.|
 |entry-break               | Tries to find best entry point and sets a temporary breakpoint on it. (alias: start-break)|
-|fd                        | Enumerate file descriptors opened by process.|
 |format-string-helper      | Exploitable format-string helper: this command will set up specific breakpoints at well-known dangerous functions (printf, snprintf, etc.), and check if the pointer holding the format string is writable, and  susceptible to format string attacks if an attacker can control its content. (alias: fmtstr-helper)|
 |gef-alias                 | GEF defined aliases|
 |gef-remote                | gef wrapper for the `target remote` command. This command will automatically download the target binary in the local temporary directory (defaut /tmp) and then source it. Additionally, it will fetch all the /proc/PID/maps and loads all its information.|
@@ -31,8 +30,8 @@ improving it.
 |nop                       | Patch the instruction pointed by parameters with NOP. If the return option is specified, it will set the return register to the specific value.|
 |pattern                   | This command will create or search a De Bruijn cyclic pattern to facilitate determining the offset in memory. The algorithm used is the same as the one used by pwntools, and can therefore be used in conjunction.|
 |pcustom                   | Dump user defined structure. This command attempts to reproduce WinDBG awesome `dt` command for GDB and allows to apply structures (from symbols or custom) directly to an address. Custom structures can be defined in pure Python using ctypes, and should be stored in a specific directory, whose path must be stored in the `pcustom.struct_path` configuration setting. (alias: dt)|
-|pid                       | ProcessIdCommand: print the process id of the process being debugged.|
 |process-search            | List and filter process. (alias: ps)|
+|process-status            | Extends the info given by GDB `info proc`, by giving an exhaustive description of the process status.|
 |registers                 | Display full details on one, many or all registers value from current architecture.|
 |reset-cache               | Reset cache of all stored data.|
 |retdec                    | Decompile code from GDB context using RetDec API. (alias: decompile)|
