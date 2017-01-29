@@ -74,12 +74,6 @@ class TestGefCommands(unittest.TestCase):
         self.assertNoException(res)
         return
 
-    def test_command_pid(self):
-        self.assertFailIfInactiveSession(gdb_run_command("pid"))
-        res = gdb_start_silent_command_last_line("pid")
-        self.assertTrue( res.isdigit() )
-        return
-
     def test_command_hexdump(self):
         self.assertFailIfInactiveSession(gdb_run_command("hexdump $pc"))
         res = gdb_start_silent_command("hexdump qword $pc")
