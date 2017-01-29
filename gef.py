@@ -1021,17 +1021,17 @@ def checksec(filename):
         err("Missing `readelf`")
         return
 
-    results = []
-    results.append(["Canary", check_security_property("-s", filename, r"__stack_chk_fail") is True])
+    results = collections.OrderedDict()
+    results["Canary"] = check_security_property("-s", filename, r"__stack_chk_fail") is True
     has_gnu_stack = check_security_property("-W -l", filename, r"GNU_STACK") is True
     if has_gnu_stack:
-        results.append(["NX", check_security_property("-W -l", filename, r"GNU_STACK.*RWE") is False])
+        results["NX"] = check_security_property("-W -l", filename, r"GNU_STACK.*RWE") is False
     else:
-        results.append(["NX", False])
-    results.append(["PIE", check_security_property("-h", filename, r"Type:.*EXEC") is False])
-    results.append(["Fortify", check_security_property("-s", filename, r"_chk@GLIBC") is True])
-    results.append(["Partial RelRO", check_security_property("-l", filename, r"GNU_RELRO") is True])
-    results.append(["Full RelRO", check_security_property("-d", filename, r"BIND_NOW") is True])
+        results["NX"] = False
+    results["PIE"] = check_security_property("-h", filename, r"Type:.*EXEC") is False
+    results["Fortify"] = check_security_property("-s", filename, r"_chk@GLIBC") is True
+    results["Partial RelRO"] = check_security_property("-l", filename, r"GNU_RELRO") is True
+    results["Full RelRO"] = check_security_property("-d", filename, r"BIND_NOW") is True
     return results
 
 
@@ -5148,8 +5148,7 @@ class EntryPointBreakCommand(GenericCommand):
         return self.set_init_tbreak(base_address + addr)
 
     def is_pie(self, fpath):
-        sec = list(filter(lambda x: x[0]=="PIE", checksec(fpath)))[0]
-        return sec[1]
+        return checksec(fpath)["PIE"]
 
 
 class ContextCommand(GenericCommand):
@@ -6238,7 +6237,8 @@ class ChecksecCommand(GenericCommand):
 
     def print_security_properties(self, filename):
         sec = checksec(filename)
-        for prop, val in sec:
+        for prop in sec.keys():
+            val = sec[prop]
             msg = Color.greenify("Yes") if val is True else Color.redify("No")
             print("{:<30s}: {:s}".format(prop, msg))
         return
