@@ -2606,6 +2606,7 @@ class ProcessStatusCommand(GenericCommand):
         self.show_ancestor()
         self.show_descendants()
         self.show_fds()
+        self.show_connections()
         return
 
     def get_state_of(self, pid):
@@ -2675,6 +2676,70 @@ class ProcessStatusCommand(GenericCommand):
             if os.path.islink(fullpath):
                 print("\t{:s} {:s} {:s}".format (fullpath, right_arrow, os.readlink(fullpath)))
         return
+
+    def list_sockets(self, pid):
+        sockets = []
+        path = "/proc/{:d}/fd".format(pid)
+        for fname in os.listdir(path):
+            fullpath = os.path.join(path, fname)
+            if os.path.islink(fullpath) and os.readlink(fullpath).startswith("socket:"):
+                p = os.readlink(fullpath).replace("socket:", "")[1:-1]
+                sockets.append(int(p))
+        return sockets
+
+    def parse_ip_port(self, addr):
+        ip, port = addr.split(":")
+        return socket.inet_ntoa(struct.pack("<I", int(ip, 16))), int(port, 16)
+
+    def show_connections(self):
+        tcp_states_str = {
+            # https://github.com/torvalds/linux/blob/v4.7/include/net/tcp_states.h#L16
+            0x01: "TCP_ESTABLISHED",
+	    0x02: "TCP_SYN_SENT",
+	    0x03: "TCP_SYN_RECV",
+	    0x04: "TCP_FIN_WAIT1",
+	    0x05: "TCP_FIN_WAIT2",
+	    0x06: "TCP_TIME_WAIT",
+	    0x07: "TCP_CLOSE",
+	    0x08: "TCP_CLOSE_WAIT",
+	    0x09: "TCP_LAST_ACK",
+	    0x0a: "TCP_LISTEN",
+	    0x0b: "TCP_CLOSING",
+	    0x0b: "TCP_NEW_SYN_RECV",
+        }
+
+        udp_states_str = {
+            0x07: "UDP_LISTEN",
+        }
+
+        pid = get_pid()
+        path = "/proc/{:d}/net/tcp".format(pid)
+        info("Network Connections:")
+        entries = {}
+        entries["TCP"] = [x.split() for x in open("/proc/{:d}/net/tcp".format(pid), "r").readlines()[1:]]
+        entries["UDP"]= [x.split() for x in open("/proc/{:d}/net/udp".format(pid), "r").readlines()[1:]]
+        sockets = self.list_sockets(pid)
+
+        if len(sockets)==0:
+            print("\tNo TCP connections")
+            return
+
+        for proto in entries.keys():
+            for entry in entries[proto]:
+                local, remote, state = entry[1:4]
+                inode = int(entry[9])
+                if inode in sockets:
+                    local = self.parse_ip_port(local)
+                    remote = self.parse_ip_port(remote)
+                    state = int(state, 16)
+                    state_str = tcp_states_str[state] if proto=="TCP" else udp_states_str[state]
+
+                    print("\t{}:{} {} {}:{} ({})".format(local[0], local[1],
+                                                         right_arrow,
+                                                         remote[0], remote[1],
+                                                         state_str))
+        return
+
 
 
 

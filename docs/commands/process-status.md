@@ -26,4 +26,6 @@ gef➤ status
         /proc/22879/fd/1  →  /dev/pts/4
         /proc/22879/fd/2  →  /dev/pts/4
         /proc/22879/fd/10  →  /dev/pts/4
+[+] File Descriptors:
+        No TCP connections
 ```
