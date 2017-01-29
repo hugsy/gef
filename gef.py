@@ -282,7 +282,7 @@ class Color:
 
     @staticmethod
     def colorify(msg, attrs):
-        if __config__["gef.no_color"][0]:
+        if __config__["theme.disable_color"][0] in ("1", "True"):
             return msg
         m = []
         for attr in attrs.split():
@@ -302,6 +302,21 @@ class Color:
         elif Color.BLINK_ON in m :       m.append(Color.BLINK_OFF)
         m.append(Color.NORMAL)
         return "".join(m)
+
+    @staticmethod
+    def colors():
+        return [
+            "red",
+            "green",
+            "blue",
+            "yellow",
+            "gray",
+            "pink",
+            "bold",
+            "underline",
+            "highlight",
+            "blink",
+        ]
 
 
 class Address:
@@ -2712,7 +2727,7 @@ class ProcessStatusCommand(GenericCommand):
             0x07: "UDP_LISTEN",
         }
 
-        info("Network Connections:")
+        info("Network Connections")
         pid = get_pid()
         sockets = self.list_sockets(pid)
         if len(sockets)==0:
@@ -2755,6 +2770,7 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("default_title_line", "green bold")
         self.add_setting("default_title_message", "red bold")
         self.add_setting("xinfo_title_message", "blue bold")
+        self.add_setting("disable_color", "0")
         # TODO: add more customizable items
         return
 
@@ -2780,7 +2796,12 @@ class GefThemeCommand(GenericCommand):
             print("{:40s}: {:s}".format(item, value))
             return
 
-        self.add_setting(key, " ".join(args[1:]))
+        val = []
+        for arg in args[1:]:
+            if arg in Color.colors():
+                val.append(arg)
+
+        self.add_setting(key, " ".join(val))
         return
 
 
@@ -6264,13 +6285,13 @@ class GefCommand(gdb.Command):
                                          gdb.COMPLETE_NONE,
                                          True)
 
-        __config__["gef.no_color"] = [False, bool, "Disable colors in gef"]
         __config__["gef.follow_child"] = [True, bool, "Automatically set GDB to follow child when forking"]
         __config__["gef.readline_compat"] = [False, bool, "Workaround for readline SOH/ETX issue (SEGV)"]
         __config__["gef.debug"] = [False, bool, "Enable debug mode for gef"]
         __config__["gef.autosave_breakpoints_file"] = ["", str, "Automatically save and restore breakpoints"]
 
-        self.classes = [ResetCacheCommand,
+        self.classes = [GefThemeCommand,
+                        ResetCacheCommand,
                         XAddressInfoCommand,
                         XorMemoryCommand, XorMemoryDisplayCommand, XorMemoryPatchCommand,
                         FormatStringSearchCommand,
@@ -6304,7 +6325,6 @@ class GefCommand(gdb.Command):
                         ChangeFdCommand,
                         RetDecCommand,
                         PCustomCommand,
-                        GefThemeCommand,
                         ProcessStatusCommand,
 
                         # add new commands here
