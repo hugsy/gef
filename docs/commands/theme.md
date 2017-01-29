@@ -19,6 +19,7 @@ the `theme` command. The command accepts 2 arguments, the name of the property
 to update, and its new coloring value.
 
 Colors can be one of the following:
+
    - red
    - green
    - blue
@@ -27,6 +28,7 @@ Colors can be one of the following:
    - pink
 
 Color also accepts the following attributes:
+
    - bold
    - underline
    - highlight
