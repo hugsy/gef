@@ -2713,16 +2713,16 @@ class ProcessStatusCommand(GenericCommand):
         }
 
         pid = get_pid()
+        sockets = self.list_sockets(pid)
+        if len(sockets)==0:
+            print("\tNo open connections")
+            return
+
         path = "/proc/{:d}/net/tcp".format(pid)
         info("Network Connections:")
         entries = {}
         entries["TCP"] = [x.split() for x in open("/proc/{:d}/net/tcp".format(pid), "r").readlines()[1:]]
         entries["UDP"]= [x.split() for x in open("/proc/{:d}/net/udp".format(pid), "r").readlines()[1:]]
-        sockets = self.list_sockets(pid)
-
-        if len(sockets)==0:
-            print("\tNo TCP connections")
-            return
 
         for proto in entries.keys():
             for entry in entries[proto]:
