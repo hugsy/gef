@@ -2712,6 +2712,7 @@ class ProcessStatusCommand(GenericCommand):
             0x07: "UDP_LISTEN",
         }
 
+        info("Network Connections:")
         pid = get_pid()
         sockets = self.list_sockets(pid)
         if len(sockets)==0:
@@ -2719,7 +2720,6 @@ class ProcessStatusCommand(GenericCommand):
             return
 
         path = "/proc/{:d}/net/tcp".format(pid)
-        info("Network Connections:")
         entries = {}
         entries["TCP"] = [x.split() for x in open("/proc/{:d}/net/tcp".format(pid), "r").readlines()[1:]]
         entries["UDP"]= [x.split() for x in open("/proc/{:d}/net/udp".format(pid), "r").readlines()[1:]]
