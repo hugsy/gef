@@ -4935,7 +4935,6 @@ class ProcessListingCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
-        processes = self.ps()
         do_attach = False
         smart_scan = False
 
@@ -4946,7 +4945,7 @@ class ProcessListingCommand(GenericCommand):
 
         pattern = re.compile("^.*$") if not args else re.compile(args[0])
 
-        for process in processes:
+        for process in self.get_processes():
             pid = int(process["pid"])
             command = process["command"]
 
@@ -4970,8 +4969,7 @@ class ProcessListingCommand(GenericCommand):
         return None
 
 
-    def ps(self):
-        processes = []
+    def get_processes(self):
         output = gef_execute_external(self.get_setting("ps_command").split(), True)
         names = [x.lower().replace("%", "") for x in output[0].split()]
 
@@ -4985,9 +4983,9 @@ class ProcessListingCommand(GenericCommand):
                 else:
                     t[name] = fields[i]
 
-            processes.append(t)
+            yield t
 
-        return processes
+        return
 
 
 class ElfInfoCommand(GenericCommand):
