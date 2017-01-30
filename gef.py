@@ -5757,7 +5757,11 @@ class DereferenceCommand(GenericCommand):
 
             # if the value is only made of printable characters, display its value
             val_str = binascii.unhexlify(val)
-            if val_str.isalnum():
+            if PYTHON_MAJOR==3:
+                is_string = all(map(lambda x: chr(x) in string.printable, val_str))
+            else:
+                is_string = all(map(lambda x: x in string.printable, val_str))
+            if is_string:
                 val+= ' ("{}"?)'.format(Color.greenify(gef_pystring(val_str)))
             msg.append("0x"+val)
             break
