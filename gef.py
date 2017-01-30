@@ -5751,7 +5751,15 @@ class DereferenceCommand(GenericCommand):
                         break
 
             # if not able to parse cleanly, simply display and break
-            msg.append("{:#x}".format(long(deref) & 0xffffffffffffffff))
+            val = "{:x}".format(long(deref) & 0xffffffffffffffff)
+            if len(val)%2 != 0:  # pad the hexa representation to a multiple of 2
+                val = "0"+val
+
+            # if the value is only made of printable characters, display its value
+            val_str = binascii.unhexlify(val)
+            if val_str.isalnum():
+                val+= ' ("{}"?)'.format(Color.greenify(gef_pystring(val_str)))
+            msg.append("0x"+val)
             break
 
         return msg
