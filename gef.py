@@ -1795,12 +1795,9 @@ def command_only_works_for(os):
 
 
 def __get_process_maps_linux(proc_map_file):
-    sections = []
     f = open_file(proc_map_file, use_cache=False)
-    while True:
-        line = f.readline().strip()
-        if not line:
-            break
+    for line in f:
+        line = line.strip()
 
         addr, perm, off, dev, rest = line.split(" ", 4)
         rest = rest.split(" ", 1)
@@ -1816,40 +1813,34 @@ def __get_process_maps_linux(proc_map_file):
         off = long(off, 16)
         perm = Permission.from_process_maps(perm)
 
-        section = Section(page_start  = addr_start,
-                          page_end    = addr_end,
-                          offset      = off,
-                          permission  = perm,
-                          inode       = inode,
-                          path        = pathname)
+        yield Section(page_start=addr_start,
+                      page_end=addr_end,
+                      offset=off,
+                      permission=perm,
+                      inode=inode,
+                      path=pathname)
 
-        sections.append(section)
-    return sections
+    return
 
 
 def __get_process_maps_freebsd(proc_map_file):
-    sections = []
     f = open_file(proc_map_file, use_cache=False)
-    while True:
-        line = f.readline().strip()
-        if not line:
-            break
+    for line in f:
+        line = line.strip()
 
         start_addr, end_addr, _, _, _, perm, _, _, _, _, _, inode, pathname, _, _ = line.split()
         start_addr, end_addr = long(start_addr, 0x10), long(end_addr, 0x10)
         offset = 0
         perm = Permission.from_process_maps(perm)
 
-        section = Section(page_start  = start_addr,
-                          page_end    = end_addr,
-                          offset      = offset,
-                          permission  = perm,
-                          inode       = inode,
-                          path        = pathname)
+        yield Section(page_start=start_addr,
+                      page_end=end_addr,
+                      offset=offset,
+                      permission=perm,
+                      inode=inode,
+                      path=pathname)
 
-        sections.append(section)
-
-    return sections
+    return
 
 
 @memoize
@@ -1868,16 +1859,14 @@ def get_process_maps():
             warn("Failed to read /proc/<PID>/maps, using GDB sections info")
         sections = get_info_sections()
 
-    return sections
+    return list(sections)
 
 
 @memoize
 def get_info_sections():
-    sections = []
     stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
 
-    while True:
-        line = stream.readline()
+    for line in stream:
         if not line:
             break
 
@@ -1891,21 +1880,19 @@ def get_info_sections():
             inode = ""
             perm = Permission.from_info_sections(parts[5:])
 
-            section = Section(page_start  = addr_start,
-                              page_end    = addr_end,
-                              offset      = off,
-                              permission  = perm,
-                              inode       = inode,
-                              path        = path)
-
-            sections.append(section)
+            yield Section(page_start=addr_start,
+                          page_end=addr_end,
+                          offset=off,
+                          permission=perm,
+                          inode=inode,
+                          path=path)
 
         except IndexError:
             continue
         except ValueError:
             continue
 
-    return sections
+    return
 
 
 def get_info_files():
