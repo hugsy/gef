@@ -298,21 +298,6 @@ class Color:
         m.append(cls.COLORS["normal"])
         return "".join(m)
 
-    @staticmethod
-    def get_colors():
-        return [
-            "red",
-            "green",
-            "blue",
-            "yellow",
-            "gray",
-            "pink",
-            "bold",
-            "underline",
-            "highlight",
-            "blink",
-        ]
-
 
 class Address:
     def __init__(self, *args, **kwargs):
@@ -2793,7 +2778,7 @@ class GefThemeCommand(GenericCommand):
 
         val = []
         for arg in args[1:]:
-            if arg in Color.get_colors():
+            if arg in Color.COLORS:
                 val.append(arg)
 
         self.add_setting(key, " ".join(val))
