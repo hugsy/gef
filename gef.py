@@ -3432,7 +3432,7 @@ class SearchPatternCommand(GenericCommand):
                 string = read_cstring_from_memory(start)
                 end   = start + len(string)
             except UnicodeError:
-                string = "{:s}[...]".format(pattern)
+                string = gef_pystring(pattern)+"[...]"
                 end    = start + len(pattern)
             locations.append((start, end, string))
         return locations
@@ -3446,7 +3446,7 @@ class SearchPatternCommand(GenericCommand):
             start = section.page_start
             end   = section.page_end - 1
             for loc in self.search_pattern_by_address(pattern, start, end):
-                print("""{:#x} - {:#x} {:s}  "{:s}" """.format(loc[0], loc[1], right_arrow, Color.pinkify(loc[2])))
+                print("""{:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], right_arrow, Color.pinkify(loc[2])))
         return
 
     @if_gdb_running
