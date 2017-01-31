@@ -2678,7 +2678,7 @@ class ProcessStatusCommand(GenericCommand):
             0x09: "TCP_LAST_ACK",
             0x0a: "TCP_LISTEN",
             0x0b: "TCP_CLOSING",
-            0x0b: "TCP_NEW_SYN_RECV",
+            0x0c: "TCP_NEW_SYN_RECV",
         }
 
         udp_states_str = {
