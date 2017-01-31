@@ -1877,8 +1877,6 @@ def get_info_sections():
 
 
 def get_info_files():
-    global __infos_files__
-
     lines = gdb.execute("info files", to_string=True).splitlines()
 
     if len(lines) < len(__infos_files__):
@@ -6653,8 +6651,6 @@ class GefMissingCommand(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
-        global __missing__
-
         self.dont_repeat()
         missing_commands = __missing__.keys()
         if not missing_commands:
@@ -6724,8 +6720,6 @@ class GefAlias(gdb.Command):
     """Simple aliasing wrapper because GDB doesn't do what it should.
     """
     def __init__(self, alias, command):
-        global __aliases__
-
         p = command.split()
         if not p:
             return
@@ -6755,8 +6749,6 @@ class GefAlias(gdb.Command):
         return
 
     def lookup_command(self, cmd):
-        global __loaded__
-
         for _name, _class, _instance in __loaded__:
             if cmd == _name:
                 return _name, _class, _instance
@@ -6771,8 +6763,6 @@ class GefAliases(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
-        global __aliases__
-
         self.dont_repeat()
         ok("Aliases defined:")
         for _alias in __aliases__:
