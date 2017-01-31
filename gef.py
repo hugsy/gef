@@ -939,8 +939,8 @@ def gef_disassemble(addr, nb_insn, from_top=False):
     for line in lines:
         address, location, mnemo, operands = gef_parse_gdb_instruction(line)
         code = "{:s}     {:s}   {:s}".format(location, mnemo, ", ".join(operands))
-        result.append((address, code))
-    return result
+        yield((address, code))
+    # return result
 
 ParsedInstruction = collections.namedtuple("ParsedInstruction", "address location mnemo operands")
 
@@ -3625,7 +3625,7 @@ class UnicornEmulateCommand(GenericCommand):
         return
 
     def get_unicorn_end_addr(self, start_addr, nb):
-        dis = gef_disassemble(start_addr, nb +1, True)
+        dis = list(gef_disassemble(start_addr, nb +1, True))
         return dis[-1][0]
 
     def run_unicorn(self, start_insn_addr, end_insn_addr, *args, **kwargs):
@@ -4047,8 +4047,7 @@ class NopCommand(GenericCommand):
 
 
     def get_insn_size(self, addr):
-        res = gef_disassemble(addr, 1, True)
-        insns = [x[0] for x in res]
+        insns = [x[0] for x in gef_disassemble(addr, 1, True)]
         return insns[1] - insns[0]
 
 
@@ -5305,9 +5304,8 @@ class ContextCommand(GenericCommand):
                 CapstoneDisassembleCommand.disassemble(pc, nb_insn)
                 return
 
-            disassembled_lines = gef_disassemble(pc, nb_insn)
-            for addr, content in disassembled_lines:
-                insn = "{:#x} {:s}".format(addr,content)
+            for addr, content in gef_disassemble(pc, nb_insn):
+                insn = "{:#x} {:s}".format (addr,content)
                 line = []
                 is_taken = False
                 m = "{}    {}".format(format_address(addr), content)
@@ -5339,15 +5337,13 @@ class ContextCommand(GenericCommand):
                     operands = gef_parse_gdb_instruction(cur).operands
                     target = operands[-1].split()[0]
                     target = int(target, 16)
-                    disassembled_lines = gef_disassemble(target, nb_insn, True)
-                    for i, _ in enumerate(disassembled_lines):
+                    for i, _ in enumerate(gef_disassemble(target, nb_insn, True)):
                         addr, content = _
                         insn = ""
                         insn+= down_arrow if i==0 else " "
                         insn+= "\t{:#x} {:s}".format (addr,content)
                         print(insn)
                     break
-
 
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
