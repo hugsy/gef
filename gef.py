@@ -2669,20 +2669,20 @@ class ProcessStatusCommand(GenericCommand):
         return socket.inet_ntoa(struct.pack("<I", int(ip, 16))), int(port, 16)
 
     def show_connections(self):
+        # https://github.com/torvalds/linux/blob/v4.7/include/net/tcp_states.h#L16
         tcp_states_str = {
-            # https://github.com/torvalds/linux/blob/v4.7/include/net/tcp_states.h#L16
             0x01: "TCP_ESTABLISHED",
-	    0x02: "TCP_SYN_SENT",
-	    0x03: "TCP_SYN_RECV",
-	    0x04: "TCP_FIN_WAIT1",
-	    0x05: "TCP_FIN_WAIT2",
-	    0x06: "TCP_TIME_WAIT",
-	    0x07: "TCP_CLOSE",
-	    0x08: "TCP_CLOSE_WAIT",
-	    0x09: "TCP_LAST_ACK",
-	    0x0a: "TCP_LISTEN",
-	    0x0b: "TCP_CLOSING",
-	    0x0b: "TCP_NEW_SYN_RECV",
+            0x02: "TCP_SYN_SENT",
+            0x03: "TCP_SYN_RECV",
+            0x04: "TCP_FIN_WAIT1",
+            0x05: "TCP_FIN_WAIT2",
+            0x06: "TCP_TIME_WAIT",
+            0x07: "TCP_CLOSE",
+            0x08: "TCP_CLOSE_WAIT",
+            0x09: "TCP_LAST_ACK",
+            0x0a: "TCP_LISTEN",
+            0x0b: "TCP_CLOSING",
+            0x0b: "TCP_NEW_SYN_RECV",
         }
 
         udp_states_str = {
@@ -4955,39 +4955,40 @@ class ElfInfoCommand(GenericCommand):
 
     def do_invoke(self, argv):
         # http://www.sco.com/developers/gabi/latest/ch4.eheader.html
-        classes = { 0x01: "32-bit",
-                    0x02: "64-bit",
-        }
-        endianness = { 0x01: "Little-Endian",
-                       0x02: "Big-Endian",
-        }
-        osabi = { 0x00: "System V",
-                  0x01: "HP-UX",
-                  0x02: "NetBSD",
-                  0x03: "Linux",
-                  0x06: "Solaris",
-                  0x07: "AIX",
-                  0x08: "IRIX",
-                  0x09: "FreeBSD",
-                  0x0C: "OpenBSD",
-        }
-
-        types = { 0x01: "Relocatable",
-                  0x02: "Executable",
-                  0x03: "Shared",
-                  0x04: "Core"
+        classes = {0x01: "32-bit",
+                   0x02: "64-bit",}
+        endianness = {0x01: "Little-Endian",
+                      0x02: "Big-Endian",}
+        osabi = {
+            0x00: "System V",
+            0x01: "HP-UX",
+            0x02: "NetBSD",
+            0x03: "Linux",
+            0x06: "Solaris",
+            0x07: "AIX",
+            0x08: "IRIX",
+            0x09: "FreeBSD",
+            0x0C: "OpenBSD",
         }
 
-        machines = { 0x02: "SPARC",
-                     0x03: "x86",
-                     0x08: "MIPS",
-                     0x12: "SPARC64",
-                     0x14: "PowerPC",
-                     0x15: "PowerPC64",
-                     0x28: "ARM",
-                     0x32: "IA-64",
-                     0x3E: "x86-64",
-                     0xB7: "AArch64",
+        types = {
+            0x01: "Relocatable",
+            0x02: "Executable",
+            0x03: "Shared",
+            0x04: "Core"
+        }
+
+        machines = {
+            0x02: "SPARC",
+            0x03: "x86",
+            0x08: "MIPS",
+            0x12: "SPARC64",
+            0x14: "PowerPC",
+            0x15: "PowerPC64",
+            0x28: "ARM",
+            0x32: "IA-64",
+            0x3E: "x86-64",
+            0xB7: "AArch64",
         }
 
         filename = argv[0] if argv else get_filepath()
@@ -4998,21 +4999,22 @@ class ElfInfoCommand(GenericCommand):
         if elf is None:
             return
 
-        data = [("Magic", "{0!s}".format(hexdump(struct.pack(">I",elf.e_magic), show_raw=True))),
-                ("Class", "{0:#x} - {1}".format(elf.e_class, classes[elf.e_class])),
-                ("Endianness", "{0:#x} - {1}".format(elf.e_endianness, endianness[elf.e_endianness])),
-                ("Version", "{:#x}".format(elf.e_eiversion)),
-                ("OS ABI", "{0:#x} - {1}".format(elf.e_osabi, osabi[elf.e_osabi])),
-                ("ABI Version", "{:#x}".format(elf.e_abiversion)),
-                ("Type", "{0:#x} - {1}".format(elf.e_type, types[elf.e_type])),
-                ("Machine", "{0:#x} - {1}".format(elf.e_machine, machines[elf.e_machine])),
-                ("Program Header Table" , "{}".format(format_address(elf.e_phoff))),
-                ("Section Header Table" , "{}".format(format_address(elf.e_shoff))),
-                ("Header Table" , "{}".format(format_address(elf.e_phoff))),
-                ("ELF Version", "{:#x}".format(elf.e_version)),
-                ("Header size" , "{0} ({0:#x})".format(elf.e_ehsize)),
-                ("Entry point", "{}".format(format_address(elf.e_entry))),
-              ]
+        data = [
+            ("Magic", "{0!s}".format(hexdump(struct.pack(">I",elf.e_magic), show_raw=True))),
+            ("Class", "{0:#x} - {1}".format(elf.e_class, classes[elf.e_class])),
+            ("Endianness", "{0:#x} - {1}".format(elf.e_endianness, endianness[elf.e_endianness])),
+            ("Version", "{:#x}".format(elf.e_eiversion)),
+            ("OS ABI", "{0:#x} - {1}".format(elf.e_osabi, osabi[elf.e_osabi])),
+            ("ABI Version", "{:#x}".format(elf.e_abiversion)),
+            ("Type", "{0:#x} - {1}".format(elf.e_type, types[elf.e_type])),
+            ("Machine", "{0:#x} - {1}".format(elf.e_machine, machines[elf.e_machine])),
+            ("Program Header Table" , "{}".format(format_address(elf.e_phoff))),
+            ("Section Header Table" , "{}".format(format_address(elf.e_shoff))),
+            ("Header Table" , "{}".format(format_address(elf.e_phoff))),
+            ("ELF Version", "{:#x}".format(elf.e_version)),
+            ("Header size" , "{0} ({0:#x})".format(elf.e_ehsize)),
+            ("Entry point", "{}".format(format_address(elf.e_entry))),
+        ]
 
         for title, content in data:
             print("{:<30}: {}".format(Color.boldify(title), content))
@@ -5149,7 +5151,8 @@ class ContextCommand(GenericCommand):
             "code": self.context_code,
             "source": self.context_source,
             "trace": self.context_trace,
-            "threads": self.context_threads}
+            "threads": self.context_threads,
+        }
 
         redirect = self.get_setting("redirect")
         if redirect and os.access(redirect, os.W_OK):
@@ -5881,9 +5884,9 @@ class XAddressInfoCommand(GenericCommand):
         if sect:
             print("Found {:s}".format(format_address(addr.value)))
             print("Page: {:s} {:s} {:s} (size={:#x})".format(format_address(sect.page_start),
-                                                               right_arrow,
-                                                               format_address(sect.page_end),
-                                                               sect.page_end-sect.page_start))
+                                                             right_arrow,
+                                                             format_address(sect.page_end),
+                                                             sect.page_end-sect.page_start))
             print("Permissions: {:s}".format(str(sect.permission)))
             print("Pathname: {:s}".format(sect.path))
             print("Offset (from page): +{:#x}".format(addr.value-sect.page_start))
@@ -5891,8 +5894,8 @@ class XAddressInfoCommand(GenericCommand):
 
         if info:
             print("Segment: {:s} ({:s}-{:s})".format(info.name,
-                                                      format_address(info.zone_start),
-                                                      format_address(info.zone_end)))
+                                                     format_address(info.zone_start),
+                                                     format_address(info.zone_end)))
         return
 
 
@@ -6254,46 +6257,46 @@ class GefCommand(gdb.Command):
         __config__["gef.debug"] = [False, bool, "Enable debug mode for gef"]
         __config__["gef.autosave_breakpoints_file"] = ["", str, "Automatically save and restore breakpoints"]
 
-        self.classes = [GefThemeCommand,
-                        ResetCacheCommand,
-                        XAddressInfoCommand,
-                        XorMemoryCommand, XorMemoryDisplayCommand, XorMemoryPatchCommand,
-                        FormatStringSearchCommand,
-                        TraceRunCommand,
-                        PatternCommand, PatternSearchCommand, PatternCreateCommand,
-                        ChecksecCommand,
-                        VMMapCommand,
-                        XFilesCommand,
-                        ASLRCommand,
-                        DereferenceCommand,
-                        HexdumpCommand,
-                        CapstoneDisassembleCommand,
-                        ContextCommand,
-                        EntryPointBreakCommand,
-                        ElfInfoCommand,
-                        ProcessListingCommand,
-                        AssembleCommand,
-                        ROPgadgetCommand,
-                        RopperCommand,
-                        ShellcodeCommand, ShellcodeSearchCommand, ShellcodeGetCommand,
-                        DetailRegistersCommand,
-                        SolveKernelSymbolCommand,
-                        GlibcHeapCommand, GlibcHeapArenaCommand, GlibcHeapChunkCommand, GlibcHeapBinsCommand, GlibcHeapFastbinsYCommand, GlibcHeapUnsortedBinsCommand, GlibcHeapSmallBinsCommand, GlibcHeapLargeBinsCommand,
-                        NopCommand,
-                        RemoteCommand,
-                        UnicornEmulateCommand,
-                        ChangePermissionCommand,
-                        FlagsCommand,
-                        SearchPatternCommand,
-                        IdaInteractCommand,
-                        ChangeFdCommand,
-                        RetDecCommand,
-                        PCustomCommand,
-                        ProcessStatusCommand,
-
-                        # add new commands here
-                        # when subcommand, main command must be placed first
-                        ]
+        self.classes = [
+            GefThemeCommand,
+            ResetCacheCommand,
+            XAddressInfoCommand,
+            XorMemoryCommand, XorMemoryDisplayCommand, XorMemoryPatchCommand,
+            FormatStringSearchCommand,
+            TraceRunCommand,
+            PatternCommand, PatternSearchCommand, PatternCreateCommand,
+            ChecksecCommand,
+            VMMapCommand,
+            XFilesCommand,
+            ASLRCommand,
+            DereferenceCommand,
+            HexdumpCommand,
+            CapstoneDisassembleCommand,
+            ContextCommand,
+            EntryPointBreakCommand,
+            ElfInfoCommand,
+            ProcessListingCommand,
+            AssembleCommand,
+            ROPgadgetCommand,
+            RopperCommand,
+            ShellcodeCommand, ShellcodeSearchCommand, ShellcodeGetCommand,
+            DetailRegistersCommand,
+            SolveKernelSymbolCommand,
+            GlibcHeapCommand, GlibcHeapArenaCommand, GlibcHeapChunkCommand, GlibcHeapBinsCommand, GlibcHeapFastbinsYCommand, GlibcHeapUnsortedBinsCommand, GlibcHeapSmallBinsCommand, GlibcHeapLargeBinsCommand,
+            NopCommand,
+            RemoteCommand,
+            UnicornEmulateCommand,
+            ChangePermissionCommand,
+            FlagsCommand,
+            SearchPatternCommand,
+            IdaInteractCommand,
+            ChangeFdCommand,
+            RetDecCommand,
+            PCustomCommand,
+            ProcessStatusCommand,
+            # add new commands here
+            # when subcommand, main command must be placed first
+            ]
 
         self.__cmds = [(x._cmdline_, x) for x in self.classes]
         self.__loaded_cmds = []
