@@ -1712,7 +1712,7 @@ def get_filepath():
 
     if is_remote_debug():
         # if no filename specified, try downloading target from /proc
-        if filename == None:
+        if filename is None:
             pid = get_pid()
 
             if pid > 0:
@@ -2933,7 +2933,7 @@ class PCustomCommand(GenericCommand):
             if name != item: continue
             for val, desc in values:
                 if value == val: return desc
-                if val == None: default = desc
+                if val is None: default = desc
         return default
 
 
@@ -6520,7 +6520,7 @@ class GefConfigCommand(gdb.Command):
             return
 
         _curval, _type, _desc = __config__.get(argv[0], [None, None, None])
-        if _type == None:
+        if _type is None:
             err("Failed to get '{:s}' config setting".format(argv[0],))
             return
 
