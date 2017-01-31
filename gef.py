@@ -952,11 +952,12 @@ def gef_disassemble(addr, nb_insn, from_top=False):
     lines = _gef_disassemble_top(addr, nb_insn) if from_top else _gef_disassemble_around(addr, nb_insn)
     result = []
     for line in lines:
-        (address, location, mnemo, operands) = gef_parse_gdb_instruction(line)
+        address, location, mnemo, operands = gef_parse_gdb_instruction(line)
         code = "{:s}     {:s}   {:s}".format(location, mnemo, ", ".join(operands))
         result.append((address, code))
     return result
 
+ParsedInstruction = collections.namedtuple("ParsedInstruction", "address location mnemo operands")
 
 def gef_parse_gdb_instruction(raw_insn):
     raw_insn = raw_insn.strip().replace("\t", " ").replace(":", " ")
@@ -975,7 +976,7 @@ def gef_parse_gdb_instruction(raw_insn):
         mnemo = parts[0]
         operands = " ".join(parts[1:])
     operands = operands.split(",")
-    return (address, location, mnemo, operands)
+    return ParsedInstruction(address, location, mnemo, operands)
 
 
 def gef_execute_external(command, as_list=False, *args, **kwargs):
@@ -1138,13 +1139,13 @@ class ARM(Architecture):
         return flags_to_human(val, self.flags_table)
 
     def is_conditional_branch(self, insn):
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
-        mnemos = {"beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
-                 "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"}
-        return mnemo in mnemos
+        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        branch_mnemos = {"beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
+                  "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"}
+        return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        mnemo = gef_parse_gdb_instruction(insn).mnemo
         # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
         flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
         val = get_register_ex(self.flag_register)
@@ -1208,9 +1209,9 @@ class AARCH64(ARM):
     def is_conditional_branch(self, insn):
         # https://www.element14.com/community/servlet/JiveServlet/previewBody/41836-102-1-229511/ARM.Reference_Manual.pdf
         # sect. 5.1.1
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
-        others = ["cbnz", "cbz", "tbnz", "tbz"]
-        return mnemo.startswith("b.") or mnemo in others
+        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        branch_mnemos = {"cbnz", "cbz", "tbnz", "tbz"}
+        return mnemo.startswith("b.") or mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
         _, _, mnemo, operands = gef_parse_gdb_instruction(insn)
@@ -1280,20 +1281,22 @@ class X86(Architecture):
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn):
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
-        mnemos = {"call", "callq"}
-        return mnemo in mnemos
+        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        call_mnemos = {"call", "callq"}
+        return mnemo in call_mnemos
 
     def is_conditional_branch(self, insn):
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
-        mnemos = {"ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
-                 "jcxz", "jecxz", "jrcxz", "je", "jz", "jg", "jnle", "jge", "jnl",
-                 "jl", "jnge", "jle", "jng", "jne", "jnz", "jno", "jnp", "jpo", "jns",
-                 "jo", "jp", "jpe", "js"}
-        return mnemo in mnemos
+        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        branch_mnemos = {
+            "ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
+            "jcxz", "jecxz", "jrcxz", "je", "jz", "jg", "jnle", "jge", "jnl",
+            "jl", "jnge", "jle", "jng", "jne", "jnz", "jno", "jnp", "jpo", "jns",
+            "jo", "jp", "jpe", "js"
+        }
+        return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        mnemo = gef_parse_gdb_instruction(insn).mnemo
         # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
         flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
         val = get_register_ex(self.flag_register)
@@ -1397,12 +1400,12 @@ class PowerPC(Architecture):
         return False
 
     def is_conditional_branch(self, insn):
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
-        mnemos = {"beq", "bne", "ble", "blt", "bgt", "bge"}
-        return mnemo in mnemos
+        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        branch_mnemos = {"beq", "bne", "ble", "blt", "bgt", "bge"}
+        return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        mnemo = gef_parse_gdb_instruction(insn).mnemo
         flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
         val = get_register_ex(self.flag_register)
         if mnemo == "beq": return val&(1<<flags["equal[7]"]), "E"
@@ -1475,14 +1478,16 @@ class SPARC(Architecture):
         return False
 
     def is_conditional_branch(self, insn):
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        mnemo = gef_parse_gdb_instruction(insn).mnemo
         # http://moss.csc.ncsu.edu/~mueller/codeopt/codeopt00/notes/condbranch.html
-        mnemos = {"be", "bne", "bg", "bge", "bgeu", "bgu", "bl", "ble", "blu", "bleu",
-                 "bneg", "bpos", "bvs", "bvc", "bcs", "bcc"}
-        return mnemo in mnemos
+        branch_mnemos = {
+            "be", "bne", "bg", "bge", "bgeu", "bgu", "bl", "ble", "blu", "bleu",
+            "bneg", "bpos", "bvs", "bvc", "bcs", "bcc"
+        }
+        return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
+        mnemo = gef_parse_gdb_instruction(insn).mnemo
         flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
         val = get_register_ex(self.flag_register)
         if mnemo == "be": return val&(1<<flags["zero"]), "Z"
@@ -1573,9 +1578,9 @@ class MIPS(Architecture):
         return False
 
     def is_conditional_branch(self, insn):
-        _, _, mnemo, _ = gef_parse_gdb_instruction(insn)
-        mnemos = {"beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez"}
-        return mnemo in mnemos
+        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        branch_mnemos = {"beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez"}
+        return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
         _, _, mnemo, ops = gef_parse_gdb_instruction(insn)
@@ -5346,7 +5351,7 @@ class ContextCommand(GenericCommand):
                     # we're not using gef_current_instruction(addr) because gdb/mips disassembles 2 instructions when hitting a branch
                     cur = gdb.execute("x/i $pc", to_string=True).splitlines()[0]
                     cur = cur.replace("=>", "").strip()
-                    (_, _, _, operands) = gef_parse_gdb_instruction(cur)
+                    operands = gef_parse_gdb_instruction(cur).operands
                     target = operands[-1].split()[0]
                     target = int(target, 16)
                     disassembled_lines = gef_disassemble(target, nb_insn, True)
