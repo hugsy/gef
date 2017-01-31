@@ -82,6 +82,7 @@ import tempfile
 import termios
 import time
 import traceback
+import types
 
 PYTHON_MAJOR = sys.version_info[0]
 
@@ -209,55 +210,77 @@ class GefUnsupportedOS(GefGenericException):
     pass
 
 
-class memoize(object):
-    """Memoizing class to cache."""
-    def __init__(self, f):
-        self.func = f
-        self.cache = {}
-        return
+if PYTHON_MAJOR==3:
+    lru_cache = functools.lru_cache
+else:
+    def lru_cache(maxsize = 128):
+        """https://gist.github.com/hugsy/f327097d905f78c1e253c0d87a235b41"""
+        class _LRU_Cache_class(object):
+            def __init__(self, input_func, max_size):
+                self._input_func        = input_func
+                self._max_size          = max_size
+                self._caches_dict       = {}
 
-    def __call__(self, *args):
-        if not isinstance(args, collections.Hashable):
-            return self.func(*args)
+            def cache_clear(self, caller = None):
+                if caller in self._caches_dict:
+                    del self._caches_dict[caller]
+                    self._caches_dict[caller] = collections.OrderedDict()
 
-        if args in self.cache:
-            return self.cache[args]
+            def __get__(self, obj, objtype):
+                return_func = functools.partial(self._cache_wrapper, obj)
+                return_func.cache_clear = functools.partial(self.cache_clear, obj)
+                return functools.wraps(self._input_func)(return_func)
 
-        value = self.func(*args)
-        self.cache[args] = value
-        return value
+            def __call__(self, *args, **kwargs):
+                return self._cache_wrapper(None, *args, **kwargs)
 
-    def __repr__(self):
-        return self.func.__doc__
+            __call__.cache_clear = cache_clear
 
-    def __get__(self, obj, objtype):
-        return functools.partial(self.__call__, obj)
+            def _cache_wrapper(self, caller, *args, **kwargs):
+                kwargs_key = "".join(map(lambda x : str(x) + str(type(kwargs[x])) + str(kwargs[x]), sorted(kwargs)))
+                key = "".join(map(lambda x : str(type(x)) + str(x) , args)) + kwargs_key
+                if caller not in self._caches_dict:
+                    self._caches_dict[caller] = collections.OrderedDict()
+
+                cur_caller_cache_dict = self._caches_dict[caller]
+                if key in cur_caller_cache_dict:
+                    return cur_caller_cache_dict[key]
+
+                if len(cur_caller_cache_dict) >= self._max_size:
+                    cur_caller_cache_dict.popitem(False)
+
+                cur_caller_cache_dict[key] = self._input_func(caller, *args, **kwargs) if caller != None else self._input_func(*args, **kwargs)
+                return cur_caller_cache_dict[key]
+
+        return (lambda input_func : functools.wraps(input_func)(_LRU_Cache_class(input_func, maxsize)))
 
 
 def reset_all_caches():
     """Free all memoized values."""
     for s in dir(sys.modules["__main__"]):
         o = getattr(sys.modules["__main__"], s)
-        if hasattr(o, "cache") and o.cache:
-            o.cache = {}
+        if hasattr(o, "cache_clear"):
+            o.cache_clear()
     return
 
 
 class Color:
-    NORMAL         = "\033[0m"
-    GRAY           = "\033[1;30m"
-    RED            = "\033[31m"
-    GREEN          = "\033[32m"
-    YELLOW         = "\033[33m"
-    BLUE           = "\033[34m"
-    PINK           = "\033[35m"
-    BOLD           = "\033[1m"
-    UNDERLINE_ON   = "\033[4m"
-    UNDERLINE_OFF  = "\033[24m"
-    HIGHLIGHT_ON   = "\033[3m"
-    HIGHLIGHT_OFF  = "\033[23m"
-    BLINK_ON       = "\033[5m"
-    BLINK_OFF      = "\033[25m"
+    colors = types.MappingProxyType({
+        "normal"         : "\033[0m",
+        "gray"           : "\033[1;30m",
+        "red"            : "\033[31m",
+        "green"          : "\033[32m",
+        "yellow"         : "\033[33m",
+        "blue"           : "\033[34m",
+        "pink"           : "\033[35m",
+        "bold"           : "\033[1m",
+        "underline"      : "\033[4m",
+        "underline_off"  : "\033[24m",
+        "highlight"      : "\033[3m",
+        "highlight_off"  : "\033[23m",
+        "blink"          : "\033[5m",
+        "blink_off"      : "\033[25m",
+    })
 
     @staticmethod
     def redify(msg):      return Color.colorify(msg, attrs="red")
@@ -285,38 +308,15 @@ class Color:
         if __config__["theme.disable_color"][0] in ("1", "True"):
             return msg
         m = []
+        colors = Color.colors
         for attr in attrs.split():
-            if   attr == "bold":       m.append(Color.BOLD)
-            elif attr == "underline":  m.append(Color.UNDERLINE_ON)
-            elif attr == "highlight":  m.append(Color.HIGHLIGHT_ON)
-            elif attr == "blink":      m.append(Color.BLINK_ON)
-            elif attr == "red":        m.append(Color.RED)
-            elif attr == "green":      m.append(Color.GREEN)
-            elif attr == "blue":       m.append(Color.BLUE)
-            elif attr == "yellow":     m.append(Color.YELLOW)
-            elif attr == "gray":       m.append(Color.GRAY)
-            elif attr == "pink":       m.append(Color.PINK)
+            if attr in colors: m.append(colors[attr])
         m.append(msg)
-        if   Color.HIGHLIGHT_ON in m :   m.append(Color.HIGHLIGHT_OFF)
-        elif Color.UNDERLINE_ON in m :   m.append(Color.UNDERLINE_OFF)
-        elif Color.BLINK_ON in m :       m.append(Color.BLINK_OFF)
-        m.append(Color.NORMAL)
+        if   colors["highlight"] in m :   m.append(colors["highlight_off"])
+        elif colors["underline"] in m :   m.append(colors["underline_off"])
+        elif colors["blink"] in m :       m.append(colors["blink_off"])
+        m.append(colors["normal"])
         return "".join(m)
-
-    @staticmethod
-    def colors():
-        return [
-            "red",
-            "green",
-            "blue",
-            "yellow",
-            "gray",
-            "pink",
-            "bold",
-            "underline",
-            "highlight",
-            "blink",
-        ]
 
 
 class Address:
@@ -573,15 +573,9 @@ class GlibcArena:
         n               = self.deref_as_long(self.next)
         nfree           = self.deref_as_long(self.next_free)
         sysmem          = long(self.system_mem)
-        m = "Arena ("
-        m += "base={:#x},".format(self.__addr)
-        m += "top={:#x},".format(top)
-        m += "last_remainder={:#x},".format(last_remainder)
-        m += "next={:#x},".format(n)
-        m += "next_free={:#x},".format(nfree)
-        m += "system_mem={:#x}".format(sysmem)
-        m += ")"
-        return m
+
+        fmt = "Arena (base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
+        return fmt.format(self.__addr, top, last_remainder, n, nfree. sysmem)
 
 
 class GlibcChunk:
@@ -659,60 +653,52 @@ class GlibcChunk:
 
 
     def str_chunk_size_flag(self):
-        msg = ""
-        msg += "PREV_INUSE flag: "
-        msg += Color.greenify("On") if self.has_P_bit() else Color.redify("Off")
-        msg += "\n"
-
-        msg += "IS_MMAPPED flag: "
-        msg += Color.greenify("On") if self.has_M_bit() else Color.redify("Off")
-        msg += "\n"
-
-        msg += "NON_MAIN_ARENA flag: "
-        msg += Color.greenify("On") if self.has_N_bit() else Color.redify("Off")
-
-        return msg
+        msg = []
+        msg += "PREV_INUSE flag: {}".format(Color.greenify("On") if self.has_P_bit() else Color.redify("Off"))
+        msg += "IS_MMAPPED flag: {}".format(Color.greenify("On") if self.has_M_bit() else Color.redify("Off"))
+        msg += "NON_MAIN_ARENA flag: {}".format(Color.greenify("On") if self.has_N_bit() else Color.redify("Off"))
+        return "\n".join(msg)
 
 
     def _str_sizes(self):
-        msg = ""
+        msg = []
         failed = False
 
         try:
-            msg += "Chunk size: {0:d} ({0:#x})\n".format(self.get_chunk_size())
-            msg += "Usable size: {0:d} ({0:#x})\n".format(self.get_usable_size())
+            msg += "Chunk size: {0:d} ({0:#x})".format(self.get_chunk_size())
+            msg += "Usable size: {0:d} ({0:#x})".format(self.get_usable_size())
             failed = True
         except gdb.MemoryError as me:
-            msg += "Chunk size: Cannot read at {0:#x} (corrupted?)\n".format(self.size_addr)
+            msg += "Chunk size: Cannot read at {:#x} (corrupted?)".format(self.size_addr)
 
         try:
-            msg += "Previous chunk size: {0:d} ({0:#x})\n".format(self.get_prev_chunk_size())
+            msg += "Previous chunk size: {0:d} ({0:#x})".format(self.get_prev_chunk_size())
             failed = True
         except gdb.MemoryError as me:
-            msg += "Previous chunk size: Cannot read at {0:#x} (corrupted?)\n".format(self.start_addr)
+            msg += "Previous chunk size: Cannot read at {:#x} (corrupted?)".format(self.start_addr)
 
         if failed:
             msg += self.str_chunk_size_flag()
 
-        return msg
+        return "\n".join(msg)
 
     def _str_pointers(self):
         fwd = self.addr
         bkw = self.addr + self.arch
 
-        msg = ""
+        msg = []
 
         try:
-            msg += "Forward pointer: {0:#x}\n".format(self.get_fwd_ptr())
+            msg += "Forward pointer: {0:#x}".format(self.get_fwd_ptr())
         except gdb.MemoryError as me:
-            msg += "Forward pointer: {0:#x} (corrupted?)\n".format(fwd)
+            msg += "Forward pointer: {0:#x} (corrupted?)".format(fwd)
 
         try:
-            msg += "Backward pointer: {0:#x}\n".format(self.get_bkw_ptr())
+            msg += "Backward pointer: {0:#x}".format(self.get_bkw_ptr())
         except gdb.MemoryError as me:
-            msg += "Backward pointer: {0:#x} (corrupted?)\n".format(bkw)
+            msg += "Backward pointer: {0:#x} (corrupted?)".format(bkw)
 
-        return msg
+        return "\n".join(msg)
 
     def str_as_alloced(self):
         return self._str_sizes()
@@ -721,23 +707,21 @@ class GlibcChunk:
         return "{}\n\n{}".format(self._str_sizes(), self._str_pointers())
 
     def __str__(self):
-        m = ""
+        m = []
         m += Color.greenify("FreeChunk") if not self.is_used() else Color.redify("UsedChunk")
         m += "(addr={:#x},size={:#x})".format(long(self.addr),self.get_chunk_size())
-        return m
+        return "".join(m)
 
     def pprint(self):
-        msg = ""
+        msg = []
         if not self.is_used():
             msg += titlify("Chunk (free): {:#x}".format(self.start_addr), Color.GREEN)
-            msg += "\n"
             msg += self.str_as_freeed()
         else:
             msg += titlify("Chunk (used): {:#x}".format(self.start_addr), Color.RED)
-            msg += "\n"
             msg += self.str_as_alloced()
 
-        gdb.write(msg + "\n")
+        gdb.write("\n".join(msg))
         gdb.flush()
         return
 
@@ -788,6 +772,7 @@ def gef_pybytes(x):
     return x
 
 
+@lru_cache()
 def which(program):
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
@@ -837,7 +822,7 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
 
 
 def is_debug():
-    return "gef.debug" in __config__.keys() and __config__["gef.debug"][0] == True
+    return "gef.debug" in __config__ and __config__["gef.debug"][0] == True
 
 
 def enable_redirect_output(to_file="/dev/null"):
@@ -1013,7 +998,7 @@ def check_security_property(opt, filename, pattern):
     return False
 
 
-@memoize
+@lru_cache()
 def checksec(filename):
     """Global function to get the security properties of a binary."""
     try:
@@ -1040,12 +1025,12 @@ def get_frame():
     return gdb.selected_inferior()
 
 
-@memoize
+@lru_cache()
 def get_arch():
     return gdb.execute("show architecture", to_string=True).strip().split()[7][:-1]
 
 
-@memoize
+@lru_cache()
 def get_endian():
     if gdb.execute("show endian", to_string=True).strip().split()[7] == "little" :
         return Elf.LITTLE_ENDIAN
@@ -1058,7 +1043,7 @@ def is_little_endian():  return not is_big_endian()
 
 def flags_to_human(reg_value, value_table):
     flags = []
-    for i in value_table.keys():
+    for i in value_table:
         w = Color.boldify(value_table[i].upper()) if reg_value & (1<<i) else value_table[i].lower()
         flags.append(w)
     return "[{}]".format(" ".join(flags))
@@ -1718,12 +1703,12 @@ def get_register_ex(regname):
     return 0
 
 
-@memoize
+@lru_cache()
 def get_os():
     return platform.system().lower()
 
 
-@memoize
+@lru_cache()
 def get_pid():
     return get_frame().pid
 
@@ -1848,7 +1833,7 @@ def __get_process_maps_freebsd(proc_map_file):
     return
 
 
-@memoize
+@lru_cache()
 def get_process_maps():
     try:
         pid = get_pid()
@@ -1867,7 +1852,7 @@ def get_process_maps():
     return list(sections)
 
 
-@memoize
+@lru_cache()
 def get_info_sections():
     stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
 
@@ -2160,7 +2145,7 @@ def keystone_assemble(code, arch, mode, *args, **kwargs):
     return enc
 
 
-@memoize
+@lru_cache()
 def get_elf_headers(filename=None):
     if filename is None:
         filename = get_filepath()
@@ -2172,73 +2157,73 @@ def get_elf_headers(filename=None):
     return Elf(filename)
 
 
-@memoize
+@lru_cache()
 def is_elf64(filename=None):
     elf = get_elf_headers(filename)
     return elf.e_class == Elf.ELF_64_BITS
 
 
-@memoize
+@lru_cache()
 def is_elf32(filename=None):
     elf = get_elf_headers(filename)
     return elf.e_class == Elf.ELF_32_BITS
 
 
-@memoize
+@lru_cache()
 def is_x86_64(filename=None):
     elf = get_elf_headers(filename)
     return elf.e_machine == Elf.X86_64
 
 
-@memoize
+@lru_cache()
 def is_x86_32(filename=None):
     elf = get_elf_headers(filename)
     return elf.e_machine == Elf.X86_32
 
 
-@memoize
+@lru_cache()
 def is_arm(filename=None):
     elf = get_elf_headers(filename)
     return elf.e_machine == Elf.ARM
 
 
-@memoize
+@lru_cache()
 def is_arm_thumb():
     # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
     return is_arm() and get_register("$cpsr") & (1<<5)
 
 
-@memoize
+@lru_cache()
 def is_mips():
     elf = get_elf_headers()
     return elf.e_machine == Elf.MIPS
 
 
-@memoize
+@lru_cache()
 def is_powerpc():
     elf = get_elf_headers()
     return elf.e_machine == Elf.POWERPC
 
 
-@memoize
+@lru_cache()
 def is_ppc64():
     elf = get_elf_headers()
     return elf.e_machine == Elf.POWERPC64
 
 
-@memoize
+@lru_cache()
 def is_sparc():
     elf = get_elf_headers()
     return elf.e_machine == Elf.SPARC
 
 
-@memoize
+@lru_cache()
 def is_sparc64():
     elf = get_elf_headers()
     return elf.e_machine == Elf.SPARC64
 
 
-@memoize
+@lru_cache()
 def is_aarch64():
     elf = get_elf_headers()
     return elf.e_machine == Elf.AARCH64
@@ -2321,13 +2306,13 @@ def is_in_x86_kernel(address):
     return (address >> memalign) == 0xF
 
 
-@memoize
+@lru_cache()
 def endian_str():
     elf = get_elf_headers()
     return "<" if elf.e_endianness == Elf.LITTLE_ENDIAN else ">"
 
 
-@memoize
+@lru_cache()
 def is_remote_debug():
     return "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
@@ -2558,11 +2543,11 @@ class GenericCommand(gdb.Command):
 
     @settings.getter
     def settings(self):
-        return { x.split(".", 1)[1]: __config__[x] for x in __config__.keys() \
+        return { x.split(".", 1)[1]: __config__[x] for x in __config__ \
                  if x.startswith("{:s}.".format(self._cmdline_)) }
 
     def get_setting(self, name): return self.settings[name][1](self.settings[name][0])
-    def has_setting(self, name): return name in self.settings.keys()
+    def has_setting(self, name): return name in self.settings
 
     def add_setting(self, name, value, description=""):
         key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
@@ -2731,7 +2716,7 @@ class ProcessStatusCommand(GenericCommand):
         entries["TCP"] = [x.split() for x in open("/proc/{:d}/net/tcp".format(pid), "r").readlines()[1:]]
         entries["UDP"]= [x.split() for x in open("/proc/{:d}/net/udp".format(pid), "r").readlines()[1:]]
 
-        for proto in entries.keys():
+        for proto in entries:
             for entry in entries[proto]:
                 local, remote, state = entry[1:4]
                 inode = int(entry[9])
@@ -2790,7 +2775,7 @@ class GefThemeCommand(GenericCommand):
 
         val = []
         for arg in args[1:]:
-            if arg in Color.colors():
+            if arg in Color.colors:
                 val.append(arg)
 
         self.add_setting(key, " ".join(val))
@@ -6529,7 +6514,7 @@ class GefConfigCommand(gdb.Command):
         return
 
     def print_settings(self):
-        for x in sorted(__config__.keys()):
+        for x in sorted(__config__):
             self.print_setting(x)
         return
 
@@ -6563,8 +6548,7 @@ class GefConfigCommand(gdb.Command):
         return
 
     def complete(self, text, word):
-        valid_settings = list(__config__.keys())
-        valid_settings.sort()
+        valid_settings = sorted(__config__)
 
         if text:
             return valid_settings
@@ -6605,7 +6589,7 @@ class GefSaveCommand(gdb.Command):
         old_sect = None
 
         # save the configuration
-        for key in sorted(__config__.keys()):
+        for key in sorted(__config__):
             sect, optname = key.split(".", 1)
             value, type, _ = __config__.get(key, None)
 
