@@ -754,9 +754,10 @@ def ok(msg, cr=True):    return _xlog("{} {}".format(Color.colorify("[+]", attrs
 def info(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[+]", attrs="bold blue"), msg), gdb.STDLOG, cr)
 
 
-def show_exception():
+def show_last_exception():
     exc_type, exc_value, exc_traceback = sys.exc_info()
-    print("".join(traceback.format_exception(exc_type, exc_value,exc_traceback)))
+    traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+    traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
     return
 
 
@@ -822,7 +823,7 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
 
 
 def is_debug():
-    return "gef.debug" in __config__ and __config__["gef.debug"][0] == True
+    return "gef.debug" in __config__ and __config__["gef.debug"][0] is True
 
 
 def enable_redirect_output(to_file="/dev/null"):
@@ -1839,8 +1840,7 @@ def get_process_maps():
         else:
             sections = []
     except Exception as e:
-        if is_debug():
-            warn("Failed to read /proc/<PID>/maps, using GDB sections info")
+        warn("Failed to read /proc/<PID>/maps, using GDB sections info")
         sections = get_info_sections()
 
     return list(sections)
@@ -2361,11 +2361,6 @@ def dereference(addr):
         unsigned_long_type = gdb.lookup_type("unsigned long").pointer()
         ret = gdb.Value(addr).cast(unsigned_long_type).dereference()
     except gdb.MemoryError:
-        if is_debug():
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
-            traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
-
         ret = None
     return ret
 

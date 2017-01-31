@@ -5,54 +5,9 @@
 
 from __future__ import print_function
 
-import subprocess
 import unittest
 
-
-def gdb_run_command(cmd, before=[], after=[]):
-    """Execute a command inside GDB. `before` and `after` are lists of commands to be executed
-    before (resp. after) the command to test."""
-    command = ["gdb", "-q", "-ex", "gef config gef.debug True"]
-
-    if len(before):
-        for _ in before: command+= ["-ex", _]
-
-    command += ["-ex", cmd]
-
-    if len(after):
-        for _ in after: command+= ["-ex", _]
-
-    command+= ["-ex", "quit", "--", "/bin/ls"]
-    # print("Running '{}'".format(" ".join(command)))
-    lines = subprocess.check_output(command, stderr=subprocess.STDOUT).strip().splitlines()
-    return "\n".join(lines[5:])
-
-
-def gdb_run_command_last_line(cmd, before=[], after=[]):
-    """Execute a command in GDB, and return only the last line of its output."""
-    return gdb_run_command(cmd, before, after).splitlines()[-1]
-
-
-def gdb_start_silent_command(cmd, before=[], after=[]):
-    """Execute a command in GDB by starting an execution context. This command disables the `context`
-    and set a tbreak at the most convenient entry point."""
-    before += ["gef config context.clear_screen False",
-               "gef config context.layout ''",
-               "entry-break"]
-    return gdb_run_command(cmd, before, after)
-
-
-def gdb_start_silent_command_last_line(cmd, before=[], after=[]):
-    """Execute `gdb_start_silent_command()` and return only the last line of its output."""
-    before += ["gef config context.clear_screen False",
-               "gef config context.layout ''",
-               "entry-break"]
-    return gdb_start_silent_command(cmd, before, after).splitlines()[-1]
-
-
-def gdb_test_python_method(meth, before="", after=""):
-    cmd = "pi {}print({});{}".format(before+";" if len(before)>0 else "", meth, after)
-    return gdb_start_silent_command(cmd)
+from helpers import *
 
 
 class TestGefCommands(unittest.TestCase):
@@ -120,6 +75,32 @@ class TestGefCommands(unittest.TestCase):
         self.assertTrue("aaaabaaacaaadaaa" in res)
         return
 
+    def test_command_theme(self):
+        res = gdb_run_command("theme")
+        self.assertNoException(res)
+        possible_themes = [
+        "context_title_line"
+        "dereference_base_address"
+        "context_title_message"
+        "disable_color"
+        "dereference_code"
+        "dereference_string"
+        "default_title_message",
+        "default_title_line"
+        "dereference_register_value",
+        "xinfo_title_message",
+        ]
+        for t in possible_themes:
+            # testing command viewing
+            res = gdb_run_command("theme {}".format(t))
+            self.assertNoException(res)
+
+            # testing command setting
+            v = "blue blah 10 -1 0xfff bold"
+            res = gdb_run_command("theme {} {}".format(t, v))
+            self.assertNoException(res)
+        return
+
 
     ### testing GEF methods
     def test_which(self):
@@ -143,4 +124,4 @@ class TestGefCommands(unittest.TestCase):
 
 if __name__ == "__main__":
     suite = unittest.TestLoader().loadTestsFromTestCase(TestGefCommands)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    unittest.TextTestRunner(verbosity=3).run(suite)
