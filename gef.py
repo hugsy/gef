@@ -1131,16 +1131,17 @@ class ARM(Architecture):
         # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
+        taken, reason = False, ""
 
-        if mnemo.endswith("eq"): return val&(1<<flags["zero"]), "Z"
-        if mnemo.endswith("ne"): return val&(1<<flags["zero"]) == 0, "!Z"
-        if mnemo.endswith("lt"): return val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
-        if mnemo.endswith("le"): return val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
-        if mnemo.endswith("gt"): return val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
-        if mnemo.endswith("ge"): return val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
-        if mnemo.endswith("bvs"): return val&(1<<flags["overflow"]), "O"
-        if mnemo.endswith("bvc"): return val&(1<<flags["overflow"]) == 0, "!O"
-        return False, ""
+        if mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
+        elif mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
+        elif mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+        elif mnemo.endswith("le"): taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+        elif mnemo.endswith("gt"): taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
+        elif mnemo.endswith("ge"): taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+        elif mnemo.endswith("bvs"): taken, reason = val&(1<<flags["overflow"]), "O"
+        elif mnemo.endswith("bvc"): taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
+        return taken, reason
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 125
@@ -1200,33 +1201,33 @@ class AARCH64(ARM):
 
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
+        taken, reason = False, ""
 
-        if mnemo in ["cbnz", "cbz", "tbnz", "tbz"]:
+        if mnemo in {"cbnz", "cbz", "tbnz", "tbz"}:
             reg = operands[0]
             op = get_register(reg)
             if mnemo=="cbnz":
-                if op!=0: return True, "{}!=0".format(reg)
-                return False, "{}==0".format(reg)
-            if mnemo=="cbz":
-                if op==0: return True, "{}==0".format(reg)
-                return False, "{}!=0".format(reg)
-            if mnemo=="tbnz":
+                if op!=0: taken, reason = True, "{}!=0".format(reg)
+                else: taken, reason = False, "{}==0".format(reg)
+            elif mnemo=="cbz":
+                if op==0: taken, reason = True, "{}==0".format(reg)
+                else: taken, reason = False, "{}!=0".format(reg)
+            elif mnemo=="tbnz":
                 i = int(operands[1])
-                if (op & 1<<i) != 0: return True, "{}&1<<{}!=0".format(reg,i)
-                return False, "{}&1<<{}==0".format(reg,i)
-            if mnemo=="tbz":
+                if (op & 1<<i) != 0: taken, reason = True, "{}&1<<{}!=0".format(reg,i)
+                else: taken, reason = False, "{}&1<<{}==0".format(reg,i)
+            elif mnemo=="tbz":
                 i = int(operands[1])
-                if (op & 1<<i) == 0: return True, "{}&1<<{}==0".format(reg,i)
-                return False, "{}&1<<{}!=0".format(reg,i)
-            return
+                if (op & 1<<i) == 0: taken, reason = True, "{}&1<<{}==0".format(reg,i)
+                else: taken, reason = False, "{}&1<<{}!=0".format(reg,i)
 
-        if mnemo.endswith("eq"): return val&(1<<flags["zero"]), "Z"
-        if mnemo.endswith("ne"): return val&(1<<flags["zero"]) == 0, "!Z"
-        if mnemo.endswith("lt"): return val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
-        if mnemo.endswith("le"): return val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
-        if mnemo.endswith("gt"): return val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
-        if mnemo.endswith("ge"): return val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
-        return False, ""
+        if mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
+        if mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
+        if mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+        if mnemo.endswith("le"): taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+        if mnemo.endswith("gt"): taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
+        if mnemo.endswith("ge"): taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+        return taken, reason
 
 
 class X86(Architecture):
@@ -1284,24 +1285,43 @@ class X86(Architecture):
         val = get_register_ex(self.flag_register)
         cx = get_register_ex("$rcx") if self.mode == 64 else get_register_ex("$ecx")
 
-        if mnemo in ("ja", "jnbe"): return val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
-        if mnemo in ("jae", "jnb", "jnc"): return val&(1<<flags["carry"]) == 0, "!C"
-        if mnemo in ("jb", "jc", "jnae"): return val&(1<<flags["carry"]), "C"
-        if mnemo in ("jbe", "jna"): return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
-        if mnemo in ("jcxz", "jecxz", "jrcxz"): return cx == 0, "!$CX"
-        if mnemo in ("je", "jz"): return val&(1<<flags["zero"]), "Z"
-        if mnemo in ("jg", "jnle"): return val&(1<<flags["zero"]) == 0 and val&(1<<flags["overflow"]) == val&(1<<flags["sign"]), "!Z && O==S"
-        if mnemo in ("jge", "jnl"): return val&(1<<flags["sign"]) == val&(1<<flags["overflow"]), "S==O"
-        if mnemo in ("jl", "jnge"): return val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "S!=O"
-        if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "Z || S!=0"
-        if mnemo in ("jne", "jnz"): return val&(1<<flags["zero"]) == 0, "!Z"
-        if mnemo in ("jno",): return val&(1<<flags["overflow"]) == 0, "!O"
-        if mnemo in ("jnp", "jpo"): return val&(1<<flags["parity"]) == 0, "!P"
-        if mnemo in ("jns",): return val&(1<<flags["sign"]) == 0, "!S"
-        if mnemo in ("jo",): return val&(1<<flags["overflow"]), "O"
-        if mnemo in ("jpe", "jp"): return val&(1<<flags["parity"]), "P"
-        if mnemo in ("js",): return val&(1<<flags["sign"]), "S"
-        return False, ""
+        taken, reason = False, ""
+
+        if mnemo in ("ja", "jnbe"):
+            taken, reason = val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
+        elif mnemo in ("jae", "jnb", "jnc"):
+            taken, reason = val&(1<<flags["carry"]) == 0, "!C"
+        elif mnemo in ("jb", "jc", "jnae"):
+            taken, reason = val&(1<<flags["carry"]), "C"
+        elif mnemo in ("jbe", "jna"):
+            taken, reason = val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+        elif mnemo in ("jcxz", "jecxz", "jrcxz"):
+            taken, reason = cx == 0, "!$CX"
+        elif mnemo in ("je", "jz"):
+            taken, reason = val&(1<<flags["zero"]), "Z"
+        elif mnemo in ("jg", "jnle"):
+            taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["overflow"]) == val&(1<<flags["sign"]), "!Z && O==S"
+        elif mnemo in ("jge", "jnl"):
+            taken, reason = val&(1<<flags["sign"]) == val&(1<<flags["overflow"]), "S==O"
+        elif mnemo in ("jl", "jnge"):
+            taken, reason = val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "S!=O"
+        elif mnemo in ("jle", "jng"):
+            taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "Z || S!=0"
+        elif mnemo in ("jne", "jnz"):
+            taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
+        elif mnemo in ("jno",):
+            taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
+        elif mnemo in ("jnp", "jpo"):
+            taken, reason = val&(1<<flags["parity"]) == 0, "!P"
+        elif mnemo in ("jns",):
+            taken, reason = val&(1<<flags["sign"]) == 0, "!S"
+        elif mnemo in ("jo",):
+            taken, reason = val&(1<<flags["overflow"]), "O"
+        elif mnemo in ("jpe", "jp"):
+            taken, reason = val&(1<<flags["parity"]), "P"
+        elif mnemo in ("js",):
+            taken, reason = val&(1<<flags["sign"]), "S"
+        return taken, reason
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 125
@@ -1386,13 +1406,14 @@ class PowerPC(Architecture):
         mnemo = gef_parse_gdb_instruction(insn).mnemo
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
-        if mnemo == "beq": return val&(1<<flags["equal[7]"]), "E"
-        if mnemo == "bne": return val&(1<<flags["equal[7]"]) == 0, "!E"
-        if mnemo == "ble": return val&(1<<flags["equal[7]"]) or val&(1<<flags["less[7]"]), "E || L"
-        if mnemo == "blt": return val&(1<<flags["less[7]"]), "L"
-        if mnemo == "bge": return val&(1<<flags["equal[7]"]) or val&(1<<flags["greater[7]"]), "E || G"
-        if mnemo == "bgt": return val&(1<<flags["greater[7]"]), "G"
-        return False, ""
+        taken, reason = False, ""
+        if mnemo == "beq": taken, reason = val&(1<<flags["equal[7]"]), "E"
+        elif mnemo == "bne": taken, reason = val&(1<<flags["equal[7]"]) == 0, "!E"
+        elif mnemo == "ble": taken, reason = val&(1<<flags["equal[7]"]) or val&(1<<flags["less[7]"]), "E || L"
+        elif mnemo == "blt": taken, reason = val&(1<<flags["less[7]"]), "L"
+        elif mnemo == "bge": taken, reason = val&(1<<flags["equal[7]"]) or val&(1<<flags["greater[7]"]), "E || G"
+        elif mnemo == "bgt": taken, reason = val&(1<<flags["greater[7]"]), "G"
+        return taken, reason
 
     def mprotect_asm(self, addr, size, perm):
         """Ref: http://www.ibm.com/developerworks/library/l-ppc/index.html"""
@@ -1468,23 +1489,25 @@ class SPARC(Architecture):
         mnemo = gef_parse_gdb_instruction(insn).mnemo
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
-        if mnemo == "be": return val&(1<<flags["zero"]), "Z"
-        if mnemo == "bne": return val&(1<<flags["zero"]) == 0, "!Z"
-        if mnemo == "bg": return val&(1<<flags["zero"]) == 0 and (val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0), "!Z && (!N || !O)"
-        if mnemo == "bge": return val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0, "!N || !O"
-        if mnemo == "bgu": return val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
-        if mnemo == "bgeu": return val&(1<<flags["carry"]) == 0, "!C"
-        if mnemo == "bl": return val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
-        if mnemo == "blu": return val&(1<<flags["carry"]), "C"
-        if mnemo == "ble": return val&(1<<flags["zero"]) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
-        if mnemo == "bleu": return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
-        if mnemo == "bneg": return val&(1<<flags["negative"]), "N"
-        if mnemo == "bpos": return val&(1<<flags["negative"]) == 0, "!N"
-        if mnemo == "bvs": return val&(1<<flags["overflow"]), "O"
-        if mnemo == "bvc": return val&(1<<flags["overflow"]) == 0, "!O"
-        if mnemo == "bcs": return val&(1<<flags["carry"]), "C"
-        if mnemo == "bcc": return val&(1<<flags["carry"]) == 0, "!C"
-        return False, ""
+        taken, reason = False, ""
+
+        if mnemo == "be": taken, reason = val&(1<<flags["zero"]), "Z"
+        elif mnemo == "bne": taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
+        elif mnemo == "bg": taken, reason = val&(1<<flags["zero"]) == 0 and (val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0), "!Z && (!N || !O)"
+        elif mnemo == "bge": taken, reason = val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0, "!N || !O"
+        elif mnemo == "bgu": taken, reason = val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
+        elif mnemo == "bgeu": taken, reason = val&(1<<flags["carry"]) == 0, "!C"
+        elif mnemo == "bl": taken, reason = val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
+        elif mnemo == "blu": taken, reason = val&(1<<flags["carry"]), "C"
+        elif mnemo == "ble": taken, reason = val&(1<<flags["zero"]) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
+        elif mnemo == "bleu": taken, reason = val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+        elif mnemo == "bneg": taken, reason = val&(1<<flags["negative"]), "N"
+        elif mnemo == "bpos": taken, reason = val&(1<<flags["negative"]) == 0, "!N"
+        elif mnemo == "bvs": taken, reason = val&(1<<flags["overflow"]), "O"
+        elif mnemo == "bvc": taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
+        elif mnemo == "bcs": taken, reason = val&(1<<flags["carry"]), "C"
+        elif mnemo == "bcc": taken, reason = val&(1<<flags["carry"]) == 0, "!C"
+        return taken, reason
 
     def mprotect_asm(self, addr, size, perm):
         hi = (addr & 0xffff0000) >> 16
@@ -1562,23 +1585,25 @@ class MIPS(Architecture):
 
     def is_branch_taken(self, insn):
         _, _, mnemo, ops = gef_parse_gdb_instruction(insn)
+        taken, reason = False, ""
+
         if mnemo == "beq":
-            return get_register_ex(ops[0]) == get_register_ex(ops[1]), "{0[0]} == {0[1]}".format(ops)
-        if mnemo == "bne":
-            return get_register_ex(ops[0]) != get_register_ex(ops[1]), "{0[0]} != {0[1]}".format(ops)
-        if mnemo == "beqz":
-            return get_register_ex(ops[0]) == 0, "{0[0]} == 0".format(ops)
-        if mnemo == "bnez":
-            return get_register_ex(ops[0]) != 0, "{0[0]} != 0".format(ops)
-        if mnemo == "bgtz":
-            return get_register_ex(ops[0]) > 0, "{0[0]} > 0".format(ops)
-        if mnemo == "bgez":
-            return get_register_ex(ops[0]) >= 0, "{0[0]} >= 0".format(ops)
-        if mnemo == "bltz":
-            return get_register_ex(ops[0]) < 0, "{0[0]} < 0".format(ops)
-        if mnemo == "blez":
-            return get_register_ex(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
-        return False, ""
+            taken, reason = get_register_ex(ops[0]) == get_register_ex(ops[1]), "{0[0]} == {0[1]}".format(ops)
+        elif mnemo == "bne":
+            taken, reason = get_register_ex(ops[0]) != get_register_ex(ops[1]), "{0[0]} != {0[1]}".format(ops)
+        elif mnemo == "beqz":
+            taken, reason = get_register_ex(ops[0]) == 0, "{0[0]} == 0".format(ops)
+        elif mnemo == "bnez":
+            taken, reason = get_register_ex(ops[0]) != 0, "{0[0]} != 0".format(ops)
+        elif mnemo == "bgtz":
+            taken, reason = get_register_ex(ops[0]) > 0, "{0[0]} > 0".format(ops)
+        elif mnemo == "bgez":
+            taken, reason = get_register_ex(ops[0]) >= 0, "{0[0]} >= 0".format(ops)
+        elif mnemo == "bltz":
+            taken, reason = get_register_ex(ops[0]) < 0, "{0[0]} < 0".format(ops)
+        elif mnemo == "blez":
+            taken, reason = get_register_ex(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
+        return taken, reason
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 4125
