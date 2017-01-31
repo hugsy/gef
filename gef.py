@@ -1965,9 +1965,9 @@ def XOR(data, key):
     key = key.lstrip("0x")
     key = binascii.unhexlify(key)
     if PYTHON_MAJOR == 2:
-        return b"".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(data, itertools.cycle(key))])
+        return b"".join([chr(ord(x) ^ ord(y)) for x, y in zip(data, itertools.cycle(key))])
 
-    return bytearray([x ^ y for (x,y) in zip(data, itertools.cycle(key))])
+    return bytearray([x ^ y for x, y in zip(data, itertools.cycle(key))])
 
 
 def ishex(pattern):
@@ -2840,7 +2840,7 @@ class PCustomCommand(GenericCommand):
         _class = self.get_class(mod_name, struct_name)
         _offset = 0
 
-        for (_name, _type) in _class._fields_:
+        for _name, _type in _class._fields_:
             _size = ctypes.sizeof(_type)
             print("+{:04x} {:s} {:s} ({:#x})".format(_offset, _name, _type.__name__, _size))
             _offset += _size
@@ -4170,7 +4170,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         for insn in cs.disasm(code, location):
             m = Color.colorify(format_address(insn.address), attrs="bold blue") + "\t"
 
-            if (insn.address == pc):
+            if insn.address == pc:
                 m += CapstoneDisassembleCommand.__cs_analyze_insn(insn, arch, True)
             else:
                 m += Color.greenify(insn.mnemonic) + "\t"
@@ -4334,12 +4334,12 @@ class GlibcHeapBinsCommand(GenericCommand):
         arena = GlibcArena(arena_addr)
         fw, bk = arena.bin(index)
 
-        if (bk==0x00 and fw==0x00):
+        if bk==0x00 and fw==0x00:
             warn("Invalid backward and forward bin pointers(fw==bk==NULL)")
             return -1
 
         ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(index, fw, bk))
-        if (bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF))):
+        if bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF)):
             ok("Empty")
             return 0
 
@@ -5237,7 +5237,7 @@ class ContextCommand(GenericCommand):
                 else:
                     line += "{:s} ".format(Color.colorify(format_address(new_value), attrs="bold red"))
 
-            if (i % nb == 0) :
+            if i % nb == 0 :
                 print(line)
                 line = ""
             i += 1
@@ -5389,12 +5389,12 @@ class ContextCommand(GenericCommand):
                     else:
                         continue
 
-                    found = any([k == key for (k,v) in m])
+                    found = any([k == key for k, v in m])
                     if not found:
                         m.append((key, val))
 
             if m:
-                return "; " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for (a,b) in m])
+                return "; " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m])
         except Exception:
             pass
         return ""
@@ -6363,7 +6363,7 @@ class GefCommand(gdb.Command):
         def is_loaded(x):
             return any(filter(lambda u: x == u[0], __loaded__))
 
-        for (cmd, class_name) in self.__cmds:
+        for cmd, class_name in self.__cmds:
             try:
                 if " " in cmd:
                     # if subcommand, check root command is loaded
