@@ -2785,7 +2785,7 @@ class GefThemeCommand(GenericCommand):
         if argc==1:
             value = self.settings[key][0]
             value = Color.colorify(value, attrs=value)
-            print("{:40s}: {:s}".format(item, value))
+            print("{:40s}: {:s}".format(key, value))
             return
 
         val = []
