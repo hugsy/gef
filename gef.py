@@ -2678,7 +2678,7 @@ class ProcessStatusCommand(GenericCommand):
         return socket.inet_ntoa(struct.pack("<I", int(ip, 16))), int(port, 16)
 
     def show_connections(self):
-        tcp_states_str = {
+        tcp_states_str = types.MappingProxyType({
             # https://github.com/torvalds/linux/blob/v4.7/include/net/tcp_states.h#L16
             0x01: "TCP_ESTABLISHED",
 	    0x02: "TCP_SYN_SENT",
@@ -2692,11 +2692,11 @@ class ProcessStatusCommand(GenericCommand):
 	    0x0a: "TCP_LISTEN",
 	    0x0b: "TCP_CLOSING",
 	    0x0b: "TCP_NEW_SYN_RECV",
-        }
+        })
 
-        udp_states_str = {
+        udp_states_str = types.MappingProxyType({
             0x07: "UDP_LISTEN",
-        }
+        })
 
         info("Network Connections")
         pid = get_pid()
@@ -2767,11 +2767,7 @@ class GefThemeCommand(GenericCommand):
             print("{:40s}: {:s}".format(key, value))
             return
 
-        val = []
-        for arg in args[1:]:
-            if arg in Color.colors:
-                val.append(arg)
-
+        val = [x for x in args[1:] if x in Color.colors]
         self.add_setting(key, " ".join(val))
         return
 
