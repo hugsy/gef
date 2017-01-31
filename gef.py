@@ -312,9 +312,9 @@ class Color:
         for attr in attrs.split():
             if attr in colors: m.append(colors[attr])
         m.append(msg)
-        if   colors["highlight"] in m :   m.append(colors["highlight_off"])
-        elif colors["underline"] in m :   m.append(colors["underline_off"])
-        elif colors["blink"] in m :       m.append(colors["blink_off"])
+        if colors["highlight"] in m :   m.append(colors["highlight_off"])
+        if colors["underline"] in m :   m.append(colors["underline_off"])
+        if colors["blink"] in m :       m.append(colors["blink_off"])
         m.append(colors["normal"])
         return "".join(m)
 
