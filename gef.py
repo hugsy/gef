@@ -98,7 +98,7 @@ if PYTHON_MAJOR == 2:
 
     left_arrow = "<-"
     right_arrow = "->"
-    down_arrow = "\->"
+    down_arrow = "\\->"
     horizontal_line = "-"
     vertical_line = "|"
 
@@ -140,8 +140,7 @@ def http_get(url):
         if http.getcode() != 200:
             return None
         return http.read()
-
-    except:
+    except Exception:
         return None
 
 
@@ -561,8 +560,7 @@ class GlibcArena:
         arena_main = GlibcArena("main_arena")
         if addr_next == arena_main.__addr:
             return None
-        addr_next = "*{:#x} ".format(addr_next)
-        return GlibcArena(addr_next)
+        return GlibcArena("*{:#x} ".format(addr_next))
 
     def get_arch(self):
         return self.__arch
@@ -668,13 +666,13 @@ class GlibcChunk:
             msg += "Chunk size: {0:d} ({0:#x})".format(self.get_chunk_size())
             msg += "Usable size: {0:d} ({0:#x})".format(self.get_usable_size())
             failed = True
-        except gdb.MemoryError as me:
+        except gdb.MemoryError:
             msg += "Chunk size: Cannot read at {:#x} (corrupted?)".format(self.size_addr)
 
         try:
             msg += "Previous chunk size: {0:d} ({0:#x})".format(self.get_prev_chunk_size())
             failed = True
-        except gdb.MemoryError as me:
+        except gdb.MemoryError:
             msg += "Previous chunk size: Cannot read at {:#x} (corrupted?)".format(self.start_addr)
 
         if failed:
@@ -690,12 +688,12 @@ class GlibcChunk:
 
         try:
             msg += "Forward pointer: {0:#x}".format(self.get_fwd_ptr())
-        except gdb.MemoryError as me:
+        except gdb.MemoryError:
             msg += "Forward pointer: {0:#x} (corrupted?)".format(fwd)
 
         try:
             msg += "Backward pointer: {0:#x}".format(self.get_bkw_ptr())
-        except gdb.MemoryError as me:
+        except gdb.MemoryError:
             msg += "Backward pointer: {0:#x} (corrupted?)".format(bkw)
 
         return "\n".join(msg)
@@ -778,7 +776,7 @@ def which(program):
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
-    fpath, fname = os.path.split(program)
+    fpath = os.path.split(program)[0]
     if fpath:
         if is_exe(program):
             return program
@@ -901,7 +899,7 @@ def _gef_disassemble_around(addr, nb_insn):
         try:
             cmd = "disassemble {:#x},{:#x}".format(addr - i, next_addr)
             lines = gdb.execute(cmd, to_string=True).splitlines()[1:-1]
-        except gdb.MemoryError as me:
+        except gdb.MemoryError:
             # we can hit an unmapped page trying to read backward, if so just print forward disass lines
             break
 
@@ -1077,14 +1075,14 @@ class Architecture(object):
     def pc(self):
         try:
             return get_register("$pc")
-        except:
+        except Exception:
             return get_register_ex("$pc")
 
     @property
     def sp(self):
         try:
             return get_register("$sp")
-        except:
+        except Exception:
             return get_register_ex("$sp")
 
 
@@ -1133,16 +1131,17 @@ class ARM(Architecture):
         # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
+        taken, reason = False, ""
 
-        if mnemo.endswith("eq"): return val&(1<<flags["zero"]), "Z"
-        if mnemo.endswith("ne"): return val&(1<<flags["zero"]) == 0, "!Z"
-        if mnemo.endswith("lt"): return val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
-        if mnemo.endswith("le"): return val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
-        if mnemo.endswith("gt"): return val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
-        if mnemo.endswith("ge"): return val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
-        if mnemo.endswith("bvs"): return val&(1<<flags["overflow"]), "O"
-        if mnemo.endswith("bvc"): return val&(1<<flags["overflow"]) == 0, "!O"
-        return False, ""
+        if mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
+        elif mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
+        elif mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+        elif mnemo.endswith("le"): taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+        elif mnemo.endswith("gt"): taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
+        elif mnemo.endswith("ge"): taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+        elif mnemo.endswith("bvs"): taken, reason = val&(1<<flags["overflow"]), "O"
+        elif mnemo.endswith("bvc"): taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
+        return taken, reason
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 125
@@ -1202,33 +1201,33 @@ class AARCH64(ARM):
 
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
+        taken, reason = False, ""
 
-        if mnemo in ["cbnz", "cbz", "tbnz", "tbz"]:
+        if mnemo in {"cbnz", "cbz", "tbnz", "tbz"}:
             reg = operands[0]
             op = get_register(reg)
             if mnemo=="cbnz":
-                if op!=0: return True, "{}!=0".format(reg)
-                return False, "{}==0".format(reg)
-            if mnemo=="cbz":
-                if op==0: return True, "{}==0".format(reg)
-                return False, "{}!=0".format(reg)
-            if mnemo=="tbnz":
+                if op!=0: taken, reason = True, "{}!=0".format(reg)
+                else: taken, reason = False, "{}==0".format(reg)
+            elif mnemo=="cbz":
+                if op==0: taken, reason = True, "{}==0".format(reg)
+                else: taken, reason = False, "{}!=0".format(reg)
+            elif mnemo=="tbnz":
                 i = int(operands[1])
-                if (op & 1<<i) != 0: return True, "{}&1<<{}!=0".format(reg,i)
-                return False, "{}&1<<{}==0".format(reg,i)
-            if mnemo=="tbz":
+                if (op & 1<<i) != 0: taken, reason = True, "{}&1<<{}!=0".format(reg,i)
+                else: taken, reason = False, "{}&1<<{}==0".format(reg,i)
+            elif mnemo=="tbz":
                 i = int(operands[1])
-                if (op & 1<<i) == 0: return True, "{}&1<<{}==0".format(reg,i)
-                return False, "{}&1<<{}!=0".format(reg,i)
-            return
+                if (op & 1<<i) == 0: taken, reason = True, "{}&1<<{}==0".format(reg,i)
+                else: taken, reason = False, "{}&1<<{}!=0".format(reg,i)
 
-        if mnemo.endswith("eq"): return val&(1<<flags["zero"]), "Z"
-        if mnemo.endswith("ne"): return val&(1<<flags["zero"]) == 0, "!Z"
-        if mnemo.endswith("lt"): return val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
-        if mnemo.endswith("le"): return val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
-        if mnemo.endswith("gt"): return val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
-        if mnemo.endswith("ge"): return val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
-        return False, ""
+        if mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
+        if mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
+        if mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+        if mnemo.endswith("le"): taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+        if mnemo.endswith("gt"): taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
+        if mnemo.endswith("ge"): taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+        return taken, reason
 
 
 class X86(Architecture):
@@ -1286,24 +1285,43 @@ class X86(Architecture):
         val = get_register_ex(self.flag_register)
         cx = get_register_ex("$rcx") if self.mode == 64 else get_register_ex("$ecx")
 
-        if mnemo in ("ja", "jnbe"): return val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
-        if mnemo in ("jae", "jnb", "jnc"): return val&(1<<flags["carry"]) == 0, "!C"
-        if mnemo in ("jb", "jc", "jnae"): return val&(1<<flags["carry"]), "C"
-        if mnemo in ("jbe", "jna"): return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
-        if mnemo in ("jcxz", "jecxz", "jrcxz"): return cx == 0, "!$CX"
-        if mnemo in ("je", "jz"): return val&(1<<flags["zero"]), "Z"
-        if mnemo in ("jg", "jnle"): return val&(1<<flags["zero"]) == 0 and val&(1<<flags["overflow"]) == val&(1<<flags["sign"]), "!Z && O==S"
-        if mnemo in ("jge", "jnl"): return val&(1<<flags["sign"]) == val&(1<<flags["overflow"]), "S==O"
-        if mnemo in ("jl", "jnge"): return val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "S!=O"
-        if mnemo in ("jle", "jng"): return val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "Z || S!=0"
-        if mnemo in ("jne", "jnz"): return val&(1<<flags["zero"]) == 0, "!Z"
-        if mnemo in ("jno",): return val&(1<<flags["overflow"]) == 0, "!O"
-        if mnemo in ("jnp", "jpo"): return val&(1<<flags["parity"]) == 0, "!P"
-        if mnemo in ("jns",): return val&(1<<flags["sign"]) == 0, "!S"
-        if mnemo in ("jo",): return val&(1<<flags["overflow"]), "O"
-        if mnemo in ("jpe", "jp"): return val&(1<<flags["parity"]), "P"
-        if mnemo in ("js",): return val&(1<<flags["sign"]), "S"
-        return False, ""
+        taken, reason = False, ""
+
+        if mnemo in ("ja", "jnbe"):
+            taken, reason = val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
+        elif mnemo in ("jae", "jnb", "jnc"):
+            taken, reason = val&(1<<flags["carry"]) == 0, "!C"
+        elif mnemo in ("jb", "jc", "jnae"):
+            taken, reason = val&(1<<flags["carry"]), "C"
+        elif mnemo in ("jbe", "jna"):
+            taken, reason = val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+        elif mnemo in ("jcxz", "jecxz", "jrcxz"):
+            taken, reason = cx == 0, "!$CX"
+        elif mnemo in ("je", "jz"):
+            taken, reason = val&(1<<flags["zero"]), "Z"
+        elif mnemo in ("jg", "jnle"):
+            taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["overflow"]) == val&(1<<flags["sign"]), "!Z && O==S"
+        elif mnemo in ("jge", "jnl"):
+            taken, reason = val&(1<<flags["sign"]) == val&(1<<flags["overflow"]), "S==O"
+        elif mnemo in ("jl", "jnge"):
+            taken, reason = val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "S!=O"
+        elif mnemo in ("jle", "jng"):
+            taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "Z || S!=0"
+        elif mnemo in ("jne", "jnz"):
+            taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
+        elif mnemo in ("jno",):
+            taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
+        elif mnemo in ("jnp", "jpo"):
+            taken, reason = val&(1<<flags["parity"]) == 0, "!P"
+        elif mnemo in ("jns",):
+            taken, reason = val&(1<<flags["sign"]) == 0, "!S"
+        elif mnemo in ("jo",):
+            taken, reason = val&(1<<flags["overflow"]), "O"
+        elif mnemo in ("jpe", "jp"):
+            taken, reason = val&(1<<flags["parity"]), "P"
+        elif mnemo in ("js",):
+            taken, reason = val&(1<<flags["sign"]), "S"
+        return taken, reason
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 125
@@ -1388,13 +1406,14 @@ class PowerPC(Architecture):
         mnemo = gef_parse_gdb_instruction(insn).mnemo
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
-        if mnemo == "beq": return val&(1<<flags["equal[7]"]), "E"
-        if mnemo == "bne": return val&(1<<flags["equal[7]"]) == 0, "!E"
-        if mnemo == "ble": return val&(1<<flags["equal[7]"]) or val&(1<<flags["less[7]"]), "E || L"
-        if mnemo == "blt": return val&(1<<flags["less[7]"]), "L"
-        if mnemo == "bge": return val&(1<<flags["equal[7]"]) or val&(1<<flags["greater[7]"]), "E || G"
-        if mnemo == "bgt": return val&(1<<flags["greater[7]"]), "G"
-        return False, ""
+        taken, reason = False, ""
+        if mnemo == "beq": taken, reason = val&(1<<flags["equal[7]"]), "E"
+        elif mnemo == "bne": taken, reason = val&(1<<flags["equal[7]"]) == 0, "!E"
+        elif mnemo == "ble": taken, reason = val&(1<<flags["equal[7]"]) or val&(1<<flags["less[7]"]), "E || L"
+        elif mnemo == "blt": taken, reason = val&(1<<flags["less[7]"]), "L"
+        elif mnemo == "bge": taken, reason = val&(1<<flags["equal[7]"]) or val&(1<<flags["greater[7]"]), "E || G"
+        elif mnemo == "bgt": taken, reason = val&(1<<flags["greater[7]"]), "G"
+        return taken, reason
 
     def mprotect_asm(self, addr, size, perm):
         """Ref: http://www.ibm.com/developerworks/library/l-ppc/index.html"""
@@ -1470,23 +1489,25 @@ class SPARC(Architecture):
         mnemo = gef_parse_gdb_instruction(insn).mnemo
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
-        if mnemo == "be": return val&(1<<flags["zero"]), "Z"
-        if mnemo == "bne": return val&(1<<flags["zero"]) == 0, "!Z"
-        if mnemo == "bg": return val&(1<<flags["zero"]) == 0 and (val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0), "!Z && (!N || !O)"
-        if mnemo == "bge": return val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0, "!N || !O"
-        if mnemo == "bgu": return val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
-        if mnemo == "bgeu": return val&(1<<flags["carry"]) == 0, "!C"
-        if mnemo == "bl": return val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
-        if mnemo == "blu": return val&(1<<flags["carry"]), "C"
-        if mnemo == "ble": return val&(1<<flags["zero"]) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
-        if mnemo == "bleu": return val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
-        if mnemo == "bneg": return val&(1<<flags["negative"]), "N"
-        if mnemo == "bpos": return val&(1<<flags["negative"]) == 0, "!N"
-        if mnemo == "bvs": return val&(1<<flags["overflow"]), "O"
-        if mnemo == "bvc": return val&(1<<flags["overflow"]) == 0, "!O"
-        if mnemo == "bcs": return val&(1<<flags["carry"]), "C"
-        if mnemo == "bcc": return val&(1<<flags["carry"]) == 0, "!C"
-        return False, ""
+        taken, reason = False, ""
+
+        if mnemo == "be": taken, reason = val&(1<<flags["zero"]), "Z"
+        elif mnemo == "bne": taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
+        elif mnemo == "bg": taken, reason = val&(1<<flags["zero"]) == 0 and (val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0), "!Z && (!N || !O)"
+        elif mnemo == "bge": taken, reason = val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0, "!N || !O"
+        elif mnemo == "bgu": taken, reason = val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
+        elif mnemo == "bgeu": taken, reason = val&(1<<flags["carry"]) == 0, "!C"
+        elif mnemo == "bl": taken, reason = val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
+        elif mnemo == "blu": taken, reason = val&(1<<flags["carry"]), "C"
+        elif mnemo == "ble": taken, reason = val&(1<<flags["zero"]) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
+        elif mnemo == "bleu": taken, reason = val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+        elif mnemo == "bneg": taken, reason = val&(1<<flags["negative"]), "N"
+        elif mnemo == "bpos": taken, reason = val&(1<<flags["negative"]) == 0, "!N"
+        elif mnemo == "bvs": taken, reason = val&(1<<flags["overflow"]), "O"
+        elif mnemo == "bvc": taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
+        elif mnemo == "bcs": taken, reason = val&(1<<flags["carry"]), "C"
+        elif mnemo == "bcc": taken, reason = val&(1<<flags["carry"]) == 0, "!C"
+        return taken, reason
 
     def mprotect_asm(self, addr, size, perm):
         hi = (addr & 0xffff0000) >> 16
@@ -1564,23 +1585,25 @@ class MIPS(Architecture):
 
     def is_branch_taken(self, insn):
         _, _, mnemo, ops = gef_parse_gdb_instruction(insn)
+        taken, reason = False, ""
+
         if mnemo == "beq":
-            return get_register_ex(ops[0]) == get_register_ex(ops[1]), "{0[0]} == {0[1]}".format(ops)
-        if mnemo == "bne":
-            return get_register_ex(ops[0]) != get_register_ex(ops[1]), "{0[0]} != {0[1]}".format(ops)
-        if mnemo == "beqz":
-            return get_register_ex(ops[0]) == 0, "{0[0]} == 0".format(ops)
-        if mnemo == "bnez":
-            return get_register_ex(ops[0]) != 0, "{0[0]} != 0".format(ops)
-        if mnemo == "bgtz":
-            return get_register_ex(ops[0]) > 0, "{0[0]} > 0".format(ops)
-        if mnemo == "bgez":
-            return get_register_ex(ops[0]) >= 0, "{0[0]} >= 0".format(ops)
-        if mnemo == "bltz":
-            return get_register_ex(ops[0]) < 0, "{0[0]} < 0".format(ops)
-        if mnemo == "blez":
-            return get_register_ex(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
-        return False, ""
+            taken, reason = get_register_ex(ops[0]) == get_register_ex(ops[1]), "{0[0]} == {0[1]}".format(ops)
+        elif mnemo == "bne":
+            taken, reason = get_register_ex(ops[0]) != get_register_ex(ops[1]), "{0[0]} != {0[1]}".format(ops)
+        elif mnemo == "beqz":
+            taken, reason = get_register_ex(ops[0]) == 0, "{0[0]} == 0".format(ops)
+        elif mnemo == "bnez":
+            taken, reason = get_register_ex(ops[0]) != 0, "{0[0]} != 0".format(ops)
+        elif mnemo == "bgtz":
+            taken, reason = get_register_ex(ops[0]) > 0, "{0[0]} > 0".format(ops)
+        elif mnemo == "bgez":
+            taken, reason = get_register_ex(ops[0]) >= 0, "{0[0]} >= 0".format(ops)
+        elif mnemo == "bltz":
+            taken, reason = get_register_ex(ops[0]) < 0, "{0[0]} < 0".format(ops)
+        elif mnemo == "blez":
+            taken, reason = get_register_ex(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
+        return taken, reason
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 4125
@@ -1634,14 +1657,14 @@ def read_cstring_from_memory(address):
 def is_readable_string(address):
     """
     Here we will assume that a readable string is
-    a consecutive byte array whose
-    * last element is 0x00 (i.e. it is a C-string)
-    * and each byte is printable
+    a consecutive byte array where:
+    * the last element is 0x00 (i.e. it is a C-string)
+    * each byte is printable
     """
     try:
         cstr = read_cstring_from_memory(address)
-        return type(cstr) == unicode and cstr and all([x in string.printable for x in cstr])
-    except UnicodeDecodeError as e:
+        return isinstance(cstr, unicode) and cstr and all([x in string.printable for x in cstr])
+    except UnicodeDecodeError:
         return False
 
 
@@ -1650,7 +1673,7 @@ def is_alive():
     try:
         pid = get_pid()
         return pid > 0
-    except gdb.error as e:
+    except gdb.error:
         return False
     return False
 
@@ -1784,7 +1807,7 @@ def __get_process_maps_linux(proc_map_file):
     for line in f:
         line = line.strip()
 
-        addr, perm, off, dev, rest = line.split(" ", 4)
+        addr, perm, off, _, rest = line.split(" ", 4)
         rest = rest.split(" ", 1)
         if len(rest) == 1:
             inode = rest[0]
@@ -1839,7 +1862,7 @@ def get_process_maps():
             sections = __get_process_maps_freebsd("/proc/{:d}/map".format(pid))
         else:
             sections = []
-    except Exception as e:
+    except Exception:
         warn("Failed to read /proc/<PID>/maps, using GDB sections info")
         sections = get_info_sections()
 
@@ -1856,9 +1879,7 @@ def get_info_sections():
 
         try:
             parts = [x.strip() for x in line.split()]
-            index = parts[0][1:-1]
             addr_start, addr_end = [long(x, 16) for x in parts[1].split("->")]
-            at = parts[2]
             off = long(parts[3][:-1], 16)
             path = parts[4]
             inode = ""
@@ -1880,8 +1901,6 @@ def get_info_sections():
 
 
 def get_info_files():
-    global __infos_files__
-
     lines = gdb.execute("info files", to_string=True).splitlines()
 
     if len(lines) < len(__infos_files__):
@@ -1968,9 +1987,9 @@ def XOR(data, key):
     key = key.lstrip("0x")
     key = binascii.unhexlify(key)
     if PYTHON_MAJOR == 2:
-        return b"".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(data, itertools.cycle(key))])
+        return b"".join([chr(ord(x) ^ ord(y)) for x, y in zip(data, itertools.cycle(key))])
 
-    return bytearray([x ^ y for (x,y) in zip(data, itertools.cycle(key))])
+    return bytearray([x ^ y for x, y in zip(data, itertools.cycle(key))])
 
 
 def ishex(pattern):
@@ -2038,7 +2057,7 @@ def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):
         if mode:
             mode = getattr(module, "{:s}_MODE_{:s}".format(prefix, mode))
         else:
-            mode = 0
+            mode = ""
         if big_endian:
             mode += getattr(module, "{:s}_MODE_BIG_ENDIAN".format(prefix))
         else:
@@ -2124,13 +2143,13 @@ def keystone_assemble(code, arch, mode, *args, **kwargs):
 
     try:
         ks = keystone.Ks(arch, mode)
-        enc, cnt = ks.asm(code, addr)
+        enc = ks.asm(code, addr)[0]
     except keystone.KsError as e:
         err("Keystone assembler error: {:s}".format(e))
         return None
 
     enc = bytearray(enc)
-    if kwargs.get("raw", False) != True:
+    if "raw" not in kwargs:
         # print as string
         s = binascii.hexlify(enc)
         enc = b"\\x" + b"\\x".join([s[i:i + 2] for i in range(0, len(s), 2)])
@@ -2532,7 +2551,7 @@ class GenericCommand(gdb.Command):
 
     @settings.getter
     def settings(self):
-        return { x.split(".", 1)[1]: __config__[x] for x in __config__ \
+        return { x.split(".", 1)[1]: __config__[x] for x in __config__
                  if x.startswith("{:s}.".format(self._cmdline_)) }
 
     def get_setting(self, name): return self.settings[name][1](self.settings[name][0])
@@ -2608,15 +2627,13 @@ class ProcessStatusCommand(GenericCommand):
         cmd = [ps, "-o", "pid", "--ppid","{}".format(pid), "--noheaders"]
         try:
             return gef_execute_external(cmd, as_list=True)
-        except Exception as e:
+        except Exception:
             return []
 
     def show_info_proc(self):
         info("Process Information")
         pid = get_pid()
-        state = self.get_state_of(pid)
         cmdline = self.get_cmdline_of(pid)
-        process = self.get_process_path_of(pid)
         print("\tPID {} {}".format(right_arrow, pid))
         print("\tExecutable {} {}".format(right_arrow, self.get_process_path_of(pid)))
         print("\tCommand line {} '{}'".format(right_arrow, cmdline))
@@ -2673,20 +2690,20 @@ class ProcessStatusCommand(GenericCommand):
         return socket.inet_ntoa(struct.pack("<I", int(ip, 16))), int(port, 16)
 
     def show_connections(self):
+        # https://github.com/torvalds/linux/blob/v4.7/include/net/tcp_states.h#L16
         tcp_states_str = {
-            # https://github.com/torvalds/linux/blob/v4.7/include/net/tcp_states.h#L16
             0x01: "TCP_ESTABLISHED",
-	    0x02: "TCP_SYN_SENT",
-	    0x03: "TCP_SYN_RECV",
-	    0x04: "TCP_FIN_WAIT1",
-	    0x05: "TCP_FIN_WAIT2",
-	    0x06: "TCP_TIME_WAIT",
-	    0x07: "TCP_CLOSE",
-	    0x08: "TCP_CLOSE_WAIT",
-	    0x09: "TCP_LAST_ACK",
-	    0x0a: "TCP_LISTEN",
-	    0x0b: "TCP_CLOSING",
-	    0x0b: "TCP_NEW_SYN_RECV",
+            0x02: "TCP_SYN_SENT",
+            0x03: "TCP_SYN_RECV",
+            0x04: "TCP_FIN_WAIT1",
+            0x05: "TCP_FIN_WAIT2",
+            0x06: "TCP_TIME_WAIT",
+            0x07: "TCP_CLOSE",
+            0x08: "TCP_CLOSE_WAIT",
+            0x09: "TCP_LAST_ACK",
+            0x0a: "TCP_LISTEN",
+            0x0b: "TCP_CLOSING",
+            0x0c: "TCP_NEW_SYN_RECV",
         }
 
         udp_states_str = {
@@ -2700,7 +2717,6 @@ class ProcessStatusCommand(GenericCommand):
             print("\tNo open connections")
             return
 
-        path = "/proc/{:d}/net/tcp".format(pid)
         entries = {}
         entries["TCP"] = [x.split() for x in open("/proc/{:d}/net/tcp".format(pid), "r").readlines()[1:]]
         entries["UDP"]= [x.split() for x in open("/proc/{:d}/net/udp".format(pid), "r").readlines()[1:]]
@@ -2798,8 +2814,8 @@ class PCustomCommand(GenericCommand):
             self.list_custom_structures()
             return
 
-        modname, structname  = argv[0].split(":", 1) if ":" in argv[0] else (argv[0], argv[0])
-        structname, param  = structname.split(".", 1) if "." in structname else (structname, None)
+        modname, structname = argv[0].split(":", 1) if ":" in argv[0] else (argv[0], argv[0])
+        structname, _ = structname.split(".", 1) if "." in structname else (structname, None)
 
         if argc == 1:
             self.dump_structure(modname, structname)
@@ -2846,7 +2862,7 @@ class PCustomCommand(GenericCommand):
         _class = self.get_class(mod_name, struct_name)
         _offset = 0
 
-        for (_name, _type) in _class._fields_:
+        for _name, _type in _class._fields_:
             _size = ctypes.sizeof(_type)
             print("+{:04x} {:s} {:s} ({:#x})".format(_offset, _name, _type.__name__, _size))
             _offset += _size
@@ -2993,9 +3009,9 @@ class RetDecCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import retdec
-            import retdec.decompiler
-        except ImportError as ioe:
+            __import__("retdec")
+            __import__("retdec.decompiler")
+        except ImportError:
             msg = "Missing Python `retdec-python` package. "
             raise GefMissingDependencyException(msg)
         return
@@ -3014,7 +3030,6 @@ class RetDecCommand(GenericCommand):
 
         if self.decompiler is None:
             retdec = sys.modules["retdec"]
-            retdec_decompiler = sys.modules["retdec.decompiler"]
             self.decompiler = retdec.decompiler.Decompiler(api_key=api_key)
 
         params = {
@@ -3028,7 +3043,7 @@ class RetDecCommand(GenericCommand):
             "comp_compiler": "gcc",
         }
 
-        opts, args = getopt.getopt(argv, "r:s:ah")
+        opts = getopt.getopt(argv, "r:s:ah")[0]
         if not opts:
             self.usage()
             return
@@ -3086,7 +3101,7 @@ class RetDecCommand(GenericCommand):
                     s = match.group(1)
                     addr = int(s, 16)
                     dis = gdb.execute("x/1i {:#x}".format(addr), to_string=True)
-                    addr, loc, mnemo, ops = gef_parse_gdb_instruction(dis.strip())
+                    addr, loc, _, _ = gef_parse_gdb_instruction(dis.strip())
                     if loc:
                         l = l.replace("unknown_{:s}".format(s), loc)
                 print(l)
@@ -3155,7 +3170,7 @@ class ChangeFdCommand(GenericCommand):
             gdb.execute("""call close({:d})""".format(new_fd), to_string=True)
             ok("Success")
             enable_context()
-        except:
+        except Exception:
             err("Failed")
         return
 
@@ -3208,7 +3223,7 @@ class IdaInteractCommand(GenericCommand):
             gdb.events.stop.connect(ida_synchronize_handler)
             gdb.events.cont.connect(ida_synchronize_handler)
             self.version = sock.version()
-        except:
+        except Exception:
             err("Failed to connect to '{:s}:{:d}'".format(host, port))
             sock = None
         self.sock = sock
@@ -3231,7 +3246,7 @@ class IdaInteractCommand(GenericCommand):
                     # check if value is addressable
                     argval = long(argval) if argval.address is None else long(argval.address)
                     args.append("{:#x}".format(argval,))
-                except:
+                except Exception:
                     # if gdb can't parse the value, let ida deal with it
                     args.append(arg)
             return args
@@ -3280,7 +3295,7 @@ class IdaInteractCommand(GenericCommand):
         except socket.error:
             self.disconnect()
 
-        except Exception as e:
+        except Exception:
             err("[{:s}] Exception: {:s}".format(self._cmdline_, str(e)))
         return
 
@@ -3312,7 +3327,7 @@ class IdaInteractCommand(GenericCommand):
         # add new BP defined in IDA/BN to gef
         added = set(cur_bps) - set(old_bps)
         for new_bp in added:
-            gdb.Breakpoint("*{:#x}".format(new_bp), type=gdb.BP_BREAKPOINT).enabled
+            gdb.Breakpoint("*{:#x}".format(new_bp), type=gdb.BP_BREAKPOINT)
 
         # and remove the old ones
         removed = set(old_bps) - set(cur_bps)
@@ -3358,7 +3373,7 @@ class IdaInteractCommand(GenericCommand):
                 f.write(bytes(str(struct_name), encoding="utf-8"))
                 f.write(b"(Structure):\n")
                 f.write(b"    _fields_ = [\n")
-                for offset, name, size in structs[struct_name]:
+                for _, name, size in structs[struct_name]:
                     name = bytes(name, encoding="utf-8")
                     if   size == 1: csize = b"c_uint8"
                     elif size == 2: csize = b"c_uint16"
@@ -3485,8 +3500,8 @@ class ChangePermissionCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import keystone
-        except ImportError as ioe:
+            __import__("keystone")
+        except ImportError:
             msg = "Missing Python `keystone-engine` package. "
             raise GefMissingDependencyException(msg)
         return
@@ -3563,9 +3578,9 @@ class UnicornEmulateCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import unicorn
-            import capstone
-        except ImportError as ie:
+            __import__("unicorn")
+            __import__("capstone")
+        except ImportError:
             msg = "This command requires the following packages: `unicorn` and `capstone`."
             raise GefMissingDependencyException(msg)
         return
@@ -3577,7 +3592,7 @@ class UnicornEmulateCommand(GenericCommand):
         self.nb_insn = -1
         self.until_next_gadget = -1
         to_script = None
-        opts, args = getopt.getopt(argv, "f:t:n:e:g:h")
+        opts = getopt.getopt(argv, "f:t:n:e:g:h")[0]
         for o,a in opts:
             if   o == "-f":   start_insn = int(a, 16)
             elif o == "-t":
@@ -3723,7 +3738,6 @@ def reset():
                 page_end   = sect.page_end
                 size       = sect.size
                 perm       = sect.permission
-                path       = sect.path
 
                 if to_script:
                     content += "    # Mapping %s: %#x-%#x\n"%(sect.path, page_start, page_end)
@@ -3833,7 +3847,6 @@ if __name__ == "__main__":
             return
 
         if self.get_setting("show_disassembly"):
-            mem = emu.mem_read(addr, size)
             CapstoneDisassembleCommand.disassemble(addr, 1)
 
         self.nb_insn -= 1
@@ -4122,8 +4135,8 @@ class CapstoneDisassembleCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import capstone
-        except ImportError as ie:
+            __import__("capstone")
+        except ImportError:
             msg = "Missing Python `capstone` package. "
             raise GefMissingDependencyException(msg)
         return
@@ -4179,7 +4192,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         for insn in cs.disasm(code, location):
             m = Color.colorify(format_address(insn.address), attrs="bold blue") + "\t"
 
-            if (insn.address == pc):
+            if insn.address == pc:
                 m += CapstoneDisassembleCommand.__cs_analyze_insn(insn, arch, True)
             else:
                 m += Color.greenify(insn.mnemonic) + "\t"
@@ -4257,7 +4270,7 @@ class GlibcHeapCommand(GenericCommand):
     def get_main_arena():
         try:
             arena = GlibcArena("main_arena")
-        except:
+        except Exception:
             warn("Failed to get `main_arena` symbol. heap commands may not work properly")
             arena = None
         return arena
@@ -4278,7 +4291,7 @@ class GlibcHeapArenaCommand(GenericCommand):
         ok("Listing active arena(s):")
         try:
             arena = GlibcArena("main_arena")
-        except:
+        except Exception:
             info("Could not find Glibc main arena")
             return
 
@@ -4343,12 +4356,12 @@ class GlibcHeapBinsCommand(GenericCommand):
         arena = GlibcArena(arena_addr)
         fw, bk = arena.bin(index)
 
-        if (bk==0x00 and fw==0x00):
+        if bk==0x00 and fw==0x00:
             warn("Invalid backward and forward bin pointers(fw==bk==NULL)")
             return -1
 
         ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(index, fw, bk))
-        if (bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF))):
+        if bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF)):
             ok("Empty")
             return 0
 
@@ -4612,7 +4625,7 @@ class ShellcodeSearchCommand(GenericCommand):
             info("\t".join(["Id", "Platform", "Description"]))
             for ref in refs:
                 try:
-                    auth, arch, cmd, sid, link = ref
+                    _, arch, cmd, sid, _ = ref
                     print("\t".join([sid, arch, cmd]))
                 except ValueError:
                     continue
@@ -4677,8 +4690,8 @@ class RopperCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import ropper
-        except ImportError as ie:
+            __import__("ropper")
+        except ImportError:
             msg = "Missing Python `ropper` package. "
             raise GefMissingDependencyException(msg)
         return
@@ -4707,8 +4720,8 @@ class ROPgadgetCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import ropgadget
-        except ImportError as ie:
+            __import__("ropgadget")
+        except ImportError:
             msg = "Missing Python `ropgadget` package. "
             raise GefMissingDependencyException(msg)
         return
@@ -4809,14 +4822,13 @@ class AssembleCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import keystone
-        except ImportError as ioe:
+            __import__("keystone")
+        except ImportError:
             msg = "Missing Python `keystone-engine` package. "
             raise GefMissingDependencyException(msg)
         return
 
     def do_invoke(self, argv):
-        keystone = sys.modules["keystone"]
         arch_s, mode_s, big_endian, as_shellcode, write_to_location = None, None, False, False, None
         opts, args = getopt.getopt(argv, "a:m:l:esh")
         for o,a in opts:
@@ -4849,7 +4861,6 @@ class AssembleCommand(GenericCommand):
 
         insns = " ".join(args)
         insns = [x.strip() for x in insns.split(";") if x is not None]
-        end = ""
 
         info("Assembling {} instruction{} for {} ({} endian)".format(len(insns),
                                                                      "s" if len(insns)>1 else "",
@@ -4903,7 +4914,7 @@ class ProcessListingCommand(GenericCommand):
         smart_scan = False
 
         opts, args = getopt.getopt(argv, "as")
-        for o,a in opts:
+        for o, _ in opts:
             if o == "-a": do_attach  = True
             if o == "-s": smart_scan = True
 
@@ -4965,39 +4976,40 @@ class ElfInfoCommand(GenericCommand):
 
     def do_invoke(self, argv):
         # http://www.sco.com/developers/gabi/latest/ch4.eheader.html
-        classes = { 0x01: "32-bit",
-                    0x02: "64-bit",
-        }
-        endianness = { 0x01: "Little-Endian",
-                       0x02: "Big-Endian",
-        }
-        osabi = { 0x00: "System V",
-                  0x01: "HP-UX",
-                  0x02: "NetBSD",
-                  0x03: "Linux",
-                  0x06: "Solaris",
-                  0x07: "AIX",
-                  0x08: "IRIX",
-                  0x09: "FreeBSD",
-                  0x0C: "OpenBSD",
-        }
-
-        types = { 0x01: "Relocatable",
-                  0x02: "Executable",
-                  0x03: "Shared",
-                  0x04: "Core"
+        classes = {0x01: "32-bit",
+                   0x02: "64-bit",}
+        endianness = {0x01: "Little-Endian",
+                      0x02: "Big-Endian",}
+        osabi = {
+            0x00: "System V",
+            0x01: "HP-UX",
+            0x02: "NetBSD",
+            0x03: "Linux",
+            0x06: "Solaris",
+            0x07: "AIX",
+            0x08: "IRIX",
+            0x09: "FreeBSD",
+            0x0C: "OpenBSD",
         }
 
-        machines = { 0x02: "SPARC",
-                     0x03: "x86",
-                     0x08: "MIPS",
-                     0x12: "SPARC64",
-                     0x14: "PowerPC",
-                     0x15: "PowerPC64",
-                     0x28: "ARM",
-                     0x32: "IA-64",
-                     0x3E: "x86-64",
-                     0xB7: "AArch64",
+        types = {
+            0x01: "Relocatable",
+            0x02: "Executable",
+            0x03: "Shared",
+            0x04: "Core"
+        }
+
+        machines = {
+            0x02: "SPARC",
+            0x03: "x86",
+            0x08: "MIPS",
+            0x12: "SPARC64",
+            0x14: "PowerPC",
+            0x15: "PowerPC64",
+            0x28: "ARM",
+            0x32: "IA-64",
+            0x3E: "x86-64",
+            0xB7: "AArch64",
         }
 
         filename = argv[0] if argv else get_filepath()
@@ -5008,21 +5020,22 @@ class ElfInfoCommand(GenericCommand):
         if elf is None:
             return
 
-        data = [("Magic", "{0!s}".format(hexdump(struct.pack(">I",elf.e_magic), show_raw=True))),
-                ("Class", "{0:#x} - {1}".format(elf.e_class, classes[elf.e_class])),
-                ("Endianness", "{0:#x} - {1}".format(elf.e_endianness, endianness[elf.e_endianness])),
-                ("Version", "{:#x}".format(elf.e_eiversion)),
-                ("OS ABI", "{0:#x} - {1}".format(elf.e_osabi, osabi[elf.e_osabi])),
-                ("ABI Version", "{:#x}".format(elf.e_abiversion)),
-                ("Type", "{0:#x} - {1}".format(elf.e_type, types[elf.e_type])),
-                ("Machine", "{0:#x} - {1}".format(elf.e_machine, machines[elf.e_machine])),
-                ("Program Header Table" , "{}".format(format_address(elf.e_phoff))),
-                ("Section Header Table" , "{}".format(format_address(elf.e_shoff))),
-                ("Header Table" , "{}".format(format_address(elf.e_phoff))),
-                ("ELF Version", "{:#x}".format(elf.e_version)),
-                ("Header size" , "{0} ({0:#x})".format(elf.e_ehsize)),
-                ("Entry point", "{}".format(format_address(elf.e_entry))),
-              ]
+        data = [
+            ("Magic", "{0!s}".format(hexdump(struct.pack(">I",elf.e_magic), show_raw=True))),
+            ("Class", "{0:#x} - {1}".format(elf.e_class, classes[elf.e_class])),
+            ("Endianness", "{0:#x} - {1}".format(elf.e_endianness, endianness[elf.e_endianness])),
+            ("Version", "{:#x}".format(elf.e_eiversion)),
+            ("OS ABI", "{0:#x} - {1}".format(elf.e_osabi, osabi[elf.e_osabi])),
+            ("ABI Version", "{:#x}".format(elf.e_abiversion)),
+            ("Type", "{0:#x} - {1}".format(elf.e_type, types[elf.e_type])),
+            ("Machine", "{0:#x} - {1}".format(elf.e_machine, machines[elf.e_machine])),
+            ("Program Header Table" , "{}".format(format_address(elf.e_phoff))),
+            ("Section Header Table" , "{}".format(format_address(elf.e_shoff))),
+            ("Header Table" , "{}".format(format_address(elf.e_phoff))),
+            ("ELF Version", "{:#x}".format(elf.e_version)),
+            ("Header size" , "{0} ({0:#x})".format(elf.e_ehsize)),
+            ("Entry point", "{}".format(format_address(elf.e_entry))),
+        ]
 
         for title, content in data:
             print("{:<30}: {}".format(Color.boldify(title), content))
@@ -5160,7 +5173,8 @@ class ContextCommand(GenericCommand):
             "code": self.context_code,
             "source": self.context_source,
             "trace": self.context_trace,
-            "threads": self.context_threads}
+            "threads": self.context_threads,
+        }
 
         redirect = self.get_setting("redirect")
         if redirect and os.access(redirect, os.W_OK):
@@ -5234,7 +5248,7 @@ class ContextCommand(GenericCommand):
                 new_value = get_register_ex(reg)
                 new_value_type_flag = False
 
-            except:
+            except Exception:
                 new_value = 0
 
             old_value = self.old_registers[reg] if reg in self.old_registers else 0x00
@@ -5250,7 +5264,7 @@ class ContextCommand(GenericCommand):
                 else:
                     line += "{:s} ".format(Color.colorify(format_address(new_value), attrs="bold red"))
 
-            if (i % nb == 0) :
+            if i % nb == 0 :
                 print(line)
                 line = ""
             i += 1
@@ -5355,7 +5369,7 @@ class ContextCommand(GenericCommand):
             with open(fpath, "r") as f:
                 lines = [l.rstrip() for l in f.readlines()]
 
-        except Exception as e:
+        except Exception:
             return
 
         nb_line = self.get_setting("nb_lines_code")
@@ -5402,13 +5416,13 @@ class ContextCommand(GenericCommand):
                     else:
                         continue
 
-                    found = any([k == key for (k,v) in m])
+                    found = any([k == key for k, v in m])
                     if not found:
                         m.append((key, val))
 
             if m:
-                return "; " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for (a,b) in m])
-        except Exception as e:
+                return "; " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m])
+        except Exception:
             pass
         return ""
 
@@ -5498,7 +5512,7 @@ class ContextCommand(GenericCommand):
         for reg in current_arch.all_registers:
             try:
                 self.old_registers[reg] = get_register(reg)
-            except:
+            except Exception:
                 self.old_registers[reg] = 0
         return
 
@@ -5698,7 +5712,7 @@ class DereferenceCommand(GenericCommand):
                     # we address that bug by ensuring that only 1 line is given
                     cmd = cmd.splitlines()[0]
 
-                    (_, _, mnemo, operands)  = gef_parse_gdb_instruction(cmd)
+                    _, _, mnemo, operands  = gef_parse_gdb_instruction(cmd)
                     ops = ", ".join(operands)
                     insn = " ".join([mnemo, ops])
                     msg.append(Color.colorify(insn, attrs=code_color))
@@ -5896,9 +5910,9 @@ class XAddressInfoCommand(GenericCommand):
         if sect:
             print("Found {:s}".format(format_address(addr.value)))
             print("Page: {:s} {:s} {:s} (size={:#x})".format(format_address(sect.page_start),
-                                                               right_arrow,
-                                                               format_address(sect.page_end),
-                                                               sect.page_end-sect.page_start))
+                                                             right_arrow,
+                                                             format_address(sect.page_end),
+                                                             sect.page_end-sect.page_start))
             print("Permissions: {:s}".format(str(sect.permission)))
             print("Pathname: {:s}".format(sect.path))
             print("Offset (from page): +{:#x}".format(addr.value-sect.page_start))
@@ -5906,8 +5920,8 @@ class XAddressInfoCommand(GenericCommand):
 
         if info:
             print("Segment: {:s} ({:s}-{:s})".format(info.name,
-                                                      format_address(info.zone_start),
-                                                      format_address(info.zone_end)))
+                                                     format_address(info.zone_start),
+                                                     format_address(info.zone_end)))
         return
 
 
@@ -6045,7 +6059,6 @@ class TraceRunCommand(GenericCommand):
 
 
     def _do_trace(self, loc_start, loc_end, depth):
-        loc_old = 0
         loc_cur = loc_start
         frame_count_init = self.get_frames_size()
 
@@ -6270,46 +6283,46 @@ class GefCommand(gdb.Command):
         __config__["gef.debug"] = [False, bool, "Enable debug mode for gef"]
         __config__["gef.autosave_breakpoints_file"] = ["", str, "Automatically save and restore breakpoints"]
 
-        self.classes = [GefThemeCommand,
-                        ResetCacheCommand,
-                        XAddressInfoCommand,
-                        XorMemoryCommand, XorMemoryDisplayCommand, XorMemoryPatchCommand,
-                        FormatStringSearchCommand,
-                        TraceRunCommand,
-                        PatternCommand, PatternSearchCommand, PatternCreateCommand,
-                        ChecksecCommand,
-                        VMMapCommand,
-                        XFilesCommand,
-                        ASLRCommand,
-                        DereferenceCommand,
-                        HexdumpCommand,
-                        CapstoneDisassembleCommand,
-                        ContextCommand,
-                        EntryPointBreakCommand,
-                        ElfInfoCommand,
-                        ProcessListingCommand,
-                        AssembleCommand,
-                        ROPgadgetCommand,
-                        RopperCommand,
-                        ShellcodeCommand, ShellcodeSearchCommand, ShellcodeGetCommand,
-                        DetailRegistersCommand,
-                        SolveKernelSymbolCommand,
-                        GlibcHeapCommand, GlibcHeapArenaCommand, GlibcHeapChunkCommand, GlibcHeapBinsCommand, GlibcHeapFastbinsYCommand, GlibcHeapUnsortedBinsCommand, GlibcHeapSmallBinsCommand, GlibcHeapLargeBinsCommand,
-                        NopCommand,
-                        RemoteCommand,
-                        UnicornEmulateCommand,
-                        ChangePermissionCommand,
-                        FlagsCommand,
-                        SearchPatternCommand,
-                        IdaInteractCommand,
-                        ChangeFdCommand,
-                        RetDecCommand,
-                        PCustomCommand,
-                        ProcessStatusCommand,
-
-                        # add new commands here
-                        # when subcommand, main command must be placed first
-                        ]
+        self.classes = [
+            GefThemeCommand,
+            ResetCacheCommand,
+            XAddressInfoCommand,
+            XorMemoryCommand, XorMemoryDisplayCommand, XorMemoryPatchCommand,
+            FormatStringSearchCommand,
+            TraceRunCommand,
+            PatternCommand, PatternSearchCommand, PatternCreateCommand,
+            ChecksecCommand,
+            VMMapCommand,
+            XFilesCommand,
+            ASLRCommand,
+            DereferenceCommand,
+            HexdumpCommand,
+            CapstoneDisassembleCommand,
+            ContextCommand,
+            EntryPointBreakCommand,
+            ElfInfoCommand,
+            ProcessListingCommand,
+            AssembleCommand,
+            ROPgadgetCommand,
+            RopperCommand,
+            ShellcodeCommand, ShellcodeSearchCommand, ShellcodeGetCommand,
+            DetailRegistersCommand,
+            SolveKernelSymbolCommand,
+            GlibcHeapCommand, GlibcHeapArenaCommand, GlibcHeapChunkCommand, GlibcHeapBinsCommand, GlibcHeapFastbinsYCommand, GlibcHeapUnsortedBinsCommand, GlibcHeapSmallBinsCommand, GlibcHeapLargeBinsCommand,
+            NopCommand,
+            RemoteCommand,
+            UnicornEmulateCommand,
+            ChangePermissionCommand,
+            FlagsCommand,
+            SearchPatternCommand,
+            IdaInteractCommand,
+            ChangeFdCommand,
+            RetDecCommand,
+            PCustomCommand,
+            ProcessStatusCommand,
+            # add new commands here
+            # when subcommand, main command must be placed first
+            ]
 
         self.__cmds = [(x._cmdline_, x) for x in self.classes]
         self.__loaded_cmds = []
@@ -6377,7 +6390,7 @@ class GefCommand(gdb.Command):
         def is_loaded(x):
             return any(filter(lambda u: x == u[0], __loaded__))
 
-        for (cmd, class_name) in self.__cmds:
+        for cmd, class_name in self.__cmds:
             try:
                 if " " in cmd:
                     # if subcommand, check root command is loaded
@@ -6437,7 +6450,7 @@ class GefHelpCommand(gdb.Command):
     def generate_help(self, commands):
         d = []
 
-        for (cmd, class_name, obj) in commands:
+        for cmd, class_name, _ in commands:
             if " " in cmd:
                 # do not print out subcommands in main help
                 continue
@@ -6516,7 +6529,7 @@ class GefConfigCommand(gdb.Command):
             err("Invalid command format")
             return
 
-        plugin_name, setting_name = argv[0].split(".", 1)
+        plugin_name = argv[0].split(".", 1)[0]
 
         if plugin_name not in self.loaded_commands + ["gef"]:
             err("Unknown plugin '{:s}'".format(plugin_name))
@@ -6533,7 +6546,7 @@ class GefConfigCommand(gdb.Command):
             else:
                 _newval = _type(argv[1])
 
-        except:
+        except Exception:
             err("{} expects type '{}'".format(argv[0], _type.__name__))
             return
 
@@ -6584,7 +6597,7 @@ class GefSaveCommand(gdb.Command):
         # save the configuration
         for key in sorted(__config__):
             sect, optname = key.split(".", 1)
-            value, type, _ = __config__.get(key, None)
+            value = __config__.get(key, None)[0]
 
             if old_sect != sect:
                 cfg.add_section(sect)
@@ -6637,14 +6650,14 @@ class GefRestoreCommand(gdb.Command):
             for optname in cfg.options(section):
                 try:
                     key = "{:s}.{:s}".format(section, optname)
-                    old_value, _type, _ = __config__.get(key)
+                    _, _type, _ = __config__.get(key)
                     new_value = cfg.get(section, optname)
                     if _type == bool:
                         new_value = True if new_value == "True" else False
                     else:
                         new_value = _type(new_value)
                     __config__[key][0] = new_value
-                except:
+                except Exception:
                     pass
 
         ok("Configuration from '{:s}' restored".format(GEF_RC))
@@ -6667,8 +6680,6 @@ class GefMissingCommand(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
-        global __missing__
-
         self.dont_repeat()
         missing_commands = __missing__.keys()
         if not missing_commands:
@@ -6738,8 +6749,6 @@ class GefAlias(gdb.Command):
     """Simple aliasing wrapper because GDB doesn't do what it should.
     """
     def __init__(self, alias, command):
-        global __aliases__
-
         p = command.split()
         if not p:
             return
@@ -6769,8 +6778,6 @@ class GefAlias(gdb.Command):
         return
 
     def lookup_command(self, cmd):
-        global __loaded__
-
         for _name, _class, _instance in __loaded__:
             if cmd == _name:
                 return _name, _class, _instance
@@ -6785,8 +6792,6 @@ class GefAliases(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
-        global __aliases__
-
         self.dont_repeat()
         ok("Aliases defined:")
         for _alias in __aliases__:
