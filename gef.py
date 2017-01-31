@@ -935,12 +935,10 @@ def gef_disassemble(addr, nb_insn, from_top=False):
         nb_insn += 1
 
     lines = _gef_disassemble_top(addr, nb_insn) if from_top else _gef_disassemble_around(addr, nb_insn)
-    result = []
     for line in lines:
         address, location, mnemo, operands = gef_parse_gdb_instruction(line)
         code = "{:s}     {:s}   {:s}".format(location, mnemo, ", ".join(operands))
         yield((address, code))
-    # return result
 
 ParsedInstruction = collections.namedtuple("ParsedInstruction", "address location mnemo operands")
 
@@ -1132,7 +1130,7 @@ class ARM(Architecture):
     def is_branch_taken(self, insn):
         mnemo = gef_parse_gdb_instruction(insn).mnemo
         # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
-        flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
+        flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
 
         if mnemo.endswith("eq"): return val&(1<<flags["zero"]), "Z"
@@ -1201,7 +1199,7 @@ class AARCH64(ARM):
     def is_branch_taken(self, insn):
         _, _, mnemo, operands = gef_parse_gdb_instruction(insn)
 
-        flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
+        flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
 
         if mnemo in ["cbnz", "cbz", "tbnz", "tbz"]:
@@ -1283,13 +1281,9 @@ class X86(Architecture):
     def is_branch_taken(self, insn):
         mnemo = gef_parse_gdb_instruction(insn).mnemo
         # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
-        flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
+        flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
-
-        if self.mode == 64:
-            cx = get_register_ex("$rcx")
-        else:
-            cx = get_register_ex("$ecx")
+        cx = get_register_ex("$rcx") if self.mode == 64 else get_register_ex("$ecx")
 
         if mnemo in ("ja", "jnbe"): return val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
         if mnemo in ("jae", "jnb", "jnc"): return val&(1<<flags["carry"]) == 0, "!C"
@@ -1391,7 +1385,7 @@ class PowerPC(Architecture):
 
     def is_branch_taken(self, insn):
         mnemo = gef_parse_gdb_instruction(insn).mnemo
-        flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
+        flags = dict((self.flags_table[k], k) for k in self.flags_table
         val = get_register_ex(self.flag_register)
         if mnemo == "beq": return val&(1<<flags["equal[7]"]), "E"
         if mnemo == "bne": return val&(1<<flags["equal[7]"]) == 0, "!E"
@@ -1473,7 +1467,7 @@ class SPARC(Architecture):
 
     def is_branch_taken(self, insn):
         mnemo = gef_parse_gdb_instruction(insn).mnemo
-        flags = dict((self.flags_table[k], k) for k in self.flags_table.keys())
+        flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
         if mnemo == "be": return val&(1<<flags["zero"]), "Z"
         if mnemo == "bne": return val&(1<<flags["zero"]) == 0, "!Z"
@@ -3362,7 +3356,7 @@ class IdaInteractCommand(GenericCommand):
         if not os.path.isdir(path):
             gef_makedirs(path)
 
-        for struct_name in structs.keys():
+        for struct_name in structs:
             fullpath = os.path.join(path, "{}.py".format(struct_name))
             with open(fullpath, "wb") as f:
                 f.write(b"from ctypes import *\n\n")
@@ -3380,8 +3374,8 @@ class IdaInteractCommand(GenericCommand):
                     m = [b'        ("', name, b'", ', csize, b'),\n']
                     f.write(b"".join(m))
                 f.write(b"]\n")
-        ok("Success, {:d} structure{:s} imported".format(len(structs.keys()),
-                                                         "s" if len(structs.keys())>1 else ""))
+        ok("Success, {:d} structure{:s} imported".format(len(structs),
+                                                         "s" if len(structs)>1 else ""))
         return
 
 
@@ -3465,7 +3459,7 @@ class FlagsCommand(GenericCommand):
                 err("Invalid flag name '{:s}'".format(flag[1:]))
                 continue
 
-            for k in current_arch.flags_table.keys():
+            for k in current_arch.flags_table:
                 if current_arch.flags_table[k] == name:
                     off = k
                     break
@@ -3673,13 +3667,13 @@ def interact(emu, regs):
 
 
 def print_regs(emu, regs):
-    for r in regs.keys():
+    for r in regs:
         print(">> {:s} = 0x{:x}".format(r, emu.reg_read(regs[r])))
     return
 
 
 def reset():
-""" % (fname, start_insn_addr, end_insn_addr, ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers.keys()]), arch, mode)
+""" % (fname, start_insn_addr, end_insn_addr, ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]), arch, mode)
 
         unicorn = sys.modules["unicorn"]
         if verbose:
@@ -6220,7 +6214,7 @@ class ChecksecCommand(GenericCommand):
 
     def print_security_properties(self, filename):
         sec = checksec(filename)
-        for prop in sec.keys():
+        for prop in sec:
             val = sec[prop]
             msg = Color.greenify("Yes") if val is True else Color.redify("No")
             print("{:<30s}: {:s}".format(prop, msg))
@@ -6252,7 +6246,7 @@ class FormatStringSearchCommand(GenericCommand):
             FormatStringBreakpoint(func_name, num_arg)
 
         disable_redirect_output()
-        ok("Enabled {:d} FormatStringBreakpoint".format(len(dangerous_functions.keys())))
+        ok("Enabled {:d} FormatStringBreakpoint".format(len(dangerous_functions)))
         return
 
 
