@@ -98,7 +98,7 @@ if PYTHON_MAJOR == 2:
 
     left_arrow = "<-"
     right_arrow = "->"
-    down_arrow = "\->"
+    down_arrow = "\\->"
     horizontal_line = "-"
     vertical_line = "|"
 
@@ -560,8 +560,7 @@ class GlibcArena:
         arena_main = GlibcArena("main_arena")
         if addr_next == arena_main.__addr:
             return None
-        addr_next = "*{:#x} ".format(addr_next)
-        return GlibcArena(addr_next)
+        return GlibcArena("*{:#x} ".format(addr_next))
 
     def get_arch(self):
         return self.__arch
@@ -1633,13 +1632,13 @@ def read_cstring_from_memory(address):
 def is_readable_string(address):
     """
     Here we will assume that a readable string is
-    a consecutive byte array whose
-    * last element is 0x00 (i.e. it is a C-string)
-    * and each byte is printable
+    a consecutive byte array where:
+    * the last element is 0x00 (i.e. it is a C-string)
+    * each byte is printable
     """
     try:
         cstr = read_cstring_from_memory(address)
-        return type(cstr) == unicode and cstr and all([x in string.printable for x in cstr])
+        return isinstance(cstr, unicode) and cstr and all([x in string.printable for x in cstr])
     except UnicodeDecodeError:
         return False
 
@@ -2033,7 +2032,7 @@ def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):
         if mode:
             mode = getattr(module, "{:s}_MODE_{:s}".format(prefix, mode))
         else:
-            mode = 0
+            mode = ""
         if big_endian:
             mode += getattr(module, "{:s}_MODE_BIG_ENDIAN".format(prefix))
         else:
@@ -2125,7 +2124,7 @@ def keystone_assemble(code, arch, mode, *args, **kwargs):
         return None
 
     enc = bytearray(enc)
-    if kwargs.get("raw", False) != True:
+    if "raw" not in kwargs:
         # print as string
         s = binascii.hexlify(enc)
         enc = b"\\x" + b"\\x".join([s[i:i + 2] for i in range(0, len(s), 2)])
@@ -2527,7 +2526,7 @@ class GenericCommand(gdb.Command):
 
     @settings.getter
     def settings(self):
-        return { x.split(".", 1)[1]: __config__[x] for x in __config__ \
+        return { x.split(".", 1)[1]: __config__[x] for x in __config__
                  if x.startswith("{:s}.".format(self._cmdline_)) }
 
     def get_setting(self, name): return self.settings[name][1](self.settings[name][0])
@@ -3303,7 +3302,7 @@ class IdaInteractCommand(GenericCommand):
         # add new BP defined in IDA/BN to gef
         added = set(cur_bps) - set(old_bps)
         for new_bp in added:
-            gdb.Breakpoint("*{:#x}".format(new_bp), type=gdb.BP_BREAKPOINT).enabled
+            gdb.Breakpoint("*{:#x}".format(new_bp), type=gdb.BP_BREAKPOINT)
 
         # and remove the old ones
         removed = set(old_bps) - set(cur_bps)
