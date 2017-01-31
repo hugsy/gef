@@ -244,20 +244,22 @@ def reset_all_caches():
 
 
 class Color:
-    NORMAL         = "\033[0m"
-    GRAY           = "\033[1;30m"
-    RED            = "\033[31m"
-    GREEN          = "\033[32m"
-    YELLOW         = "\033[33m"
-    BLUE           = "\033[34m"
-    PINK           = "\033[35m"
-    BOLD           = "\033[1m"
-    UNDERLINE_ON   = "\033[4m"
-    UNDERLINE_OFF  = "\033[24m"
-    HIGHLIGHT_ON   = "\033[3m"
-    HIGHLIGHT_OFF  = "\033[23m"
-    BLINK_ON       = "\033[5m"
-    BLINK_OFF      = "\033[25m"
+    COLORS = {
+        "normal": "\033[0m",
+        "gray": "\033[1;30m",
+        "red": "\033[31m",
+        "green": "\033[32m",
+        "yellow": "\033[33m",
+        "blue": "\033[34m",
+        "pink": "\033[35m",
+        "bold": "\033[1m",
+        "underline_on": "\033[4m",
+        "underline_off": "\033[24m",
+        "highlight_on": "\033[3m",
+        "highlight_off": "\033[23m",
+        "blink_on": "\033[5m",
+        "blink_off": "\033[25m",
+    }
 
     @staticmethod
     def redify(msg):      return Color.colorify(msg, attrs="red")
@@ -280,43 +282,21 @@ class Color:
     @staticmethod
     def blinkify(msg): return Color.colorify(msg, attrs="blink")
 
-    @staticmethod
-    def colorify(msg, attrs):
+    @classmethod
+    def colorify(cls, msg, attrs):
         if __config__["theme.disable_color"][0] in ("1", "True"):
             return msg
         m = []
         for attr in attrs.split():
-            if   attr == "bold":       m.append(Color.BOLD)
-            elif attr == "underline":  m.append(Color.UNDERLINE_ON)
-            elif attr == "highlight":  m.append(Color.HIGHLIGHT_ON)
-            elif attr == "blink":      m.append(Color.BLINK_ON)
-            elif attr == "red":        m.append(Color.RED)
-            elif attr == "green":      m.append(Color.GREEN)
-            elif attr == "blue":       m.append(Color.BLUE)
-            elif attr == "yellow":     m.append(Color.YELLOW)
-            elif attr == "gray":       m.append(Color.GRAY)
-            elif attr == "pink":       m.append(Color.PINK)
-        m.append(msg)
-        if   Color.HIGHLIGHT_ON in m :   m.append(Color.HIGHLIGHT_OFF)
-        elif Color.UNDERLINE_ON in m :   m.append(Color.UNDERLINE_OFF)
-        elif Color.BLINK_ON in m :       m.append(Color.BLINK_OFF)
-        m.append(Color.NORMAL)
-        return "".join(m)
+            if attr in cls.COLORS:
+                m.append(cls.COLORS[attr])
 
-    @staticmethod
-    def colors():
-        return [
-            "red",
-            "green",
-            "blue",
-            "yellow",
-            "gray",
-            "pink",
-            "bold",
-            "underline",
-            "highlight",
-            "blink",
-        ]
+        m.append(msg)
+        if cls.COLORS["highlight_on"] in m :   m.append(cls.COLORS["highlight_off"])
+        if cls.COLORS["underline_on"] in m :   m.append(cls.COLORS["underline_off"])
+        if cls.COLORS["blink_on"] in m :       m.append(cls.COLORS["blink_off"])
+        m.append(cls.COLORS["normal"])
+        return "".join(m)
 
 
 class Address:
@@ -2790,7 +2770,7 @@ class GefThemeCommand(GenericCommand):
 
         val = []
         for arg in args[1:]:
-            if arg in Color.colors():
+            if arg in Color.COLORS:
                 val.append(arg)
 
         self.add_setting(key, " ".join(val))
