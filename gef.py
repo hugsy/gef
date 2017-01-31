@@ -140,8 +140,7 @@ def http_get(url):
         if http.getcode() != 200:
             return None
         return http.read()
-
-    except:
+    except Exception:
         return None
 
 
@@ -1077,14 +1076,14 @@ class Architecture(object):
     def pc(self):
         try:
             return get_register("$pc")
-        except:
+        except Exception:
             return get_register_ex("$pc")
 
     @property
     def sp(self):
         try:
             return get_register("$sp")
-        except:
+        except Exception:
             return get_register_ex("$sp")
 
 
@@ -3149,7 +3148,7 @@ class ChangeFdCommand(GenericCommand):
             gdb.execute("""call close({:d})""".format(new_fd), to_string=True)
             ok("Success")
             enable_context()
-        except:
+        except Exception:
             err("Failed")
         return
 
@@ -3202,7 +3201,7 @@ class IdaInteractCommand(GenericCommand):
             gdb.events.stop.connect(ida_synchronize_handler)
             gdb.events.cont.connect(ida_synchronize_handler)
             self.version = sock.version()
-        except:
+        except Exception:
             err("Failed to connect to '{:s}:{:d}'".format(host, port))
             sock = None
         self.sock = sock
@@ -3225,7 +3224,7 @@ class IdaInteractCommand(GenericCommand):
                     # check if value is addressable
                     argval = long(argval) if argval.address is None else long(argval.address)
                     args.append("{:#x}".format(argval,))
-                except:
+                except Exception:
                     # if gdb can't parse the value, let ida deal with it
                     args.append(arg)
             return args
@@ -4249,7 +4248,7 @@ class GlibcHeapCommand(GenericCommand):
     def get_main_arena():
         try:
             arena = GlibcArena("main_arena")
-        except:
+        except Exception:
             warn("Failed to get `main_arena` symbol. heap commands may not work properly")
             arena = None
         return arena
@@ -4270,7 +4269,7 @@ class GlibcHeapArenaCommand(GenericCommand):
         ok("Listing active arena(s):")
         try:
             arena = GlibcArena("main_arena")
-        except:
+        except Exception:
             info("Could not find Glibc main arena")
             return
 
@@ -5222,7 +5221,7 @@ class ContextCommand(GenericCommand):
                 new_value = get_register_ex(reg)
                 new_value_type_flag = False
 
-            except:
+            except Exception:
                 new_value = 0
 
             old_value = self.old_registers[reg] if reg in self.old_registers else 0x00
@@ -5486,7 +5485,7 @@ class ContextCommand(GenericCommand):
         for reg in current_arch.all_registers:
             try:
                 self.old_registers[reg] = get_register(reg)
-            except:
+            except Exception:
                 self.old_registers[reg] = 0
         return
 
@@ -6520,7 +6519,7 @@ class GefConfigCommand(gdb.Command):
             else:
                 _newval = _type(argv[1])
 
-        except:
+        except Exception:
             err("{} expects type '{}'".format(argv[0], _type.__name__))
             return
 
@@ -6631,7 +6630,7 @@ class GefRestoreCommand(gdb.Command):
                     else:
                         new_value = _type(new_value)
                     __config__[key][0] = new_value
-                except:
+                except Exception:
                     pass
 
         ok("Configuration from '{:s}' restored".format(GEF_RC))
