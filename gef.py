@@ -283,25 +283,25 @@ class Color:
     }
 
     @staticmethod
-    def redify(msg):      return Color.colorify(msg, attrs="red")
+    def redify(msg):       return Color.colorify(msg, attrs="red")
     @staticmethod
-    def greenify(msg):    return Color.colorify(msg, attrs="green")
+    def greenify(msg):     return Color.colorify(msg, attrs="green")
     @staticmethod
-    def blueify(msg):     return Color.colorify(msg, attrs="blue")
+    def blueify(msg):      return Color.colorify(msg, attrs="blue")
     @staticmethod
-    def yellowify(msg):   return Color.colorify(msg, attrs="yellow")
+    def yellowify(msg):    return Color.colorify(msg, attrs="yellow")
     @staticmethod
-    def grayify(msg):     return Color.colorify(msg, attrs="gray")
+    def grayify(msg):      return Color.colorify(msg, attrs="gray")
     @staticmethod
-    def pinkify(msg):     return Color.colorify(msg, attrs="pink")
+    def pinkify(msg):      return Color.colorify(msg, attrs="pink")
     @staticmethod
-    def boldify(msg):     return Color.colorify(msg, attrs="bold")
+    def boldify(msg):      return Color.colorify(msg, attrs="bold")
     @staticmethod
-    def underlinify(msg): return Color.colorify(msg, attrs="underline")
+    def underlinify(msg):  return Color.colorify(msg, attrs="underline")
     @staticmethod
     def highlightify(msg): return Color.colorify(msg, attrs="highlight")
     @staticmethod
-    def blinkify(msg): return Color.colorify(msg, attrs="blink")
+    def blinkify(msg):     return Color.colorify(msg, attrs="blink")
 
     @staticmethod
     def colorify(msg, attrs):
@@ -5130,6 +5130,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
         self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
+        self.add_setting("ignore_registers", "", "Specify here a space-separated list of registers you do not here to display (for example: '$cs $ds $status')")
         self.add_setting("clear_screen", False, "Clear the screen before printing the context")
 
         self.add_setting("layout", "regs stack code source threads trace", "Change the order/display of the context")
@@ -5207,6 +5208,7 @@ class ContextCommand(GenericCommand):
             gdb.execute("registers")
             return
 
+        ignored_registers = self.get_setting("ignore_registers").split()
         l = max(map(len, current_arch.all_registers))
         l += 5
         l += 16 if is_elf64() else 8
@@ -5215,6 +5217,9 @@ class ContextCommand(GenericCommand):
         line = ""
 
         for reg in current_arch.all_registers:
+            if reg.strip() in ignored_registers:
+                continue
+
             try:
                 r = gdb.parse_and_eval(reg)
                 if r.type.code == gdb.TYPE_CODE_VOID:
