@@ -2728,7 +2728,6 @@ class ProcessStatusCommand(GenericCommand):
 
 
 
-
 class GefThemeCommand(GenericCommand):
     """Customize GEF appearance."""
     _cmdline_ = "theme"
@@ -2741,6 +2740,10 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("default_title_line", "green bold")
         self.add_setting("default_title_message", "red bold")
         self.add_setting("xinfo_title_message", "blue bold")
+        self.add_setting("dereference_string", "green")
+        self.add_setting("dereference_code", "red")
+        self.add_setting("dereference_base_address", "bold green")
+        self.add_setting("dereference_register_value", "bold green")
         self.add_setting("disable_color", "0")
         # TODO: add more customizable items
         return
@@ -5664,7 +5667,8 @@ class DereferenceCommand(GenericCommand):
             return [format_address(addr.value),]
 
         msg = []
-
+        code_color = __config__.get("theme.dereference_code")[0]
+        string_color = __config__.get("theme.dereference_string")[0]
         while max_recursion:
             if addr.value == prev_addr_value:
                 msg.append("[loop detected]")
@@ -5694,18 +5698,18 @@ class DereferenceCommand(GenericCommand):
                     (_, _, mnemo, operands)  = gef_parse_gdb_instruction(cmd)
                     ops = ", ".join(operands)
                     insn = " ".join([mnemo, ops])
-                    msg.append(Color.redify(insn))
+                    msg.append(Color.colorify(insn, attrs=code_color))
                     break
 
                 elif addr.section.permission.value & Permission.READ:
                     if is_readable_string(addr.value):
                         s = read_cstring_from_memory(addr.value)
                         if len(s) < get_memory_alignment():
-                            txt = '{:s} ("{:s}"?)'.format(format_address(deref), Color.greenify(s))
+                            txt = '{:s} ("{:s}"?)'.format(format_address(deref), Color.colorify(s, attrs=string_color))
                         elif len(s) >= 50:
-                            txt = Color.greenify('"{:s}[...]"'.format(s[:50]))
+                            txt = Color.colorify('"{:s}[...]"'.format(s[:50]), attrs=string_color)
                         else:
-                            txt = Color.greenify('"{:s}"'.format(s))
+                            txt = Color.colorify('"{:s}"'.format(s), attrs=string_color)
 
                         msg.append(txt)
                         break
@@ -5723,7 +5727,7 @@ class DereferenceCommand(GenericCommand):
             else:
                 is_string = all(map(lambda x: x in charset, val_str))
             if is_string:
-                val+= ' ("{}"?)'.format(Color.greenify(gef_pystring(val_str)))
+                val+= ' ("{}"?)'.format(Color.colorify(gef_pystring(val_str), attrs=string_color))
             msg.append("0x"+val)
             break
 
