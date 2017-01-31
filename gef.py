@@ -1386,7 +1386,7 @@ class PowerPC(Architecture):
 
     def is_branch_taken(self, insn):
         mnemo = gef_parse_gdb_instruction(insn).mnemo
-        flags = dict((self.flags_table[k], k) for k in self.flags_table
+        flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
         if mnemo == "beq": return val&(1<<flags["equal[7]"]), "E"
         if mnemo == "bne": return val&(1<<flags["equal[7]"]) == 0, "!E"
@@ -2739,7 +2739,7 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("dereference_code", "red")
         self.add_setting("dereference_base_address", "bold green")
         self.add_setting("dereference_register_value", "bold green")
-        self.add_setting("disable_color", "0")
+        self.add_setting("disable_color", "0", "Disable all colors in GEF")
         # TODO: add more customizable items
         return
 
@@ -5610,6 +5610,9 @@ class DereferenceCommand(GenericCommand):
         return
 
     def pprint_dereferenced(self, addr, off):
+        base_address_color = __config__.get("theme.dereference_base_address")[0]
+        registers_color = __config__.get("theme.dereference_register_value")[0]
+
         regs = [(k.strip(), get_register_ex(k)) for k in current_arch.all_registers]
         sep = " {:s} ".format(right_arrow)
         memalign = get_memory_alignment()
@@ -5619,7 +5622,7 @@ class DereferenceCommand(GenericCommand):
         addrs = DereferenceCommand.dereference_from(current_address)
         l  = ""
         addr_l = format_address(long(addrs[0], 16))
-        l += "{:s}{:s}+{:#04x}: {:s}".format(Color.colorify(addr_l, attrs="bold green"),
+        l += "{:s}{:s}+{:#04x}: {:s}".format(Color.colorify(addr_l, attrs=base_address_color),
                                              vertical_line, offset,
                                              sep.join(addrs[1:]))
 
@@ -5630,7 +5633,7 @@ class DereferenceCommand(GenericCommand):
 
         if values:
             m = "\t{:s}{:s}".format(left_arrow, ", ".join(list(values)))
-            l += Color.colorify(m, attrs="bold green")
+            l += Color.colorify(m, attrs=registers_color)
 
         offset += memalign
         return l
