@@ -265,7 +265,7 @@ def reset_all_caches():
 
 
 class Color:
-    colors = types.MappingProxyType({
+    colors = {
         "normal"         : "\033[0m",
         "gray"           : "\033[1;30m",
         "red"            : "\033[31m",
@@ -280,7 +280,7 @@ class Color:
         "highlight_off"  : "\033[23m",
         "blink"          : "\033[5m",
         "blink_off"      : "\033[25m",
-    })
+    }
 
     @staticmethod
     def redify(msg):      return Color.colorify(msg, attrs="red")
@@ -2673,7 +2673,7 @@ class ProcessStatusCommand(GenericCommand):
         return socket.inet_ntoa(struct.pack("<I", int(ip, 16))), int(port, 16)
 
     def show_connections(self):
-        tcp_states_str = types.MappingProxyType({
+        tcp_states_str = {
             # https://github.com/torvalds/linux/blob/v4.7/include/net/tcp_states.h#L16
             0x01: "TCP_ESTABLISHED",
 	    0x02: "TCP_SYN_SENT",
@@ -2687,11 +2687,11 @@ class ProcessStatusCommand(GenericCommand):
 	    0x0a: "TCP_LISTEN",
 	    0x0b: "TCP_CLOSING",
 	    0x0b: "TCP_NEW_SYN_RECV",
-        })
+        }
 
-        udp_states_str = types.MappingProxyType({
+        udp_states_str = {
             0x07: "UDP_LISTEN",
-        })
+        }
 
         info("Network Connections")
         pid = get_pid()
