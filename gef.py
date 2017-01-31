@@ -668,13 +668,13 @@ class GlibcChunk:
             msg += "Chunk size: {0:d} ({0:#x})".format(self.get_chunk_size())
             msg += "Usable size: {0:d} ({0:#x})".format(self.get_usable_size())
             failed = True
-        except gdb.MemoryError as me:
+        except gdb.MemoryError:
             msg += "Chunk size: Cannot read at {:#x} (corrupted?)".format(self.size_addr)
 
         try:
             msg += "Previous chunk size: {0:d} ({0:#x})".format(self.get_prev_chunk_size())
             failed = True
-        except gdb.MemoryError as me:
+        except gdb.MemoryError:
             msg += "Previous chunk size: Cannot read at {:#x} (corrupted?)".format(self.start_addr)
 
         if failed:
@@ -690,12 +690,12 @@ class GlibcChunk:
 
         try:
             msg += "Forward pointer: {0:#x}".format(self.get_fwd_ptr())
-        except gdb.MemoryError as me:
+        except gdb.MemoryError:
             msg += "Forward pointer: {0:#x} (corrupted?)".format(fwd)
 
         try:
             msg += "Backward pointer: {0:#x}".format(self.get_bkw_ptr())
-        except gdb.MemoryError as me:
+        except gdb.MemoryError:
             msg += "Backward pointer: {0:#x} (corrupted?)".format(bkw)
 
         return "\n".join(msg)
@@ -778,7 +778,7 @@ def which(program):
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
-    fpath, fname = os.path.split(program)
+    fpath = os.path.split(program)[0]
     if fpath:
         if is_exe(program):
             return program
@@ -901,7 +901,7 @@ def _gef_disassemble_around(addr, nb_insn):
         try:
             cmd = "disassemble {:#x},{:#x}".format(addr - i, next_addr)
             lines = gdb.execute(cmd, to_string=True).splitlines()[1:-1]
-        except gdb.MemoryError as me:
+        except gdb.MemoryError:
             # we can hit an unmapped page trying to read backward, if so just print forward disass lines
             break
 
@@ -1641,7 +1641,7 @@ def is_readable_string(address):
     try:
         cstr = read_cstring_from_memory(address)
         return type(cstr) == unicode and cstr and all([x in string.printable for x in cstr])
-    except UnicodeDecodeError as e:
+    except UnicodeDecodeError:
         return False
 
 
@@ -1650,7 +1650,7 @@ def is_alive():
     try:
         pid = get_pid()
         return pid > 0
-    except gdb.error as e:
+    except gdb.error:
         return False
     return False
 
@@ -1784,7 +1784,7 @@ def __get_process_maps_linux(proc_map_file):
     for line in f:
         line = line.strip()
 
-        addr, perm, off, dev, rest = line.split(" ", 4)
+        addr, perm, off, _, rest = line.split(" ", 4)
         rest = rest.split(" ", 1)
         if len(rest) == 1:
             inode = rest[0]
@@ -1839,7 +1839,7 @@ def get_process_maps():
             sections = __get_process_maps_freebsd("/proc/{:d}/map".format(pid))
         else:
             sections = []
-    except Exception as e:
+    except Exception:
         warn("Failed to read /proc/<PID>/maps, using GDB sections info")
         sections = get_info_sections()
 
@@ -1856,9 +1856,7 @@ def get_info_sections():
 
         try:
             parts = [x.strip() for x in line.split()]
-            index = parts[0][1:-1]
             addr_start, addr_end = [long(x, 16) for x in parts[1].split("->")]
-            at = parts[2]
             off = long(parts[3][:-1], 16)
             path = parts[4]
             inode = ""
@@ -2124,7 +2122,7 @@ def keystone_assemble(code, arch, mode, *args, **kwargs):
 
     try:
         ks = keystone.Ks(arch, mode)
-        enc, cnt = ks.asm(code, addr)
+        enc = ks.asm(code, addr)[0]
     except keystone.KsError as e:
         err("Keystone assembler error: {:s}".format(e))
         return None
@@ -2608,15 +2606,13 @@ class ProcessStatusCommand(GenericCommand):
         cmd = [ps, "-o", "pid", "--ppid","{}".format(pid), "--noheaders"]
         try:
             return gef_execute_external(cmd, as_list=True)
-        except Exception as e:
+        except Exception:
             return []
 
     def show_info_proc(self):
         info("Process Information")
         pid = get_pid()
-        state = self.get_state_of(pid)
         cmdline = self.get_cmdline_of(pid)
-        process = self.get_process_path_of(pid)
         print("\tPID {} {}".format(right_arrow, pid))
         print("\tExecutable {} {}".format(right_arrow, self.get_process_path_of(pid)))
         print("\tCommand line {} '{}'".format(right_arrow, cmdline))
@@ -2700,7 +2696,6 @@ class ProcessStatusCommand(GenericCommand):
             print("\tNo open connections")
             return
 
-        path = "/proc/{:d}/net/tcp".format(pid)
         entries = {}
         entries["TCP"] = [x.split() for x in open("/proc/{:d}/net/tcp".format(pid), "r").readlines()[1:]]
         entries["UDP"]= [x.split() for x in open("/proc/{:d}/net/udp".format(pid), "r").readlines()[1:]]
@@ -2798,8 +2793,8 @@ class PCustomCommand(GenericCommand):
             self.list_custom_structures()
             return
 
-        modname, structname  = argv[0].split(":", 1) if ":" in argv[0] else (argv[0], argv[0])
-        structname, param  = structname.split(".", 1) if "." in structname else (structname, None)
+        modname, structname = argv[0].split(":", 1) if ":" in argv[0] else (argv[0], argv[0])
+        structname, _ = structname.split(".", 1) if "." in structname else (structname, None)
 
         if argc == 1:
             self.dump_structure(modname, structname)
@@ -2993,9 +2988,9 @@ class RetDecCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import retdec
-            import retdec.decompiler
-        except ImportError as ioe:
+            __import__("retdec")
+            __import__("retdec.decompiler")
+        except ImportError:
             msg = "Missing Python `retdec-python` package. "
             raise GefMissingDependencyException(msg)
         return
@@ -3014,7 +3009,6 @@ class RetDecCommand(GenericCommand):
 
         if self.decompiler is None:
             retdec = sys.modules["retdec"]
-            retdec_decompiler = sys.modules["retdec.decompiler"]
             self.decompiler = retdec.decompiler.Decompiler(api_key=api_key)
 
         params = {
@@ -3028,7 +3022,7 @@ class RetDecCommand(GenericCommand):
             "comp_compiler": "gcc",
         }
 
-        opts, args = getopt.getopt(argv, "r:s:ah")
+        opts = getopt.getopt(argv, "r:s:ah")[0]
         if not opts:
             self.usage()
             return
@@ -3086,7 +3080,7 @@ class RetDecCommand(GenericCommand):
                     s = match.group(1)
                     addr = int(s, 16)
                     dis = gdb.execute("x/1i {:#x}".format(addr), to_string=True)
-                    addr, loc, mnemo, ops = gef_parse_gdb_instruction(dis.strip())
+                    addr, loc, _, _ = gef_parse_gdb_instruction(dis.strip())
                     if loc:
                         l = l.replace("unknown_{:s}".format(s), loc)
                 print(l)
@@ -3280,7 +3274,7 @@ class IdaInteractCommand(GenericCommand):
         except socket.error:
             self.disconnect()
 
-        except Exception as e:
+        except Exception:
             err("[{:s}] Exception: {:s}".format(self._cmdline_, str(e)))
         return
 
@@ -3358,7 +3352,7 @@ class IdaInteractCommand(GenericCommand):
                 f.write(bytes(str(struct_name), encoding="utf-8"))
                 f.write(b"(Structure):\n")
                 f.write(b"    _fields_ = [\n")
-                for offset, name, size in structs[struct_name]:
+                for _, name, size in structs[struct_name]:
                     name = bytes(name, encoding="utf-8")
                     if   size == 1: csize = b"c_uint8"
                     elif size == 2: csize = b"c_uint16"
@@ -3485,8 +3479,8 @@ class ChangePermissionCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import keystone
-        except ImportError as ioe:
+            __import__("keystone")
+        except ImportError:
             msg = "Missing Python `keystone-engine` package. "
             raise GefMissingDependencyException(msg)
         return
@@ -3563,9 +3557,9 @@ class UnicornEmulateCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import unicorn
-            import capstone
-        except ImportError as ie:
+            __import__("unicorn")
+            __import__("capstone")
+        except ImportError:
             msg = "This command requires the following packages: `unicorn` and `capstone`."
             raise GefMissingDependencyException(msg)
         return
@@ -3577,7 +3571,7 @@ class UnicornEmulateCommand(GenericCommand):
         self.nb_insn = -1
         self.until_next_gadget = -1
         to_script = None
-        opts, args = getopt.getopt(argv, "f:t:n:e:g:h")
+        opts = getopt.getopt(argv, "f:t:n:e:g:h")[0]
         for o,a in opts:
             if   o == "-f":   start_insn = int(a, 16)
             elif o == "-t":
@@ -3723,7 +3717,6 @@ def reset():
                 page_end   = sect.page_end
                 size       = sect.size
                 perm       = sect.permission
-                path       = sect.path
 
                 if to_script:
                     content += "    # Mapping %s: %#x-%#x\n"%(sect.path, page_start, page_end)
@@ -3833,7 +3826,6 @@ if __name__ == "__main__":
             return
 
         if self.get_setting("show_disassembly"):
-            mem = emu.mem_read(addr, size)
             CapstoneDisassembleCommand.disassemble(addr, 1)
 
         self.nb_insn -= 1
@@ -4122,8 +4114,8 @@ class CapstoneDisassembleCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import capstone
-        except ImportError as ie:
+            __import__("capstone")
+        except ImportError:
             msg = "Missing Python `capstone` package. "
             raise GefMissingDependencyException(msg)
         return
@@ -4612,7 +4604,7 @@ class ShellcodeSearchCommand(GenericCommand):
             info("\t".join(["Id", "Platform", "Description"]))
             for ref in refs:
                 try:
-                    auth, arch, cmd, sid, link = ref
+                    _, arch, cmd, sid, _ = ref
                     print("\t".join([sid, arch, cmd]))
                 except ValueError:
                     continue
@@ -4677,8 +4669,8 @@ class RopperCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import ropper
-        except ImportError as ie:
+            __import__("ropper")
+        except ImportError:
             msg = "Missing Python `ropper` package. "
             raise GefMissingDependencyException(msg)
         return
@@ -4707,8 +4699,8 @@ class ROPgadgetCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import ropgadget
-        except ImportError as ie:
+            __import__("ropgadget")
+        except ImportError:
             msg = "Missing Python `ropgadget` package. "
             raise GefMissingDependencyException(msg)
         return
@@ -4809,14 +4801,13 @@ class AssembleCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            import keystone
-        except ImportError as ioe:
+            __import__("keystone")
+        except ImportError:
             msg = "Missing Python `keystone-engine` package. "
             raise GefMissingDependencyException(msg)
         return
 
     def do_invoke(self, argv):
-        keystone = sys.modules["keystone"]
         arch_s, mode_s, big_endian, as_shellcode, write_to_location = None, None, False, False, None
         opts, args = getopt.getopt(argv, "a:m:l:esh")
         for o,a in opts:
@@ -4849,7 +4840,6 @@ class AssembleCommand(GenericCommand):
 
         insns = " ".join(args)
         insns = [x.strip() for x in insns.split(";") if x is not None]
-        end = ""
 
         info("Assembling {} instruction{} for {} ({} endian)".format(len(insns),
                                                                      "s" if len(insns)>1 else "",
@@ -4903,7 +4893,7 @@ class ProcessListingCommand(GenericCommand):
         smart_scan = False
 
         opts, args = getopt.getopt(argv, "as")
-        for o,a in opts:
+        for o, _ in opts:
             if o == "-a": do_attach  = True
             if o == "-s": smart_scan = True
 
@@ -5350,7 +5340,7 @@ class ContextCommand(GenericCommand):
             with open(fpath, "r") as f:
                 lines = [l.rstrip() for l in f.readlines()]
 
-        except Exception as e:
+        except Exception:
             return
 
         nb_line = self.get_setting("nb_lines_code")
@@ -5403,7 +5393,7 @@ class ContextCommand(GenericCommand):
 
             if m:
                 return "; " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for (a,b) in m])
-        except Exception as e:
+        except Exception:
             pass
         return ""
 
@@ -5693,7 +5683,7 @@ class DereferenceCommand(GenericCommand):
                     # we address that bug by ensuring that only 1 line is given
                     cmd = cmd.splitlines()[0]
 
-                    (_, _, mnemo, operands)  = gef_parse_gdb_instruction(cmd)
+                    _, _, mnemo, operands  = gef_parse_gdb_instruction(cmd)
                     ops = ", ".join(operands)
                     insn = " ".join([mnemo, ops])
                     msg.append(Color.colorify(insn, attrs=code_color))
@@ -6040,7 +6030,6 @@ class TraceRunCommand(GenericCommand):
 
 
     def _do_trace(self, loc_start, loc_end, depth):
-        loc_old = 0
         loc_cur = loc_start
         frame_count_init = self.get_frames_size()
 
@@ -6432,7 +6421,7 @@ class GefHelpCommand(gdb.Command):
     def generate_help(self, commands):
         d = []
 
-        for (cmd, class_name, obj) in commands:
+        for cmd, class_name, _ in commands:
             if " " in cmd:
                 # do not print out subcommands in main help
                 continue
@@ -6511,7 +6500,7 @@ class GefConfigCommand(gdb.Command):
             err("Invalid command format")
             return
 
-        plugin_name, setting_name = argv[0].split(".", 1)
+        plugin_name = argv[0].split(".", 1)[0]
 
         if plugin_name not in self.loaded_commands + ["gef"]:
             err("Unknown plugin '{:s}'".format(plugin_name))
@@ -6579,7 +6568,7 @@ class GefSaveCommand(gdb.Command):
         # save the configuration
         for key in sorted(__config__):
             sect, optname = key.split(".", 1)
-            value, type, _ = __config__.get(key, None)
+            value = __config__.get(key, None)[0]
 
             if old_sect != sect:
                 cfg.add_section(sect)
@@ -6632,7 +6621,7 @@ class GefRestoreCommand(gdb.Command):
             for optname in cfg.options(section):
                 try:
                     key = "{:s}.{:s}".format(section, optname)
-                    old_value, _type, _ = __config__.get(key)
+                    _, _type, _ = __config__.get(key)
                     new_value = cfg.get(section, optname)
                     if _type == bool:
                         new_value = True if new_value == "True" else False
