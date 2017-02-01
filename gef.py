@@ -2580,6 +2580,35 @@ class GenericCommand(gdb.Command):
     # def do_invoke(self, argv):
     #     return
 
+class CanaryCommand(GenericCommand):
+    """Shows the canary value of the current process. Apply the techique detailed in
+    https://www.elttam.com.au/blog/playing-with-canaries/ to show the canary."""
+
+    _cmdline_ = "canary"
+    _syntax_  = "{:s}".format(_cmdline_)
+
+    @if_gdb_running
+    def do_invoke(self, argv):
+        self.dont_repeat()
+
+        has_canary = checksec(get_filepath())["Canary"]
+        if not has_canary:
+            warn("This binary was not compiled with SSP.")
+            return
+
+        for line in gdb.execute("info auxv", to_string=True).splitlines():
+            tmp = line.split()
+            _type, _addr = tmp[1], tmp[-1]
+            if _type != "AT_RANDOM":
+                continue
+            _addr = int(_addr, 16)
+            nb = get_memory_alignment()
+            info("Found AT_RANDOM at {:#x}, reading {} bytes".format(_addr, nb))
+            canary = read_int_from_memory(_addr)
+            canary &= ~0xff
+            info("The canary of process {} is {:#x}".format(get_pid(), canary))
+        return
+
 
 class ProcessStatusCommand(GenericCommand):
     """
@@ -6325,6 +6354,7 @@ class GefCommand(gdb.Command):
             RetDecCommand,
             PCustomCommand,
             ProcessStatusCommand,
+            CanaryCommand,
             # add new commands here
             # when subcommand, main command must be placed first
             ]
