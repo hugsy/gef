@@ -188,6 +188,7 @@ GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "ge
 
 
 class GefGenericException(Exception):
+    """GEF generic exception."""
     def __init__(self, value):
         self.message = value
         return
@@ -213,7 +214,8 @@ if PYTHON_MAJOR==3:
 else:
     def lru_cache(maxsize = 128):
         """https://gist.github.com/hugsy/f327097d905f78c1e253c0d87a235b41"""
-        class _LRU_Cache_class(object):
+        class GefLruCache(object):
+            """Local LRU cache for Python2"""
             def __init__(self, input_func, max_size):
                 self._input_func        = input_func
                 self._max_size          = max_size
@@ -250,19 +252,20 @@ else:
                 cur_caller_cache_dict[key] = self._input_func(caller, *args, **kwargs) if caller != None else self._input_func(*args, **kwargs)
                 return cur_caller_cache_dict[key]
 
-        return (lambda input_func : functools.wraps(input_func)(_LRU_Cache_class(input_func, maxsize)))
+        return (lambda input_func : functools.wraps(input_func)(GefLruCache(input_func, maxsize)))
 
 
 def reset_all_caches():
     """Free all memoized values."""
-    for s in dir(sys.modules["__main__"]):
-        o = getattr(sys.modules["__main__"], s)
-        if hasattr(o, "cache_clear"):
-            o.cache_clear()
+    for mod in dir(sys.modules["__main__"]):
+        obj = getattr(sys.modules["__main__"], mod)
+        if hasattr(obj, "cache_clear"):
+            obj.cache_clear()
     return
 
 
 class Color:
+    """Colorify class."""
     colors = {
         "normal"         : "\033[0m",
         "gray"           : "\033[1;30m",
@@ -302,19 +305,19 @@ class Color:
     def blinkify(msg):     return Color.colorify(msg, attrs="blink")
 
     @staticmethod
-    def colorify(msg, attrs):
+    def colorify(text, attrs):
         if __config__["theme.disable_color"][0] in ("1", "True"):
-            return msg
-        m = []
+            return text
+        msg = []
         colors = Color.colors
         for attr in attrs.split():
-            if attr in colors: m.append(colors[attr])
-        m.append(msg)
-        if colors["highlight"] in m :   m.append(colors["highlight_off"])
-        if colors["underline"] in m :   m.append(colors["underline_off"])
-        if colors["blink"] in m :       m.append(colors["blink_off"])
-        m.append(colors["normal"])
-        return "".join(m)
+            if attr in colors: msg.append(colors[attr])
+        msg.append(text)
+        if colors["highlight"] in msg :   msg.append(colors["highlight_off"])
+        if colors["underline"] in msg :   msg.append(colors["underline_off"])
+        if colors["blink"] in msg :       msg.append(colors["blink_off"])
+        msg.append(colors["normal"])
+        return "".join(msg)
 
 
 class Address:
@@ -354,20 +357,20 @@ class Permission:
         self.value = kwargs.get("value", 0)
         return
 
-    def __or__(self, a):
-        return self.value | a
+    def __or__(self, value):
+        return self.value | value
 
-    def __and__(self, a):
-        return self.value & a
+    def __and__(self, value):
+        return self.value & value
 
-    def __xor__(self, a):
-        return self.value ^ a
+    def __xor__(self, value):
+        return self.value ^ value
 
-    def __eq__(self, a):
-        return self.value == a
+    def __eq__(self, value):
+        return self.value == value
 
-    def __ne__(self, a):
-        return self.value != a
+    def __ne__(self, value):
+        return self.value != value
 
     def __str__(self):
         perm_str = ""
@@ -378,26 +381,26 @@ class Permission:
 
     @staticmethod
     def from_info_sections(*args):
-        p = Permission()
+        perm = Permission()
         for arg in args:
             if "READONLY" in arg:
-                p.value += Permission.READ
+                perm.value += Permission.READ
             if "DATA" in arg:
-                p.value += Permission.WRITE
+                perm.value += Permission.WRITE
             if "CODE" in arg:
-                p.value += Permission.EXECUTE
-        return p
+                perm.value += Permission.EXECUTE
+        return perm
 
     @staticmethod
     def from_process_maps(perm_str):
-        p = Permission()
+        perm = Permission()
         if perm_str[0] == "r":
-            p.value += Permission.READ
+            perm.value += Permission.READ
         if perm_str[1] == "w":
-            p.value += Permission.WRITE
+            perm.value += Permission.WRITE
         if perm_str[2] == "x":
-            p.value += Permission.EXECUTE
-        return p
+            perm.value += Permission.EXECUTE
+        return perm
 
 
 class Section:
@@ -487,32 +490,29 @@ class Elf:
             err("Failed to get file debug information, most of gef features will not work")
             return
 
-        with open(elf, "rb") as f:
+        with open(elf, "rb") as fd:
             # off 0x0
-            self.e_magic, self.e_class, self.e_endianness, self.e_eiversion = struct.unpack(">IBBB", f.read(7))
+            self.e_magic, self.e_class, self.e_endianness, self.e_eiversion = struct.unpack(">IBBB", fd.read(7))
 
             # adjust endianness in bin reading
-            if self.e_endianness == Elf.LITTLE_ENDIAN:
-                endian = "<" # LE
-            else:
-                endian = ">" # BE
+            endian = "<" if self.e_endianness == Elf.LITTLE_ENDIAN else ">"
 
             # off 0x7
-            self.e_osabi, self.e_abiversion = struct.unpack("{}BB".format(endian), f.read(2))
+            self.e_osabi, self.e_abiversion = struct.unpack("{}BB".format(endian), fd.read(2))
             # off 0x9
-            self.e_pad = f.read(7)
+            self.e_pad = fd.read(7)
             # off 0x10
-            self.e_type, self.e_machine, self.e_version = struct.unpack("{}HHI".format(endian), f.read(8))
+            self.e_type, self.e_machine, self.e_version = struct.unpack("{}HHI".format(endian), fd.read(8))
             # off 0x18
             if self.e_class == Elf.ELF_64_BITS:
                 # if arch 64bits
-                self.e_entry, self.e_phoff, self.e_shoff = struct.unpack("{}QQQ".format(endian), f.read(24))
+                self.e_entry, self.e_phoff, self.e_shoff = struct.unpack("{}QQQ".format(endian), fd.read(24))
             else:
                 # else arch 32bits
-                self.e_entry, self.e_phoff, self.e_shoff = struct.unpack("{}III".format(endian), f.read(12))
+                self.e_entry, self.e_phoff, self.e_shoff = struct.unpack("{}III".format(endian), fd.read(12))
 
-            self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = struct.unpack("{}HHHH".format(endian), f.read(8))
-            self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack("{}HHH".format(endian), f.read(6))
+            self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = struct.unpack("{}HHHH".format(endian), fd.read(8))
+            self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack("{}HHH".format(endian), fd.read(6))
 
         return
 
@@ -723,23 +723,24 @@ class GlibcChunk:
         return
 
 
-def titlify(msg, color=None, msg_color=None):
+def titlify(text, color=None, msg_color=None):
     cols = get_terminal_size()[1]
-    n = (cols - len(msg) - 4)//2
+    nb = (cols - len(msg) - 4)//2
     if color is None:
         color = __config__.get("theme.default_title_line")[0]
     if msg_color is None:
         msg_color = __config__.get("theme.default_title_message")[0]
 
-    m = Color.colorify(horizontal_line * n + '[ ', attrs=color)
-    m+= Color.colorify(msg, attrs=msg_color)
-    m+= Color.colorify(' ]' + horizontal_line * n, attrs=color)
-    return m
+    msg = []
+    msg.append(Color.colorify(horizontal_line * nb + '[ ', attrs=color))
+    msg.append(Color.colorify(text, attrs=msg_color))
+    msg.append(Color.colorify(' ]' + horizontal_line * nb, attrs=color))
+    return msg
 
 
-def _xlog(m, stream, cr=True):
-    m += "\n" if cr else ""
-    gdb.write(m, stream)
+def _xlog(text, stream, cr=True):
+    text += "\n" if cr else ""
+    gdb.write(text, stream)
     if cr:
         gdb.flush()
     return 0
@@ -1040,8 +1041,8 @@ def is_little_endian():  return not is_big_endian()
 def flags_to_human(reg_value, value_table):
     flags = []
     for i in value_table:
-        w = Color.boldify(value_table[i].upper()) if reg_value & (1<<i) else value_table[i].lower()
-        flags.append(w)
+        flag_str = Color.boldify(value_table[i].upper()) if reg_value & (1<<i) else value_table[i].lower()
+        flags.append(flag_str)
     return "[{}]".format(" ".join(flags))
 
 
@@ -1670,8 +1671,7 @@ def is_readable_string(address):
 def is_alive():
     """Check if GDB is running."""
     try:
-        pid = get_pid()
-        return pid > 0
+        return get_pid() > 0
     except gdb.error:
         return False
     return False
@@ -1737,7 +1737,6 @@ def get_filepath():
         # if no filename specified, try downloading target from /proc
         if filename is None:
             pid = get_pid()
-
             if pid > 0:
                 return download_file("/proc/{:d}/exe".format(pid), use_cache=True)
             else:
@@ -1951,7 +1950,7 @@ def process_lookup_address(address):
     return None
 
 
-def process_lookup_path(name, perm=Permission.READ|Permission.WRITE|Permission.EXECUTE):
+def process_lookup_path(name, perm=Permission.ALL):
     if not is_alive():
         err("Process is not running")
         return None
@@ -1982,7 +1981,7 @@ def lookup_address(address):
         return Address(value=address, section=sect, info=info)
 
 
-def XOR(data, key):
+def xor(data, key):
     key = key.lstrip("0x")
     key = binascii.unhexlify(key)
     if PYTHON_MAJOR == 2:
@@ -2125,12 +2124,12 @@ def get_unicorn_registers(to_string=False):
         raise GefUnsupportedOS("Oops")
 
     const = getattr(unicorn, "{}_const".format(arch))
-    for r in current_arch.all_registers:
-        regname = "UC_{:s}_REG_{:s}".format(arch.upper(), r.strip()[1:].upper())
+    for reg in current_arch.all_registers:
+        regname = "UC_{:s}_REG_{:s}".format(arch.upper(), reg.strip()[1:].upper())
         if to_string:
-            regs[r] = "{:s}.{:s}".format(const.__name__, regname)
+            regs[reg] = "{:s}.{:s}".format(const.__name__, regname)
         else:
-            regs[r] = getattr(const, regname)
+            regs[reg] = getattr(const, regname)
     return regs
 
 
@@ -2307,9 +2306,9 @@ def parse_address(address):
     if ishex(address):
         return long(address, 16)
 
-    t = gdb.lookup_type("unsigned long")
-    a = gdb.parse_and_eval(address).cast(t)
-    return long(a)
+    _type = gdb.lookup_type("unsigned long")
+    _addr = gdb.parse_and_eval(address).cast(_type)
+    return long(_addr)
 
 
 def is_in_x86_kernel(address):
@@ -2611,10 +2610,8 @@ class CanaryCommand(GenericCommand):
 
 
 class ProcessStatusCommand(GenericCommand):
-    """
-    Extends the info given by GDB `info proc`, by giving an exhaustive description of the
-    process status (file descriptors, ancestor, descendants, etc.).
-    """
+    """Extends the info given by GDB `info proc`, by giving an exhaustive description of the
+    process status (file descriptors, ancestor, descendants, etc.). """
 
     _cmdline_ = "process-status"
     _syntax_  = "{:s}".format(_cmdline_)
@@ -2639,8 +2636,8 @@ class ProcessStatusCommand(GenericCommand):
 
     def get_state_of(self, pid):
         res = {}
-        for l in open("/proc/{}/status".format(pid), "r").readlines():
-            key, value = l.split(":", 1)
+        for line in open("/proc/{}/status".format(pid), "r"):
+            key, value = line.split(":", 1)
             res[key.strip()] = value.strip()
         return res
 
@@ -3078,9 +3075,9 @@ class RetDecCommand(GenericCommand):
             return
 
         try:
-            for o, a in opts:
-                if o == "-r":
-                    range_from, range_to = map(lambda x: int(x,16), a.split("-", 1))
+            for opt, arg in opts:
+                if opt == "-r":
+                    range_from, range_to = map(lambda x: int(x,16), arg.split("-", 1))
                     fd, filename = tempfile.mkstemp()
                     with os.fdopen(fd, "wb") as f:
                         length = range_to - range_from
@@ -3089,29 +3086,28 @@ class RetDecCommand(GenericCommand):
                     params["file_format"] = "elf"
                     params["raw_section_vma"] = hex(range_from)
                     params["raw_entry_point"] = hex(range_from)
-                elif o == "-s":
+                elif opt == "-s":
                     try:
-                        value = gdb.parse_and_eval(a)
+                        value = gdb.parse_and_eval(arg)
                     except gdb.error:
-                        err("No symbol named '{:s}'".format(a))
+                        err("No symbol named '{:s}'".format(arg))
                         return
                     range_from = long(value.address)
                     fd, filename = tempfile.mkstemp()
                     with os.fdopen(fd, "wb") as f:
-                        f.write(read_memory(range_from, get_function_length(a)))
+                        f.write(read_memory(range_from, get_function_length(arg)))
                     params["mode"] = "raw"
                     params["file_format"] = "elf"
                     params["raw_section_vma"] = hex(range_from)
                     params["raw_entry_point"] = hex(range_from)
-                elif o == "-a":
+                elif opt == "-a":
                     filename = get_filepath()
                     params["mode"] = "bin"
                 else:
                     self.usage()
                     return
-        except Exception as e:
-            print(e)
-            self.usage()
+        except Exception as excpt:
+            err(excpt)
             return
 
         params["input_file"] = filename
@@ -3120,20 +3116,20 @@ class RetDecCommand(GenericCommand):
 
         fname = os.path.join(self.get_setting("path"), "{}.c".format(os.path.basename(filename)))
         with open(fname, "r") as f:
-            p = re.compile(r"unknown_([a-f0-9]+)")
-            for l in f.readlines():
-                l = l.strip()
-                if not l or l.startswith("//"):
+            pattern = re.compile(r"unknown_([a-f0-9]+)")
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("//"):
                     continue
                 # try to fix the unknown with the current context
-                for match in p.finditer(l):
+                for match in pattern.finditer(line):
                     s = match.group(1)
                     addr = int(s, 16)
                     dis = gdb.execute("x/1i {:#x}".format(addr), to_string=True)
                     addr, loc, _, _ = gef_parse_gdb_instruction(dis.strip())
                     if loc:
-                        l = l.replace("unknown_{:s}".format(s), loc)
-                print(l)
+                        line = line.replace("unknown_{:s}".format(s), loc)
+                print(line)
         return
 
 
@@ -6000,7 +5996,7 @@ class XorMemoryDisplayCommand(GenericCommand):
 
 
         print(titlify("XOR-ed block"))
-        xored = XOR(block, key)
+        xored = xor(block, key)
         if show_as_instructions:
             CapstoneDisassembleCommand.disassemble(address, -1, code=xored)
         else:
@@ -6026,7 +6022,7 @@ class XorMemoryPatchCommand(GenericCommand):
         block = read_memory(address, length)
         info("Patching XOR-ing {:#x}-{:#x} with '{:s}'".format(address, address + len(block), key))
 
-        xored_block = XOR(block, key)
+        xored_block = xor(block, key)
         write_memory(address, xored_block, length)
         return
 
