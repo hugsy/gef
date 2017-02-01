@@ -5115,7 +5115,7 @@ class EntryPointBreakCommand(GenericCommand):
 
         # if here, clear the breakpoint if any set
         if bp >= 0:
-            gdb.execute("bc {:d}".format(bp))
+            gdb.execute("delete breakpoints {:d}".format(bp))
 
         # break at entry point
         elf = get_elf_headers()
