@@ -2754,6 +2754,7 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("dereference_code", "red")
         self.add_setting("dereference_base_address", "bold green")
         self.add_setting("dereference_register_value", "bold green")
+        self.add_setting("registers_register_name", "bold red")
         self.add_setting("disable_color", "0", "Disable all colors in GEF")
         # TODO: add more customizable items
         return
@@ -4533,6 +4534,7 @@ class DetailRegistersCommand(GenericCommand):
     @if_gdb_running
     def do_invoke(self, argv):
         regs = []
+        regname_color = __config__.get("theme.registers_register_name")[0]
 
         if argv:
             regs = [reg for reg in current_arch.all_registers if reg.strip() in argv]
@@ -4544,7 +4546,9 @@ class DetailRegistersCommand(GenericCommand):
             if reg.type.code == gdb.TYPE_CODE_VOID:
                 continue
 
-            line = Color.colorify(regname, attrs="bold red") + ": "
+            line = ""
+            line+= Color.colorify(regname, attrs=regname_color)
+            line+= ": "
 
             if str(reg) == "<unavailable>":
                 line += Color.colorify("no value", attrs="yellow underline")
@@ -4563,10 +4567,10 @@ class DetailRegistersCommand(GenericCommand):
 
             if len(addrs) > 1:
                 sep = " {:s} ".format(right_arrow)
-                line += sep + sep.join(addrs[1:])
+                line += sep
+                line += sep.join(addrs[1:])
 
             print(line)
-
         return
 
 
@@ -5216,12 +5220,14 @@ class ContextCommand(GenericCommand):
 
     def context_regs(self):
         self.context_title("registers")
+        ignored_registers = set(self.get_setting("ignore_registers").split())
 
         if self.get_setting("show_registers_raw") == False:
-            gdb.execute("registers")
+            regs = set([x.strip() for x in current_arch.all_registers])
+            printable_registers = " ".join(list(regs - ignored_registers))
+            gdb.execute("registers {}".format(printable_registers))
             return
 
-        ignored_registers = self.get_setting("ignore_registers").split()
         l = max(map(len, current_arch.all_registers))
         l += 5
         l += 16 if is_elf64() else 8
