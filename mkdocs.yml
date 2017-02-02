@@ -8,6 +8,7 @@ pages:
 - [commands/aliases.md, Command aliases]
 - [commands/aslr.md, Command aslr]
 - [commands/assemble.md, Command assemble]
+- [commands/canary.md, Command canary]
 - [commands/capstone-disassemble.md, Command capstone-disassemble]
 - [commands/checksec.md, Command checksec]
 - [commands/config.md, Command config]
