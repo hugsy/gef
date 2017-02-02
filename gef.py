@@ -725,7 +725,7 @@ class GlibcChunk:
 
 def titlify(text, color=None, msg_color=None):
     cols = get_terminal_size()[1]
-    nb = (cols - len(msg) - 4)//2
+    nb = (cols - len(text) - 4)//2
     if color is None:
         color = __config__.get("theme.default_title_line")[0]
     if msg_color is None:
@@ -735,7 +735,7 @@ def titlify(text, color=None, msg_color=None):
     msg.append(Color.colorify(horizontal_line * nb + '[ ', attrs=color))
     msg.append(Color.colorify(text, attrs=msg_color))
     msg.append(Color.colorify(' ]' + horizontal_line * nb, attrs=color))
-    return msg
+    return "".join(msg)
 
 
 def _xlog(text, stream, cr=True):
