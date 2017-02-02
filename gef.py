@@ -2944,14 +2944,14 @@ class PCustomCommand(GenericCommand):
                 # try to dereference pointers
                 _value = right_arrow.join(DereferenceCommand.dereference_from(_value))
 
-            line = ""
+            line = []
             line += "  "*depth
-            line += ("{:#x}+0x{:04x} {:s} : ".format(addr, _offset, _name)).ljust(40)
-            line += "{:s} ({:s})".format(_value, _type.__name__)
+            line += ("{:#x}+0x{:04x} {} : ".format(addr, _offset, _name)).ljust(40)
+            line += "{} ({})".format(_value, _type.__name__)
             parsed_value = self.get_ctypes_value(_class, _name, _value)
             if parsed_value:
-                line += " {:s} {:s}".format(right_arrow, parsed_value)
-            print(line)
+                line += " {} {}".format(right_arrow, parsed_value)
+            print("".join(line))
 
             if issubclass(_type, ctypes.Structure):
                 self.apply_structure_to_address(mod_name, _type.__name__, addr + _offset, depth + 1)
@@ -4608,7 +4608,7 @@ class ShellcodeCommand(GenericCommand):
 
 
     def do_invoke(self, argv):
-        err("Missing subcommand <search|get>")
+        err("Missing sub-command <search|get>")
         self.usage()
         return
 
@@ -4692,6 +4692,7 @@ class ShellcodeGetCommand(GenericCommand):
             err("Failed to fetch shellcode #{:d}".format(sid))
             return
 
+        print(res)
         ret  = gef_pystring(res)
 
         info("Downloading shellcode id={:d}".format(sid))
