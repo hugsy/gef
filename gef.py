@@ -220,11 +220,22 @@ else:
                 self._input_func        = input_func
                 self._max_size          = max_size
                 self._caches_dict       = {}
+                self._caches_info       = {}
+                return
 
-            def cache_clear(self, caller = None):
+            def cache_info(self, caller=None):
+                if caller not in self._caches_dict:
+                    return
+                hits = self._caches_info[caller]["hits"]
+                missed = self._caches_info[caller]["missed"]
+                cursz = len(self._caches_dict[caller])
+                return "CacheInfo(hits={}, misses={}, maxsize={}, currsize={})".format(hits, missed, self._max_size, cursz)
+
+            def cache_clear(self, caller=None):
                 if caller in self._caches_dict:
                     del self._caches_dict[caller]
                     self._caches_dict[caller] = collections.OrderedDict()
+                return
 
             def __get__(self, obj, objtype):
                 return_func = functools.partial(self._cache_wrapper, obj)
@@ -235,19 +246,24 @@ else:
                 return self._cache_wrapper(None, *args, **kwargs)
 
             __call__.cache_clear = cache_clear
+            __call__.cache_info  = cache_info
 
             def _cache_wrapper(self, caller, *args, **kwargs):
                 kwargs_key = "".join(map(lambda x : str(x) + str(type(kwargs[x])) + str(kwargs[x]), sorted(kwargs)))
                 key = "".join(map(lambda x : str(type(x)) + str(x) , args)) + kwargs_key
                 if caller not in self._caches_dict:
                     self._caches_dict[caller] = collections.OrderedDict()
+                    self._caches_info[caller] = {"hits":0, "missed":0}
 
                 cur_caller_cache_dict = self._caches_dict[caller]
                 if key in cur_caller_cache_dict:
+                    self._caches_info[caller]["hits"] += 1
                     return cur_caller_cache_dict[key]
 
-                if len(cur_caller_cache_dict) >= self._max_size:
-                    cur_caller_cache_dict.popitem(False)
+                self._caches_info[caller]["missed"] += 1
+                if self._max_size is not None:
+                    if len(cur_caller_cache_dict) >= self._max_size:
+                        cur_caller_cache_dict.popitem(False)
 
                 cur_caller_cache_dict[key] = self._input_func(caller, *args, **kwargs) if caller != None else self._input_func(*args, **kwargs)
                 return cur_caller_cache_dict[key]
@@ -515,6 +531,23 @@ class Elf:
             self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack("{}HHH".format(endian), fd.read(6))
 
         return
+
+
+class Instruction:
+    """GEF representation of instruction."""
+
+    def __init__(self, address, location, mnemo, operands):
+        self.address, self.location, self.mnemo, self.operands = address, location, mnemo, operands
+        return
+
+    def __str__(self):
+        return "{:#x}   {}    {} {}".format(self.address,
+                                            self.location,
+                                            self.mnemo,
+                                            ", ".join(self.operands))
+
+    def is_valid(self):
+        return "(bad)" not in self.mnemo
 
 
 class GlibcArena:
@@ -853,112 +886,131 @@ def gef_makedirs(path, mode=0o755):
     return abspath
 
 
-def _gef_disassemble_top(addr, nb_insn):
-    lines = gdb.execute("x/{:d}i {:#x}".format(nb_insn, addr), to_string=True).splitlines()
-    lines = [x.replace("=>", "").strip() for x in lines]
-    return lines
+@lru_cache(maxsize=None)
+def gdb_lookup_symbol(name):
+    try:
+        return gdb.decode_line(name)[1][0]
+    except gdb.error as err:
+        return None
 
 
-def gef_instruction_n(addr, n):
-    line = _gef_disassemble_top(addr, n + 1)[-1]
-    return gef_parse_gdb_instruction(line)
-
-
-def gef_current_instruction(addr):
-    return gef_instruction_n(addr, 0)
-
-
-def gef_next_instruction(addr):
-    return gef_instruction_n(addr, 1)
-
-
-def _gef_disassemble_around(addr, nb_insn):
+def gdb_disassemble(start_pc, **kwargs):
+    """Disassemble instructions from `start_pc` (Integer). Accepts the following named parameters:
+    - `end_pc` (Integer) to disassemble until this address
+    - `count` (Integer) to disassemble this number of instruction.
+    If `end_pc` and `count` are not provided, the function will behave as if `count=1`.
+    Returns an iterator of Instruction objects
     """
-    Adjust lines to disassemble because of variable length instructions architecture (intel)
-    """
+    frame = gdb.selected_frame()
+    arch = frame.architecture()
 
+    name = frame.name()
+    if name:
+        base = long(gdb.parse_and_eval("'{}'".format(name)).address)
+        off  = start_pc - base
+
+    for insn in arch.disassemble(start_pc, **kwargs):
+        address = insn["addr"]
+        asm = insn["asm"].rstrip()
+        if " " in asm:
+            mnemo, operands = asm.split(None, 1)
+            operands = operands.split(",")
+        else:
+            mnemo, operands = asm, []
+
+        if name and off >= 0:
+            location = "<{}+{}>".format(name, off)
+            off += insn["length"]
+        else:
+            location = ""
+
+        yield Instruction(address, location, mnemo, operands)
+
+
+def gdb_get_nth_previous_instruction_address(addr, n):
+    """Returns the address (Integer) of the `n`-th instruction before `addr`."""
+    # fixed-length ABI
     if not (is_x86_32() or is_x86_64()):
-        # all ABI except x86 are fixed length instructions, easy to process
         if is_aarch64() or is_ppc64() or is_sparc64():
             insn_len = 4
         elif is_arm_thumb():
             insn_len = 2
         else:
             insn_len = get_memory_alignment()
-        lines = _gef_disassemble_top(addr - (insn_len * (nb_insn - 1)), nb_insn - 1)
-        lines += _gef_disassemble_top(addr, nb_insn)
-        return lines
+        return addr - n*insn_len
 
-    lines = []
-    next_addr = gef_next_instruction(addr)[0]
-    cur_insn = gdb.execute("disassemble {:#x},{:#x}".format(addr,next_addr), to_string=True).splitlines()[1]
-    found = False
+    # variable-length ABI
+    next_insn_addr = gef_next_instruction(addr).address
+    cur_insn_addr  = gef_current_instruction(addr).address
 
-    # we try to find a good set of previous instructions by guessing incrementally
-    for i in range(32 + 16 * nb_insn, 1, -1):
+    # we try to find a good set of previous instructions by "guessing" disassembling backwards
+    for i in range(32*n, 1, -1):
         try:
-            cmd = "disassemble {:#x},{:#x}".format(addr - i, next_addr)
-            lines = gdb.execute(cmd, to_string=True).splitlines()[1:-1]
+            insns = list(gdb_disassemble(addr-i, end_pc=next_insn_addr))
         except gdb.MemoryError:
             # we can hit an unmapped page trying to read backward, if so just print forward disass lines
             break
 
-        # 1. check if `disass` result is not empty
-        if not lines:
-            continue
+        # 1. check all instructions are valid
+        for x in insns:
+            if not x.is_valid():
+                continue
 
-        # 2. check no bad instructions in found
-        if any(["(bad)" in line for line in lines]):
-            continue
+        # 2. if cur_insn is not at the end of the set, it is invalid
+        last_insn = insns[-1]
+        if last_insn.address == cur_insn_addr:
+            return insns[-n-1].address
 
-        # 3. if cur_insn is not at the end of the set, it is invalid
-        insn = lines[-1]
-        if insn != cur_insn:
-            continue
+    return -1
 
-        # we assume here that it was successful (very likely)
-        found = True
-        lines = [x.replace("=>", "") for x in lines[-nb_insn:-1]]
-        break
 
-    if not found:
-        lines = []
+def gdb_get_nth_next_instruction_address(addr, n):
+    """Returns the address (Integer) of the `n`-th instruction after `addr`."""
+    # fixed-length ABI
+    if not (is_x86_32() or is_x86_64()):
+        if is_aarch64() or is_ppc64() or is_sparc64():
+            insn_len = 4
+        elif is_arm_thumb():
+            insn_len = 2
+        else:
+            insn_len = get_memory_alignment()
+        return addr + n*insn_len
 
-    lines += _gef_disassemble_top(addr, nb_insn)
+    # variable-length ABI
+    insn = list(gdb_disassemble(addr, count=n))[-1]
+    return insn.address
 
-    return lines
+
+def gef_instruction_n(addr, n):
+    """Returns the `n`-th instruction after `addr` as an Instruction object."""
+    return list(gdb_disassemble(addr, count=n+1))[n-1]
+
+
+def gef_current_instruction(addr):
+    """Returns the current instruction as an Instruction object."""
+    return gef_instruction_n(addr, 0)
+
+
+def gef_next_instruction(addr):
+    """Returns the next instruction as an Instruction object."""
+    return gef_instruction_n(addr, 1)
 
 
 def gef_disassemble(addr, nb_insn, from_top=False):
+    """Disassemble `nb_insn` instructions after `addr`. If `from_top` is False (default), it will
+    also disassemble the `nb_insn` instructions before `addr`.
+    Returns an iterator of Instruction objects."""
     if (nb_insn & 1) == 1:
-        nb_insn += 1
+        count = nb_insn + 1
 
-    lines = _gef_disassemble_top(addr, nb_insn) if from_top else _gef_disassemble_around(addr, nb_insn)
-    for line in lines:
-        address, location, mnemo, operands = gef_parse_gdb_instruction(line)
-        code = "{:s}     {:s}   {:s}".format(location, mnemo, ", ".join(operands))
-        yield((address, code))
+    if not from_top:
+        start_addr = gdb_get_nth_previous_instruction_address(addr, count)
+        if start_addr > 0:
+            for insn in gdb_disassemble(start_addr, count=nb_insn):
+                yield insn
 
-ParsedInstruction = collections.namedtuple("ParsedInstruction", "address location mnemo operands")
-
-def gef_parse_gdb_instruction(raw_insn):
-    raw_insn = raw_insn.strip().replace("\t", " ").replace(":", " ")
-    patt = re.compile(r"^(0x[0-9a-f]{,16})(.*)$", flags=re.IGNORECASE)
-    parts = [x for x in re.split(patt, raw_insn) if x]
-    address = int(parts[0], 16)
-    code = parts[1].strip()
-    parts = code.split()
-    if code.startswith("<"):
-        j = parts[0].find(">")
-        location = parts[0][:j + 1]
-        mnemo = parts[1]
-        operands = " ".join(parts[2:])
-    else:
-        location = ""
-        mnemo = parts[0]
-        operands = " ".join(parts[1:])
-    operands = operands.split(",")
-    return ParsedInstruction(address, location, mnemo, operands)
+    for insn in gdb_disassemble(addr, count=count):
+        yield insn
 
 
 def gef_execute_external(command, as_list=False, *args, **kwargs):
@@ -1024,7 +1076,10 @@ def get_frame():
 
 @lru_cache()
 def get_arch():
-    return gdb.execute("show architecture", to_string=True).strip().split()[7][:-1]
+    if not is_alive():
+        return gdb.execute("show architecture", to_string=True).strip().split()[7][:-1]
+    arch = gdb.selected_frame().architecture()
+    return arch.name()
 
 
 @lru_cache()
@@ -1121,13 +1176,12 @@ class ARM(Architecture):
         return flags_to_human(val, self.flags_table)
 
     def is_conditional_branch(self, insn):
-        mnemo = gef_parse_gdb_instruction(insn).mnemo
         branch_mnemos = {"beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
                   "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"}
-        return mnemo in branch_mnemos
+        return insn.mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        mnemo = insn.mnemo
         # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
@@ -1192,13 +1246,12 @@ class AARCH64(ARM):
     def is_conditional_branch(self, insn):
         # https://www.element14.com/community/servlet/JiveServlet/previewBody/41836-102-1-229511/ARM.Reference_Manual.pdf
         # sect. 5.1.1
-        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        mnemo = mnemo.insn
         branch_mnemos = {"cbnz", "cbz", "tbnz", "tbz"}
         return mnemo.startswith("b.") or mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        _, _, mnemo, operands = gef_parse_gdb_instruction(insn)
-
+        mnemo, operands = insn.mnemo, insn.operands
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
         taken, reason = False, ""
@@ -1264,12 +1317,12 @@ class X86(Architecture):
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn):
-        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        mnemo = insn.mnemo
         call_mnemos = {"call", "callq"}
         return mnemo in call_mnemos
 
     def is_conditional_branch(self, insn):
-        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        mnemo = insn.mnemo
         branch_mnemos = {
             "ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
             "jcxz", "jecxz", "jrcxz", "je", "jz", "jg", "jnle", "jge", "jnl",
@@ -1279,7 +1332,7 @@ class X86(Architecture):
         return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        mnemo = insn.mnemo
         # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
@@ -1398,12 +1451,12 @@ class PowerPC(Architecture):
         return False
 
     def is_conditional_branch(self, insn):
-        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        mnemo = insn.mnemo
         branch_mnemos = {"beq", "bne", "ble", "blt", "bgt", "bge"}
         return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        mnemo = insn.mnemo
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
         taken, reason = False, ""
@@ -1477,7 +1530,7 @@ class SPARC(Architecture):
         return False
 
     def is_conditional_branch(self, insn):
-        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        mnemo = insn.mnemo
         # http://moss.csc.ncsu.edu/~mueller/codeopt/codeopt00/notes/condbranch.html
         branch_mnemos = {
             "be", "bne", "bg", "bge", "bgeu", "bgu", "bl", "ble", "blu", "bleu",
@@ -1486,7 +1539,7 @@ class SPARC(Architecture):
         return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        mnemo = insn.mnemo
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register_ex(self.flag_register)
         taken, reason = False, ""
@@ -1579,12 +1632,12 @@ class MIPS(Architecture):
         return False
 
     def is_conditional_branch(self, insn):
-        mnemo = gef_parse_gdb_instruction(insn).mnemo
+        mnemo = insn.mnemo
         branch_mnemos = {"beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez"}
         return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        _, _, mnemo, ops = gef_parse_gdb_instruction(insn)
+        mnemo, ops = insn.mnemo, insn.operands
         taken, reason = False, ""
 
         if mnemo == "beq":
@@ -1699,6 +1752,11 @@ def is_linux_command(f):
     return wrapper
 
 
+def to_unsigned_long(v):
+    unsigned_long_t = gdb.lookup_type("unsigned long")
+    return long(v.cast(unsigned_long_t))
+
+
 def get_register(regname):
     """
     Get register value. Exception will be raised if expression cannot be parse.
@@ -1706,18 +1764,16 @@ def get_register(regname):
     @param regname: expected register
     @return register value
     """
-    t = gdb.lookup_type("unsigned long")
-    reg = gdb.parse_and_eval(regname)
-    return long(reg.cast(t))
+    return get_register_ex(regname.strip())
 
 
 def get_register_ex(regname):
-    t = gdb.execute("info register {:s}".format(regname), to_string=True)
-    for v in t.split():
-        v = v.strip()
-        if v.startswith("0x"):
-            return long(v.strip().split("\t",1)[0], 16)
-    return 0
+    try:
+        value = gdb.parse_and_eval(regname)
+        return long(value)
+    except gdb.error:
+        value = gdb.selected_frame().read_register(regname)
+        return long(value)
 
 
 @lru_cache()
@@ -2002,7 +2058,6 @@ def ida_synchronize_handler(event):
 
 
 def continue_handler(event):
-    reset_all_caches()
     return
 
 
@@ -3124,11 +3179,10 @@ class RetDecCommand(GenericCommand):
                 # try to fix the unknown with the current context
                 for match in pattern.finditer(line):
                     s = match.group(1)
-                    addr = int(s, 16)
-                    dis = gdb.execute("x/1i {:#x}".format(addr), to_string=True)
-                    addr, loc, _, _ = gef_parse_gdb_instruction(dis.strip())
-                    if loc:
-                        line = line.replace("unknown_{:s}".format(s), loc)
+                    pc = int(s, 16)
+                    insn = gef_current_instruction(pc)
+                    if insn.location:
+                        line = line.replace("unknown_{:s}".format(s), insn.location)
                 print(line)
         return
 
@@ -4586,7 +4640,6 @@ class DetailRegistersCommand(GenericCommand):
                 continue
 
             addr = align_address(long(reg))
-
             line += Color.boldify(format_address(addr))
             addrs = DereferenceCommand.dereference_from(addr)
 
@@ -5228,7 +5281,6 @@ class ContextCommand(GenericCommand):
         msg_color = __config__.get("theme.context_title_message")[0]
 
         if not m:
-            # print just the line
             print(Color.colorify(horizontal_line * self.tty_columns, line_color))
             return
 
@@ -5330,29 +5382,31 @@ class ContextCommand(GenericCommand):
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
         pc = current_arch.pc
 
-        arch = get_arch().lower()
+        frame = gdb.selected_frame()
+        arch = frame.architecture()
+        arch_name = arch.name().lower()
         if is_arm_thumb():
-            arch += ":thumb"
+            arch_name += ":thumb"
             pc   += 1
 
-        self.context_title("code:{}".format(arch))
+        self.context_title("code:{}".format(arch_name))
 
         try:
             if use_capstone:
                 CapstoneDisassembleCommand.disassemble(pc, nb_insn)
                 return
 
-            for addr, content in gef_disassemble(pc, nb_insn):
-                insn = "{:#x} {:s}".format (addr,content)
+            for insn in gef_disassemble(pc, nb_insn):
                 line = []
-                is_taken = False
-                m = "{}    {}".format(format_address(addr), content)
+                is_branch = False
+                is_taken  = False
+                text = str(insn)
 
-                if addr < pc:
-                    line += Color.grayify(m)
+                if insn.address < pc:
+                    line += Color.grayify(text)
 
-                elif addr == pc:
-                    line += Color.colorify("{:s}  {:s}$pc".format(m, left_arrow), attrs="bold red")
+                elif insn.address == pc:
+                    line += Color.colorify("{:s}  {:s}$pc".format(text, left_arrow), attrs="bold red")
 
                     if current_arch.is_conditional_branch(insn):
                         is_taken, reason = current_arch.is_branch_taken(insn)
@@ -5364,23 +5418,16 @@ class ContextCommand(GenericCommand):
                             line += Color.colorify("\tNOT taken {:s}".format(reason), attrs="bold red")
 
                 else:
-                    line += m
+                    line += text
 
                 print("".join(line))
 
                 if is_taken:
-                    # we're not using gef_current_instruction(addr) because gdb/mips disassembles 2 instructions when hitting a branch
-                    cur = gdb.execute("x/i $pc", to_string=True).splitlines()[0]
-                    cur = cur.replace("=>", "").strip()
-                    operands = gef_parse_gdb_instruction(cur).operands
-                    target = operands[-1].split()[0]
+                    target = insn.operands[-1].split()[0]
                     target = int(target, 16)
-                    for i, _ in enumerate(gef_disassemble(target, nb_insn, True)):
-                        addr, content = _
-                        insn = ""
-                        insn+= down_arrow if i==0 else " "
-                        insn+= "\t{:#x} {:s}".format (addr,content)
-                        print(insn)
+                    for i, insn in enumerate(gef_disassemble(target, nb_insn, from_top=True)):
+                        text= "{}  {}".format (down_arrow if i==0 else " ", str(insn))
+                        print(text)
                     break
 
         except gdb.MemoryError:
@@ -5737,16 +5784,8 @@ class DereferenceCommand(GenericCommand):
             # otherwise try to parse the value
             if addr.section:
                 if addr.section.is_executable() and addr.is_in_text_segment():
-                    cmd = gdb.execute("x/1i {:#x}".format(addr.value), to_string=True).replace("=>", "")
-                    # GDB bug
-                    # sometimes on some archs, GDB will return 2 (or more) insns when given x/1i @addr
-                    # we address that bug by ensuring that only 1 line is given
-                    cmd = cmd.splitlines()[0]
-
-                    _, _, mnemo, operands  = gef_parse_gdb_instruction(cmd)
-                    ops = ", ".join(operands)
-                    insn = " ".join([mnemo, ops])
-                    msg.append(Color.colorify(insn, attrs=code_color))
+                    insn = gef_current_instruction(addr.value)
+                    msg.append(Color.colorify(str(insn), attrs=code_color))
                     break
 
                 elif addr.section.permission.value & Permission.READ:
