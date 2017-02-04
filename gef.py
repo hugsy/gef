@@ -213,7 +213,7 @@ if PYTHON_MAJOR==3:
     lru_cache = functools.lru_cache
 else:
     def lru_cache(maxsize = 128):
-        """https://gist.github.com/hugsy/f327097d905f78c1e253c0d87a235b41"""
+        """Portage of the Python3 LRU cache mechanism provided by itertools."""
         class GefLruCache(object):
             """Local LRU cache for Python2"""
             def __init__(self, input_func, max_size):
@@ -224,31 +224,36 @@ else:
                 return
 
             def cache_info(self, caller=None):
+                """Returns a string with statistics of cache usage."""
                 if caller not in self._caches_dict:
-                    return
+                    return ""
                 hits = self._caches_info[caller]["hits"]
                 missed = self._caches_info[caller]["missed"]
                 cursz = len(self._caches_dict[caller])
                 return "CacheInfo(hits={}, misses={}, maxsize={}, currsize={})".format(hits, missed, self._max_size, cursz)
 
             def cache_clear(self, caller=None):
+                """Clear a cache."""
                 if caller in self._caches_dict:
                     del self._caches_dict[caller]
                     self._caches_dict[caller] = collections.OrderedDict()
                 return
 
             def __get__(self, obj, objtype):
+                """Cache getter."""
                 return_func = functools.partial(self._cache_wrapper, obj)
                 return_func.cache_clear = functools.partial(self.cache_clear, obj)
                 return functools.wraps(self._input_func)(return_func)
 
             def __call__(self, *args, **kwargs):
+                """Invoking the wrapped function, by attempting to get its value from cache if existing."""
                 return self._cache_wrapper(None, *args, **kwargs)
 
             __call__.cache_clear = cache_clear
             __call__.cache_info  = cache_info
 
             def _cache_wrapper(self, caller, *args, **kwargs):
+                """Defines the caching mechanism."""
                 kwargs_key = "".join(map(lambda x : str(x) + str(type(kwargs[x])) + str(kwargs[x]), sorted(kwargs)))
                 key = "".join(map(lambda x : str(type(x)) + str(x) , args)) + kwargs_key
                 if caller not in self._caches_dict:
@@ -272,7 +277,8 @@ else:
 
 
 def reset_all_caches():
-    """Free all memoized values."""
+    """Free all caches. If an object is cached, it will have a callable attribute `cache_clear`
+    which will be invoked to purge the function cache."""
     for mod in dir(sys.modules["__main__"]):
         obj = getattr(sys.modules["__main__"], mod)
         if hasattr(obj, "cache_clear"):
@@ -322,6 +328,7 @@ class Color:
 
     @staticmethod
     def colorify(text, attrs):
+        """Color a text following the given attributes."""
         if __config__["theme.disable_color"][0] in ("1", "True"):
             return text
         msg = []
@@ -337,6 +344,7 @@ class Color:
 
 
 class Address:
+    """GEF representation of memory addresses."""
     def __init__(self, *args, **kwargs):
         self.value = kwargs.get("value", 0)
         self.section = kwargs.get("section", None)
@@ -363,6 +371,7 @@ class Address:
 
 
 class Permission:
+    """GEF representation of Linux permission."""
     NONE      = 0
     READ      = 1
     WRITE     = 2
@@ -420,6 +429,7 @@ class Permission:
 
 
 class Section:
+    """GEF representation of process memory sections."""
     page_start      = None
     page_end        = None
     offset          = None
@@ -458,8 +468,11 @@ class Zone:
 
 
 class Elf:
-    """
-    Basic ELF parsing based on http://www.skyfree.org/linux/references/ELF_Format.pdf
+    """ Basic ELF parsing.
+    Ref:
+    - http://www.skyfree.org/linux/references/ELF_Format.pdf
+    - http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
+    - http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
     """
     e_magic           = None
     e_class           = None
@@ -492,15 +505,14 @@ class Elf:
     X86_32            = 0x03
     ARM               = 0x28
     MIPS              = 0x08
-    POWERPC           = 0x14 # http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
-    POWERPC64         = 0x15 # http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
+    POWERPC           = 0x14
+    POWERPC64         = 0x15
     SPARC             = 0x02
     SPARC64           = 0x2b
     AARCH64           = 0xb7
 
 
     def __init__(self, elf):
-
         if not os.access(elf, os.R_OK):
             err("'{0}' not found/readable".format(elf))
             err("Failed to get file debug information, most of gef features will not work")
@@ -535,7 +547,6 @@ class Elf:
 
 class Instruction:
     """GEF representation of instruction."""
-
     def __init__(self, address, location, mnemo, operands):
         self.address, self.location, self.mnemo, self.operands = address, location, mnemo, operands
         return
@@ -551,10 +562,8 @@ class Instruction:
 
 
 class GlibcArena:
-    """
-    Glibc arena class
-    Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671
-    """
+    """Glibc arena class
+    Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671 """
     def __init__(self, addr=None):
         arena = gdb.parse_and_eval(addr)
         self.__arena = arena.cast(gdb.lookup_type("struct malloc_state"))
@@ -613,8 +622,7 @@ class GlibcChunk:
     Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/"""
 
     def __init__(self, addr, from_base=False):
-        """Init `addr` as a chunk"""
-        self.arch = int(get_memory_alignment())
+          self.arch = int(get_memory_alignment())
         if from_base:
             self.start_addr = addr
             self.addr = addr + 2 * self.arch
@@ -757,6 +765,7 @@ class GlibcChunk:
 
 
 def titlify(text, color=None, msg_color=None):
+    """Print a GEF title."""
     cols = get_terminal_size()[1]
     nb = (cols - len(text) - 4)//2
     if color is None:
@@ -772,6 +781,7 @@ def titlify(text, color=None, msg_color=None):
 
 
 def _xlog(text, stream, cr=True):
+    """Logging core function."""
     text += "\n" if cr else ""
     gdb.write(text, stream)
     if cr:
@@ -806,6 +816,7 @@ def gef_pybytes(x):
 
 @lru_cache()
 def which(program):
+    """Locate a command on FS."""
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -858,6 +869,7 @@ def is_debug():
 
 
 def enable_redirect_output(to_file="/dev/null"):
+    """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
     gdb.execute("set logging overwrite")
     gdb.execute("set logging file {:s}".format(to_file))
     gdb.execute("set logging redirect on")
@@ -866,12 +878,14 @@ def enable_redirect_output(to_file="/dev/null"):
 
 
 def disable_redirect_output():
+    """Disable the output redirection, if any."""
     gdb.execute("set logging redirect off")
     gdb.execute("set logging off")
     return
 
 
 def gef_makedirs(path, mode=0o755):
+    """Recursive mkdir() creation. If successful, returns the absolute path of the directory created."""
     abspath = os.path.realpath(path)
     if os.path.isdir(abspath):
         return abspath
@@ -884,14 +898,6 @@ def gef_makedirs(path, mode=0o755):
         except os.error:
             pass
     return abspath
-
-
-@lru_cache(maxsize=None)
-def gdb_lookup_symbol(name):
-    try:
-        return gdb.decode_line(name)[1][0]
-    except gdb.error as err:
-        return None
 
 
 def gdb_disassemble(start_pc, **kwargs):
