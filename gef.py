@@ -1070,10 +1070,6 @@ def checksec(filename):
     return results
 
 
-def get_frame():
-    return gdb.selected_inferior()
-
-
 @lru_cache()
 def get_arch():
     if not is_alive():
@@ -1783,7 +1779,7 @@ def get_os():
 
 @lru_cache()
 def get_pid():
-    return get_frame().pid
+    return gdb.selected_inferior().pid
 
 
 def get_filepath():
