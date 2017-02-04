@@ -900,6 +900,34 @@ def gef_makedirs(path, mode=0o755):
     return abspath
 
 
+@lru_cache()
+def gdb_lookup_symbol(sym):
+    """Helper to fetch the proper symbol."""
+    try:
+        return gdb.decode_line(sym)[1]
+    except gdb.error:
+        return None
+
+
+@lru_cache(maxsize=512)
+def gdb_get_location_from_symbol(address):
+    """Retrieves the location of the `address` argument from the symbol table.
+    Returns a tuple with the name and offset if found, None otherwise."""
+    # this is horrible, ugly hack and shitty perf...
+    # find a *clean* way to get gdb.Location from an address
+    name, off = None, 0
+    sym = gdb.execute("info symbol {:#x}".format(address), to_string=True)
+    if sym.startswith("No symbol matches"):
+        return None
+
+    i = sym.find(" in section ")
+    sym = sym[:i].split()
+    name, offset = sym[0], 0
+    if len(sym) == 3:
+        offset = int(sym[2])
+    return (name, offset)
+
+
 def gdb_disassemble(start_pc, **kwargs):
     """Disassemble instructions from `start_pc` (Integer). Accepts the following named parameters:
     - `end_pc` (Integer) to disassemble until this address
@@ -910,11 +938,6 @@ def gdb_disassemble(start_pc, **kwargs):
     frame = gdb.selected_frame()
     arch = frame.architecture()
 
-    name = frame.name()
-    if name:
-        base = long(gdb.parse_and_eval("'{}'".format(name)).address)
-        off  = start_pc - base
-
     for insn in arch.disassemble(start_pc, **kwargs):
         address = insn["addr"]
         asm = insn["asm"].rstrip()
@@ -924,11 +947,8 @@ def gdb_disassemble(start_pc, **kwargs):
         else:
             mnemo, operands = asm, []
 
-        if name and off >= 0:
-            location = "<{}+{}>".format(name, off)
-            off += insn["length"]
-        else:
-            location = ""
+        loc = gdb_get_location_from_symbol(address)
+        location = "<{}+{}>".format(*loc) if loc else ""
 
         yield Instruction(address, location, mnemo, operands)
 
@@ -944,22 +964,26 @@ def gdb_get_nth_previous_instruction_address(addr, n):
     cur_insn_addr  = gef_current_instruction(addr).address
 
     # we try to find a good set of previous instructions by "guessing" disassembling backwards
-    for i in range(32*n, 1, -1):
+    # the 15 comes from the longest instruction valid size
+    for i in range(15*n, 1, -1):
         try:
             insns = list(gdb_disassemble(addr-i, end_pc=next_insn_addr))
         except gdb.MemoryError:
-            # we can hit an unmapped page trying to read backward, if so just print forward disass lines
+            # this is because we can hit an unmapped page trying to read backward
             break
 
-        # 1. check all instructions are valid
-        for x in insns:
-            if not x.is_valid():
+        # 1. check that the disassembled instructions list size is correct
+        if len(insns)!=n:
+            continue
+
+        # 2. check all instructions are valid
+        for insn in insns:
+            if not insn.is_valid():
                 continue
 
-        # 2. if cur_insn is not at the end of the set, it is invalid
-        last_insn = insns[-1]
-        if last_insn.address == cur_insn_addr:
-            return insns[-n-1].address
+        # 3. if cur_insn is at the end of the set
+        if insns[-1].address==cur_insn_addr:
+            return insns[0].address
 
     return -1
 
@@ -999,6 +1023,7 @@ def gef_disassemble(addr, nb_insn, from_top=False):
 
     if not from_top:
         start_addr = gdb_get_nth_previous_instruction_address(addr, count)
+        # print(hex(start_addr))
         if start_addr > 0:
             for insn in gdb_disassemble(start_addr, count=nb_insn):
                 yield insn
@@ -5559,9 +5584,8 @@ class ContextCommand(GenericCommand):
             items.append("RetAddr: {:#x}".format(pc))
             if name:
                 frame_args = gdb.FrameDecorator.FrameDecorator(current_frame).frame_args() or []
-                m = "Name: {:s}(".format(Color.greenify(name))
-                m += ",".join(["{!s}={!s}".format(x.sym, x.sym.value(current_frame)) for x in frame_args])
-                m += ")"
+                m = "Name: {:s}({:s})".format(Color.greenify(name),
+                                              ", ".join(["{!s}={!s}".format(x.sym, x.sym.value(current_frame)) for x in frame_args]))
                 items.append(m)
 
             print("[{:s}] {:s}".format(Color.colorify("#{:d}".format(i), "bold pink"),
@@ -6975,6 +6999,7 @@ class GefTmuxSetup(gdb.Command):
 
 
 def __gef_prompt__(current_prompt):
+    """GEF custom prompt function."""
     if __config__.get("gef.readline_compat")[0]:
         return gef_prompt
 
@@ -7008,9 +7033,9 @@ if __name__  == "__main__":
 
     try:
         # this will raise a gdb.error unless we're on x86
-        # we can safely ignore this
         gdb.execute("set disassembly-flavor intel")
     except gdb.error:
+        # we can safely ignore this
         pass
 
     # SIGALRM will simply display a message, but gdb won't forward the signal to the process
