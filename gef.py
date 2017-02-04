@@ -622,7 +622,7 @@ class GlibcChunk:
     Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/"""
 
     def __init__(self, addr, from_base=False):
-          self.arch = int(get_memory_alignment())
+        self.arch = int(get_memory_alignment())
         if from_base:
             self.start_addr = addr
             self.addr = addr + 2 * self.arch
@@ -1020,8 +1020,8 @@ def gef_disassemble(addr, nb_insn, from_top=False):
 
 
 def gef_execute_external(command, as_list=False, *args, **kwargs):
+    """Executes an external command and retrieves the result."""
     res = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=kwargs.get("shell", False))
-
     if as_list:
         lines = res.splitlines()
         return [gef_pystring(x) for x in lines]
@@ -1029,10 +1029,12 @@ def gef_execute_external(command, as_list=False, *args, **kwargs):
     return gef_pystring(res)
 
 
-def gef_execute_gdb_script(source):
+def gef_execute_gdb_script(commands):
+    """Executes the parameter `source` as GDB command. This is done by writing `commands` to
+    a temporary file, which is then executed via GDB `source` command. The tempfile is then deleted."""
     fd, fname = tempfile.mkstemp(suffix=".gdb", prefix="gef_")
     with os.fdopen(fd, "w") as f:
-        f.write(source)
+        f.write(commands)
         f.flush()
     if os.access(fname, os.R_OK):
         gdb.execute("source {:s}".format(fname))
@@ -1040,55 +1042,67 @@ def gef_execute_gdb_script(source):
     return
 
 
-def check_security_property(opt, filename, pattern):
-    cmd   = [which("readelf"),]
-    cmd  += opt.split()
-    cmd  += [filename,]
-    lines = gef_execute_external(cmd).splitlines()
-
-    for line in lines:
-        if re.search(pattern, line):
-            return True
-
-    return False
 
 
-@lru_cache()
+@lru_cache(32)
 def checksec(filename):
-    """Global function to get the security properties of a binary."""
+    """Checks the security property of the ELF binary. The following properties are:
+    - Canary
+    - NX
+    - PIE
+    - Fortify
+    - Partial/Full RelRO.
+    Returns a Python dict() with the different keys mentioned above, and the boolean
+    associated whether the protection was found."""
+
     try:
-        which("readelf")
+        readelf = which("readelf")
     except IOError:
         err("Missing `readelf`")
         return
 
+    def __check_security_property(opt, filename, pattern):
+        cmd   = [readelf,]
+        cmd  += opt.split()
+        cmd  += [filename,]
+        lines = gef_execute_external(cmd, as_list=True)
+        for line in lines:
+            if re.search(pattern, line):
+                return True
+        return False
+
     results = collections.OrderedDict()
-    results["Canary"] = check_security_property("-s", filename, r"__stack_chk_fail") is True
-    has_gnu_stack = check_security_property("-W -l", filename, r"GNU_STACK") is True
+    results["Canary"] = __check_security_property("-s", filename, r"__stack_chk_fail") is True
+    has_gnu_stack = __check_security_property("-W -l", filename, r"GNU_STACK") is True
     if has_gnu_stack:
-        results["NX"] = check_security_property("-W -l", filename, r"GNU_STACK.*RWE") is False
+        results["NX"] = __check_security_property("-W -l", filename, r"GNU_STACK.*RWE") is False
     else:
         results["NX"] = False
-    results["PIE"] = check_security_property("-h", filename, r"Type:.*EXEC") is False
-    results["Fortify"] = check_security_property("-s", filename, r"_chk@GLIBC") is True
-    results["Partial RelRO"] = check_security_property("-l", filename, r"GNU_RELRO") is True
-    results["Full RelRO"] = check_security_property("-d", filename, r"BIND_NOW") is True
+    results["PIE"] = __check_security_property("-h", filename, r"Type:.*EXEC") is False
+    results["Fortify"] = __check_security_property("-s", filename, r"_chk@GLIBC") is True
+    results["Partial RelRO"] = __check_security_property("-l", filename, r"GNU_RELRO") is True
+    results["Full RelRO"] = __check_security_property("-d", filename, r"BIND_NOW") is True
     return results
 
 
 @lru_cache()
 def get_arch():
-    if not is_alive():
-        return gdb.execute("show architecture", to_string=True).strip().split()[7][:-1]
-    arch = gdb.selected_frame().architecture()
-    return arch.name()
+    """Helper to get the binary architecture."""
+    if is_alive():
+        arch = gdb.selected_frame().architecture()
+        return arch.name()
+    return gdb.execute("show architecture", to_string=True).strip().split()[7][:-1]
 
 
 @lru_cache()
 def get_endian():
+    """Helper to determine the binary endianness."""
+    if is_alive():
+        return get_elf_headers().e_endianness
     if gdb.execute("show endian", to_string=True).strip().split()[7] == "little" :
         return Elf.LITTLE_ENDIAN
-    return Elf.BIG_ENDIAN
+    raise GefGenericException("Invalid endianess")
+
 
 
 def is_big_endian():     return get_endian() == Elf.BIG_ENDIAN
@@ -1096,6 +1110,7 @@ def is_little_endian():  return not is_big_endian()
 
 
 def flags_to_human(reg_value, value_table):
+    """Returns a human readable string showing the flag states."""
     flags = []
     for i in value_table:
         flag_str = Color.boldify(value_table[i].upper()) if reg_value & (1<<i) else value_table[i].lower()
@@ -1677,11 +1692,13 @@ class MIPS(Architecture):
 
 
 def write_memory(address, buffer, length=0x10):
+    """Write `buffer` at address `address`."""
     if PYTHON_MAJOR == 2: buffer = str(buffer)
     return gdb.selected_inferior().write_memory(address, buffer, length)
 
 
 def read_memory(addr, length=0x10):
+    """Returns a  `length` long byte array with the copy of the process memory at `addr`."""
     if PYTHON_MAJOR == 2:
         return gdb.selected_inferior().read_memory(addr, length)
 
@@ -1689,6 +1706,7 @@ def read_memory(addr, length=0x10):
 
 
 def read_int_from_memory(addr):
+    """Returns an integer from memory."""
     arch = get_memory_alignment()
     mem = read_memory(addr, arch)
     fmt = endian_str() + "I" if arch == 4 else endian_str() + "Q"
@@ -1696,9 +1714,7 @@ def read_int_from_memory(addr):
 
 
 def read_cstring_from_memory(address):
-    """
-    Read a C-string from memory using GDB memory access.
-    """
+    """Returns a C-string from memory."""
     char_ptr = gdb.lookup_type("char").pointer()
     res = gdb.Value(address).cast(char_ptr).string().strip()
 
@@ -1710,12 +1726,10 @@ def read_cstring_from_memory(address):
 
 
 def is_readable_string(address):
-    """
-    Here we will assume that a readable string is
-    a consecutive byte array where:
+    """ Tries to determine if the content pointed by `address` is
+    a readable string by checking if:
     * the last element is 0x00 (i.e. it is a C-string)
-    * each byte is printable
-    """
+    * each byte is printable"""
     try:
         cstr = read_cstring_from_memory(address)
         return isinstance(cstr, unicode) and cstr and all([x in string.printable for x in cstr])
@@ -1755,21 +1769,22 @@ def is_linux_command(f):
 
 
 def to_unsigned_long(v):
+    """Helper to cast a gdb.Value to unsigned long."""
     unsigned_long_t = gdb.lookup_type("unsigned long")
     return long(v.cast(unsigned_long_t))
 
 
 def get_register(regname):
-    """
-    Get register value. Exception will be raised if expression cannot be parse.
-    This function won't catch on purpose.
-    @param regname: expected register
-    @return register value
-    """
+    """Simple version of `get_register_ex()`."""
     return get_register_ex(regname.strip())
 
 
 def get_register_ex(regname):
+    """Get a register value. Exception will be raised if expression cannot be parse.
+    This function won't catch on purpose.
+    @param regname: expected register
+    @return register value
+    """
     try:
         value = gdb.parse_and_eval(regname)
         return long(value)
@@ -1780,15 +1795,19 @@ def get_register_ex(regname):
 
 @lru_cache()
 def get_os():
+    """Helper to return the current OS."""
     return platform.system().lower()
 
 
 @lru_cache()
 def get_pid():
+    """Helper to return the currently debugged Process Id."""
     return gdb.selected_inferior().pid
 
 
+@lru_cache()
 def get_filepath():
+    """Returns the absolute path of the file currently debugged."""
     filename = gdb.current_progspace().filename
 
     if is_remote_debug():
@@ -1807,6 +1826,12 @@ def get_filepath():
             return filename
     else:
         return filename
+
+
+@lru_cache()
+def get_filename():
+    """Returns the full filename of the file currently debugged."""
+    return os.path.basename(get_filepath())
 
 
 def download_file(target, use_cache=False):
@@ -1837,10 +1862,6 @@ def open_file(path, use_cache=False):
         return open(path)
 
 
-def get_filename():
-    return os.path.basename(get_filepath())
-
-
 def get_function_length(sym):
     """Attempt to get the length of the raw bytes of a function."""
     dis = gdb.execute("disassemble {:s}".format(sym), to_string=True).splitlines()
@@ -1859,6 +1880,7 @@ def command_only_works_for(os):
 
 
 def __get_process_maps_linux(proc_map_file):
+    """Parse the Linux process `/proc/pid/maps` file."""
     f = open_file(proc_map_file, use_cache=False)
     for line in f:
         line = line.strip()
@@ -1883,11 +1905,11 @@ def __get_process_maps_linux(proc_map_file):
                       permission=perm,
                       inode=inode,
                       path=pathname)
-
     return
 
 
 def __get_process_maps_freebsd(proc_map_file):
+    """Parse the FreeBSD process `/proc/pid/maps` file."""
     f = open_file(proc_map_file, use_cache=False)
     for line in f:
         line = line.strip()
@@ -1903,12 +1925,12 @@ def __get_process_maps_freebsd(proc_map_file):
                       permission=perm,
                       inode=inode,
                       path=pathname)
-
     return
 
 
 @lru_cache()
 def get_process_maps():
+    """Parse the `/proc/pid/maps` file."""
     try:
         pid = get_pid()
 
@@ -1927,6 +1949,7 @@ def get_process_maps():
 
 @lru_cache()
 def get_info_sections():
+    """Retrieves the debuggee sections."""
     stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
 
     for line in stream:
@@ -1957,6 +1980,7 @@ def get_info_sections():
 
 
 def get_info_files():
+    """Retrieves all the files loaded by debuggee."""
     lines = gdb.execute("info files", to_string=True).splitlines()
 
     if len(lines) < len(__infos_files__):
@@ -1993,6 +2017,7 @@ def get_info_files():
 
 
 def process_lookup_address(address):
+    """Look up for an address in memory. Returns an Address object if found, None otherwise."""
     if not is_alive():
         err("Process is not running")
         return None
@@ -2009,6 +2034,8 @@ def process_lookup_address(address):
 
 
 def process_lookup_path(name, perm=Permission.ALL):
+    """Look up for a path in the process memory mapping.
+    Returns a Section object if found, None otherwise."""
     if not is_alive():
         err("Process is not running")
         return None
@@ -2021,6 +2048,7 @@ def process_lookup_path(name, perm=Permission.ALL):
 
 
 def file_lookup_address(address):
+    """Look up for a file by its address. Returns a Zone object if found, None otherwise."""
     for info in get_info_files():
         if info.zone_start <= address < info.zone_end:
             return info
@@ -2040,6 +2068,7 @@ def lookup_address(address):
 
 
 def xor(data, key):
+    """Returns `data` xor-ed with `key`."""
     key = key.lstrip("0x")
     key = binascii.unhexlify(key)
     if PYTHON_MAJOR == 2:
@@ -2048,7 +2077,8 @@ def xor(data, key):
     return bytearray([x ^ y for x, y in zip(data, itertools.cycle(key))])
 
 
-def ishex(pattern):
+def is_hex(pattern):
+    """Tries to determine if `pattern` is an hexadecimal address."""
     if pattern.startswith("0x") or pattern.startswith("0X"):
         pattern = pattern[2:]
     return all(c in string.hexdigits for c in pattern)
@@ -2080,9 +2110,7 @@ def exit_handler(event):
 
 
 def get_terminal_size():
-    """
-    Portable function to retrieve the current terminal size.
-    """
+    """Return the current terminal size."""
     if is_debug():
         return 600, 100
 
@@ -2215,6 +2243,8 @@ def keystone_assemble(code, arch, mode, *args, **kwargs):
 
 @lru_cache()
 def get_elf_headers(filename=None):
+    """Return an Elf object with info from `filename`. If not provided, will return
+    the currently debugged file."""
     if filename is None:
         filename = get_filepath()
 
@@ -2304,7 +2334,6 @@ def set_arch():
     global current_arch
 
     elf = get_elf_headers()
-
     if   elf.e_machine == Elf.ARM:        current_arch = ARM()
     elif elf.e_machine == Elf.AARCH64:    current_arch = AARCH64()
     elif elf.e_machine == Elf.X86_32:     current_arch = X86()
@@ -2360,12 +2389,9 @@ def align_address_to_page(address):
 
 
 def parse_address(address):
-    if ishex(address):
+    if is_hex(address):
         return long(address, 16)
-
-    _type = gdb.lookup_type("unsigned long")
-    _addr = gdb.parse_and_eval(address).cast(_type)
-    return long(_addr)
+    return to_unsigned(gdb.parse_and_eval(address))
 
 
 def is_in_x86_kernel(address):
