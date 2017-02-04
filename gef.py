@@ -937,13 +937,7 @@ def gdb_get_nth_previous_instruction_address(addr, n):
     """Returns the address (Integer) of the `n`-th instruction before `addr`."""
     # fixed-length ABI
     if not (is_x86_32() or is_x86_64()):
-        if is_aarch64() or is_ppc64() or is_sparc64():
-            insn_len = 4
-        elif is_arm_thumb():
-            insn_len = 2
-        else:
-            insn_len = get_memory_alignment()
-        return addr - n*insn_len
+        return addr - n*current_arch.instruction_length
 
     # variable-length ABI
     next_insn_addr = gef_next_instruction(addr).address
@@ -974,13 +968,7 @@ def gdb_get_nth_next_instruction_address(addr, n):
     """Returns the address (Integer) of the `n`-th instruction after `addr`."""
     # fixed-length ABI
     if not (is_x86_32() or is_x86_64()):
-        if is_aarch64() or is_ppc64() or is_sparc64():
-            insn_len = 4
-        elif is_arm_thumb():
-            insn_len = 2
-        else:
-            insn_len = get_memory_alignment()
-        return addr + n*insn_len
+        return addr + n*current_arch.instruction_length
 
     # variable-length ABI
     insn = list(gdb_disassemble(addr, count=n))[-1]
@@ -1125,6 +1113,8 @@ class Architecture(object):
     @abc.abstractproperty
     def all_registers(self):                       pass
     @abc.abstractproperty
+    def instruction_length(self):                  pass
+    @abc.abstractproperty
     def nop_insn(self):                            pass
     @abc.abstractproperty
     def return_register(self):                     pass
@@ -1145,17 +1135,11 @@ class Architecture(object):
 
     @property
     def pc(self):
-        try:
-            return get_register("$pc")
-        except Exception:
-            return get_register_ex("$pc")
+        return get_register("$pc")
 
     @property
     def sp(self):
-        try:
-            return get_register("$sp")
-        except Exception:
-            return get_register_ex("$sp")
+        return get_register("$sp")
 
 
 class ARM(Architecture):
@@ -1182,6 +1166,10 @@ class ARM(Architecture):
     }
     function_parameters = ["$r0", "$r1", "$r2", "$r3"]
 
+    @property
+    def instruction_length(self):
+        return 2 if is_arm_thumb() else 4
+
     def is_call(self, insn):
         return False
 
@@ -1189,7 +1177,7 @@ class ARM(Architecture):
         # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
         if val is None:
             reg = self.flag_register
-            val = get_register_ex(reg)
+            val = get_register(reg)
         return flags_to_human(val, self.flags_table)
 
     def is_conditional_branch(self, insn):
@@ -1201,7 +1189,7 @@ class ARM(Architecture):
         mnemo = insn.mnemo
         # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
-        val = get_register_ex(self.flag_register)
+        val = get_register(self.flag_register)
         taken, reason = False, ""
 
         if mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
@@ -1253,7 +1241,7 @@ class AARCH64(ARM):
         # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
         reg = self.flag_register
         if not val:
-            val = get_register_ex(reg)
+            val = get_register(reg)
         return flags_to_human(val, self.flags_table)
 
     def mprotect_asm(self, addr, size, perm):
@@ -1270,7 +1258,7 @@ class AARCH64(ARM):
     def is_branch_taken(self, insn):
         mnemo, operands = insn.mnemo, insn.operands
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
-        val = get_register_ex(self.flag_register)
+        val = get_register(self.flag_register)
         taken, reason = False, ""
 
         if mnemo in {"cbnz", "cbz", "tbnz", "tbz"}:
@@ -1309,6 +1297,7 @@ class X86(Architecture):
         "$eax   ", "$ebx   ", "$ecx   ", "$edx   ", "$esp   ", "$ebp   ", "$esi   ",
         "$edi   ", "$eip   ", "$cs    ", "$ss    ", "$ds    ", "$es    ",
         "$fs    ", "$gs    ", "$eflags",]
+    instruction_length = None
     return_register = "$eax"
     function_parameters = ["$esp",]
     flag_register = "$eflags"
@@ -1330,7 +1319,7 @@ class X86(Architecture):
     def flag_register_to_human(self, val=None):
         reg = self.flag_register
         if not val:
-            val = get_register_ex(reg)
+            val = get_register(reg)
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn):
@@ -1352,8 +1341,8 @@ class X86(Architecture):
         mnemo = insn.mnemo
         # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
-        val = get_register_ex(self.flag_register)
-        cx = get_register_ex("$rcx") if self.mode == 64 else get_register_ex("$ecx")
+        val = get_register(self.flag_register)
+        cx = get_register("$rcx") if self.mode == 64 else get_register("$ecx")
 
         taken, reason = False, ""
 
@@ -1440,6 +1429,7 @@ class PowerPC(Architecture):
         "$r16 ", "$r17 ", "$r18 ", "$r19 ", "$r20 ", "$r21 ", "$r22 ", "$r23 ",
         "$r24 ", "$r25 ", "$r26 ", "$r27 ", "$r28 ", "$r29 ", "$r30 ", "$r31 ",
         "$pc  ", "$msr ", "$cr  ", "$lr  ", "$ctr ", "$xer ", "$trap",]
+    instruction_length = 4
     nop_insn = b"\x60\x00\x00\x00" # http://www.ibm.com/developerworks/library/l-ppc/index.html
     return_register = "$r0"
     flag_register = "$cr"
@@ -1461,7 +1451,7 @@ class PowerPC(Architecture):
         # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
         if not val:
             reg = self.flag_register
-            val = get_register_ex(reg)
+            val = get_register(reg)
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn):
@@ -1475,7 +1465,7 @@ class PowerPC(Architecture):
     def is_branch_taken(self, insn):
         mnemo = insn.mnemo
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
-        val = get_register_ex(self.flag_register)
+        val = get_register(self.flag_register)
         taken, reason = False, ""
         if mnemo == "beq": taken, reason = val&(1<<flags["equal[7]"]), "E"
         elif mnemo == "bne": taken, reason = val&(1<<flags["equal[7]"]) == 0, "!E"
@@ -1522,7 +1512,7 @@ class SPARC(Architecture):
         "$l0 ", "$l1 ", "$l2 ", "$l3 ", "$l4 ", "$l5 ", "$l6 ", "$l7 ",
         "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ", "$i7 ",
         "$pc ", "$npc", "$sp ", "$fp ", "$psr",]
-
+    instruction_length = 4
     nop_insn = b"\x00\x00\x00\x00"  # sethi 0, %g0
     return_register = "$i0"
     flag_register = "$psr"
@@ -1540,7 +1530,7 @@ class SPARC(Architecture):
         # http://www.gaisler.com/doc/sparcv8.pdf
         reg = self.flag_register
         if not val:
-            val = get_register_ex(reg)
+            val = get_register(reg)
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn):
@@ -1558,7 +1548,7 @@ class SPARC(Architecture):
     def is_branch_taken(self, insn):
         mnemo = insn.mnemo
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
-        val = get_register_ex(self.flag_register)
+        val = get_register(self.flag_register)
         taken, reason = False, ""
 
         if mnemo == "be": taken, reason = val&(1<<flags["zero"]), "Z"
@@ -1635,7 +1625,7 @@ class MIPS(Architecture):
         "$s0       ", "$s1       ", "$s2       ", "$s3       ", "$s4       ", "$s5       ", "$s6       ", "$s7       ",
         "$t8       ", "$t9       ", "$k0       ", "$k1       ", "$s8       ", "$status   ", "$badvaddr ", "$cause    ",
         "$pc       ", "$sp       ", "$hi       ", "$lo       ", "$fir      ", "$fcsr     ", "$ra       ", "$gp       ",]
-    # https://en.wikipedia.org/wiki/MIPS_instruction_set
+    instruction_length = 4
     nop_insn = b"\x00\x00\x00\x00" # sll $0,$0,0
     return_register = "$v0"
     flag_register = "$fcsr"
@@ -1658,21 +1648,21 @@ class MIPS(Architecture):
         taken, reason = False, ""
 
         if mnemo == "beq":
-            taken, reason = get_register_ex(ops[0]) == get_register_ex(ops[1]), "{0[0]} == {0[1]}".format(ops)
+            taken, reason = get_register(ops[0]) == get_register(ops[1]), "{0[0]} == {0[1]}".format(ops)
         elif mnemo == "bne":
-            taken, reason = get_register_ex(ops[0]) != get_register_ex(ops[1]), "{0[0]} != {0[1]}".format(ops)
+            taken, reason = get_register(ops[0]) != get_register(ops[1]), "{0[0]} != {0[1]}".format(ops)
         elif mnemo == "beqz":
-            taken, reason = get_register_ex(ops[0]) == 0, "{0[0]} == 0".format(ops)
+            taken, reason = get_register(ops[0]) == 0, "{0[0]} == 0".format(ops)
         elif mnemo == "bnez":
-            taken, reason = get_register_ex(ops[0]) != 0, "{0[0]} != 0".format(ops)
+            taken, reason = get_register(ops[0]) != 0, "{0[0]} != 0".format(ops)
         elif mnemo == "bgtz":
-            taken, reason = get_register_ex(ops[0]) > 0, "{0[0]} > 0".format(ops)
+            taken, reason = get_register(ops[0]) > 0, "{0[0]} > 0".format(ops)
         elif mnemo == "bgez":
-            taken, reason = get_register_ex(ops[0]) >= 0, "{0[0]} >= 0".format(ops)
+            taken, reason = get_register(ops[0]) >= 0, "{0[0]} >= 0".format(ops)
         elif mnemo == "bltz":
-            taken, reason = get_register_ex(ops[0]) < 0, "{0[0]} < 0".format(ops)
+            taken, reason = get_register(ops[0]) < 0, "{0[0]} < 0".format(ops)
         elif mnemo == "blez":
-            taken, reason = get_register_ex(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
+            taken, reason = get_register(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
         return taken, reason
 
     def mprotect_asm(self, addr, size, perm):
@@ -1707,9 +1697,9 @@ def read_memory(addr, length=0x10):
 
 def read_int_from_memory(addr):
     """Returns an integer from memory."""
-    arch = get_memory_alignment()
-    mem = read_memory(addr, arch)
-    fmt = endian_str() + "I" if arch == 4 else endian_str() + "Q"
+    sz = get_memory_alignment()
+    mem = read_memory(addr, sz)
+    fmt = "{}{}".format(endian_str(), "I" if sz==4 else "Q")
     return struct.unpack(fmt, mem)[0]
 
 
@@ -1726,7 +1716,7 @@ def read_cstring_from_memory(address):
 
 
 def is_readable_string(address):
-    """ Tries to determine if the content pointed by `address` is
+    """Tries to determine if the content pointed by `address` is
     a readable string by checking if:
     * the last element is 0x00 (i.e. it is a C-string)
     * each byte is printable"""
@@ -1775,16 +1765,12 @@ def to_unsigned_long(v):
 
 
 def get_register(regname):
-    """Simple version of `get_register_ex()`."""
-    return get_register_ex(regname.strip())
-
-
-def get_register_ex(regname):
     """Get a register value. Exception will be raised if expression cannot be parse.
     This function won't catch on purpose.
     @param regname: expected register
     @return register value
     """
+    regname = regname.strip()
     try:
         value = gdb.parse_and_eval(regname)
         return long(value)
@@ -2257,72 +2243,83 @@ def get_elf_headers(filename=None):
 
 @lru_cache()
 def is_elf64(filename=None):
+    """Checks if `filename` is an ELF64."""
     elf = get_elf_headers(filename)
     return elf.e_class == Elf.ELF_64_BITS
 
 
 @lru_cache()
 def is_elf32(filename=None):
+    """Checks if `filename` is an ELF32."""
     elf = get_elf_headers(filename)
     return elf.e_class == Elf.ELF_32_BITS
 
 
 @lru_cache()
 def is_x86_64(filename=None):
+    """Checks if `filename` is an x86-64 ELF."""
     elf = get_elf_headers(filename)
     return elf.e_machine == Elf.X86_64
 
 
 @lru_cache()
 def is_x86_32(filename=None):
+    """Checks if `filename` is an x86-32 ELF."""
     elf = get_elf_headers(filename)
     return elf.e_machine == Elf.X86_32
 
 
 @lru_cache()
 def is_arm(filename=None):
+    """Checks if `filename` is an ARM ELF."""
     elf = get_elf_headers(filename)
     return elf.e_machine == Elf.ARM
 
 
 @lru_cache()
 def is_arm_thumb():
-    # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
-    return is_arm() and get_register("$cpsr") & (1<<5)
+    """Checks if `filename` is an ARM (THUMB mode) ELF."""
+    return is_arm() and is_alive() and get_register("$cpsr") & (1<<5)
 
 
 @lru_cache()
 def is_mips():
+    """Checks if `filename` is a MIPS ELF."""
     elf = get_elf_headers()
     return elf.e_machine == Elf.MIPS
 
 
 @lru_cache()
 def is_powerpc():
+    """Checks if `filename` is a PowerPC ELF."""
     elf = get_elf_headers()
     return elf.e_machine == Elf.POWERPC
 
 
 @lru_cache()
 def is_ppc64():
+    """Checks if `filename` is a PowerPC64 ELF."""
     elf = get_elf_headers()
     return elf.e_machine == Elf.POWERPC64
 
 
 @lru_cache()
 def is_sparc():
+    """Checks if `filename` is a SPARC ELF."""
     elf = get_elf_headers()
     return elf.e_machine == Elf.SPARC
 
 
 @lru_cache()
 def is_sparc64():
+    """Checks if `filename` is a SPARC64 ELF."""
     elf = get_elf_headers()
     return elf.e_machine == Elf.SPARC64
 
 
 @lru_cache()
 def is_aarch64():
+    """Checks if `filename` is a AARCH64 ELF."""
     elf = get_elf_headers()
     return elf.e_machine == Elf.AARCH64
 
@@ -2331,6 +2328,7 @@ current_arch = None
 
 
 def set_arch():
+    """Sets the current architecture."""
     global current_arch
 
     elf = get_elf_headers()
@@ -2349,6 +2347,8 @@ def set_arch():
 
 
 def get_memory_alignment(in_bits=False):
+    """Return sizeof(register). If `in_bits` is set to True, the result is returned in bits,
+    otherwise in bytes."""
     if is_elf32():
         return 4 if not in_bits else 32
     elif is_elf64():
@@ -2358,6 +2358,7 @@ def get_memory_alignment(in_bits=False):
 
 
 def clear_screen(tty=""):
+    """Clear the screen."""
     if not tty:
         gdb.execute("shell clear")
         return
@@ -2368,6 +2369,7 @@ def clear_screen(tty=""):
 
 
 def format_address(addr):
+    """Format the address according to its size."""
     memalign_size = get_memory_alignment()
     if memalign_size == 4:
         return "0x{:08x}".format(addr & 0xFFFFFFFF)
@@ -2376,6 +2378,7 @@ def format_address(addr):
 
 
 def align_address(address):
+    """Align the address correctly."""
     if get_memory_alignment(in_bits=True) == 32:
         ret = address & 0x00000000FFFFFFFF
     else:
@@ -2384,11 +2387,13 @@ def align_address(address):
 
 
 def align_address_to_page(address):
+    """Align the address to a page."""
     a = align_address(address) >> DEFAULT_PAGE_ALIGN_SHIFT
     return a << DEFAULT_PAGE_ALIGN_SHIFT
 
 
 def parse_address(address):
+    """Parses an address and returns it as an Integer."""
     if is_hex(address):
         return long(address, 16)
     return to_unsigned(gdb.parse_and_eval(address))
@@ -2408,6 +2413,7 @@ def endian_str():
 
 @lru_cache()
 def is_remote_debug():
+    """"Returns True is the current debugging session is running through GDB remote session."""
     return "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
 
@@ -2488,15 +2494,15 @@ class FormatStringBreakpoint(gdb.Breakpoint):
 
         if is_x86_32():
             sp = current_arch.sp
-            m = get_memory_alignment()
-            val = sp + (self.num_args * m) + m
+            sz =  current_arch.instruction_length
+            val = sp + (self.num_args * sz) + sz
             ptr = read_int_from_memory(val)
             addr = lookup_address(ptr)
             ptr = hex(ptr)
         else:
             regs = current_arch.function_parameters
             ptr = regs[self.num_args]
-            addr = lookup_address(get_register_ex(ptr))
+            addr = lookup_address(get_register(ptr))
 
         if not addr.valid:
             return False
@@ -3580,7 +3586,7 @@ class FlagsCommand(GenericCommand):
                     off = k
                     break
 
-            old_flag = get_register_ex(current_arch.flag_register)
+            old_flag = get_register(current_arch.flag_register)
             if action == "+":
                 new_flags = old_flag | (1 << off)
             elif action == "-":
@@ -3804,7 +3810,7 @@ def reset():
             info("Populating registers")
 
         for r in current_arch.all_registers:
-            gregval = get_register_ex(r)
+            gregval = get_register(r)
             if to_script:
                 content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers[r], gregval)
             else:
@@ -5356,7 +5362,7 @@ class ContextCommand(GenericCommand):
             except (gdb.MemoryError, gdb.error):
                 # If this exception is triggered, it means that the current register
                 # is corrupted. Just use the register "raw" value (not eval-ed)
-                new_value = get_register_ex(reg)
+                new_value = get_register(reg)
                 new_value_type_flag = False
 
             except Exception:
@@ -5738,7 +5744,7 @@ class DereferenceCommand(GenericCommand):
         base_address_color = __config__.get("theme.dereference_base_address")[0]
         registers_color = __config__.get("theme.dereference_register_value")[0]
 
-        regs = [(k.strip(), get_register_ex(k)) for k in current_arch.all_registers]
+        regs = [(k.strip(), get_register(k)) for k in current_arch.all_registers]
         sep = " {:s} ".format(right_arrow)
         memalign = get_memory_alignment()
 
