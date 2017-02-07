@@ -3483,7 +3483,7 @@ class FlagsCommand(GenericCommand):
             else:
                 new_flags = old_flag ^ (1<<off)
 
-            gdb.execute("set ({:s}) = {:x}".format(current_arch.flag_register, new_flags))
+            gdb.execute("set ({:s}) = {:#x}".format(current_arch.flag_register, new_flags))
 
         print(current_arch.flag_register_to_human())
         return
