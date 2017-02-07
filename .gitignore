@@ -54,3 +54,4 @@ docs/_build/
 target/
 site
 tests/binstests/pylint.html
+tests/pylint.html

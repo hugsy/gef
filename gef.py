@@ -2421,7 +2421,7 @@ def parse_address(address):
     """Parses an address and returns it as an Integer."""
     if is_hex(address):
         return long(address, 16)
-    return to_unsigned(gdb.parse_and_eval(address))
+    return to_unsigned_long(gdb.parse_and_eval(address))
 
 
 def is_in_x86_kernel(address):
