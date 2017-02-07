@@ -2436,17 +2436,17 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         return False
 
 
-class PatchBreakpoint(gdb.Breakpoint):
+class StubBreakpoint(gdb.Breakpoint):
     """Create a breakpoint to permanently disable a call (fork/alarm/signal/etc.)"""
 
     def __init__(self, func, retval):
-        super(PatchBreakpoint, self).__init__(func, gdb.BP_BREAKPOINT, internal=False)
+        super(StubBreakpoint, self).__init__(func, gdb.BP_BREAKPOINT, internal=False)
         self.func = func
         self.retval = retval
 
         m = "All calls to '{:s}' will be skipped".format(self.func)
         if self.retval is not None:
-            m += " (with return value as {:#x})".format(self.retval)
+            m += " (with return value set to {:#x})".format(self.retval)
         info(m)
         return
 
@@ -2457,31 +2457,13 @@ class PatchBreakpoint(gdb.Breakpoint):
         m = ["Ignoring call to '{:s}'".format(self.func)]
         if self.retval is not None:
             cmd = "set {:s} = {:#x}".format(retreg, self.retval)
-            m += "(setting {:s} to {:#x})".format(retreg, self.retval)
+            m.append("(setting {:s} to {:#x})".format(retreg, self.retval))
             gdb.execute(cmd)
 
         gdb.execute("return")
 
         ok(" ".join(m))
         return False  # never stop at this breakpoint
-
-
-class SetRegisterBreakpoint(gdb.Breakpoint):
-    """When hit, this temporary breakpoint simply sets one specific register to a given value."""
-
-    def __init__(self, func, reg, retval, force_stop=False):
-        super(SetRegisterBreakpoint, self).__init__(func, gdb.BP_BREAKPOINT, internal=False)
-        self.func = func
-        self.reg = reg
-        self.retval = retval
-        self.force_stop = force_stop
-        return
-
-    def stop(self):
-        gdb.execute("set {:s} = {:d}".format(self.reg, self.retval))
-        ok("Setting Return Value register ({:s}) to {:d}".format(self.reg, self.retval))
-        self.delete()
-        return self.force_stop
 
 
 class ChangePermissionBreakpoint(gdb.Breakpoint):
@@ -4057,11 +4039,10 @@ class RemoteCommand(GenericCommand):
 
 
 class NopCommand(GenericCommand):
-    """Patch the instruction pointed by parameters with NOP. If the return option is
-    specified, it will set the return register to the specific value."""
+    """Patch the instruction(s) pointed by parameters with NOP."""
 
     _cmdline_ = "nop"
-    _syntax_  = "{:s} [-r VALUE] [-p] [-h] [LOCATION]".format(_cmdline_)
+    _syntax_  = "{:s} [-b NUM_BYTES] [-h] [LOCATION]".format(_cmdline_)
 
 
     def __init__(self):
@@ -4075,47 +4056,38 @@ class NopCommand(GenericCommand):
 
 
     def do_invoke(self, argv):
-        retval = None
-        perm_mode = False
-        opts, args = getopt.getopt(argv, "r:ph")
-        for o,a in opts:
-            if   o == "-r":
-                retval = long(a, 16)
-            elif o == "-p":
-                perm_mode = True
+        opts, args = getopt.getopt(argv, "b:h")
+        num_bytes = 0
+        for o, a in opts:
+            if o == "-b":
+                num_bytes = long(a, 0)
             elif o == "-h":
                 self.help()
                 return
-
-        if perm_mode:
-            if not args:
-                err("Missing location")
-                return
-            self.permanent_patch(args[0], retval)
-            return
 
         if args:
             loc = parse_address(args[0])
         else:
             loc = current_arch.pc
 
-        self.onetime_patch(loc, retval)
+        self.nop_bytes(loc, num_bytes)
         return
 
 
     def help(self):
         m = self._syntax_
         m += "\n  LOCATION\taddress/symbol to patch\n"
-        m += "  -r VALUE\tset the return register to VALUE (ex. 0x00, 0xffffffff)\n"
-        m += "  -p \t\tmake this patch permanent for the whole GDB session\n"
+        m += "  -b NUM_BYTES\tInstead of writing one instruction, patch the specified number of bytes\n"
         m += "  -h \t\tprint this help\n"
         info(m)
         return
 
-
     @if_gdb_running
-    def onetime_patch(self, loc, retval):
-        size = self.get_insn_size(loc)
+    def nop_bytes(self, loc, num_bytes):
+        if num_bytes == 0:
+            size = self.get_insn_size(loc)
+        else:
+            size = num_bytes
         nops = current_arch.nop_insn
 
         if len(nops) > size:
@@ -4123,27 +4095,63 @@ class NopCommand(GenericCommand):
             err(m)
             return
 
-        if len(nops) < size:
-            warn("Adjusting NOPs to size {:d}".format(size))
-            while len(nops) < size:
-                nops += current_arch.nop_insn
+        while len(nops) < size:
+            nops += current_arch.nop_insn
 
         if len(nops) != size:
-            err("Cannot patch instruction at {:#x} (unexpected NOP length)".format(loc))
+            err("Cannot patch instruction at {:#x} (nop instruction does not even fit in requested size)"
+                .format(loc))
             return
 
         ok("Patching {:d} bytes from {:s}".format(size, format_address(loc)))
         write_memory(loc, nops, size)
 
-        if retval is not None:
-            reg = current_arch.return_register
-            addr = "*{}".format(format_address(loc))
-            SetRegisterBreakpoint(addr, reg, retval)
         return
 
 
-    def permanent_patch(self, loc, retval):
-        PatchBreakpoint(loc, retval)
+class StubCommand(GenericCommand):
+    """Stub out the specified function"""
+
+    _cmdline_ = "stub"
+    _syntax_  = "{:s} [-r RETVAL] [-h] [LOCATION]".format(_cmdline_)
+
+
+    def __init__(self):
+        super(StubCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
+        return
+
+
+    def do_invoke(self, argv):
+        opts, args = getopt.getopt(argv, "r:h")
+        retval = 0
+        for o, a in opts:
+            if o == "-r":
+                retval = long(a, 0)
+            elif o == "-h":
+                self.help()
+                return
+
+        if not args:
+            loc = "*{:#x}".format(current_arch.pc)
+        else:
+            loc = args[0]
+        print(loc) # DELETEME
+
+        self.stub_out(loc, retval)
+        return
+
+
+    def help(self):
+        m = self._syntax_
+        m += "\n  LOCATION\taddress/symbol to stub out\n"
+        m += "  -b RETVAL\tSet the return value\n"
+        m += "  -h \t\tprint this help\n"
+        info(m)
+        return
+
+    @if_gdb_running
+    def stub_out(self, loc, retval):
+        StubBreakpoint(loc, retval)
         return
 
 
@@ -6338,6 +6346,7 @@ class GefCommand(gdb.Command):
             SolveKernelSymbolCommand,
             GlibcHeapCommand, GlibcHeapArenaCommand, GlibcHeapChunkCommand, GlibcHeapBinsCommand, GlibcHeapFastbinsYCommand, GlibcHeapUnsortedBinsCommand, GlibcHeapSmallBinsCommand, GlibcHeapLargeBinsCommand,
             NopCommand,
+            StubCommand,
             RemoteCommand,
             UnicornEmulateCommand,
             ChangePermissionCommand,
