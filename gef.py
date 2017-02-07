@@ -2451,14 +2451,12 @@ class StubBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
-        retaddr = gdb.selected_frame().older().pc()
         retreg  = current_arch.return_register
 
         m = ["Ignoring call to '{:s}'".format(self.func)]
-        if self.retval is not None:
-            cmd = "set {:s} = {:#x}".format(retreg, self.retval)
-            m.append("(setting {:s} to {:#x})".format(retreg, self.retval))
-            gdb.execute(cmd)
+        cmd = "set {:s} = {:#x}".format(retreg, self.retval)
+        m.append("(setting {:s} to {:#x})".format(retreg, self.retval))
+        gdb.execute(cmd)
 
         gdb.execute("return")
 
@@ -4099,7 +4097,7 @@ class NopCommand(GenericCommand):
             nops += current_arch.nop_insn
 
         if len(nops) != size:
-            err("Cannot patch instruction at {:#x} (nop instruction does not even fit in requested size)"
+            err("Cannot patch instruction at {:#x} (nop instruction does not evenly fit in requested size)"
                 .format(loc))
             return
 
@@ -4110,16 +4108,14 @@ class NopCommand(GenericCommand):
 
 
 class StubCommand(GenericCommand):
-    """Stub out the specified function"""
+    """Stub out the specified function."""
 
     _cmdline_ = "stub"
     _syntax_  = "{:s} [-r RETVAL] [-h] [LOCATION]".format(_cmdline_)
 
-
     def __init__(self):
         super(StubCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
-
 
     def do_invoke(self, argv):
         opts, args = getopt.getopt(argv, "r:h")
@@ -4135,18 +4131,16 @@ class StubCommand(GenericCommand):
             loc = "*{:#x}".format(current_arch.pc)
         else:
             loc = args[0]
-        print(loc) # DELETEME
 
         self.stub_out(loc, retval)
         return
 
-
     def help(self):
-        m = self._syntax_
-        m += "\n  LOCATION\taddress/symbol to stub out\n"
-        m += "  -b RETVAL\tSet the return value\n"
-        m += "  -h \t\tprint this help\n"
-        info(m)
+        m = [self._syntax_]
+        m.append("  LOCATION\taddress/symbol to stub out")
+        m.append("  -b RETVAL\tSet the return value")
+        m.append("  -h \t\tprint this help")
+        info("\n".join(m))
         return
 
     @if_gdb_running
@@ -4161,7 +4155,6 @@ class CapstoneDisassembleCommand(GenericCommand):
     _cmdline_ = "capstone-disassemble"
     _syntax_  = "{:s} [-n LENGTH] [-t opt] [LOCATION]".format(_cmdline_)
     _aliases_ = ["cs-dis",]
-
 
     def pre_load(self):
         try:
