@@ -2454,18 +2454,15 @@ class PatchBreakpoint(gdb.Breakpoint):
         retaddr = gdb.selected_frame().older().pc()
         retreg  = current_arch.return_register
 
+        m = ["Ignoring call to '{:s}'".format(self.func)]
         if self.retval is not None:
             cmd = "set {:s} = {:#x}".format(retreg, self.retval)
+            m += "(setting {:s} to {:#x})".format(retreg, self.retval)
             gdb.execute(cmd)
 
-        cmd = "set $pc = {:#x}".format(retaddr,)
-        gdb.execute(cmd)
+        gdb.execute("return")
 
-        m = "Ignoring call to '{:s}'".format(self.func)
-        if self.retval is not None:
-            m += "(setting {:s} to {:#x})".format(retreg, self.retval)
-
-        ok(m)
+        ok(" ".join(m))
         return False  # never stop at this breakpoint
 
 
