@@ -2468,9 +2468,7 @@ def de_bruijn(alphabet, n):
 
 
 def generate_cyclic_pattern(length):
-    """
-    Create a cyclic pattern based on de Bruijn sequence.
-    """
+    """Create a cyclic pattern based on de Bruijn sequence."""
     charset = b"""abcdefghijklmnopqrstuvwxyz"""
     cycle = get_memory_alignment() if is_alive() else 4
     i = 0
@@ -2485,9 +2483,7 @@ def generate_cyclic_pattern(length):
 
 
 def dereference(addr):
-    """
-    gef-wrapper for gdb dereference function.
-    """
+    """GEF wrapper for gdb dereference function."""
     try:
         unsigned_long_type = gdb.lookup_type("unsigned long").pointer()
         ret = gdb.Value(addr).cast(unsigned_long_type).dereference()
@@ -2497,11 +2493,35 @@ def dereference(addr):
 
 
 def gef_convenience(value):
+    """Defines a new convenience value."""
     global __gef_convenience_vars_index__
     var_name = "$_gef{:d}".format(__gef_convenience_vars_index__)
     __gef_convenience_vars_index__ += 1
     gdb.execute("""set {:s} = {:s} """.format(var_name, value))
     return var_name
+
+
+def gef_read_canary():
+    """Reads the canary of a running process using Auxiliary Vector. Returns a tuple of (canary, location)
+    if found, None otherwise."""
+
+    if not is_alive():
+        return None
+
+    canary = None
+    canary_location = None
+    for line in gdb.execute("info auxv", to_string=True).splitlines():
+        tmp = line.split()
+        _type, _addr = tmp[1], tmp[-1]
+        if _type != "AT_RANDOM":
+            continue
+        canary_location = int(_addr, 16)
+        nb = get_memory_alignment()
+        canary = read_int_from_memory(canary_location)
+        canary &= ~0xff
+        return (canary, canary_location)
+
+    return None
 
 
 #
@@ -2693,6 +2713,7 @@ class GenericCommand(gdb.Command):
     # def do_invoke(self, argv):
     #     return
 
+
 class CanaryCommand(GenericCommand):
     """Shows the canary value of the current process. Apply the techique detailed in
     https://www.elttam.com.au/blog/playing-with-canaries/ to show the canary."""
@@ -2709,17 +2730,14 @@ class CanaryCommand(GenericCommand):
             warn("This binary was not compiled with SSP.")
             return
 
-        for line in gdb.execute("info auxv", to_string=True).splitlines():
-            tmp = line.split()
-            _type, _addr = tmp[1], tmp[-1]
-            if _type != "AT_RANDOM":
-                continue
-            _addr = int(_addr, 16)
-            nb = get_memory_alignment()
-            info("Found AT_RANDOM at {:#x}, reading {} bytes".format(_addr, nb))
-            canary = read_int_from_memory(_addr)
-            canary &= ~0xff
-            info("The canary of process {} is {:#x}".format(get_pid(), canary))
+        res = gef_read_canary()
+        if not res:
+            err("Failed to get the canary")
+            return
+
+        canary, location = res
+        info("Found AT_RANDOM at {:#x}, reading {} bytes".format(location, get_memory_alignment()))
+        info("The canary of process {} is {:#x}".format(get_pid(), canary))
         return
 
 
@@ -6361,6 +6379,10 @@ class ChecksecCommand(GenericCommand):
         for prop in sec:
             val = sec[prop]
             msg = Color.greenify("Yes") if val is True else Color.redify("No")
+            if prop=="Canary" and is_alive():
+                canary, _ = gef_read_canary()
+                msg+= "{} value: {:#x}".format(right_arrow, canary)
+
             print("{:<30s}: {:s}".format(prop, msg))
         return
 
