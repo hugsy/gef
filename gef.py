@@ -552,10 +552,10 @@ class Instruction:
         return
 
     def __str__(self):
-        return "{:#x}   {}    {} {}".format(self.address,
-                                            self.location,
-                                            self.mnemo,
-                                            ", ".join(self.operands))
+        return "{:#x}  {}  {} {}".format(self.address,
+                                         self.location,
+                                         self.mnemo,
+                                         ", ".join(self.operands))
 
     def is_valid(self):
         return "(bad)" not in self.mnemo
