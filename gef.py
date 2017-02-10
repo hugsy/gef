@@ -1276,7 +1276,7 @@ class AARCH64(ARM):
     def is_conditional_branch(self, insn):
         # https://www.element14.com/community/servlet/JiveServlet/previewBody/41836-102-1-229511/ARM.Reference_Manual.pdf
         # sect. 5.1.1
-        mnemo = mnemo.insn
+        mnemo = insn.mnemo
         branch_mnemos = {"cbnz", "cbz", "tbnz", "tbz"}
         return mnemo.startswith("b.") or mnemo in branch_mnemos
 
