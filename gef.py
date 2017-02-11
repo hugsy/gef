@@ -859,7 +859,8 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
         if show_raw:
             result.append(hexa)
         else:
-            result.append("{addr:#0{aw}x}     {data:<{dw}}    {text}".format(aw=18, addr=base + i, dw=3 * length, data=hexa, text=text))
+            align = get_memory_alignment()+2 if is_alive() else 18
+            result.append("{addr:#0{aw}x}     {data:<{dw}}    {text}".format(aw=align, addr=base+i, dw=3*length, data=hexa, text=text))
 
     return "\n".join(result)
 
