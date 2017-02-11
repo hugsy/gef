@@ -859,7 +859,7 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
         if show_raw:
             result.append(hexa)
         else:
-            align = get_memory_alignment()+2 if is_alive() else 18
+            align = get_memory_alignment()*2+2 if is_alive() else 18
             result.append("{addr:#0{aw}x}     {data:<{dw}}    {text}".format(aw=align, addr=base+i, dw=3*length, data=hexa, text=text))
 
     return "\n".join(result)
@@ -4338,6 +4338,11 @@ class CapstoneDisassembleCommand(GenericCommand):
         inst_num    = 0
         pc          = current_arch.pc
 
+        from_top    = kwargs.get("from_top", False)
+        if from_top==False:
+            location = gdb_get_nth_previous_instruction_address(pc, max_inst)
+            max_inst += max_inst
+
         code        = kwargs.get("code", None)
         if code is None:
             code  = read_memory(location, DEFAULT_PAGE_SIZE - offset - 1)
@@ -4345,7 +4350,8 @@ class CapstoneDisassembleCommand(GenericCommand):
         code = bytes(code)
 
         for insn in cs.disasm(code, location):
-            m = Color.colorify(format_address(insn.address), attrs="bold blue") + "\t"
+            m = []
+            m += Color.colorify(format_address(insn.address), attrs="bold blue") + "\t"
 
             if insn.address == pc:
                 m += CapstoneDisassembleCommand.__cs_analyze_insn(insn, arch, True)
@@ -4353,7 +4359,7 @@ class CapstoneDisassembleCommand(GenericCommand):
                 m += Color.greenify(insn.mnemonic) + "\t"
                 m += Color.yellowify(insn.op_str)
 
-            print(m)
+            print("".join(m))
             inst_num += 1
             if inst_num == max_inst:
                 break
@@ -4365,7 +4371,7 @@ class CapstoneDisassembleCommand(GenericCommand):
     def __cs_analyze_insn(insn, arch, is_pc=True):
         cs = sys.modules["capstone"]
 
-        m = ""
+        m = []
         m += Color.greenify(insn.mnemonic)
         m += "\t"
         m += Color.yellowify(insn.op_str)
