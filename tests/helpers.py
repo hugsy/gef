@@ -3,7 +3,7 @@ import subprocess
 def gdb_run_command(cmd, before=[], after=[]):
     """Execute a command inside GDB. `before` and `after` are lists of commands to be executed
     before (resp. after) the command to test."""
-    command = ["gdb", "-q", "-nx", "source ./gef.py", "-ex", "gef config gef.debug True"]
+    command = ["gdb", "-q", "-nx", "-ex", "source /tmp/gef.py", "-ex", "gef config gef.debug True"]
 
     if len(before):
         for _ in before: command+= ["-ex", _]
@@ -15,7 +15,7 @@ def gdb_run_command(cmd, before=[], after=[]):
 
     command+= ["-ex", "quit", "--", "/bin/ls"]
     lines = subprocess.check_output(command, stderr=subprocess.STDOUT).strip().splitlines()
-    return "\n".join(lines[5:])
+    return "\n".join(lines)
 
 
 def gdb_run_command_last_line(cmd, before=[], after=[]):

@@ -5,7 +5,7 @@
 
 from __future__ import print_function
 
-import unittest
+import unittest, sys, shutil, os
 
 from helpers import *
 
@@ -118,10 +118,12 @@ class TestGefCommands(unittest.TestCase):
     def test_set_arch(self):
         res = gdb_test_python_method("current_arch.arch, current_arch.mode", before="set_arch()")
         res = (res.splitlines()[-1])
-        self.assertTrue(res.startswith("('X86',"))
+        self.assertTrue('X86' in res)
         return
 
 
 if __name__ == "__main__":
+    shutil.copy2("./gef.py", "/tmp/gef.py")
     suite = unittest.TestLoader().loadTestsFromTestCase(TestGefCommands)
     unittest.TextTestRunner(verbosity=3).run(suite)
+    os.unlink("/tmp/gef.py")
