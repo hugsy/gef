@@ -117,14 +117,35 @@ features, it is **highly** recommended to install:
 - [`Ropper`](https://github.com/sashs/ropper)
 
 
-### {Cap,Key}stone ###
+### Capston/Keystone/Unicorn ###
 
-[`capstone`](https://github.com/aquynh/capstone) (by [Nguyen Anh Quynh](https://github.com/aquynh)) is an alternative disassembly engine, and [`keystone`](https://github.com/keystone-engine/keystone) is an (arguably the best) assembly engine.
-You can use `pip` to simply and quickly install it.
+`GEF` greatly enhances the capabilities of GDB thanks to a full integration of
+the following libraries:
+   - [`capstone`](https://github.com/aquynh/capstone)
+   (by [Nguyen Anh Quynh](https://github.com/aquynh)) is an alternative disassembly
+   engine, and [`keystone`](https://github.com/keystone-engine/keystone) is an
+   (arguably the best) assembly engine.
+   - [`keystone`](https://github.com/keystone-engine/keystone) allows to generate
+   opcodes, which can, for example, then be used as part of a shellcode.
+
+![gef-shellcoder](https://i.imgur.com/BPdtr2D.png)
+
+   - [`unicorn`](https://github.com/unicorn-engine/unicorn) (also written
+   by [Nguyen Anh Quynh](https://github.com/aquynh)) is a lightweight Qemu-based
+   framework to emulate any architecture currently supported by `GDB` (and even
+   some more).
+
+
+#### One-liners ####
+
+For a quick installation, use the `pip` packaged version:
 ```bash
-$ pip2 install capstone keystone-engine  # for Python2.x
-$ pip3 install capstone keystone-engine  # for Python3.x
+$ pip2 install capstone unicorn keystone-engine  # for Python2.x
+$ pip3 install capstone unicorn keystone-engine  # for Python3.x
 ```
+
+#### Manual installation ####
+You can use `pip` to simply and quickly install it.
 
 `capstone` and `keystone` are under very active development and improvement, so it is recommended to compile and install them from git.
 ```bash
@@ -136,15 +157,12 @@ $ sudo ldconfig
 $ cd ../bindings/python && sudo ./setup.py build && sudo ./setup.py install
 ```
 
-`capstone` provides an alternative to the `gdb` disassembler, which could be useful specifically when dealing with complex/uncommon instructions.
+`capstone` provides an alternative to the `gdb` disassembler, which could be
+useful specifically when dealing with complex/uncommon instructions.
 
-`keystone` allows to generate opcodes, which can, for example, then be used as part of a shellcode.
-![gef-shellcoder](https://i.imgur.com/BPdtr2D.png)
 
-### Unicorn ###
-
-[`unicorn`](https://github.com/unicorn-engine/unicorn) (also written by [Nguyen Anh Quynh](https://github.com/aquynh)) is a lightweight Qemu-based framework to emulate any architecture currently supported by `GDB` (and even some more).
-Install is simple through the [released packages](https://github.com/unicorn-engine/unicorn/releases) but I would recommend instead to rely on the GIT master branch.
+Install is simple through `pip`, but to get the latest features from it,
+installation from the repository is recommended:
 ```bash
 $ git clone https://github.com/unicorn-engine/unicorn.git && cd unicorn && ./make.sh && sudo ./make.sh install
 ```
