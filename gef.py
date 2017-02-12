@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 #
@@ -188,16 +187,16 @@ GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "ge
 
 
 ___default_aliases___                  = {
-    # windbg style breakpoints
-    "bl": "info breakpoints",
-    "bc": "delete breakpoints",
-    "bp": "break",
-    "bd": "disable breakpoints",
-    "tbp": "tbreak",
-    "pa": "advance",
-    "ptc": "finish",
-    "uf": "disassemble",
-    "kp": "info stack",
+    # WinDBG style breakpoints
+    "bl"  :   "info breakpoints",
+    "bc"  :   "delete breakpoints",
+    "bp"  :   "break",
+    "bd"  :   "disable breakpoints",
+    "tbp" :   "tbreak",
+    "pa"  :   "advance",
+    "ptc" :   "finish",
+    "uf"  :   "disassemble",
+    "kp"  :   "info stack",
 }
 
 
@@ -2125,8 +2124,8 @@ def hook_stop_handler(event):
 
 
 def new_objfile_handler(event):
-    set_arch()
     reset_all_caches()
+    set_arch()
     return
 
 

@@ -57,6 +57,42 @@ class TestGefCommands(unittest.TestCase):
         self.assertTrue(res.splitlines() >= 7)
         return
 
+    def test_command_process_search(self):
+        self.assertFailIfInactiveSession(gdb_run_command("grep /bin/sh"))
+        res = gdb_start_silent_command("grep /bin/sh")
+        self.assertNoException(res)
+        self.assertTrue("0x" in res)
+        return
+
+    def test_command_registers(self):
+        self.assertFailIfInactiveSession(gdb_run_command("registers"))
+        res = gdb_start_silent_command("registers")
+        self.assertNoException(res)
+        self.assertTrue("$rax" in res and "$eflags" in res)
+        return
+
+    def test_command_process_status(self):
+        self.assertFailIfInactiveSession(gdb_run_command("process-status"))
+        res = gdb_start_silent_command("process-status")
+        self.assertNoException(res)
+        self.assertTrue("Process Information" in res \
+                        and "No child process" in res \
+                        and "No open connections" in res)
+        return
+
+    def test_command_xor_memory(self):
+        cmd = "xor-memory display 0x555555774000 0x10 0x41"
+        self.assertFailIfInactiveSession(gdb_run_command(cmd))
+        res = gdb_start_silent_command(cmd)
+        self.assertNoException(res)
+        self.assertTrue("Original block" in res and "XOR-ed block" in res)
+
+        cmd = "xor-memory patch 0x555555774000 0x10 0x41"
+        res = gdb_start_silent_command(cmd)
+        self.assertNoException(res)
+        self.assertTrue("Patching XOR-ing 0x555555774000-0x555555774010 with '0x41'")
+        return
+
     def test_command_elf_info(self):
         res = gdb_run_command("elf-info")
         self.assertNoException(res)
