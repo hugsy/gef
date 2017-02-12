@@ -187,6 +187,20 @@ GEF_RC                                 = os.path.join(os.getenv("HOME"), ".gef.r
 GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
 
 
+___default_aliases___                  = {
+    # windbg style breakpoints
+    "bl": "info breakpoints",
+    "bc": "delete breakpoints",
+    "bp": "break",
+    "bd": "disable breakpoints",
+    "tbp": "tbreak",
+    "pa": "advance",
+    "ptc": "finish",
+    "uf": "disassemble",
+    "kp": "info stack",
+}
+
+
 class GefGenericException(Exception):
     """GEF generic exception."""
     def __init__(self, value):
@@ -7085,3 +7099,6 @@ if __name__  == "__main__":
 
     GefAliases()
     GefTmuxSetup()
+
+    for alias in ___default_aliases___:
+        GefAlias(alias, ___default_aliases___[alias])
