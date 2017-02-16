@@ -1897,15 +1897,6 @@ def get_function_length(sym):
     return end_addr - start_addr
 
 
-def command_only_works_for(os):
-    """Use this command in the `pre_load()`, to filter the Operating Systems this
-    command is working on."""
-    curos = get_os()
-    if not any(filter(lambda x: x == curos, os)):
-        raise GefUnsupportedOS("This command only works for {:s}".format(", ".join(os)))
-    return
-
-
 def __get_process_maps_linux(proc_map_file):
     """Parse the Linux process `/proc/pid/maps` file."""
     f = open_file(proc_map_file, use_cache=False)
