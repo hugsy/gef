@@ -5575,25 +5575,27 @@ class ContextCommand(GenericCommand):
             current_block = gdb.block_for_pc(pc)
             if not current_block.is_valid(): return ""
             m = collections.OrderedDict()
-            for sym in current_block:
-                if not sym.is_function and sym.name in line:
-                    key = sym.name
-                    val = gdb.parse_and_eval(sym.name)
-                    if val.type.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY):
-                        addr = long(val.address)
-                        addrs = DereferenceCommand.dereference_from(addr)
-                        if len(addrs) > 2:
-                            addrs = [addrs[0], "[...]", addrs[-1]]
+            while current_block and not current_block.is_static:
+                for sym in current_block:
+                    if not sym.is_function and sym.name in line:
+                        symbol = sym.name
+                        val = gdb.parse_and_eval(symbol)
+                        if val.type.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY):
+                            addr = long(val.address)
+                            addrs = DereferenceCommand.dereference_from(addr)
+                            if len(addrs) > 2:
+                                addrs = [addrs[0], "[...]", addrs[-1]]
 
-                        f = " {:s} ".format(right_arrow)
-                        val = f.join(addrs)
-                    elif val.type.code == gdb.TYPE_CODE_INT:
-                        val = hex(long(val))
-                    else:
-                        continue
+                            f = " {:s} ".format(right_arrow)
+                            val = f.join(addrs)
+                        elif val.type.code == gdb.TYPE_CODE_INT:
+                            val = hex(long(val))
+                        else:
+                            continue
 
-                    if key not in m:
-                        m[key] = val
+                        if symbol not in m:
+                            m[symbol] = val
+                current_block = current_block.superblock
 
             if m:
                 return "\t // " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m.items()])
