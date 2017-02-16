@@ -5559,7 +5559,9 @@ class ContextCommand(GenericCommand):
 
             if i == line_num:
                 extra_info = self.get_pc_context_info(pc, lines[i])
-                print(Color.colorify("{:4d}\t {:s} \t\t {:s} $pc\t".format(i + 1, lines[i], left_arrow,), attrs="bold red") + extra_info)
+                if extra_info:
+                    print(extra_info)
+                print(Color.colorify("{:4d}\t {:s} \t\t {:s} $pc\t".format(i + 1, lines[i], left_arrow,), attrs="bold red"))
 
             if i > line_num:
                 try:
@@ -5572,7 +5574,7 @@ class ContextCommand(GenericCommand):
         try:
             current_block = gdb.block_for_pc(pc)
             if not current_block.is_valid(): return ""
-            m = []
+            m = collections.OrderedDict()
             for sym in current_block:
                 if not sym.is_function and sym.name in line:
                     key = sym.name
@@ -5590,12 +5592,11 @@ class ContextCommand(GenericCommand):
                     else:
                         continue
 
-                    found = any([k == key for k, v in m])
-                    if not found:
-                        m.append((key, val))
+                    if key not in m:
+                        m[key] = val
 
             if m:
-                return "; " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m])
+                return "\t // " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m.items()])
         except Exception:
             pass
         return ""
