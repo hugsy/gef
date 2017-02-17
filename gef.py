@@ -5558,7 +5558,9 @@ class ContextCommand(GenericCommand):
 
             if i == line_num:
                 extra_info = self.get_pc_context_info(pc, lines[i])
-                print(Color.colorify("{:4d}\t {:s} \t\t {:s} $pc\t".format(i + 1, lines[i], left_arrow,), attrs="bold red") + extra_info)
+                if extra_info:
+                    print(extra_info)
+                print(Color.colorify("{:4d}\t {:s} \t\t {:s} $pc\t".format(i + 1, lines[i], left_arrow,), attrs="bold red"))
 
             if i > line_num:
                 try:
@@ -5571,30 +5573,31 @@ class ContextCommand(GenericCommand):
         try:
             current_block = gdb.block_for_pc(pc)
             if not current_block.is_valid(): return ""
-            m = []
-            for sym in current_block:
-                if not sym.is_function and sym.name in line:
-                    key = sym.name
-                    val = gdb.parse_and_eval(sym.name)
-                    if val.type.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY):
-                        addr = long(val.address)
-                        addrs = DereferenceCommand.dereference_from(addr)
-                        if len(addrs) > 2:
-                            addrs = [addrs[0], "[...]", addrs[-1]]
+            m = collections.OrderedDict()
+            while current_block and not current_block.is_static:
+                for sym in current_block:
+                    symbol = sym.name
+                    if not sym.is_function and re.search(r"\W{}\W".format(symbol), line):
+                        val = gdb.parse_and_eval(symbol)
+                        if val.type.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY):
+                            addr = long(val.address)
+                            addrs = DereferenceCommand.dereference_from(addr)
+                            if len(addrs) > 2:
+                                addrs = [addrs[0], "[...]", addrs[-1]]
 
-                        f = " {:s} ".format(right_arrow)
-                        val = f.join(addrs)
-                    elif val.type.code == gdb.TYPE_CODE_INT:
-                        val = hex(long(val))
-                    else:
-                        continue
+                            f = " {:s} ".format(right_arrow)
+                            val = f.join(addrs)
+                        elif val.type.code == gdb.TYPE_CODE_INT:
+                            val = hex(long(val))
+                        else:
+                            continue
 
-                    found = any([k == key for k, v in m])
-                    if not found:
-                        m.append((key, val))
+                        if symbol not in m:
+                            m[symbol] = val
+                current_block = current_block.superblock
 
             if m:
-                return "; " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m])
+                return "\t // " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m.items()])
         except Exception:
             pass
         return ""
