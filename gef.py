@@ -5577,8 +5577,8 @@ class ContextCommand(GenericCommand):
             m = collections.OrderedDict()
             while current_block and not current_block.is_static:
                 for sym in current_block:
-                    if not sym.is_function and sym.name in line:
-                        symbol = sym.name
+                    symbol = sym.name
+                    if not sym.is_function and re.search(r"\W{}\W".format(symbol), line):
                         val = gdb.parse_and_eval(symbol)
                         if val.type.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY):
                             addr = long(val.address)
