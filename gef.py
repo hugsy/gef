@@ -6395,6 +6395,7 @@ class ChecksecCommand(GenericCommand):
     def print_security_properties(self, filename):
         sec = checksec(filename)
         for prop in sec:
+            if prop in ("Partial RelRO", "Full RelRO"): continue
             val = sec[prop]
             msg = Color.greenify("Yes") if val is True else Color.redify("No")
             if prop=="Canary" and is_alive():
@@ -6402,6 +6403,13 @@ class ChecksecCommand(GenericCommand):
                 msg+= "{} value: {:#x}".format(right_arrow, canary)
 
             print("{:<30s}: {:s}".format(prop, msg))
+
+        if sec["Full RelRO"]:
+            print("{:<30s}: {:s}".format("RelRO", Color.greenify("Full")))
+        elif sec["Partial RelRO"]:
+            print("{:<30s}: {:s}".format("RelRO", Color.yellowify("Partial")))
+        else:
+            print("{:<30s}: {:s}".format("RelRO", Color.redify("No")))
         return
 
 
