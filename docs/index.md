@@ -5,7 +5,7 @@
 `GEF` is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to
 make GDB cool again for exploit dev. It is aimed to be used mostly by exploiters
 and reverse-engineers, to
-provides additional features to GDB using the Python API to assist during the
+provide additional features to GDB using the Python API to assist during the
 process of dynamic analysis and exploit development.
 
 `GEF` fully relies on GDB API and other Linux-specific sources of information
