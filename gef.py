@@ -5794,7 +5794,8 @@ class PatchCommand(GenericCommand):
     """Write specified values to the specified address."""
 
     _cmdline_ = "patch"
-    _syntax_  = "{:s} <qword|dword|word|byte> <location> <values>".format(_cmdline_)
+    _syntax_  = ("{0:s} <qword|dword|word|byte> <location> <values>\n"
+                 "{0:s} string <location> \"double-escaped string\"".format(_cmdline_))
     SUPPORTED_SIZES = {
         "qword": (8, "Q"),
         "dword": (4, "L"),
@@ -5822,12 +5823,12 @@ class PatchCommand(GenericCommand):
             return
 
         addr = align_address(long(gdb.parse_and_eval(location)))
-        size, fmt = self.SUPPORTED_SIZES[fmt]
+        size, fcode = self.SUPPORTED_SIZES[fmt]
 
         d = "<" if is_little_endian() else ">"
         for value in values:
             value = int(value, 0) & ((1 << size * 8) - 1)
-            vstr = struct.pack(d + fmt, value)
+            vstr = struct.pack(d + fcode, value)
             write_memory(addr, vstr, length=size)
             addr += size
 
