@@ -5724,27 +5724,26 @@ class HexdumpCommand(GenericCommand):
             self.usage()
             return
 
-        if argv[0] not in ("qword", "dword", "word", "byte"):
+        fmt, argv = argv[0], argv[1:]
+        if fmt not in {"qword", "dword", "word", "byte"}:
             self.usage()
             return
 
-        fmt, argv = argv[0], argv[1:]
         read_from = align_address(long(gdb.parse_and_eval(argv[0])))
         read_len = 10
         up_to_down = True
 
         if argc >= 2:
             for arg in argv[1:]:
-                if arg.startswith("L") or arg.startswith("l"):
+                arg = arg.lower()
+                if arg.startswith("l"):
                     if arg[1:].isdigit():
                         read_len = long(arg[1:])
                         continue
-
-                if arg in ("UP", "Up", "up"):
+                elif arg == "up":
                     up_to_down = True
                     continue
-
-                if arg in ("DOWN", "Down", "down"):
+                elif arg == "down":
                     up_to_down = False
                     continue
 
@@ -5766,7 +5765,6 @@ class HexdumpCommand(GenericCommand):
         if elf is None:
             return
         endianness = "<" if elf.e_endianness == Elf.LITTLE_ENDIAN else ">"
-        i = 0
 
         formats = {
             "qword": ("Q", 8),
@@ -5779,6 +5777,7 @@ class HexdumpCommand(GenericCommand):
         fmt_pack = endianness + r
         lines = []
 
+        i = 0
         while i < length:
             cur_addr = start_addr + i * l
             mem = read_memory(cur_addr, l)
