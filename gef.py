@@ -58,6 +58,7 @@ from __future__ import print_function, division
 
 import abc
 import binascii
+import codecs
 import collections
 import ctypes
 import fcntl
@@ -5790,7 +5791,7 @@ class HexdumpCommand(GenericCommand):
 
 
 class PatchCommand(GenericCommand):
-    """Write specified bytes to the specified address"""
+    """Write specified values to the specified address."""
 
     _cmdline_ = "patch"
     _syntax_  = "{:s} <qword|dword|word|byte> <location> <values>".format(_cmdline_)
@@ -5806,7 +5807,6 @@ class PatchCommand(GenericCommand):
         GefAlias("ed", "patch dword")
         GefAlias("ew", "patch word")
         GefAlias("eb", "patch byte")
-        # GefAlias("ea", "patch string")
         return
 
     @if_gdb_running
@@ -5831,6 +5831,40 @@ class PatchCommand(GenericCommand):
             write_memory(addr, vstr, length=size)
             addr += size
 
+        return
+
+
+class PatchStringCommand(GenericCommand):
+    """Write specified string to the specified address."""
+
+    _cmdline_ = "patch string"
+    _syntax_  = "{:s} <location> \"double backslash-escaped string\"".format(_cmdline_)
+
+    def post_load(self):
+        GefAlias("ea", "patch string")
+        return
+
+    @if_gdb_running
+    def do_invoke(self, argv):
+        argc = len(argv)
+        if argc != 2:
+            self.usage()
+            return
+
+        location, s = argv[0], argv[1]
+
+        addr = align_address(long(gdb.parse_and_eval(location)))
+
+        try:
+            s = codecs.escape_decode(s)[0]
+        except binascii.Error:
+            print("Could not decode '\\xXX' encoded string \"{}\"".format(s))
+            return
+
+        write_memory(addr, s, len(s))
+
+        return
+
 
 class DereferenceCommand(GenericCommand):
     """Dereference recursively an address and display information"""
@@ -5838,7 +5872,6 @@ class DereferenceCommand(GenericCommand):
     _cmdline_ = "dereference"
     _syntax_  = "{:s} [LOCATION] [NB]".format(_cmdline_)
     _aliases_ = ["telescope", "dps",]
-
 
     def __init__(self):
         super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
@@ -6518,7 +6551,7 @@ class GefCommand(gdb.Command):
             ASLRCommand,
             DereferenceCommand,
             HexdumpCommand,
-            PatchCommand,
+            PatchCommand, PatchStringCommand,
             CapstoneDisassembleCommand,
             ContextCommand,
             EntryPointBreakCommand,
