@@ -5789,6 +5789,49 @@ class HexdumpCommand(GenericCommand):
 
 
 
+class PatchCommand(GenericCommand):
+    """Write specified bytes to the specified address"""
+
+    _cmdline_ = "patch"
+    _syntax_  = "{:s} <qword|dword|word|byte> <location> <values>".format(_cmdline_)
+    SUPPORTED_SIZES = {
+        "qword": (8, "Q"),
+        "dword": (4, "L"),
+        "word": (2, "H"),
+        "byte": (1, "B"),
+    }
+
+    def post_load(self):
+        GefAlias("eq", "patch qword")
+        GefAlias("ed", "patch dword")
+        GefAlias("ew", "patch word")
+        GefAlias("eb", "patch byte")
+        # GefAlias("ea", "patch string")
+        return
+
+    @if_gdb_running
+    def do_invoke(self, argv):
+        argc = len(argv)
+        if argc < 3:
+            self.usage()
+            return
+
+        fmt, location, values = argv[0].lower(), argv[1], argv[2:]
+        if fmt not in self.SUPPORTED_SIZES:
+            self.usage()
+            return
+
+        addr = align_address(long(gdb.parse_and_eval(location)))
+        size, fmt = self.SUPPORTED_SIZES[fmt]
+
+        d = "<" if is_little_endian() else ">"
+        for value in values:
+            value = int(value, 0) & ((1 << size * 8) - 1)
+            vstr = struct.pack(d + fmt, value)
+            write_memory(addr, vstr, length=size)
+            addr += size
+
+
 class DereferenceCommand(GenericCommand):
     """Dereference recursively an address and display information"""
 
@@ -6475,6 +6518,7 @@ class GefCommand(gdb.Command):
             ASLRCommand,
             DereferenceCommand,
             HexdumpCommand,
+            PatchCommand,
             CapstoneDisassembleCommand,
             ContextCommand,
             EntryPointBreakCommand,
