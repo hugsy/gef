@@ -26,6 +26,7 @@ pages:
 - [commands/ida-interact.md, Command ida-interact]
 - [commands/ksymaddr.md, Command ksymaddr]
 - [commands/nop.md, Command nop]
+- [commands/patch.md Command patch]
 - [commands/pattern.md, Command pattern]
 - [commands/pcustom.md, Command pcustom]
 - [commands/process-status.md, Command process-status]
