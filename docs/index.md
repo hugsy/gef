@@ -117,7 +117,7 @@ features, it is **highly** recommended to install:
 - [`Ropper`](https://github.com/sashs/ropper)
 
 
-### Capston/Keystone/Unicorn ###
+### Capstone/Keystone/Unicorn ###
 
 `GEF` greatly enhances the capabilities of GDB thanks to a full integration of
 the following libraries:
@@ -125,8 +125,9 @@ the following libraries:
    (by [Nguyen Anh Quynh](https://github.com/aquynh)) is an alternative disassembly
    engine, and [`keystone`](https://github.com/keystone-engine/keystone) is an
    (arguably the best) assembly engine.
-   - [`keystone`](https://github.com/keystone-engine/keystone) allows to generate
-   opcodes, which can, for example, then be used as part of a shellcode.
+   - [`keystone`](https://github.com/keystone-engine/keystone) allows us to
+   generate opcodes, which can, for example, then be used as part of a
+   shellcode.
 
 ![gef-shellcoder](https://i.imgur.com/BPdtr2D.png)
 
@@ -139,6 +140,7 @@ the following libraries:
 #### One-liners ####
 
 For a quick installation, use the `pip` packaged version:
+
 ```bash
 $ pip2 install capstone unicorn keystone-engine  # for Python2.x
 $ pip3 install capstone unicorn keystone-engine  # for Python3.x

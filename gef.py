@@ -58,6 +58,7 @@ from __future__ import print_function, division
 
 import abc
 import binascii
+import codecs
 import collections
 import ctypes
 import fcntl
@@ -5724,27 +5725,26 @@ class HexdumpCommand(GenericCommand):
             self.usage()
             return
 
-        if argv[0] not in ("qword", "dword", "word", "byte"):
+        fmt, argv = argv[0], argv[1:]
+        if fmt not in {"qword", "dword", "word", "byte"}:
             self.usage()
             return
 
-        fmt, argv = argv[0], argv[1:]
         read_from = align_address(long(gdb.parse_and_eval(argv[0])))
         read_len = 10
         up_to_down = True
 
         if argc >= 2:
             for arg in argv[1:]:
-                if arg.startswith("L") or arg.startswith("l"):
+                arg = arg.lower()
+                if arg.startswith("l"):
                     if arg[1:].isdigit():
                         read_len = long(arg[1:])
                         continue
-
-                if arg in ("UP", "Up", "up"):
+                elif arg == "up":
                     up_to_down = True
                     continue
-
-                if arg in ("DOWN", "Down", "down"):
+                elif arg == "down":
                     up_to_down = False
                     continue
 
@@ -5766,7 +5766,6 @@ class HexdumpCommand(GenericCommand):
         if elf is None:
             return
         endianness = "<" if elf.e_endianness == Elf.LITTLE_ENDIAN else ">"
-        i = 0
 
         formats = {
             "qword": ("Q", 8),
@@ -5779,6 +5778,7 @@ class HexdumpCommand(GenericCommand):
         fmt_pack = endianness + r
         lines = []
 
+        i = 0
         while i < length:
             cur_addr = start_addr + i * l
             mem = read_memory(cur_addr, l)
@@ -5790,13 +5790,89 @@ class HexdumpCommand(GenericCommand):
 
 
 
+class PatchCommand(GenericCommand):
+    """Write specified values to the specified address."""
+
+    _cmdline_ = "patch"
+    _syntax_  = ("{0:s} <qword|dword|word|byte> <location> <values>\n"
+                 "{0:s} string <location> \"double-escaped string\"".format(_cmdline_))
+    SUPPORTED_SIZES = {
+        "qword": (8, "Q"),
+        "dword": (4, "L"),
+        "word": (2, "H"),
+        "byte": (1, "B"),
+    }
+
+    def post_load(self):
+        GefAlias("eq", "patch qword")
+        GefAlias("ed", "patch dword")
+        GefAlias("ew", "patch word")
+        GefAlias("eb", "patch byte")
+        return
+
+    @if_gdb_running
+    def do_invoke(self, argv):
+        argc = len(argv)
+        if argc < 3:
+            self.usage()
+            return
+
+        fmt, location, values = argv[0].lower(), argv[1], argv[2:]
+        if fmt not in self.SUPPORTED_SIZES:
+            self.usage()
+            return
+
+        addr = align_address(long(gdb.parse_and_eval(location)))
+        size, fcode = self.SUPPORTED_SIZES[fmt]
+
+        d = "<" if is_little_endian() else ">"
+        for value in values:
+            value = int(value, 0) & ((1 << size * 8) - 1)
+            vstr = struct.pack(d + fcode, value)
+            write_memory(addr, vstr, length=size)
+            addr += size
+
+        return
+
+
+class PatchStringCommand(GenericCommand):
+    """Write specified string to the specified address."""
+
+    _cmdline_ = "patch string"
+    _syntax_  = "{:s} <location> \"double backslash-escaped string\"".format(_cmdline_)
+
+    def post_load(self):
+        GefAlias("ea", "patch string")
+        return
+
+    @if_gdb_running
+    def do_invoke(self, argv):
+        argc = len(argv)
+        if argc != 2:
+            self.usage()
+            return
+
+        location, s = argv[0], argv[1]
+
+        addr = align_address(long(gdb.parse_and_eval(location)))
+
+        try:
+            s = codecs.escape_decode(s)[0]
+        except binascii.Error:
+            print("Could not decode '\\xXX' encoded string \"{}\"".format(s))
+            return
+
+        write_memory(addr, s, len(s))
+
+        return
+
+
 class DereferenceCommand(GenericCommand):
     """Dereference recursively an address and display information"""
 
     _cmdline_ = "dereference"
     _syntax_  = "{:s} [LOCATION] [NB]".format(_cmdline_)
     _aliases_ = ["telescope", "dps",]
-
 
     def __init__(self):
         super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
@@ -6476,6 +6552,7 @@ class GefCommand(gdb.Command):
             ASLRCommand,
             DereferenceCommand,
             HexdumpCommand,
+            PatchCommand, PatchStringCommand,
             CapstoneDisassembleCommand,
             ContextCommand,
             EntryPointBreakCommand,
