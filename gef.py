@@ -2925,7 +2925,6 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("registers_register_name", "bold red")
         self.add_setting("disable_color", "0", "Disable all colors in GEF")
         # TODO: add more customizable items
-        print("foo")
         return
 
     def do_invoke(self, args):
