@@ -6593,7 +6593,7 @@ class PrintCharCommand(GenericCommand):
 
         expr = " ".join(argv)
         value = long(gdb.parse_and_eval(expr)) & 0xFF
-        print("{:#x} '{}'".format(value, chr(value)))
+        print("{:#x} {!r}".format(value, chr(value)))
 
         return
 
