@@ -6575,6 +6575,29 @@ class FormatStringSearchCommand(GenericCommand):
         return
 
 
+@register_command
+class PrintCharCommand(GenericCommand):
+    """Simply evaluates the provided expression and prints the result as an ASCII char.
+    Only exists to fix `p/c` which is broken in GDB when output-radix is set to 16.
+    See https://sourceware.org/bugzilla/show_bug.cgi?id=8678."""
+    _cmdline_ = "printchar"
+    _syntax_ = "{:s} [EXPRESSION]".format(_cmdline_)
+    _aliases_ = ["pchar",]
+
+    def do_invoke(self, argv):
+        argc = len(argv)
+
+        if argc == 0:
+            warn("Provide expression to evaluate")
+            return
+
+        expr = " ".join(argv)
+        value = long(gdb.parse_and_eval(expr)) & 0xFF
+        print("{:#x} '{}'".format(value, chr(value)))
+
+        return
+
+
 class GefCommand(gdb.Command):
     """GEF main command: view all new commands by typing `gef`"""
 
