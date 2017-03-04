@@ -3671,7 +3671,7 @@ class ChangePermissionCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            __import__("keystone2")
+            __import__("keystone")
         except ImportError:
             msg = "Missing `keystone-engine` package for Python{0}, install with: `pip{0} install retdec-python`.".format(PYTHON_MAJOR)
             raise GefMissingDependencyException(msg)
