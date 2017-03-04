@@ -2459,10 +2459,8 @@ def is_remote_debug():
 
 
 def de_bruijn(alphabet, n):
-    """
-    De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib)
-    Source: https://github.com/Gallopsled/pwntools/blob/master/pwnlib/util/cyclic.py#L38
-    """
+    """De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib)
+    Source: https://github.com/Gallopsled/pwntools/blob/master/pwnlib/util/cyclic.py#L38 """
     k = len(alphabet)
     a = [0] * k * n
     def db(t, p):
@@ -3182,7 +3180,7 @@ class RetDecCommand(GenericCommand):
             __import__("retdec")
             __import__("retdec.decompiler")
         except ImportError:
-            msg = "Missing Python `retdec-python` package. "
+            msg = "Missing `retdec-python` package for Python{0}, install with: `pip{0} install retdec-python`.".format(PYTHON_MAJOR)
             raise GefMissingDependencyException(msg)
         return
 
@@ -3673,9 +3671,9 @@ class ChangePermissionCommand(GenericCommand):
 
     def pre_load(self):
         try:
-            __import__("keystone")
+            __import__("keystone2")
         except ImportError:
-            msg = "Missing Python `keystone-engine` package. "
+            msg = "Missing `keystone-engine` package for Python{0}, install with: `pip{0} install retdec-python`.".format(PYTHON_MAJOR)
             raise GefMissingDependencyException(msg)
         return
 
@@ -3753,9 +3751,14 @@ class UnicornEmulateCommand(GenericCommand):
     def pre_load(self):
         try:
             __import__("unicorn")
+        except ImportError:
+            msg = "Missing `unicorn` package for Python{0}. Install with `pip{0} install unicorn`.".format(PYTHON_MAJOR)
+            raise GefMissingDependencyException(msg)
+
+        try:
             __import__("capstone")
         except ImportError:
-            msg = "This command requires the following packages: `unicorn` and `capstone`."
+            msg = "Missing `capstone` package for Python{0}. Install with `pip{0} install capstone`.".format(PYTHON_MAJOR)
             raise GefMissingDependencyException(msg)
         return
 
@@ -4336,7 +4339,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         try:
             __import__("capstone")
         except ImportError:
-            msg = "Missing Python `capstone` package. "
+            msg = "Missing `capstone` package for Python{0}. Install with `pip{0} install capstone`.".format(PYTHON_MAJOR)
             raise GefMissingDependencyException(msg)
         return
 
@@ -4906,7 +4909,7 @@ class RopperCommand(GenericCommand):
         try:
             __import__("ropper")
         except ImportError:
-            msg = "Missing Python `ropper` package. "
+            msg = "Missing `ropper` package for Python{0}, install with: `pip{0} install ropper`.".format(PYTHON_MAJOR)
             raise GefMissingDependencyException(msg)
         return
 
@@ -4937,7 +4940,7 @@ class ROPgadgetCommand(GenericCommand):
         try:
             __import__("ropgadget")
         except ImportError:
-            msg = "Missing Python `ropgadget` package. "
+            msg = "Missing `ropgadget` package for Python{0}, install with: `pip{0} install ropgadget`.".format(PYTHON_MAJOR)
             raise GefMissingDependencyException(msg)
         return
 
@@ -5040,7 +5043,7 @@ class AssembleCommand(GenericCommand):
         try:
             __import__("keystone")
         except ImportError:
-            msg = "Missing Python `keystone-engine` package. "
+            msg = "Missing `keystone-engine` package for Python{0}, install with: `pip{0} install retdec-python`.".format(PYTHON_MAJOR)
             raise GefMissingDependencyException(msg)
         return
 
