@@ -2637,9 +2637,9 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
     def stop(self):
         size = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
         retaddr = gdb.selected_frame().older().pc()
-        enable_redirect_output("/dev/null")
+        # enable_redirect_output("/dev/null")
         bp = TraceMallocRetBreakpoint(retaddr, size)
-        disable_redirect_output()
+        # disable_redirect_output()
         return False
 
 
