@@ -764,19 +764,18 @@ class GlibcChunk:
     def __str__(self):
         m = []
         m += Color.colorify("FreeChunk", attrs="green bold underline") if not self.is_used() else Color.colorify("UsedChunk", attrs="red bold underline")
-        m += "(addr={:#x},size={:#x})".format(long(self.addr),self.get_chunk_size())
+        m += "(addr={:#x}, size={:#x})".format(long(self.addr),self.get_chunk_size())
         return "".join(m)
 
     def pprint(self):
         msg = []
         msg.append(str(self))
-        if not self.is_used():
-            msg.append(self.str_as_freeed())
-        else:
+        if self.is_used():
             msg.append(self.str_as_alloced())
+        else:
+            msg.append(self.str_as_freeed())
 
-        gdb.write("\n".join(msg))
-        gdb.write("\n")
+        gdb.write("\n".join(msg) + "\n")
         gdb.flush()
         return
 
@@ -2631,15 +2630,14 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
     """Track allocations done with malloc()."""
 
     def __init__(self):
-        super(TraceMallocBreakpoint, self).__init__("__GI___libc_malloc", gdb.BP_BREAKPOINT, internal=False)
+        super(TraceMallocBreakpoint, self).__init__("__GI___libc_malloc", gdb.BP_BREAKPOINT, internal=True)
+        self.silent = True
         return
 
     def stop(self):
         size = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
         retaddr = gdb.selected_frame().older().pc()
-        # enable_redirect_output("/dev/null")
-        bp = TraceMallocRetBreakpoint(retaddr, size)
-        # disable_redirect_output()
+        TraceMallocRetBreakpoint(retaddr, size)
         return False
 
 
@@ -2680,7 +2678,8 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
     """Track calls to free() and attempts to detect inconsistencies."""
 
     def __init__(self):
-        super(TraceFreeBreakpoint, self).__init__("__GI___libc_free", gdb.BP_BREAKPOINT, internal=False)
+        super(TraceFreeBreakpoint, self).__init__("__GI___libc_free", gdb.BP_BREAKPOINT, internal=True)
+        self.silent = True
         return
 
     def stop(self):
@@ -2688,15 +2687,20 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
         msg = []
         ok("{} - free({:#x})".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), addr))
         if addr==0:
-            msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
-            msg.append("Attempting to free(NULL) at {:#x}".format(current_arch.pc))
-            msg.append("Reason: if NULL page is allocatable, this can lead to code execution.")
-            __context_messages__.append(("warn", "\n".join(msg)))
-            return True
+            check_null = __config__.get("heap-analysis-helper.check_free_null")[0]
+            if check_null:
+                msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+                msg.append("Attempting to free(NULL) at {:#x}".format(current_arch.pc))
+                msg.append("Reason: if NULL page is allocatable, this can lead to code execution.")
+                __context_messages__.append(("warn", "\n".join(msg)))
+                return True
+            else:
+                return False
+
 
         if addr in [x for (x,y) in __heap_freed_list__]:
             msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
-            msg.append("Double-free detected {} free({:#x}) is called at {:#x} but is already in the free-ed list".format(right_arrow, addr, current_arch.loc))
+            msg.append("Double-free detected {} free({:#x}) is called at {:#x} but is already in the free-ed list".format(right_arrow, addr, current_arch.pc))
             msg.append("Execution will likely crash...")
             __context_messages__.append(("warn", "\n".join(msg)))
             return True
@@ -2733,9 +2737,9 @@ class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):
         return
 
     def stop(self):
-        enable_redirect_output("/dev/null")
+        # enable_redirect_output("/dev/null")
         wp = UafWatchpoint(self.addr)
-        disable_redirect_output()
+        # disable_redirect_output()
         __heap_uaf_watchpoints__.append((self.addr, wp))
         ok("{} - watching {:#x} for UaF".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), self.addr))
         return False
@@ -2754,14 +2758,14 @@ class UafWatchpoint(gdb.Breakpoint):
         """If this method is triggered, we likely have a UaF. Break the execution and report it."""
 
         frame = gdb.selected_frame()
-        if frame.name() in ("_int_malloc", ):
+        if frame.name() in ("_int_malloc", "malloc_consolidate"):
             # ignore when the watchpoint is raised by malloc() - due to reuse
             return False
 
         msg = []
         msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
         msg.append("Possible Use-after-Free:")
-        msg.append("Pointer {:#x}  was freed, but is attempt to be used at {:#x}".format(self.address, current_arch.pc))
+        msg.append("Pointer {:#x} was freed, but is attempt to be used at {:#x}".format(self.address, current_arch.pc))
         __context_messages__.append(("warn", "\n".join(msg)))
         return True
 
@@ -5514,6 +5518,7 @@ class ContextCommand(GenericCommand):
 
     def post_load(self):
         gdb.events.cont.connect(self.update_registers)
+        gdb.events.cont.connect(self.empty_extra_messages)
         return
 
     @if_gdb_running
@@ -5868,14 +5873,11 @@ class ContextCommand(GenericCommand):
 
 
     def context_additional_information(self):
-        global __context_messages__
-
         if not __context_messages__:
             return
 
         self.context_title("extra")
-        for _ in range(len(__context_messages__)):
-            level, text = __context_messages__.pop()
+        for level, text in __context_messages__:
             if   level=="error": err(text)
             elif level=="warn": warn(text)
             elif level=="success": ok(text)
@@ -5891,6 +5893,12 @@ class ContextCommand(GenericCommand):
                 self.old_registers[reg] = 0
         return
 
+
+    def empty_extra_messages(self, event):
+        global __context_messages__
+        del __context_messages__
+        __context_messages__ = []
+        return
 
 
 def disable_context():
@@ -6743,19 +6751,24 @@ class HeapAnalysisCommand(GenericCommand):
     - Double Free
     - Heap overlap
     """
-    _cmdline_ = "heap-vulnerability-analysis-helper"
+    _cmdline_ = "heap-analysis-helper"
     _syntax_ = "{:s}".format(_cmdline_)
-    _aliases_ = ["heap-analysis",]
+
+    def __init__(self, *args, **kwargs):
+        super(HeapAnalysisCommand, self).__init__(complete=gdb.COMPLETE_NONE)
+        self.add_setting("check_free_null", False, "Break execution when a free(NULL) is encountered")
+        return
 
     def do_invoke(self, argv):
-        enable_redirect_output("/dev/null")
-        TraceMallocBreakpoint()
         ok("Tracking malloc()")
-        TraceFreeBreakpoint()
+        TraceMallocBreakpoint()
         ok("Tracking free()")
-        disable_redirect_output()
+        TraceFreeBreakpoint()
+        ok("Disabling hardware watchpoints (this may increase the latency)")
+        gdb.execute("set can-use-hw-watchpoints 0")
+
         info("Dynamic breakpoints correctly setup, GEF will break execution if a possible vulnerabity is found.")
-        info("To disable, simply clear the malloc/free breakpoints (`delete breakpoints`)")
+        info("To disable, clear the malloc/free breakpoints (`delete breakpoints`) and restore hardware breakpoints (`set can-use-hw-watchpoints 1`)")
         return
 
 
@@ -7366,6 +7379,7 @@ if __name__  == "__main__":
     gdb.execute("set height 0")
     gdb.execute("set width 0")
     gdb.execute("set step-mode on")
+
 
     # gdb history
     gdb.execute("set history save on")
