@@ -2685,10 +2685,14 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
     def stop(self):
         addr = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
         msg = []
+        check_free_null = __config__.get("heap-analysis-helper.check_free_null")[0]
+        check_double_free = __config__.get("heap-analysis-helper.check_double_free")[0]
+        check_weird_free = __config__.get("heap-analysis-helper.check_weird_free")[0]
+        check_uaf = __config__.get("heap-analysis-helper.check_uaf")[0]
+
         ok("{} - free({:#x})".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), addr))
         if addr==0:
-            check_null = __config__.get("heap-analysis-helper.check_free_null")[0]
-            if check_null:
+            if check_free_null:
                 msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
                 msg.append("Attempting to free(NULL) at {:#x}".format(current_arch.pc))
                 msg.append("Reason: if NULL page is allocatable, this can lead to code execution.")
@@ -2699,11 +2703,14 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
 
 
         if addr in [x for (x,y) in __heap_freed_list__]:
-            msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
-            msg.append("Double-free detected {} free({:#x}) is called at {:#x} but is already in the free-ed list".format(right_arrow, addr, current_arch.pc))
-            msg.append("Execution will likely crash...")
-            __context_messages__.append(("warn", "\n".join(msg)))
-            return True
+            if check_double_free:
+                msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+                msg.append("Double-free detected {} free({:#x}) is called at {:#x} but is already in the free-ed list".format(right_arrow, addr, current_arch.pc))
+                msg.append("Execution will likely crash...")
+                __context_messages__.append(("warn", "\n".join(msg)))
+                return True
+            else:
+                return False
 
         # if here, no error
         # 1. move alloc-ed item to free list
@@ -2713,17 +2720,22 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
             item = __heap_allocated_list__.pop(idx)
 
         except ValueError:
-            msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
-            msg.append("Heap inconsistency detected:")
-            msg.append("Attempting to free an unknown value: {:#x}".format(addr))
-            __context_messages__.append(("warn", "\n".join(msg)))
-            return True
+            if check_weird_free:
+                msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+                msg.append("Heap inconsistency detected:")
+                msg.append("Attempting to free an unknown value: {:#x}".format(addr))
+                __context_messages__.append(("warn", "\n".join(msg)))
+                return True
+            else:
+                return False
+
 
         # 2. add it to free-ed list
         __heap_freed_list__.append(item)
 
-        # 3. add a watchpoint on pointer
-        TraceFreeRetBreakpoint(addr)
+        if check_uaf:
+            # 3. (opt.) add a watchpoint on pointer
+            TraceFreeRetBreakpoint(addr)
         return False
 
 
@@ -6757,6 +6769,9 @@ class HeapAnalysisCommand(GenericCommand):
     def __init__(self, *args, **kwargs):
         super(HeapAnalysisCommand, self).__init__(complete=gdb.COMPLETE_NONE)
         self.add_setting("check_free_null", False, "Break execution when a free(NULL) is encountered")
+        self.add_setting("check_double_free", True, "Break execution when a double free is encountered")
+        self.add_setting("check_weird_free", True, "Break execution when free() is called against a non-tracked pointer")
+        self.add_setting("check_uaf", True, "Break execution when a possible Use-after-Free condition is found")
         return
 
     def do_invoke(self, argv):
