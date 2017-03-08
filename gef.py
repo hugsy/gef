@@ -181,6 +181,10 @@ __infos_files__                        = []
 __loaded__                             = []
 __missing__                            = {}
 __gef_convenience_vars_index__         = 0
+__context_messages__                   = []
+__heap_allocated_list__                = []
+__heap_freed_list__                    = []
+__heap_uaf_watchpoints__               = []
 
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
@@ -595,24 +599,23 @@ class GlibcArena:
     def __int__(self):
         return self.__addr
 
-    def deref_as_long(self, addr):
-        naddr = dereference(addr).address
-        return long(naddr)
+    def dereference_as_long(self, addr):
+        return long(dereference(addr).address)
 
     def fastbin(self, i):
-        addr = self.deref_as_long(self.fastbinsY[i])
+        addr = self.dereference_as_long(self.fastbinsY[i])
         if addr == 0:
             return None
         return GlibcChunk(addr + 2 * self.__arch)
 
     def bin(self, i):
         idx = i * 2
-        fd = self.deref_as_long(self.bins[idx])
-        bw = self.deref_as_long(self.bins[idx + 1])
+        fd = self.dereference_as_long(self.bins[idx])
+        bw = self.dereference_as_long(self.bins[idx + 1])
         return (fd, bw)
 
     def get_next(self):
-        addr_next = self.deref_as_long(self.next)
+        addr_next = self.dereference_as_long(self.next)
         arena_main = GlibcArena("main_arena")
         if addr_next == arena_main.__addr:
             return None
@@ -622,10 +625,10 @@ class GlibcArena:
         return self.__arch
 
     def __str__(self):
-        top             = self.deref_as_long(self.top)
-        last_remainder  = self.deref_as_long(self.last_remainder)
-        n               = self.deref_as_long(self.next)
-        nfree           = self.deref_as_long(self.next_free)
+        top             = self.dereference_as_long(self.top)
+        last_remainder  = self.dereference_as_long(self.last_remainder)
+        n               = self.dereference_as_long(self.next)
+        nfree           = self.dereference_as_long(self.next_free)
         sysmem          = long(self.system_mem)
 
         fmt = "Arena (base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
@@ -637,7 +640,7 @@ class GlibcChunk:
     Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/"""
 
     def __init__(self, addr, from_base=False):
-        self.arch = int(get_memory_alignment())
+        self.arch = get_memory_alignment()
         if from_base:
             self.start_addr = addr
             self.addr = addr + 2 * self.arch
@@ -707,9 +710,9 @@ class GlibcChunk:
 
     def str_chunk_size_flag(self):
         msg = []
-        msg += "PREV_INUSE flag: {}".format(Color.greenify("On") if self.has_P_bit() else Color.redify("Off"))
-        msg += "IS_MMAPPED flag: {}".format(Color.greenify("On") if self.has_M_bit() else Color.redify("Off"))
-        msg += "NON_MAIN_ARENA flag: {}".format(Color.greenify("On") if self.has_N_bit() else Color.redify("Off"))
+        msg.append("PREV_INUSE flag: {}".format(Color.greenify("On") if self.has_P_bit() else Color.redify("Off")))
+        msg.append("IS_MMAPPED flag: {}".format(Color.greenify("On") if self.has_M_bit() else Color.redify("Off")))
+        msg.append("NON_MAIN_ARENA flag: {}".format(Color.greenify("On") if self.has_N_bit() else Color.redify("Off")))
         return "\n".join(msg)
 
 
@@ -718,20 +721,20 @@ class GlibcChunk:
         failed = False
 
         try:
-            msg += "Chunk size: {0:d} ({0:#x})".format(self.get_chunk_size())
-            msg += "Usable size: {0:d} ({0:#x})".format(self.get_usable_size())
+            msg.append("Chunk size: {0:d} ({0:#x})".format(self.get_chunk_size()))
+            msg.append("Usable size: {0:d} ({0:#x})".format(self.get_usable_size()))
             failed = True
         except gdb.MemoryError:
-            msg += "Chunk size: Cannot read at {:#x} (corrupted?)".format(self.size_addr)
+            msg.append("Chunk size: Cannot read at {:#x} (corrupted?)".format(self.size_addr))
 
         try:
-            msg += "Previous chunk size: {0:d} ({0:#x})".format(self.get_prev_chunk_size())
+            msg.append("Previous chunk size: {0:d} ({0:#x})".format(self.get_prev_chunk_size()))
             failed = True
         except gdb.MemoryError:
-            msg += "Previous chunk size: Cannot read at {:#x} (corrupted?)".format(self.start_addr)
+            msg.append("Previous chunk size: Cannot read at {:#x} (corrupted?)".format(self.start_addr))
 
         if failed:
-            msg += self.str_chunk_size_flag()
+            msg.append(self.str_chunk_size_flag())
 
         return "\n".join(msg)
 
@@ -740,16 +743,15 @@ class GlibcChunk:
         bkw = self.addr + self.arch
 
         msg = []
+        try:
+            msg.append("Forward pointer: {0:#x}".format(self.get_fwd_ptr()))
+        except gdb.MemoryError:
+            msg.append("Forward pointer: {0:#x} (corrupted?)".format(fwd))
 
         try:
-            msg += "Forward pointer: {0:#x}".format(self.get_fwd_ptr())
+            msg.append("Backward pointer: {0:#x}".format(self.get_bkw_ptr()))
         except gdb.MemoryError:
-            msg += "Forward pointer: {0:#x} (corrupted?)".format(fwd)
-
-        try:
-            msg += "Backward pointer: {0:#x}".format(self.get_bkw_ptr())
-        except gdb.MemoryError:
-            msg += "Backward pointer: {0:#x} (corrupted?)".format(bkw)
+            msg.append("Backward pointer: {0:#x} (corrupted?)".format(bkw))
 
         return "\n".join(msg)
 
@@ -761,26 +763,26 @@ class GlibcChunk:
 
     def __str__(self):
         m = []
-        m += Color.greenify("FreeChunk") if not self.is_used() else Color.redify("UsedChunk")
+        m += Color.colorify("FreeChunk", attrs="green bold underline") if not self.is_used() else Color.colorify("UsedChunk", attrs="red bold underline")
         m += "(addr={:#x},size={:#x})".format(long(self.addr),self.get_chunk_size())
         return "".join(m)
 
     def pprint(self):
         msg = []
+        msg.append(str(self))
         if not self.is_used():
-            msg += titlify("Chunk (free): {:#x}".format(self.start_addr), Color.GREEN)
-            msg += self.str_as_freeed()
+            msg.append(self.str_as_freeed())
         else:
-            msg += titlify("Chunk (used): {:#x}".format(self.start_addr), Color.RED)
-            msg += self.str_as_alloced()
+            msg.append(self.str_as_alloced())
 
         gdb.write("\n".join(msg))
+        gdb.write("\n")
         gdb.flush()
         return
 
 
 def titlify(text, color=None, msg_color=None):
-    """Print a GEF title."""
+    """Print a title."""
     cols = get_terminal_size()[1]
     nb = (cols - len(text) - 4)//2
     if color is None:
@@ -2550,7 +2552,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
-
+        msg = []
         if is_x86_32():
             sp = current_arch.sp
             sz =  current_arch.instruction_length
@@ -2568,17 +2570,14 @@ class FormatStringBreakpoint(gdb.Breakpoint):
 
         if addr.section.permission.value & Permission.WRITE:
             content = read_cstring_from_memory(addr.value)
-
-            print(titlify("Format String Detection"))
-            m = "Possible insecure format string '{:s}' {:s} {:#x}: '{:s}'\n".format(ptr, right_arrow, addr.value, content)
-            m += "Triggered by '{:s}()'".format(self.location)
-            info(m)
-
             name = addr.info.name if addr.info else addr.section.path
-            m = "Reason:\n"
-            m += "Call to '{:s}()' with format string argument in position #{:d} is in ".format(self.location, self.num_args)
-            m += "page {:#x} ({:s}) that has write permission".format(addr.section.page_start, name)
-            warn(m)
+
+            msg.append("Possible insecure format string: {:s}('{:s}' {:s} {:#x}: '{:s}')".format(self.location, ptr, right_arrow, addr.value, content))
+            msg.append("Reason: Call to '{:s}()' with format string argument in position #{:d} is in page {:#x} ({:s}) that has write permission".format(self.location,
+                                                                                                                                                 self.num_args,
+                                                                                                                                                 addr.section.page_start,
+                                                                                                                                                 name))
+            __context_messages__.append(("warn", "\n".join(msg)))
             return True
 
         return False
@@ -2605,9 +2604,7 @@ class StubBreakpoint(gdb.Breakpoint):
         cmd = "set {:s} = {:#x}".format(retreg, self.retval)
         m.append("(setting {:s} to {:#x})".format(retreg, self.retval))
         gdb.execute(cmd)
-
-        gdb.execute("return")
-
+        gdb.execute("return") # todo : use FinishBreakpoint instead
         ok(" ".join(m))
         return False  # never stop at this breakpoint
 
@@ -2627,6 +2624,145 @@ class ChangePermissionBreakpoint(gdb.Breakpoint):
         write_memory(self.original_pc, self.original_code, len(self.original_code))
         info("Restoring $pc")
         gdb.execute("set $pc = {:#x}".format(self.original_pc))
+        return True
+
+
+class TraceMallocBreakpoint(gdb.Breakpoint):
+    """Track allocations done with malloc()."""
+
+    def __init__(self):
+        super(TraceMallocBreakpoint, self).__init__("__GI___libc_malloc", gdb.BP_BREAKPOINT, internal=False)
+        return
+
+    def stop(self):
+        size = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
+        retaddr = gdb.selected_frame().older().pc()
+        enable_redirect_output("/dev/null")
+        bp = TraceMallocRetBreakpoint(retaddr, size)
+        disable_redirect_output()
+        return False
+
+
+
+class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
+    """Internal temporary breakpoint to retrieve the return value of malloc()."""
+
+    def __init__(self, location, size):
+        super(TraceMallocRetBreakpoint, self).__init__(gdb.newest_frame(), internal=True)
+        self.size = size
+        self.silent = True
+        return
+
+    def stop(self):
+        sz = self.size
+        loc = long(self.return_value)
+        ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), sz, loc))
+        try:
+            # pop from free-ed list if it was in it
+            idx = [x for x,y in __heap_freed_list__].index(loc)
+            __heap_freed_list__.pop(idx)
+
+            # pop from uaf watchlist
+            idx = [x for x,y in __heap_uaf_watchpoints__].index(loc)
+            addr, wp = __heap_uaf_watchpoints__.pop(idx)
+            wp.delete()
+        except ValueError:
+            pass
+
+        item = (loc, sz)
+
+        # add it to alloc-ed list
+        __heap_allocated_list__.append(item)
+        return False
+
+
+class TraceFreeBreakpoint(gdb.Breakpoint):
+    """Track calls to free() and attempts to detect inconsistencies."""
+
+    def __init__(self):
+        super(TraceFreeBreakpoint, self).__init__("__GI___libc_free", gdb.BP_BREAKPOINT, internal=False)
+        return
+
+    def stop(self):
+        addr = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
+        msg = []
+        ok("{} - free({:#x})".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), addr))
+        if addr==0:
+            msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+            msg.append("Attempting to free(NULL) at {:#x}".format(current_arch.pc))
+            msg.append("Reason: if NULL page is allocatable, this can lead to code execution.")
+            __context_messages__.append(("warn", "\n".join(msg)))
+            return True
+
+        if addr in [x for (x,y) in __heap_freed_list__]:
+            msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+            msg.append("Double-free detected {} free({:#x}) is called at {:#x} but is already in the free-ed list".format(right_arrow, addr, current_arch.loc))
+            msg.append("Execution will likely crash...")
+            __context_messages__.append(("warn", "\n".join(msg)))
+            return True
+
+        # if here, no error
+        # 1. move alloc-ed item to free list
+        try:
+            # pop from alloc-ed list
+            idx = [x for x,y in __heap_allocated_list__].index(addr)
+            item = __heap_allocated_list__.pop(idx)
+
+        except ValueError:
+            msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+            msg.append("Heap inconsistency detected:")
+            msg.append("Attempting to free an unknown value: {:#x}".format(addr))
+            __context_messages__.append(("warn", "\n".join(msg)))
+            return True
+
+        # 2. add it to free-ed list
+        __heap_freed_list__.append(item)
+
+        # 3. add a watchpoint on pointer
+        TraceFreeRetBreakpoint(addr)
+        return False
+
+
+class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):
+    """Internal temporary breakpoint to track free-ed values."""
+
+    def __init__(self, addr):
+        super(TraceFreeRetBreakpoint, self).__init__(gdb.newest_frame(), internal=True)
+        self.silent = True
+        self.addr = addr
+        return
+
+    def stop(self):
+        enable_redirect_output("/dev/null")
+        wp = UafWatchpoint(self.addr)
+        disable_redirect_output()
+        __heap_uaf_watchpoints__.append((self.addr, wp))
+        ok("{} - watching {:#x} for UaF".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), self.addr))
+        return False
+
+
+class UafWatchpoint(gdb.Breakpoint):
+    """Custom watchpoints set TraceFreeBreakpoint() to monitor free-ed pointers being used."""
+
+    def __init__(self, addr):
+        super(UafWatchpoint, self).__init__("*{:#x}".format(addr), gdb.BP_WATCHPOINT, internal=True)
+        self.address = addr
+        self.silent = True
+        return
+
+    def stop(self):
+        """If this method is triggered, we likely have a UaF. Break the execution and report it."""
+
+        frame = gdb.selected_frame()
+        if frame.name() in ("_int_malloc", ):
+            # ignore when the watchpoint is raised by malloc() - due to reuse
+            return False
+
+        msg = []
+        msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+        msg.append("Possible Use-after-Free:")
+        msg.append("Pointer {:#x}  was freed, but is attempt to be used at {:#x}".format(self.address, current_arch.pc))
+        __context_messages__.append(("warn", "\n".join(msg)))
         return True
 
 
@@ -5369,7 +5505,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("ignore_registers", "", "Specify here a space-separated list of registers you do not here to display (for example: '$cs $ds $status')")
         self.add_setting("clear_screen", False, "Clear the screen before printing the context")
 
-        self.add_setting("layout", "regs stack code source threads trace", "Change the order/display of the context")
+        self.add_setting("layout", "regs stack code source threads trace extra", "Change the order/display of the context")
         self.add_setting("redirect", "", "Redirect the context information to another TTY")
 
         if "capstone" in list(sys.modules.keys()):
@@ -5397,6 +5533,7 @@ class ContextCommand(GenericCommand):
             "source": self.context_source,
             "trace": self.context_trace,
             "threads": self.context_threads,
+            "extra": self.context_additional_information,
         }
 
         redirect = self.get_setting("redirect")
@@ -5728,6 +5865,23 @@ class ContextCommand(GenericCommand):
             print(line)
             i += 1
         return
+
+
+    def context_additional_information(self):
+        global __context_messages__
+
+        if not __context_messages__:
+            return
+
+        self.context_title("extra")
+        for _ in range(len(__context_messages__)):
+            level, text = __context_messages__.pop()
+            if   level=="error": err(text)
+            elif level=="warn": warn(text)
+            elif level=="success": ok(text)
+            else: info(text)
+        return
+
 
     def update_registers(self, event):
         for reg in current_arch.all_registers:
@@ -6575,6 +6729,33 @@ class FormatStringSearchCommand(GenericCommand):
 
         disable_redirect_output()
         ok("Enabled {:d} FormatStringBreakpoint".format(len(dangerous_functions)))
+        return
+
+
+
+@register_command
+class HeapAnalysisCommand(GenericCommand):
+    """Heap vulnerability analysis helper: this command aims to track dynamic heap allocation
+    done through malloc()/free() to provide some insights on possible heap vulnerabilities. The
+    following vulnerabilities are checked:
+    - NULL free
+    - Use-after-Free
+    - Double Free
+    - Heap overlap
+    """
+    _cmdline_ = "heap-vulnerability-analysis-helper"
+    _syntax_ = "{:s}".format(_cmdline_)
+    _aliases_ = ["heap-analysis",]
+
+    def do_invoke(self, argv):
+        enable_redirect_output("/dev/null")
+        TraceMallocBreakpoint()
+        ok("Tracking malloc()")
+        TraceFreeBreakpoint()
+        ok("Tracking free()")
+        disable_redirect_output()
+        info("Dynamic breakpoints correctly setup, GEF will break execution if a possible vulnerabity is found.")
+        info("To disable, simply clear the malloc/free breakpoints (`delete breakpoints`)")
         return
 
 
