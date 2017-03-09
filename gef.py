@@ -2776,6 +2776,18 @@ class UafWatchpoint(gdb.Breakpoint):
         return True
 
 
+class EntryBreakBreakpoint(gdb.Breakpoint):
+    """Breakpoint used internally to stop execution at the most convenient entry point."""
+
+    def __init__(self, location):
+        super(EntryBreakBreakpoint, self).__init__(location, gdb.BP_BREAKPOINT, internal=True, temporary=True)
+        self.silent = True
+        return
+
+    def stop(self):
+        return True
+
+
 #
 # Commands
 #
@@ -5422,14 +5434,12 @@ class EntryPointBreakCommand(GenericCommand):
             warn("gdb is already running")
             return
 
-        syms = ["main", "__libc_start_main", "__uClibc_main"]
-        bp = -1
-        for sym in syms:
+        bp = None
+        for sym in ["main", "__libc_start_main", "__uClibc_main"]:
             try:
                 value = gdb.parse_and_eval(sym)
                 info("Breaking at '{:s}'".format(str(value)))
-                bp = gdb.execute("tbreak {:s}".format(sym), from_tty=True, to_string=True)
-                bp = int(bp.split()[2])
+                bp = EntryBreakBreakpoint(sym)
                 gdb.execute("run {}".format(" ".join(argv)))
                 return
 
@@ -5441,8 +5451,7 @@ class EntryPointBreakCommand(GenericCommand):
                 continue
 
         # if here, clear the breakpoint if any set
-        if bp >= 0:
-            gdb.execute("delete breakpoints {:d}".format(bp))
+        if bp: bp.delete()
 
         # break at entry point
         elf = get_elf_headers()
@@ -5460,13 +5469,11 @@ class EntryPointBreakCommand(GenericCommand):
 
     def set_init_tbreak(self, addr):
         info("Breaking at entry-point: {:#x}".format(addr))
-        bp_num = gdb.execute("tbreak *{:#x}".format(addr), to_string=True)
-        bp_num = int(bp_num.split()[2])
-        return bp_num
+        bp = EntryBreakBreakpoint("*{:#x}".format(addr))
+        return bp
 
     def set_init_tbreak_pie(self, addr):
         warn("PIC binary detected, retrieving text base address")
-        enable_redirect_output()
         gdb.execute("set stop-on-solib-events 1")
         disable_context()
         gdb.execute("run")
@@ -5474,7 +5481,6 @@ class EntryPointBreakCommand(GenericCommand):
         gdb.execute("set stop-on-solib-events 0")
         vmmap = get_process_maps()
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
-        disable_redirect_output()
         return self.set_init_tbreak(base_address + addr)
 
     def is_pie(self, fpath):
@@ -5499,7 +5505,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
         self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
-        self.add_setting("ignore_registers", "", "Specify here a space-separated list of registers you do not here to display (for example: '$cs $ds $status')")
+        self.add_setting("ignore_registers", "", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
         self.add_setting("clear_screen", False, "Clear the screen before printing the context")
 
         self.add_setting("layout", "regs stack code source threads trace extra", "Change the order/display of the context")
@@ -6996,7 +7002,7 @@ class GefConfigCommand(gdb.Command):
         res = __config__.get(plugin_name)
         if res is not None:
             _value, _type, desc = res
-            print("{:<35s}  ({:<5s}) = {:<50s}   {:s}".format(plugin_name,
+            print("{:<40s}  ({:^4s}) = {:<45s}   {:s}".format(plugin_name,
                                                               _type.__name__,
                                                               str(_value),
                                                               Color.greenify(desc)))
