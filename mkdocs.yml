@@ -20,6 +20,7 @@ pages:
 - [commands/format-string-helper.md, Command format-string-helper]
 - [commands/gef-remote.md, Command gef-remote]
 - [commands/heap.md, Command heap]
+- [commands/heap-analysis-helper.md, Command heap-analysis-helper]
 - [commands/help.md, Command help]
 - [commands/hexdump.md, Command hexdump]
 - [commands/hijack-fd.md, Command hijack-fd]
