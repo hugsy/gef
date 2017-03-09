@@ -105,6 +105,20 @@ class TestGefCommands(unittest.TestCase):
         # todo: add more granular tests (with specific binaries (no canary, no pic, etc.))
         return
 
+    def test_command_stub(self):
+        cmd = "stub printf"
+        self.assertFailIfInactiveSession(gdb_run_command(cmd))
+        res = gdb_start_silent_command(cmd)
+        self.assertNoException(res)
+        return
+
+    def test_command_heap_analysis(self):
+        cmd = "heap-analysis-helper"
+        self.assertFailIfInactiveSession(gdb_run_command(cmd))
+        res = gdb_start_silent_command(cmd)
+        self.assertNoException(res)
+        return
+
     def test_command_pattern_create(self):
         res = gdb_run_command("pattern create 16")
         self.assertNoException(res)

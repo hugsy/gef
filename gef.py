@@ -6761,6 +6761,7 @@ class HeapAnalysisCommand(GenericCommand):
         self.add_setting("check_uaf", True, "Break execution when a possible Use-after-Free condition is found")
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
         ok("Tracking malloc()")
         TraceMallocBreakpoint()
