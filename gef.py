@@ -4435,36 +4435,27 @@ class StubCommand(GenericCommand):
     """Stub out the specified function."""
 
     _cmdline_ = "stub"
-    _syntax_  = "{:s} [-r RETVAL] [-h] [LOCATION]".format(_cmdline_)
+    _syntax_  = """{:s} [-r RETVAL] [-h] [LOCATION]
+\tLOCATION\taddress/symbol to stub out
+\t-r RETVAL\tSet the return value""".format(_cmdline_)
 
     def __init__(self):
         super(StubCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
+    @if_gdb_running
     def do_invoke(self, argv):
-        opts, args = getopt.getopt(argv, "r:h")
-        retval = 0
-        for o, a in opts:
-            if o == "-r":
-                retval = long(a, 0)
-            else:
-                self.usage()
-                return
+        try:
+            opts, args = getopt.getopt(argv, "r:")
+            retval = 0
+            for o, a in opts:
+                if o == "-r":
+                    retval = long(a, 0)
+        except getopt.GetoptError:
+            self.usage()
+            return
 
         loc = args[0] if args else "*{:#x}".format(current_arch.pc)
-        self.stub_out(loc, retval)
-        return
-
-    def usage(self):
-        m = [self._syntax_]
-        m.append("  LOCATION\taddress/symbol to stub out")
-        m.append("  -b RETVAL\tSet the return value")
-        m.append("  -h \t\tprint this help")
-        info("\n".join(m))
-        return
-
-    @if_gdb_running
-    def stub_out(self, loc, retval):
         StubBreakpoint(loc, retval)
         return
 
