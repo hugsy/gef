@@ -2570,7 +2570,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         if addr.section.permission.value & Permission.WRITE:
             content = read_cstring_from_memory(addr.value)
             name = addr.info.name if addr.info else addr.section.path
-
+            msg.append(Color.colorify("Format string helper"))
             msg.append("Possible insecure format string: {:s}('{:s}' {:s} {:#x}: '{:s}')".format(self.location, ptr, right_arrow, addr.value, content))
             msg.append("Reason: Call to '{:s}()' with format string argument in position #{:d} is in page {:#x} ({:s}) that has write permission".format(self.location,
                                                                                                                                                  self.num_args,
@@ -4457,11 +4457,7 @@ class StubCommand(GenericCommand):
                 self.help()
                 return
 
-        if not args:
-            loc = "*{:#x}".format(current_arch.pc)
-        else:
-            loc = args[0]
-
+        loc = args[0] if args else "*{:#x}".format(current_arch.pc)
         self.stub_out(loc, retval)
         return
 
