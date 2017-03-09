@@ -2749,9 +2749,7 @@ class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):
         return
 
     def stop(self):
-        # enable_redirect_output("/dev/null")
         wp = UafWatchpoint(self.addr)
-        # disable_redirect_output()
         __heap_uaf_watchpoints__.append((self.addr, wp))
         ok("{} - watching {:#x} for UaF".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), self.addr))
         return False
