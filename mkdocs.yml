@@ -39,6 +39,7 @@ pages:
 - [commands/search-pattern.md, Command search-pattern]
 - [commands/set-permission.md, Command set-permission]
 - [commands/shellcode.md, Command shellcode]
+- [commands/stub.md, Command stub]
 - [commands/theme.md, Command theme]
 - [commands/tmux-setup.md, Command tmux-setup]
 - [commands/trace-run.md, Command trace-run]
