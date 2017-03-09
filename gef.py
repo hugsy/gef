@@ -2597,15 +2597,11 @@ class StubBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
-        retreg  = current_arch.return_register
-
-        m = ["Ignoring call to '{:s}'".format(self.func)]
-        cmd = "set {:s} = {:#x}".format(retreg, self.retval)
-        m.append("(setting {:s} to {:#x})".format(retreg, self.retval))
-        gdb.execute(cmd)
-        gdb.execute("return") # todo : use FinishBreakpoint instead
-        ok(" ".join(m))
-        return False  # never stop at this breakpoint
+        m = "Ignoring call to '{:s}' ".format(self.func)
+        m+= "(setting return value to {:#x})".format(self.retval)
+        gdb.execute("return {:#x}".format(self.retval))
+        ok(m)
+        return False
 
 
 class ChangePermissionBreakpoint(gdb.Breakpoint):
@@ -4451,15 +4447,15 @@ class StubCommand(GenericCommand):
         for o, a in opts:
             if o == "-r":
                 retval = long(a, 0)
-            elif o == "-h":
-                self.help()
+            else:
+                self.usage()
                 return
 
         loc = args[0] if args else "*{:#x}".format(current_arch.pc)
         self.stub_out(loc, retval)
         return
 
-    def help(self):
+    def usage(self):
         m = [self._syntax_]
         m.append("  LOCATION\taddress/symbol to stub out")
         m.append("  -b RETVAL\tSet the return value")
