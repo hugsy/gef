@@ -2659,7 +2659,8 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
             # pop from uaf watchlist
             idx = [x for x,y in __heap_uaf_watchpoints__].index(loc)
             addr, wp = __heap_uaf_watchpoints__.pop(idx)
-            wp.delete()
+            wp.enabled = False
+            del wp
         except ValueError:
             pass
 
@@ -2724,7 +2725,6 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
                 return True
             else:
                 return False
-
 
         # 2. add it to free-ed list
         __heap_freed_list__.append(item)
