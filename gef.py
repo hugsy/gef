@@ -2747,7 +2747,7 @@ class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):
     def stop(self):
         wp = UafWatchpoint(self.addr)
         __heap_uaf_watchpoints__.append((self.addr, wp))
-        ok("{} - watching {:#x} for UaF".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), self.addr))
+        ok("{} - watching {:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), self.addr))
         return False
 
 
@@ -6772,6 +6772,7 @@ class HeapAnalysisCommand(GenericCommand):
 
         info("Dynamic breakpoints correctly setup, GEF will break execution if a possible vulnerabity is found.")
         info("To disable, clear the malloc/free breakpoints (`delete breakpoints`) and restore hardware breakpoints (`set can-use-hw-watchpoints 1`)")
+        warn("{}: The heap analysis slows down noticeably the execution. ".format(Color.colorify("Note", attrs="bold underline yellow")))
         return
 
 
