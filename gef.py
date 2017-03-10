@@ -665,11 +665,9 @@ class GlibcChunk:
     def get_prev_chunk_size(self):
         return read_int_from_memory(self.prev_size_addr)
 
-
     def get_next_chunk(self):
         addr = self.addr + self.get_chunk_size()
         return GlibcChunk(addr)
-
 
     # if free-ed functions
     def get_fwd_ptr(self):
@@ -678,7 +676,6 @@ class GlibcChunk:
     def get_bkw_ptr(self):
         return read_int_from_memory(self.addr + self.arch)
     # endif free-ed functions
-
 
     def has_P_bit(self):
         """Check for in PREV_INUSE bit
@@ -696,17 +693,14 @@ class GlibcChunk:
         return read_int_from_memory(self.size_addr) & 0x04
 
     def is_used(self):
-        """
-        Check if the current block is used by:
+        """Check if the current block is used by:
         - checking the M bit is true
-        - or checking that next chunk PREV_INUSE flag is true
-        """
+        - or checking that next chunk PREV_INUSE flag is true """
         if self.has_M_bit():
             return True
 
         next_chunk = self.get_next_chunk()
         return True if next_chunk.has_P_bit() else False
-
 
     def str_chunk_size_flag(self):
         msg = []
@@ -714,7 +708,6 @@ class GlibcChunk:
         msg.append("IS_MMAPPED flag: {}".format(Color.greenify("On") if self.has_M_bit() else Color.redify("Off")))
         msg.append("NON_MAIN_ARENA flag: {}".format(Color.greenify("On") if self.has_N_bit() else Color.redify("Off")))
         return "\n".join(msg)
-
 
     def _str_sizes(self):
         msg = []
@@ -811,7 +804,18 @@ def ok(msg, cr=True):    return _xlog("{} {}".format(Color.colorify("[+]", attrs
 def info(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[+]", attrs="bold blue"), msg), gdb.STDLOG, cr)
 
 
+def push_context_message(level, message):
+    """Push the message to be displayed the next time the context is invoked."""
+    global __context_messages__
+    if level not in ("error", "warn", "ok", "info"):
+        err("Invalid level '{}', discarding message".format(level))
+        return
+    __context_messages__.append((level, message))
+    return
+
+
 def show_last_exception():
+    """Display the last Python exception."""
     exc_type, exc_value, exc_traceback = sys.exc_info()
     traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
     traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
@@ -819,12 +823,14 @@ def show_last_exception():
 
 
 def gef_pystring(x):
+    """Python 2 & 3 compatibility function for strings handling."""
     if PYTHON_MAJOR == 3:
         return str(x, encoding="ascii")
     return x
 
 
 def gef_pybytes(x):
+    """Python 2 & 3 compatibility function for bytes handling."""
     if PYTHON_MAJOR == 3:
         return bytes(str(x), encoding="utf-8")
     return x
@@ -847,20 +853,18 @@ def which(program):
             if is_exe(exe_file):
                 return exe_file
 
-    raise IOError("Missing file `{:s}`".format(program))
+    raise FileNotFoundError("Missing file `{:s}`".format(program))
 
 
 def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
-    """
-    Return the hexdump of `src` argument.
+    """Return the hexdump of `src` argument.
     @param source *MUST* be of type bytes or bytearray
     @param length is the length of items per line
     @param separator is the default character to use if one byte is not printable
     @param show_raw if True, do not add the line nor the text translation
     @param base is the start address of the block being hexdump
     @param func is the function to use to parse bytes (int for Py3, chr for Py2)
-    @return a string with the hexdump
-    """
+    @return a string with the hexdump """
     result = []
     for i in range(0, len(source), length):
         s = source[i:i + length]
@@ -880,6 +884,14 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
 
     return "\n".join(result)
 
+
+def enable_debug():
+    __config__["gef.debug"] = (True, bool)
+    return
+
+def disable_debug():
+    __config__["gef.debug"] = (False, bool)
+    return
 
 def is_debug():
     return "gef.debug" in __config__ and __config__["gef.debug"][0] is True
@@ -2254,14 +2266,16 @@ def keystone_assemble(code, arch, mode, *args, **kwargs):
 
     try:
         ks = keystone.Ks(arch, mode)
-        enc = ks.asm(code, addr)[0]
+        enc, cnt = ks.asm(code, addr)
     except keystone.KsError as e:
-        err("Keystone assembler error: {:s}".format(e))
+        err("Keystone assembler error: {:s}".format(str(e)))
         return None
+
+    if cnt==0:
+        return ""
 
     enc = bytearray(enc)
     if "raw" not in kwargs:
-        # print as string
         s = binascii.hexlify(enc)
         enc = b"\\x" + b"\\x".join([s[i:i + 2] for i in range(0, len(s), 2)])
         enc = enc.decode("utf-8")
@@ -2576,7 +2590,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
                                                                                                                                                  self.num_args,
                                                                                                                                                  addr.section.page_start,
                                                                                                                                                  name))
-            __context_messages__.append(("warn", "\n".join(msg)))
+            push_context_message("warn", "\n".join(msg))
             return True
 
         return False
@@ -2637,7 +2651,6 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
         return False
 
 
-
 class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
     """Internal temporary breakpoint to retrieve the return value of malloc()."""
 
@@ -2693,7 +2706,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
                 msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
                 msg.append("Attempting to free(NULL) at {:#x}".format(current_arch.pc))
                 msg.append("Reason: if NULL page is allocatable, this can lead to code execution.")
-                __context_messages__.append(("warn", "\n".join(msg)))
+                push_context_message("warn", "\n".join(msg))
                 return True
             else:
                 return False
@@ -2704,7 +2717,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
                 msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
                 msg.append("Double-free detected {} free({:#x}) is called at {:#x} but is already in the free-ed list".format(right_arrow, addr, current_arch.pc))
                 msg.append("Execution will likely crash...")
-                __context_messages__.append(("warn", "\n".join(msg)))
+                push_context_message("warn", "\n".join(msg))
                 return True
             else:
                 return False
@@ -2721,7 +2734,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
                 msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
                 msg.append("Heap inconsistency detected:")
                 msg.append("Attempting to free an unknown value: {:#x}".format(addr))
-                __context_messages__.append(("warn", "\n".join(msg)))
+                push_context_message("warn", "\n".join(msg))
                 return True
             else:
                 return False
@@ -2772,7 +2785,7 @@ class UafWatchpoint(gdb.Breakpoint):
         msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
         msg.append("Possible Use-after-Free:")
         msg.append("Pointer {:#x} was freed, but is attempt to be used at {:#x}".format(self.address, current_arch.pc))
-        __context_messages__.append(("warn", "\n".join(msg)))
+        push_context_message("warn", "\n".join(msg))
         return True
 
 
@@ -7383,7 +7396,6 @@ if __name__  == "__main__":
     gdb.execute("set height 0")
     gdb.execute("set width 0")
     gdb.execute("set step-mode on")
-
 
     # gdb history
     gdb.execute("set history save on")
