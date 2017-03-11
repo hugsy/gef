@@ -886,15 +886,30 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
 
 
 def enable_debug():
+    """Enables debug mode."""
     __config__["gef.debug"] = (True, bool)
     return
 
 def disable_debug():
+    """Disables debug mode."""
     __config__["gef.debug"] = (False, bool)
     return
 
 def is_debug():
+    """Checks if debug mode is enabled."""
     return "gef.debug" in __config__ and __config__["gef.debug"][0] is True
+
+
+def reset_heap_infos():
+    """Resetting the information stored related to the heap-analysis module."""
+    global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
+    del __heap_allocated_list__
+    del __heap_freed_list__
+    del __heap_uaf_watchpoints__
+    __heap_allocated_list__ = []
+    __heap_freed_list__ = []
+    __heap_uaf_watchpoints__ = []
+    return
 
 
 def enable_redirect_output(to_file="/dev/null"):
@@ -1052,7 +1067,6 @@ def gef_disassemble(addr, nb_insn, from_top=False):
 
     if not from_top:
         start_addr = gdb_get_nth_previous_instruction_address(addr, count)
-        # print(hex(start_addr))
         if start_addr > 0:
             for insn in gdb_disassemble(start_addr, count=nb_insn):
                 yield insn
@@ -1082,8 +1096,6 @@ def gef_execute_gdb_script(commands):
         gdb.execute("source {:s}".format(fname))
         os.unlink(fname)
     return
-
-
 
 
 @lru_cache(32)
@@ -2130,21 +2142,26 @@ def ida_synchronize_handler(event):
 
 
 def continue_handler(event):
+    """GDB event handler for new object continue cases."""
     return
 
 
 def hook_stop_handler(event):
+    """GDB event handler for stop cases."""
     gdb.execute("context")
     return
 
 
 def new_objfile_handler(event):
+    """GDB event handler for new object file cases."""
     reset_all_caches()
+    reset_heap_infos()
     set_arch()
     return
 
 
 def exit_handler(event):
+    """GDB event handler for exit cases."""
     reset_all_caches()
     return
 
@@ -2661,21 +2678,32 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         return
 
     def stop(self):
+        global __heap_uaf_watchpoints__, __heap_freed_list__
         sz = self.size
         loc = long(self.return_value)
         ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), sz, loc))
-        try:
-            # pop from free-ed list if it was in it
-            idx = [x for x,y in __heap_freed_list__].index(loc)
-            __heap_freed_list__.pop(idx)
 
-            # pop from uaf watchlist
-            idx = [x for x,y in __heap_uaf_watchpoints__].index(loc)
-            addr, wp = __heap_uaf_watchpoints__.pop(idx)
-            wp.enabled = False
-            del wp
-        except ValueError:
-            pass
+        # pop from free-ed list if it was in it
+        if __heap_freed_list__:
+            idx = 0
+            for addr, sz in __heap_freed_list__:
+                if addr==loc:
+                    __heap_freed_list__.pop(idx)
+                    continue
+                idx+=1
+
+        # pop from uaf watchlist
+        if __heap_uaf_watchpoints__:
+            idx = 0
+            for wp_addr, wp_obj in __heap_uaf_watchpoints__:
+                # print(idx, hex(wp_addr))
+                if loc <= wp_addr <= loc+sz:
+                    # print("deleting from watchlist",idx, hex(wp_addr))
+                    __heap_uaf_watchpoints__.pop(idx)
+                    wp_obj.enabled = False
+                    del wp_obj
+                    continue
+                idx+=1
 
         item = (loc, sz)
 
@@ -2781,10 +2809,13 @@ class UafWatchpoint(gdb.Breakpoint):
             # ignore when the watchpoint is raised by malloc() - due to reuse
             return False
 
+        pc = gdb_get_nth_previous_instruction_address(current_arch.pc, 2) # software watchpoints stop after the next statement (see https://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html)
+        insn = gef_current_instruction(pc)
         msg = []
         msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
-        msg.append("Possible Use-after-Free:")
-        msg.append("Pointer {:#x} was freed, but is attempt to be used at {:#x}".format(self.address, current_arch.pc))
+        msg.append("Possible Use-after-Free in '{:s}': pointer {:#x} was freed, but is attempt to be used at {:#x}".format(get_filepath(), self.address, pc))
+        msg.append("{:#x}   {:s} {:s}".format(insn.address, insn.mnemo, Color.yellowify(", ".join(insn.operands))))
+
         push_context_message("warn", "\n".join(msg))
         return True
 
