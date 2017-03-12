@@ -41,7 +41,7 @@ Simply make sure you have [GDB 7.x+](https://www.gnu.org/s/gdb).
 $ wget -q -O- https://github.com/hugsy/gef/raw/master/gef.sh | sh
 
 # manually
-$ wget -q -O ~/.gdbinit-gef.py https://github.com/hugsy/gef/raw/master/gef.py
+$ wget -O ~/.gdbinit-gef.py -q git.io/gef.py
 $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 ```
 
