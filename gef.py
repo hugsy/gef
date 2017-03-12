@@ -2679,14 +2679,14 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
     def stop(self):
         size = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
         retaddr = gdb.selected_frame().older().pc()
-        TraceMallocRetBreakpoint(retaddr, size)
+        TraceMallocRetBreakpoint(size)
         return False
 
 
 class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
     """Internal temporary breakpoint to retrieve the return value of malloc()."""
 
-    def __init__(self, location, size):
+    def __init__(self, size):
         super(TraceMallocRetBreakpoint, self).__init__(gdb.newest_frame(), internal=True)
         self.size = size
         self.silent = True
@@ -2694,33 +2694,32 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
 
     def stop(self):
         global __heap_uaf_watchpoints__, __heap_freed_list__
-        sz = self.size
+        size = self.size
         loc = long(self.return_value)
-        ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), sz, loc))
+        ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), size, loc))
 
         # pop from free-ed list if it was in it
         if __heap_freed_list__:
             idx = 0
-            for addr, sz in __heap_freed_list__:
+            for item in __heap_freed_list__:
+                addr, sz = item
                 if addr==loc:
-                    __heap_freed_list__.pop(idx)
+                    __heap_freed_list__.remove(item)
                     continue
                 idx+=1
 
         # pop from uaf watchlist
         if __heap_uaf_watchpoints__:
             idx = 0
-            for wp_addr, wp_obj in __heap_uaf_watchpoints__:
-                # print(idx, hex(wp_addr))
-                if loc <= wp_addr <= loc+sz:
-                    # print("deleting from watchlist",idx, hex(wp_addr))
-                    __heap_uaf_watchpoints__.pop(idx)
-                    wp_obj.enabled = False
-                    del wp_obj
+            for wp in __heap_uaf_watchpoints__:
+                wp_addr = wp.address
+                if loc <= wp_addr < loc+size:
+                    __heap_uaf_watchpoints__.remove(wp)
+                    wp.enabled = False
                     continue
                 idx+=1
 
-        item = (loc, sz)
+        item = (loc, size)
 
         # add it to alloc-ed list
         __heap_allocated_list__.append(item)
@@ -2802,7 +2801,7 @@ class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):
 
     def stop(self):
         wp = UafWatchpoint(self.addr)
-        __heap_uaf_watchpoints__.append((self.addr, wp))
+        __heap_uaf_watchpoints__.append(wp)
         ok("{} - watching {:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), self.addr))
         return False
 
@@ -2822,6 +2821,10 @@ class UafWatchpoint(gdb.Breakpoint):
         frame = gdb.selected_frame()
         if frame.name() in ("_int_malloc", "malloc_consolidate"):
             # ignore when the watchpoint is raised by malloc() - due to reuse
+            return False
+
+        chunk = GlibcChunk(self.address)
+        if chunk.is_used():
             return False
 
         pc = gdb_get_nth_previous_instruction_address(current_arch.pc, 2) # software watchpoints stop after the next statement (see https://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html)
@@ -6812,6 +6815,7 @@ class HeapAnalysisCommand(GenericCommand):
         TraceMallocBreakpoint()
         ok("Tracking free()")
         TraceFreeBreakpoint()
+        # todo realloc / consolidate
         ok("Disabling hardware watchpoints (this may increase the latency)")
         gdb.execute("set can-use-hw-watchpoints 0")
 
