@@ -580,6 +580,7 @@ class Instruction:
         return "(bad)" not in self.mnemo
 
 
+
 class GlibcArena:
     """Glibc arena class
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671 """
@@ -630,9 +631,8 @@ class GlibcArena:
         n               = self.dereference_as_long(self.next)
         nfree           = self.dereference_as_long(self.next_free)
         sysmem          = long(self.system_mem)
-
         fmt = "Arena (base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
-        return fmt.format(self.__addr, top, last_remainder, n, nfree. sysmem)
+        return fmt.format(self.__addr, top, last_remainder, n, nfree, sysmem)
 
 
 class GlibcChunk:
@@ -773,6 +773,17 @@ class GlibcChunk:
         return
 
 
+@lru_cache()
+def get_main_arena():
+    try:
+        arena = GlibcArena("main_arena")
+    except Exception:
+        err("Failed to get `main_arena` symbol. heap commands may not work properly")
+        warn("Did you install `libc6-dbg`?")
+        arena = None
+    return arena
+
+
 def titlify(text, color=None, msg_color=None):
     """Print a title."""
     cols = get_terminal_size()[1]
@@ -903,6 +914,10 @@ def is_debug():
 def reset_heap_infos():
     """Resetting the information stored related to the heap-analysis module."""
     global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
+
+    for addr, wp in __heap_uaf_watchpoints__:
+        wp.delete()
+
     del __heap_allocated_list__
     del __heap_freed_list__
     del __heap_uaf_watchpoints__
@@ -4662,20 +4677,6 @@ class GlibcHeapCommand(GenericCommand):
     _cmdline_ = "heap"
     _syntax_  = "{:s} (chunk|bins|arenas)".format(_cmdline_)
 
-    def do_invoke(self, argv):
-        self.usage()
-        return
-
-    @staticmethod
-    def get_main_arena():
-        try:
-            arena = GlibcArena("main_arena")
-        except Exception:
-            warn("Failed to get `main_arena` symbol. heap commands may not work properly")
-            arena = None
-        return arena
-
-
 @register_command
 class GlibcHeapArenaCommand(GenericCommand):
     """Display information on a heap chunk."""
@@ -4689,11 +4690,11 @@ class GlibcHeapArenaCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, argv):
-        ok("Listing active arena(s):")
         try:
             arena = GlibcArena("main_arena")
         except Exception:
-            info("Could not find Glibc main arena")
+            err("Could not find Glibc main arena")
+            warn("Did you install `libc6-dbg`?")
             return
 
         while True:
@@ -4722,7 +4723,8 @@ class GlibcHeapChunkCommand(GenericCommand):
             self.usage()
             return
 
-        GlibcHeapCommand.get_main_arena()
+        if get_main_arena() is None:
+            return
 
         addr = long(gdb.parse_and_eval(argv[0]))
         chunk = GlibcChunk(addr)
@@ -4791,8 +4793,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, argv):
-        main_arena = GlibcHeapCommand.get_main_arena()
-        arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else main_arena
+        arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_main_arena()
 
         if arena is None:
             err("Invalid Glibc arena")
@@ -4836,7 +4837,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, argv):
-        if GlibcHeapCommand.get_main_arena() is None:
+        if get_main_arena() is None:
             err("Incorrect Glibc arenas")
             return
 
@@ -4858,7 +4859,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, argv):
-        if GlibcHeapCommand.get_main_arena() is None:
+        if get_main_arena() is None:
             err("Incorrect Glibc arenas")
             return
 
@@ -4883,7 +4884,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
 
     @if_gdb_running
     def do_invoke(self, argv):
-        if GlibcHeapCommand.get_main_arena() is None:
+        if get_main_arena() is None:
             err("Incorrect Glibc arenas")
             return
 
