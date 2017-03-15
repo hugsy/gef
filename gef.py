@@ -1380,7 +1380,7 @@ class X86(Architecture):
         "$fs    ", "$gs    ", "$eflags",]
     instruction_length = None
     return_register = "$eax"
-    function_parameters = ["$esp",]
+    function_parameters = ["$esp", ]
     flag_register = "$eflags"
     flags_table = {
         6: "zero",
@@ -1820,22 +1820,20 @@ def is_alive():
 def if_gdb_running(f):
     """Decorator wrapper to check if GDB is running."""
     @functools.wraps(f)
-    def wrapper(*args, **kwds):
+    def wrapper(*args, **kwargs):
         if is_alive():
-            return f(*args, **kwds)
+            return f(*args, **kwargs)
         else:
             warn("No debugging session active")
     return wrapper
 
 
-def is_linux_command(f):
-    """Decorator wrapper to check if the command is run on a linux system."""
+def experimental_feature(f):
+    """Decorator to add a warning when a feature is experimental."""
     @functools.wraps(f)
-    def wrapper(*args, **kwds):
-        if sys.platform.startswith("linux"):
-            return f(*args, **kwds)
-        else:
-            warn("This command only runs on Linux")
+    def wrapper(*args, **kwargs):
+        warn("This feature is under development, expect bugs and unstability...")
+        return f(*args, **kwargs)
     return wrapper
 
 
@@ -2672,12 +2670,16 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
     """Track allocations done with malloc()."""
 
     def __init__(self):
-        super(TraceMallocBreakpoint, self).__init__("__GI___libc_malloc", gdb.BP_BREAKPOINT, internal=True)
+        super(TraceMallocBreakpoint, self).__init__("__libc_malloc", gdb.BP_BREAKPOINT, internal=True)
         self.silent = True
         return
 
     def stop(self):
-        size = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
+        if is_x86_32():
+            # if intel x32, the malloc size is in the stack, so we need to dereference $sp
+            size = to_unsigned_long(dereference( current_arch.sp+4 ))
+        else:
+            size = get_register(current_arch.function_parameters[0])
         retaddr = gdb.selected_frame().older().pc()
         TraceMallocRetBreakpoint(size)
         return False
@@ -2692,10 +2694,13 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         self.silent = True
         return
 
+    def return_value_ex(self):
+        return to_unsigned_long(gdb.parse_and_eval(current_arch.return_register))
+
     def stop(self):
         global __heap_uaf_watchpoints__, __heap_freed_list__
         size = self.size
-        loc = long(self.return_value)
+        loc = long(self.return_value) if self.return_value else self.return_value_ex()
         ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), size, loc))
 
         # pop from free-ed list if it was in it
@@ -2730,12 +2735,16 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
     """Track calls to free() and attempts to detect inconsistencies."""
 
     def __init__(self):
-        super(TraceFreeBreakpoint, self).__init__("__GI___libc_free", gdb.BP_BREAKPOINT, internal=True)
+        super(TraceFreeBreakpoint, self).__init__("__libc_free", gdb.BP_BREAKPOINT, internal=True)
         self.silent = True
         return
 
     def stop(self):
-        addr = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
+        if is_x86_32():
+            # if intel x32, the free address is in the stack, so we need to dereference $sp
+            addr = to_unsigned_long(dereference( current_arch.sp+4 ))
+        else:
+            addr = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
         msg = []
         check_free_null = __config__.get("heap-analysis-helper.check_free_null")[0]
         check_double_free = __config__.get("heap-analysis-helper.check_double_free")[0]
@@ -2812,19 +2821,14 @@ class UafWatchpoint(gdb.Breakpoint):
     def __init__(self, addr):
         super(UafWatchpoint, self).__init__("*{:#x}".format(addr), gdb.BP_WATCHPOINT, internal=True)
         self.address = addr
-        self.silent = True
+        self.silent = False
         return
 
     def stop(self):
         """If this method is triggered, we likely have a UaF. Break the execution and report it."""
-
         frame = gdb.selected_frame()
         if frame.name() in ("_int_malloc", "malloc_consolidate"):
             # ignore when the watchpoint is raised by malloc() - due to reuse
-            return False
-
-        chunk = GlibcChunk(self.address)
-        if chunk.is_used():
             return False
 
         pc = gdb_get_nth_previous_instruction_address(current_arch.pc, 2) # software watchpoints stop after the next statement (see https://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html)
@@ -6118,7 +6122,6 @@ class PatchStringCommand(GenericCommand):
             return
 
         write_memory(addr, s, len(s))
-
         return
 
 
@@ -6133,6 +6136,10 @@ class DereferenceCommand(GenericCommand):
     def __init__(self):
         super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         self.add_setting("max_recursion", 7, "Maximum level of pointer recursion")
+        return
+
+    def post_load(self):
+        GefAlias("stack", "dereference $sp")
         return
 
     def pprint_dereferenced(self, addr, off):
@@ -6810,6 +6817,7 @@ class HeapAnalysisCommand(GenericCommand):
         return
 
     @if_gdb_running
+    @experimental_feature
     def do_invoke(self, argv):
         ok("Tracking malloc()")
         TraceMallocBreakpoint()
