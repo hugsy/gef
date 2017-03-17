@@ -2821,7 +2821,8 @@ class UafWatchpoint(gdb.Breakpoint):
     def __init__(self, addr):
         super(UafWatchpoint, self).__init__("*{:#x}".format(addr), gdb.BP_WATCHPOINT, internal=True)
         self.address = addr
-        self.silent = False
+        self.silent = True
+        self.enabled = True
         return
 
     def stop(self):
@@ -3899,7 +3900,7 @@ class ChangePermissionCommand(GenericCommand):
         try:
             __import__("keystone")
         except ImportError:
-            msg = "Missing `keystone-engine` package for Python{0}, install with: `pip{0} install retdec-python`.".format(PYTHON_MAJOR)
+            msg = "Missing `keystone-engine` package for Python{0}, install with: `pip{0} install keystone-engine`.".format(PYTHON_MAJOR)
             raise GefMissingDependencyException(msg)
         return
 
@@ -5242,7 +5243,7 @@ class AssembleCommand(GenericCommand):
         try:
             __import__("keystone")
         except ImportError:
-            msg = "Missing `keystone-engine` package for Python{0}, install with: `pip{0} install retdec-python`.".format(PYTHON_MAJOR)
+            msg = "Missing `keystone-engine` package for Python{0}, install with: `pip{0} install keystone-engine`.".format(PYTHON_MAJOR)
             raise GefMissingDependencyException(msg)
         return
 
