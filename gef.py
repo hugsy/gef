@@ -2161,6 +2161,7 @@ def continue_handler(event):
 
 def hook_stop_handler(event):
     """GDB event handler for stop cases."""
+    reset_all_caches()
     gdb.execute("context")
     return
 
@@ -2828,7 +2829,7 @@ class UafWatchpoint(gdb.Breakpoint):
     def stop(self):
         """If this method is triggered, we likely have a UaF. Break the execution and report it."""
         frame = gdb.selected_frame()
-        if frame.name() in ("_int_malloc", "malloc_consolidate"):
+        if frame.name() in ("_int_malloc", "malloc_consolidate", "__libc_calloc"):
             # ignore when the watchpoint is raised by malloc() - due to reuse
             return False
 
