@@ -4811,8 +4811,8 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         print(titlify("Fastbins for arena {:#x}".format(int(arena))))
         for i in range(10):
             print("Fastbin[{:d}] ".format(i), end="")
-            # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1680
             chunk = arena.fastbin(i)
+            chunks = []
 
             while True:
                 if chunk is None:
@@ -4820,6 +4820,12 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
                     break
 
                 print("{:s}  {:s}  ".format(right_arrow, str(chunk)), end="")
+                if chunk.addr in chunks:
+                    print("{:s} [loop detected]".format(right_arrow))
+                    break
+
+                chunks.append(chunk.addr)
+
                 try:
                     next_chunk = chunk.get_fwd_ptr()
                     if next_chunk == 0:
@@ -4903,6 +4909,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
             if GlibcHeapBinsCommand.pprint_bin(arena_addr, i)<0:
                 break
         return
+
 
 @register_command
 class SolveKernelSymbolCommand(GenericCommand):
@@ -5489,7 +5496,7 @@ class EntryPointBreakCommand(GenericCommand):
             return
 
         bp = None
-        for sym in ["main", "__libc_start_main", "__uClibc_main"]:
+        for sym in ["main", "_main", "__libc_start_main", "__uClibc_main", "start", "_start"]:
             try:
                 value = gdb.parse_and_eval(sym)
                 info("Breaking at '{:s}'".format(str(value)))
@@ -5505,7 +5512,8 @@ class EntryPointBreakCommand(GenericCommand):
                 continue
 
         # if here, clear the breakpoint if any set
-        if bp: bp.delete()
+        if bp:
+            bp.delete()
 
         # break at entry point
         elf = get_elf_headers()
