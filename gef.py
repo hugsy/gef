@@ -4819,9 +4819,9 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
                     print("0x00", end="")
                     break
 
-                print("{:s}  {:s}  ".format(right_arrow, str(chunk)), end="")
+                print("{:s} {:s} ".format(right_arrow, str(chunk)), end="")
                 if chunk.addr in chunks:
-                    print("{:s} [loop detected]".format(right_arrow))
+                    print("{:s} [loop detected]".format(right_arrow), end="")
                     break
 
                 chunks.append(chunk.addr)
