@@ -637,7 +637,7 @@ class GlibcArena:
 
 class GlibcChunk:
     """Glibc chunk class.
-    Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/"""
+    Ref: https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/"""
 
     def __init__(self, addr, from_base=False):
         self.arch = get_memory_alignment()
@@ -4803,13 +4803,14 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
     @if_gdb_running
     def do_invoke(self, argv):
         arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_main_arena()
+        NFASTBINS = 10
 
         if arena is None:
             err("Invalid Glibc arena")
             return
 
         print(titlify("Fastbins for arena {:#x}".format(int(arena))))
-        for i in range(10):
+        for i in range(NFASTBINS):
             print("Fastbin[{:d}] ".format(i), end="")
             chunk = arena.fastbin(i)
             chunks = []
@@ -4821,7 +4822,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
                 print("{:s} {:s} ".format(right_arrow, str(chunk)), end="")
                 if chunk.addr in chunks:
-                    print("{:s} [loop detected]".format(right_arrow), end="")
+                    print("{:s} [loop detected (points to {:#x})]".format(right_arrow, chunk.addr), end="")
                     break
 
                 chunks.append(chunk.addr)
@@ -4835,7 +4836,6 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
                 except gdb.MemoryError:
                     break
             print()
-
         return
 
 @register_command
@@ -6031,11 +6031,7 @@ class HexdumpCommand(GenericCommand):
 
 
     def _hexdump(self, start_addr, length, arrange_as):
-        elf = get_elf_headers()
-        if elf is None:
-            return
-        endianness = "<" if elf.e_endianness == Elf.LITTLE_ENDIAN else ">"
-
+        endianness = endian_str()
         formats = {
             "qword": ("Q", 8),
             "dword": ("I", 4),
@@ -6043,7 +6039,7 @@ class HexdumpCommand(GenericCommand):
         }
 
         r, l = formats[arrange_as]
-        fmt_str = "%#x+%.4x {:s} %#.{:s}x".format(vertical_line, str(l * 2))
+        fmt_str = "%#x{0:s}+%.4x: %#.{1:s}x".format(vertical_line, str(l * 2))
         fmt_pack = endianness + r
         lines = []
 
@@ -6052,7 +6048,7 @@ class HexdumpCommand(GenericCommand):
             cur_addr = start_addr + i * l
             mem = read_memory(cur_addr, l)
             val = struct.unpack(fmt_pack, mem)[0]
-            lines.append(fmt_str % (start_addr, i * l, val))
+            lines.append(fmt_str % (cur_addr, i * l, val))
             i += 1
 
         return lines
