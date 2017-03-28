@@ -4,7 +4,7 @@
 `gef` provides a simple XML-RPC client designed to communicate with a server
 running inside a specific IDA Python plugin, called `ida_gef_xmlrpc.py` (which
 can be downloaded freely
-[here](https://github.com/hugsy/stuff/blob/master/ida_scripts/ida_gef_xmlrpc.py)).
+[here](https://raw.githubusercontent.com/hugsy/gef/master/ida_gef.py)).
 
 Simply download this script, and run it inside IDA. When the server is running,
 you will see a text in the Output Window such as:
@@ -56,5 +56,3 @@ syntax.
 
 It is also note-worthy that [Binary Ninja](https://binary.ninja) support has be added:
 ![](https://pbs.twimg.com/media/CzSso9bUAAArL1f.jpg:large)
-
-

@@ -3564,10 +3564,6 @@ class SearchPatternCommand(GenericCommand):
     _syntax_  = "{:s} PATTERN".format(_cmdline_)
     _aliases_ = ["grep",]
 
-    def __init__(self):
-        super(SearchPatternCommand, self).__init__(prefix=False)
-        return
-
     def search_pattern_by_address(self, pattern, start_address, end_address):
         """Search a pattern within a range defined by arguments."""
         pattern = gef_pybytes(pattern)
@@ -3595,7 +3591,13 @@ class SearchPatternCommand(GenericCommand):
             start = section.page_start
             end   = section.page_end - 1
             for loc in self.search_pattern_by_address(pattern, start, end):
-                print("""{:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], right_arrow, Color.pinkify(loc[2])))
+                print("""{:50s}({}) {:s} {:#x} - {:#x} {}  "{}" """.format(Color.yellowify(section.path),
+                                                                           str(section.permission),
+                                                                           vertical_line,
+                                                                           loc[0],
+                                                                           loc[1],
+                                                                           right_arrow,
+                                                                           Color.pinkify(loc[2])))
         return
 
     @if_gdb_running
@@ -3605,7 +3607,7 @@ class SearchPatternCommand(GenericCommand):
             return
 
         pattern = argv[0]
-        info("Searching '{:s}' in memory".format(Color.yellowify(pattern)))
+        info("Searching '{}' in memory".format(Color.yellowify(pattern)))
         self.search_pattern(pattern)
         return
 
@@ -5163,7 +5165,6 @@ class ProcessListingCommand(GenericCommand):
 
         return None
 
-
     def get_processes(self):
         output = gef_execute_external(self.get_setting("ps_command").split(), True)
         names = [x.lower().replace("%", "") for x in output[0].split()]
@@ -5179,7 +5180,6 @@ class ProcessListingCommand(GenericCommand):
                     t[name] = fields[i]
 
             yield t
-
         return
 
 
