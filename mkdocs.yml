@@ -35,7 +35,6 @@ pages:
 - [commands/registers.md, Command registers]
 - [commands/reset-cache.md, Command reset-cache]
 - [commands/retdec.md, Command retdec]
-- [commands/ropgadget.md, Command ropgadget]
 - [commands/ropper.md, Command ropper]
 - [commands/search-pattern.md, Command search-pattern]
 - [commands/set-permission.md, Command set-permission]

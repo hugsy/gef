@@ -5,7 +5,7 @@ A simple recent GDB compiled with Python scripting support will do.
 
 
 ### Pre-requisites
-Only [GDB 7.x+](https://www.gnu.org/s/gdb) is required. It must be compiled with Python 2 or 3 support. 
+Only [GDB 7.x+](https://www.gnu.org/s/gdb) is required. It must be compiled with Python 2 or 3 support.
 
 All recent distributions of Linux now embeds a GDB version compiled with at least Python 2 (although more and more are migrating towards Python 3).
 
@@ -31,7 +31,7 @@ $ gdb -nx -ex 'python print (sys.version)' -ex quit
 [GCC 4.8.2]
 ```
 
-If you see an error here, it means that your GDB installation does not support Python. 
+If you see an error here, it means that your GDB installation does not support Python.
 
 
 ### Setup from repository
@@ -59,8 +59,7 @@ A few commands were added to `GEF` to extend its capabilities. It is
 highly recommended to install the following modules (but not required):
 
 - [`capstone`](https://github.com/aquynh/capstone) - disassembly engine
-- [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget) - ROP gadget finder
-- [`Ropper`](https://github.com/sashs/Ropper) - an improved version of  ROPgadget
+- [`Ropper`](https://github.com/sashs/Ropper) - an improved version of [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget)
 - [`unicorn`](https://github.com/unicorn-engine/unicorn) - emulation engine
 - [`keystone`](https://github.com/keystone-engine/keystone) - assembly engine
 
@@ -68,7 +67,6 @@ Some of those modules can be installed through `python-pip`. The following
 commands will work for most distributions, but substitute `pip3` for versions of `gdb` compiled with Python 3:
 ```bash
 $ pip install capstone
-$ pip install ropgadget
 $ pip install ropper
 ```
 
@@ -91,5 +89,5 @@ $ gdb-gef -q /bin/ls
 gef loaded, `gef help' to start, `gef config' to configure
 37 commands loaded (15 sub-commands), using Python engine 3.5
 Reading symbols from /bin/ls...(no debugging symbols found)...done.
-gef➤  
+gef➤
 ```

@@ -198,6 +198,7 @@ ___default_aliases___                  = {
     "bc"  :   "delete breakpoints",
     "bp"  :   "break",
     "bd"  :   "disable breakpoints",
+    "be"  :   "enable breakpoints",
     "tbp" :   "tbreak",
     "pa"  :   "advance",
     "ptc" :   "finish",
@@ -637,7 +638,7 @@ class GlibcArena:
 
 class GlibcChunk:
     """Glibc chunk class.
-    Ref: https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/"""
+    Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/"""
 
     def __init__(self, addr, from_base=False):
         self.arch = get_memory_alignment()
@@ -1077,13 +1078,13 @@ def gef_disassemble(addr, nb_insn, from_top=False):
     """Disassemble `nb_insn` instructions after `addr`. If `from_top` is False (default), it will
     also disassemble the `nb_insn` instructions before `addr`.
     Returns an iterator of Instruction objects."""
-    if (nb_insn & 1) == 1:
+    if nb_insn & 1:
         count = nb_insn + 1
 
     if not from_top:
         start_addr = gdb_get_nth_previous_instruction_address(addr, count)
         if start_addr > 0:
-            for insn in gdb_disassemble(start_addr, count=nb_insn):
+            for insn in gdb_disassemble(start_addr, count=count):
                 yield insn
 
     for insn in gdb_disassemble(addr, count=count):
@@ -1900,17 +1901,22 @@ def get_filename():
 
 
 def download_file(target, use_cache=False):
-    """Download filename `target` inside the mirror tree in /tmp"""
+    """Download filename `target` inside the mirror tree inside the GEF_TEMP_DIR.
+    The tree architecture must be GEF_TEMP_DIR/gef/<local_pid>/<remote_filepath>.
+    This allow a "chroot-like" tree format."""
+
     try:
-        local_root = GEF_TEMP_DIR
-        local_path = os.path.join(local_root, os.path.dirname(target))
-        local_name = os.path.join(local_path, os.path.basename(target))
-        if use_cache and os.path.isfile(local_name):
+        local_root = os.path.sep.join([GEF_TEMP_DIR, str(get_pid())])
+        local_path = os.path.sep.join([local_root, os.path.dirname(target)])
+        local_name = os.path.sep.join([local_path, os.path.basename(target)])
+
+        if use_cache and os.access(local_name, os.R_OK):
             return local_name
+
         gef_makedirs(local_path)
         gdb.execute("remote get {0:s} {1:s}".format(target, local_name))
     except Exception as e:
-        err(str(e))
+        err("download_file() failed: {}".format(str(e)))
         local_name = None
     return local_name
 
@@ -3790,6 +3796,10 @@ class SearchPatternCommand(GenericCommand):
     _syntax_  = "{:s} PATTERN".format(_cmdline_)
     _aliases_ = ["grep",]
 
+    def __init__(self):
+        super(SearchPatternCommand, self).__init__(prefix=False)
+        return
+
     def search_pattern_by_address(self, pattern, start_address, end_address):
         """Search a pattern within a range defined by arguments."""
         pattern = gef_pybytes(pattern)
@@ -3817,13 +3827,7 @@ class SearchPatternCommand(GenericCommand):
             start = section.page_start
             end   = section.page_end - 1
             for loc in self.search_pattern_by_address(pattern, start, end):
-                print("""{:50s}({}) {:s} {:#x} - {:#x} {}  "{}" """.format(Color.yellowify(section.path),
-                                                                           str(section.permission),
-                                                                           vertical_line,
-                                                                           loc[0],
-                                                                           loc[1],
-                                                                           right_arrow,
-                                                                           Color.pinkify(loc[2])))
+                print("""{:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], right_arrow, Color.pinkify(loc[2])))
         return
 
     @if_gdb_running
@@ -3833,7 +3837,7 @@ class SearchPatternCommand(GenericCommand):
             return
 
         pattern = argv[0]
-        info("Searching '{}' in memory".format(Color.yellowify(pattern)))
+        info("Searching '{:s}' in memory".format(Color.yellowify(pattern)))
         self.search_pattern(pattern)
         return
 
@@ -4374,6 +4378,7 @@ class RemoteCommand(GenericCommand):
                 ok("Download success: {:s} {:s} {:s}".format(lib, right_arrow, llib))
         return
 
+
     def setup_remote_environment(self, pid, update_solib=False):
         """Clone the remote environment locally in the temporary directory.
         The command will duplicate the entries in the /proc/<pid> locally and then
@@ -4393,11 +4398,12 @@ class RemoteCommand(GenericCommand):
             err("Source binary is not readable")
             return
 
-        directory  = GEF_TEMP_DIR
+        directory  = os.path.sep.join([GEF_TEMP_DIR, str(get_pid())])
         gdb.execute("file {:s}".format(infos["exe"]))
         self.add_setting("root", directory, "Path to store the remote data")
         ok("Remote information loaded, remember to clean '{:s}' when your session is over".format(directory))
         return
+
 
     def connect_target(self, target, is_extended_remote):
         """Connect to remote target and get symbols. To prevent `gef` from requesting information
@@ -4418,7 +4424,7 @@ class RemoteCommand(GenericCommand):
     def load_target_proc(self, pid, info):
         """Download one item from /proc/pid"""
         remote_name = "/proc/{:d}/{:s}".format(pid, info)
-        return download_file(remote_name)
+        return download_file(remote_name, use_cache=False)
 
 
     def refresh_shared_library_path(self):
@@ -4803,14 +4809,13 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
     @if_gdb_running
     def do_invoke(self, argv):
         arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_main_arena()
-        NFASTBINS = 10
 
         if arena is None:
             err("Invalid Glibc arena")
             return
 
         print(titlify("Fastbins for arena {:#x}".format(int(arena))))
-        for i in range(NFASTBINS):
+        for i in range(10):
             print("Fastbin[{:d}] ".format(i), end="")
             chunk = arena.fastbin(i)
             chunks = []
@@ -4822,7 +4827,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
                 print("{:s} {:s} ".format(right_arrow, str(chunk)), end="")
                 if chunk.addr in chunks:
-                    print("{:s} [loop detected (points to {:#x})]".format(right_arrow, chunk.addr), end="")
+                    print("{:s} [loop detected]".format(right_arrow), end="")
                     break
 
                 chunks.append(chunk.addr)
@@ -4836,6 +4841,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
                 except gdb.MemoryError:
                     break
             print()
+
         return
 
 @register_command
@@ -5132,109 +5138,6 @@ class RopperCommand(GenericCommand):
             return
 
 
-@register_command
-class ROPgadgetCommand(GenericCommand):
-    """ROPGadget (http://shell-storm.org/project/ROPgadget) plugin"""
-
-    _cmdline_ = "ropgadget"
-    _syntax_  = "{:s} [OPTIONS]".format(_cmdline_)
-
-
-    def __init__(self):
-        super(ROPgadgetCommand, self).__init__(complete=gdb.COMPLETE_NONE)
-        return
-
-    def pre_load(self):
-        try:
-            __import__("ropgadget")
-        except ImportError:
-            msg = "Missing `ropgadget` package for Python{0}, install with: `pip{0} install ropgadget`.".format(PYTHON_MAJOR)
-            raise GefMissingDependencyException(msg)
-        return
-
-
-    def do_invoke(self, argv):
-        class FakeArgs(object):
-            all        = None
-            binary     = None
-            string     = None
-            opcode     = None
-            memstr     = None
-            console    = None
-            norop      = None
-            nojop      = None
-            depth      = 10
-            nosys      = None
-            range      = "0x00-0x00"
-            badbytes   = None
-            only       = None
-            filter     = None
-            ropchain   = None
-            offset     = 0x00
-            outfile    = None
-            thumb      = None
-            rawArch    = None
-            rawMode    = None
-            multibr    = None
-
-
-        ropgadget = sys.modules["ropgadget"]
-        args = FakeArgs()
-        if self.parse_args(args, argv):
-            ropgadget.core.Core(args).analyze()
-        return
-
-
-    def parse_args(self, args, argv):
-        #
-        # options format is 'option_name1=option_value1'
-        #
-        def __usage__():
-            arr = [x for x in dir(args) if not x.startswith("__")]
-            info("Valid options for {:s} are:\n{:s}".format(self._cmdline_, ", ".join(arr)))
-            return
-
-        for opt in argv:
-            if opt in ("?", "h", "help"):
-                __usage__()
-                return False
-
-            try:
-                name, value = opt.split("=")
-            except ValueError:
-                err("Invalid syntax for argument '{0:s}', should be '{0:s}=<value>'".format(opt))
-                __usage__()
-                return False
-
-            if hasattr(args, name):
-                if name == "console":
-                    continue
-                elif name == "depth":
-                    value = long(value)
-                    depth = value
-                    info("Using depth {:d}".format(depth))
-                elif name == "range":
-                    off_min = long(value.split("-")[0], 16)
-                    off_max = long(value.split("-")[1], 16)
-                    if off_max < off_min:
-                        raise ValueError("{:#x} must be higher that {:#x}".format(off_max, off_min))
-                    info("Using range [{:#x}:{:#x}] ({:ld} bytes)".format(off_min, off_max, (off_max - off_min)))
-
-                setattr(args, name, value)
-
-            else:
-                err("'{:s}' is not a valid ropgadget option".format(name))
-                __usage__()
-                return False
-
-        if getattr(args, "binary") is None:
-            setattr(args, "binary", get_filepath())
-
-        info("Using binary: {:s}".format(args.binary))
-        return True
-
-
-@register_command
 class AssembleCommand(GenericCommand):
     """Inline code assemble. Architecture can be set in GEF runtime config (default is
     x86). """
@@ -5371,6 +5274,7 @@ class ProcessListingCommand(GenericCommand):
 
         return None
 
+
     def get_processes(self):
         output = gef_execute_external(self.get_setting("ps_command").split(), True)
         names = [x.lower().replace("%", "") for x in output[0].split()]
@@ -5386,6 +5290,7 @@ class ProcessListingCommand(GenericCommand):
                     t[name] = fields[i]
 
             yield t
+
         return
 
 
@@ -6031,7 +5936,11 @@ class HexdumpCommand(GenericCommand):
 
 
     def _hexdump(self, start_addr, length, arrange_as):
+        elf = get_elf_headers()
+        if elf is None:
+            return
         endianness = endian_str()
+
         formats = {
             "qword": ("Q", 8),
             "dword": ("I", 4),
@@ -6039,7 +5948,7 @@ class HexdumpCommand(GenericCommand):
         }
 
         r, l = formats[arrange_as]
-        fmt_str = "%#x{0:s}+%.4x: %#.{1:s}x".format(vertical_line, str(l * 2))
+        fmt_str = "%#x+%.4x {:s} %#.{:s}x".format(vertical_line, str(l * 2))
         fmt_pack = endianness + r
         lines = []
 
@@ -6048,7 +5957,7 @@ class HexdumpCommand(GenericCommand):
             cur_addr = start_addr + i * l
             mem = read_memory(cur_addr, l)
             val = struct.unpack(fmt_pack, mem)[0]
-            lines.append(fmt_str % (cur_addr, i * l, val))
+            lines.append(fmt_str % (start_addr, i * l, val))
             i += 1
 
         return lines
