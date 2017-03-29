@@ -1085,6 +1085,7 @@ def gef_disassemble(addr, nb_insn, from_top=False):
         start_addr = gdb_get_nth_previous_instruction_address(addr, count)
         if start_addr > 0:
             for insn in gdb_disassemble(start_addr, count=count):
+                if insn.address == addr: break
                 yield insn
 
     for insn in gdb_disassemble(addr, count=count):
@@ -1939,15 +1940,6 @@ def get_function_length(sym):
     start_addr = int(dis[1].split()[0], 16)
     end_addr = int(dis[-2].split()[0], 16)
     return end_addr - start_addr
-
-
-def command_only_works_for(os):
-    """Use this command in the `pre_load()`, to filter the Operating Systems this
-    command is working on."""
-    curos = get_os()
-    if not any(filter(lambda x: x == curos, os)):
-        raise GefUnsupportedOS("This command only works for {:s}".format(", ".join(os)))
-    return
 
 
 def __get_process_maps_linux(proc_map_file):
@@ -3820,6 +3812,9 @@ class SearchPatternCommand(GenericCommand):
 
     def search_pattern(self, pattern):
         """Search a pattern within the whole userland memory."""
+        if is_hex(pattern):
+            pattern = "".join(['\\x'+pattern[i:i+2] for i in range(2, len(pattern), 2)])
+
         for section in get_process_maps():
             if not section.permission & Permission.READ: continue
             if section.path == "[vvar]": continue
