@@ -707,9 +707,9 @@ class GlibcChunk:
 
     def str_chunk_size_flag(self):
         msg = []
-        msg += "PREV_INUSE flag: {}".format(Color.greenify("On") if self.has_P_bit() else Color.redify("Off"))
-        msg += "IS_MMAPPED flag: {}".format(Color.greenify("On") if self.has_M_bit() else Color.redify("Off"))
-        msg += "NON_MAIN_ARENA flag: {}".format(Color.greenify("On") if self.has_N_bit() else Color.redify("Off"))
+        msg += ["PREV_INUSE flag: {}".format(Color.greenify("On") if self.has_P_bit() else Color.redify("Off"))]
+        msg += ["IS_MMAPPED flag: {}".format(Color.greenify("On") if self.has_M_bit() else Color.redify("Off"))]
+        msg += ["NON_MAIN_ARENA flag: {}".format(Color.greenify("On") if self.has_N_bit() else Color.redify("Off"))]
         return "\n".join(msg)
 
 
@@ -718,20 +718,20 @@ class GlibcChunk:
         failed = False
 
         try:
-            msg += "Chunk size: {0:d} ({0:#x})".format(self.get_chunk_size())
-            msg += "Usable size: {0:d} ({0:#x})".format(self.get_usable_size())
+            msg += ["Chunk size: {0:d} ({0:#x})".format(self.get_chunk_size())]
+            msg += ["Usable size: {0:d} ({0:#x})".format(self.get_usable_size())]
             failed = True
         except gdb.MemoryError:
-            msg += "Chunk size: Cannot read at {:#x} (corrupted?)".format(self.size_addr)
+            msg += ["Chunk size: Cannot read at {:#x} (corrupted?)".format(self.size_addr)]
 
         try:
-            msg += "Previous chunk size: {0:d} ({0:#x})".format(self.get_prev_chunk_size())
+            msg += ["Previous chunk size: {0:d} ({0:#x})".format(self.get_prev_chunk_size())]
             failed = True
         except gdb.MemoryError:
-            msg += "Previous chunk size: Cannot read at {:#x} (corrupted?)".format(self.start_addr)
+            msg += ["Previous chunk size: Cannot read at {:#x} (corrupted?)".format(self.start_addr)]
 
         if failed:
-            msg += self.str_chunk_size_flag()
+            msg += [self.str_chunk_size_flag()]
 
         return "\n".join(msg)
 
@@ -742,39 +742,43 @@ class GlibcChunk:
         msg = []
 
         try:
-            msg += "Forward pointer: {0:#x}".format(self.get_fwd_ptr())
+            msg += ["Forward pointer: {0:#x}".format(self.get_fwd_ptr())]
         except gdb.MemoryError:
-            msg += "Forward pointer: {0:#x} (corrupted?)".format(fwd)
+            msg += ["Forward pointer: {0:#x} (corrupted?)".format(fwd)]
 
         try:
-            msg += "Backward pointer: {0:#x}".format(self.get_bkw_ptr())
+            msg += ["Backward pointer: {0:#x}".format(self.get_bkw_ptr())]
         except gdb.MemoryError:
-            msg += "Backward pointer: {0:#x} (corrupted?)".format(bkw)
+            msg += ["Backward pointer: {0:#x} (corrupted?)".format(bkw)]
 
         return "\n".join(msg)
 
     def str_as_alloced(self):
         return self._str_sizes()
 
-    def str_as_freeed(self):
+    def str_as_freed(self):
         return "{}\n\n{}".format(self._str_sizes(), self._str_pointers())
 
     def __str__(self):
         m = []
-        m += Color.greenify("FreeChunk") if not self.is_used() else Color.redify("UsedChunk")
-        m += "(addr={:#x},size={:#x})".format(long(self.addr),self.get_chunk_size())
+        m.append(Color.greenify("FreeChunk") if not self.is_used() else Color.redify("UsedChunk"))
+        m.append("(addr={:#x},size={:#x})".format(long(self.addr),self.get_chunk_size()))
         return "".join(m)
 
     def pprint(self):
         msg = []
-        if not self.is_used():
-            msg += titlify("Chunk (free): {:#x}".format(self.start_addr), Color.GREEN)
-            msg += self.str_as_freeed()
-        else:
-            msg += titlify("Chunk (used): {:#x}".format(self.start_addr), Color.RED)
-            msg += self.str_as_alloced()
+        try:
+            if not self.is_used():
+                msg.append(titlify("Chunk (free): {:#x}".format(self.start_addr), "green"))
+                msg.append(self.str_as_freed())
+            else:
+                msg.append(titlify("Chunk (used): {:#x}".format(self.start_addr), "red"))
+                msg.append(self.str_as_alloced())
+        except gdb.MemoryError:
+            warn("Cannot read chunk at {:#x}".format(self.start_addr))
 
         gdb.write("\n".join(msg))
+        gdb.write("\n")
         gdb.flush()
         return
 
