@@ -1901,15 +1901,6 @@ def get_function_length(sym):
     return end_addr - start_addr
 
 
-def command_only_works_for(os):
-    """Use this command in the `pre_load()`, to filter the Operating Systems this
-    command is working on."""
-    curos = get_os()
-    if not any(filter(lambda x: x == curos, os)):
-        raise GefUnsupportedOS("This command only works for {:s}".format(", ".join(os)))
-    return
-
-
 def __get_process_maps_linux(proc_map_file):
     """Parse the Linux process `/proc/pid/maps` file."""
     f = open_file(proc_map_file, use_cache=False)
@@ -3407,21 +3398,23 @@ class IdaInteractCommand(GenericCommand):
         self.sock = None
         return
 
+    @staticmethod
+    def parsed_arglist(arglist):
+        args = []
+        for arg in arglist:
+            try:
+                # try to solve the argument using gdb
+                argval = gdb.parse_and_eval(arg)
+                argval.fetch_lazy()
+                # check if value is addressable
+                argval = long(argval) if argval.address is None else long(argval.address)
+                args.append("{:#x}".format(argval))
+            except Exception:
+                # if gdb can't parse the value, let ida deal with it
+                args.append(arg)
+        return args
+
     def do_invoke(self, argv):
-        def parsed_arglist(arglist):
-            args = []
-            for arg in arglist:
-                try:
-                    # try to solve the argument using gdb
-                    argval = gdb.parse_and_eval(arg)
-                    argval.fetch_lazy()
-                    # check if value is addressable
-                    argval = long(argval) if argval.address is None else long(argval.address)
-                    args.append("{:#x}".format(argval,))
-                except Exception:
-                    # if gdb can't parse the value, let ida deal with it
-                    args.append(arg)
-            return args
 
         if self.sock is None:
             warn("Trying to reconnect")
@@ -3450,7 +3443,7 @@ class IdaInteractCommand(GenericCommand):
 
             method = getattr(self.sock, method_name)
             if len(argv) > 1:
-                args = parsed_arglist(argv[1:])
+                args = self.parsed_arglist(argv[1:])
                 res = method(*args)
             else:
                 res = method()
@@ -4982,26 +4975,26 @@ class ROPgadgetCommand(GenericCommand):
             ropgadget.core.Core(args).analyze()
         return
 
+    def usage(self):
+        arr = [x for x in dir(args) if not x.startswith("__")]
+        info("Valid options for {:s} are:\n{:s}".format(self._cmdline_, ", ".join(arr)))
+        return
 
     def parse_args(self, args, argv):
         #
         # options format is 'option_name1=option_value1'
         #
-        def __usage__():
-            arr = [x for x in dir(args) if not x.startswith("__")]
-            info("Valid options for {:s} are:\n{:s}".format(self._cmdline_, ", ".join(arr)))
-            return
 
         for opt in argv:
             if opt in ("?", "h", "help"):
-                __usage__()
+                self.usage()
                 return False
 
             try:
                 name, value = opt.split("=")
             except ValueError:
                 err("Invalid syntax for argument '{0:s}', should be '{0:s}=<value>'".format(opt))
-                __usage__()
+                self.usage()
                 return False
 
             if hasattr(args, name):
@@ -5022,7 +5015,7 @@ class ROPgadgetCommand(GenericCommand):
 
             else:
                 err("'{:s}' is not a valid ropgadget option".format(name))
-                __usage__()
+                self.usage()
                 return False
 
         if getattr(args, "binary") is None:
@@ -5690,27 +5683,27 @@ class ContextCommand(GenericCommand):
         orig_frame.select()
         return
 
-    def context_threads(self):
-        def reason():
-            res = gdb.execute("info program", to_string=True).splitlines()
-            if not res:
+    def get_stopped_reason(self):
+        res = gdb.execute("info program", to_string=True).splitlines()
+        if not res:
+            return "NOT RUNNING"
+
+        for line in res:
+            line = line.strip()
+            if line.startswith("It stopped with signal "):
+                return line.replace("It stopped with signal ", "").split(",", 1)[0]
+            if  line == "The program being debugged is not being run.":
                 return "NOT RUNNING"
+            if line == "It stopped at a breakpoint that has since been deleted.":
+                return "TEMPORARY BREAKPOINT"
+            if line.startswith("It stopped at breakpoint "):
+                return "BREAKPOINT"
+            if line == "It stopped after being stepped.":
+                return "SINGLE STEP"
 
-            for line in res:
-                line = line.strip()
-                if line.startswith("It stopped with signal "):
-                    return line.replace("It stopped with signal ", "").split(",", 1)[0]
-                if  line == "The program being debugged is not being run.":
-                    return "NOT RUNNING"
-                if line == "It stopped at a breakpoint that has since been deleted.":
-                    return "TEMPORARY BREAKPOINT"
-                if line.startswith("It stopped at breakpoint "):
-                    return "BREAKPOINT"
-                if line == "It stopped after being stepped.":
-                    return "SINGLE STEP"
+        return "STOPPED"
 
-            return "STOPPED"
-
+    def context_threads(self):
         self.context_title("threads")
 
         threads = gdb.selected_inferior().threads()
@@ -5726,7 +5719,7 @@ class ContextCommand(GenericCommand):
                 line += Color.colorify("running", attrs="bold green")
             elif thread.is_stopped():
                 line += Color.colorify("stopped", attrs="bold red")
-                line += ", reason: {}".format(Color.colorify(reason(), attrs="bold pink"))
+                line += ", reason: {}".format(Color.colorify(self.get_stopped_reason(), attrs="bold pink"))
             elif thread.is_exited():
                 line += Color.colorify("exited", attrs="bold yellow")
             print(line)
