@@ -1819,7 +1819,7 @@ def is_alive():
     return False
 
 
-def if_gdb_running(f):
+def only_if_gdb_running(f):
     """Decorator wrapper to check if GDB is running."""
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
@@ -1827,6 +1827,17 @@ def if_gdb_running(f):
             return f(*args, **kwargs)
         else:
             warn("No debugging session active")
+    return wrapper
+
+
+def only_if_gdb_target_local(f):
+    """Decorator wrapper to check if GDB is running locally (target not remote)."""
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if not is_remote_debug():
+            return f(*args, **kwargs)
+        else:
+            warn("This command cannot work for remote sessions.")
     return wrapper
 
 
@@ -2144,7 +2155,7 @@ def is_hex(pattern):
     """Tries to determine if `pattern` is an hexadecimal address."""
     if pattern.startswith("0x") or pattern.startswith("0X"):
         pattern = pattern[2:]
-    return all(c in string.hexdigits for c in pattern)
+    return len(pattern)%2==0 and all(c in string.hexdigits for c in pattern)
 
 
 def ida_synchronize_handler(event):
@@ -2952,7 +2963,7 @@ class CanaryCommand(GenericCommand):
     _cmdline_ = "canary"
     _syntax_  = "{:s}".format(_cmdline_)
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         self.dont_repeat()
 
@@ -2985,12 +2996,9 @@ class ProcessStatusCommand(GenericCommand):
         super(ProcessStatusCommand, self).__init__(complete=gdb.COMPLETE_NONE, prefix=False)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
+    @only_if_gdb_target_local
     def do_invoke(self, argv):
-        if is_remote_debug():
-            warn("'{:s}' cannot be used while remote debugging".format(self._cmdline_))
-            return
-
         self.show_info_proc()
         self.show_ancestor()
         self.show_descendants()
@@ -3408,7 +3416,7 @@ class RetDecCommand(GenericCommand):
             raise GefMissingDependencyException(msg)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         arch = current_arch.arch.lower()
         if not arch:
@@ -3530,15 +3538,9 @@ class ChangeFdCommand(GenericCommand):
         super(ChangeFdCommand, self).__init__(prefix=False)
         return
 
+    @only_if_gdb_running
+    @only_if_gdb_target_local
     def do_invoke(self, argv):
-        if not is_alive():
-            err("No process alive")
-            return
-
-        if is_remote_debug():
-            err("Cannot run on remote debugging")
-            return
-
         if len(argv)!=2:
             self.usage()
             return
@@ -3825,7 +3827,7 @@ class SearchPatternCommand(GenericCommand):
                 print("""{:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], right_arrow, Color.pinkify(loc[2])))
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         if len(argv)!=1:
             self.usage()
@@ -3904,7 +3906,7 @@ class ChangePermissionCommand(GenericCommand):
             raise GefMissingDependencyException(msg)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         if len(argv) not in (1, 2):
             err("Incorrect syntax")
@@ -3989,7 +3991,7 @@ class UnicornEmulateCommand(GenericCommand):
             raise GefMissingDependencyException(msg)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         start_insn = None
         end_insn = -1
@@ -4303,7 +4305,7 @@ class RemoteCommand(GenericCommand):
                 self.help()
                 return
 
-        if args is None or len(args)!=1 or rpid < 0:
+        if args is None:
             err("A target (HOST:PORT) *and* a PID (-p PID) must always be provided.")
             return
 
@@ -4324,13 +4326,14 @@ class RemoteCommand(GenericCommand):
             gdb.execute("attach {:d}".format(rpid))
             enable_context()
         else:
+            rpid = get_pid()
             ok("Targeting PID={:d}".format(rpid))
 
         self.add_setting("target", target, "Remote target to connect to")
         self.setup_remote_environment(rpid, update_solib)
 
         if not is_remote_debug():
-            warn("No remote session active.")
+            err("Failed to establish remote target environment.")
             return
 
         if self.download_all_libs == True:
@@ -4486,7 +4489,7 @@ class NopCommand(GenericCommand):
         info(m)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def nop_bytes(self, loc, num_bytes):
         if num_bytes == 0:
             size = self.get_insn_size(loc)
@@ -4526,7 +4529,7 @@ class StubCommand(GenericCommand):
         super(StubCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         try:
             opts, args = getopt.getopt(argv, "r:")
@@ -4564,7 +4567,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         super(CapstoneDisassembleCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         location, length = current_arch.pc, 0x10
         opts, args = getopt.getopt(argv, "n:x:")
@@ -4698,7 +4701,7 @@ class GlibcHeapArenaCommand(GenericCommand):
         super(GlibcHeapArenaCommand, self).__init__(prefix=False)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         try:
             arena = GlibcArena("main_arena")
@@ -4726,7 +4729,7 @@ class GlibcHeapChunkCommand(GenericCommand):
         super(GlibcHeapChunkCommand, self).__init__(prefix=False, complete=gdb.COMPLETE_LOCATION)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         if len(argv) < 1:
             err("Missing chunk address")
@@ -4750,7 +4753,7 @@ class GlibcHeapBinsCommand(GenericCommand):
     _cmdline_ = "heap bins"
     _syntax_ = "{:s} [{:s}]".format(_cmdline_, "|".join(_bins_type_))
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         if len(argv) == 0:
             for bin_t in GlibcHeapBinsCommand._bins_type_:
@@ -4801,7 +4804,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         super(GlibcHeapFastbinsYCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_main_arena()
 
@@ -4851,7 +4854,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
         super(GlibcHeapUnsortedBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         if get_main_arena() is None:
             err("Incorrect Glibc arenas")
@@ -4873,7 +4876,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
         super(GlibcHeapSmallBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         if get_main_arena() is None:
             err("Incorrect Glibc arenas")
@@ -4898,7 +4901,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         super(GlibcHeapLargeBinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         if get_main_arena() is None:
             err("Incorrect Glibc arenas")
@@ -4951,7 +4954,7 @@ class DetailRegistersCommand(GenericCommand):
     _cmdline_ = "registers"
     _syntax_  = "{:s} [Register1] [Register2] ... [RegisterN]".format(_cmdline_)
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         regs = []
         regname_color = __config__.get("theme.registers_register_name")[0]
@@ -5482,7 +5485,7 @@ class ContextCommand(GenericCommand):
         gdb.events.cont.connect(self.empty_extra_messages)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         if not self.get_setting("enable"):
             return
@@ -5887,7 +5890,7 @@ class HexdumpCommand(GenericCommand):
         GefAlias("dc", "hexdump byte")
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         argc = len(argv)
         if argc < 2:
@@ -5979,7 +5982,7 @@ class PatchCommand(GenericCommand):
         GefAlias("eb", "patch byte")
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         argc = len(argv)
         if argc < 3:
@@ -6014,7 +6017,7 @@ class PatchStringCommand(GenericCommand):
         GefAlias("ea", "patch string")
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         argc = len(argv)
         if argc != 2:
@@ -6081,7 +6084,7 @@ class DereferenceCommand(GenericCommand):
         offset += memalign
         return l
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         if len(argv) < 1:
             err("Missing location.")
@@ -6227,7 +6230,7 @@ class VMMapCommand(GenericCommand):
     _cmdline_ = "vmmap"
     _syntax_  = "{:s}".format(_cmdline_)
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         vmmap = get_process_maps()
         if not vmmap:
@@ -6264,7 +6267,7 @@ class XFilesCommand(GenericCommand):
     _cmdline_ = "xfiles"
     _syntax_  = "{:s} [name]".format(_cmdline_)
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, args):
         name = None if not args else args[0]
         formats = {"Start": "{:{align}20s}",
@@ -6301,7 +6304,7 @@ class XAddressInfoCommand(GenericCommand):
         super(XAddressInfoCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke (self, argv):
         if len(argv) == 0:
             err ("At least one valid address must be specified")
@@ -6367,7 +6370,7 @@ class XorMemoryDisplayCommand(GenericCommand):
     _cmdline_ = "xor-memory display"
     _syntax_  = "{:s} <address> <size_to_read> <xor_key> [-i]".format(_cmdline_)
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         if len(argv) not in (3, 4):
             self.usage()
@@ -6402,7 +6405,7 @@ class XorMemoryPatchCommand(GenericCommand):
     _cmdline_ = "xor-memory patch"
     _syntax_  = "{:s} <address> <size_to_read> <xor_key>".format(_cmdline_)
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         if len(argv) != 3:
             self.usage()
@@ -6433,7 +6436,7 @@ class TraceRunCommand(GenericCommand):
         self.add_setting("tracefile_prefix", "./gef-trace-", "Specify the tracing output file prefix")
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     def do_invoke(self, argv):
         if len(argv) not in (1, 2):
             self.usage()
@@ -6726,7 +6729,7 @@ class HeapAnalysisCommand(GenericCommand):
         self.add_setting("check_uaf", True, "Break execution when a possible Use-after-Free condition is found")
         return
 
-    @if_gdb_running
+    @only_if_gdb_running
     @experimental_feature
     def do_invoke(self, argv):
         ok("Tracking malloc()")
