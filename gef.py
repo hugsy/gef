@@ -2153,8 +2153,8 @@ def xor(data, key):
 
 def is_hex(pattern):
     """Tries to determine if `pattern` is an hexadecimal address."""
-    if pattern.startswith("0x") or pattern.startswith("0X"):
-        pattern = pattern[2:]
+    if not (pattern.startswith("0x") or pattern.startswith("0X")):
+        return False
     return len(pattern)%2==0 and all(c in string.hexdigits for c in pattern)
 
 
