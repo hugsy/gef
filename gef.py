@@ -207,28 +207,6 @@ ___default_aliases___                  = {
 }
 
 
-class GefGenericException(Exception):
-    """GEF generic exception."""
-    def __init__(self, value):
-        self.message = value
-        return
-
-    def __str__(self):
-        return repr(self.message)
-
-
-class GefMissingDependencyException(GefGenericException):
-    pass
-
-
-class GefUnsupportedMode(GefGenericException):
-    pass
-
-
-class GefUnsupportedOS(GefGenericException):
-    pass
-
-
 if PYTHON_MAJOR==3:
     lru_cache = functools.lru_cache
 else:
@@ -1172,7 +1150,7 @@ def get_endian():
         return get_elf_headers().e_endianness
     if gdb.execute("show endian", to_string=True).strip().split()[7] == "little" :
         return Elf.LITTLE_ENDIAN
-    raise GefGenericException("Invalid endianess")
+    raise EnvironmentError("Invalid endianess")
 
 
 
@@ -1328,7 +1306,7 @@ class AARCH64(ARM):
         return flags_to_human(val, self.flags_table)
 
     def mprotect_asm(self, addr, size, perm):
-        GefUnsupportedOS("Architecture {:s} not supported yet".format(self.arch))
+        raise OSError("Architecture {:s} not supported yet".format(self.arch))
         return
 
     def is_conditional_branch(self, insn):
@@ -2240,7 +2218,7 @@ def get_generic_running_arch(module, prefix, to_string=False):
     if current_arch is not None:
         arch, mode = current_arch.arch, current_arch.mode
     else:
-        raise GefUnsupportedOS("Emulation not supported for your OS")
+        raise OSError("Emulation not supported for your OS")
 
     return get_generic_arch(module, prefix, arch, mode, is_big_endian(), to_string)
 
@@ -2259,7 +2237,7 @@ def get_capstone_arch(arch=None, mode=None, endian=None, to_string=False):
     # CS_MODE_PPC32 does not exist (but UC_MODE_32 & KS_MODE_32 do)
     if is_alive() and (is_powerpc() or is_ppc64()):
         if is_ppc64():
-            raise GefUnsupportedOS("Capstone not supported for PPC64 yet.")
+            raise OSError("Capstone not supported for PPC64 yet.")
 
         arch = "PPC"
         mode = "32"
@@ -2286,7 +2264,7 @@ def get_unicorn_registers(to_string=False):
     if current_arch is not None:
         arch = current_arch.arch.lower()
     else:
-        raise GefUnsupportedOS("Oops")
+        raise OSError("Oops")
 
     const = getattr(unicorn, "{}_const".format(arch))
     for reg in current_arch.all_registers:
@@ -2438,7 +2416,7 @@ def set_arch():
     elif elf.e_machine == Elf.SPARC64:    current_arch = SPARC64()
     elif elf.e_machine == Elf.MIPS:       current_arch = MIPS()
     else:
-        raise GefUnsupportedOS("CPU type is currently not supported: {:s}".format(get_arch()))
+        raise OSError("CPU type is currently not supported: {:s}".format(get_arch()))
     return
 
 
@@ -2450,7 +2428,7 @@ def get_memory_alignment(in_bits=False):
     elif is_elf64():
         return 8 if not in_bits else 64
 
-    raise GefUnsupportedMode("GEF is running under an unsupported mode")
+    raise EnvironmentError("GEF is running under an unsupported mode")
 
 
 def clear_screen(tty=""):
@@ -3413,7 +3391,7 @@ class RetDecCommand(GenericCommand):
             __import__("retdec.decompiler")
         except ImportError:
             msg = "Missing `retdec-python` package for Python{0}, install with: `pip{0} install retdec-python`.".format(PYTHON_MAJOR)
-            raise GefMissingDependencyException(msg)
+            raise ImportWarning(msg)
         return
 
     @only_if_gdb_running
@@ -3903,7 +3881,7 @@ class ChangePermissionCommand(GenericCommand):
             __import__("keystone")
         except ImportError:
             msg = "Missing `keystone-engine` package for Python{0}, install with: `pip{0} install keystone-engine`.".format(PYTHON_MAJOR)
-            raise GefMissingDependencyException(msg)
+            raise ImportWarning(msg)
         return
 
     @only_if_gdb_running
@@ -3982,13 +3960,13 @@ class UnicornEmulateCommand(GenericCommand):
             __import__("unicorn")
         except ImportError:
             msg = "Missing `unicorn` package for Python{0}. Install with `pip{0} install unicorn`.".format(PYTHON_MAJOR)
-            raise GefMissingDependencyException(msg)
+            raise ImportWarning(msg)
 
         try:
             __import__("capstone")
         except ImportError:
             msg = "Missing `capstone` package for Python{0}. Install with `pip{0} install capstone`.".format(PYTHON_MAJOR)
-            raise GefMissingDependencyException(msg)
+            raise ImportWarning(msg)
         return
 
     @only_if_gdb_running
@@ -4559,7 +4537,7 @@ class CapstoneDisassembleCommand(GenericCommand):
             __import__("capstone")
         except ImportError:
             msg = "Missing `capstone` package for Python{0}. Install with `pip{0} install capstone`.".format(PYTHON_MAJOR)
-            raise GefMissingDependencyException(msg)
+            raise ImportWarning(msg)
         return
 
 
@@ -5122,7 +5100,7 @@ class RopperCommand(GenericCommand):
             __import__("ropper")
         except ImportError:
             msg = "Missing `ropper` package for Python{0}, install with: `pip{0} install ropper`.".format(PYTHON_MAJOR)
-            raise GefMissingDependencyException(msg)
+            raise ImportWarning(msg)
         return
 
 
@@ -5153,7 +5131,7 @@ class AssembleCommand(GenericCommand):
             __import__("keystone")
         except ImportError:
             msg = "Missing `keystone-engine` package for Python{0}, install with: `pip{0} install keystone-engine`.".format(PYTHON_MAJOR)
-            raise GefMissingDependencyException(msg)
+            raise ImportWarning(msg)
         return
 
     def do_invoke(self, argv):
