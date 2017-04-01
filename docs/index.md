@@ -41,7 +41,7 @@ Simply make sure you have [GDB 7.x+](https://www.gnu.org/s/gdb).
 $ wget -q -O- https://github.com/hugsy/gef/raw/master/gef.sh | sh
 
 # manually
-$ wget -q -O ~/.gdbinit-gef.py https://github.com/hugsy/gef/raw/master/gef.py
+$ wget -O ~/.gdbinit-gef.py -q https://github.com/hugsy/gef/raw/master/gef.py
 $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 ```
 
@@ -113,8 +113,8 @@ features, it is **highly** recommended to install:
 - [`capstone`](https://github.com/aquynh/capstone)
 - [`keystone`](https://github.com/keystone-engine/keystone): requires `cmake`
 - [`unicorn`](https://github.com/unicorn-engine/unicorn)
-- [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget)
 - [`Ropper`](https://github.com/sashs/ropper)
+- [`RetDec`](https://github.com/s3rvac/retdec-python)
 
 
 ### Capstone/Keystone/Unicorn ###
@@ -172,16 +172,9 @@ $ git clone https://github.com/unicorn-engine/unicorn.git && cd unicorn && ./mak
 `unicorn` integration in `gef` allows to emulate the behaviour to specific instructions (or block of instructions) based on the runtime context, without actually running it, and therefore sparing the trouble of saving the context/running the new context/restoring the old context. Additionally, `gef` can generate a standalone `unicorn` Python script, if you want/need to reproduce steps outside the debugger.
 
 
-### ROPGadget ###
-
-[`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget) (written by [Jonathan Salwan](https://github.com/JonathanSalwan)) is simply the best cross-platform ROP gadget finder. It has been totally integrated inside `gef` to benefit of all of its awesomeness.
-```bash
-$ pip[23] install ropgadget
-```
-
 ### Ropper ###
 
-[`Ropper`](https://github.com/sashs/ropper) (written by [Sascha Schirra](https://github.com/sashs)) is another gadget finder. It supports opening multiple files and provides an awesome search option to find accurate gadgets.
+[`Ropper`](https://github.com/sashs/ropper) (written by [Sascha Schirra](https://github.com/sashs)) is a gadget finder based on [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget). It supports opening multiple files and provides an awesome search option to find accurate gadgets.
 ```bash
 $ pip[23] install ropper
 ```
@@ -191,7 +184,7 @@ $ pip[23] install ropper
 Some of the optional dependencies can be installed using Python package
 installer, `pip`. Simply run this
 ```bash
-$ pip[23] install ropgadget ropper capstone
+$ pip[23] install ropper capstone
 ```
 
 ## But why not PEDA? ##
