@@ -2631,7 +2631,7 @@ class StubBreakpoint(gdb.Breakpoint):
     def stop(self):
         m = "Ignoring call to '{:s}' ".format(self.func)
         m+= "(setting return value to {:#x})".format(self.retval)
-        gdb.execute("return {:#x}".format(self.retval))
+        gdb.execute("return (unsigned int){:#x}".format(self.retval))
         ok(m)
         return False
 
