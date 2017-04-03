@@ -745,7 +745,7 @@ class GlibcChunk:
         if self.is_used():
             msg.append(self.str_as_alloced())
         else:
-            msg.append(self.str_as_freeed())
+            msg.append(self.str_as_freed())
 
         gdb.write("\n".join(msg) + "\n")
         gdb.flush()
