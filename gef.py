@@ -2714,6 +2714,26 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
 
         item = (loc, size)
 
+        # seek all the currently allocated chunks, read their effective size and check for overlap
+        msg = []
+        align = get_memory_alignment()
+        for chunk_addr, chunk_sz in __heap_allocated_list__:
+            current_chunk = GlibcChunk(chunk_addr)
+            current_chunk_size = current_chunk.get_chunk_size()
+
+            if chunk_addr <= loc < chunk_addr + current_chunk_size:
+                offset = loc - chunk_addr - 2*align
+                if offset < 0: # false positive, discard
+                    continue
+                msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+                msg.append("Possible heap overlap detected")
+                msg.append("Reason {} new allocated chunk {:#x} (of size {:d}) overlaps in-used chunk {:#x} (of size {:d})".format(right_arrow, loc, size, chunk_addr, current_chunk_size))
+                msg.append("Writing {0:d} bytes from {1:#x} will reach chunk {2:#x}".format(offset, chunk_addr, loc))
+                msg.append("Payload example for chunk {:#x} (to overwrite {:#x} headers):".format(loc, chunk_addr))
+                msg.append("  data = 'A'*{0:d} + 'B'*{1:d} + 'C'*{1:d}".format(offset, align))
+                push_context_message("warn", "\n".join(msg))
+                return True
+
         # add it to alloc-ed list
         __heap_allocated_list__.append(item)
         return False
