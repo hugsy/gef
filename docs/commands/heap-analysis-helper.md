@@ -47,3 +47,20 @@ The following settings are accepted:
 Just like the format string vulnerability helper, the `heap-analysis-helper`
 can fail to detect complex heap scenari and/or provide some false positive
 alerts. Each finding must of course be ascertained manually.
+
+
+The `heap-analysis-helper` can also be used to simply track allocation and
+liberation of chunks of memory. One can simply enable the tracking by setting
+all the configurations stated above to False:
+
+```
+gef➤  gef config heap-analysis-helper.check_double_free False
+gef➤  gef config heap-analysis-helper.check_free_null False
+gef➤  gef config heap-analysis-helper.check_weird_free False
+gef➤  gef config heap-analysis-helper.check_uaf False
+```
+
+Then `gef` will not notify you of any inconsistency detected, but simply display
+a clear message when a chunk is allocated/freed.
+
+![heap-track](https://i.imgur.com/68NGTvw.png)
