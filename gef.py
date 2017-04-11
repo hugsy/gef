@@ -3912,6 +3912,7 @@ class ChangePermissionCommand(GenericCommand):
         return
 
     @only_if_gdb_running
+    @catch_generic_exception
     def do_invoke(self, argv):
         if len(argv) not in (1, 2):
             err("Incorrect syntax")
@@ -3928,7 +3929,7 @@ class ChangePermissionCommand(GenericCommand):
         size = sect.page_end - sect.page_start
         original_pc = current_arch.pc
 
-        info("Generating sys_mprotect({:#x}, {:#x}, '{:s}') stub for arch {:s}".format(sect.page_start, size, Permission(value=perm), get_arch()))
+        info("Generating sys_mprotect({:#x}, {:#x}, '{:s}') stub for arch {:s}".format(sect.page_start, size, str(Permission(value=perm)), get_arch()))
         stub = self.get_stub_by_arch(sect.page_start, size, perm)
         if stub is None:
             err("Failed to generate mprotect opcodes")
