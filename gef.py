@@ -2144,9 +2144,9 @@ def xor(data, key):
 
 def is_hex(pattern):
     """Tries to determine if `pattern` is an hexadecimal address."""
-    if not (pattern.startswith("0x") or pattern.startswith("0X")):
+    if not pattern.startswith("0x") and not pattern.startswith("0X"):
         return False
-    return len(pattern)%2==0 and all(c in string.hexdigits for c in pattern)
+    return len(pattern)%2==0 and all(c in string.hexdigits for c in pattern[2:])
 
 
 def ida_synchronize_handler(event):
@@ -5146,6 +5146,7 @@ class RopperCommand(GenericCommand):
 
         ropper.start(argv)
         return
+
 
 class AssembleCommand(GenericCommand):
     """Inline code assemble. Architecture can be set in GEF runtime config (default is
