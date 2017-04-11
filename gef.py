@@ -4737,9 +4737,12 @@ class GlibcHeapChunkCommand(GenericCommand):
         if get_main_arena() is None:
             return
 
-        addr = long(gdb.parse_and_eval(argv[0]))
-        chunk = GlibcChunk(addr)
-        chunk.pprint()
+        try:
+            addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
+            chunk = GlibcChunk(addr)
+            chunk.pprint()
+        except Exception as e:
+            err("Command '{}' failed, reason: {}".format(self._cmdline_, str(e)))
         return
 
 @register_command
