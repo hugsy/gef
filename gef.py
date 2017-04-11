@@ -5133,15 +5133,19 @@ class RopperCommand(GenericCommand):
         return
 
 
+    @catch_generic_exception
     def do_invoke(self, argv):
         ropper = sys.modules["ropper"]
-        argv.append("--file")
-        argv.append(get_filepath())
-        try:
-            ropper.start(argv)
-        except SystemExit:
-            return
+        if "--file" not in argv:
+            path = get_filepath()
+            sect = next( filter(lambda x: x.path == path, get_process_maps()) )
+            argv.append("--file")
+            argv.append(path)
+            argv.append("-I")
+            argv.append("{:#x}".format(sect.page_start))
 
+        ropper.start(argv)
+        return
 
 class AssembleCommand(GenericCommand):
     """Inline code assemble. Architecture can be set in GEF runtime config (default is
