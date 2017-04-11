@@ -1828,6 +1828,19 @@ def experimental_feature(f):
     return wrapper
 
 
+def catch_generic_exception(f):
+    """Generic decorator to cleanly catch exception of gef runtime."""
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if is_debug():
+            return f(*args, **kwargs)
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            err("Command failed: {}".format(str(e)))
+    return wrapper
+
+
 def to_unsigned_long(v):
     """Helper to cast a gdb.Value to unsigned long."""
     unsigned_long_t = gdb.lookup_type("unsigned long")
@@ -3141,6 +3154,7 @@ class GefThemeCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(GefThemeCommand, self).__init__(GefThemeCommand._cmdline_, prefix=False)
+        self.add_setting("disable_color", "0", "Disable all colors in GEF")
         self.add_setting("context_title_line", "green bold")
         self.add_setting("context_title_message", "red bold")
         self.add_setting("default_title_line", "green bold")
@@ -3151,7 +3165,6 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("dereference_base_address", "bold green")
         self.add_setting("dereference_register_value", "bold green")
         self.add_setting("registers_register_name", "bold red")
-        self.add_setting("disable_color", "0", "Disable all colors in GEF")
         # TODO: add more customizable items
         return
 
@@ -3538,6 +3551,7 @@ class ChangeFdCommand(GenericCommand):
 
     @only_if_gdb_running
     @only_if_gdb_target_local
+    @catch_generic_exception
     def do_invoke(self, argv):
         if len(argv)!=2:
             self.usage()
@@ -3550,19 +3564,16 @@ class ChangeFdCommand(GenericCommand):
         old_fd = int(argv[0])
         new_output = argv[1]
 
-        try:
-            disable_context()
-            res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
-            # Output example: $1 = 3
-            new_fd = int(res.split()[2])
-            info("Opened '{:s}' as fd=#{:d}".format(new_output, new_fd))
-            gdb.execute("""call dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
-            info("Duplicated FD #{:d} {:s} #{:d}".format(old_fd, right_arrow, new_fd))
-            gdb.execute("""call close({:d})""".format(new_fd), to_string=True)
-            ok("Success")
-            enable_context()
-        except Exception:
-            err("Failed")
+        disable_context()
+        res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
+        # Output example: $1 = 3
+        new_fd = int(res.split()[2])
+        info("Opened '{:s}' as fd=#{:d}".format(new_output, new_fd))
+        gdb.execute("""call dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
+        info("Duplicated FD #{:d} {:s} #{:d}".format(old_fd, right_arrow, new_fd))
+        gdb.execute("""call close({:d})""".format(new_fd), to_string=True)
+        ok("Success")
+        enable_context()
         return
 
 
@@ -3605,10 +3616,8 @@ class IdaInteractCommand(GenericCommand):
         """
         Connect to the XML-RPC service.
         """
-        if host is None:
-            host = self.get_setting("host")
-        if port is None:
-            port = self.get_setting("port")
+        host = host or self.get_setting("host")
+        port = port or self.get_setting("port")
 
         try:
             sock = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(host, port))
@@ -3627,6 +3636,7 @@ class IdaInteractCommand(GenericCommand):
         self.sock = None
         return
 
+    @catch_generic_exception
     def do_invoke(self, argv):
         def parsed_arglist(arglist):
             args = []
@@ -3686,9 +3696,6 @@ class IdaInteractCommand(GenericCommand):
 
         except socket.error:
             self.disconnect()
-
-        except Exception:
-            err("[{:s}] Exception: {:s}".format(self._cmdline_, str(e)))
         return
 
 
@@ -4728,6 +4735,7 @@ class GlibcHeapChunkCommand(GenericCommand):
         return
 
     @only_if_gdb_running
+    @catch_generic_exception
     def do_invoke(self, argv):
         if len(argv) < 1:
             err("Missing chunk address")
@@ -4737,12 +4745,9 @@ class GlibcHeapChunkCommand(GenericCommand):
         if get_main_arena() is None:
             return
 
-        try:
-            addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
-            chunk = GlibcChunk(addr)
-            chunk.pprint()
-        except Exception as e:
-            err("Command '{}' failed, reason: {}".format(self._cmdline_, str(e)))
+        addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
+        chunk = GlibcChunk(addr)
+        chunk.pprint()
         return
 
 @register_command
@@ -5892,6 +5897,7 @@ class HexdumpCommand(GenericCommand):
         return
 
     @only_if_gdb_running
+    @catch_generic_exception
     def do_invoke(self, argv):
         argc = len(argv)
         if argc < 2:
@@ -5903,7 +5909,8 @@ class HexdumpCommand(GenericCommand):
             self.usage()
             return
 
-        read_from = align_address(long(gdb.parse_and_eval(argv[0])))
+        start_addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
+        read_from = align_address(start_addr)
         read_len = 10
         up_to_down = True
 
