@@ -3789,11 +3789,12 @@ class IdaInteractCommand(GenericCommand):
 
 @register_command
 class SearchPatternCommand(GenericCommand):
-    """SearchPatternCommand: search a pattern in memory."""
+    """SearchPatternCommand: search a pattern in memory. If given an hex value (starting with 0x)
+    the command will also try to look for upwards cross-references to this address."""
 
     _cmdline_ = "search-pattern"
     _syntax_  = "{:s} PATTERN".format(_cmdline_)
-    _aliases_ = ["grep",]
+    _aliases_ = ["grep", "xref"]
 
     def __init__(self):
         super(SearchPatternCommand, self).__init__(prefix=False)
