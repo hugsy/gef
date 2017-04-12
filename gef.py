@@ -3820,7 +3820,11 @@ class SearchPatternCommand(GenericCommand):
     def search_pattern(self, pattern):
         """Search a pattern within the whole userland memory."""
         if is_hex(pattern):
-            pattern = "".join(['\\x'+pattern[i:i+2] for i in range(2, len(pattern), 2)])
+            # respect ELF endianness
+            if is_big_endian():
+                pattern = "".join(['\\x'+pattern[i:i+2] for i in range(2, len(pattern), 2)])
+            else:
+                pattern = "".join(['\\x'+pattern[i:i+2] for i in range(len(pattern)-2, 0, -2)])
 
         for section in get_process_maps():
             if not section.permission & Permission.READ: continue
