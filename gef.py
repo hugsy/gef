@@ -6337,9 +6337,8 @@ class XAddressInfoCommand(GenericCommand):
                 self.infos(addr)
 
             except gdb.error as gdb_err:
-                err("{:s}".format(gdb_err))
+                err("{:s}".format(str(gdb_err)))
         return
-
 
     def infos(self, address):
         addr = lookup_address(address)
