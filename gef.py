@@ -4970,11 +4970,16 @@ class DetailRegistersCommand(GenericCommand):
     def do_invoke(self, argv):
         regs = []
         regname_color = __config__.get("theme.registers_register_name")[0]
+        string_color = __config__.get("theme.dereference_string")[0]
 
         if argv:
             regs = [reg for reg in current_arch.all_registers if reg.strip() in argv]
         else:
             regs = current_arch.all_registers
+
+        memsize = get_memory_alignment()
+        endian = endian_str()
+        charset = string.printable
 
         for regname in regs:
             reg = gdb.parse_and_eval(regname)
@@ -5003,6 +5008,16 @@ class DetailRegistersCommand(GenericCommand):
                 sep = " {:s} ".format(right_arrow)
                 line += sep
                 line += sep.join(addrs[1:])
+
+            # check to see if reg value is ascii
+            try:
+                fmt = "{}{}".format(endian, "I" if memsize==4 else "Q")
+                last_addr = int(addrs[-1],16)
+                val = gef_pystring(struct.pack(fmt, last_addr))
+                if all([_ in charset for _ in val]):
+                    line += ' ({:s}?)'.format( Color.colorify(val, attrs=string_color) )
+            except:
+                pass
 
             print(line)
         return
