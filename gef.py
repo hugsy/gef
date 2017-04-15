@@ -5015,7 +5015,7 @@ class DetailRegistersCommand(GenericCommand):
                 last_addr = int(addrs[-1],16)
                 val = gef_pystring(struct.pack(fmt, last_addr))
                 if all([_ in charset for _ in val]):
-                    line += ' ({:s}?)'.format( Color.colorify(val, attrs=string_color) )
+                    line += ' ("{:s}"?)'.format( Color.colorify(val, attrs=string_color) )
             except:
                 pass
 
