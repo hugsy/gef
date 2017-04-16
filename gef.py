@@ -6765,6 +6765,15 @@ class HeapAnalysisCommand(GenericCommand):
     @only_if_gdb_running
     @experimental_feature
     def do_invoke(self, argv):
+        if len(argv)==0:
+            self.setup()
+            return
+
+        if argv[0]=="show":
+            self.dump_tracked_allocations()
+        return
+
+    def setup(self):
         ok("Tracking malloc()")
         TraceMallocBreakpoint()
         ok("Tracking free()")
@@ -6772,10 +6781,25 @@ class HeapAnalysisCommand(GenericCommand):
         # todo realloc / consolidate
         ok("Disabling hardware watchpoints (this may increase the latency)")
         gdb.execute("set can-use-hw-watchpoints 0")
-
         info("Dynamic breakpoints correctly setup, GEF will break execution if a possible vulnerabity is found.")
         info("To disable, clear the malloc/free breakpoints (`delete breakpoints`) and restore hardware breakpoints (`set can-use-hw-watchpoints 1`)")
         warn("{}: The heap analysis slows down noticeably the execution. ".format(Color.colorify("Note", attrs="bold underline yellow")))
+        return
+
+    def dump_tracked_allocations(self):
+        global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
+
+        if __heap_allocated_list__:
+            ok("Tracked as in-use chunks:")
+            for addr, sz in __heap_allocated_list__: print("- malloc({1:d}) = {0:#x}".format(addr, sz))
+        else:
+            ok("No malloc() chunk tracked")
+
+        if __heap_freed_list__:
+            ok("Tracked as free-ed chunks:")
+            for addr, sz in __heap_freed_list__: print("- malloc({1:d}) = {0:#x}".format(addr, sz))
+        else:
+            ok("No free() chunk tracked")
         return
 
 
