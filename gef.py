@@ -6810,7 +6810,7 @@ class HeapAnalysisCommand(GenericCommand):
 
         if __heap_freed_list__:
             ok("Tracked as free-ed chunks:")
-            for addr, sz in __heap_freed_list__: print("- malloc({1:d}) = {0:#x}".format(addr, sz))
+            for addr, sz in __heap_freed_list__: print("- free({1:d}) = {0:#x}".format(addr, sz))
         else:
             ok("No free() chunk tracked")
         return
