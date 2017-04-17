@@ -3309,7 +3309,7 @@ class PCustomCommand(GenericCommand):
         try:
             data = read_memory(addr, ctypes.sizeof(_class))
         except gdb.MemoryError:
-            err("Cannot reach memory {:#x}".format(addr))
+            err("{}Cannot reach memory {:#x}".format(' '*depth, addr))
             return
 
         self.deserialize(_class, data)
