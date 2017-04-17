@@ -565,7 +565,8 @@ class GlibcArena:
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671 """
     def __init__(self, addr=None):
         arena = gdb.parse_and_eval(addr)
-        self.__arena = arena.cast(gdb.lookup_type("struct malloc_state"))
+        malloc_state_t = __cached_lookup_type("struct malloc_state")
+        self.__arena = arena.cast(malloc_state_t)
         self.__addr = long(arena.address)
         self.__arch = long(get_memory_alignment())
         return
@@ -1766,7 +1767,8 @@ def read_int_from_memory(addr):
 
 def read_cstring_from_memory(address):
     """Returns a C-string from memory."""
-    char_ptr = gdb.lookup_type("char").pointer()
+    char_t = __cached_lookup_type("char")
+    char_ptr = char_t.pointer()
     res = gdb.Value(address).cast(char_ptr).string().strip()
 
     i = res.find("\n")
@@ -1843,7 +1845,7 @@ def catch_generic_exception(f):
 
 def to_unsigned_long(v):
     """Helper to cast a gdb.Value to unsigned long."""
-    unsigned_long_t = gdb.lookup_type("unsigned long")
+    unsigned_long_t = __cached_lookup_type("unsigned long")
     return long(v.cast(unsigned_long_t))
 
 
@@ -2555,7 +2557,8 @@ def generate_cyclic_pattern(length):
 def dereference(addr):
     """GEF wrapper for gdb dereference function."""
     try:
-        unsigned_long_type = gdb.lookup_type("unsigned long").pointer()
+        ulong_t = __cached_lookup_type("unsigned long")
+        unsigned_long_type = ulong_t.pointer()
         ret = gdb.Value(addr).cast(unsigned_long_type).dereference()
     except gdb.MemoryError:
         ret = None
