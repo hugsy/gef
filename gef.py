@@ -2740,9 +2740,9 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
                     continue
                 msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
                 msg.append("Possible heap overlap detected")
-                msg.append("Reason {} new allocated chunk {:#x} (of size {:d}) overlaps in-used chunk {:#x} (of size {:d})".format(right_arrow, loc, size, chunk_addr, current_chunk_size))
+                msg.append("Reason {} new allocated chunk {:#x} (of size {:d}) overlaps in-used chunk {:#x} (of size {:#x})".format(right_arrow, loc, size, chunk_addr, current_chunk_size))
                 msg.append("Writing {0:d} bytes from {1:#x} will reach chunk {2:#x}".format(offset, chunk_addr, loc))
-                msg.append("Payload example for chunk {:#x} (to overwrite {:#x} headers):".format(loc, chunk_addr))
+                msg.append("Payload example for chunk {1:#x} (to overwrite {0:#x} headers):".format(loc, chunk_addr))
                 msg.append("  data = 'A'*{0:d} + 'B'*{1:d} + 'C'*{1:d}".format(offset, align))
                 push_context_message("warn", "\n".join(msg))
                 return True
@@ -4970,11 +4970,16 @@ class DetailRegistersCommand(GenericCommand):
     def do_invoke(self, argv):
         regs = []
         regname_color = __config__.get("theme.registers_register_name")[0]
+        string_color = __config__.get("theme.dereference_string")[0]
 
         if argv:
             regs = [reg for reg in current_arch.all_registers if reg.strip() in argv]
         else:
             regs = current_arch.all_registers
+
+        memsize = get_memory_alignment()
+        endian = endian_str()
+        charset = string.printable
 
         for regname in regs:
             reg = gdb.parse_and_eval(regname)
@@ -5003,6 +5008,16 @@ class DetailRegistersCommand(GenericCommand):
                 sep = " {:s} ".format(right_arrow)
                 line += sep
                 line += sep.join(addrs[1:])
+
+            # check to see if reg value is ascii
+            try:
+                fmt = "{}{}".format(endian, "I" if memsize==4 else "Q")
+                last_addr = int(addrs[-1],16)
+                val = gef_pystring(struct.pack(fmt, last_addr))
+                if all([_ in charset for _ in val]):
+                    line += ' ("{:s}"?)'.format( Color.colorify(val, attrs=string_color) )
+            except:
+                pass
 
             print(line)
         return
@@ -6750,6 +6765,15 @@ class HeapAnalysisCommand(GenericCommand):
     @only_if_gdb_running
     @experimental_feature
     def do_invoke(self, argv):
+        if len(argv)==0:
+            self.setup()
+            return
+
+        if argv[0]=="show":
+            self.dump_tracked_allocations()
+        return
+
+    def setup(self):
         ok("Tracking malloc()")
         TraceMallocBreakpoint()
         ok("Tracking free()")
@@ -6757,10 +6781,25 @@ class HeapAnalysisCommand(GenericCommand):
         # todo realloc / consolidate
         ok("Disabling hardware watchpoints (this may increase the latency)")
         gdb.execute("set can-use-hw-watchpoints 0")
-
         info("Dynamic breakpoints correctly setup, GEF will break execution if a possible vulnerabity is found.")
         info("To disable, clear the malloc/free breakpoints (`delete breakpoints`) and restore hardware breakpoints (`set can-use-hw-watchpoints 1`)")
         warn("{}: The heap analysis slows down noticeably the execution. ".format(Color.colorify("Note", attrs="bold underline yellow")))
+        return
+
+    def dump_tracked_allocations(self):
+        global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
+
+        if __heap_allocated_list__:
+            ok("Tracked as in-use chunks:")
+            for addr, sz in __heap_allocated_list__: print("- malloc({1:d}) = {0:#x}".format(addr, sz))
+        else:
+            ok("No malloc() chunk tracked")
+
+        if __heap_freed_list__:
+            ok("Tracked as free-ed chunks:")
+            for addr, sz in __heap_freed_list__: print("- malloc({1:d}) = {0:#x}".format(addr, sz))
+        else:
+            ok("No free() chunk tracked")
         return
 
 
