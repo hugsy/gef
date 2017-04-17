@@ -2433,14 +2433,24 @@ def set_arch():
     return
 
 
+@lru_cache()
+def __cached_lookup_type(_type):
+    try:
+        return gdb.lookup_type(_type).strip_typedefs()
+    except RuntimeError as e:
+        return None
+
+
 def get_memory_alignment(in_bits=False):
     """Return sizeof(register). If `in_bits` is set to True, the result is returned in bits,
     otherwise in bytes."""
+    res = __cached_lookup_type('size_t')
+    if res is not None:
+        return res.sizeof
     if is_elf32():
         return 4 if not in_bits else 32
     elif is_elf64():
         return 8 if not in_bits else 64
-
     raise EnvironmentError("GEF is running under an unsupported mode")
 
 
