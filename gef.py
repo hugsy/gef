@@ -2742,7 +2742,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
                 msg.append("Possible heap overlap detected")
                 msg.append("Reason {} new allocated chunk {:#x} (of size {:d}) overlaps in-used chunk {:#x} (of size {:#x})".format(right_arrow, loc, size, chunk_addr, current_chunk_size))
                 msg.append("Writing {0:d} bytes from {1:#x} will reach chunk {2:#x}".format(offset, chunk_addr, loc))
-                msg.append("Payload example for chunk {:#x} (to overwrite {:#x} headers):".format(loc, chunk_addr))
+                msg.append("Payload example for chunk {1:#x} (to overwrite {0:#x} headers):".format(loc, chunk_addr))
                 msg.append("  data = 'A'*{0:d} + 'B'*{1:d} + 'C'*{1:d}".format(offset, align))
                 push_context_message("warn", "\n".join(msg))
                 return True
