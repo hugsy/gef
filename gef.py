@@ -100,7 +100,8 @@ if PYTHON_MAJOR == 2:
     down_arrow = "\\->"
     horizontal_line = "-"
     vertical_line = "|"
-
+    cross = "x"
+    tick = "v"
     gef_prompt = "gef> "
     gef_prompt_on = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(gef_prompt)
     gef_prompt_off = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(gef_prompt)
@@ -122,7 +123,8 @@ elif PYTHON_MAJOR == 3:
     down_arrow = "\u21b3"
     horizontal_line = "\u2500"
     vertical_line = "\u2502"
-
+    cross = "\u2718 "
+    tick = "\u2713 "
     gef_prompt = "gef\u27a4  "
     gef_prompt_on = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(gef_prompt)
     gef_prompt_off = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(gef_prompt)
@@ -6804,13 +6806,13 @@ class HeapAnalysisCommand(GenericCommand):
 
         if __heap_allocated_list__:
             ok("Tracked as in-use chunks:")
-            for addr, sz in __heap_allocated_list__: print("- malloc({1:d}) = {0:#x}".format(addr, sz))
+            for addr, sz in __heap_allocated_list__: print("{} malloc({:d}) = {:#x}".format(cross, sz, addr))
         else:
             ok("No malloc() chunk tracked")
 
         if __heap_freed_list__:
             ok("Tracked as free-ed chunks:")
-            for addr, sz in __heap_freed_list__: print("- free({1:d}) = {0:#x}".format(addr, sz))
+            for addr, sz in __heap_freed_list__: print("{}  free({:d}) = {:#x}".format(tick, sz, addr))
         else:
             ok("No free() chunk tracked")
         return
