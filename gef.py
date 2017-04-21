@@ -567,7 +567,7 @@ class GlibcArena:
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671 """
     def __init__(self, addr=None):
         arena = gdb.parse_and_eval(addr)
-        malloc_state_t = __cached_lookup_type("struct malloc_state")
+        malloc_state_t = cached_lookup_type("struct malloc_state")
         self.__arena = arena.cast(malloc_state_t)
         self.__addr = long(arena.address)
         self.__arch = long(get_memory_alignment())
@@ -759,8 +759,8 @@ class GlibcChunk:
 def get_main_arena():
     try:
         arena = GlibcArena("main_arena")
-    except Exception:
-        err("Failed to get `main_arena` symbol. heap commands may not work properly")
+    except Exception as e:
+        err("Failed to get `main_arena` symbol, heap commands may not work properly: {}".format(e))
         warn("Did you install `libc6-dbg`?")
         arena = None
     return arena
@@ -1769,7 +1769,7 @@ def read_int_from_memory(addr):
 
 def read_cstring_from_memory(address):
     """Returns a C-string from memory."""
-    char_t = __cached_lookup_type("char")
+    char_t = cached_lookup_type("char")
     char_ptr = char_t.pointer()
     res = gdb.Value(address).cast(char_ptr).string().strip()
 
@@ -1847,7 +1847,7 @@ def catch_generic_exception(f):
 
 def to_unsigned_long(v):
     """Helper to cast a gdb.Value to unsigned long."""
-    unsigned_long_t = __cached_lookup_type("unsigned long")
+    unsigned_long_t = cached_lookup_type("unsigned long")
     return long(v.cast(unsigned_long_t))
 
 
@@ -2438,7 +2438,7 @@ def set_arch():
 
 
 @lru_cache()
-def __cached_lookup_type(_type):
+def cached_lookup_type(_type):
     try:
         return gdb.lookup_type(_type).strip_typedefs()
     except RuntimeError as e:
@@ -2448,7 +2448,7 @@ def __cached_lookup_type(_type):
 def get_memory_alignment(in_bits=False):
     """Return sizeof(register). If `in_bits` is set to True, the result is returned in bits,
     otherwise in bytes."""
-    res = __cached_lookup_type('size_t')
+    res = cached_lookup_type('size_t')
     if res is not None:
         return res.sizeof
     if is_elf32():
@@ -2559,7 +2559,7 @@ def generate_cyclic_pattern(length):
 def dereference(addr):
     """GEF wrapper for gdb dereference function."""
     try:
-        ulong_t = __cached_lookup_type("unsigned long")
+        ulong_t = cached_lookup_type("unsigned long")
         unsigned_long_type = ulong_t.pointer()
         ret = gdb.Value(addr).cast(unsigned_long_type).dereference()
     except gdb.MemoryError:
@@ -4979,7 +4979,7 @@ class DetailRegistersCommand(GenericCommand):
     """Display full details on one, many or all registers value from current architecture."""
 
     _cmdline_ = "registers"
-    _syntax_  = "{:s} [Register1] [Register2] ... [RegisterN]".format(_cmdline_)
+    _syntax_  = "{:s} [[Register1][Register2] ... [RegisterN]]".format(_cmdline_)
 
     @only_if_gdb_running
     def do_invoke(self, argv):
