@@ -6152,34 +6152,34 @@ class DereferenceCommand(GenericCommand):
         if not is_alive():
             return [format_address(addr),]
 
+        code_color = __config__.get("theme.dereference_code")[0]
+        string_color = __config__.get("theme.dereference_string")[0]
+
         prev_addr_value = None
         max_recursion = max(int(__config__["dereference.max_recursion"][0]), 1)
         value = align_address(long(addr))
         addr = lookup_address(value)
-        if not addr.valid or addr.value == 0x00:
-            return [format_address(addr.value),]
+        msg = [format_address(addr.value),]
+        seen_addrs = set()
 
-        msg = []
-        code_color = __config__.get("theme.dereference_code")[0]
-        string_color = __config__.get("theme.dereference_string")[0]
-        while max_recursion:
-            if addr.value == prev_addr_value:
+        while addr.section and max_recursion:
+            if addr.value in seen_addrs:
                 msg.append("[loop detected]")
                 break
+            seen_addrs.add(addr.value)
 
-            msg.append(format_address(addr.value))
-
-            prev_addr_value = addr.value
             max_recursion -= 1
 
-            # can we derefence more ?
+            # Is this value a pointer or a value?
+            # -- If it's a pointer, dereference
             deref = addr.dereference()
             new_addr = lookup_address(deref)
             if new_addr.valid:
                 addr = new_addr
+                msg.append(format_address(addr.value))
                 continue
 
-            # otherwise try to parse the value
+            # -- Otherwise try to parse the value
             if addr.section:
                 if addr.section.is_executable() and addr.is_in_text_segment():
                     insn = gef_current_instruction(addr.value)
@@ -6206,11 +6206,10 @@ class DereferenceCommand(GenericCommand):
 
             # if the value is only made of printable characters, display its value
             val_str = binascii.unhexlify(val)
-            charset="""0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ """
             if PYTHON_MAJOR==3:
-                is_string = all(map(lambda x: chr(x) in charset, val_str))
+                is_string = all(map(lambda x: chr(x) in string.printable, val_str))
             else:
-                is_string = all(map(lambda x: x in charset, val_str))
+                is_string = all(map(lambda x: x in string.printable, val_str))
             if is_string:
                 val+= ' ("{}"?)'.format(Color.colorify(gef_pystring(val_str), attrs=string_color))
             msg.append("0x"+val)
