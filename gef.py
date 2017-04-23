@@ -5697,10 +5697,10 @@ class ContextCommand(GenericCommand):
                 text = str(insn)
 
                 if insn.address < pc:
-                    line += Color.grayify(text)
+                    line += Color.grayify("   {}".format(text))
 
                 elif insn.address == pc:
-                    line += Color.colorify("{:s}  {:s}$pc".format(text, left_arrow), attrs="bold red")
+                    line += Color.colorify("{:s}{:s}".format(right_arrow, text), attrs="bold red")
 
                     if current_arch.is_conditional_branch(insn):
                         is_taken, reason = current_arch.is_branch_taken(insn)
@@ -5712,7 +5712,7 @@ class ContextCommand(GenericCommand):
                             line += Color.colorify("\tNOT taken {:s}".format(reason), attrs="bold red")
 
                 else:
-                    line += text
+                    line += "   {}".format(text)
 
                 print("".join(line))
 
@@ -5720,7 +5720,7 @@ class ContextCommand(GenericCommand):
                     target = insn.operands[-1].split()[0]
                     target = int(target, 16)
                     for i, insn in enumerate(gef_disassemble(target, nb_insn, from_top=True)):
-                        text= "{}  {}".format (down_arrow if i==0 else " ", str(insn))
+                        text= "   {}  {}".format (down_arrow if i==0 else " ", str(insn))
                         print(text)
                     break
 
