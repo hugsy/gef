@@ -235,7 +235,6 @@ else:
             def cache_clear(self, caller=None):
                 """Clear a cache."""
                 if caller in self._caches_dict:
-                    del self._caches_dict[caller]
                     self._caches_dict[caller] = collections.OrderedDict()
                 return
 
@@ -440,7 +439,7 @@ class Section:
     def __init__(self, *args, **kwargs):
         attrs = ["page_start", "page_end", "offset", "permission", "inode", "path"]
         for attr in attrs:
-            value = kwargs[attr] if attr in kwargs else None
+            value = kwargs.get(attr)
             setattr(self, attr, value)
         return
 
