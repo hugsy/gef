@@ -818,8 +818,8 @@ def show_last_exception():
 def gef_pystring(x):
     """Python 2 & 3 compatibility function for strings handling."""
     if PYTHON_MAJOR == 3:
-        return str(x, encoding="ascii")
-    return x
+        return str(x, encoding="ascii").replace('\n','\\n').replace('\r','\\r').replace('\t','\\t')
+    return x.replace('\n','\\n').replace('\r','\\r').replace('\t','\\t')
 
 
 def gef_pybytes(x):
