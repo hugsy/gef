@@ -6711,7 +6711,7 @@ class ChecksecCommand(GenericCommand):
             if prop in ("Partial RelRO", "Full RelRO"): continue
             val = sec[prop]
             msg = Color.greenify("Yes") if val is True else Color.redify("No")
-            if prop=="Canary" and is_alive():
+            if val and prop=="Canary" and is_alive():
                 canary, _ = gef_read_canary()
                 msg+= "{} value: {:#x}".format(right_arrow, canary)
 
