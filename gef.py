@@ -5017,9 +5017,13 @@ class DetailRegistersCommand(GenericCommand):
                 print(line)
                 continue
 
-            addr = align_address(long(reg))
-            line += Color.boldify(format_address(addr))
-            addrs = DereferenceCommand.dereference_from(addr)
+            old_value = ContextCommand.old_registers.get(regname, 0)
+            new_value = align_address(long(reg))
+            if new_value == old_value:
+                line += Color.boldify(format_address(new_value))
+            else:
+                line += Color.colorify(format_address(new_value), attrs="bold red")
+            addrs = DereferenceCommand.dereference_from(new_value)
 
             if len(addrs) > 1:
                 sep = " {:s} ".format(right_arrow)
@@ -5630,7 +5634,7 @@ class ContextCommand(GenericCommand):
             except Exception:
                 new_value = 0
 
-            old_value = self.old_registers[reg] if reg in self.old_registers else 0x00
+            old_value = self.old_registers.get(reg, 0)
 
             line += "{:s}  ".format(Color.greenify(reg))
             if new_value_type_flag:
@@ -5898,12 +5902,13 @@ class ContextCommand(GenericCommand):
         return
 
 
-    def update_registers(self, event):
+    @classmethod
+    def update_registers(cls, event):
         for reg in current_arch.all_registers:
             try:
-                self.old_registers[reg] = get_register(reg)
+                cls.old_registers[reg] = get_register(reg)
             except Exception:
-                self.old_registers[reg] = 0
+                cls.old_registers[reg] = 0
         return
 
 
