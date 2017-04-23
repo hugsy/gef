@@ -2718,6 +2718,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         size = self.size
         loc = long(self.return_value) if self.return_value else self.return_value_ex()
         ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), size, loc))
+        check_heap_overlap = __config__.get("heap-analysis-helper.check_heap_overlap")[0]
 
         # pop from free-ed list if it was in it
         if __heap_freed_list__:
@@ -2742,25 +2743,26 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
 
         item = (loc, size)
 
-        # seek all the currently allocated chunks, read their effective size and check for overlap
-        msg = []
-        align = get_memory_alignment()
-        for chunk_addr, chunk_sz in __heap_allocated_list__:
-            current_chunk = GlibcChunk(chunk_addr)
-            current_chunk_size = current_chunk.get_chunk_size()
+        if check_heap_overlap:
+            # seek all the currently allocated chunks, read their effective size and check for overlap
+            msg = []
+            align = get_memory_alignment()
+            for chunk_addr, chunk_sz in __heap_allocated_list__:
+                current_chunk = GlibcChunk(chunk_addr)
+                current_chunk_size = current_chunk.get_chunk_size()
 
-            if chunk_addr <= loc < chunk_addr + current_chunk_size:
-                offset = loc - chunk_addr - 2*align
-                if offset < 0: # false positive, discard
-                    continue
-                msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
-                msg.append("Possible heap overlap detected")
-                msg.append("Reason {} new allocated chunk {:#x} (of size {:d}) overlaps in-used chunk {:#x} (of size {:#x})".format(right_arrow, loc, size, chunk_addr, current_chunk_size))
-                msg.append("Writing {0:d} bytes from {1:#x} will reach chunk {2:#x}".format(offset, chunk_addr, loc))
-                msg.append("Payload example for chunk {1:#x} (to overwrite {0:#x} headers):".format(loc, chunk_addr))
-                msg.append("  data = 'A'*{0:d} + 'B'*{1:d} + 'C'*{1:d}".format(offset, align))
-                push_context_message("warn", "\n".join(msg))
-                return True
+                if chunk_addr <= loc < chunk_addr + current_chunk_size:
+                    offset = loc - chunk_addr - 2*align
+                    if offset < 0: continue # false positive, discard
+
+                    msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+                    msg.append("Possible heap overlap detected")
+                    msg.append("Reason {} new allocated chunk {:#x} (of size {:d}) overlaps in-used chunk {:#x} (of size {:#x})".format(right_arrow, loc, size, chunk_addr, current_chunk_size))
+                    msg.append("Writing {0:d} bytes from {1:#x} will reach chunk {2:#x}".format(offset, chunk_addr, loc))
+                    msg.append("Payload example for chunk {1:#x} (to overwrite {0:#x} headers):".format(loc, chunk_addr))
+                    msg.append("  data = 'A'*{0:d} + 'B'*{1:d} + 'C'*{1:d}".format(offset, align))
+                    push_context_message("warn", "\n".join(msg))
+                    return True
 
         # add it to alloc-ed list
         __heap_allocated_list__.append(item)
@@ -6774,6 +6776,7 @@ class HeapAnalysisCommand(GenericCommand):
         self.add_setting("check_double_free", True, "Break execution when a double free is encountered")
         self.add_setting("check_weird_free", True, "Break execution when free() is called against a non-tracked pointer")
         self.add_setting("check_uaf", True, "Break execution when a possible Use-after-Free condition is found")
+        self.add_setting("check_heap_overlap", True, "Break execution when a possible overlap in allocation is found")
         return
 
     @only_if_gdb_running
