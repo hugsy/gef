@@ -1846,7 +1846,7 @@ def catch_generic_exception(f):
 
 
 def to_unsigned_long(v):
-    """Helper to cast a gdb.Value to unsigned long."""
+    """Cast a gdb.Value to unsigned long."""
     unsigned_long_t = cached_lookup_type("unsigned long")
     return long(v.cast(unsigned_long_t))
 
@@ -1856,6 +1856,8 @@ def get_register(regname):
     regname = regname.strip()
     try:
         value = gdb.parse_and_eval(regname)
+        if value.type.code == gdb.TYPE_CODE_INT:
+           value = to_unsigned_long(value)
         return long(value)
     except gdb.error:
         value = gdb.selected_frame().read_register(regname)
