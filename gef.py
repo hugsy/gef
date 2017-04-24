@@ -6293,6 +6293,9 @@ class VMMapCommand(GenericCommand):
             print("{:<23s} {:<23s} {:<23s} {:<4s} {:s}".format(*headers))
 
         for entry in vmmap:
+            if argv:
+                if not argv[0] in entry.path: 
+                    continue        
             l = []
             l.append(format_address(entry.page_start))
             l.append(format_address(entry.page_end))
