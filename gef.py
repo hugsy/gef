@@ -567,7 +567,7 @@ class GlibcArena:
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671 """
     def __init__(self, addr=None):
         arena = gdb.parse_and_eval(addr)
-        malloc_state_t = __cached_lookup_type("struct malloc_state")
+        malloc_state_t = cached_lookup_type("struct malloc_state")
         self.__arena = arena.cast(malloc_state_t)
         self.__addr = long(arena.address)
         self.__arch = long(get_memory_alignment())
@@ -759,8 +759,8 @@ class GlibcChunk:
 def get_main_arena():
     try:
         arena = GlibcArena("main_arena")
-    except Exception:
-        err("Failed to get `main_arena` symbol. heap commands may not work properly")
+    except Exception as e:
+        err("Failed to get `main_arena` symbol, heap commands may not work properly: {}".format(e))
         warn("Did you install `libc6-dbg`?")
         arena = None
     return arena
@@ -818,8 +818,8 @@ def show_last_exception():
 def gef_pystring(x):
     """Python 2 & 3 compatibility function for strings handling."""
     if PYTHON_MAJOR == 3:
-        return str(x, encoding="ascii")
-    return x
+        return str(x, encoding="ascii").replace('\n','\\n').replace('\r','\\r').replace('\t','\\t')
+    return x.replace('\n','\\n').replace('\r','\\r').replace('\t','\\t')
 
 
 def gef_pybytes(x):
@@ -1769,7 +1769,7 @@ def read_int_from_memory(addr):
 
 def read_cstring_from_memory(address):
     """Returns a C-string from memory."""
-    char_t = __cached_lookup_type("char")
+    char_t = cached_lookup_type("char")
     char_ptr = char_t.pointer()
     res = gdb.Value(address).cast(char_ptr).string().strip()
 
@@ -1847,7 +1847,7 @@ def catch_generic_exception(f):
 
 def to_unsigned_long(v):
     """Helper to cast a gdb.Value to unsigned long."""
-    unsigned_long_t = __cached_lookup_type("unsigned long")
+    unsigned_long_t = cached_lookup_type("unsigned long")
     return long(v.cast(unsigned_long_t))
 
 
@@ -2438,7 +2438,7 @@ def set_arch():
 
 
 @lru_cache()
-def __cached_lookup_type(_type):
+def cached_lookup_type(_type):
     try:
         return gdb.lookup_type(_type).strip_typedefs()
     except RuntimeError as e:
@@ -2448,7 +2448,7 @@ def __cached_lookup_type(_type):
 def get_memory_alignment(in_bits=False):
     """Return sizeof(register). If `in_bits` is set to True, the result is returned in bits,
     otherwise in bytes."""
-    res = __cached_lookup_type('size_t')
+    res = cached_lookup_type('size_t')
     if res is not None:
         return res.sizeof
     if is_elf32():
@@ -2559,7 +2559,7 @@ def generate_cyclic_pattern(length):
 def dereference(addr):
     """GEF wrapper for gdb dereference function."""
     try:
-        ulong_t = __cached_lookup_type("unsigned long")
+        ulong_t = cached_lookup_type("unsigned long")
         unsigned_long_type = ulong_t.pointer()
         ret = gdb.Value(addr).cast(unsigned_long_type).dereference()
     except gdb.MemoryError:
@@ -2718,6 +2718,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         size = self.size
         loc = long(self.return_value) if self.return_value else self.return_value_ex()
         ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), size, loc))
+        check_heap_overlap = __config__.get("heap-analysis-helper.check_heap_overlap")[0]
 
         # pop from free-ed list if it was in it
         if __heap_freed_list__:
@@ -2742,25 +2743,26 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
 
         item = (loc, size)
 
-        # seek all the currently allocated chunks, read their effective size and check for overlap
-        msg = []
-        align = get_memory_alignment()
-        for chunk_addr, chunk_sz in __heap_allocated_list__:
-            current_chunk = GlibcChunk(chunk_addr)
-            current_chunk_size = current_chunk.get_chunk_size()
+        if check_heap_overlap:
+            # seek all the currently allocated chunks, read their effective size and check for overlap
+            msg = []
+            align = get_memory_alignment()
+            for chunk_addr, chunk_sz in __heap_allocated_list__:
+                current_chunk = GlibcChunk(chunk_addr)
+                current_chunk_size = current_chunk.get_chunk_size()
 
-            if chunk_addr <= loc < chunk_addr + current_chunk_size:
-                offset = loc - chunk_addr - 2*align
-                if offset < 0: # false positive, discard
-                    continue
-                msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
-                msg.append("Possible heap overlap detected")
-                msg.append("Reason {} new allocated chunk {:#x} (of size {:d}) overlaps in-used chunk {:#x} (of size {:#x})".format(right_arrow, loc, size, chunk_addr, current_chunk_size))
-                msg.append("Writing {0:d} bytes from {1:#x} will reach chunk {2:#x}".format(offset, chunk_addr, loc))
-                msg.append("Payload example for chunk {1:#x} (to overwrite {0:#x} headers):".format(loc, chunk_addr))
-                msg.append("  data = 'A'*{0:d} + 'B'*{1:d} + 'C'*{1:d}".format(offset, align))
-                push_context_message("warn", "\n".join(msg))
-                return True
+                if chunk_addr <= loc < chunk_addr + current_chunk_size:
+                    offset = loc - chunk_addr - 2*align
+                    if offset < 0: continue # false positive, discard
+
+                    msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+                    msg.append("Possible heap overlap detected")
+                    msg.append("Reason {} new allocated chunk {:#x} (of size {:d}) overlaps in-used chunk {:#x} (of size {:#x})".format(right_arrow, loc, size, chunk_addr, current_chunk_size))
+                    msg.append("Writing {0:d} bytes from {1:#x} will reach chunk {2:#x}".format(offset, chunk_addr, loc))
+                    msg.append("Payload example for chunk {1:#x} (to overwrite {0:#x} headers):".format(loc, chunk_addr))
+                    msg.append("  data = 'A'*{0:d} + 'B'*{1:d} + 'C'*{1:d}".format(offset, align))
+                    push_context_message("warn", "\n".join(msg))
+                    return True
 
         # add it to alloc-ed list
         __heap_allocated_list__.append(item)
@@ -4979,7 +4981,7 @@ class DetailRegistersCommand(GenericCommand):
     """Display full details on one, many or all registers value from current architecture."""
 
     _cmdline_ = "registers"
-    _syntax_  = "{:s} [Register1] [Register2] ... [RegisterN]".format(_cmdline_)
+    _syntax_  = "{:s} [[Register1][Register2] ... [RegisterN]]".format(_cmdline_)
 
     @only_if_gdb_running
     def do_invoke(self, argv):
@@ -6152,34 +6154,34 @@ class DereferenceCommand(GenericCommand):
         if not is_alive():
             return [format_address(addr),]
 
+        code_color = __config__.get("theme.dereference_code")[0]
+        string_color = __config__.get("theme.dereference_string")[0]
+
         prev_addr_value = None
         max_recursion = max(int(__config__["dereference.max_recursion"][0]), 1)
         value = align_address(long(addr))
         addr = lookup_address(value)
-        if not addr.valid or addr.value == 0x00:
-            return [format_address(addr.value),]
+        msg = [format_address(addr.value),]
+        seen_addrs = set()
 
-        msg = []
-        code_color = __config__.get("theme.dereference_code")[0]
-        string_color = __config__.get("theme.dereference_string")[0]
-        while max_recursion:
-            if addr.value == prev_addr_value:
+        while addr.section and max_recursion:
+            if addr.value in seen_addrs:
                 msg.append("[loop detected]")
                 break
+            seen_addrs.add(addr.value)
 
-            msg.append(format_address(addr.value))
-
-            prev_addr_value = addr.value
             max_recursion -= 1
 
-            # can we derefence more ?
+            # Is this value a pointer or a value?
+            # -- If it's a pointer, dereference
             deref = addr.dereference()
             new_addr = lookup_address(deref)
             if new_addr.valid:
                 addr = new_addr
+                msg.append(format_address(addr.value))
                 continue
 
-            # otherwise try to parse the value
+            # -- Otherwise try to parse the value
             if addr.section:
                 if addr.section.is_executable() and addr.is_in_text_segment():
                     insn = gef_current_instruction(addr.value)
@@ -6206,11 +6208,10 @@ class DereferenceCommand(GenericCommand):
 
             # if the value is only made of printable characters, display its value
             val_str = binascii.unhexlify(val)
-            charset="""0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ """
             if PYTHON_MAJOR==3:
-                is_string = all(map(lambda x: chr(x) in charset, val_str))
+                is_string = all(map(lambda x: chr(x) in string.printable, val_str))
             else:
-                is_string = all(map(lambda x: x in charset, val_str))
+                is_string = all(map(lambda x: x in string.printable, val_str))
             if is_string:
                 val+= ' ("{}"?)'.format(Color.colorify(gef_pystring(val_str), attrs=string_color))
             msg.append("0x"+val)
@@ -6294,6 +6295,9 @@ class VMMapCommand(GenericCommand):
             print("{:<23s} {:<23s} {:<23s} {:<4s} {:s}".format(*headers))
 
         for entry in vmmap:
+            if argv:
+                if not argv[0] in entry.path: 
+                    continue        
             l = []
             l.append(format_address(entry.page_start))
             l.append(format_address(entry.page_end))
@@ -6710,7 +6714,7 @@ class ChecksecCommand(GenericCommand):
             if prop in ("Partial RelRO", "Full RelRO"): continue
             val = sec[prop]
             msg = Color.greenify("Yes") if val is True else Color.redify("No")
-            if prop=="Canary" and is_alive():
+            if val and prop=="Canary" and is_alive():
                 canary, _ = gef_read_canary()
                 msg+= "{} value: {:#x}".format(right_arrow, canary)
 
@@ -6775,6 +6779,7 @@ class HeapAnalysisCommand(GenericCommand):
         self.add_setting("check_double_free", True, "Break execution when a double free is encountered")
         self.add_setting("check_weird_free", True, "Break execution when free() is called against a non-tracked pointer")
         self.add_setting("check_uaf", True, "Break execution when a possible Use-after-Free condition is found")
+        self.add_setting("check_heap_overlap", True, "Break execution when a possible overlap in allocation is found")
         return
 
     @only_if_gdb_running
