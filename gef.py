@@ -2147,9 +2147,11 @@ def xor(data, key):
 
 def is_hex(pattern):
     """Return whether provided string is a hexadecimal value."""
-    if not pattern.startswith("0x") and not pattern.startswith("0X"):
+    try:
+        int(pattern, 16)
+    except ValueError:
         return False
-    return len(pattern)%2==0 and all(c in string.hexdigits for c in pattern[2:])
+    return True
 
 
 def ida_synchronize_handler(event):
