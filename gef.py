@@ -5753,17 +5753,17 @@ class ContextCommand(GenericCommand):
                 continue
 
             if i < line_num:
-                print(Color.grayify("{:4d}\t {:s}".format(i + 1, lines[i],)))
+                print(Color.grayify("   {:4d}\t {:s}".format(i + 1, lines[i],)))
 
             if i == line_num:
                 extra_info = self.get_pc_context_info(pc, lines[i])
                 if extra_info:
                     print(extra_info)
-                print(Color.colorify("{:4d}\t {:s} \t\t {:s} $pc\t".format(i + 1, lines[i], left_arrow,), attrs="bold red"))
+                print(Color.colorify("{}{:4d}\t {:s}".format(right_arrow, i + 1, lines[i]), attrs="bold red"))
 
             if i > line_num:
                 try:
-                    print("{:4d}\t {:s}".format(i + 1, lines[i],))
+                    print("   {:4d}\t {:s}".format(i + 1, lines[i],))
                 except IndexError:
                     break
         return
@@ -5796,7 +5796,7 @@ class ContextCommand(GenericCommand):
                 current_block = current_block.superblock
 
             if m:
-                return "\t // " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m.items()])
+                return "\t\t// " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m.items()])
         except Exception:
             pass
         return ""
