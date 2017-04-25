@@ -2450,7 +2450,7 @@ def get_memory_alignment(in_bits=False):
     otherwise in bytes."""
     res = cached_lookup_type('size_t')
     if res is not None:
-        return res.sizeof
+        return res.sizeof if not in_bits else res.sizeof * 8
     if is_elf32():
         return 4 if not in_bits else 32
     elif is_elf64():
