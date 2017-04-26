@@ -64,3 +64,12 @@ Then `gef` will not notify you of any inconsistency detected, but simply display
 a clear message when a chunk is allocated/freed.
 
 ![heap-track](https://i.imgur.com/68NGTvw.png)
+
+To get information regarding the currently tracked chunks, use the `show`
+subcommand:
+
+```
+gef➤  heap-analysis-helper show
+```
+
+![heap-analysis-helper-show](http://i.imgur.com/0I4jBWJ.png)

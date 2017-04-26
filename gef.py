@@ -134,8 +134,8 @@ else:
 
 
 def http_get(url):
-    """Basic HTTP wrapper for GET request. Returns the body of the page if HTTP code is OK,
-    else returns None."""
+    """Basic HTTP wrapper for GET request. Return the body of the page if HTTP code is OK,
+    otherwise return None."""
     try:
         http = urlopen(url)
         if http.getcode() != 200:
@@ -146,7 +146,7 @@ def http_get(url):
 
 
 def update_gef(argv):
-    """Tries to update `gef` to the latest version pushed on GitHub. Returns 0 on success,
+    """Try to update `gef` to the latest version pushed on GitHub. Return 0 on success,
     1 on failure. """
     gef_local = os.path.realpath(argv[0])
     hash_gef_local = hashlib.sha512(open(gef_local, "rb").read()).digest()
@@ -224,7 +224,7 @@ else:
                 return
 
             def cache_info(self, caller=None):
-                """Returns a string with statistics of cache usage."""
+                """Return a string with statistics of cache usage."""
                 if caller not in self._caches_dict:
                     return ""
                 hits = self._caches_info[caller]["hits"]
@@ -926,7 +926,7 @@ def disable_redirect_output():
 
 
 def gef_makedirs(path, mode=0o755):
-    """Recursive mkdir() creation. If successful, returns the absolute path of the directory created."""
+    """Recursive mkdir() creation. If successful, return the absolute path of the directory created."""
     abspath = os.path.realpath(path)
     if os.path.isdir(abspath):
         return abspath
@@ -943,7 +943,7 @@ def gef_makedirs(path, mode=0o755):
 
 @lru_cache()
 def gdb_lookup_symbol(sym):
-    """Helper to fetch the proper symbol."""
+    """Fetch the proper symbol or none is not defined."""
     try:
         return gdb.decode_line(sym)[1]
     except gdb.error:
@@ -952,8 +952,8 @@ def gdb_lookup_symbol(sym):
 
 @lru_cache(maxsize=512)
 def gdb_get_location_from_symbol(address):
-    """Retrieves the location of the `address` argument from the symbol table.
-    Returns a tuple with the name and offset if found, None otherwise."""
+    """Retrieve the location of the `address` argument from the symbol table.
+    Return a tuple with the name and offset if found, None otherwise."""
     # this is horrible, ugly hack and shitty perf...
     # find a *clean* way to get gdb.Location from an address
     name, off = None, 0
@@ -974,7 +974,7 @@ def gdb_disassemble(start_pc, **kwargs):
     - `end_pc` (Integer) to disassemble until this address
     - `count` (Integer) to disassemble this number of instruction.
     If `end_pc` and `count` are not provided, the function will behave as if `count=1`.
-    Returns an iterator of Instruction objects
+    Return an iterator of Instruction objects
     """
     frame = gdb.selected_frame()
     arch = frame.architecture()
@@ -995,7 +995,7 @@ def gdb_disassemble(start_pc, **kwargs):
 
 
 def gdb_get_nth_previous_instruction_address(addr, n):
-    """Returns the address (Integer) of the `n`-th instruction before `addr`."""
+    """Return the address (Integer) of the `n`-th instruction before `addr`."""
     # fixed-length ABI
     if not (is_x86_32() or is_x86_64()):
         return addr - n*current_arch.instruction_length
@@ -1030,7 +1030,7 @@ def gdb_get_nth_previous_instruction_address(addr, n):
 
 
 def gdb_get_nth_next_instruction_address(addr, n):
-    """Returns the address (Integer) of the `n`-th instruction after `addr`."""
+    """Return the address (Integer) of the `n`-th instruction after `addr`."""
     # fixed-length ABI
     if not (is_x86_32() or is_x86_64()):
         return addr + n*current_arch.instruction_length
@@ -1041,24 +1041,24 @@ def gdb_get_nth_next_instruction_address(addr, n):
 
 
 def gef_instruction_n(addr, n):
-    """Returns the `n`-th instruction after `addr` as an Instruction object."""
+    """Return the `n`-th instruction after `addr` as an Instruction object."""
     return list(gdb_disassemble(addr, count=n+1))[n-1]
 
 
 def gef_current_instruction(addr):
-    """Returns the current instruction as an Instruction object."""
+    """Return the current instruction as an Instruction object."""
     return gef_instruction_n(addr, 0)
 
 
 def gef_next_instruction(addr):
-    """Returns the next instruction as an Instruction object."""
+    """Return the next instruction as an Instruction object."""
     return gef_instruction_n(addr, 1)
 
 
 def gef_disassemble(addr, nb_insn, from_top=False):
     """Disassemble `nb_insn` instructions after `addr`. If `from_top` is False (default), it will
     also disassemble the `nb_insn` instructions before `addr`.
-    Returns an iterator of Instruction objects."""
+    Return an iterator of Instruction objects."""
     if nb_insn & 1:
         count = nb_insn + 1
 
@@ -1098,13 +1098,13 @@ def gef_execute_gdb_script(commands):
 
 @lru_cache(32)
 def checksec(filename):
-    """Checks the security property of the ELF binary. The following properties are:
+    """Check the security property of the ELF binary. The following properties are:
     - Canary
     - NX
     - PIE
     - Fortify
     - Partial/Full RelRO.
-    Returns a Python dict() with the different keys mentioned above, and the boolean
+    Return a Python dict() with the different keys mentioned above, and the boolean
     associated whether the protection was found."""
 
     try:
@@ -1139,7 +1139,7 @@ def checksec(filename):
 
 @lru_cache()
 def get_arch():
-    """Helper to get the binary architecture."""
+    """Return the binary's architecture."""
     if is_alive():
         arch = gdb.selected_frame().architecture()
         return arch.name()
@@ -1148,7 +1148,7 @@ def get_arch():
 
 @lru_cache()
 def get_endian():
-    """Helper to determine the binary endianness."""
+    """Return the binary's endianness."""
     if is_alive():
         return get_elf_headers().e_endianness
     if gdb.execute("show endian", to_string=True).strip().split()[7] == "little" :
@@ -1162,7 +1162,7 @@ def is_little_endian():  return not is_big_endian()
 
 
 def flags_to_human(reg_value, value_table):
-    """Returns a human readable string showing the flag states."""
+    """Return a human readable string showing the flag states."""
     flags = []
     for i in value_table:
         flag_str = Color.boldify(value_table[i].upper()) if reg_value & (1<<i) else value_table[i].lower()
@@ -1752,7 +1752,7 @@ def write_memory(address, buffer, length=0x10):
 
 
 def read_memory(addr, length=0x10):
-    """Returns a  `length` long byte array with the copy of the process memory at `addr`."""
+    """Return a `length` long byte array with the copy of the process memory at `addr`."""
     if PYTHON_MAJOR == 2:
         return gdb.selected_inferior().read_memory(addr, length)
 
@@ -1760,7 +1760,7 @@ def read_memory(addr, length=0x10):
 
 
 def read_int_from_memory(addr):
-    """Returns an integer from memory."""
+    """Return an integer from memory."""
     sz = get_memory_alignment()
     mem = read_memory(addr, sz)
     fmt = "{}{}".format(endian_str(), "I" if sz==4 else "Q")
@@ -1768,7 +1768,7 @@ def read_int_from_memory(addr):
 
 
 def read_cstring_from_memory(address):
-    """Returns a C-string from memory."""
+    """Return a C-string from memory."""
     char_t = cached_lookup_type("char")
     char_ptr = char_t.pointer()
     res = gdb.Value(address).cast(char_ptr).string().strip()
@@ -1852,11 +1852,7 @@ def to_unsigned_long(v):
 
 
 def get_register(regname):
-    """Get a register value. Exception will be raised if expression cannot be parse.
-    This function won't catch on purpose.
-    @param regname: expected register
-    @return register value
-    """
+    """Return a register's value."""
     regname = regname.strip()
     try:
         value = gdb.parse_and_eval(regname)
@@ -1868,19 +1864,19 @@ def get_register(regname):
 
 @lru_cache()
 def get_os():
-    """Helper to return the current OS."""
+    """Return the current OS."""
     return platform.system().lower()
 
 
 @lru_cache()
 def get_pid():
-    """Helper to return the currently debugged Process Id."""
+    """Return the currently debugged PID."""
     return gdb.selected_inferior().pid
 
 
 @lru_cache()
 def get_filepath():
-    """Returns the absolute path of the file currently debugged."""
+    """Return the absolute path of the file currently debugged."""
     filename = gdb.current_progspace().filename
 
     if is_remote_debug():
@@ -1903,7 +1899,7 @@ def get_filepath():
 
 @lru_cache()
 def get_filename():
-    """Returns the full filename of the file currently debugged."""
+    """Return the full filename of the file currently debugged."""
     return os.path.basename(get_filepath())
 
 
@@ -2086,7 +2082,8 @@ def get_info_files():
 
 
 def process_lookup_address(address):
-    """Look up for an address in memory. Returns an Address object if found, None otherwise."""
+    """Look up for an address in memory.
+    Return an Address object if found, None otherwise."""
     if not is_alive():
         err("Process is not running")
         return None
@@ -2104,7 +2101,7 @@ def process_lookup_address(address):
 
 def process_lookup_path(name, perm=Permission.ALL):
     """Look up for a path in the process memory mapping.
-    Returns a Section object if found, None otherwise."""
+    Return a Section object if found, None otherwise."""
     if not is_alive():
         err("Process is not running")
         return None
@@ -2117,7 +2114,8 @@ def process_lookup_path(name, perm=Permission.ALL):
 
 
 def file_lookup_address(address):
-    """Look up for a file by its address. Returns a Zone object if found, None otherwise."""
+    """Look up for a file by its address.
+    Return a Zone object if found, None otherwise."""
     for info in get_info_files():
         if info.zone_start <= address < info.zone_end:
             return info
@@ -2137,7 +2135,7 @@ def lookup_address(address):
 
 
 def xor(data, key):
-    """Returns `data` xor-ed with `key`."""
+    """Return `data` xor-ed with `key`."""
     key = key.lstrip("0x")
     key = binascii.unhexlify(key)
     if PYTHON_MAJOR == 2:
@@ -2147,7 +2145,7 @@ def xor(data, key):
 
 
 def is_hex(pattern):
-    """Tries to determine if `pattern` is an hexadecimal address."""
+    """Return whether provided string is a hexadecimal value."""
     if not pattern.startswith("0x") and not pattern.startswith("0X"):
         return False
     return len(pattern)%2==0 and all(c in string.hexdigits for c in pattern[2:])
@@ -2274,7 +2272,7 @@ def get_keystone_arch(arch=None, mode=None, endian=None, to_string=False):
 
 
 def get_unicorn_registers(to_string=False):
-    "Returns a dict matching the Unicorn identifier for a specific register."
+    "Return a dict matching the Unicorn identifier for a specific register."
     unicorn = sys.modules["unicorn"]
     regs = {}
 
@@ -2450,7 +2448,7 @@ def get_memory_alignment(in_bits=False):
     otherwise in bytes."""
     res = cached_lookup_type('size_t')
     if res is not None:
-        return res.sizeof
+        return res.sizeof if not in_bits else res.sizeof * 8
     if is_elf32():
         return 4 if not in_bits else 32
     elif is_elf64():
@@ -2494,7 +2492,7 @@ def align_address_to_page(address):
 
 
 def parse_address(address):
-    """Parses an address and returns it as an Integer."""
+    """Parse an address and return it as an Integer."""
     if is_hex(address):
         return long(address, 16)
     return to_unsigned_long(gdb.parse_and_eval(address))
@@ -2514,7 +2512,7 @@ def endian_str():
 
 @lru_cache()
 def is_remote_debug():
-    """"Returns True is the current debugging session is running through GDB remote session."""
+    """"Return True is the current debugging session is running through GDB remote session."""
     return "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
 
@@ -2577,7 +2575,7 @@ def gef_convenience(value):
 
 
 def gef_read_canary():
-    """Reads the canary of a running process using Auxiliary Vector. Returns a tuple of (canary, location)
+    """Read the canary of a running process using Auxiliary Vector. Return a tuple of (canary, location)
     if found, None otherwise."""
 
     if not is_alive():
