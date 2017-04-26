@@ -192,7 +192,7 @@ DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
 GEF_RC                                 = os.path.join(os.getenv("HOME"), ".gef.rc")
 GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
-
+GEF_MAX_STRING_LENGTH                  = 50
 
 ___default_aliases___                  = {
     # WinDBG style breakpoints
@@ -1772,12 +1772,12 @@ def read_cstring_from_memory(address):
     char_t = cached_lookup_type("char")
     char_ptr = char_t.pointer()
     res = gdb.Value(address).cast(char_ptr).string().strip()
+    res2 = res.replace('\n','\\n').replace('\r','\\r').replace('\t','\\t')
 
-    i = res.find("\n")
-    if i != -1 and len(res) > get_memory_alignment():
-        res = "{}[...]".format(res[:i])
+    if len(res) > GEF_MAX_STRING_LENGTH:
+        return "{}[...]".format(res2[:GEF_MAX_STRING_LENGTH])
 
-    return res
+    return res2
 
 
 def is_readable_string(address):
@@ -6296,8 +6296,8 @@ class VMMapCommand(GenericCommand):
 
         for entry in vmmap:
             if argv:
-                if not argv[0] in entry.path: 
-                    continue        
+                if not argv[0] in entry.path:
+                    continue
             l = []
             l.append(format_address(entry.page_start))
             l.append(format_address(entry.page_end))
