@@ -97,3 +97,8 @@ gef➤ gef config context.clear_screen 1
 ```
 gef➤ gef config context.show_registers_raw 0
 ```
+
+  * Don't 'peek' into the start of functions that are called.
+```
+gef➤  gef config context.peek_calls False
+```
