@@ -94,6 +94,7 @@ if PYTHON_MAJOR == 2:
 
     # Compat Py2/3 hacks
     range = xrange
+    FileNotFoundError = IOError
 
     left_arrow = "<-"
     right_arrow = "->"
@@ -116,7 +117,6 @@ elif PYTHON_MAJOR == 3:
     # Compat Py2/3 hack
     long = int
     unicode = str
-    FileNotFoundError = IOError
 
     left_arrow = " \u2190 "
     right_arrow = " \u2192 "
