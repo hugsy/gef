@@ -5520,7 +5520,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("enable", True, "Enable/disable printing the context when breaking")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", True, "Show the registers pane with raw values (no dereference)")
-        self.add_setting("peek_calls", False, "Peek into calls")
+        self.add_setting("peek_calls", True, "Peek into calls")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
         self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
