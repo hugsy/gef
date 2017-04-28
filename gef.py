@@ -1302,6 +1302,11 @@ class AARCH64(ARM):
     }
     function_parameters = ["$x0", "$x1", "$x2", "$x3"]
 
+    def is_call(self, insn):
+        mnemo = insn.mnemo
+        call_mnemos = {"bl", "blr"}
+        return mnemo in call_mnemos
+
     def flag_register_to_human(self, val=None):
         # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
         reg = self.flag_register
