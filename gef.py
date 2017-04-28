@@ -6163,6 +6163,7 @@ class DereferenceCommand(GenericCommand):
         return l
 
     @only_if_gdb_running
+    @catch_generic_exception
     def do_invoke(self, argv):
         if len(argv) < 1:
             err("Missing location.")
