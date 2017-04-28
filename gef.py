@@ -980,12 +980,12 @@ def gdb_disassemble(start_pc, **kwargs):
 
     for insn in arch.disassemble(start_pc, **kwargs):
         address = insn["addr"]
-        asm = insn["asm"].rstrip()
-        if " " in asm:
-            mnemo, operands = asm.split(None, 1)
+        asm = insn["asm"].rstrip().split(None, 1)
+        if len(asm) > 1:
+            mnemo, operands = asm
             operands = operands.split(",")
         else:
-            mnemo, operands = asm, []
+            mnemo, operands = asm[0], []
 
         loc = gdb_get_location_from_symbol(address)
         location = "<{}+{}>".format(*loc) if loc else ""
