@@ -1234,7 +1234,9 @@ class ARM(Architecture):
         return 2 if is_arm_thumb() else 4
 
     def is_call(self, insn):
-        return False
+        mnemo = insn.mnemo
+        call_mnemos = {"bl", "blx"}
+        return mnemo in call_mnemos
 
     def flag_register_to_human(self, val=None):
         # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
