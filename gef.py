@@ -1349,12 +1349,12 @@ class AARCH64(ARM):
                 if (op & 1<<i) == 0: taken, reason = True, "{}&1<<{}==0".format(reg,i)
                 else: taken, reason = False, "{}&1<<{}!=0".format(reg,i)
 
-        if mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
-        if mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
-        if mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
-        if mnemo.endswith("le"): taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
-        if mnemo.endswith("gt"): taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
-        if mnemo.endswith("ge"): taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+        elif mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
+        elif mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
+        elif mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+        elif mnemo.endswith("le"): taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+        elif mnemo.endswith("gt"): taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
+        elif mnemo.endswith("ge"): taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
         return taken, reason
 
 
