@@ -6134,6 +6134,7 @@ class DereferenceCommand(GenericCommand):
         return l
 
     @only_if_gdb_running
+    @catch_generic_exception
     def do_invoke(self, argv):
         if len(argv) < 1:
             err("Missing location.")
@@ -6294,8 +6295,8 @@ class VMMapCommand(GenericCommand):
 
         for entry in vmmap:
             if argv:
-                if not argv[0] in entry.path: 
-                    continue        
+                if not argv[0] in entry.path:
+                    continue
             l = []
             l.append(format_address(entry.page_start))
             l.append(format_address(entry.page_end))
