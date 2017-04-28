@@ -5568,10 +5568,19 @@ class ContextCommand(GenericCommand):
         if self.get_setting("clear_screen"):
             clear_screen(redirect)
 
-        for pane in current_layout:
-            if pane[0] in ("!", "-"):
+        do_warn = False  # Deprecating "!"
+        for section in current_layout:
+            # Deprecating "!" from the layout syntax
+            if section[0] == "!":
+                do_warn = True
                 continue
-            layout_mapping[pane]()
+            if section[0] == "-":
+                continue
+            layout_mapping[section]()
+
+        # Deprecating "!"
+        if do_warn:
+            warn("context.layout: '!' deprecated: Use '-' before sections to hide them.")
 
         self.context_title("")
 
