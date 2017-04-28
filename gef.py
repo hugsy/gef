@@ -5738,7 +5738,12 @@ class ContextCommand(GenericCommand):
 
                 if is_taken:
                     target = insn.operands[-1].split()[0]
-                    target = int(target, 16)
+                    try:
+                        target = int(target, 16)
+                    except ValueError:
+                        # If the operand isn't an address right now we can't parse it
+                        is_taken = False
+                        continue
                     for i, insn in enumerate(gef_disassemble(target, nb_insn, from_top=True)):
                         text= "   {}  {}".format (down_arrow if i==0 else " ", str(insn))
                         print(text)
