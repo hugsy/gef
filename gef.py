@@ -4071,12 +4071,17 @@ class UnicornEmulateCommand(GenericCommand):
         content = ""
         arch, mode = get_unicorn_arch(to_string=to_script)
         unicorn_registers = get_unicorn_registers(to_string=to_script)
+        cs_arch, cs_mode = get_capstone_arch(to_string=to_script)
         fname = get_filename()
 
         if to_script:
-            content += """#!/usr/bin/python
+            content += """#!/usr/bin/python2 -i
 #
-# Emulation script for '%s' from %#x to %#x
+# Emulation script for '%s' from %#x to %#x3
+#
+# Powered by gef, unicorn-engine, and capstone-engine
+#
+# @_hugsy_
 #
 import readline, code
 import capstone, unicorn
@@ -4099,14 +4104,6 @@ def hook_code(emu, address, size, user_data):
     return
 
 
-def interact(emu, regs):
-    readline.parse_and_bind("tab: complete")
-    vars = globals().copy()
-    vars.update(locals())
-    code.InteractiveConsole(vars).interact(banner="[+] Spawning Python interactive shell with Unicorn, use `uc` to interact with the emulated session")
-    return
-
-
 def print_regs(emu, regs):
     for r in regs:
         print(">> {:s} = 0x{:x}".format(r, emu.reg_read(regs[r])))
@@ -4114,7 +4111,7 @@ def print_regs(emu, regs):
 
 
 def reset():
-""" % (fname, start_insn_addr, end_insn_addr, ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]), arch, mode)
+""" % (fname, start_insn_addr, end_insn_addr, ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]), cs_arch, cs_mode)
 
         unicorn = sys.modules["unicorn"]
         if verbose:
