@@ -4210,7 +4210,7 @@ def reset():
         if to_script:
             content += """
 def emulate(emu, start_addr, end_addr):
-    # Registers initial states
+    print("========================= Initial registers =========================")
     print_regs(emu, regs)
 
     try:
@@ -4219,7 +4219,7 @@ def emulate(emu, start_addr, end_addr):
         emu.emu_stop()
         print("Error: {}".format(e))
 
-    # Registers final states
+    print("========================= Final registers =========================")
     print_regs(emu, regs)
     return
 
