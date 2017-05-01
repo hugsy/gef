@@ -235,7 +235,6 @@ else:
             def cache_clear(self, caller=None):
                 """Clear a cache."""
                 if caller in self._caches_dict:
-                    del self._caches_dict[caller]
                     self._caches_dict[caller] = collections.OrderedDict()
                 return
 
@@ -440,7 +439,7 @@ class Section:
     def __init__(self, *args, **kwargs):
         attrs = ["page_start", "page_end", "offset", "permission", "inode", "path"]
         for attr in attrs:
-            value = kwargs[attr] if attr in kwargs else None
+            value = kwargs.get(attr)
             setattr(self, attr, value)
         return
 
@@ -1846,7 +1845,7 @@ def catch_generic_exception(f):
 
 
 def to_unsigned_long(v):
-    """Helper to cast a gdb.Value to unsigned long."""
+    """Cast a gdb.Value to unsigned long."""
     unsigned_long_t = cached_lookup_type("unsigned long")
     return long(v.cast(unsigned_long_t))
 
@@ -1856,6 +1855,8 @@ def get_register(regname):
     regname = regname.strip()
     try:
         value = gdb.parse_and_eval(regname)
+        if value.type.code == gdb.TYPE_CODE_INT:
+           value = to_unsigned_long(value)
         return long(value)
     except gdb.error:
         value = gdb.selected_frame().read_register(regname)
@@ -2146,9 +2147,11 @@ def xor(data, key):
 
 def is_hex(pattern):
     """Return whether provided string is a hexadecimal value."""
-    if not pattern.startswith("0x") and not pattern.startswith("0X"):
+    try:
+        int(pattern, 16)
+    except ValueError:
         return False
-    return len(pattern)%2==0 and all(c in string.hexdigits for c in pattern[2:])
+    return True
 
 
 def ida_synchronize_handler(event):
@@ -5015,9 +5018,13 @@ class DetailRegistersCommand(GenericCommand):
                 print(line)
                 continue
 
-            addr = align_address(long(reg))
-            line += Color.boldify(format_address(addr))
-            addrs = DereferenceCommand.dereference_from(addr)
+            old_value = ContextCommand.old_registers.get(regname, 0)
+            new_value = align_address(long(reg))
+            if new_value == old_value:
+                line += Color.boldify(format_address(new_value))
+            else:
+                line += Color.colorify(format_address(new_value), attrs="bold red")
+            addrs = DereferenceCommand.dereference_from(new_value)
 
             if len(addrs) > 1:
                 sep = " {:s} ".format(right_arrow)
@@ -5514,6 +5521,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("enable", True, "Enable/disable printing the context when breaking")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", True, "Show the registers pane with raw values (no dereference)")
+        self.add_setting("peek_calls", False, "Peek into calls")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
         self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
@@ -5628,7 +5636,7 @@ class ContextCommand(GenericCommand):
             except Exception:
                 new_value = 0
 
-            old_value = self.old_registers[reg] if reg in self.old_registers else 0x00
+            old_value = self.old_registers.get(reg, 0)
 
             line += "{:s}  ".format(Color.greenify(reg))
             if new_value_type_flag:
@@ -5697,10 +5705,10 @@ class ContextCommand(GenericCommand):
                 text = str(insn)
 
                 if insn.address < pc:
-                    line += Color.grayify(text)
+                    line += Color.grayify("   {}".format(text))
 
                 elif insn.address == pc:
-                    line += Color.colorify("{:s}  {:s}$pc".format(text, left_arrow), attrs="bold red")
+                    line += Color.colorify("{:s}{:s}".format(right_arrow, text), attrs="bold red")
 
                     if current_arch.is_conditional_branch(insn):
                         is_taken, reason = current_arch.is_branch_taken(insn)
@@ -5710,9 +5718,11 @@ class ContextCommand(GenericCommand):
                         else:
                             reason = "[Reason: !({:s})]".format(reason) if reason else ""
                             line += Color.colorify("\tNOT taken {:s}".format(reason), attrs="bold red")
+                    elif current_arch.is_call(insn) and self.get_setting("peek_calls") == True:
+                        is_taken = True
 
                 else:
-                    line += text
+                    line += "   {}".format(text)
 
                 print("".join(line))
 
@@ -5720,7 +5730,7 @@ class ContextCommand(GenericCommand):
                     target = insn.operands[-1].split()[0]
                     target = int(target, 16)
                     for i, insn in enumerate(gef_disassemble(target, nb_insn, from_top=True)):
-                        text= "{}  {}".format (down_arrow if i==0 else " ", str(insn))
+                        text= "   {}  {}".format (down_arrow if i==0 else " ", str(insn))
                         print(text)
                     break
 
@@ -5753,17 +5763,17 @@ class ContextCommand(GenericCommand):
                 continue
 
             if i < line_num:
-                print(Color.grayify("{:4d}\t {:s}".format(i + 1, lines[i],)))
+                print(Color.grayify("   {:4d}\t {:s}".format(i + 1, lines[i],)))
 
             if i == line_num:
                 extra_info = self.get_pc_context_info(pc, lines[i])
                 if extra_info:
                     print(extra_info)
-                print(Color.colorify("{:4d}\t {:s} \t\t {:s} $pc\t".format(i + 1, lines[i], left_arrow,), attrs="bold red"))
+                print(Color.colorify("{}{:4d}\t {:s}".format(right_arrow, i + 1, lines[i]), attrs="bold red"))
 
             if i > line_num:
                 try:
-                    print("{:4d}\t {:s}".format(i + 1, lines[i],))
+                    print("   {:4d}\t {:s}".format(i + 1, lines[i],))
                 except IndexError:
                     break
         return
@@ -5796,7 +5806,7 @@ class ContextCommand(GenericCommand):
                 current_block = current_block.superblock
 
             if m:
-                return "\t // " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m.items()])
+                return "\t\t// " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m.items()])
         except Exception:
             pass
         return ""
@@ -5896,12 +5906,13 @@ class ContextCommand(GenericCommand):
         return
 
 
-    def update_registers(self, event):
+    @classmethod
+    def update_registers(cls, event):
         for reg in current_arch.all_registers:
             try:
-                self.old_registers[reg] = get_register(reg)
+                cls.old_registers[reg] = get_register(reg)
             except Exception:
-                self.old_registers[reg] = 0
+                cls.old_registers[reg] = 0
         return
 
 
