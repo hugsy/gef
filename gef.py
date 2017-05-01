@@ -3605,11 +3605,12 @@ class IdaInteractCommand(GenericCommand):
 
     def __init__(self):
         super(IdaInteractCommand, self).__init__(prefix=False)
-        host, port = "127.0.1.1", 1337
+        host, port = "127.0.0.1", 1337
         self.add_setting("host", host, "IP address to use connect to IDA/Binary Ninja script")
         self.add_setting("port", port, "Port to use connect to IDA/Binary Ninja script")
         self.sock = None
         self.version = ("", "")
+        self.old_bps = []
 
         if self.is_target_alive(host, port):
             # if the target responds, we add 2 new handlers to synchronize the
@@ -3716,41 +3717,65 @@ class IdaInteractCommand(GenericCommand):
 
     def synchronize(self):
         """Submit all active breakpoint addresses to IDA/BN"""
-        breakpoints = gdb.breakpoints() or []
-        old_bps = []
-
-        for x in breakpoints:
-            if x.enabled and not x.temporary:
-                val = gdb.parse_and_eval(x.location)
-                addr = str(val).strip().split()[0]
-                addr = long(addr, 16)
-                old_bps.append(addr)
 
         pc = current_arch.pc
+
+        vmmap = get_process_maps()
+        base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
+        end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
+        if pc > end_address or pc < base_address:
+            # do not sync in library
+            return
+
+        gdb_bps = []
+        for l in gdb.execute("info break", to_string=True).splitlines():
+            token = l.split()
+            if token[1] != 'breakpoint':
+                continue
+            if token[2] != 'keep':
+                continue
+            if token[3] != 'y':
+                continue
+            addr = long(int(token[4], 16))
+            if addr > end_address or addr < base_address:
+                continue
+            gdb_bps.append(addr-base_address)
+
+        added = set(gdb_bps) - set(self.old_bps)
+        removed = set(self.old_bps) - set(gdb_bps)
+        self.old_bps = gdb_bps
+
         try:
             # it is possible that the server was stopped between now and the last sync
-            cur_bps = self.sock.Sync(str(pc), old_bps)
+            rc = self.sock.Sync(hex(pc-base_address).strip('L'), [list(added), list(removed)])
         except ConnectionRefusedError:
             self.disconnect()
             return
 
-        if cur_bps == old_bps:
-            # no change
-            return
+        ida_added, ida_removed = rc 
 
-        # add new BP defined in IDA/BN to gef
-        added = set(cur_bps) - set(old_bps)
-        for new_bp in added:
-            gdb.Breakpoint("*{:#x}".format(new_bp), type=gdb.BP_BREAKPOINT)
+        # add new bp from IDA
+        for new_bp in ida_added:
+            self.old_bps.append(new_bp)
+            gdb.Breakpoint("*{:#x}".format(new_bp+base_address), type=gdb.BP_BREAKPOINT)
 
         # and remove the old ones
-        removed = set(old_bps) - set(cur_bps)
-        for bp in breakpoints:
-            val = gdb.parse_and_eval(bp.location).address
-            addr = str(val).strip().split()[0]
-            addr = long(addr, 16)
-            if addr in removed:
-                bp.delete()
+        for l in gdb.execute("info break", to_string=True).splitlines():
+            token = l.split()
+            if token[1] != 'breakpoint':
+                continue
+            if token[2] != 'keep':
+                continue
+            if token[3] != 'y':
+                continue
+            addr = long(int(token[4], 16))
+            if addr > end_address or addr < base_address:
+                continue
+            if (addr-base_address) in ida_removed:
+                if (addr-base_address) in self.old_bps:
+                    self.old_bps.remove((addr-base_address))
+                gdb.execute("delete break " + token[0])
+
         return
 
 
