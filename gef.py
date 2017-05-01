@@ -3756,7 +3756,7 @@ class IdaInteractCommand(GenericCommand):
 
         # add new bp from IDA
         for new_bp in ida_added:
-            self.old_bps.append(new_bp)
+            self.old_bps.append(base_address+new_bp)
             gdb.Breakpoint("*{:#x}".format(new_bp+base_address), type=gdb.BP_BREAKPOINT)
 
         # and remove the old ones

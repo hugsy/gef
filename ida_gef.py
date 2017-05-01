@@ -219,12 +219,12 @@ class Gef:
         # update bp from gdb
         added, removed = arg
         for bp in added:
-            idc.AddBpt(bp)
+            idc.AddBpt(base_address+bp)
             _breakpoints.append(bp)
         for bp in removed:
             if bp in _breakpoints:
                 _breakpoints.remove(bp)
-            idc.DelBpt(bp)
+            idc.DelBpt(base_address+bp)
 
         return [list(ida_added), list(ida_removed)]
 
