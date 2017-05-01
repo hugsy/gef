@@ -1832,19 +1832,6 @@ def experimental_feature(f):
     return wrapper
 
 
-def catch_generic_exception(f):
-    """Generic decorator to cleanly catch exception of gef runtime."""
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        if is_debug():
-            return f(*args, **kwargs)
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            err("Command failed: {}".format(str(e)))
-    return wrapper
-
-
 def to_unsigned_long(v):
     """Helper to cast a gdb.Value to unsigned long."""
     unsigned_long_t = cached_lookup_type("unsigned long")
@@ -2926,8 +2913,14 @@ class GenericCommand(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
-        argv = gdb.string_to_argv(args)
-        self.do_invoke(argv)
+        try:
+            argv = gdb.string_to_argv(args)
+            self.do_invoke(argv)
+        except Exception as e:
+            if is_debug():
+                show_last_exception()
+            else:
+                err("Command '{:s}' failed to execute properly, reason: {:s}".format(self._cmdline_, str(e)))
         return
 
     def usage(self):
@@ -3262,11 +3255,23 @@ class PCustomCommand(GenericCommand):
         self.apply_structure_to_address(modname, structname, address)
         return
 
+
+    def get_struct_path(self):
+        path = os.path.expanduser(self.get_setting("struct_path"))
+        path = os.path.realpath(path)
+        return path if os.path.isdir(path) else None
+
+
     def pcustom_filepath(self, x):
-        return os.path.join(self.get_setting("struct_path"), "{}.py".format(x))
+        p = self.get_struct_path()
+        if not p: return None
+        return os.path.join(p, "{}.py".format(x))
+
 
     def is_valid_struct(self, x):
-        return os.access(self.pcustom_filepath(x), os.R_OK)
+        p = self.pcustom_filepath(x)
+        return os.access(p, os.R_OK) if p else None
+
 
     def dump_structure(self, mod_name, struct_name):
         # If it's a builtin or defined in the ELF use gdb's `ptype`
@@ -3278,6 +3283,7 @@ class PCustomCommand(GenericCommand):
 
         self.dump_custom_structure(mod_name, struct_name)
         return
+
 
     def dump_custom_structure(self, mod_name, struct_name):
         if not self.is_valid_struct(mod_name):
@@ -3293,18 +3299,22 @@ class PCustomCommand(GenericCommand):
             _offset += _size
         return
 
+
     def deserialize(self, struct, data):
         length = min(len(data), ctypes.sizeof(struct))
         ctypes.memmove(ctypes.addressof(struct), data, length)
         return
 
+
     def get_module(self, modname):
         _fullname = self.pcustom_filepath(modname)
         return imp.load_source(modname, _fullname)
 
+
     def get_class(self, modname, classname):
         _mod = self.get_module(modname)
         return getattr(_mod, classname)()
+
 
     def list_all_structs(self, modname):
         _mod = self.get_module(modname)
@@ -3313,6 +3323,7 @@ class PCustomCommand(GenericCommand):
                          if inspect.isclass(getattr(_mod, x)) \
                          and issubclass(getattr(_mod, x), ctypes.Structure)])
         return _structs - _invalid
+
 
     def apply_structure_to_address(self, mod_name, struct_name, addr, depth=0):
         if not self.is_valid_struct(mod_name):
@@ -3404,17 +3415,18 @@ class PCustomCommand(GenericCommand):
 
 
     def list_custom_structures(self):
-        path = self.get_setting("struct_path")
-        info("Listing custom structures from '{:s}'".format(path))
-        try:
-            for filen in os.listdir(path):
-                name, ext = os.path.splitext(filen)
-                if ext != ".py": continue
-                _modz = self.list_all_structs(name)
-                ok("{:s} {:s} ({:s})".format(right_arrow, name, ", ".join(_modz)))
-        except OSError:
+        path = self.get_struct_path()
+        if path is None:
             err("Cannot open '{:s}'.".format(path))
             warn("Create struct directory or use `gef config pcustom.struct_path` to set it correctly.")
+            return
+
+        info("Listing custom structures from '{:s}'".format(path))
+        for filen in os.listdir(path):
+            name, ext = os.path.splitext(filen)
+            if ext != ".py": continue
+            _modz = self.list_all_structs(name)
+            ok("{:s} {:s} ({:s})".format(right_arrow, name, ", ".join(_modz)))
         return
 
 
@@ -3566,7 +3578,6 @@ class ChangeFdCommand(GenericCommand):
 
     @only_if_gdb_running
     @only_if_gdb_target_local
-    @catch_generic_exception
     def do_invoke(self, argv):
         if len(argv)!=2:
             self.usage()
@@ -3651,7 +3662,6 @@ class IdaInteractCommand(GenericCommand):
         self.sock = None
         return
 
-    @catch_generic_exception
     def do_invoke(self, argv):
         def parsed_arglist(arglist):
             args = []
@@ -3932,7 +3942,6 @@ class ChangePermissionCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    @catch_generic_exception
     def do_invoke(self, argv):
         if len(argv) not in (1, 2):
             err("Incorrect syntax")
@@ -4756,7 +4765,6 @@ class GlibcHeapChunkCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    @catch_generic_exception
     def do_invoke(self, argv):
         if len(argv) < 1:
             err("Missing chunk address")
@@ -5168,7 +5176,6 @@ class RopperCommand(GenericCommand):
         return
 
 
-    @catch_generic_exception
     def do_invoke(self, argv):
         ropper = sys.modules["ropper"]
         if "--file" not in argv:
@@ -5938,7 +5945,6 @@ class HexdumpCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    @catch_generic_exception
     def do_invoke(self, argv):
         argc = len(argv)
         if argc < 2:
@@ -6134,7 +6140,6 @@ class DereferenceCommand(GenericCommand):
         return l
 
     @only_if_gdb_running
-    @catch_generic_exception
     def do_invoke(self, argv):
         if len(argv) < 1:
             err("Missing location.")
