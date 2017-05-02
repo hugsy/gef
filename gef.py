@@ -3441,8 +3441,8 @@ class PCustomCommand(GenericCommand):
     def list_custom_structures(self):
         path = self.get_struct_path()
         if path is None:
-            err("Cannot open '{:s}'.".format(path))
-            warn("Create struct directory or use `gef config pcustom.struct_path` to set it correctly.")
+            err("Cannot open '{0}': check directory and/or `gef config {0}` setting, currently: '{1}'".format("pcustom.struct_path",
+                                                                                                        self.get_setting("struct_path")))
             return
 
         info("Listing custom structures from '{:s}'".format(path))
