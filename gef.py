@@ -759,7 +759,7 @@ class GlibcChunk:
 def get_main_arena():
     try:
         arena = GlibcArena("main_arena")
-    except Exception as e:
+    except gdb.error as e:
         err("Failed to get `main_arena` symbol, heap commands may not work properly: {}".format(e))
         warn("Did you install `libc6-dbg`?")
         arena = None
@@ -809,9 +809,21 @@ def push_context_message(level, message):
 
 def show_last_exception():
     """Display the last Python exception."""
+    print("")
     exc_type, exc_value, exc_traceback = sys.exc_info()
-    traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
-    traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
+    print(" Exception raised ".center(80, horizontal_line))
+    print("{}: {}".format(Color.colorify(exc_type.__name__, attrs="bold underline red"), exc_value))
+    print(" Detailed stacktrace ".center(80, horizontal_line))
+    for fs in traceback.extract_tb(exc_traceback)[::-1]:
+        print("""{} File "{}", line {:d}, in {}()""".format(down_arrow,
+                                                            Color.yellowify(fs.filename),
+                                                            fs.lineno,
+                                                            Color.greenify(fs.name)))
+        print("   {}    {}".format(right_arrow, fs.line))
+    print(" Last 10 GDB commands ".center(80, horizontal_line))
+    gdb.execute("show commands")
+    print(horizontal_line*80)
+    print("")
     return
 
 
@@ -2917,6 +2929,8 @@ class GenericCommand(gdb.Command):
             argv = gdb.string_to_argv(args)
             self.do_invoke(argv)
         except Exception as e:
+            # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
+            # catching generic Exception, but rather specific ones. This is allows a much cleaner use.
             if is_debug():
                 show_last_exception()
             else:
@@ -3487,41 +3501,37 @@ class RetDecCommand(GenericCommand):
             self.usage()
             return
 
-        try:
-            for opt, arg in opts:
-                if opt == "-r":
-                    range_from, range_to = map(lambda x: int(x,16), arg.split("-", 1))
-                    fd, filename = tempfile.mkstemp()
-                    with os.fdopen(fd, "wb") as f:
-                        length = range_to - range_from
-                        f.write(read_memory(range_from, length))
+        for opt, arg in opts:
+            if opt == "-r":
+                range_from, range_to = map(lambda x: int(x,16), arg.split("-", 1))
+                fd, filename = tempfile.mkstemp()
+                with os.fdopen(fd, "wb") as f:
+                    length = range_to - range_from
+                    f.write(read_memory(range_from, length))
                     params["mode"] = "raw"
                     params["file_format"] = "elf"
                     params["raw_section_vma"] = hex(range_from)
                     params["raw_entry_point"] = hex(range_from)
-                elif opt == "-s":
-                    try:
-                        value = gdb.parse_and_eval(arg)
-                    except gdb.error:
-                        err("No symbol named '{:s}'".format(arg))
-                        return
-                    range_from = long(value.address)
-                    fd, filename = tempfile.mkstemp()
-                    with os.fdopen(fd, "wb") as f:
-                        f.write(read_memory(range_from, get_function_length(arg)))
-                    params["mode"] = "raw"
-                    params["file_format"] = "elf"
-                    params["raw_section_vma"] = hex(range_from)
-                    params["raw_entry_point"] = hex(range_from)
-                elif opt == "-a":
-                    filename = get_filepath()
-                    params["mode"] = "bin"
-                else:
-                    self.usage()
+            elif opt == "-s":
+                try:
+                    value = gdb.parse_and_eval(arg)
+                except gdb.error:
+                    err("No symbol named '{:s}'".format(arg))
                     return
-        except Exception as excpt:
-            err(excpt)
-            return
+                range_from = long(value.address)
+                fd, filename = tempfile.mkstemp()
+                with os.fdopen(fd, "wb") as f:
+                    f.write(read_memory(range_from, get_function_length(arg)))
+                    params["mode"] = "raw"
+                    params["file_format"] = "elf"
+                    params["raw_section_vma"] = hex(range_from)
+                    params["raw_entry_point"] = hex(range_from)
+            elif opt == "-a":
+                filename = get_filepath()
+                params["mode"] = "bin"
+            else:
+                self.usage()
+                return
 
         params["input_file"] = filename
         if self.send_to_retdec(params) == False:
@@ -3546,9 +3556,8 @@ class RetDecCommand(GenericCommand):
 
 
     def send_to_retdec(self, params):
-        retdec = sys.modules["retdec"]
-
         try:
+            retdec = sys.modules["retdec"]
             path = self.get_setting("path")
             decompilation = self.decompiler.start_decompilation(**params)
             info("Task submitted, waiting for decompilation to finish... ", cr=False)
@@ -4741,9 +4750,8 @@ class GlibcHeapArenaCommand(GenericCommand):
     def do_invoke(self, argv):
         try:
             arena = GlibcArena("main_arena")
-        except Exception:
+        except gdb.error:
             err("Could not find Glibc main arena")
-            warn("Did you install `libc6-dbg`?")
             return
 
         while True:
@@ -7415,12 +7423,8 @@ class GefTmuxSetup(gdb.Command):
 
 def __gef_prompt__(current_prompt):
     """GEF custom prompt function."""
-    if __config__.get("gef.readline_compat")[0]:
-        return gef_prompt
-
-    if is_alive():
-        return gef_prompt_on
-
+    if __config__.get("gef.readline_compat")[0]: return gef_prompt
+    if is_alive(): return gef_prompt_on
     return gef_prompt_off
 
 
