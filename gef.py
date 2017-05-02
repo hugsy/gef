@@ -3517,10 +3517,10 @@ class RetDecCommand(GenericCommand):
                 with os.fdopen(fd, "wb") as f:
                     length = range_to - range_from
                     f.write(read_memory(range_from, length))
-                    params["mode"] = "raw"
-                    params["file_format"] = "elf"
-                    params["raw_section_vma"] = hex(range_from)
-                    params["raw_entry_point"] = hex(range_from)
+                params["mode"] = "raw"
+                params["file_format"] = "elf"
+                params["raw_section_vma"] = hex(range_from)
+                params["raw_entry_point"] = hex(range_from)
             elif opt == "-s":
                 try:
                     value = gdb.parse_and_eval(arg)
@@ -3531,10 +3531,10 @@ class RetDecCommand(GenericCommand):
                 fd, filename = tempfile.mkstemp()
                 with os.fdopen(fd, "wb") as f:
                     f.write(read_memory(range_from, get_function_length(arg)))
-                    params["mode"] = "raw"
-                    params["file_format"] = "elf"
-                    params["raw_section_vma"] = hex(range_from)
-                    params["raw_entry_point"] = hex(range_from)
+                params["mode"] = "raw"
+                params["file_format"] = "elf"
+                params["raw_section_vma"] = hex(range_from)
+                params["raw_entry_point"] = hex(range_from)
             elif opt == "-a":
                 filename = get_filepath()
                 params["mode"] = "bin"
@@ -7093,10 +7093,10 @@ class GefConfigCommand(gdb.Command):
         res = __config__.get(plugin_name)
         if res is not None:
             _value, _type, desc = res
-            print("{:<40s}  ({:^4s}) = {:<45s}   {:s}".format(plugin_name,
+            print("{:<40s}  ({:^4s}) = {:<45s}   {:s}".format(Color.colorify(plugin_name, attrs="pink bold underline"),
                                                               _type.__name__,
-                                                              str(_value),
-                                                              Color.greenify(desc)))
+                                                              Color.colorify(str(_value), attrs="red yellow"),
+                                                              desc))
         return
 
     def print_settings(self):
