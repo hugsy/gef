@@ -836,9 +836,7 @@ def gef_pystring(x):
 
 def gef_pybytes(x):
     """Python 2 & 3 compatibility function for bytes handling."""
-    if PYTHON_MAJOR == 3:
-        return bytes(str(x), encoding="utf-8")
-    return x
+    return bytes(str(x), encoding="utf-8") if PYTHON_MAJOR == 3 else x
 
 
 @lru_cache()
@@ -889,16 +887,6 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
 
     return "\n".join(result)
 
-
-def enable_debug():
-    """Enables debug mode."""
-    __config__["gef.debug"] = (True, bool)
-    return
-
-def disable_debug():
-    """Disables debug mode."""
-    __config__["gef.debug"] = (False, bool)
-    return
 
 def is_debug():
     """Checks if debug mode is enabled."""
@@ -2879,7 +2867,6 @@ class UafWatchpoint(gdb.Breakpoint):
         msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
         msg.append("Possible Use-after-Free in '{:s}': pointer {:#x} was freed, but is attempted to be used at {:#x}".format(get_filepath(), self.address, pc))
         msg.append("{:#x}   {:s} {:s}".format(insn.address, insn.mnemo, Color.yellowify(", ".join(insn.operands))))
-
         push_context_message("warn", "\n".join(msg))
         return True
 
@@ -2899,7 +2886,6 @@ class EntryBreakBreakpoint(gdb.Breakpoint):
 #
 # Commands
 #
-
 
 def register_command(cls):
     """Decorator for registering new GEF (sub-)command to GDB."""
@@ -7080,20 +7066,25 @@ class GefConfigCommand(gdb.Command):
         if argc == 1:
             plugin_name = argv[0]
             print(titlify("GEF configuration setting: {:s}".format(plugin_name)))
-            self.print_setting(plugin_name)
+            self.print_setting(plugin_name, show_description=True)
             return
 
         self.set_setting(argc, argv)
         return
 
-    def print_setting(self, plugin_name):
-        res = __config__.get(plugin_name)
+    def print_setting(self, plugin_name, show_description=False):
+        res = __config__.get(plugin_name, None)
         if res is not None:
-            _value, _type, desc = res
-            print("{:<40s}  ({:^4s}) = {:<45s}   {:s}".format(Color.colorify(plugin_name, attrs="pink bold underline"),
-                                                              _type.__name__,
-                                                              Color.colorify(str(_value), attrs="red yellow"),
-                                                              desc))
+            _value, _type, _desc = res
+            _setting = Color.colorify(plugin_name, attrs="pink bold underline")
+            _type = _type.__name__
+            _value = Color.colorify(str(_value), attrs="yellow") if _type!='str' else '"{:s}"'.format(Color.colorify(str(_value), attrs="yellow"))
+            print("{:s} ({:s}) = {:s}".format(_setting, _type, _value))
+
+            if show_description:
+                print("")
+                print(Color.colorify("Description:", attrs="bold underline"))
+                print("\t{:s}".format(_desc))
         return
 
     def print_settings(self):
@@ -7107,7 +7098,6 @@ class GefConfigCommand(gdb.Command):
             return
 
         plugin_name = argv[0].split(".", 1)[0]
-
         if plugin_name not in self.loaded_commands + ["gef"]:
             err("Unknown plugin '{:s}'".format(plugin_name))
             return
