@@ -39,7 +39,7 @@ import idautils, idc, idaapi
 HOST, PORT = "0.0.0.0", 1337
 DEBUG = True
 
-_breakpoints = []
+_breakpoints = ()
 _current_instruction_color = None
 _current_instruction = 0
 
@@ -211,9 +211,9 @@ class Gef:
         time.sleep(0.1)    # slow it down to prevent IDA crash
         idc.Jump(_current_instruction)
 
-        cur_bps = [ idc.GetBptEA(n)-base_addr for n in range(idc.GetBptQty()) ]
-        ida_added = set(cur_bps) - set(_breakpoints)
-        ida_removed = set(_breakpoints) - set(cur_bps)
+        cur_bps = set([ idc.GetBptEA(n)-base_addr for n in range(idc.GetBptQty()) ])
+        ida_added = cur_bps - _breakpoints
+        ida_removed = _breakpoints - cur_bps
         _breakpoints = cur_bps
 
         # update bp from gdb
