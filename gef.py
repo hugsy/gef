@@ -5536,14 +5536,13 @@ class ContextCommand(GenericCommand):
         super(ContextCommand, self).__init__(prefix=False)
         self.add_setting("enable", True, "Enable/disable printing the context when breaking")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
-        self.add_setting("show_registers_raw", True, "Show the registers pane with raw values (no dereference)")
+        self.add_setting("show_registers_raw", False, "Show the registers pane with raw values (no dereference)")
         self.add_setting("peek_calls", True, "Peek into calls")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
         self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
         self.add_setting("ignore_registers", "", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
         self.add_setting("clear_screen", False, "Clear the screen before printing the context")
-
         self.add_setting("layout", "regs stack code source threads trace extra", "Change the order/display of the context")
         self.add_setting("redirect", "", "Redirect the context information to another TTY")
 
@@ -5558,7 +5557,6 @@ class ContextCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        print("foo")
         if not self.get_setting("enable"):
             return
 
