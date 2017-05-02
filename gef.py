@@ -5558,6 +5558,7 @@ class ContextCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
+        print("foo")
         if not self.get_setting("enable"):
             return
 
@@ -5595,8 +5596,8 @@ class ContextCommand(GenericCommand):
 
         # Deprecating "!"
         if do_warn:
-            warn("context.layout: '!' deprecated: Use '-' before section names to hide them.")
-            warn("Please fix your config as '!' will not work in a future release")
+            push_context_message("warn", "context.layout: '!' deprecated: Use '-' before section names to hide them.")
+            push_context_message("warn", "Please fix your config as '!' will not work in a future release")
 
         self.context_title("")
 
@@ -6935,7 +6936,8 @@ class GefCommand(gdb.Command):
             gdb.execute("set follow-fork-mode parent")
 
         # restore the autosave/autoreload breakpoints policy (if any)
-        bkp_fname = __config__.get("gef.autosave_breakpoints_file")[0]
+        bkp_fname = __config__.get("gef.autosave_breakpoints_file", None)
+        bkp_fname = bkp_fname[0] if bkp_fname else None
         if bkp_fname:
             # restore if existing
             if os.access(bkp_fname, os.R_OK):
@@ -7182,7 +7184,7 @@ class GefSaveCommand(gdb.Command):
         for key in sorted(__config__):
             sect, optname = key.split(".", 1)
             value = __config__.get(key, None)
-            value = value[0] or None
+            value = value[0] if value else None
 
             if old_sect != sect:
                 cfg.add_section(sect)
