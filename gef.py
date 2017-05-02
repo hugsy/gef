@@ -6220,7 +6220,8 @@ class DereferenceCommand(GenericCommand):
             if addr.section:
                 if addr.section.is_executable() and addr.is_in_text_segment():
                     insn = gef_current_instruction(addr.value)
-                    msg.append(Color.colorify(str(insn), attrs=code_color))
+                    insn_str = "{} {} {}".format(insn.location, insn.mnemo, ", ".join(insn.operands))
+                    msg.append(Color.colorify(insn_str, attrs=code_color))
                     break
 
                 elif addr.section.permission.value & Permission.READ:
