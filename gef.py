@@ -7049,9 +7049,7 @@ class GefConfigCommand(gdb.Command):
     _syntax_  = "{:s} [debug_on|debug_off][setting_name] [setting_value]".format(_cmdline_)
 
     def __init__(self, loaded_commands, *args, **kwargs):
-        super(GefConfigCommand, self).__init__(GefConfigCommand._cmdline_,
-                                               gdb.COMMAND_SUPPORT,
-                                               prefix=False)
+        super(GefConfigCommand, self).__init__(GefConfigCommand._cmdline_, gdb.COMMAND_SUPPORT, prefix=False)
         self.loaded_commands = loaded_commands
         return
 
@@ -7150,8 +7148,7 @@ class GefConfigCommand(gdb.Command):
 
 class GefSaveCommand(gdb.Command):
     """GEF save sub-command
-    Saves the current configuration of GEF to disk (by default in file '~/.gef.rc')
-    """
+    Saves the current configuration of GEF to disk (by default in file '~/.gef.rc')"""
     _cmdline_ = "gef save"
     _syntax_  = _cmdline_
 
@@ -7170,7 +7167,8 @@ class GefSaveCommand(gdb.Command):
         # save the configuration
         for key in sorted(__config__):
             sect, optname = key.split(".", 1)
-            value = __config__.get(key, None)[0]
+            value = __config__.get(key, None)
+            value = value[0] or None
 
             if old_sect != sect:
                 cfg.add_section(sect)
@@ -7192,8 +7190,7 @@ class GefSaveCommand(gdb.Command):
 
 class GefRestoreCommand(gdb.Command):
     """GEF restore sub-command
-    Loads settings from file '~/.gef.rc' and apply them to the configuration of GEF
-    """
+    Loads settings from file '~/.gef.rc' and apply them to the configuration of GEF"""
     _cmdline_ = "gef restore"
     _syntax_  = _cmdline_
 
