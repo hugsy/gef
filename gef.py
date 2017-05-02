@@ -5585,7 +5585,8 @@ class ContextCommand(GenericCommand):
 
         # Deprecating "!"
         if do_warn:
-            warn("context.layout: '!' deprecated: Use '-' before sections to hide them.")
+            warn("context.layout: '!' deprecated: Use '-' before section names to hide them.")
+            warn("Please fix your config as '!' will not work in a future release")
 
         self.context_title("")
 
