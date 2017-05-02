@@ -831,6 +831,7 @@ def gef_pystring(x):
     res = str(x, encoding="ascii") if PYTHON_MAJOR == 3 else x
     substs = [('\n','\\n'), ('\r','\\r'), ('\t','\\t'), ('\v','\\v'), ('\b','\\b'), ]
     for x,y in substs: res = res.replace(x,y)
+    return res
 
 
 def gef_pybytes(x):
@@ -901,7 +902,7 @@ def disable_debug():
 
 def is_debug():
     """Checks if debug mode is enabled."""
-    return "gef.debug" in __config__ and __config__["gef.debug"][0] is True
+    return __config__.get("gef.debug", False) and __config__["gef.debug"][0] is True
 
 
 def reset_heap_infos():
@@ -1087,11 +1088,7 @@ def gef_disassemble(addr, nb_insn, from_top=False):
 def gef_execute_external(command, as_list=False, *args, **kwargs):
     """Executes an external command and retrieves the result."""
     res = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=kwargs.get("shell", False))
-    if as_list:
-        lines = res.splitlines()
-        return [gef_pystring(x) for x in lines]
-
-    return gef_pystring(res)
+    return [gef_pystring(_) for _ in res.splitlines()] if as_list else gef_pystring(res)
 
 
 def gef_execute_gdb_script(commands):

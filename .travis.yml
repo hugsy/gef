@@ -15,6 +15,7 @@ addons:
       - gcc
       - gdb
       - python-pip
+      - pylint
 
 before_script:
   - echo "source `pwd`/gef.py" > ~/.gdbinit
