@@ -94,6 +94,7 @@ if PYTHON_MAJOR == 2:
 
     # Compat Py2/3 hacks
     range = xrange
+    FileNotFoundError = IOError
 
     left_arrow = "<-"
     right_arrow = "->"
@@ -116,7 +117,6 @@ elif PYTHON_MAJOR == 3:
     # Compat Py2/3 hack
     long = int
     unicode = str
-    FileNotFoundError = IOError
 
     left_arrow = " \u2190 "
     right_arrow = " \u2192 "
@@ -235,7 +235,6 @@ else:
             def cache_clear(self, caller=None):
                 """Clear a cache."""
                 if caller in self._caches_dict:
-                    del self._caches_dict[caller]
                     self._caches_dict[caller] = collections.OrderedDict()
                 return
 
@@ -440,7 +439,7 @@ class Section:
     def __init__(self, *args, **kwargs):
         attrs = ["page_start", "page_end", "offset", "permission", "inode", "path"]
         for attr in attrs:
-            value = kwargs[attr] if attr in kwargs else None
+            value = kwargs.get(attr)
             setattr(self, attr, value)
         return
 
@@ -981,12 +980,12 @@ def gdb_disassemble(start_pc, **kwargs):
 
     for insn in arch.disassemble(start_pc, **kwargs):
         address = insn["addr"]
-        asm = insn["asm"].rstrip()
-        if " " in asm:
-            mnemo, operands = asm.split(None, 1)
+        asm = insn["asm"].rstrip().split(None, 1)
+        if len(asm) > 1:
+            mnemo, operands = asm
             operands = operands.split(",")
         else:
-            mnemo, operands = asm, []
+            mnemo, operands = asm[0], []
 
         loc = gdb_get_location_from_symbol(address)
         location = "<{}+{}>".format(*loc) if loc else ""
@@ -1235,7 +1234,9 @@ class ARM(Architecture):
         return 2 if is_arm_thumb() else 4
 
     def is_call(self, insn):
-        return False
+        mnemo = insn.mnemo
+        call_mnemos = {"bl", "blx"}
+        return mnemo in call_mnemos
 
     def flag_register_to_human(self, val=None):
         # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
@@ -1301,6 +1302,11 @@ class AARCH64(ARM):
     }
     function_parameters = ["$x0", "$x1", "$x2", "$x3"]
 
+    def is_call(self, insn):
+        mnemo = insn.mnemo
+        call_mnemos = {"bl", "blr"}
+        return mnemo in call_mnemos
+
     def flag_register_to_human(self, val=None):
         # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
         reg = self.flag_register
@@ -1343,12 +1349,12 @@ class AARCH64(ARM):
                 if (op & 1<<i) == 0: taken, reason = True, "{}&1<<{}==0".format(reg,i)
                 else: taken, reason = False, "{}&1<<{}!=0".format(reg,i)
 
-        if mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
-        if mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
-        if mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
-        if mnemo.endswith("le"): taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
-        if mnemo.endswith("gt"): taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
-        if mnemo.endswith("ge"): taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+        elif mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
+        elif mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
+        elif mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+        elif mnemo.endswith("le"): taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+        elif mnemo.endswith("gt"): taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
+        elif mnemo.endswith("ge"): taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
         return taken, reason
 
 
@@ -1846,7 +1852,7 @@ def catch_generic_exception(f):
 
 
 def to_unsigned_long(v):
-    """Helper to cast a gdb.Value to unsigned long."""
+    """Cast a gdb.Value to unsigned long."""
     unsigned_long_t = cached_lookup_type("unsigned long")
     return long(v.cast(unsigned_long_t))
 
@@ -1856,7 +1862,10 @@ def get_register(regname):
     regname = regname.strip()
     try:
         value = gdb.parse_and_eval(regname)
-        return long(value)
+        if value.type.code == gdb.TYPE_CODE_INT:
+            return to_unsigned_long(value)
+        else:
+            return long(value)
     except gdb.error:
         value = gdb.selected_frame().read_register(regname)
         return long(value)
@@ -5015,9 +5024,13 @@ class DetailRegistersCommand(GenericCommand):
                 print(line)
                 continue
 
-            addr = align_address(long(reg))
-            line += Color.boldify(format_address(addr))
-            addrs = DereferenceCommand.dereference_from(addr)
+            old_value = ContextCommand.old_registers.get(regname, 0)
+            new_value = align_address(long(reg))
+            if new_value == old_value:
+                line += Color.boldify(format_address(new_value))
+            else:
+                line += Color.colorify(format_address(new_value), attrs="bold red")
+            addrs = DereferenceCommand.dereference_from(new_value)
 
             if len(addrs) > 1:
                 sep = " {:s} ".format(right_arrow)
@@ -5514,6 +5527,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("enable", True, "Enable/disable printing the context when breaking")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", True, "Show the registers pane with raw values (no dereference)")
+        self.add_setting("peek_calls", True, "Peek into calls")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
         self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
@@ -5559,10 +5573,20 @@ class ContextCommand(GenericCommand):
         if self.get_setting("clear_screen"):
             clear_screen(redirect)
 
-        for pane in current_layout:
-            if pane[0] in ("!", "-"):
+        do_warn = False  # Deprecating "!"
+        for section in current_layout:
+            # Deprecating "!" from the layout syntax
+            if section[0] == "!":
+                do_warn = True
                 continue
-            layout_mapping[pane]()
+            if section[0] == "-":
+                continue
+            layout_mapping[section]()
+
+        # Deprecating "!"
+        if do_warn:
+            warn("context.layout: '!' deprecated: Use '-' before section names to hide them.")
+            warn("Please fix your config as '!' will not work in a future release")
 
         self.context_title("")
 
@@ -5628,7 +5652,7 @@ class ContextCommand(GenericCommand):
             except Exception:
                 new_value = 0
 
-            old_value = self.old_registers[reg] if reg in self.old_registers else 0x00
+            old_value = self.old_registers.get(reg, 0)
 
             line += "{:s}  ".format(Color.greenify(reg))
             if new_value_type_flag:
@@ -5697,10 +5721,10 @@ class ContextCommand(GenericCommand):
                 text = str(insn)
 
                 if insn.address < pc:
-                    line += Color.grayify(text)
+                    line += Color.grayify("   {}".format(text))
 
                 elif insn.address == pc:
-                    line += Color.colorify("{:s}  {:s}$pc".format(text, left_arrow), attrs="bold red")
+                    line += Color.colorify("{:s}{:s}".format(right_arrow, text), attrs="bold red")
 
                     if current_arch.is_conditional_branch(insn):
                         is_taken, reason = current_arch.is_branch_taken(insn)
@@ -5710,17 +5734,24 @@ class ContextCommand(GenericCommand):
                         else:
                             reason = "[Reason: !({:s})]".format(reason) if reason else ""
                             line += Color.colorify("\tNOT taken {:s}".format(reason), attrs="bold red")
+                    elif current_arch.is_call(insn) and self.get_setting("peek_calls") == True:
+                        is_taken = True
 
                 else:
-                    line += text
+                    line += "   {}".format(text)
 
                 print("".join(line))
 
                 if is_taken:
                     target = insn.operands[-1].split()[0]
-                    target = int(target, 16)
+                    try:
+                        target = int(target, 16)
+                    except ValueError:
+                        # If the operand isn't an address right now we can't parse it
+                        is_taken = False
+                        continue
                     for i, insn in enumerate(gef_disassemble(target, nb_insn, from_top=True)):
-                        text= "{}  {}".format (down_arrow if i==0 else " ", str(insn))
+                        text= "   {}  {}".format (down_arrow if i==0 else " ", str(insn))
                         print(text)
                     break
 
@@ -5753,17 +5784,17 @@ class ContextCommand(GenericCommand):
                 continue
 
             if i < line_num:
-                print(Color.grayify("{:4d}\t {:s}".format(i + 1, lines[i],)))
+                print(Color.grayify("   {:4d}\t {:s}".format(i + 1, lines[i],)))
 
             if i == line_num:
                 extra_info = self.get_pc_context_info(pc, lines[i])
                 if extra_info:
                     print(extra_info)
-                print(Color.colorify("{:4d}\t {:s} \t\t {:s} $pc\t".format(i + 1, lines[i], left_arrow,), attrs="bold red"))
+                print(Color.colorify("{}{:4d}\t {:s}".format(right_arrow, i + 1, lines[i]), attrs="bold red"))
 
             if i > line_num:
                 try:
-                    print("{:4d}\t {:s}".format(i + 1, lines[i],))
+                    print("   {:4d}\t {:s}".format(i + 1, lines[i],))
                 except IndexError:
                     break
         return
@@ -5796,7 +5827,7 @@ class ContextCommand(GenericCommand):
                 current_block = current_block.superblock
 
             if m:
-                return "\t // " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m.items()])
+                return "\t\t// " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m.items()])
         except Exception:
             pass
         return ""
@@ -5896,12 +5927,13 @@ class ContextCommand(GenericCommand):
         return
 
 
-    def update_registers(self, event):
+    @classmethod
+    def update_registers(cls, event):
         for reg in current_arch.all_registers:
             try:
-                self.old_registers[reg] = get_register(reg)
+                cls.old_registers[reg] = get_register(reg)
             except Exception:
-                self.old_registers[reg] = 0
+                cls.old_registers[reg] = 0
         return
 
 

@@ -29,7 +29,7 @@ the order with which contexts will be displayed.
 gef➤ gef config context.layout
 ```
 
-There are currently 6 panes that can be displayed:
+There are currently 6 sections that can be displayed:
 
    * `regs`
    * `stack`
@@ -38,20 +38,20 @@ There are currently 6 panes that can be displayed:
    * `threads`
    * `trace`
 
-To prevent one pane to be displayed, simply use the `context.layout` setting,
-and prepend the pane name with `-` or `!`, such as:
+To prevent one section to be displayed, simply use the `context.layout` setting,
+and prepend the section name with `-` or just omit it.
 
 ```
 gef➤ gef config context.layout "regs stack code -source -threads -trace"
 ```
-Will not display the `source`, `threads`, and `trace` panes.
+Will not display the `source`, `threads`, and `trace` sections.
 
 
 ### Redirecting context output to another tty/file ###
 
 By default, the `gef` context will be displayed on the current TTY. This can be
 overridden by setting `context.redirect` variable to have the context sent to
-another pane.
+another section.
 
 To do so, select the TTY/file/socket/etc. you want the context redirected to
 with `gef config`.
@@ -68,7 +68,7 @@ gef➤ gef config context.redirect /dev/pts/0
 ```
 
 Enjoy:
-![gef-context-redirect-pane](https://i.imgur.com/sWlX37q.png)
+![gef-context-redirect-section](https://i.imgur.com/sWlX37q.png)
 
 
 To go back to normal, remove the value:
@@ -78,22 +78,27 @@ gef➤ gef config context.redirect ""
 
 ### Examples ###
 
-  * Display the code pane first, then register, and stack:
+  * Display the code section first, then register, and stack:
 ```
 gef➤ gef config context.layout "code regs stack -source -threads -trace"
 ```
 
-  * Stop showing the context panes when breaking:
+  * Stop showing the context sections when breaking:
 ```
 gef➤ gef config context.enable 0
 ```
 
-  * Clear the screen before showing the context panes when breaking:
+  * Clear the screen before showing the context sections when breaking:
 ```
 gef➤ gef config context.clear_screen 1
 ```
 
-  * Automatically dereference the registers in the `regs` pane (like `PEDA`):
+  * Automatically dereference the registers in the `regs` section (like `PEDA`):
 ```
 gef➤ gef config context.show_registers_raw 0
+```
+
+  * Don't 'peek' into the start of functions that are called.
+```
+gef➤  gef config context.peek_calls False
 ```
