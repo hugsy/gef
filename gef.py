@@ -3354,9 +3354,8 @@ class PCustomCommand(GenericCommand):
             err("Invalid structure name '{:s}'".format(struct_name))
             return
 
-        _class = self.get_class(mod_name, struct_name)
-
         try:
+            _class = self.get_class(mod_name, struct_name)
             data = read_memory(addr, ctypes.sizeof(_class))
         except gdb.MemoryError:
             err("{}Cannot reach memory {:#x}".format(' '*depth, addr))
@@ -3408,12 +3407,13 @@ class PCustomCommand(GenericCommand):
 
 
     def create_or_edit_structure(self, mod_name, struct_name):
-        path = self.get_setting("struct_path")
+        path = self.get_struct_path()
+        if path is None:
+            err("Invalid struct path")
+            return
+
         fullname = self.pcustom_filepath(mod_name)
-        if not os.path.isdir(path):
-            info("Creating path '{:s}'".format(path))
-            gef_makedirs(path)
-        elif not self.is_valid_struct(mod_name):
+        if not self.is_valid_struct(mod_name):
             info("Creating '{:s}' from template".format(fullname))
             with open(fullname, "wb") as f:
                 f.write(self.get_template(struct_name))
