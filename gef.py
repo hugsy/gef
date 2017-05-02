@@ -328,12 +328,12 @@ class Color:
     @staticmethod
     def colorify(text, attrs):
         """Color a text following the given attributes."""
-        if __config__["theme.disable_color"][0] in ("1", "True"):
-            return text
-        msg = []
+        do_disable = __config__.get("theme.disable_color", False)
+        do_disable = do_disable[0] or False
+        if do_disable: return text
+
         colors = Color.colors
-        for attr in attrs.split():
-            if attr in colors: msg.append(colors[attr])
+        msg = [colors[attr] for attr in attrs.split() if attr in colors]
         msg.append(text)
         if colors["highlight"] in msg :   msg.append(colors["highlight_off"])
         if colors["underline"] in msg :   msg.append(colors["underline_off"])
@@ -3175,7 +3175,7 @@ class GefThemeCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(GefThemeCommand, self).__init__(GefThemeCommand._cmdline_, prefix=False)
-        self.add_setting("disable_color", "0", "Disable all colors in GEF")
+        self.add_setting("disable_color", False, "Disable all colors in GEF")
         self.add_setting("context_title_line", "green bold")
         self.add_setting("context_title_message", "red bold")
         self.add_setting("default_title_line", "green bold")
@@ -7143,9 +7143,6 @@ class GefConfigCommand(gdb.Command):
 
         # finally, look for possible values for given prefix
         return [s.split(".", 1)[1] for s in settings if s.startswith(text.strip())]
-
-
-
 
 
 class GefSaveCommand(gdb.Command):
