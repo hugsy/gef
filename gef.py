@@ -5698,7 +5698,7 @@ class ContextCommand(GenericCommand):
                 mem = read_memory(sp, 0x10 * nb_lines)
                 print(hexdump(mem, base=sp))
             else:
-                gdb.execute("dereference {:#x} {:d}".format(sp, nb_lines))
+                gdb.execute("dereference {:#x} l{:d}".format(sp, nb_lines))
 
         except gdb.MemoryError:
             err("Cannot read memory from $SP (corrupted stack pointer?)")
@@ -6133,7 +6133,7 @@ class DereferenceCommand(GenericCommand):
     """Dereference recursively an address and display information"""
 
     _cmdline_ = "dereference"
-    _syntax_  = "{:s} [LOCATION] [NB]".format(_cmdline_)
+    _syntax_  = "{:s} [LOCATION] l[NB]".format(_cmdline_)
     _aliases_ = ["telescope", "dps",]
 
     def __init__(self):
@@ -6142,7 +6142,7 @@ class DereferenceCommand(GenericCommand):
         return
 
     def post_load(self):
-        GefAlias("stack", "dereference $sp")
+        GefAlias("stack", "dereference $sp L10")
         return
 
     def pprint_dereferenced(self, addr, off):
@@ -6180,7 +6180,10 @@ class DereferenceCommand(GenericCommand):
             err("Missing location.")
             return
 
-        nb = int(argv[1]) if len(argv) == 2 and argv[1].isdigit() else 1
+        nb = 1
+        if len(argv)==2 and argv[1][0] in ("l", "L") and argv[1][1:].isdigit():
+            nb = int(argv[1][1:])
+
         start_address = align_address(long(gdb.parse_and_eval(argv[0])))
 
         for i in range(0, nb):
