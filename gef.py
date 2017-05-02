@@ -1158,7 +1158,6 @@ def get_endian():
     raise EnvironmentError("Invalid endianess")
 
 
-
 def is_big_endian():     return get_endian() == Elf.BIG_ENDIAN
 def is_little_endian():  return not is_big_endian()
 
@@ -3826,7 +3825,7 @@ class SearchPatternCommand(GenericCommand):
     the command will also try to look for upwards cross-references to this address."""
 
     _cmdline_ = "search-pattern"
-    _syntax_  = "{:s} PATTERN".format(_cmdline_)
+    _syntax_  = "{:s} PATTERN [small|big]".format(_cmdline_)
     _aliases_ = ["grep", "xref"]
 
     def __init__(self):
@@ -3851,11 +3850,10 @@ class SearchPatternCommand(GenericCommand):
             locations.append((start, end, string))
         return locations
 
-    def search_pattern(self, pattern):
+    def search_pattern(self, pattern, endian):
         """Search a pattern within the whole userland memory."""
         if is_hex(pattern):
-            # respect ELF endianness
-            if is_big_endian():
+            if endian == Elf.BIG_ENDIAN:
                 pattern = "".join(['\\x'+pattern[i:i+2] for i in range(2, len(pattern), 2)])
             else:
                 pattern = "".join(['\\x'+pattern[i:i+2] for i in range(len(pattern)-2, 0, -2)])
@@ -3872,13 +3870,19 @@ class SearchPatternCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if len(argv)!=1:
+        argc = len(argv)
+        if argc < 1:
             self.usage()
             return
 
         pattern = argv[0]
+        endian = get_endian()
+        if argc==2:
+            if argv[1]=="big": endian = Elf.BIG_ENDIAN
+            elif argv[1]=="small": endian = Elf.LITTLE_ENDIAN
+
         info("Searching '{:s}' in memory".format(Color.yellowify(pattern)))
-        self.search_pattern(pattern)
+        self.search_pattern(pattern, endian)
         return
 
 
