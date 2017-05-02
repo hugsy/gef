@@ -7046,10 +7046,10 @@ class GefConfigCommand(gdb.Command):
     `gef restore` (refer help).
     """
     _cmdline_ = "gef config"
-    _syntax_  = "{:s} [debug_on|debug_off][setting_name] [setting_value]".format(_cmdline_)
+    _syntax_  = "{:s} [setting_name] [setting_value]".format(_cmdline_)
 
     def __init__(self, loaded_commands, *args, **kwargs):
-        super(GefConfigCommand, self).__init__(GefConfigCommand._cmdline_, gdb.COMMAND_SUPPORT, prefix=False)
+        super(GefConfigCommand, self).__init__(GefConfigCommand._cmdline_, gdb.COMMAND_USER, prefix=False)
         self.loaded_commands = loaded_commands
         return
 
@@ -7068,9 +7068,15 @@ class GefConfigCommand(gdb.Command):
             return
 
         if argc == 1:
-            plugin_name = argv[0]
-            print(titlify("GEF configuration setting: {:s}".format(plugin_name)))
-            self.print_setting(plugin_name, show_description=True)
+            prefix = argv[0]
+            names = list(filter(lambda x: x.startswith(prefix), __config__.keys()))
+            if names:
+                if len(names)==1:
+                    print(titlify("GEF configuration setting: {:s}".format(names[0])))
+                    self.print_setting(names[0], show_description=True)
+                else:
+                    print(titlify("GEF configuration settings matching '{:s}'".format(argv[0])))
+                    for name in names: self.print_setting(name)
             return
 
         self.set_setting(argc, argv)
@@ -7125,25 +7131,21 @@ class GefConfigCommand(gdb.Command):
         return
 
     def complete(self, text, word):
-        valid_settings = sorted(__config__)
+        settings = sorted(__config__)
 
-        if text:
-            return valid_settings
+        if text=="":
+            # no prefix: example: `gef config TAB`
+            return [s for s in settings if word in s]
 
-        completion = []
-        for setting in valid_settings:
-            if setting.startswith(text):
-                completion.append(setting)
+        if "." not in text:
+            # if looking for possible prefix
+            return [s for s in settings if s.startswith(text.strip())]
 
-        if len(completion) == 1:
-            if "." not in text:
-                return completion
+        # finally, look for possible values for given prefix
+        return [s.split(".", 1)[1] for s in settings if s.startswith(text.strip())]
 
-            choice = completion[0]
-            i = choice.find(".") + 1
-            return [choice[i:]]
 
-        return completion
+
 
 
 class GefSaveCommand(gdb.Command):
@@ -7153,10 +7155,8 @@ class GefSaveCommand(gdb.Command):
     _syntax_  = _cmdline_
 
     def __init__(self, *args, **kwargs):
-        super(GefSaveCommand, self).__init__(GefSaveCommand._cmdline_,
-                                             gdb.COMMAND_SUPPORT,
-                                             gdb.COMPLETE_NONE,
-                                             False)
+        super(GefSaveCommand, self).__init__(GefSaveCommand._cmdline_, gdb.COMMAND_SUPPORT,
+                                             gdb.COMPLETE_NONE, False)
         return
 
     def invoke(self, args, from_tty):
