@@ -821,6 +821,12 @@ def show_last_exception():
         print("   {}    {}".format(right_arrow, fs.line))
     print(" Last 10 GDB commands ".center(80, horizontal_line))
     gdb.execute("show commands")
+    print(" Runtime environment ".center(80, horizontal_line))
+    print("* GDB: {}".format(gdb.VERSION))
+    print("* Python: {:d}.{:d}".format(sys.version_info.major, sys.version_info.minor))
+    print("* OS: {:s} - {:s} ({:s}) on {:s}".format(platform.system(), platform.release(),
+                                                    platform.architecture()[0],
+                                                    " ".join(platform.dist())))
     print(horizontal_line*80)
     print("")
     return
