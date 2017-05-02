@@ -365,8 +365,11 @@ class Address:
 
     def dereference(self):
         addr = align_address(long(self.value))
-        addr = dereference(addr)
-        return long(addr)
+        try:
+            addr = dereference(addr)
+            return long(addr)
+        except gdb.MemoryError:
+            return None
 
 
 class Permission:
@@ -6211,6 +6214,11 @@ class DereferenceCommand(GenericCommand):
             # Is this value a pointer or a value?
             # -- If it's a pointer, dereference
             deref = addr.dereference()
+            if deref is None:
+                # if here, dereferencing addr has triggered a MemoryError, no need to go further
+                msg.append(format_address(addr.value))
+                break
+
             new_addr = lookup_address(deref)
             if new_addr.valid:
                 addr = new_addr
