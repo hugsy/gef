@@ -2936,7 +2936,6 @@ class GenericCommand(gdb.Command):
                 show_last_exception()
             else:
                 err("Command '{:s}' failed to execute properly, reason: {:s}".format(self._cmdline_, str(e)))
-                err("Enable `gef.debug` to display full stack trace")
         return
 
     def usage(self):
