@@ -83,6 +83,7 @@ import time
 import traceback
 import types
 
+
 PYTHON_MAJOR = sys.version_info[0]
 
 if PYTHON_MAJOR == 2:
@@ -176,6 +177,8 @@ except ImportError:
     print("[-] gef cannot run as standalone")
     sys.exit(0)
 
+gef = None
+script = None
 __commands__                           = []
 __aliases__                            = []
 __config__                             = {}
@@ -329,7 +332,7 @@ class Color:
     def colorify(text, attrs):
         """Color a text following the given attributes."""
         do_disable = __config__.get("theme.disable_color", False)
-        do_disable = do_disable[0] or False
+        do_disable = do_disable[0] if do_disable else False
         if do_disable: return text
 
         colors = Color.colors
@@ -543,8 +546,8 @@ class Elf:
 
             self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = struct.unpack("{}HHHH".format(endian), fd.read(8))
             self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack("{}HHH".format(endian), fd.read(6))
-
         return
+
 
 
 class Instruction:
@@ -901,22 +904,6 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
 def is_debug():
     """Checks if debug mode is enabled."""
     return __config__.get("gef.debug", False) and __config__["gef.debug"][0] is True
-
-
-def reset_heap_infos():
-    """Resetting the information stored related to the heap-analysis module."""
-    global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
-
-    for addr, wp in __heap_uaf_watchpoints__:
-        wp.delete()
-
-    del __heap_allocated_list__
-    del __heap_freed_list__
-    del __heap_uaf_watchpoints__
-    __heap_allocated_list__ = []
-    __heap_freed_list__ = []
-    __heap_uaf_watchpoints__ = []
-    return
 
 
 def enable_redirect_output(to_file="/dev/null"):
@@ -2173,7 +2160,6 @@ def hook_stop_handler(event):
 def new_objfile_handler(event):
     """GDB event handler for new object file cases."""
     reset_all_caches()
-    reset_heap_infos()
     set_arch()
     return
 
@@ -2696,7 +2682,6 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
             size = to_unsigned_long(dereference( current_arch.sp+4 ))
         else:
             size = get_register(current_arch.function_parameters[0])
-        # retaddr = gdb.selected_frame().older().pc()
         self.retbp = TraceMallocRetBreakpoint(size)
         return False
 
@@ -4073,8 +4058,9 @@ class ChangePermissionCommand(GenericCommand):
 @register_command
 class UnicornEmulateCommand(GenericCommand):
     """Use Unicorn-Engine to emulate the behavior of the binary, without affecting the GDB runtime.
-    By default the command will emulate only the next instruction, but location and number of instruction can be
-    changed via arguments to the command line. By default, it will emulate the next instruction from current PC."""
+    By default the command will emulate only the next instruction, but location and number of
+    instruction can be changed via arguments to the command line. By default, it will emulate
+    the next instruction from current PC."""
 
     _cmdline_ = "unicorn-emulate"
     _syntax_  = "{:s} [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-e PATH] [-h]".format(_cmdline_)
@@ -5063,6 +5049,7 @@ class SolveKernelSymbolCommand(GenericCommand):
             err("No match for '{:s}'".format(sym))
         return
 
+
 @register_command
 class DetailRegistersCommand(GenericCommand):
     """Display full details on one, many or all registers value from current architecture."""
@@ -5107,7 +5094,7 @@ class DetailRegistersCommand(GenericCommand):
             old_value = ContextCommand.old_registers.get(regname, 0)
             new_value = align_address(long(reg))
             if new_value == old_value:
-                line += Color.boldify(format_address(new_value))
+                line += format_address(new_value)
             else:
                 line += Color.colorify(format_address(new_value), attrs="bold red")
             addrs = DereferenceCommand.dereference_from(new_value)
@@ -6411,8 +6398,7 @@ class VMMapCommand(GenericCommand):
             print("{:<23s} {:<23s} {:<23s} {:<4s} {:s}".format(*headers))
 
         for entry in vmmap:
-            if argv:
-                if not argv[0] in entry.path:
+            if argv and not argv[0] in entry.path:
                     continue
             l = []
             l.append(format_address(entry.page_start))
@@ -6596,7 +6582,6 @@ class TraceRunCommand(GenericCommand):
     _cmdline_ = "trace-run"
     _syntax_  = "{:s} LOCATION [MAX_CALL_DEPTH]".format(_cmdline_)
 
-
     def __init__(self):
         super(TraceRunCommand, self).__init__(self._cmdline_, complete=gdb.COMPLETE_LOCATION)
         self.add_setting("max_tracing_recursion", 1, "Maximum depth of tracing")
@@ -6675,7 +6660,7 @@ class TraceRunCommand(GenericCommand):
                 loc_cur = current_arch.pc
                 gdb.flush()
 
-            except Exception as e:
+            except gdb.error as e:
                 print("#")
                 print("# Execution interrupted at address {:s}".format(format_address(loc_cur)))
                 print("# Exception: {:s}".format(e))
@@ -6689,8 +6674,7 @@ class TraceRunCommand(GenericCommand):
 class PatternCommand(GenericCommand):
     """This command will create or search a De Bruijn cyclic pattern to facilitate
     determining the offset in memory. The algorithm used is the same as the one
-    used by pwntools, and can therefore be used in conjunction.
-    """
+    used by pwntools, and can therefore be used in conjunction."""
 
     _cmdline_ = "pattern"
     _syntax_  = "{:s} (create|search) <args>".format(_cmdline_)
@@ -6883,8 +6867,7 @@ class HeapAnalysisCommand(GenericCommand):
     - NULL free
     - Use-after-Free
     - Double Free
-    - Heap overlap
-    """
+    - Heap overlap"""
     _cmdline_ = "heap-analysis-helper"
     _syntax_ = "{:s}".format(_cmdline_)
 
@@ -6947,7 +6930,7 @@ class HeapAnalysisCommand(GenericCommand):
     def clean(self, event):
         global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
 
-        ok("{} - Cleaning up the mess".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),))
+        ok("{} - Cleaning up".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),))
         for bp in [self.bp_malloc, self.bp_free, self.bp_realloc]:
             if bp.retbp:
                 bp.retbp.delete()
@@ -7123,7 +7106,7 @@ class GefHelpCommand(gdb.Command):
                                              gdb.COMMAND_SUPPORT,
                                              gdb.COMPLETE_NONE,
                                              False)
-        self.__doc__ = self.generate_help(commands)
+        self.generate_help(commands)
         return
 
     def invoke(self, args, from_tty):
@@ -7134,24 +7117,15 @@ class GefHelpCommand(gdb.Command):
 
     def generate_help(self, commands):
         d = []
-
         for cmd, class_name, _ in commands:
-            if " " in cmd:
-                # do not print out subcommands in main help
-                continue
-
+            if " " in cmd: continue                # do not print subcommands in gef help
             doc = class_name.__doc__ if hasattr(class_name, "__doc__") else ""
             doc = "\n                         ".join(doc.split("\n"))
-
-            if hasattr(class_name, "_aliases_"):
-                aliases = "(alias: {:s})".format(", ".join(class_name._aliases_))
-            else:
-                aliases = ""
-
+            aliases = "(alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
             msg = "{:<25s} -- {:s} {:s}".format(cmd, Color.greenify(doc), aliases)
-
             d.append(msg)
-        return "\n".join(d)
+        self.__doc__ = "\n".join(d)
+        return
 
 
 class GefConfigCommand(gdb.Command):
@@ -7200,11 +7174,13 @@ class GefConfigCommand(gdb.Command):
 
     def print_setting(self, plugin_name, show_description=False):
         res = __config__.get(plugin_name, None)
+        string_color = __config__.get("theme.dereference_string")[0]
+
         if res is not None:
             _value, _type, _desc = res
             _setting = Color.colorify(plugin_name, attrs="pink bold underline")
             _type = _type.__name__
-            _value = Color.colorify(str(_value), attrs="yellow") if _type!='str' else '"{:s}"'.format(Color.colorify(str(_value), attrs="yellow"))
+            _value = Color.colorify(str(_value), attrs="yellow") if _type!='str' else '"{:s}"'.format(Color.colorify(str(_value), attrs=string_color))
             print("{:s} ({:s}) = {:s}".format(_setting, _type, _value))
 
             if show_description:
