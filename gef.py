@@ -4870,23 +4870,23 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
                     print("0x00", end="")
                     break
 
-                print("{:s} {:s} ".format(right_arrow, str(chunk)), end="")
-                if chunk.addr in chunks:
-                    print("{:s} [loop detected]".format(right_arrow), end="")
-                    break
-
-                chunks.append(chunk.addr)
-
                 try:
+                    print("{:s} {:s} ".format(left_arrow, str(chunk)), end="")
+                    if chunk.addr in chunks:
+                        print("{:s} [loop detected]".format(right_arrow), end="")
+                        break
+
+                    chunks.append(chunk.addr)
+
                     next_chunk = chunk.get_fwd_ptr()
                     if next_chunk == 0:
                         break
 
                     chunk = GlibcChunk(next_chunk, from_base=True)
                 except gdb.MemoryError:
+                    print("{:s} [Corrupted chunk at {:#x}]".format(left_arrow, chunk.addr), end="")
                     break
             print()
-
         return
 
 @register_command
