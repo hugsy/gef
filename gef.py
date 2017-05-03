@@ -177,8 +177,6 @@ except ImportError:
     print("[-] gef cannot run as standalone")
     sys.exit(0)
 
-gef = None
-script = None
 __commands__                           = []
 __aliases__                            = []
 __config__                             = {}
