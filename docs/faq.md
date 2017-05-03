@@ -83,7 +83,7 @@ To verify this, you can simply start GDB with GEF, which will show you the
 Python version currently supported by your GDB, or run the command:
 
 ```bash
-vagrant@kali2-x64:~$ gdb -nx -ex 'python print (sys.version)' -ex quit
+$ gdb -q -nx -ex 'python print (sys.version)' -ex quit
 3.5.2+ (default, Dec 13 2016, 14:16:35)
 [GCC 6.2.1 20161124]
 ```
@@ -110,3 +110,30 @@ file of the project to give you pointers.
 Also a good thing would be to join the `##gef` IRC channel
 on [Freenode](https://webchat.freenode.net/?channels=##gef) to get in touch with
 the people involved/using it.
+
+
+## I think I've found a crash, how can I help fixing it? ##
+
+`gef` is only getting better through people (like you!) using it, but most
+importantly reporting unexpected behavior.
+
+In most locations, Python exceptions will be properly intercepted. If not, `gef`
+wraps all commands with a generic exception handler, to disturb as little as
+possible your debugging session. If it happens, you'll only see a message like
+this:
+![gef-exception](http://i.imgur.com/J7dUnXV.png)
+
+By switching to debug mode, `gef` will give much more information:
+```
+gef➤  gef config gef.debug 1
+```
+![gef-debug](http://i.imgur.com/SGe8oFF.png)
+
+If you think fixing it is in your skills, then send
+a [Push Request](https://github.com/hugsy/gef/pulls) with your patched version,
+explaining your bug, and what was your solution for it.
+
+Otherwise, you can open
+an [Issue on GitHub](https://github.com/hugsy/gef/issues), give an exhaustive
+description of your bug and copy/paste the content from above. This will greatly
+help for solving the issue.
