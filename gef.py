@@ -177,6 +177,7 @@ except ImportError:
     print("[-] gef cannot run as standalone")
     sys.exit(0)
 
+__gef__ = None
 __commands__                           = []
 __aliases__                            = []
 __config__                             = {}
@@ -2946,6 +2947,15 @@ class EntryBreakBreakpoint(gdb.Breakpoint):
 #
 # Commands
 #
+
+def register_external_command(cls):
+    """Decorator for registering new GEF (sub-)command to GDB."""
+    global __commands__, __gef__
+    info("Loading '{}'".format(str(cls.__name__)))
+    __commands__.append(cls)
+    __gef__.load(initial=False)
+    return cls
+
 
 def register_command(cls):
     """Decorator for registering new GEF (sub-)command to GDB."""
@@ -6992,7 +7002,7 @@ class GefCommand(gdb.Command):
 
         self.__cmds = [(x._cmdline_, x) for x in __commands__]
         self.__loaded_cmds = []
-        self.load()
+        self.load(initial=True)
 
         # loading GEF sub-commands
         GefHelpCommand(self.__loaded_cmds)
@@ -7042,10 +7052,8 @@ class GefCommand(gdb.Command):
         return
 
 
-    def load(self, mod=None):
-        """
-        Load all the commands defined by GEF into GDB.
-        If a configuration file is found, the settings are restored.
+    def load(self, initial=False):
+        """Load all the commands defined by GEF into GDB.
         """
         global __loaded__, __missing__
 
@@ -7057,6 +7065,9 @@ class GefCommand(gdb.Command):
             return any(filter(lambda u: x == u[0], __loaded__))
 
         for cmd, class_name in self.__cmds:
+            if is_loaded(cmd):
+                continue
+
             try:
                 if " " in cmd:
                     # if subcommand, check root command is loaded
@@ -7077,16 +7088,17 @@ class GefCommand(gdb.Command):
 
         self.__loaded_cmds = sorted(__loaded__, key=lambda x: x[1]._cmdline_)
 
-        print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure".format(Color.greenify("GEF"),
-                                                                                      get_os(),
-                                                                                      Color.colorify("gef",attrs="underline yellow"),
-                                                                                      Color.colorify("gef config", attrs="underline pink")))
+        if initial:
+            print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure".format(Color.greenify("GEF"),
+                                                                                          get_os(),
+                                                                                          Color.colorify("gef",attrs="underline yellow"),
+                                                                                          Color.colorify("gef config", attrs="underline pink")))
 
-        ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
-        nb_cmds = len(__loaded__)
-        print("{:s} commands loaded for GDB {:s} using Python engine {:s}".format(Color.colorify(str(nb_cmds), attrs="bold green"),
-                                                                                  Color.colorify(gdb.VERSION, attrs="bold yellow"),
-                                                                                  Color.colorify(ver, attrs="bold red")))
+            ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
+            nb_cmds = len(__loaded__)
+            print("{:s} commands loaded for GDB {:s} using Python engine {:s}".format(Color.colorify(str(nb_cmds), attrs="bold green"),
+                                                                                      Color.colorify(gdb.VERSION, attrs="bold yellow"),
+                                                                                      Color.colorify(ver, attrs="bold red")))
 
         if nb_missing > 0:
             warn("{:s} commands could not be loaded, run `{:s}` to know why.".format(Color.colorify(str(nb_missing), attrs="bold red"),
@@ -7571,7 +7583,7 @@ if __name__  == "__main__":
     gdb.execute("save gdb-index {}".format(GEF_TEMP_DIR))
 
     # load GEF
-    GefCommand()
+    __gef__ = GefCommand()
 
     # gdb events configuration
     gdb.events.cont.connect(continue_handler)
