@@ -2951,9 +2951,10 @@ class EntryBreakBreakpoint(gdb.Breakpoint):
 def register_external_command(cls):
     """Decorator for registering new GEF (sub-)command to GDB."""
     global __commands__, __gef__
-    info("Loading '{}'".format(str(cls.__name__)))
+    info("Loading '{}'".format(cls.__name__))
     __commands__.append(cls)
-    __gef__.load(initial=False)
+    __gef__.doc.add_command_to_doc((cls._cmdline_, cls, None))
+    __gef__.doc.refresh()
     return cls
 
 
@@ -7000,13 +7001,16 @@ class GefCommand(gdb.Command):
         __config__["gef.debug"] = [False, bool, "Enable debug mode for gef"]
         __config__["gef.autosave_breakpoints_file"] = ["", str, "Automatically save and restore breakpoints"]
 
-        self.__cmds = [(x._cmdline_, x) for x in __commands__]
-        self.__loaded_cmds = []
+        self.loaded_cmds = []
+        self.missing_cmds = []
+        __loaded__ = []
+        __missing__ = {}
+
         self.load(initial=True)
 
         # loading GEF sub-commands
-        GefHelpCommand(self.__loaded_cmds)
-        GefConfigCommand(self.loaded_command_names)
+        self.doc = GefHelpCommand(self.loaded_cmds)
+        self.cfg = GefConfigCommand(self.loaded_command_names)
         GefSaveCommand()
         GefRestoreCommand()
         GefMissingCommand()
@@ -7043,7 +7047,7 @@ class GefCommand(gdb.Command):
 
     @property
     def loaded_command_names(self):
-        return [x[0] for x in self.__loaded_cmds]
+        return [x[0] for x in self.loaded_cmds]
 
 
     def invoke(self, args, from_tty):
@@ -7057,14 +7061,13 @@ class GefCommand(gdb.Command):
         """
         global __loaded__, __missing__
 
-        __loaded__ = []
-        __missing__ = {}
         nb_missing = 0
+        self.commands = [(x._cmdline_, x) for x in __commands__]
 
         def is_loaded(x):
-            return any(filter(lambda u: x == u[0], __loaded__))
+            return any(filter(lambda u: x == u[0], self.loaded_cmds))
 
-        for cmd, class_name in self.__cmds:
+        for cmd, class_name in self.commands:
             if is_loaded(cmd):
                 continue
 
@@ -7086,11 +7089,10 @@ class GefCommand(gdb.Command):
                 __missing__[cmd] = reason
                 nb_missing += 1
 
-        self.__loaded_cmds = sorted(__loaded__, key=lambda x: x[1]._cmdline_)
+        self.loaded_cmds = sorted(__loaded__, key=lambda x: x[1]._cmdline_)
 
         if initial:
-            print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure".format(Color.greenify("GEF"),
-                                                                                          get_os(),
+            print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure".format(Color.greenify("GEF"), get_os(),
                                                                                           Color.colorify("gef",attrs="underline yellow"),
                                                                                           Color.colorify("gef config", attrs="underline pink")))
 
@@ -7116,7 +7118,9 @@ class GefHelpCommand(gdb.Command):
                                              gdb.COMMAND_SUPPORT,
                                              gdb.COMPLETE_NONE,
                                              False)
+        self.docs = []
         self.generate_help(commands)
+        self.refresh()
         return
 
     def invoke(self, args, from_tty):
@@ -7126,15 +7130,27 @@ class GefHelpCommand(gdb.Command):
         return
 
     def generate_help(self, commands):
-        d = []
-        for cmd, class_name, _ in commands:
-            if " " in cmd: continue                # do not print subcommands in gef help
-            doc = class_name.__doc__ if hasattr(class_name, "__doc__") else ""
-            doc = "\n                         ".join(doc.split("\n"))
-            aliases = "(alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
-            msg = "{:<25s} -- {:s} {:s}".format(cmd, Color.greenify(doc), aliases)
-            d.append(msg)
-        self.__doc__ = "\n".join(d)
+        """Generate builtin commands documentation."""
+        for command in commands:
+            self.add_command_to_doc(command)
+        return
+
+    def add_command_to_doc(self, command):
+        """Add command to GEF documentation."""
+        cmd, class_name, _  = command
+        if " " in cmd:
+            # do not print subcommands in gef help
+            return
+        doc = class_name.__doc__ if hasattr(class_name, "__doc__") else ""
+        doc = "\n                         ".join(doc.split("\n"))
+        aliases = "(alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
+        msg = "{:<25s} -- {:s} {:s}".format(cmd, Color.greenify(doc), aliases)
+        self.docs.append(msg)
+        return
+
+    def refresh(self):
+        """Refresh the documentation."""
+        self.__doc__ = "\n".join(sorted(self.docs))
         return
 
 
