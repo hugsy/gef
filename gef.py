@@ -158,7 +158,6 @@ def update_gef(argv):
         return 1
 
     hash_gef_remote = hashlib.sha512(gef_remote_data).digest()
-
     if hash_gef_local == hash_gef_remote:
         print("[-] No update")
     else:
@@ -177,13 +176,11 @@ except ImportError:
     print("[-] gef cannot run as standalone")
     sys.exit(0)
 
-__gef__ = None
+__gef__                                = None
 __commands__                           = []
 __aliases__                            = []
 __config__                             = {}
 __infos_files__                        = []
-__loaded__                             = []
-__missing__                            = {}
 __gef_convenience_vars_index__         = 0
 __context_messages__                   = []
 __heap_allocated_list__                = []
@@ -2948,12 +2945,14 @@ class EntryBreakBreakpoint(gdb.Breakpoint):
 # Commands
 #
 
-def register_external_command(cls):
-    """Decorator for registering new GEF (sub-)command to GDB."""
+def register_external_command(obj):
+    """Registering function for new GEF (sub-)command to GDB."""
     global __commands__, __gef__
-    info("Loading '{}'".format(cls.__name__))
+    cls = obj.__class__
+    fpath = os.path.realpath(inspect.getfile(cls))
+    info("Loading '{}' (from '{}')".format(cls.__name__, fpath))
     __commands__.append(cls)
-    # __gef__.load(initial=False)
+    __gef__.load(initial=False)
     __gef__.doc.add_command_to_doc((cls._cmdline_, cls, None))
     __gef__.doc.refresh()
     return cls
@@ -6265,7 +6264,8 @@ class DereferenceCommand(GenericCommand):
         string_color = __config__.get("theme.dereference_string")[0]
 
         prev_addr_value = None
-        max_recursion = max(int(__config__["dereference.max_recursion"][0]), 1)
+        max_recursion = __config__.get("dereference.max_recursion", None)
+        max_recursion = max(max_recursion[0] if max_recursion else 10, 1)
         value = align_address(long(addr))
         addr = lookup_address(value)
         msg = [format_address(addr.value),]
@@ -7002,15 +7002,14 @@ class GefCommand(gdb.Command):
         __config__["gef.debug"] = [False, bool, "Enable debug mode for gef"]
         __config__["gef.autosave_breakpoints_file"] = ["", str, "Automatically save and restore breakpoints"]
 
-        self.loaded_cmds = []
-        self.missing_cmds = []
-        __loaded__ = []
-        __missing__ = {}
-
+        self.loaded_commands = []
+        self.missing_commands = {}
         self.load(initial=True)
+        return
 
+    def setup(self):
         # loading GEF sub-commands
-        self.doc = GefHelpCommand(self.loaded_cmds)
+        self.doc = GefHelpCommand(self.loaded_commands)
         self.cfg = GefConfigCommand(self.loaded_command_names)
         GefSaveCommand()
         GefRestoreCommand()
@@ -7048,7 +7047,7 @@ class GefCommand(gdb.Command):
 
     @property
     def loaded_command_names(self):
-        return [x[0] for x in self.loaded_cmds]
+        return [x[0] for x in self.loaded_commands]
 
 
     def invoke(self, args, from_tty):
@@ -7060,20 +7059,19 @@ class GefCommand(gdb.Command):
     def load(self, initial=False):
         """Load all the commands defined by GEF into GDB.
         """
-        global __loaded__, __missing__
-
         nb_missing = 0
+
         self.commands = [(x._cmdline_, x) for x in __commands__]
 
         def is_loaded(x):
-            return any(filter(lambda u: x == u[0], self.loaded_cmds))
+            return any(filter(lambda u: x == u[0], self.loaded_commands))
 
         for cmd, class_name in self.commands:
             if is_loaded(cmd):
                 continue
 
             try:
-                __loaded__.append((cmd, class_name, class_name()))
+                self.loaded_commands.append((cmd, class_name, class_name()))
 
                 if hasattr(class_name, "_aliases_"):
                     aliases = getattr(class_name, "_aliases_")
@@ -7081,10 +7079,11 @@ class GefCommand(gdb.Command):
                         GefAlias(alias, cmd)
 
             except Exception as reason:
-                __missing__[cmd] = reason
+                self.missing_commands[cmd] = reason
                 nb_missing += 1
 
-        self.loaded_cmds = sorted(__loaded__, key=lambda x: x[1]._cmdline_)
+        # sort by command name
+        self.loaded_commands = sorted(self.loaded_commands, key=lambda x: x[1]._cmdline_)
 
         if initial:
             print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure".format(Color.greenify("GEF"), get_os(),
@@ -7092,12 +7091,12 @@ class GefCommand(gdb.Command):
                                                                                           Color.colorify("gef config", attrs="underline pink")))
 
             ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
-            nb_cmds = len(__loaded__)
+            nb_cmds = len(self.loaded_commands)
             print("{:s} commands loaded for GDB {:s} using Python engine {:s}".format(Color.colorify(str(nb_cmds), attrs="bold green"),
                                                                                       Color.colorify(gdb.VERSION, attrs="bold yellow"),
                                                                                       Color.colorify(ver, attrs="bold red")))
 
-        if nb_missing > 0:
+        if nb_missing:
             warn("{:s} commands could not be loaded, run `{:s}` to know why.".format(Color.colorify(str(nb_missing), attrs="bold red"),
                                                                                      Color.colorify("gef missing", attrs="underline pink")))
         return
@@ -7216,12 +7215,14 @@ class GefConfigCommand(gdb.Command):
         return
 
     def set_setting(self, argc, argv):
+        global __gef__
         if "." not in argv[0]:
             err("Invalid command format")
             return
 
+        loaded_commands = [ x[0] for x in __gef__.loaded_commands ] + ["gef"]
         plugin_name = argv[0].split(".", 1)[0]
-        if plugin_name not in self.loaded_commands + ["gef"]:
+        if plugin_name not in loaded_commands:
             err("Unknown plugin '{:s}'".format(plugin_name))
             return
 
@@ -7361,13 +7362,13 @@ class GefMissingCommand(gdb.Command):
 
     def invoke(self, args, from_tty):
         self.dont_repeat()
-        missing_commands = __missing__.keys()
+        missing_commands = __gef__.missing_commands.keys()
         if not missing_commands:
             ok("No missing command")
             return
 
         for missing_command in missing_commands:
-            reason = __missing__[missing_command]
+            reason = __gef__.missing_commands[missing_command]
             warn("Command `{}` is missing, reason {} {}".format(missing_command, right_arrow, reason))
         return
 
@@ -7458,7 +7459,8 @@ class GefAlias(gdb.Command):
         return
 
     def lookup_command(self, cmd):
-        for _name, _class, _instance in __loaded__:
+        global __gef__
+        for _name, _class, _instance in __gef__.loaded_commands:
             if cmd == _name:
                 return _name, _class, _instance
 
@@ -7595,6 +7597,7 @@ if __name__  == "__main__":
 
     # load GEF
     __gef__ = GefCommand()
+    __gef__.setup()
 
     # gdb events configuration
     gdb.events.cont.connect(continue_handler)
