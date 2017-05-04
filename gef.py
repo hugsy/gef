@@ -2953,6 +2953,7 @@ def register_external_command(cls):
     global __commands__, __gef__
     info("Loading '{}'".format(cls.__name__))
     __commands__.append(cls)
+    # __gef__.load(initial=False)
     __gef__.doc.add_command_to_doc((cls._cmdline_, cls, None))
     __gef__.doc.refresh()
     return cls
@@ -7072,12 +7073,6 @@ class GefCommand(gdb.Command):
                 continue
 
             try:
-                if " " in cmd:
-                    # if subcommand, check root command is loaded
-                    root = cmd.split(" ", 1)[0]
-                    if not is_loaded(root):
-                        continue
-
                 __loaded__.append((cmd, class_name, class_name()))
 
                 if hasattr(class_name, "_aliases_"):
