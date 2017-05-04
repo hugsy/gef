@@ -597,7 +597,7 @@ class GlibcArena:
         idx = i * 2
         fd = self.dereference_as_long(self.bins[idx])
         bw = self.dereference_as_long(self.bins[idx + 1])
-        return (fd, bw)
+        return fd, bw
 
     def get_next(self):
         addr_next = self.dereference_as_long(self.next)
@@ -976,7 +976,7 @@ def gdb_get_location_from_symbol(address):
     name, offset = sym[0], 0
     if len(sym) == 3:
         offset = int(sym[2])
-    return (name, offset)
+    return name, offset
 
 
 def gdb_disassemble(start_pc, **kwargs):
@@ -2591,10 +2591,9 @@ def gef_read_canary():
         if _type != "AT_RANDOM":
             continue
         canary_location = int(_addr, 16)
-        nb = get_memory_alignment()
         canary = read_int_from_memory(canary_location)
         canary &= ~0xff
-        return (canary, canary_location)
+        return canary, canary_location
 
     return None
 
@@ -2696,7 +2695,6 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
             size = to_unsigned_long(dereference( current_arch.sp+4 ))
         else:
             size = get_register(current_arch.function_parameters[0])
-        retaddr = gdb.selected_frame().older().pc()
         TraceMallocRetBreakpoint(size)
         return False
 
@@ -6197,7 +6195,6 @@ class DereferenceCommand(GenericCommand):
         code_color = __config__.get("theme.dereference_code")[0]
         string_color = __config__.get("theme.dereference_string")[0]
 
-        prev_addr_value = None
         max_recursion = max(int(__config__["dereference.max_recursion"][0]), 1)
         value = align_address(long(addr))
         addr = lookup_address(value)
