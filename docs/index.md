@@ -26,6 +26,8 @@ distros start pushing `gdb` compiled with Python3 support).
     commands as fast as possible.
   * Provides more than **50** commands to drastically change your experience in
     GDB.
+  * **Easily** extendable to create other commands by providing more comprehensible
+    layout to GDB Python API.
   * Works consistently on both Python2 and Python3.
   * Built around an architecture abstraction layer, so all commands work in any
     GDB-supported architecture (x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS,
