@@ -918,6 +918,25 @@ def disable_redirect_output():
     return
 
 
+def get_gef_setting(name):
+    """Read globally gef settings. Raise ValueError if not found."""
+    global __config__
+    key = __config__.get(name, None)
+    if not key:
+        raise ValueError("Setting '{}' is missing".format(name))
+    return __config__[name][0]
+
+
+def set_gef_setting(name, value):
+    """Set globally gef settings. Raise ValueError if not existing."""
+    global __config__
+    key = __config__.get(name, None)
+    if not key:
+        raise ValueError("Setting '{}' is missing".format(name))
+    __config__[name] = value
+    return
+
+
 def gef_makedirs(path, mode=0o755):
     """Recursive mkdir() creation. If successful, return the absolute path of the directory created."""
     abspath = os.path.realpath(path)
@@ -2949,8 +2968,8 @@ def register_external_command(obj):
     """Registering function for new GEF (sub-)command to GDB."""
     global __commands__, __gef__
     cls = obj.__class__
-    fpath = os.path.realpath(inspect.getfile(cls))
-    info("Loading '{}' (from '{}')".format(cls.__name__, fpath))
+    fpath = os.path.realpath(os.path.expanduser(inspect.getfile(cls)))
+    info("Loading '{}' (from '{}') as '{}'".format(cls.__name__, fpath, cls._cmdline_))
     __commands__.append(cls)
     __gef__.load(initial=False)
     __gef__.doc.add_command_to_doc((cls._cmdline_, cls, None))
