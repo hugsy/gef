@@ -11,8 +11,8 @@ _Side note_: [Other projects](https://github.com/pwndbg/pwndbg) accuses `GEF` to
 not be easily hackable for new features. This documentation also aims to prove
 them wrong.
 
-A dedicated repository was born out to host external scripts: 
-https://github.com/hugsy/gef-scripts. This repo is open to all for contributions, no 
+A [dedicated repository](https://github.com/hugsy/gef-scripts) was born to host
+external scripts. This repo is open to all for contributions, no 
 restrictions and the most valuable ones will be integrated into `gef.py`.
 
 ## Quick start ##
