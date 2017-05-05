@@ -83,6 +83,7 @@ import time
 import traceback
 import types
 
+
 PYTHON_MAJOR = sys.version_info[0]
 
 if PYTHON_MAJOR == 2:
@@ -157,7 +158,6 @@ def update_gef(argv):
         return 1
 
     hash_gef_remote = hashlib.sha512(gef_remote_data).digest()
-
     if hash_gef_local == hash_gef_remote:
         print("[-] No update")
     else:
@@ -176,12 +176,11 @@ except ImportError:
     print("[-] gef cannot run as standalone")
     sys.exit(0)
 
+__gef__                                = None
 __commands__                           = []
 __aliases__                            = []
 __config__                             = {}
 __infos_files__                        = []
-__loaded__                             = []
-__missing__                            = {}
 __gef_convenience_vars_index__         = 0
 __context_messages__                   = []
 __heap_allocated_list__                = []
@@ -329,7 +328,7 @@ class Color:
     def colorify(text, attrs):
         """Color a text following the given attributes."""
         do_disable = __config__.get("theme.disable_color", False)
-        do_disable = do_disable[0] or False
+        do_disable = do_disable[0] if do_disable else False
         if do_disable: return text
 
         colors = Color.colors
@@ -543,8 +542,8 @@ class Elf:
 
             self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = struct.unpack("{}HHHH".format(endian), fd.read(8))
             self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack("{}HHH".format(endian), fd.read(6))
-
         return
+
 
 
 class Instruction:
@@ -903,22 +902,6 @@ def is_debug():
     return __config__.get("gef.debug", False) and __config__["gef.debug"][0] is True
 
 
-def reset_heap_infos():
-    """Resetting the information stored related to the heap-analysis module."""
-    global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
-
-    for addr, wp in __heap_uaf_watchpoints__:
-        wp.delete()
-
-    del __heap_allocated_list__
-    del __heap_freed_list__
-    del __heap_uaf_watchpoints__
-    __heap_allocated_list__ = []
-    __heap_freed_list__ = []
-    __heap_uaf_watchpoints__ = []
-    return
-
-
 def enable_redirect_output(to_file="/dev/null"):
     """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
     gdb.execute("set logging overwrite")
@@ -932,6 +915,26 @@ def disable_redirect_output():
     """Disable the output redirection, if any."""
     gdb.execute("set logging redirect off")
     gdb.execute("set logging off")
+    return
+
+
+def get_gef_setting(name):
+    """Read globally gef settings. Raise ValueError if not found."""
+    global __config__
+    key = __config__.get(name, None)
+    if not key:
+        raise ValueError("Setting '{}' is missing".format(name))
+    return __config__[name][0]
+
+
+def set_gef_setting(name, value):
+    """Set globally gef settings. Raise ValueError if not existing."""
+    global __config__
+    key = __config__.get(name, None)
+    if not key:
+        raise ValueError("Setting '{}' is missing".format(name))
+    func = __config__[name][1]
+    __config__[name][0] = func(value)
     return
 
 
@@ -2173,7 +2176,6 @@ def hook_stop_handler(event):
 def new_objfile_handler(event):
     """GDB event handler for new object file cases."""
     reset_all_caches()
-    reset_heap_infos()
     set_arch()
     return
 
@@ -2695,7 +2697,7 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
             size = to_unsigned_long(dereference( current_arch.sp+4 ))
         else:
             size = get_register(current_arch.function_parameters[0])
-        TraceMallocRetBreakpoint(size)
+        self.retbp = TraceMallocRetBreakpoint(size)
         return False
 
 
@@ -2708,13 +2710,16 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         self.silent = True
         return
 
-    def return_value_ex(self):
-        return to_unsigned_long(gdb.parse_and_eval(current_arch.return_register))
 
     def stop(self):
-        global __heap_uaf_watchpoints__, __heap_freed_list__
+        global __heap_uaf_watchpoints__, __heap_freed_list__, __heap_allocated_list__
+
+        if self.return_value:
+            loc = long(self.return_value)
+        else:
+            loc = to_unsigned_long(gdb.parse_and_eval(current_arch.return_register))
+
         size = self.size
-        loc = long(self.return_value) if self.return_value else self.return_value_ex()
         ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), size, loc))
         check_heap_overlap = __config__.get("heap-analysis-helper.check_heap_overlap")[0]
 
@@ -2764,6 +2769,70 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
 
         # add it to alloc-ed list
         __heap_allocated_list__.append(item)
+        return False
+
+
+class TraceReallocBreakpoint(gdb.Breakpoint):
+    """Track re-allocations done with realloc()."""
+
+    def __init__(self):
+        super(TraceReallocBreakpoint, self).__init__("__libc_realloc", gdb.BP_BREAKPOINT, internal=True)
+        self.silent = True
+        return
+
+    def stop(self):
+        if is_x86_32():
+            ptr = to_unsigned_long(dereference( current_arch.sp+4 ))
+            size = to_unsigned_long(dereference( current_arch.sp+8 ))
+        else:
+            ptr = get_register(current_arch.function_parameters[0])
+            size = get_register(current_arch.function_parameters[1])
+        retaddr = gdb.selected_frame().older().pc()
+        self.retbp = TraceReallocRetBreakpoint(ptr, size)
+        return False
+
+
+class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
+    """Internal temporary breakpoint to retrieve the return value of realloc()."""
+
+    def __init__(self, ptr, size):
+        super(TraceReallocRetBreakpoint, self).__init__(gdb.newest_frame(), internal=True)
+        self.ptr = ptr
+        self.size = size
+        self.silent = True
+        return
+
+    def stop(self):
+        global __heap_uaf_watchpoints__, __heap_freed_list__, __heap_allocated_list__
+
+        if self.return_value:
+            newloc = long(self.return_value)
+        else:
+            newloc = to_unsigned_long(gdb.parse_and_eval(current_arch.return_register))
+
+        if newloc != self:
+            ok("{} - realloc({:#x}, {})={}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),
+                                                      self.ptr, self.size,
+                                                      Color.colorify("{:#x}".format(newloc), attrs="green"),))
+        else:
+            ok("{} - realloc({:#x}, {})={}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),
+                                                      self.ptr, self.size,
+                                                      Color.colorify("{:#x}".format(newloc), attrs="red"),))
+
+        item = (newloc, self.size)
+
+        try:
+            # check if item was in alloc-ed list
+            idx = [x for x,y in __heap_allocated_list__].index(self.ptr)
+            # if so pop it out
+            item = __heap_allocated_list__.pop(idx)
+        except ValueError:
+            if is_debug():
+                warn("Chunk {:#x} was not in tracking list".format(self.ptr))
+        finally:
+            # add new item to alloc-ed list
+            __heap_allocated_list__.append(item)
+
         return False
 
 
@@ -2829,9 +2898,10 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
         # 2. add it to free-ed list
         __heap_freed_list__.append(item)
 
+        self.retbp = None
         if check_uaf:
             # 3. (opt.) add a watchpoint on pointer
-            TraceFreeRetBreakpoint(addr)
+            self.retbp = TraceFreeRetBreakpoint(addr)
         return False
 
 
@@ -2893,6 +2963,19 @@ class EntryBreakBreakpoint(gdb.Breakpoint):
 #
 # Commands
 #
+
+def register_external_command(obj):
+    """Registering function for new GEF (sub-)command to GDB."""
+    global __commands__, __gef__
+    cls = obj.__class__
+    fpath = os.path.realpath(os.path.expanduser(inspect.getfile(cls)))
+    info("Loading '{}' (from '{}') as '{}'".format(cls.__name__, fpath, cls._cmdline_))
+    __commands__.append(cls)
+    __gef__.load(initial=False)
+    __gef__.doc.add_command_to_doc((cls._cmdline_, cls, None))
+    __gef__.doc.refresh()
+    return cls
+
 
 def register_command(cls):
     """Decorator for registering new GEF (sub-)command to GDB."""
@@ -2975,17 +3058,20 @@ class GenericCommand(gdb.Command):
 
 
 # Copy/paste this template for new command
+# @register_command
 # class TemplateCommand(GenericCommand):
 # """TemplateCommand: description here will be seen in the help menu for the command."""
+#     _cmdline_ = "template-fake"
+#     _syntax_  = "{:s}".format(_cmdline_)
+#     _aliases_ = ["tpl-fk",]
+#     def __init__(self):
+#        super(TemplateCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+#         return
+#     def do_invoke(self, argv):
+#         return
 
-    # _cmdline_ = "template-fake"
-    # _syntax_  = "{:s}".format(_cmdline_)
-    # _aliases_ = ["tpl-fk",]
-    # def __init__(self):
-    #     super(TemplateCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
-    #     return
-    # def do_invoke(self, argv):
-    #     return
+
+
 
 @register_command
 class CanaryCommand(GenericCommand):
@@ -3186,7 +3272,6 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("dereference_base_address", "bold green")
         self.add_setting("dereference_register_value", "bold green")
         self.add_setting("registers_register_name", "bold red")
-        # TODO: add more customizable items
         return
 
     def do_invoke(self, args):
@@ -4001,8 +4086,9 @@ class ChangePermissionCommand(GenericCommand):
 @register_command
 class UnicornEmulateCommand(GenericCommand):
     """Use Unicorn-Engine to emulate the behavior of the binary, without affecting the GDB runtime.
-    By default the command will emulate only the next instruction, but location and number of instruction can be
-    changed via arguments to the command line. By default, it will emulate the next instruction from current PC."""
+    By default the command will emulate only the next instruction, but location and number of
+    instruction can be changed via arguments to the command line. By default, it will emulate
+    the next instruction from current PC."""
 
     _cmdline_ = "unicorn-emulate"
     _syntax_  = "{:s} [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-e PATH] [-h]".format(_cmdline_)
@@ -4991,6 +5077,7 @@ class SolveKernelSymbolCommand(GenericCommand):
             err("No match for '{:s}'".format(sym))
         return
 
+
 @register_command
 class DetailRegistersCommand(GenericCommand):
     """Display full details on one, many or all registers value from current architecture."""
@@ -5035,7 +5122,7 @@ class DetailRegistersCommand(GenericCommand):
             old_value = ContextCommand.old_registers.get(regname, 0)
             new_value = align_address(long(reg))
             if new_value == old_value:
-                line += Color.boldify(format_address(new_value))
+                line += format_address(new_value)
             else:
                 line += Color.colorify(format_address(new_value), attrs="bold red")
             addrs = DereferenceCommand.dereference_from(new_value)
@@ -6194,8 +6281,9 @@ class DereferenceCommand(GenericCommand):
 
         code_color = __config__.get("theme.dereference_code")[0]
         string_color = __config__.get("theme.dereference_string")[0]
-
-        max_recursion = max(int(__config__["dereference.max_recursion"][0]), 1)
+        prev_addr_value = None
+        max_recursion = __config__.get("dereference.max_recursion", None)
+        max_recursion = max(max_recursion[0] if max_recursion else 10, 1)
         value = align_address(long(addr))
         addr = lookup_address(value)
         msg = [format_address(addr.value),]
@@ -6338,8 +6426,7 @@ class VMMapCommand(GenericCommand):
             print("{:<23s} {:<23s} {:<23s} {:<4s} {:s}".format(*headers))
 
         for entry in vmmap:
-            if argv:
-                if not argv[0] in entry.path:
+            if argv and not argv[0] in entry.path:
                     continue
             l = []
             l.append(format_address(entry.page_start))
@@ -6511,7 +6598,6 @@ class XorMemoryPatchCommand(GenericCommand):
         key = argv[2]
         block = read_memory(address, length)
         info("Patching XOR-ing {:#x}-{:#x} with '{:s}'".format(address, address + len(block), key))
-
         xored_block = xor(block, key)
         write_memory(address, xored_block, length)
         return
@@ -6523,7 +6609,6 @@ class TraceRunCommand(GenericCommand):
 
     _cmdline_ = "trace-run"
     _syntax_  = "{:s} LOCATION [MAX_CALL_DEPTH]".format(_cmdline_)
-
 
     def __init__(self):
         super(TraceRunCommand, self).__init__(self._cmdline_, complete=gdb.COMPLETE_LOCATION)
@@ -6603,7 +6688,7 @@ class TraceRunCommand(GenericCommand):
                 loc_cur = current_arch.pc
                 gdb.flush()
 
-            except Exception as e:
+            except gdb.error as e:
                 print("#")
                 print("# Execution interrupted at address {:s}".format(format_address(loc_cur)))
                 print("# Exception: {:s}".format(e))
@@ -6617,8 +6702,7 @@ class TraceRunCommand(GenericCommand):
 class PatternCommand(GenericCommand):
     """This command will create or search a De Bruijn cyclic pattern to facilitate
     determining the offset in memory. The algorithm used is the same as the one
-    used by pwntools, and can therefore be used in conjunction.
-    """
+    used by pwntools, and can therefore be used in conjunction."""
 
     _cmdline_ = "pattern"
     _syntax_  = "{:s} (create|search) <args>".format(_cmdline_)
@@ -6811,8 +6895,7 @@ class HeapAnalysisCommand(GenericCommand):
     - NULL free
     - Use-after-Free
     - Double Free
-    - Heap overlap
-    """
+    - Heap overlap"""
     _cmdline_ = "heap-analysis-helper"
     _syntax_ = "{:s}".format(_cmdline_)
 
@@ -6823,6 +6906,8 @@ class HeapAnalysisCommand(GenericCommand):
         self.add_setting("check_weird_free", True, "Break execution when free() is called against a non-tracked pointer")
         self.add_setting("check_uaf", True, "Break execution when a possible Use-after-Free condition is found")
         self.add_setting("check_heap_overlap", True, "Break execution when a possible overlap in allocation is found")
+
+        self.bp_malloc, self.bp_free, self.bp_realloc = None, None, None
         return
 
     @only_if_gdb_running
@@ -6838,15 +6923,20 @@ class HeapAnalysisCommand(GenericCommand):
 
     def setup(self):
         ok("Tracking malloc()")
-        TraceMallocBreakpoint()
+        self.bp_malloc = TraceMallocBreakpoint()
         ok("Tracking free()")
-        TraceFreeBreakpoint()
-        # todo realloc / consolidate
+        self.bp_free = TraceFreeBreakpoint()
+        ok("Tracking realloc()")
+        self.bp_realloc = TraceReallocBreakpoint()
+
         ok("Disabling hardware watchpoints (this may increase the latency)")
         gdb.execute("set can-use-hw-watchpoints 0")
+
         info("Dynamic breakpoints correctly setup, GEF will break execution if a possible vulnerabity is found.")
-        info("To disable, clear the malloc/free breakpoints (`delete breakpoints`) and restore hardware breakpoints (`set can-use-hw-watchpoints 1`)")
         warn("{}: The heap analysis slows down noticeably the execution. ".format(Color.colorify("Note", attrs="bold underline yellow")))
+
+        # when inferior quits, we need to clean everything for a next execution
+        gdb.events.exited.connect(self.clean)
         return
 
     def dump_tracked_allocations(self):
@@ -6863,6 +6953,31 @@ class HeapAnalysisCommand(GenericCommand):
             for addr, sz in __heap_freed_list__: print("{}  free({:d}) = {:#x}".format(tick, sz, addr))
         else:
             ok("No free() chunk tracked")
+        return
+
+    def clean(self, event):
+        global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
+
+        ok("{} - Cleaning up".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),))
+        for bp in [self.bp_malloc, self.bp_free, self.bp_realloc]:
+            if bp.retbp:
+                bp.retbp.delete()
+            bp.delete()
+
+        for wp in __heap_uaf_watchpoints__:
+            wp.delete()
+
+        del __heap_allocated_list__
+        __heap_allocated_list__ = []
+        del __heap_freed_list__
+        __heap_freed_list__ = []
+        del __heap_uaf_watchpoints__
+        __heap_uaf_watchpoints__ = []
+
+        ok("{} - Re-enabling hardware watchpoints".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),))
+        gdb.execute("set can-use-hw-watchpoints 1")
+
+        gdb.events.exited.disconnect(self.clean)
         return
 
 
@@ -6885,7 +7000,6 @@ class PrintCharCommand(GenericCommand):
         expr = " ".join(argv)
         value = long(gdb.parse_and_eval(expr)) & 0xFF
         print("{:#x} {!r}".format(value, chr(value)))
-
         return
 
 
@@ -6906,13 +7020,15 @@ class GefCommand(gdb.Command):
         __config__["gef.debug"] = [False, bool, "Enable debug mode for gef"]
         __config__["gef.autosave_breakpoints_file"] = ["", str, "Automatically save and restore breakpoints"]
 
-        self.__cmds = [(x._cmdline_, x) for x in __commands__]
-        self.__loaded_cmds = []
-        self.load()
+        self.loaded_commands = []
+        self.missing_commands = {}
+        return
 
+    def setup(self):
+        self.load(initial=True)
         # loading GEF sub-commands
-        GefHelpCommand(self.__loaded_cmds)
-        GefConfigCommand(self.loaded_command_names)
+        self.doc = GefHelpCommand(self.loaded_commands)
+        self.cfg = GefConfigCommand(self.loaded_command_names)
         GefSaveCommand()
         GefRestoreCommand()
         GefMissingCommand()
@@ -6949,7 +7065,7 @@ class GefCommand(gdb.Command):
 
     @property
     def loaded_command_names(self):
-        return [x[0] for x in self.__loaded_cmds]
+        return [x[0] for x in self.loaded_commands]
 
 
     def invoke(self, args, from_tty):
@@ -6958,29 +7074,22 @@ class GefCommand(gdb.Command):
         return
 
 
-    def load(self, mod=None):
+    def load(self, initial=False):
+        """Load all the commands defined by GEF into GDB.
         """
-        Load all the commands defined by GEF into GDB.
-        If a configuration file is found, the settings are restored.
-        """
-        global __loaded__, __missing__
-
-        __loaded__ = []
-        __missing__ = {}
         nb_missing = 0
 
+        self.commands = [(x._cmdline_, x) for x in __commands__]
+
         def is_loaded(x):
-            return any(filter(lambda u: x == u[0], __loaded__))
+            return any(filter(lambda u: x == u[0], self.loaded_commands))
 
-        for cmd, class_name in self.__cmds:
+        for cmd, class_name in self.commands:
+            if is_loaded(cmd):
+                continue
+
             try:
-                if " " in cmd:
-                    # if subcommand, check root command is loaded
-                    root = cmd.split(" ", 1)[0]
-                    if not is_loaded(root):
-                        continue
-
-                __loaded__.append((cmd, class_name, class_name()))
+                self.loaded_commands.append((cmd, class_name, class_name()))
 
                 if hasattr(class_name, "_aliases_"):
                     aliases = getattr(class_name, "_aliases_")
@@ -6988,23 +7097,24 @@ class GefCommand(gdb.Command):
                         GefAlias(alias, cmd)
 
             except Exception as reason:
-                __missing__[cmd] = reason
+                self.missing_commands[cmd] = reason
                 nb_missing += 1
 
-        self.__loaded_cmds = sorted(__loaded__, key=lambda x: x[1]._cmdline_)
+        # sort by command name
+        self.loaded_commands = sorted(self.loaded_commands, key=lambda x: x[1]._cmdline_)
 
-        print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure".format(Color.greenify("GEF"),
-                                                                                      get_os(),
-                                                                                      Color.colorify("gef",attrs="underline yellow"),
-                                                                                      Color.colorify("gef config", attrs="underline pink")))
+        if initial:
+            print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure".format(Color.greenify("GEF"), get_os(),
+                                                                                          Color.colorify("gef",attrs="underline yellow"),
+                                                                                          Color.colorify("gef config", attrs="underline pink")))
 
-        ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
-        nb_cmds = len(__loaded__)
-        print("{:s} commands loaded for GDB {:s} using Python engine {:s}".format(Color.colorify(str(nb_cmds), attrs="bold green"),
-                                                                                  Color.colorify(gdb.VERSION, attrs="bold yellow"),
-                                                                                  Color.colorify(ver, attrs="bold red")))
+            ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
+            nb_cmds = len(self.loaded_commands)
+            print("{:s} commands loaded for GDB {:s} using Python engine {:s}".format(Color.colorify(str(nb_cmds), attrs="bold green"),
+                                                                                      Color.colorify(gdb.VERSION, attrs="bold yellow"),
+                                                                                      Color.colorify(ver, attrs="bold red")))
 
-        if nb_missing > 0:
+        if nb_missing:
             warn("{:s} commands could not be loaded, run `{:s}` to know why.".format(Color.colorify(str(nb_missing), attrs="bold red"),
                                                                                      Color.colorify("gef missing", attrs="underline pink")))
         return
@@ -7020,7 +7130,9 @@ class GefHelpCommand(gdb.Command):
                                              gdb.COMMAND_SUPPORT,
                                              gdb.COMPLETE_NONE,
                                              False)
-        self.__doc__ = self.generate_help(commands)
+        self.docs = []
+        self.generate_help(commands)
+        self.refresh()
         return
 
     def invoke(self, args, from_tty):
@@ -7030,25 +7142,28 @@ class GefHelpCommand(gdb.Command):
         return
 
     def generate_help(self, commands):
-        d = []
+        """Generate builtin commands documentation."""
+        for command in commands:
+            self.add_command_to_doc(command)
+        return
 
-        for cmd, class_name, _ in commands:
-            if " " in cmd:
-                # do not print out subcommands in main help
-                continue
+    def add_command_to_doc(self, command):
+        """Add command to GEF documentation."""
+        cmd, class_name, _  = command
+        if " " in cmd:
+            # do not print subcommands in gef help
+            return
+        doc = class_name.__doc__ if hasattr(class_name, "__doc__") else ""
+        doc = "\n                         ".join(doc.split("\n"))
+        aliases = "(alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
+        msg = "{:<25s} -- {:s} {:s}".format(cmd, Color.greenify(doc), aliases)
+        self.docs.append(msg)
+        return
 
-            doc = class_name.__doc__ if hasattr(class_name, "__doc__") else ""
-            doc = "\n                         ".join(doc.split("\n"))
-
-            if hasattr(class_name, "_aliases_"):
-                aliases = "(alias: {:s})".format(", ".join(class_name._aliases_))
-            else:
-                aliases = ""
-
-            msg = "{:<25s} -- {:s} {:s}".format(cmd, Color.greenify(doc), aliases)
-
-            d.append(msg)
-        return "\n".join(d)
+    def refresh(self):
+        """Refresh the documentation."""
+        self.__doc__ = "\n".join(sorted(self.docs))
+        return
 
 
 class GefConfigCommand(gdb.Command):
@@ -7097,11 +7212,13 @@ class GefConfigCommand(gdb.Command):
 
     def print_setting(self, plugin_name, show_description=False):
         res = __config__.get(plugin_name, None)
+        string_color = __config__.get("theme.dereference_string")[0]
+
         if res is not None:
             _value, _type, _desc = res
             _setting = Color.colorify(plugin_name, attrs="pink bold underline")
             _type = _type.__name__
-            _value = Color.colorify(str(_value), attrs="yellow") if _type!='str' else '"{:s}"'.format(Color.colorify(str(_value), attrs="yellow"))
+            _value = Color.colorify(str(_value), attrs="yellow") if _type!='str' else '"{:s}"'.format(Color.colorify(str(_value), attrs=string_color))
             print("{:s} ({:s}) = {:s}".format(_setting, _type, _value))
 
             if show_description:
@@ -7116,12 +7233,14 @@ class GefConfigCommand(gdb.Command):
         return
 
     def set_setting(self, argc, argv):
+        global __gef__
         if "." not in argv[0]:
             err("Invalid command format")
             return
 
+        loaded_commands = [ x[0] for x in __gef__.loaded_commands ] + ["gef"]
         plugin_name = argv[0].split(".", 1)[0]
-        if plugin_name not in self.loaded_commands + ["gef"]:
+        if plugin_name not in loaded_commands:
             err("Unknown plugin '{:s}'".format(plugin_name))
             return
 
@@ -7261,13 +7380,13 @@ class GefMissingCommand(gdb.Command):
 
     def invoke(self, args, from_tty):
         self.dont_repeat()
-        missing_commands = __missing__.keys()
+        missing_commands = __gef__.missing_commands.keys()
         if not missing_commands:
             ok("No missing command")
             return
 
         for missing_command in missing_commands:
-            reason = __missing__[missing_command]
+            reason = __gef__.missing_commands[missing_command]
             warn("Command `{}` is missing, reason {} {}".format(missing_command, right_arrow, reason))
         return
 
@@ -7358,7 +7477,8 @@ class GefAlias(gdb.Command):
         return
 
     def lookup_command(self, cmd):
-        for _name, _class, _instance in __loaded__:
+        global __gef__
+        for _name, _class, _instance in __gef__.loaded_commands:
             if cmd == _name:
                 return _name, _class, _instance
 
@@ -7494,7 +7614,8 @@ if __name__  == "__main__":
     gdb.execute("save gdb-index {}".format(GEF_TEMP_DIR))
 
     # load GEF
-    GefCommand()
+    __gef__ = GefCommand()
+    __gef__.setup()
 
     # gdb events configuration
     gdb.events.cont.connect(continue_handler)

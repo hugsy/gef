@@ -4,6 +4,7 @@ pages:
 - [index.md, Home]
 - [config.md, Configuration]
 - [faq.md, Frequently Asked Questions]
+- [api.md, Extending GEF]
 - [commands.md, Features]
 - [commands/aliases.md, Command aliases]
 - [commands/aslr.md, Command aslr]

@@ -8,26 +8,29 @@ and reverse-engineers, to
 provide additional features to GDB using the Python API to assist during the
 process of dynamic analysis and exploit development.
 
-`GEF` fully relies on GDB API and other Linux-specific sources of information
-(such as `/proc/<pid>`). As a consequence, some of the features might not work on
-custom or hardened systems such as GrSec.
-
 It has full support for both Python2 and Python3 indifferently (as more and more
 distros start pushing `gdb` compiled with Python3 support).
 
-![gef-context](https://i.imgur.com/Fl8yuiO.png)
+![gef-context](http://i.imgur.com/Uz5CHeH.png)
+
 
 *Some* of `GEF` features include:
 
   * **One** single GDB script.
-  * **No** dependencies, `GEF` is battery-included and is literally installable
-    within 5 seconds.
+  * **No** dependencies, no install script: `GEF` is battery-included and is  
+    installable within 2 seconds (unlike [PwnDBG](https://github.com/pwndbg/pwndbg)).
+  * **Fast** limiting the number of dependencies and optimizing code to make the
+    commands as fast as possible (unlike _PwnDBG_).
   * Provides more than **50** commands to drastically change your experience in
     GDB.
+  * **Easily** extendable to create other commands by providing more comprehensible
+    layout to GDB Python API.
   * Works consistently on both Python2 and Python3.
   * Built around an architecture abstraction layer, so all commands work in any
-    GDB-supported architecture (x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS,
-    PowerPC, etc.).
+    GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS,
+    PowerPC, etc. (unlike [PEDA](https://github.com/longld/peda))
+  * Suited for real-life apps debugging, exploit development, just as much as CTF 
+    (unlike _PEDA_ or _PwnDBG_)
 
 
 ## Quick start ##
@@ -207,6 +210,9 @@ For bugs or feature requests, just
 go [here](https://github.com/hugsy/gef/issues) and provide a thorough description
 if you want help.
 
+_Side Note_: `GEF` fully relies on GDB API and other Linux-specific sources of information
+(such as `/proc/<pid>`). As a consequence, some of the features might not work on
+custom or hardened systems such as GrSec.
 
 ## Contribution ##
 
@@ -240,3 +246,5 @@ I do also accept beers if you think that the tool is cool! :wink:
 Cheers :beers:
 
 # Happy Hacking #
+
+![make-gdb-great-again](https://i.imgur.com/jlkM0P6.jpg)
