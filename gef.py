@@ -3723,7 +3723,7 @@ class IdaInteractCommand(GenericCommand):
         vmmap = get_process_maps()
         base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
         end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
-        if pc > end_address or pc < base_address:
+        if not (base_address <= pc < end_address):
             # do not sync in library
             return
 
@@ -3732,7 +3732,7 @@ class IdaInteractCommand(GenericCommand):
         for x in breakpoints:
             if x.enabled and not x.temporary:
                 addr = long(gdb.parse_and_eval(x.location).address)
-                if addr > end_address or addr < base_address:
+                if not (base_address <= addr < end_address):
                     continue
                 gdb_bps.append(addr-base_address)
 
@@ -3759,7 +3759,7 @@ class IdaInteractCommand(GenericCommand):
         for x in breakpoints:
             if x.enabled and not x.temporary:
                 addr = long(gdb.parse_and_eval(x.location).address)
-                if addr > end_address or addr < base_address:
+                if not (base_address <= addr < end_address):
                     continue
                 if (addr-base_address) in ida_removed:
                     if (addr-base_address) in self.old_bps:
