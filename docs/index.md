@@ -29,10 +29,8 @@ distros start pushing `gdb` compiled with Python3 support).
   * Built around an architecture abstraction layer, so all commands work in any
     GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS,
     PowerPC, etc. (unlike [PEDA](https://github.com/longld/peda))
-  * Suited for real-life exploit development, just as much as CTF (unlike _PEDA_
-    or _PwnDBG_). 
-
-
+  * Suited for real-life apps debugging, exploit development, just as much as CTF 
+    (unlike _PEDA_ or _PwnDBG_)
 
 
 ## Quick start ##
