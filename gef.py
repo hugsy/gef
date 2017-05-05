@@ -933,7 +933,8 @@ def set_gef_setting(name, value):
     key = __config__.get(name, None)
     if not key:
         raise ValueError("Setting '{}' is missing".format(name))
-    __config__[name] = value
+    func = __config__[name][1]
+    __config__[name][0] = func(value)
     return
 
 
