@@ -3727,19 +3727,14 @@ class IdaInteractCommand(GenericCommand):
             # do not sync in library
             return
 
+        breakpoints = gdb.breakpoints() or []
         gdb_bps = []
-        for l in gdb.execute("info break", to_string=True).splitlines():
-            token = l.split()
-            if token[1] != 'breakpoint':
-                continue
-            if token[2] != 'keep':
-                continue
-            if token[3] != 'y':
-                continue
-            addr = long(int(token[4], 16))
-            if addr > end_address or addr < base_address:
-                continue
-            gdb_bps.append(addr-base_address)
+        for x in breakpoints:
+            if x.enabled and not x.temporary:
+                addr = long(gdb.parse_and_eval(x.location).address)
+                if addr > end_address or addr < base_address:
+                    continue
+                gdb_bps.append(addr-base_address)
 
         added = set(gdb_bps) - set(self.old_bps)
         removed = set(self.old_bps) - set(gdb_bps)
@@ -3760,21 +3755,16 @@ class IdaInteractCommand(GenericCommand):
             gdb.Breakpoint("*{:#x}".format(new_bp+base_address), type=gdb.BP_BREAKPOINT)
 
         # and remove the old ones
-        for l in gdb.execute("info break", to_string=True).splitlines():
-            token = l.split()
-            if token[1] != 'breakpoint':
-                continue
-            if token[2] != 'keep':
-                continue
-            if token[3] != 'y':
-                continue
-            addr = long(int(token[4], 16))
-            if addr > end_address or addr < base_address:
-                continue
-            if (addr-base_address) in ida_removed:
-                if (addr-base_address) in self.old_bps:
-                    self.old_bps.remove((addr-base_address))
-                gdb.execute("delete break " + token[0])
+        breakpoints = gdb.breakpoints() or []
+        for x in breakpoints:
+            if x.enabled and not x.temporary:
+                addr = long(gdb.parse_and_eval(x.location).address)
+                if addr > end_address or addr < base_address:
+                    continue
+                if (addr-base_address) in ida_removed:
+                    if (addr-base_address) in self.old_bps:
+                        self.old_bps.remove((addr-base_address))
+                    gdb.execute("delete break " + str(x.number))
 
         return
 
