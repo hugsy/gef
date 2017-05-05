@@ -48,32 +48,150 @@ We can call it:
 
 ## Detailed explainations ##
 
-##### TODO #####
+Our new command must be a class that inherits from GEF's `GenericCommand`. The
+*only* requirements are:
 
-## Live demo ##
+ * that the new class must declare a `_cmdline_` variable (the command to type
+   on GDB)
+ * a `_syntax_` variable, which GEF will use to auto-generate the help menu
+ * a method `do_invoke(args)` which is the code to be executed when the command
+   is typed. `args` is an array of string with the arguments passed from command
+   line
 
-Enough theory, let's have a good realistic practice case: create a `ftrace`
-command for GDB.
+Last, we make GEF aware of this new command by registering it in the `__main__`
+section of the script, by invoking the global function
+`register_external_command()`.
 
-What does an `ftrace` command would do:
-
-  1. receive as argument the name of function to trace,
-  1. sets breakpoints on both prologue (to get the function arguments) and
-     epilogue to get the return value.
-  1. once the function returns, print out all those information
-  1. do not halt (i.e. continue execution)
-
-Let's go live:
-
-##### TODO #####
-
+From then, you have a working new GEF command, which you can load, either from
+cli:
+```
+gef➤  source /path/to/newcmd.py
+```
+or add to your `~/.gdbinit`:
+```
+$ echo source /path/to/newcmd.py >> ~/.gdbinit
+```
 
 ## API ##
 
-Some of the most important API when creating new commands:
+Some of the most important API when creating new commands are mentioned (but not
+limited to) below. To see the full help of a function, open GDB and GEF, and use
+the embedded Python interpreter's `help` command. For example:
+
+```
+gef➤  python-interactive help(Architecture)
+```
+
+or even from outside GDB:
+
+```
+$ gdb -q -ex 'pi help(hexdump)' -ex quit
+```
+
+
+### Globals ###
+
+```
+current_arch
+```
+> Global variable associated with the architecture of the currently debugged
+> process. The variable is an instance of the `Architecture` class (see below).
+
+```
+read_memory(addr, length=0x10)
+```
+> Returns a `length` long byte array with the copy of the process memory at
+> `addr`.
+
+```
+write_memory(address, buffer, length=0x10)
+```
+> Writes `buffer` at address `address`.
+
+
+```
+read_int_from_memory(addr)
+```
+> Reads the size of an integer from `addr`, and unpacks it correctly (based on endianess)
+
+```
+read_cstring_from_memory(address)
+```
+> Return a NULL-terminated array of bytes, from `addr`.
+
+
+```
+get_register(register_name)
+```
+> Returns the value of given register.
+
+
+```
+get_process_maps()
+```
+> Returns an array of Section objects (see below) corresponding to the current
+> memory layout of the process.
+
+
+```
+gef_disassemble(addr, nb_insn, from_top=False)
+```
+> Disassemble `nb_insn` instructions after `addr`. If `from_top` is False
+> (default), it will also disassemble the `nb_insn` instructions before `addr`.
+> Return an iterator of Instruction objects (see below).
+
+
 
 ### Decorators ###
 
+```
+@only_if_gdb_running
+```
+> Checks if a GDB session is running, if not return. A GDB session is running is
+>
+> * a PID exists for the targeted binary
+> * GDB is running on a coredump of a binary
+
+
+```
+@only_if_gdb_target_local
+```
+> Checks if the current GDB session is local i.e. not debugging using GDB
+> `remote`.
+
+
+
 ### Classes ###
 
-### Global Functions ###
+For exhaustive documentation, run
+```
+$ gdb -q -ex 'pi help(<ClassName>)' -ex quit
+```
+
+#### Generic ####
+
+ * `Instruction` : GEF representation of instruction as pure Python objects.
+ * `Address`: GEF representation of memory addresses.
+ * `Section`: GEF representation of process memory sections.
+ * `Permission`: Page permission object.
+ * `Elf`: [ELF](http://www.skyfree.org/linux/references/ELF_Format.pdf) parsing
+   object.
+
+#### Architectures ####
+
+ * `Architecture`  : Generic metaclass for the architecture supported by GEF.
+ * `ARM`
+ * `AARCH64`
+ * `X86`
+ * `X86_64`
+ * `PowerPC`
+ * `PowerPC64`
+ * `SPARC`
+ * `SPARC64`
+ * `MIPS`
+
+
+#### Heap ####
+
+ * `GlibcArena` : Glibc arena class
+ * `GlibcChunk` : Glibc chunk class.
