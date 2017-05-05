@@ -7004,10 +7004,10 @@ class GefCommand(gdb.Command):
 
         self.loaded_commands = []
         self.missing_commands = {}
-        self.load(initial=True)
         return
 
     def setup(self):
+        self.load(initial=True)
         # loading GEF sub-commands
         self.doc = GefHelpCommand(self.loaded_commands)
         self.cfg = GefConfigCommand(self.loaded_command_names)
