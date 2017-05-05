@@ -9,3 +9,7 @@ memory mapping differs from one architecture to another (this is one of the main
 reasons I started `GEF` in a first place). For example, you can learn that
 ELF running on SPARC architectures always have their `.data` and `heap` sections set as
 Read/Write/Execute.
+
+`vmmap` accepts one argument, a pattern to grep interesting results:
+
+![vmmap-grep](http://i.imgur.com/ZFF4QVf.png)
