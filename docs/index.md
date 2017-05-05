@@ -15,7 +15,8 @@ custom or hardened systems such as GrSec.
 It has full support for both Python2 and Python3 indifferently (as more and more
 distros start pushing `gdb` compiled with Python3 support).
 
-![gef-context](https://i.imgur.com/Fl8yuiO.png)
+![gef-context](http://i.imgur.com/Uz5CHeH.png)
+
 
 *Some* of `GEF` features include:
 
