@@ -3610,7 +3610,7 @@ class IdaInteractCommand(GenericCommand):
         self.add_setting("port", port, "Port to use connect to IDA/Binary Ninja script")
         self.sock = None
         self.version = ("", "")
-        self.old_bps = []
+        self.old_bps = set()
 
         if self.is_target_alive(host, port):
             # if the target responds, we add 2 new handlers to synchronize the
@@ -3728,16 +3728,16 @@ class IdaInteractCommand(GenericCommand):
             return
 
         breakpoints = gdb.breakpoints() or []
-        gdb_bps = []
-        for x in breakpoints:
-            if x.enabled and not x.temporary:
-                addr = long(gdb.parse_and_eval(x.location).address)
+        gdb_bps = set()
+        for bp in breakpoints:
+            if bp.enabled and not bp.temporary:
+                addr = long(gdb.parse_and_eval(bp.location).address)
                 if not (base_address <= addr < end_address):
                     continue
-                gdb_bps.append(addr-base_address)
+                gdb_bps.add(addr-base_address)
 
-        added = set(gdb_bps) - set(self.old_bps)
-        removed = set(self.old_bps) - set(gdb_bps)
+        added = gdb_bps - self.old_bps
+        removed = self.old_bps - gdb_bps
         self.old_bps = gdb_bps
 
         try:
@@ -3751,20 +3751,20 @@ class IdaInteractCommand(GenericCommand):
 
         # add new bp from IDA
         for new_bp in ida_added:
-            self.old_bps.append(base_address+new_bp)
+            self.old_bps.add(base_address+new_bp)
             gdb.Breakpoint("*{:#x}".format(new_bp+base_address), type=gdb.BP_BREAKPOINT)
 
         # and remove the old ones
         breakpoints = gdb.breakpoints() or []
-        for x in breakpoints:
-            if x.enabled and not x.temporary:
-                addr = long(gdb.parse_and_eval(x.location).address)
+        for bp in breakpoints:
+            if bp.enabled and not bp.temporary:
+                addr = long(gdb.parse_and_eval(bp.location).address)
                 if not (base_address <= addr < end_address):
                     continue
                 if (addr-base_address) in ida_removed:
                     if (addr-base_address) in self.old_bps:
                         self.old_bps.remove((addr-base_address))
-                    gdb.execute("delete break " + str(x.number))
+                    gdb.execute("delete break " + str(bp.number))
 
         return
 

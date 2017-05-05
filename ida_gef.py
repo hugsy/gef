@@ -39,7 +39,7 @@ import idautils, idc, idaapi
 HOST, PORT = "0.0.0.0", 1337
 DEBUG = True
 
-_breakpoints = ()
+_breakpoints = set()
 _current_instruction_color = None
 _current_instruction = 0
 
@@ -208,8 +208,8 @@ class Gef:
         _current_instruction_color = GetColor(_current_instruction, CIC_ITEM)
         idc.SetColor(_current_instruction, CIC_ITEM, 0x00ff00)
         print("PC @ " + hex(_current_instruction).strip('L'))
-        time.sleep(0.1)    # slow it down to prevent IDA crash
-        idc.Jump(_current_instruction)
+        # post it to the ida main thread to prevent race conditions
+        idaapi.execute_sync(lambda: idc.Jump(_current_instruction), idaapi.MFF_WRITE)
 
         cur_bps = set([ idc.GetBptEA(n)-base_addr for n in range(idc.GetBptQty()) ])
         ida_added = cur_bps - _breakpoints
@@ -219,12 +219,12 @@ class Gef:
         # update bp from gdb
         added, removed = arg
         for bp in added:
-            idc.AddBpt(base_address+bp)
-            _breakpoints.append(bp)
+            idc.AddBpt(base_addr+bp)
+            _breakpoints.add(bp)
         for bp in removed:
             if bp in _breakpoints:
                 _breakpoints.remove(bp)
-            idc.DelBpt(base_address+bp)
+            idc.DelBpt(base_addr+bp)
 
         return [list(ida_added), list(ida_removed)]
 
