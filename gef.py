@@ -5951,9 +5951,12 @@ class ContextCommand(GenericCommand):
                 m = "Name: {:s}({:s})".format(Color.greenify(name),
                                               ", ".join(["{!s}={!s}".format(x.sym, x.sym.value(current_frame)) for x in frame_args]))
                 items.append(m)
+            else:
+                insn = next(gef_disassemble(pc, 1, from_top=True))
+                items.append(Color.redify("{} {}".format(insn.mnemo, ', '.join(insn.operands)) ))
 
             print("[{:s}] {:s}".format(Color.colorify("#{:d}".format(i), "bold pink"),
-                                        ", ".join(items)))
+                                       right_arrow.join(items)))
             current_frame = current_frame.older()
             i += 1
             nb_backtrace -= 1
@@ -6960,7 +6963,7 @@ class HeapAnalysisCommand(GenericCommand):
 
         ok("{} - Cleaning up".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),))
         for bp in [self.bp_malloc, self.bp_free, self.bp_realloc]:
-            if bp.retbp:
+            if hasattr(bp, "retbp") and bp.retbp:
                 bp.retbp.delete()
             bp.delete()
 
