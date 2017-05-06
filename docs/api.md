@@ -11,6 +11,9 @@ _Side note_: [Other projects](https://github.com/pwndbg/pwndbg) accuses `GEF` to
 not be easily hackable for new features. This documentation also aims to prove
 them wrong.
 
+A [dedicated repository](https://github.com/hugsy/gef-scripts) was born to host
+external scripts. This repo is open to all for contributions, no 
+restrictions and the most valuable ones will be integrated into `gef.py`.
 
 ## Quick start ##
 
@@ -22,7 +25,7 @@ class NewCommand(GenericCommand):
     _cmdline_ = "newcmd"
     _syntax_  = "{:s}".format(_cmdline_)
 
-    @only_if_gdb_running                     # not required, only checks if the debug session is started
+    @only_if_gdb_running               # not required, only checks if the debug session is started
     def do_invoke(self, argv):
     # do whatever things allowed by gef, for example show the current running
     # architecture as Python object:
