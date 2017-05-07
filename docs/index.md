@@ -17,8 +17,7 @@ distros start pushing `gdb` compiled with Python3 support).
 *Some* of `GEF` features include:
 
   * **One** single GDB script.
-  * **No** dependencies, no install script: `GEF` is battery-included and is  
-    installable within 2 seconds (unlike [PwnDBG](https://github.com/pwndbg/pwndbg)).
+  * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included and is installable in 2 seconds (unlike [PwnDBG](https://github.com/pwndbg/pwndbg)).
   * **Fast** limiting the number of dependencies and optimizing code to make the
     commands as fast as possible (unlike _PwnDBG_).
   * Provides more than **50** commands to drastically change your experience in
