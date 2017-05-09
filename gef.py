@@ -5027,7 +5027,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
         print(titlify("Small Bins for arena '{:s}'".format(arena_addr)))
         bins = {}
-        for i in range(1, 64):
+        for i in range(1, 63):
             nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, i, "small_")
             if nb_chunk < 0:
                 break
@@ -5056,7 +5056,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
         print(titlify("Large Bins for arena '{:s}'".format(arena_addr)))
         bins = {}
-        for i in range(64, 127):
+        for i in range(63, 126):
             nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, i, "large_")
             if nb_chunk < 0:
                 break
