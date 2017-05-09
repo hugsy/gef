@@ -2448,8 +2448,8 @@ def cached_lookup_type(_type):
 
 
 def get_memory_alignment(in_bits=False):
-    """Return sizeof(register). If `in_bits` is set to True, the result is returned in bits,
-    otherwise in bytes."""
+    """Return sizeof(size_t). If `in_bits` is set to True, the result is
+    returned in bits, otherwise in bytes."""
     res = cached_lookup_type('size_t')
     if res is not None:
         return res.sizeof if not in_bits else res.sizeof * 8
@@ -2481,9 +2481,9 @@ def format_address(addr):
 
 
 def align_address(address):
-    """Align the address correctly."""
+    """Align the provided address to the process's native length."""
     if get_memory_alignment(in_bits=True) == 32:
-        ret = address & 0x00000000FFFFFFFF
+        ret = address & 0xFFFFFFFF
     else:
         ret = address & 0xFFFFFFFFFFFFFFFF
     return ret
@@ -2993,7 +2993,7 @@ def register_priority_command(cls):
 
 
 class GenericCommand(gdb.Command):
-    """This is a meta-class for invoking commands, should not be invoked"""
+    """This is an abstract class for invoking commands, should not be invoked"""
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, *args, **kwargs):
@@ -3033,17 +3033,16 @@ class GenericCommand(gdb.Command):
     def do_invoke(self, argv): pass
 
     def pre_load(self): pass
+
     def post_load(self): pass
 
     @property
-    def settings(self): pass
-
-    @settings.getter
     def settings(self):
         return { x.split(".", 1)[1]: __config__[x] for x in __config__
                  if x.startswith("{:s}.".format(self._cmdline_)) }
 
     def get_setting(self, name): return self.settings[name][1](self.settings[name][0])
+
     def has_setting(self, name): return name in self.settings
 
     def add_setting(self, name, value, description=""):
@@ -3069,8 +3068,6 @@ class GenericCommand(gdb.Command):
 #         return
 #     def do_invoke(self, argv):
 #         return
-
-
 
 
 @register_command
