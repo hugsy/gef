@@ -6241,9 +6241,9 @@ class DereferenceCommand(GenericCommand):
         addrs = DereferenceCommand.dereference_from(current_address)
         l  = ""
         addr_l = format_address(long(addrs[0], 16))
-        l += "{:s}{:s}+{:#04x}: {:s}".format(Color.colorify(addr_l, attrs=base_address_color),
+        l += "{:s}{:s}+{:#04x}: {:{ma}s}".format(Color.colorify(addr_l, attrs=base_address_color),
                                              vertical_line, offset,
-                                             sep.join(addrs[1:]))
+                                             sep.join(addrs[1:]), ma=(memalign*2 + 2))
 
         values = []
         for regname, regvalue in regs:
@@ -6333,19 +6333,8 @@ class DereferenceCommand(GenericCommand):
                         break
 
             # if not able to parse cleanly, simply display and break
-            val = "{:x}".format(long(deref) & 0xffffffffffffffff)
-            if len(val)%2 != 0:  # pad the hexa representation to a multiple of 2
-                val = "0"+val
-
-            # if the value is only made of printable characters, display its value
-            val_str = binascii.unhexlify(val)
-            if PYTHON_MAJOR==3:
-                is_string = all(map(lambda x: chr(x) in string.printable, val_str))
-            else:
-                is_string = all(map(lambda x: x in string.printable, val_str))
-            if is_string:
-                val+= ' ("{}"?)'.format(Color.colorify(gef_pystring(val_str), attrs=string_color))
-            msg.append("0x"+val)
+            val = "{:#0{ma}x}".format(long(deref & 0xFFFFFFFFFFFFFFFF), ma=(get_memory_alignment() * 2 + 2))
+            msg.append(val)
             break
 
         return msg
