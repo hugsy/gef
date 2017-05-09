@@ -553,7 +553,7 @@ class Instruction:
         return
 
     def __str__(self):
-        return "{:#x}  {}  {} {}".format(self.address,
+        return "{:#10x} {:16} {:6} {}".format(self.address,
                                          self.location,
                                          self.mnemo,
                                          ", ".join(self.operands))
