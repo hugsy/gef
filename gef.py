@@ -4896,7 +4896,7 @@ class GlibcHeapBinsCommand(GenericCommand):
         return
 
     @staticmethod
-    def pprint_bin(arena_addr, index):
+    def pprint_bin(arena_addr, index, _type=""):
         arena = GlibcArena(arena_addr)
         fw, bk = arena.bin(index)
 
@@ -4904,10 +4904,11 @@ class GlibcHeapBinsCommand(GenericCommand):
             warn("Invalid backward and forward bin pointers(fw==bk==NULL)")
             return -1
 
-        ok("Found base for bin({:d}): fw={:#x}, bk={:#x}".format(index, fw, bk))
+        nb_chunk = 0
         if bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF)):
-            ok("Empty")
-            return 0
+            return nb_chunk
+
+        ok("{}bins[{:d}]: fw={:#x}, bk={:#x}".format(_type, index, fw, bk))
 
         m = ""
         head = GlibcChunk(bk + 2 * arena.get_arch()).get_fwd_ptr()
@@ -4915,9 +4916,10 @@ class GlibcHeapBinsCommand(GenericCommand):
             chunk = GlibcChunk(fw + 2 * arena.get_arch())
             m += "{:s}  {:s}  ".format(right_arrow, str(chunk))
             fw = chunk.get_fwd_ptr()
+            nb_chunk += 1
 
         print(m)
-        return 0
+        return nb_chunk
 
 @register_command
 class GlibcHeapFastbinsYCommand(GenericCommand):
@@ -4933,6 +4935,14 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
+        def fastbin_index(sz):
+            return (sz >> 4) - 2 if SIZE_SZ == 8 else (sz >> 3) - 2
+
+        # glibc2.24 - malloc.c l1573
+        SIZE_SZ = get_memory_alignment()
+        MAX_FAST_SIZE = (80 * SIZE_SZ // 4)
+        NFASTBINS = fastbin_index(MAX_FAST_SIZE) + 1
+
         arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_main_arena()
 
         if arena is None:
@@ -4940,8 +4950,8 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
             return
 
         print(titlify("Fastbins for arena {:#x}".format(int(arena))))
-        for i in range(10):
-            print("Fastbin[{:d}] ".format(i), end="")
+        for i in range(NFASTBINS):
+            print("Fastbins[idx={:d}] ".format(i), end="")
             chunk = arena.fastbin(i)
             chunks = []
 
@@ -4955,6 +4965,9 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
                     if chunk.addr in chunks:
                         print("{:s} [loop detected]".format(right_arrow), end="")
                         break
+
+                    if fastbin_index(chunk.get_chunk_size()) != i:
+                        print("[incorrect fastbin_index] ", end="")
 
                     chunks.append(chunk.addr)
 
@@ -4989,7 +5002,9 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
         print(titlify("Unsorted Bin for arena '{:s}'".format(arena_addr)))
-        GlibcHeapBinsCommand.pprint_bin(arena_addr, 0)
+        nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, 0, "unsorted_")
+        if nb_chunk >= 0:
+            info("Found {:d} chunks in unsorted bin.".format(nb_chunk))
         return
 
 @register_command
@@ -5011,10 +5026,14 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
         print(titlify("Small Bins for arena '{:s}'".format(arena_addr)))
+        bins = {}
         for i in range(1, 64):
-            if GlibcHeapBinsCommand.pprint_bin(arena_addr, i) < 0:
+            nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, i, "small_")
+            if nb_chunk < 0:
                 break
-
+            if nb_chunk > 0:
+                bins[i] = nb_chunk
+        info("Found {:d} chunks in {:d} small non-empty bins.".format(sum(bins.values()), len(bins)))
         return
 
 @register_command
@@ -5036,9 +5055,14 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
         print(titlify("Large Bins for arena '{:s}'".format(arena_addr)))
+        bins = {}
         for i in range(64, 127):
-            if GlibcHeapBinsCommand.pprint_bin(arena_addr, i)<0:
+            nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, i, "large_")
+            if nb_chunk < 0:
                 break
+            if nb_chunk > 0:
+                bins[i] = nb_chunk
+        info("Found {:d} chunks in {:d} large non-empty bins.".format(sum(bins.values()), len(bins)))
         return
 
 
