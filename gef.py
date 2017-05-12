@@ -919,22 +919,30 @@ def disable_redirect_output():
 
 
 def get_gef_setting(name):
-    """Read globally gef settings. Raise ValueError if not found."""
+    """Read globally gef settings. Returns None if not found. A valid config setting can never return None,
+    but False, 0 or "". So using None as a retval on error is fine."""
     global __config__
     key = __config__.get(name, None)
     if not key:
-        raise ValueError("Setting '{}' is missing".format(name))
+        return None
     return __config__[name][0]
 
 
-def set_gef_setting(name, value):
+def set_gef_setting(name, value, _type=None, _desc=None):
     """Set globally gef settings. Raise ValueError if not existing."""
     global __config__
     key = __config__.get(name, None)
     if not key:
-        raise ValueError("Setting '{}' is missing".format(name))
-    func = __config__[name][1]
+        if _type is None:
+            raise ValueError("Setting '{}' is missing".format(name))
+        __config__[name] = [None, None, None]
+
+    func = __config__[name][1] if key else _type
     __config__[name][0] = func(value)
+    __config__[name][1] = func
+
+    if _desc:
+        __config__[name][2] = _desc
     return
 
 
@@ -1212,6 +1220,10 @@ class Architecture(object):
     @property
     def sp(self):
         return get_register("$sp")
+
+    @property
+    def ptrsize(self):
+        return get_memory_alignment()
 
 
 class ARM(Architecture):
@@ -2721,7 +2733,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
 
         size = self.size
         ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), size, loc))
-        check_heap_overlap = __config__.get("heap-analysis-helper.check_heap_overlap")[0]
+        check_heap_overlap = get_gef_setting("heap-analysis-helper.check_heap_overlap")
 
         # pop from free-ed list if it was in it
         if __heap_freed_list__:
@@ -2851,10 +2863,10 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
         else:
             addr = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
         msg = []
-        check_free_null = __config__.get("heap-analysis-helper.check_free_null")[0]
-        check_double_free = __config__.get("heap-analysis-helper.check_double_free")[0]
-        check_weird_free = __config__.get("heap-analysis-helper.check_weird_free")[0]
-        check_uaf = __config__.get("heap-analysis-helper.check_uaf")[0]
+        check_free_null = get_gef_setting("heap-analysis-helper.check_free_null")
+        check_double_free = get_gef_setting("heap-analysis-helper.check_double_free")
+        check_weird_free = get_gef_setting("heap-analysis-helper.check_weird_free")
+        check_uaf = get_gef_setting("heap-analysis-helper.check_uaf")
 
         ok("{} - free({:#x})".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), addr))
         if addr==0:
@@ -3093,7 +3105,7 @@ class CanaryCommand(GenericCommand):
             return
 
         canary, location = res
-        info("Found AT_RANDOM at {:#x}, reading {} bytes".format(location, get_memory_alignment()))
+        info("Found AT_RANDOM at {:#x}, reading {} bytes".format(location, current_arch.ptrsize))
         info("The canary of process {} is {:#x}".format(get_pid(), canary))
         return
 
@@ -3181,7 +3193,12 @@ class ProcessStatusCommand(GenericCommand):
         path = "/proc/{:d}/fd".format(pid)
 
         info("File Descriptors:")
-        for fname in os.listdir(path):
+        items = os.listdir(path)
+        if len(items)==0:
+            print("\tNo FD opened")
+            return
+
+        for fname in items:
             fullpath = os.path.join(path, fname)
             if os.path.islink(fullpath):
                 print("\t{:s} {:s} {:s}".format (fullpath, right_arrow, os.readlink(fullpath)))
@@ -3190,7 +3207,8 @@ class ProcessStatusCommand(GenericCommand):
     def list_sockets(self, pid):
         sockets = []
         path = "/proc/{:d}/fd".format(pid)
-        for fname in os.listdir(path):
+        items = os.listdir(path)
+        for fname in items:
             fullpath = os.path.join(path, fname)
             if os.path.islink(fullpath) and os.readlink(fullpath).startswith("socket:"):
                 p = os.readlink(fullpath).replace("socket:", "")[1:-1]
@@ -3875,7 +3893,10 @@ class IdaInteractCommand(GenericCommand):
         if self.version[0] != "IDA Pro":
             return
 
-        path = __config__.get("pcustom.struct_path")[0]
+        path = get_gef_setting("pcustom.struct_path")
+        if path is None:
+            return
+
         if not os.path.isdir(path):
             gef_makedirs(path)
 
@@ -4939,7 +4960,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
             return (sz >> 4) - 2 if SIZE_SZ == 8 else (sz >> 3) - 2
 
         # glibc2.24 - malloc.c l1573
-        SIZE_SZ = get_memory_alignment()
+        SIZE_SZ = current_arch.ptrsize
         MAX_FAST_SIZE = (80 * SIZE_SZ // 4)
         NFASTBINS = fastbin_index(MAX_FAST_SIZE) + 1
 
@@ -5109,15 +5130,15 @@ class DetailRegistersCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         regs = []
-        regname_color = __config__.get("theme.registers_register_name")[0]
-        string_color = __config__.get("theme.dereference_string")[0]
+        regname_color = get_gef_setting("theme.registers_register_name")
+        string_color = get_gef_setting("theme.dereference_string")
 
         if argv:
             regs = [reg for reg in current_arch.all_registers if reg.strip() in argv]
         else:
             regs = current_arch.all_registers
 
-        memsize = get_memory_alignment()
+        memsize = current_arch.ptrsize
         endian = endian_str()
         charset = string.printable
 
@@ -5709,8 +5730,8 @@ class ContextCommand(GenericCommand):
         return
 
     def context_title(self, m):
-        line_color= __config__.get("theme.context_title_line")[0]
-        msg_color = __config__.get("theme.context_title_message")[0]
+        line_color= get_gef_setting("theme.context_title_line")
+        msg_color = get_gef_setting("theme.context_title_message")
 
         if not m:
             print(Color.colorify(horizontal_line * self.tty_columns, line_color))
@@ -6253,12 +6274,12 @@ class DereferenceCommand(GenericCommand):
         return
 
     def pprint_dereferenced(self, addr, off):
-        base_address_color = __config__.get("theme.dereference_base_address")[0]
-        registers_color = __config__.get("theme.dereference_register_value")[0]
+        base_address_color = get_gef_setting("theme.dereference_base_address")
+        registers_color = get_gef_setting("theme.dereference_register_value")
 
         regs = [(k.strip(), get_register(k)) for k in current_arch.all_registers]
         sep = " {:s} ".format(right_arrow)
-        memalign = get_memory_alignment()
+        memalign = current_arch.ptrsize
 
         offset = off * memalign
         current_address = align_address(addr + offset)
@@ -6303,11 +6324,10 @@ class DereferenceCommand(GenericCommand):
         if not is_alive():
             return [format_address(addr),]
 
-        code_color = __config__.get("theme.dereference_code")[0]
-        string_color = __config__.get("theme.dereference_string")[0]
+        code_color = get_gef_setting("theme.dereference_code")
+        string_color = get_gef_setting("theme.dereference_string")
         prev_addr_value = None
-        max_recursion = __config__.get("dereference.max_recursion", None)
-        max_recursion = max(max_recursion[0] if max_recursion else 10, 1)
+        max_recursion = get_gef_setting("dereference.max_recursion") or 10
         value = align_address(long(addr))
         addr = lookup_address(value)
         msg = [format_address(addr.value),]
@@ -6431,7 +6451,7 @@ class VMMapCommand(GenericCommand):
             err("No address mapping information found")
             return
 
-        color = __config__.get("theme.xinfo_title_message")[0]
+        color = get_gef_setting("theme.xinfo_title_message")
         headers = [Color.colorify(x, attrs=color) for x in ["Start", "End", "Offset", "Perm", "Path"]]
         if is_elf64():
             print("{:<31s} {:<31s} {:<31s} {:<4s} {:s}".format(*headers))
@@ -6747,7 +6767,7 @@ class PatternCreateCommand(GenericCommand):
             err("Invalid syntax")
             return
 
-        size = __config__.get("pattern.length", 1024)[0]
+        size = get_gef_setting("pattern.length")
         info("Generating a pattern of {:d} bytes".format(size))
         patt = generate_cyclic_pattern(size).decode("utf-8")
         if size < 1024:
@@ -6776,7 +6796,7 @@ class PatternSearchCommand(GenericCommand):
                 return
             size = long(argv[1])
         else:
-            size = __config__.get("pattern.length", 1024)[0]
+            size = get_gef_setting("pattern.length")
 
         pattern = argv[0]
         info("Searching '{:s}'".format(pattern))
@@ -7028,10 +7048,11 @@ class GefCommand(gdb.Command):
                                          gdb.COMPLETE_NONE,
                                          True)
 
-        __config__["gef.follow_child"] = [True, bool, "Automatically set GDB to follow child when forking"]
-        __config__["gef.readline_compat"] = [False, bool, "Workaround for readline SOH/ETX issue (SEGV)"]
-        __config__["gef.debug"] = [False, bool, "Enable debug mode for gef"]
-        __config__["gef.autosave_breakpoints_file"] = ["", str, "Automatically save and restore breakpoints"]
+        set_gef_setting("gef.follow_child", True, bool, "Automatically set GDB to follow child when forking")
+        set_gef_setting("gef.readline_compat", False, bool, "Workaround for readline SOH/ETX issue (SEGV)")
+        set_gef_setting("gef.debug", False, bool, "Enable debug mode for gef")
+        set_gef_setting("gef.autosave_breakpoints_file", "", str, "Automatically save and restore breakpoints")
+        set_gef_setting("gef.extra_plugins_dir", "", str, "Autoload additional GEF commands from external directory")
 
         self.loaded_commands = []
         self.missing_commands = {}
@@ -7073,6 +7094,19 @@ class GefCommand(gdb.Command):
                 "end"
             ]
             gef_execute_gdb_script("\n".join(source) + "\n")
+
+        try:
+            directory = get_gef_setting("gef.extra_plugins_dir")
+            if len(directory):
+                directory = os.path.realpath(os.path.expanduser(directory))
+                if os.path.isdir(directory):
+                    for f in os.listdir(directory):
+                        if f in (".", "..") or not f.endswith(".py"): continue
+                        fpath = "{:s}/{:s}".format(directory, f)
+                        if os.path.isfile(fpath):
+                            gdb.execute("source {:s}".format(fpath))
+        except gdb.error as e:
+            err("failed: {}".format(str(e)))
         return
 
 
