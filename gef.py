@@ -4926,7 +4926,7 @@ class GlibcHeapBinsCommand(GenericCommand):
             return -1
 
         nb_chunk = 0
-        if bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF)):
+        if bk == fw:
             return nb_chunk
 
         ok("{}bins[{:d}]: fw={:#x}, bk={:#x}".format(_type, index, fw, bk))
@@ -4938,6 +4938,7 @@ class GlibcHeapBinsCommand(GenericCommand):
             m += "{:s}  {:s}  ".format(right_arrow, str(chunk))
             fw = chunk.get_fwd_ptr()
             nb_chunk += 1
+
 
         print(m)
         return nb_chunk
