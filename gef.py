@@ -475,27 +475,6 @@ class Elf:
     - http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
     - http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
     """
-    e_magic           = None
-    e_class           = None
-    e_endianness      = None
-    e_eiversion       = None
-    e_osabi           = None
-    e_abiversion      = None
-    e_pad             = None
-    e_type            = None
-    e_machine         = None
-    e_version         = None
-    e_entry           = None
-    e_phoff           = None
-    e_shoff           = None
-    e_flags           = None
-    e_ehsize          = None
-    e_phentsize       = None
-    e_phnum           = None
-    e_shentsize       = None
-    e_shnum           = None
-    e_shstrndx        = None
-
     BIG_ENDIAN        = 0
     LITTLE_ENDIAN     = 1
 
@@ -512,8 +491,35 @@ class Elf:
     SPARC64           = 0x2b
     AARCH64           = 0xb7
 
+    e_magic           = b'\x7fELF'
+    e_class           = ELF_32_BITS
+    e_endianness      = LITTLE_ENDIAN
+    e_eiversion       = None
+    e_osabi           = None
+    e_abiversion      = None
+    e_pad             = None
+    e_type            = None
+    e_machine         = X86_32
+    e_version         = None
+    e_entry           = 0x00
+    e_phoff           = None
+    e_shoff           = None
+    e_flags           = None
+    e_ehsize          = None
+    e_phentsize       = None
+    e_phnum           = None
+    e_shentsize       = None
+    e_shnum           = None
+    e_shstrndx        = None
 
-    def __init__(self, elf):
+
+
+    def __init__(self, elf="", minimalist=False):
+        """Instanciates an Elf object. The default behavior is to create the object by parsing the ELF file on FS.
+        But on some cases (QEMU-stub), we may just want a simply minimal object with default values."""
+        if minimalist:
+            return
+
         if not os.access(elf, os.R_OK):
             err("'{0}' not found/readable".format(elf))
             err("Failed to get file debug information, most of gef features will not work")
@@ -1152,7 +1158,19 @@ def get_arch():
     if is_alive():
         arch = gdb.selected_frame().architecture()
         return arch.name()
-    return gdb.execute("show architecture", to_string=True).strip().split()[7][:-1]
+
+    arch_str = gdb.execute("show architecture", to_string=True).strip()
+    if "The target architecture is set automatically (currently " in arch_str:
+        # architecture can be auto detected
+        arch_str = arch_str.split("(currently ", 1)[1]
+        arch_str = arch_str.split(")", 1)[0]
+    elif "The target architecture is assumed to be " in arch_str:
+        # architecture can be assumed
+        arch_str = arch_str.replace("The target architecture is assumed to be ", "")
+    else:
+        # unknown, we throw an exception to be safe
+        raise RuntimeError("Unknown architecture: {}".format(arch_str))
+    return arch_str
 
 
 @lru_cache()
@@ -1858,10 +1876,7 @@ def get_register(regname):
     regname = regname.strip()
     try:
         value = gdb.parse_and_eval(regname)
-        if value.type.code == gdb.TYPE_CODE_INT:
-            return to_unsigned_long(value)
-        else:
-            return long(value)
+        return to_unsigned_long(value) if value.type.code == gdb.TYPE_CODE_INT else long(value)
     except gdb.error:
         value = gdb.selected_frame().read_register(regname)
         return long(value)
@@ -1923,6 +1938,15 @@ def download_file(target, use_cache=False):
 
         gef_makedirs(local_path)
         gdb.execute("remote get {0:s} {1:s}".format(target, local_name))
+
+    except gdb.error:
+        # gdb-stub compat
+        with open(local_name, "w") as f:
+            if is_elf32():
+                f.write("00000000-ffffffff rwxp 00000000 00:00 0                    {}\n".format(get_filepath()))
+            else:
+                f.write("0000000000000000-ffffffffffffffff rwxp 00000000 00:00 0                    {}\n".format(get_filepath()))
+
     except Exception as e:
         err("download_file() failed: {}".format(str(e)))
         local_name = None
@@ -2010,8 +2034,8 @@ def get_process_maps():
             sections = __get_process_maps_freebsd("/proc/{:d}/map".format(pid))
         else:
             sections = []
-    except Exception:
-        warn("Failed to read /proc/<PID>/maps, using GDB sections info")
+    except Exception as e:
+        warn("Failed to read /proc/<PID>/maps, using GDB sections info: {}".format(e))
         sections = get_info_sections()
 
     return list(sections)
@@ -2337,35 +2361,35 @@ def get_elf_headers(filename=None):
 @lru_cache()
 def is_elf64(filename=None):
     """Checks if `filename` is an ELF64."""
-    elf = get_elf_headers(filename)
+    elf = current_elf or get_elf_headers(filename)
     return elf.e_class == Elf.ELF_64_BITS
 
 
 @lru_cache()
 def is_elf32(filename=None):
     """Checks if `filename` is an ELF32."""
-    elf = get_elf_headers(filename)
+    elf = current_elf or get_elf_headers(filename)
     return elf.e_class == Elf.ELF_32_BITS
 
 
 @lru_cache()
 def is_x86_64(filename=None):
     """Checks if `filename` is an x86-64 ELF."""
-    elf = get_elf_headers(filename)
+    elf = current_elf or get_elf_headers(filename)
     return elf.e_machine == Elf.X86_64
 
 
 @lru_cache()
 def is_x86_32(filename=None):
     """Checks if `filename` is an x86-32 ELF."""
-    elf = get_elf_headers(filename)
+    elf = current_elf or get_elf_headers(filename)
     return elf.e_machine == Elf.X86_32
 
 
 @lru_cache()
 def is_arm(filename=None):
     """Checks if `filename` is an ARM ELF."""
-    elf = get_elf_headers(filename)
+    elf = current_elf or get_elf_headers(filename)
     return elf.e_machine == Elf.ARM
 
 
@@ -2378,62 +2402,63 @@ def is_arm_thumb():
 @lru_cache()
 def is_mips():
     """Checks if `filename` is a MIPS ELF."""
-    elf = get_elf_headers()
+    elf = current_elf or get_elf_headers()
     return elf.e_machine == Elf.MIPS
 
 
 @lru_cache()
 def is_powerpc():
     """Checks if `filename` is a PowerPC ELF."""
-    elf = get_elf_headers()
+    elf = current_elf or get_elf_headers()
     return elf.e_machine == Elf.POWERPC
 
 
 @lru_cache()
 def is_ppc64():
     """Checks if `filename` is a PowerPC64 ELF."""
-    elf = get_elf_headers()
+    elf = current_elf or get_elf_headers()
     return elf.e_machine == Elf.POWERPC64
 
 
 @lru_cache()
 def is_sparc():
     """Checks if `filename` is a SPARC ELF."""
-    elf = get_elf_headers()
+    elf = current_elf or get_elf_headers()
     return elf.e_machine == Elf.SPARC
 
 
 @lru_cache()
 def is_sparc64():
     """Checks if `filename` is a SPARC64 ELF."""
-    elf = get_elf_headers()
+    elf = current_elf or get_elf_headers()
     return elf.e_machine == Elf.SPARC64
 
 
 @lru_cache()
 def is_aarch64():
     """Checks if `filename` is a AARCH64 ELF."""
-    elf = get_elf_headers()
+    elf = current_elf or get_elf_headers()
     return elf.e_machine == Elf.AARCH64
 
 
+current_elf  = None
 current_arch = None
 
 
 def set_arch():
     """Sets the current architecture."""
-    global current_arch
+    global current_arch, current_elf
 
-    elf = get_elf_headers()
-    if   elf.e_machine == Elf.ARM:        current_arch = ARM()
-    elif elf.e_machine == Elf.AARCH64:    current_arch = AARCH64()
-    elif elf.e_machine == Elf.X86_32:     current_arch = X86()
-    elif elf.e_machine == Elf.X86_64:     current_arch = X86_64()
-    elif elf.e_machine == Elf.POWERPC:    current_arch = PowerPC()
-    elif elf.e_machine == Elf.POWERPC64:  current_arch = PowerPC64()
-    elif elf.e_machine == Elf.SPARC:      current_arch = SPARC()
-    elif elf.e_machine == Elf.SPARC64:    current_arch = SPARC64()
-    elif elf.e_machine == Elf.MIPS:       current_arch = MIPS()
+    current_elf = current_elf or get_elf_headers()
+    if   current_elf.e_machine == Elf.ARM:        current_arch = ARM()
+    elif current_elf.e_machine == Elf.AARCH64:    current_arch = AARCH64()
+    elif current_elf.e_machine == Elf.X86_32:     current_arch = X86()
+    elif current_elf.e_machine == Elf.X86_64:     current_arch = X86_64()
+    elif current_elf.e_machine == Elf.POWERPC:    current_arch = PowerPC()
+    elif current_elf.e_machine == Elf.POWERPC64:  current_arch = PowerPC64()
+    elif current_elf.e_machine == Elf.SPARC:      current_arch = SPARC()
+    elif current_elf.e_machine == Elf.SPARC64:    current_arch = SPARC64()
+    elif current_elf.e_machine == Elf.MIPS:       current_arch = MIPS()
     else:
         raise OSError("CPU type is currently not supported: {:s}".format(get_arch()))
     return
@@ -2510,7 +2535,7 @@ def is_in_x86_kernel(address):
 
 @lru_cache()
 def endian_str():
-    elf = get_elf_headers()
+    elf = current_elf or get_elf_headers()
     return "<" if elf.e_endianness == Elf.LITTLE_ENDIAN else ">"
 
 
@@ -4426,19 +4451,26 @@ class RemoteCommand(GenericCommand):
         self.download_all_libs = False
         download_lib = None
         is_extended_remote = False
-        opts, args = getopt.getopt(argv, "p:UD:AEh")
+        qemu_gdb_mode = False
+        opts, args = getopt.getopt(argv, "p:UD:qAEh")
         for o,a in opts:
             if   o == "-U":   update_solib = True
             elif o == "-D":   download_lib = a
             elif o == "-A":   self.download_all_libs = True
             elif o == "-E":   is_extended_remote = True
             elif o == "-p":   rpid = int(a)
+            elif o == "-q":   qemu_gdb_mode = True
             elif o == "-h":
                 self.help()
                 return
 
-        if args is None:
-            err("A target (HOST:PORT) *and* a PID (-p PID) must always be provided.")
+        if not args or ':' not in args[0]:
+            err("A target (HOST:PORT) must always be provided.")
+            return
+
+        if qemu_gdb_mode:
+            # compat layer for qemu-user
+            self.prepare_qemu_stub(args[0])
             return
 
         # lazily install handler on first use
@@ -4493,7 +4525,6 @@ class RemoteCommand(GenericCommand):
             self.refresh_shared_library_path()
 
         set_arch()
-
         return
 
     def new_objfile_handler(self, event):
@@ -4573,6 +4604,22 @@ class RemoteCommand(GenericCommand):
         h += "\t-E Use 'extended-remote' to connect to the target.\n"
         h += "\t-p PID (mandatory if -E is used) specifies PID of the debugged process on gdbserver's end.\n"
         info(h)
+        return
+
+
+    def prepare_qemu_stub(self, target):
+        global current_arch, current_elf
+        reset_all_caches()
+        arch = get_arch()
+        if arch.startswith("arm"):
+            current_elf  = Elf(minimalist=True)
+            current_elf.e_machine = Elf.ARM
+            current_arch = ARM()
+        else:
+            raise RuntimeError("unsupported architecture: {}".format(arch))
+
+        info("Preparing QEMU-stub for '{}'".format(current_arch.arch))
+        gdb.execute("target remote {}".format(target))
         return
 
 
