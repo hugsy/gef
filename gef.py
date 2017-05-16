@@ -208,6 +208,10 @@ ___default_aliases___                  = {
 }
 
 
+current_elf  = None
+current_arch = None
+qemu_mode    = False
+
 if PYTHON_MAJOR==3:
     lru_cache = functools.lru_cache
 else:
@@ -281,6 +285,7 @@ def reset_all_caches():
         obj = getattr(sys.modules["__main__"], mod)
         if hasattr(obj, "cache_clear"):
             obj.cache_clear()
+    qemu_mode = False
     return
 
 
@@ -1183,7 +1188,7 @@ def get_arch():
 
 @lru_cache()
 def get_endian():
-    """Return the binary's endianness."""
+    """Return the binary endianness."""
     if is_alive():
         return get_elf_headers().e_endianness
     if gdb.execute("show endian", to_string=True).strip().split()[7] == "little" :
@@ -2451,10 +2456,6 @@ def is_aarch64():
     """Checks if `filename` is a AARCH64 ELF."""
     elf = current_elf or get_elf_headers()
     return elf.e_machine == Elf.AARCH64
-
-
-current_elf  = None
-current_arch = None
 
 
 def set_arch():
@@ -4625,17 +4626,38 @@ class RemoteCommand(GenericCommand):
 
 
     def prepare_qemu_stub(self, target):
-        global current_arch, current_elf
+        global current_arch, current_elf, qemu_mode
+
         reset_all_caches()
+        qemu_mode = True
         arch = get_arch()
-        if arch.startswith("arm"):
-            current_elf  = Elf(minimalist=True)
+        current_elf  = Elf(minimalist=True)
+        if   arch.startswith("arm"):
             current_elf.e_machine = Elf.ARM
             current_arch = ARM()
+        elif arch.startswith("aarch64"):
+            current_elf.e_machine = Elf.AARCH64
+            current_arch = AARCH64()
+        elif arch.startswith("i386:intel"):
+            current_elf.e_machine = Elf.X86_32
+            current_arch = X86()
+        elif arch.startswith("i386:x86-64"):
+            current_elf.e_machine = Elf.X86_64
+            current_elf.e_class = Elf.ELF_64_BITS
+            current_arch = X86_64()
+        elif arch.startswith("mips"):
+            current_elf.e_machine = Elf.MIPS
+            current_arch = MIPS()
+        elif arch.startswith("powerpc"):
+            current_elf.e_machine = Elf.POWERPC
+            current_arch = POWERPC()
+        elif arch.startswith("sparc"):
+            current_elf.e_machine = Elf.SPARC
+            current_arch = SPARC()
         else:
             raise RuntimeError("unsupported architecture: {}".format(arch))
 
-        info("Preparing QEMU-stub for '{}'".format(current_arch.arch))
+        ok("Setting QEMU-stub for '{}' (memory mapping may be wrong)".format(current_arch.arch))
         gdb.execute("target remote {}".format(target))
         return
 
