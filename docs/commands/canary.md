@@ -2,8 +2,8 @@
 
 If the currently debugged process was compiled with the Smash Stack Protector
 (SSP) - i.e. `-fstack-protector` flag was passed to the compiler, this command
-will allow to display the value of the canary. This makes it
-convenient when searching for this value in memory.
+will display the value of the canary. This makes it convenient to avoid
+manually searching for this value in memory.
 
 The command `canary` does not take any argument.
 ```

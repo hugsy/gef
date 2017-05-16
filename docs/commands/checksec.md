@@ -1,8 +1,8 @@
 ## Command checksec
 
-The `checksec` command is inspired
-from [`checksec.sh`](www.trapkit.de/tools/checksec.html). It provides a
-convenient way to determine all the security protections from a binary.
+The `checksec` command is inspired from
+[`checksec.sh`](www.trapkit.de/tools/checksec.html). It provides a
+convenient way to determine which security protections are enabled in a binary.
 
 You can use the command on the currently debugged process:
 ```
@@ -19,6 +19,6 @@ Full RelRO:                                       No
 
 Or specify directly the binary to check, for example:
 
-```
+```bash
 $ gdb -ex "checksec ./tests/test-x86"
 ```

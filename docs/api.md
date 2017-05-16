@@ -3,17 +3,17 @@
 `GEF` intends to provide a battery-included, quickly installable and crazy fast
 debugging environment sitting on top of GDB.
 
-But it most importantly provides all the primitives for letting hackers create
-their own commands rapidly. Also this page intends to summarize how to create in
-2 seconds advanced GDB commands using `GEF` as a library.
+But it most importantly provides all the primitives required to allows  hackers
+quickly create their own commands. This page intends to summarize how to
+create in 2 seconds advanced GDB commands using `GEF` as a library.
 
 _Side note_: [Other projects](https://github.com/pwndbg/pwndbg) accuses `GEF` to
 not be easily hackable for new features. This documentation also aims to prove
 them wrong.
 
 A [dedicated repository](https://github.com/hugsy/gef-scripts) was born to host
-external scripts. This repo is open to all for contributions, no 
-restrictions and the most valuable ones will be integrated into `gef.py`.
+external scripts. This repo is open to all for contributions, no restrictions
+and the most valuable ones will be integrated into `gef.py`.
 
 ## Quick start ##
 
@@ -25,7 +25,7 @@ class NewCommand(GenericCommand):
     _cmdline_ = "newcmd"
     _syntax_  = "{:s}".format(_cmdline_)
 
-    @only_if_gdb_running               # not required, only checks if the debug session is started
+    @only_if_gdb_running               # not required, ensures that the debug session is started
     def do_invoke(self, argv):
     # do whatever things allowed by gef, for example show the current running
     # architecture as Python object:
@@ -50,24 +50,22 @@ We can call it:
 ![](https://camo.githubusercontent.com/d41c1c0c0267916f4749800906d201fe5d328db5/687474703a2f2f692e696d6775722e636f6d2f306734416543622e706e67)
 
 
-## Detailed explainations ##
+## Detailed explanation ##
 
 Our new command must be a class that inherits from GEF's `GenericCommand`. The
 *only* requirements are:
 
- * that the new class must declare a `_cmdline_` variable (the command to type
-   on GDB)
- * a `_syntax_` variable, which GEF will use to auto-generate the help menu
+ * the new class must declare a `_cmdline_` attribute (the command to type on
+   GDB)
+ * a `_syntax_` attribute, which GEF will use to auto-generate the help menu
  * a method `do_invoke(args)` which is the code to be executed when the command
-   is typed. `args` is an array of string with the arguments passed from command
-   line
+   is invoked. `args` is a list of the command line args provided when invoked.
 
-Last, we make GEF aware of this new command by registering it in the `__main__`
+We make GEF aware of this new command by registering it in the `__main__`
 section of the script, by invoking the global function
 `register_external_command()`.
 
-From then, you have a working new GEF command, which you can load, either from
-cli:
+Now you have a working new GEF command, which you can load, either from cli:
 ```
 gef➤  source /path/to/newcmd.py
 ```
@@ -78,17 +76,18 @@ $ echo source /path/to/newcmd.py >> ~/.gdbinit
 
 ## API ##
 
-Some of the most important API when creating new commands are mentioned (but not
-limited to) below. To see the full help of a function, open GDB and GEF, and use
-the embedded Python interpreter's `help` command. For example:
+Some of the most important parts of the API for creating new commands are
+mentioned (but not limited to) below. To see the full help of a function, open
+GDB and GEF, and use the embedded Python interpreter's `help` command. For
+example:
 
 ```
-gef➤  python-interactive help(Architecture)
+gef➤  pi help(Architecture)
 ```
 
 or even from outside GDB:
 
-```
+```bash
 $ gdb -q -ex 'pi help(hexdump)' -ex quit
 ```
 
@@ -110,13 +109,13 @@ read_memory(addr, length=0x10)
 ```
 write_memory(address, buffer, length=0x10)
 ```
-> Writes `buffer` at address `address`.
+> Writes `buffer` to memory at address `address`.
 
 
 ```
 read_int_from_memory(addr)
 ```
-> Reads the size of an integer from `addr`, and unpacks it correctly (based on endianess)
+> Reads the size of an integer from `addr`, and unpacks it correctly (based on endianness)
 
 ```
 read_cstring_from_memory(address)
@@ -168,7 +167,7 @@ gef_disassemble(addr, nb_insn, from_top=False)
 ### Classes ###
 
 For exhaustive documentation, run
-```
+```bash
 $ gdb -q -ex 'pi help(<ClassName>)' -ex quit
 ```
 
@@ -183,7 +182,7 @@ $ gdb -q -ex 'pi help(<ClassName>)' -ex quit
 
 #### Architectures ####
 
- * `Architecture`  : Generic metaclass for the architecture supported by GEF.
+ * `Architecture`  : Generic metaclass for the architectures supported by GEF.
  * `ARM`
  * `AARCH64`
  * `X86`
