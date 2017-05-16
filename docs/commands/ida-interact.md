@@ -30,10 +30,6 @@ gef➤  ida-interact -h
 Now, to execute an RPC, invoke the command `ida-interact` on the desired method,
 with its arguments (if required).
 
-
-Now, to execute an RPC, invoke the command `ida-interact` on the desired method,
-with its arguments (if required).
-
 For example:
 ```
 gef➤  ida ida.set_color 0x40061E
