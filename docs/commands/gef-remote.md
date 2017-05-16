@@ -63,3 +63,25 @@ You can then reuse the downloaded file for your future debugging sessions, use i
 and such. This makes the entire remote debugging process (particularly for Android applications)
 a child game.
 
+
+### QEMU-user mode ###
+
+Although GDB through QEMU-user works, QEMU only supports a limited subset of all
+commands existing in the `gdbremote` protocol. For example, commands such as
+`remote get` or `remote put` (to resp. download and upload a file from remote
+target) are not supported. As a consequence, the default `remote` mode for
+`gef` will not work either, as `gef` won't be able to fetch the content of the
+remote procfs.
+
+To circumvent this and still enjoy `gef` features with QEMU-user, a simple stub
+can be artificially added, with the option `-q` of `gef-remote`. Note that you
+need to set the architecture properly first:
+
+```
+$ qemu-arm -g 1234 ./my/arm/binary
+$ gdb-multiarch ./my/arm/binary
+gef➤  set architecture arm
+gef➤  gef-remote -q localhost:1234
+```
+
+![gef-qemu-user](http://i.imgur.com/JtEQndv.png)
