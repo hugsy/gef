@@ -1,4 +1,4 @@
-### Step 0: Preliminary
+### Step 0: Preliminary (remove this part if all good)
 
   * Did you read the [documentation](https://gef.readthedocs.org/en/latest/) first?
   * Did you check closed [issues](https://github.com/hugsy/gef/issues)?
@@ -12,7 +12,7 @@
   * GDB version (including the Python library version):
 
 
-### Step 2: Describe your the problem
+### Step 2: Describe your problem
 
 #### Steps to reproduce
 
