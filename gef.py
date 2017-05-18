@@ -582,7 +582,6 @@ class GlibcArena:
         malloc_state_t = cached_lookup_type("struct malloc_state")
         self.__arena = arena.cast(malloc_state_t)
         self.__addr = long(arena.address)
-        self.__arch = long(get_memory_alignment())
         return
 
     def __getitem__(self, item):
@@ -601,7 +600,7 @@ class GlibcArena:
         addr = self.dereference_as_long(self.fastbinsY[i])
         if addr == 0:
             return None
-        return GlibcChunk(addr + 2 * self.__arch)
+        return GlibcChunk(addr + 2 * current_arch.ptrsize)
 
     def bin(self, i):
         idx = i * 2
@@ -615,9 +614,6 @@ class GlibcArena:
         if addr_next == arena_main.__addr:
             return None
         return GlibcArena("*{:#x} ".format(addr_next))
-
-    def get_arch(self):
-        return self.__arch
 
     def __str__(self):
         top             = self.dereference_as_long(self.top)
@@ -634,15 +630,15 @@ class GlibcChunk:
     Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/"""
 
     def __init__(self, addr, from_base=False):
-        self.arch = get_memory_alignment()
+        self.ptrsize = current_arch.ptrsize
         if from_base:
             self.start_addr = addr
-            self.addr = addr + 2 * self.arch
+            self.addr = addr + 2 * self.ptrsize
         else:
-            self.start_addr = int(addr - 2 * self.arch)
+            self.start_addr = int(addr - 2 * self.ptrsize)
             self.addr = addr
 
-        self.size_addr  = int(self.addr - self.arch)
+        self.size_addr  = int(self.addr - self.ptrsize)
         self.prev_size_addr = self.start_addr
         return
 
@@ -653,8 +649,8 @@ class GlibcChunk:
         # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L4537
         cursz = self.get_chunk_size()
         if cursz == 0: return cursz
-        if self.has_M_bit(): return cursz - 2 * self.arch
-        return cursz - self.arch
+        if self.has_M_bit(): return cursz - 2 * self.ptrsize
+        return cursz - self.ptrsize
 
     def get_prev_chunk_size(self):
         return read_int_from_memory(self.prev_size_addr)
@@ -667,8 +663,16 @@ class GlibcChunk:
     def get_fwd_ptr(self):
         return read_int_from_memory(self.addr)
 
+    @property
+    def fwd(self):
+        return self.get_fwd_ptr()
+
     def get_bkw_ptr(self):
-        return read_int_from_memory(self.addr + self.arch)
+        return read_int_from_memory(self.addr + self.ptrsize)
+
+    @property
+    def bck(self):
+        return self.get_bkw_ptr()
     # endif free-ed functions
 
     def has_P_bit(self):
@@ -727,7 +731,7 @@ class GlibcChunk:
 
     def _str_pointers(self):
         fwd = self.addr
-        bkw = self.addr + self.arch
+        bkw = self.addr + self.ptrsize
 
         msg = []
         try:
@@ -4997,21 +5001,20 @@ class GlibcHeapBinsCommand(GenericCommand):
             return -1
 
         nb_chunk = 0
-        if bk == fw:
+        if bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF)):
             return nb_chunk
 
         ok("{}bins[{:d}]: fw={:#x}, bk={:#x}".format(_type, index, fw, bk))
 
-        m = ""
-        head = GlibcChunk(bk + 2 * arena.get_arch()).get_fwd_ptr()
+        m = []
+        head = GlibcChunk(bk, from_base=True).fwd
         while fw != head:
-            chunk = GlibcChunk(fw + 2 * arena.get_arch())
-            m += "{:s}  {:s}  ".format(right_arrow, str(chunk))
-            fw = chunk.get_fwd_ptr()
+            chunk = GlibcChunk(fw, from_base=True)
+            m.append("{:s}  {:s}".format(right_arrow, str(chunk)))
+            fw = chunk.fwd
             nb_chunk += 1
 
-
-        print(m)
+        print("  ".join(m))
         return nb_chunk
 
 @register_command
