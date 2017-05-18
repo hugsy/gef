@@ -5037,7 +5037,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         # glibc2.24 - malloc.c l1573
         SIZE_SZ = current_arch.ptrsize
         MAX_FAST_SIZE = (80 * SIZE_SZ // 4)
-        NFASTBINS = fastbin_index(MAX_FAST_SIZE) + 1
+        NFASTBINS = fastbin_index(MAX_FAST_SIZE) - 1
 
         arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_main_arena()
 
@@ -5047,7 +5047,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
         print(titlify("Fastbins for arena {:#x}".format(int(arena))))
         for i in range(NFASTBINS):
-            print("Fastbins[idx={:d}] ".format(i), end="")
+            print("Fastbins[idx={:d}, size={:#x}] ".format(i, SIZE_SZ+(i+1)*SIZE_SZ), end="")
             chunk = arena.fastbin(i)
             chunks = []
 
