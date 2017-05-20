@@ -4000,8 +4000,23 @@ class SearchPatternCommand(GenericCommand):
 
             start = section.page_start
             end   = section.page_end - 1
+            old_section = None
+
             for loc in self.search_pattern_by_address(pattern, start, end):
-                print("""{:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], right_arrow, Color.pinkify(loc[2])))
+                addr_loc_start = lookup_address(loc[0])
+                section = ""
+                if addr_loc_start and addr_loc_start.section:
+                    if old_section != addr_loc_start.section:
+                        title = "In "
+                        if addr_loc_start.section.path:
+                            title += "'{}'".format(Color.blueify(addr_loc_start.section.path) )
+
+                        title+= "({:#x}-{:#x})".format(addr_loc_start.section.page_start, addr_loc_start.section.page_end)
+                        title+= ", permission={}".format(addr_loc_start.section.permission)
+                        ok(title)
+                        old_section = addr_loc_start.section
+
+                print("""  {:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], right_arrow, Color.pinkify(loc[2]),))
         return
 
     @only_if_gdb_running
@@ -7597,7 +7612,6 @@ class GefAlias(gdb.Command):
         return
 
     def invoke(self, args, from_tty):
-        self.dont_repeat()
         gdb.execute("{} {}".format(self._command, args), from_tty=from_tty)
         return
 
