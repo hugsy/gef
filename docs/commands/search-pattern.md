@@ -4,7 +4,7 @@
 of your process memory layout. The command `search-pattern`, alias `grep`, aims
 to be straight-forward to use:
 ```
-gef> search-pattern MyPattern
+gef➤  search-pattern MyPattern
 ```
 
 ![grep](https://i.imgur.com/YNzsFvk.png)
@@ -18,7 +18,7 @@ ensure that your pattern starts with `0x` and is a valid hex address. For
 example:
 
 ```
-gef> search-pattern 0x4005f6
+gef➤  search-pattern 0x4005f6
 ```
 
 ![grep-address](https://i.imgur.com/dg1gUB5.png)
