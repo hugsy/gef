@@ -6069,8 +6069,11 @@ class ContextCommand(GenericCommand):
                                               ", ".join(["{!s}={!s}".format(x.sym, x.sym.value(current_frame)) for x in frame_args]))
                 items.append(m)
             else:
-                insn = next(gef_disassemble(pc, 1, from_top=True))
-                items.append(Color.redify("{} {}".format(insn.mnemo, ', '.join(insn.operands)) ))
+                try:
+                    insn = next(gef_disassemble(pc, 1, from_top=True))
+                except gdb.MemoryError:
+                    break
+                items.append(Color.redify("{} {}".format(insn.mnemo, ', '.join(insn.operands))))
 
             print("[{:s}] {:s}".format(Color.colorify("#{:d}".format(i), "bold pink"),
                                        right_arrow.join(items)))
