@@ -6077,7 +6077,7 @@ class ContextCommand(GenericCommand):
             pc = current_frame.pc()
             name = current_frame.name()
             items = []
-            items.append("RetAddr: {:#x}".format(pc))
+            items.append("{:#x}".format(pc))
             if name:
                 frame_args = gdb.FrameDecorator.FrameDecorator(current_frame).frame_args() or []
                 m = "Name: {:s}({:s})".format(Color.greenify(name),
