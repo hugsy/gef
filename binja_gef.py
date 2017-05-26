@@ -20,6 +20,8 @@ If all went well, you will see something like
 """
 
 from binaryninja import *
+# from binaryninja.enums import MessageBoxButtonSet
+
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer, list_public_methods
 import threading, string, inspect, xmlrpclib
 
@@ -235,12 +237,13 @@ def gef_stop(bv):
 def gef_start_stop(bv):
     if t is None:
         gef_start(bv)
-        show_message_box("GEF", "Service successfully started, you can now have gef connect to it", OKButtonSet, InformationIcon)
+        show_message_box("GEF", "Service successfully started, you can now have gef connect to it", MessageBoxButtonSet.OKButtonSet, MessageBoxIcon.InformationIcon)
+
     else:
         cli = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(HOST, PORT))
         cli.shutdown()
         gef_stop(bv)
-        show_message_box("GEF", "Service successfully stopped", OKButtonSet, InformationIcon)
+        show_message_box("GEF", "Service successfully stopped", MessageBoxButtonSet.OKButtonSet, MessageBoxIcon.InformationIcon)
     return
 
 
