@@ -5250,7 +5250,7 @@ class DetailRegistersCommand(GenericCommand):
                 print(line)
                 continue
 
-            if reg.type.code == gdb.TYPE_CODE_FLAGS:
+            if regname.strip() == current_arch.flag_register:
                 line += current_arch.flag_register_to_human()
                 print(line)
                 continue
@@ -5275,7 +5275,7 @@ class DetailRegistersCommand(GenericCommand):
                 val = gef_pystring(struct.pack(fmt, last_addr))
                 if all([_ in charset for _ in val]):
                     line += ' ("{:s}"?)'.format( Color.colorify(val, attrs=string_color) )
-            except:
+            except ValueError:
                 pass
 
             print(line)
