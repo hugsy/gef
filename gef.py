@@ -831,11 +831,15 @@ def show_last_exception():
     print("{}: {}".format(Color.colorify(exc_type.__name__, attrs="bold underline red"), exc_value))
     print(" Detailed stacktrace ".center(80, horizontal_line))
     for fs in traceback.extract_tb(exc_traceback)[::-1]:
-        print("""{} File "{}", line {:d}, in {}()""".format(down_arrow,
-                                                            Color.yellowify(fs.filename),
-                                                            fs.lineno,
-                                                            Color.greenify(fs.name)))
-        print("   {}    {}".format(right_arrow, fs.line))
+        if PYTHON_MAJOR==2:
+            filename, lineno, method, code = fs
+        else:
+            filename, lineno, method, code = fs.filename, fs.lineno, fs.name, fs.line
+
+        print("""{} File "{}", line {:d}, in {}()""".format(down_arrow, Color.yellowify(filename),
+                                                            lineno, Color.greenify(method)))
+        print("   {}    {}".format(right_arrow, code))
+
     print(" Last 10 GDB commands ".center(80, horizontal_line))
     gdb.execute("show commands")
     print(" Runtime environment ".center(80, horizontal_line))
@@ -7317,7 +7321,7 @@ class GefConfigCommand(gdb.Command):
     _syntax_  = "{:s} [setting_name] [setting_value]".format(_cmdline_)
 
     def __init__(self, loaded_commands, *args, **kwargs):
-        super(GefConfigCommand, self).__init__(GefConfigCommand._cmdline_, gdb.COMMAND_USER, prefix=False)
+        super(GefConfigCommand, self).__init__(GefConfigCommand._cmdline_, gdb.COMMAND_NONE, prefix=False)
         self.loaded_commands = loaded_commands
         return
 
