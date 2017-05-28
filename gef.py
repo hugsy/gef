@@ -5066,7 +5066,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
         print(titlify("Fastbins for arena {:#x}".format(int(arena))))
         for i in range(NFASTBINS):
-            print("Fastbins[idx={:d}, size={:#x}] ".format(i, SIZE_SZ+(i+1)*SIZE_SZ), end="")
+            print("Fastbins[idx={:d}, size={:#x}] ".format(i, (i+1)*SIZE_SZ*2), end="")
             chunk = arena.fastbin(i)
             chunks = []
 
