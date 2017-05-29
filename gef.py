@@ -6294,7 +6294,7 @@ class PatchCommand(GenericCommand):
     }
 
     def __init__(self):
-        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
     def post_load(self):
