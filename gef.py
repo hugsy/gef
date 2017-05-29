@@ -6293,11 +6293,15 @@ class PatchCommand(GenericCommand):
         "byte": (1, "B"),
     }
 
+    def __init__(self):
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
+        return
+
     def post_load(self):
-        GefAlias("eq", "patch qword")
-        GefAlias("ed", "patch dword")
-        GefAlias("ew", "patch word")
-        GefAlias("eb", "patch byte")
+        GefAlias("eq", "patch qword", completer_class=gdb.COMPLETE_LOCATION)
+        GefAlias("ed", "patch dword", completer_class=gdb.COMPLETE_LOCATION)
+        GefAlias("ew", "patch word", completer_class=gdb.COMPLETE_LOCATION)
+        GefAlias("eb", "patch byte", completer_class=gdb.COMPLETE_LOCATION)
         return
 
     @only_if_gdb_running
