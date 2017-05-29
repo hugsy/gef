@@ -6196,12 +6196,15 @@ class HexdumpCommand(GenericCommand):
     _cmdline_ = "hexdump"
     _syntax_  = "{:s} (qword|dword|word|byte) LOCATION L[SIZE] [UP|DOWN]".format(_cmdline_)
 
+    def __init__(self):
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
+        return
 
     def post_load(self):
-        GefAlias("dq", "hexdump qword")
-        GefAlias("dd", "hexdump dword")
-        GefAlias("dw", "hexdump word")
-        GefAlias("dc", "hexdump byte")
+        GefAlias("dq", "hexdump qword", completer_class=gdb.COMPLETE_LOCATION)
+        GefAlias("dd", "hexdump dword", completer_class=gdb.COMPLETE_LOCATION)
+        GefAlias("dw", "hexdump word", completer_class=gdb.COMPLETE_LOCATION)
+        GefAlias("dc", "hexdump byte", completer_class=gdb.COMPLETE_LOCATION)
         return
 
     @only_if_gdb_running
@@ -7591,7 +7594,7 @@ class GefRunCommand(gdb.Command):
 class GefAlias(gdb.Command):
     """Simple aliasing wrapper because GDB doesn't do what it should.
     """
-    def __init__(self, alias, command):
+    def __init__(self, alias, command, completer_class=gdb.COMPLETE_NONE, command_class=gdb.COMMAND_NONE):
         p = command.split()
         if not p:
             return
@@ -7611,7 +7614,7 @@ class GefAlias(gdb.Command):
             if hasattr(_instance,  "complete"):
                 self.complete = _instance.complete
 
-        super(GefAlias, self).__init__(alias, gdb.COMMAND_NONE)
+        super(GefAlias, self).__init__(alias, command_class, completer_class=completer_class)
         __aliases__.append(self)
         return
 
