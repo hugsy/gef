@@ -6336,7 +6336,7 @@ class PatchStringCommand(GenericCommand):
     _syntax_  = "{:s} <location> \"double backslash-escaped string\"".format(_cmdline_)
 
     def post_load(self):
-        GefAlias("ea", "patch string")
+        GefAlias("ea", "patch string", completer_class=gdb.COMPLETE_LOCATION)
         return
 
     @only_if_gdb_running
