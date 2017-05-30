@@ -5378,12 +5378,11 @@ class ShellcodeGetCommand(GenericCommand):
             err("Failed to fetch shellcode #{:d}".format(sid))
             return
 
-        print(res)
         ret  = gef_pystring(res)
 
         info("Downloading shellcode id={:d}".format(sid))
         fd, fname = tempfile.mkstemp(suffix=".txt", prefix="sc-", text=True, dir="/tmp")
-        data = ret.split("\n")[7:-11]
+        data = ret.split("\\n")[7:-11]
         buf = "\n".join(data)
         buf = HTMLParser().unescape(buf)
         os.write(fd, gef_pybytes(buf))
