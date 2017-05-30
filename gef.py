@@ -6366,7 +6366,7 @@ class DereferenceCommand(GenericCommand):
 
     _cmdline_ = "dereference"
     _syntax_  = "{:s} [LOCATION] l[NB]".format(_cmdline_)
-    _aliases_ = ["telescope", "dps",]
+    _aliases_ = ["telescope",]
 
     def __init__(self):
         super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
@@ -6375,6 +6375,7 @@ class DereferenceCommand(GenericCommand):
 
     def post_load(self):
         GefAlias("stack", "dereference $sp L10")
+        GefAlias("dps", "dereference", completer_class=gdb.COMPLETE_LOCATION)
         return
 
     def pprint_dereferenced(self, addr, off):
