@@ -6964,7 +6964,10 @@ class ChecksecCommand(GenericCommand):
                 warn("No executable/library specified")
                 return
         elif argc == 1:
-            filename = argv[0]
+            filename = os.path.realpath(os.path.expanduser(argv[0]))
+            if not os.access(filename, os.R_OK):
+                err("Invalid filename")
+                return
         else:
             self.usage()
             return
