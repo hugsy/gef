@@ -33,6 +33,12 @@ $ gdb -nx -ex 'python print (sys.version)' -ex quit
 
 If you see an error here, it means that your GDB installation does not support Python.
 
+**Note**: If your GDB is compiled with Python3, `GEF` will assume that your
+environment locales are in UTF-8 (which is the standard). If you use on purpose
+another locales, you may expect `Unicode` exceptions preventing many commands to
+work as expected. Please set up your locales to `UTF-8` to have `GEF` running
+smoothly.
+
 
 ### Setup from repository
 
