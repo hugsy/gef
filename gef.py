@@ -5313,8 +5313,9 @@ class ShellcodeSearchCommand(GenericCommand):
         if len(argv) == 0:
             err("Missing pattern to search")
             self.usage()
-        else:
-            self.search_shellcode(argv)
+            return
+
+        self.search_shellcode(argv)
         return
 
 
@@ -5330,7 +5331,7 @@ class ShellcodeSearchCommand(GenericCommand):
         ret = gef_pystring(res)
 
         # format: [author, OS/arch, cmd, id, link]
-        lines = ret.split("\n")
+        lines = ret.split("\\n")
         refs = [line.split("::::") for line in lines]
 
         if refs:
