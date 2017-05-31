@@ -6592,25 +6592,23 @@ class XFilesCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, args):
         name = None if not args else args[0]
-        formats = {"Start": "{:{align}20s}",
-                   "End":   "{:{align}20s}",
-                   "Name":  "{:{align}30s}",
-                   "File":  "{:s}",
-                  }
-        args = ("Start", "End", "Name", "File")
-        f = " ".join([formats[k] for k in args])
-        print(f.format(*args, align="^"))
+        color = get_gef_setting("theme.xinfo_title_message")
+        headers = [Color.colorify(x, attrs=color) for x in ["Start", "End", "Name", "File",]]
+        if is_elf64():
+            print("{:<31s} {:<31s} {:<34s} {:s}".format(*headers))
+        else:
+            print("{:<23s} {:<23s} {:<23s} {:s}".format(*headers))
 
         for xfile in get_info_files():
-            if name is not None and xfile.name != name:
+            if not name or name not in xfile.name:
                 continue
 
-            l= ""
-            l += formats["Start"].format(format_address(xfile.zone_start), align=">")
-            l += formats["End"].format(format_address(xfile.zone_end), align=">")
-            l += formats["Name"].format(xfile.name, align="^")
-            l += formats["File"].format(xfile.filename, align="<")
-            print(l)
+            l = []
+            l.append(format_address(xfile.zone_start))
+            l.append(format_address(xfile.zone_end))
+            l.append("{:<21s}".format(xfile.name))
+            l.append(xfile.filename)
+            print(" ".join(l))
         return
 
 
