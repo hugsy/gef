@@ -496,6 +496,11 @@ class Elf:
     SPARC64           = 0x2b
     AARCH64           = 0xb7
 
+    ET_EXEC           = 2
+    ET_DYN            = 3
+    ET_CORE           = 4
+
+
     e_magic           = b'\x7fELF'
     e_class           = ELF_32_BITS
     e_endianness      = LITTLE_ENDIAN
@@ -503,7 +508,7 @@ class Elf:
     e_osabi           = None
     e_abiversion      = None
     e_pad             = None
-    e_type            = None
+    e_type            = ET_EXEC
     e_machine         = X86_32
     e_version         = None
     e_entry           = 0x00
@@ -1987,9 +1992,9 @@ def open_file(path, use_cache=False):
         lpath = download_file(path, use_cache)
         if not lpath:
             raise IOError("cannot open remote path {:s}".format(path))
-        return open(lpath)
-    else:
-        return open(path)
+        path = lpath
+
+    return open(path, "r")
 
 
 def get_function_length(sym):
@@ -2000,12 +2005,11 @@ def get_function_length(sym):
     return end_addr - start_addr
 
 
-def __get_process_maps_linux(proc_map_file):
+def get_process_maps_linux(proc_map_file):
     """Parse the Linux process `/proc/pid/maps` file."""
     f = open_file(proc_map_file, use_cache=False)
     for line in f:
         line = line.strip()
-
         addr, perm, off, _, rest = line.split(" ", 4)
         rest = rest.split(" ", 1)
         if len(rest) == 1:
@@ -2029,12 +2033,11 @@ def __get_process_maps_linux(proc_map_file):
     return
 
 
-def __get_process_maps_freebsd(proc_map_file):
+def get_process_maps_freebsd(proc_map_file):
     """Parse the FreeBSD process `/proc/pid/maps` file."""
     f = open_file(proc_map_file, use_cache=False)
     for line in f:
         line = line.strip()
-
         start_addr, end_addr, _, _, _, perm, _, _, _, _, _, inode, pathname, _, _ = line.split()
         start_addr, end_addr = long(start_addr, 0x10), long(end_addr, 0x10)
         offset = 0
@@ -2052,20 +2055,18 @@ def __get_process_maps_freebsd(proc_map_file):
 @lru_cache()
 def get_process_maps():
     """Parse the `/proc/pid/maps` file."""
+    sections = []
     try:
         pid = get_pid()
-
         if sys.platform.startswith("linux"):
-            sections = __get_process_maps_linux("/proc/{:d}/maps".format(pid))
+            sections = get_process_maps_linux("/proc/{:d}/maps".format(pid))
         elif sys.platform.startswith("freebsd"):
-            sections = __get_process_maps_freebsd("/proc/{:d}/map".format(pid))
-        else:
-            sections = []
-    except Exception as e:
-        warn("Failed to read /proc/<PID>/maps, using GDB sections info: {}".format(e))
-        sections = get_info_sections()
+            sections = get_process_maps_freebsd("/proc/{:d}/map".format(pid))
+        return list(sections)
 
-    return list(sections)
+    except FileNotFoundError as e:
+        warn("Failed to read /proc/<PID>/maps, using GDB sections info: {}".format(e))
+        return list(get_info_sections())
 
 
 @lru_cache()
