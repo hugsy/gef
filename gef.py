@@ -6600,7 +6600,7 @@ class XFilesCommand(GenericCommand):
             print("{:<23s} {:<23s} {:<23s} {:s}".format(*headers))
 
         for xfile in get_info_files():
-            if not name or name not in xfile.name:
+            if name and name not in xfile.name:
                 continue
 
             l = []
