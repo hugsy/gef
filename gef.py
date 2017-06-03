@@ -3731,7 +3731,10 @@ class IdaInteractCommand(GenericCommand):
         gdb_bps = set()
         for bp in breakpoints:
             if bp.enabled and not bp.temporary:
-                addr = long(gdb.parse_and_eval(bp.location).address)
+                if bp.location[0]=='*': # if it's an address i.e. location starts with '*'
+                    addr = long(gdb.parse_and_eval(bp.location[1:]))
+                else: # it is a symbol
+                    addr = long(gdb.parse_and_eval(bp.location).address)
                 if not (base_address <= addr < end_address):
                     continue
                 gdb_bps.add(addr-base_address)
@@ -3758,7 +3761,10 @@ class IdaInteractCommand(GenericCommand):
         breakpoints = gdb.breakpoints() or []
         for bp in breakpoints:
             if bp.enabled and not bp.temporary:
-                addr = long(gdb.parse_and_eval(bp.location).address)
+                if bp.location[0]=='*': # if it's an address i.e. location starts with '*'
+                    addr = long(gdb.parse_and_eval(bp.location[1:]))
+                else: # it is a symbol
+                    addr = long(gdb.parse_and_eval(bp.location).address)
                 if not (base_address <= addr < end_address):
                     continue
                 if (addr-base_address) in ida_removed:
