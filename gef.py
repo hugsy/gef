@@ -6881,13 +6881,17 @@ class PatternCreateCommand(GenericCommand):
     _cmdline_ = "pattern create"
     _syntax_  = "{:s} [SIZE]".format(_cmdline_)
 
+    def post_load(self):
+        size = get_gef_setting("pattern.length")
+        generate_cyclic_pattern(size).decode("utf-8")
+        return
 
     def do_invoke(self, argv):
         if len(argv) == 1:
             if not argv[0].isdigit():
                 err("Invalid size")
                 return
-            __config__["pattern.length"][0] = long(argv[0])
+            set_gef_setting("pattern.length", long(argv[0]))
         elif len(argv) > 1:
             err("Invalid syntax")
             return
@@ -6911,11 +6915,12 @@ class PatternSearchCommand(GenericCommand):
 
 
     def do_invoke(self, argv):
-        if len(argv) not in (1, 2):
+        argc = len(argv)
+        if argc not in (1, 2):
             self.usage()
             return
 
-        if len(argv) == 2:
+        if argc==2:
             if not argv[0].isdigit():
                 err("Invalid size")
                 return
@@ -6930,20 +6935,26 @@ class PatternSearchCommand(GenericCommand):
 
     def search(self, pattern, size):
         try:
-            addr = long(gdb.parse_and_eval(pattern))
+            addr = gdb.parse_and_eval(pattern)
+            derefed = dereference(addr)
+            if derefed:
+                warn("Following {:#x} {:s} {:#x}".format(long(addr), right_arrow, long(derefed)))
+                addr = long(derefed)
+            else:
+                addr = long(addr)
+
             if get_memory_alignment(in_bits=True) == 32:
                 pattern_be = struct.pack(">I", addr)
                 pattern_le = struct.pack("<I", addr)
             else:
                 pattern_be = struct.pack(">Q", addr)
                 pattern_le = struct.pack("<Q", addr)
-        except gdb.error:
-            err("Incorrect pattern")
+        except gdb.error as e:
+            err("Incorrect pattern '{:s}': {:s}".format(repr(pattern), str(e)))
             return
 
         buf = generate_cyclic_pattern(size)
         found = False
-
         off = buf.find(pattern_le)
         if off >= 0:
             ok("Found at offset {:d} (little-endian search) {:s}".format(off, Color.colorify("likely", attrs="bold red") if is_little_endian() else ""))
