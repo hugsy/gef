@@ -192,8 +192,8 @@ class Gef:
         return res
 
     @expose
-    def Sync(self, pc, bps):
-        """ Sync(pc, bps) => None
+    def Sync(self, offset, arg):
+        """ Sync(offset, arg) => None
         Synchronize debug info with gef. This is an internal function. It is
         not recommended using it from the command line.
         """
@@ -202,17 +202,31 @@ class Gef:
         if _current_instruction > 0:
             idc.SetColor(_current_instruction, CIC_ITEM, _current_instruction_color)
 
+        base_addr = idaapi.get_imagebase()
+        pc = base_addr + int(offset, 16)
         _current_instruction = long(pc)
         _current_instruction_color = GetColor(_current_instruction, CIC_ITEM)
         idc.SetColor(_current_instruction, CIC_ITEM, 0x00ff00)
+        print("PC @ " + hex(_current_instruction).strip('L'))
+        # post it to the ida main thread to prevent race conditions
+        idaapi.execute_sync(lambda: idc.Jump(_current_instruction), idaapi.MFF_WRITE)
 
-        for bp in bps:
-            if bp not in _breakpoints:
-                idc.AddBpt(bp)
-                _breakpoints.add(bp)
+        cur_bps = set([ idc.GetBptEA(n)-base_addr for n in range(idc.GetBptQty()) ])
+        ida_added = cur_bps - _breakpoints
+        ida_removed = _breakpoints - cur_bps
+        _breakpoints = cur_bps
 
-        _new = [ idc.GetBptEA(n) for n in range(idc.GetBptQty()) ]
-        return _new
+        # update bp from gdb
+        added, removed = arg
+        for bp in added:
+            idc.AddBpt(base_addr+bp)
+            _breakpoints.add(bp)
+        for bp in removed:
+            if bp in _breakpoints:
+                _breakpoints.remove(bp)
+            idc.DelBpt(base_addr+bp)
+
+        return [list(ida_added), list(ida_removed)]
 
 
 class RequestHandler(SimpleXMLRPCRequestHandler):
