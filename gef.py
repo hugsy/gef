@@ -6658,7 +6658,7 @@ class XAddressInfoCommand(GenericCommand):
                                                              sect.page_end-sect.page_start))
             print("Permissions: {:s}".format(str(sect.permission)))
             print("Pathname: {:s}".format(sect.path))
-            print("Offset (from page): +{:#x}".format(addr.value-sect.page_start))
+            print("Offset (from page): {:#x}".format(addr.value-sect.page_start))
             print("Inode: {:s}".format(sect.inode))
 
         if info:
