@@ -3905,7 +3905,7 @@ class IdaInteractCommand(GenericCommand):
             self.disconnect()
             return
 
-        ida_added, ida_removed = rc 
+        ida_added, ida_removed = rc
 
         # add new bp from IDA
         for new_bp in ida_added:
@@ -6435,7 +6435,7 @@ class DereferenceCommand(GenericCommand):
             err("Missing location.")
             return
 
-        nb = 1
+        nb = 10
         if len(argv)==2 and argv[1][0] in ("l", "L") and argv[1][1:].isdigit():
             nb = int(argv[1][1:])
 
