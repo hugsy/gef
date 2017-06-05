@@ -96,6 +96,7 @@ if PYTHON_MAJOR == 2:
     # Compat Py2/3 hacks
     range = xrange
     FileNotFoundError = IOError
+    ConnectionRefusedError = socket.error
 
     left_arrow = "<-"
     right_arrow = "->"
@@ -2680,7 +2681,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         if addr.section.permission.value & Permission.WRITE:
             content = read_cstring_from_memory(addr.value)
             name = addr.info.name if addr.info else addr.section.path
-            msg.append(Color.colorify("Format string helper"))
+            msg.append(Color.colorify("Format string helper", attrs="yellow bold"))
             msg.append("Possible insecure format string: {:s}('{:s}' {:s} {:#x}: '{:s}')".format(self.location, ptr, right_arrow, addr.value, content))
             msg.append("Reason: Call to '{:s}()' with format string argument in position #{:d} is in page {:#x} ({:s}) that has write permission".format(self.location,
                                                                                                                                                  self.num_args,
@@ -4697,7 +4698,7 @@ class RemoteCommand(GenericCommand):
             current_arch = MIPS()
         elif arch.startswith("powerpc"):
             current_elf.e_machine = Elf.POWERPC
-            current_arch = POWERPC()
+            current_arch = PowerPC()
         elif arch.startswith("sparc"):
             current_elf.e_machine = Elf.SPARC
             current_arch = SPARC()
