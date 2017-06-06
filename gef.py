@@ -3797,7 +3797,7 @@ class IdaInteractCommand(GenericCommand):
             gdb.events.stop.connect(ida_synchronize_handler)
             gdb.events.cont.connect(ida_synchronize_handler)
             self.version = sock.version()
-        except Exception:
+        except ConnectionRefusedError:
             err("Failed to connect to '{:s}:{:d}'".format(host, port))
             sock = None
         self.sock = sock
@@ -4669,6 +4669,7 @@ class RemoteCommand(GenericCommand):
         h += "\t-D LIB will download the remote library called LIB.\n"
         h += "\t-E Use 'extended-remote' to connect to the target.\n"
         h += "\t-p PID (mandatory if -E is used) specifies PID of the debugged process on gdbserver's end.\n"
+        h += "\t-q Uses this option when connecting to a Qemu GDBserver.\n"
         info(h)
         return
 
