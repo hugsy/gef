@@ -3,9 +3,9 @@
 `GEF` intends to provide a battery-included, quickly installable and crazy fast
 debugging environment sitting on top of GDB.
 
-But it most importantly provides all the primitives required to allows  hackers
+But it most importantly provides all the primitives required to allow hackers to
 quickly create their own commands. This page intends to summarize how to
-create in 2 seconds advanced GDB commands using `GEF` as a library.
+create advanced GDB commands in moments using `GEF` as a library.
 
 _Side note_: [Other projects](https://github.com/pwndbg/pwndbg) accuses `GEF` to
 not be easily hackable for new features. This documentation also aims to prove
@@ -17,7 +17,7 @@ and the most valuable ones will be integrated into `gef.py`.
 
 ## Quick start ##
 
-Here is the most basic skeleton for creating a new `GEF` command, named `newcmd`:
+Here is the most basic skeleton for creating a new `GEF` command named `newcmd`:
 
 ```python
 class NewCommand(GenericCommand):
@@ -25,21 +25,21 @@ class NewCommand(GenericCommand):
     _cmdline_ = "newcmd"
     _syntax_  = "{:s}".format(_cmdline_)
 
-    @only_if_gdb_running               # not required, ensures that the debug session is started
+    @only_if_gdb_running         # not required, ensures that the debug session is started
     def do_invoke(self, argv):
-    # do whatever things allowed by gef, for example show the current running
+    # do anything allowed by gef, for example show the current running
     # architecture as Python object:
     print(" = {}".format(current_arch) )
     # or showing the current $pc
     print("pc = {:#x}".format(current_arch.pc))
 
 if __name__ == "__main__":
-    register_external_command( NewCommand() )
+    register_external_command(NewCommand())
 ```
 
 Yes, that's it!
 
-Loading it by `GEF` is as easy as
+Loading it in `GEF` is as easy as
 ```
 gef➤  source /path/to/newcmd.py
 [+] Loading 'NewCommand'
@@ -56,9 +56,9 @@ Our new command must be a class that inherits from GEF's `GenericCommand`. The
 *only* requirements are:
 
  * the new class must declare a `_cmdline_` attribute (the command to type on
-   GDB)
- * a `_syntax_` attribute, which GEF will use to auto-generate the help menu
- * a method `do_invoke(args)` which is the code to be executed when the command
+   the GDB prompt).
+ * a `_syntax_` attribute, which GEF will use to auto-generate the help menu.
+ * a method `do_invoke(self, args)` which will be executed when the command
    is invoked. `args` is a list of the command line args provided when invoked.
 
 We make GEF aware of this new command by registering it in the `__main__`
@@ -103,22 +103,23 @@ current_arch
 ```
 read_memory(addr, length=0x10)
 ```
-> Returns a `length` long byte array with the copy of the process memory at
-> `addr`.
+> Returns a `length` long byte array with a copy of the process memory read
+> from `addr`.
 
 ```
-write_memory(address, buffer, length=0x10)
+write_memory(addr, buffer, length=0x10)
 ```
-> Writes `buffer` to memory at address `address`.
+> Writes `buffer` to memory at address `addr`.
 
 
 ```
 read_int_from_memory(addr)
 ```
-> Reads the size of an integer from `addr`, and unpacks it correctly (based on endianness)
+> Reads the size of an integer from `addr`, and unpacks it correctly (based on
+> the current arch's endianness)
 
 ```
-read_cstring_from_memory(address)
+read_cstring_from_memory(addr)
 ```
 > Return a NULL-terminated array of bytes, from `addr`.
 
@@ -150,7 +151,8 @@ gef_disassemble(addr, nb_insn, from_top=False)
 ```
 @only_if_gdb_running
 ```
-> Checks if a GDB session is running, if not return. A GDB session is running is
+> Modifies a function to only execute if a GDB session is running. A GDB
+> session is running if:
 >
 > * a PID exists for the targeted binary
 > * GDB is running on a coredump of a binary

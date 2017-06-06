@@ -7,9 +7,9 @@ Its syntax is:
 xor-memory <display|patch> <address> <size_to_read> <xor_key>
 ```
 
-the first argument (`display` or `patch`) is the action to perform:
+The first argument (`display` or `patch`) is the action to perform:
 
-  1. `display` will only show an hexdump on the tty of the result of the XOR-ed memory block.
+  1. `display` will only show an hexdump of the result of the XOR-ed memory block, without writing the debuggee's memory.
 
 ```
 gef➤  xor display $rsp 16 1337

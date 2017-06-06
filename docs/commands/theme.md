@@ -1,6 +1,6 @@
 ## Command theme
 
-Customize `GEF` by changing its aspect.
+Customize `GEF` by changing its color scheme.
 
 ```
 gef➤  theme

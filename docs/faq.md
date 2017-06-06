@@ -7,11 +7,11 @@ commands to make the exploitation development process smoother.
 
 However, PEDA suffers from a major drawbacks, which the code is too
 fundamentally linked to Intel architectures (x86-32 and x86-64). On the other
-hand, not only GEF supports all the architecture supported by GDB
-(currently x86, ARM, AARCH64, MIPS, PowerPC, SPARC) but is designed to integrate
-new architectures very easily as well!
+hand, GEF not only supports all the architecture supported by GDB (currently
+x86, ARM, AARCH64, MIPS, PowerPC, SPARC) but is designed to integrate new
+architectures very easily as well!
 
-Also, PEDA development is quite idle for a few years now, and many new
+Also, PEDA development has been quite idle for a few years now, and many new
 interesting features a debugger can provide simply do not exist.
 
 
@@ -103,7 +103,7 @@ the module. This will show you an error.
 
 ## I want to contribute, where should I head first? ##
 
-I would suggest reading thoroughly this documentation, just having a look to the
+I would suggest thoroughly reading this documentation, just having a look to the
 [CONTRIBUTE](https://github.com/hugsy/gef/blob/master/.github/CONTRIBUTING.md)
 file of the project to give you pointers.
 
@@ -129,11 +129,11 @@ gef➤  gef config gef.debug 1
 ```
 ![gef-debug](http://i.imgur.com/SGe8oFF.png)
 
-If you think fixing it is in your skills, then send
-a [Push Request](https://github.com/hugsy/gef/pulls) with your patched version,
+If you think fixing it is in your skills, then send a [Pull
+Request](https://github.com/hugsy/gef/pulls) with your patched version,
 explaining your bug, and what was your solution for it.
 
-Otherwise, you can open
-an [Issue on GitHub](https://github.com/hugsy/gef/issues), give an exhaustive
-description of your bug and copy/paste the content from above. This will greatly
-help for solving the issue.
+Otherwise, you can open an [Issue on
+GitHub](https://github.com/hugsy/gef/issues), give an exhaustive description of
+your bug and copy/paste the content from above. This will greatly help for
+solving the issue.

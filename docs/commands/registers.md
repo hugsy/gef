@@ -1,7 +1,7 @@
 ## Command registers
 
-The `registers` command will dereference all the registers. It does not any
-argument.
+The `registers` command will print all the registers and dereference any
+pointers. It does not take any argument.
 
 
 Example on a MIPS host:

@@ -18,7 +18,7 @@ For example, it is trivial to bypass `fork()` calls. Since the return value is
 set to 0, it will in fact drop us into the "child" process. It must be noted
 that this is a different behaviour from the classic `set follow-fork-mode
 child` since here we do not spawn a new process, we only trick the parent
-process into thinking it is the child.
+process into thinking it has become the child.
 
 ### Example ###
 

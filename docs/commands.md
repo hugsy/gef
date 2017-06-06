@@ -4,9 +4,9 @@ This section will explain in details some non-trivial commands available in `GEF
 with examples and screenshots to make it easier to reproduce.
 
 __Note__: if you consider the documentation to be imprecise/incomplete,
-drop an [Issue](https://github.com/hugsy/gef/issues/86) or better,
-a [Pull Request](https://github.com/hugsy/gef/pulls) to the project to help
-improving it.
+file an [Issue](https://github.com/hugsy/gef/issues/86) or better,
+create a a [Pull Request](https://github.com/hugsy/gef/pulls) to the project to help
+improve it.
 
 | Command    | Description |
 |:-----------|----------------:|

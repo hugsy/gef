@@ -36,5 +36,3 @@ gef➤ decompile -a
 gef➤ decompile -s main
 ```
 ![gef-retdec-symbol-main](https://i.imgur.com/76Yl9iD.png)
-
-
