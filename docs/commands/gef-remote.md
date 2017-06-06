@@ -52,10 +52,10 @@ gef➤ gef-remote 192.168.56.1:1234
 [+] Remote information loaded, remember to clean '/tmp/gef/10851' when your session is over
 ```
 
-As you can observe, if it cannot find the debug information, `gef` will try to download
-automatically the target file and store in the local temporary directory (on
-most Unix `/tmp`). If successful, it will then automatically load the debug
-information to `gdb` and proceed with the debugging.
+As you can observe, if it cannot find the debug information, `gef` will try to
+automatically download the target file and store in the local temporary
+directory (on most Unix `/tmp`). If successful, it will then automatically load
+the debug information to `gdb` and proceed with the debugging.
 
 ![gef-remote-autodownload](https://i.imgur.com/8JHpOTV.png)
 

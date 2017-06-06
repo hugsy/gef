@@ -76,9 +76,12 @@ $ pip install capstone
 $ pip install ropper
 ```
 
-Please refer to each project for installation and troubleshooting guides. As `gef` works out of the box, please do not send Issues to this project if you have problems while installing those modules.
+Please refer to each project for installation and troubleshooting guides. As
+`gef` works out of the box, please do not send Issues to this project if you
+have problems while installing those modules.
 
-`gef` will assume the module installations are valid. Otherwise, it will automatically disable all the `gef` commands that require this invalid module.
+`gef` will assume the module installations are valid. Otherwise, it will
+automatically disable all the `gef` commands that require this invalid module.
 
 
 ### Check setup

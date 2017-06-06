@@ -1,10 +1,10 @@
-## Command heap ## 
+## Command heap ##
 
-`heap` command provides information on the heap chunk specified as argument. For
+The `heap` command provides information on the heap chunk specified as argument. For
 the moment, it only supports GlibC heap format (see
 [this link](http://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_chunk)
-for  `malloc` structure information). Syntax to the
-subcommands is pretty straight forward :
+for `malloc` structure information). Syntax to the subcommands is pretty
+straight forward :
 
 ```
 gef➤ heap <sub_commands>
@@ -28,9 +28,9 @@ gef➤ heap chunk <LOCATION>
 ### `heap arenas` command ###
 
 Multi-threaded programs have different arenas, and the only knowledge of the
-`main_arena` is not enough.
-`gef` therefore provides the `arena` sub-commands to help you list all the
-arenas allocated in your program **at the moment you call the command**.
+`main_arena` is not enough. `gef` therefore provides the `arena` sub-commands
+to help you list all the arenas allocated in your program **at the moment you
+call the command**.
 
 ![heap-arena](https://i.imgur.com/ajbLiCF.png)
 
@@ -80,9 +80,8 @@ Fastbin[9] 0x00
 
 #### Other `heap bins X` command ####
 
-All the other subcommands for the `heap bins` works the same way than `fast`. If
+All the other subcommands for the `heap bins` work the same way as `fast`. If
 no argument is provided, `gef` will fall back to `main_arena`. Otherwise, it
 will use the address pointed as the base of the `malloc_state` structure and
 print out information accordingly.
-
 

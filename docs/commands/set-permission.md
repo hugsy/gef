@@ -6,7 +6,7 @@ permission rights on a specific page directly from the debugger.
 
 By default, `GDB` does not allow you to do that, so the command will modify a
 code section of the binary being debugged, and add a native mprotect syscall
-stub. For example, for an x86, the following stub will be inserted:
+stub. For example, for x86, the following stub will be inserted:
 
 ```
 pushad

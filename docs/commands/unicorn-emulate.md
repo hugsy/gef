@@ -4,9 +4,9 @@ If you have installed [`unicorn`](http://unicorn-engine.org) emulation engine
 and its Python bindings, `gef` integrates a new command to emulate instructions
 of your current debugging context !
 
-This command, `unicorn-emulate` (or its alias `emulate`) will replicate for you
-the current memory mapping (including the page permissions), and by default
-(i.e. without any additional argument), it will emulate the execution of the
+This command, `unicorn-emulate` (or its alias `emu`) will replicate the current
+memory mapping (including the page permissions) for you, and by default (i.e.
+without any additional argument), it will emulate the execution of the
 instruction about to be executed (i.e. the one pointed by `$pc`) and display
 which register(s) is(are) tainted by it.
 
@@ -20,7 +20,7 @@ For example, the following command will execute only the next 2 instructions:
 gef➤ emu -n 2
 ```
 
-And showing this:
+And show this:
 ![emu](https://i.imgur.com/DmVH6o1.png)
 
 In this example, we can see that after executing

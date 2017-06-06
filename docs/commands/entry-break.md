@@ -1,8 +1,8 @@
-## Command entry-break ## 
+## Command entry-break ##
 
-The `entry-break` goal is to find and break at the most obvious entry point
-available in the binary. Since the binary will start running, some of the `PLT`
-entries will also be solved, making easier further debugging.
+The `entry-break` (alias `start`) goal is to find and break at the most obvious
+entry point available in the binary. Since the binary will start running, some
+of the `PLT` entries will also be solved, making easier further debugging.
 
 It will perform the following actions:
 
@@ -14,5 +14,3 @@ It will perform the following actions:
    structure.
 
 ![entry-break-example](https://i.imgur.com/zXSERMh.png)
-
-

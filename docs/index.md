@@ -4,9 +4,8 @@
 
 `GEF` is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to
 make GDB cool again for exploit dev. It is aimed to be used mostly by exploiters
-and reverse-engineers, to
-provide additional features to GDB using the Python API to assist during the
-process of dynamic analysis and exploit development.
+and reverse-engineers, to provide additional features to GDB using the Python
+API to assist during the process of dynamic analysis and exploit development.
 
 It has full support for both Python2 and Python3 indifferently (as more and more
 distros start pushing `gdb` compiled with Python3 support).
@@ -28,8 +27,8 @@ distros start pushing `gdb` compiled with Python3 support).
   * Built around an architecture abstraction layer, so all commands work in any
     GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS,
     PowerPC, etc. (unlike [PEDA](https://github.com/longld/peda))
-  * Suited for real-life apps debugging, exploit development, just as much as CTF 
-    (unlike _PEDA_ or _PwnDBG_)
+  * Suited for real-life apps debugging, exploit development, just as much as
+    CTF (unlike _PEDA_ or _PwnDBG_)
 
 
 ## Quick start ##
@@ -135,9 +134,7 @@ the following libraries:
 
    - [`unicorn`](https://github.com/unicorn-engine/unicorn) (also written
    by [Nguyen Anh Quynh](https://github.com/aquynh)) is a lightweight Qemu-based
-   framework to emulate any architecture currently supported by `GDB` (and even
-   some more).
-
+   framework to emulate almost any architecture currently supported by `GDB`.
 
 #### One-liners ####
 
@@ -171,12 +168,20 @@ installation from the repository is recommended:
 $ git clone https://github.com/unicorn-engine/unicorn.git && cd unicorn && ./make.sh && sudo ./make.sh install
 ```
 
-`unicorn` integration in `gef` allows to emulate the behaviour to specific instructions (or block of instructions) based on the runtime context, without actually running it, and therefore sparing the trouble of saving the context/running the new context/restoring the old context. Additionally, `gef` can generate a standalone `unicorn` Python script, if you want/need to reproduce steps outside the debugger.
+`unicorn` integration in `gef` allows to emulate the behaviour to specific
+instructions (or block of instructions) based on the runtime context, without
+actually running it, and therefore sparing the trouble of saving the
+context/running the new context/restoring the old context. Additionally, `gef`
+can generate a standalone `unicorn` Python script, if you want/need to
+reproduce steps outside the debugger.
 
 
 ### Ropper ###
 
-[`Ropper`](https://github.com/sashs/ropper) (written by [Sascha Schirra](https://github.com/sashs)) is a gadget finder based on [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget). It supports opening multiple files and provides an awesome search option to find accurate gadgets.
+[`Ropper`](https://github.com/sashs/ropper) (written by [Sascha
+Schirra](https://github.com/sashs)) is a gadget finder based on
+[`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget). It supports opening
+multiple files and provides an awesome search option to find accurate gadgets.
 ```bash
 $ pip[23] install ropper
 ```

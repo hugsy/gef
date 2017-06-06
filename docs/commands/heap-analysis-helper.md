@@ -45,7 +45,7 @@ The following settings are accepted:
 
 
 Just like the format string vulnerability helper, the `heap-analysis-helper`
-can fail to detect complex heap scenari and/or provide some false positive
+can fail to detect complex heap scenarios and/or provide some false positive
 alerts. Each finding must of course be ascertained manually.
 
 

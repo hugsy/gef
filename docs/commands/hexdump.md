@@ -1,6 +1,6 @@
 ## Command hexdump
 
-Gimmick of the WinDBG command.
+Imitation of the WinDBG command.
 
 This command requires at least 2 arguments, the format for representing the
 data, and a value/address/symbol used as the location to print the hexdump

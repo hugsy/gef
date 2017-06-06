@@ -8,9 +8,9 @@
 menu when hitting a breakpoint.
 
 * The register context box displays current register values. Values in red
-  indicate that this register has its value changed since the last
-  breakpoint. It makes it convenient to track values. Register values can be
-  also accessed and/or dereferenced through the `reg` command.
+  indicate that this register has had its value changed since the last
+  time execution stopped. It makes it convenient to track values. Register
+  values can be also accessed and/or dereferenced through the `reg` command.
 
 * The stack context box shows the 10 (by default but can be tweaked) entries in
   memory pointed by the stack pointer register. If those values are pointers,
@@ -78,27 +78,27 @@ gef➤ gef config context.redirect ""
 
 ### Examples ###
 
-  * Display the code section first, then register, and stack:
+* Display the code section first, then register, and stack:
 ```
 gef➤ gef config context.layout "code regs stack -source -threads -trace"
 ```
 
-  * Stop showing the context sections when breaking:
+* Stop showing the context sections when breaking:
 ```
 gef➤ gef config context.enable 0
 ```
 
-  * Clear the screen before showing the context sections when breaking:
+* Clear the screen before showing the context sections when breaking:
 ```
 gef➤ gef config context.clear_screen 1
 ```
 
-  * Automatically dereference the registers in the `regs` section (like `PEDA`):
+* Automatically dereference the registers in the `regs` section:
 ```
 gef➤ gef config context.show_registers_raw 0
 ```
 
-  * Don't 'peek' into the start of functions that are called.
+* Don't 'peek' into the start of functions that are called.
 ```
 gef➤  gef config context.peek_calls False
 ```

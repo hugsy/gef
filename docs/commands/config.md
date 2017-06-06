@@ -1,4 +1,4 @@
-## Command config ##
+## Command config
 
 `gef` can also be configured at runtime through a configuration file locate at
 `~/.gef.rc`.
@@ -20,8 +20,8 @@ before displaying the current context when reaching a breakpoing:
 gef➤  gef config context.clear_screen 1
 ```
 
-To save the current settings for `GEF` on the file system to have those options
-saved across all your future `GEF` sessions, simply run:
+To save the current settings for `GEF` to the file system to have those options
+persist across all your future `GEF` sessions, simply run:
 ```
 gef➤  gef save
 [+] Configuration saved to '/home/vagrant/.gef.rc'
@@ -30,12 +30,10 @@ gef➤  gef save
 Upon startup, if `gef` finds a file `${HOME}/.gef.rc`, it will automatically
 loads its values.
 
-You can edit manually the file too with your editor.
-To reload the settings during the session, just go with:
+To reload the settings during the session, just run:
 ```
 gef➤  gef restore
-[+] Configuration from '/home/vagrant/.gef.rc' restored
+[+] Configuration from '/home/hugsy/.gef.rc' restored
 ```
 
-You can then tweak this configuration outside your `gdb` session to suit your
-needs.
+You can tweak this configuration outside your `gdb` session to suit your needs.

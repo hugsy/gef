@@ -21,11 +21,11 @@ ps                              →  process-search
 
 ### Creating/deleting aliases
 
-`GEF` defines its own aliasing mechanism, which overrides the traditional
-alias that GDB provides thought the built-in command `alias`.
+`GEF` defines its own aliasing mechanism which overrides the traditional
+alias that GDB provides through the built-in command `alias`.
 
-Users can create/modify/delete by editing the `GEF` configuration file, located
-at `~/.gef.rc`. The aliases must be in the "`aliases`" section of the
+Users can create/modify/delete aliases by editing the `GEF` configuration file,
+located at `~/.gef.rc`. The aliases must be in the "`aliases`" section of the
 configuration file.
 
 Creating a new alias is as simple as creating a new entry in this section:
@@ -67,6 +67,8 @@ p = nexti
 g = gef run
 uf = disassemble
 ```
+
+Note that many of these aliases are already supported by `GEF` (e.g. `eb`).
 
 Or here are some `PEDA` aliases for people used to using `PEDA` who made the
 smart move to `GEF`.

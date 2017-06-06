@@ -24,7 +24,6 @@ gef➤  search-pattern 0x4005f6
 ![grep-address](https://i.imgur.com/dg1gUB5.png)
 
 The `search-pattern` command can also be used as a way to search for
-cross-references to an address. For this reason, the alias `xref` also points to
-the command `search-pattern`.
-Therefore the command above is equivalent to `xref 0x4005f6` which makes it more
-intuitive to use.
+cross-references to an address. For this reason, the alias `xref` also points
+to the command `search-pattern`.  Therefore the command above is equivalent to
+`xref 0x4005f6` which makes it more intuitive to use.

@@ -1,8 +1,8 @@
 ## Command pattern
 
-This command will create or search
-a [De Bruijn](https://en.wikipedia.org/wiki/De_Bruijn_sequence) cyclic pattern
-to facilitate determining finding offsets in memory.
+This command will create or search a [De
+Bruijn](https://en.wikipedia.org/wiki/De_Bruijn_sequence) cyclic pattern to
+facilitate determining finding offsets in memory.
 
 It should be noted that for better compatibility, the algorithm implemented in
 `GEF` is the same as the one in `pwntools`, and can therefore be used in
