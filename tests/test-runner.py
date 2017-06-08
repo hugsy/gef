@@ -152,6 +152,14 @@ class TestGefCommands(unittest.TestCase):
         return
 
 
+    def test_command_capstone_disassemble(self):
+        self.assertFailIfInactiveSession(gdb_run_command("capstone-disassemble"))
+        res = gdb_start_silent_command("capstone-disassemble")
+        self.assertNoException(res)
+        self.assertTrue(res.splitlines() > 1)
+        return
+
+
     ### testing GEF methods
     def test_which(self):
         res = gdb_test_python_method("which('gdb')")

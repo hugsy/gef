@@ -5429,9 +5429,9 @@ class RopperCommand(GenericCommand):
         return
 
 
+@register_command
 class AssembleCommand(GenericCommand):
-    """Inline code assemble. Architecture can be set in GEF runtime config (default is
-    x86). """
+    """Inline code assemble. Architecture can be set in GEF runtime config (default x86-32). """
 
     _cmdline_ = "assemble"
     _syntax_  = "{:s} [-a ARCH] [-m MODE] [-e] [-s] [-l LOCATION] instruction;[instruction;...instruction;])".format(_cmdline_)
