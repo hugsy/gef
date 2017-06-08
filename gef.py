@@ -4887,7 +4887,7 @@ class CapstoneDisassembleCommand(GenericCommand):
 
         location = location or current_arch.pc
         length = kwargs.get("length", get_gef_setting("context.nb_lines_code"))
-        print(hex(location), length)
+
         for insn in capstone_disassemble(location, length, **kwargs):
             text_insn = str(insn)
             msg = ""
