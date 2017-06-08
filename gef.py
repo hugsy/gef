@@ -570,10 +570,10 @@ class Instruction:
         return
 
     def __str__(self):
-        return "{:#10x} {:16} {:6} {}".format(self.address,
-                                         self.location,
-                                         self.mnemo,
-                                         ", ".join(self.operands))
+        return "{:#10x} {:16} {:6} {:s}".format(self.address,
+                                                self.location,
+                                                self.mnemo,
+                                                ", ".join(self.operands))
 
     def is_valid(self):
         return "(bad)" not in self.mnemo
@@ -1117,6 +1117,42 @@ def gef_disassemble(addr, nb_insn, from_top=False):
 
     for insn in gdb_disassemble(addr, count=count):
         yield insn
+
+
+def capstone_disassemble(location, nb_insn, *args, **kwargs):
+    """Disassemble `nb_insn` instructions after `addr` using the Capstone-Engine disassembler, if available.
+    If `kwargs["from_top"]` is False (default), it will also disassemble the `nb_insn` instructions before
+    `addr`. Return an iterator of Instruction objects."""
+
+    def cs_insn_to_gef_insn(cs_insn):
+        loc = "<{}+{}>".format(*gdb_get_location_from_symbol(cs_insn.address)) or ""
+        ops = [] + cs_insn.op_str.split(', ')
+        return Instruction(cs_insn.address, loc, cs_insn.mnemonic, ops)
+
+    capstone    = sys.modules["capstone"]
+    arch, mode  = get_capstone_arch()
+    cs          = capstone.Cs(arch, mode)
+    cs.detail   = True
+
+    page_start  = align_address_to_page(location)
+    offset      = location - page_start
+    pc          = current_arch.pc
+
+    show_around    = kwargs.get("show_around", True)
+    if show_around in (False, 0, "false"):
+        location = gdb_get_nth_previous_instruction_address(pc, nb_insn)
+        nb_insn *= 2
+
+    code = kwargs.get("code", read_memory(location, DEFAULT_PAGE_SIZE - offset - 1))
+    code = bytes(code)
+
+    for insn in cs.disasm(code, location):
+        nb_insn -= 1
+        yield cs_insn_to_gef_insn(insn)
+        if nb_insn==0:
+            break
+    return
+
 
 
 def gef_execute_external(command, as_list=False, *args, **kwargs):
@@ -4834,120 +4870,65 @@ class CapstoneDisassembleCommand(GenericCommand):
         super(CapstoneDisassembleCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=False)
         return
 
+
     @only_if_gdb_running
     def do_invoke(self, argv):
-        location, length = current_arch.pc, 0x10
-        opts, args = getopt.getopt(argv, "n:x:")
-        for o, a in opts:
-            if o == "-n":
-                length = long(a)
-            elif o == "-x":
-                k, v = a.split(":", 1)
-                self.add_setting(k, v)
-
-        if args:
-            location = parse_address(args[0])
+        location = None
+        length = get_gef_setting("context.nb_lines_code")
 
         kwargs = {}
-        if self.has_setting("arm_thumb"):
-            kwargs["arm_thumb"] = True
+        for arg in argv:
+            if '=' in arg:
+                key, value = arg.split('=', 1)
+                kwargs[key] = value
+                argv.remove(arg)
 
-        if self.has_setting("mips_r6"):
-            kwargs["mips_r6"] = True
+            elif location is None:
+                location = parse_address(arg)
 
-        CapstoneDisassembleCommand.disassemble(location, length, **kwargs)
-        return
+        location = location or current_arch.pc
+        show_around = kwargs.get("show_around", "1") == "0"
+        length = kwargs.get("length", length)*2 if show_around else kwargs.get("length", length)
 
+        for insn in capstone_disassemble(location, length, **kwargs):
+            text_insn = str(insn)
+            msg = ""
 
-    @staticmethod
-    def disassemble(location, max_inst, *args, **kwargs):
-        capstone    = sys.modules["capstone"]
-        arch, mode  = get_capstone_arch()
-        cs          = capstone.Cs(arch, mode)
-        cs.detail   = True
-
-        page_start  = align_address_to_page(location)
-        offset      = location - page_start
-        inst_num    = 0
-        pc          = current_arch.pc
-
-        from_top    = kwargs.get("from_top", False)
-        if from_top==False:
-            location = gdb_get_nth_previous_instruction_address(pc, max_inst)
-            max_inst += max_inst
-
-        code        = kwargs.get("code", None)
-        if code is None:
-            code  = read_memory(location, DEFAULT_PAGE_SIZE - offset - 1)
-
-        code = bytes(code)
-
-        for insn in cs.disasm(code, location):
-            m = []
-            m += Color.colorify(format_address(insn.address), attrs="bold blue") + "\t"
-
-            if insn.address == pc:
-                m += CapstoneDisassembleCommand.__cs_analyze_insn(insn, arch, True)
+            if insn.address == current_arch.pc:
+                msg = Color.colorify("{}  {}".format(right_arrow, text_insn), attrs="bold red")
+                branch_taken, reason = self.capstone_analyze_pc(insn, length)
+                if reason:
+                    print(msg)
+                    print(reason)
+                    break
             else:
-                m += Color.greenify(insn.mnemonic) + "\t"
-                m += Color.yellowify(insn.op_str)
+                msg = "{} {}".format(" "*5, text_insn)
 
-            print("".join(m))
-            inst_num += 1
-            if inst_num == max_inst:
-                break
-
+            print(msg)
         return
 
 
-    @staticmethod
-    def __cs_analyze_insn(insn, arch, is_pc=True):
+    def capstone_analyze_pc(self, insn, nb_insn):
         cs = sys.modules["capstone"]
 
-        m = []
-        m += Color.greenify(insn.mnemonic)
-        m += "\t"
-        m += Color.yellowify(insn.op_str)
+        if current_arch.is_conditional_branch(insn):
+            is_taken, reason = current_arch.is_branch_taken(insn)
+            if is_taken:
+                reason = "[Reason: {:s}]".format(reason) if reason else ""
+                msg = Color.colorify("\tTAKEN {:s}".format(reason), attrs="bold green")
+            else:
+                reason = "[Reason: !({:s})]".format(reason) if reason else ""
+                msg = Color.colorify("\tNOT taken {:s}".format(reason), attrs="bold red")
+            return (is_taken, msg)
 
-        if is_pc:
-            m += Color.redify("\t {} $pc ".format(left_arrow))
+        if current_arch.is_call(insn):
+            target_address = int(insn.operands[-1].split()[0], 16)
+            msg = []
+            for i, new_insn in enumerate(capstone_disassemble(target_address, nb_insn, from_top=True)):
+                msg.append("   {}  {}".format (down_arrow if i==0 else " ", str(new_insn)))
+            return (True, "\n".join(msg))
 
-        m += "\n" + "\t" * 5
-
-        # implicit read
-        if insn.regs_read:
-            m += "Read:[{:s}] ".format(",".join([insn.reg_name(x) for x in insn.regs_read]))
-            m += "\n" + "\t" * 5
-
-        # implicit write
-        if insn.regs_write:
-            m += "Write:[{:s}] ".format(",".join([insn.reg_name(x) for x in insn.regs_write]))
-            m += "\n" + "\t" * 5
-
-        if   is_x86_32():  reg, imm, mem = cs.x86.X86_OP_REG, cs.x86.X86_OP_IMM, cs.x86.X86_OP_MEM
-        elif is_x86_64():  reg, imm, mem = cs.x86.X86_OP_REG, cs.x86.X86_OP_IMM, cs.x86.X86_OP_MEM
-        elif is_powerpc(): reg, imm, mem = cs.ppc.PPC_OP_REG, cs.ppc.PPC_OP_IMM, cs.ppc.PPC_OP_MEM
-        elif is_mips():    reg, imm, mem = cs.mips.MIPS_OP_REG, cs.mips.MIPS_OP_IMM, cs.mips.MIPS_OP_MEM
-        elif is_sparc():   reg, imm, mem = cs.sparc.SPARC_OP_REG, cs.sparc.SPARC_OP_IMM, cs.sparc.SPARC_OP_MEM
-        elif is_sparc64(): reg, imm, mem = cs.sparc.SPARC_OP_REG, cs.sparc.SPARC_OP_IMM, cs.sparc.SPARC_OP_MEM
-        elif is_arm():     reg, imm, mem = cs.arm.ARM_OP_REG, cs.arm.ARM_OP_IMM, cs.arm.ARM_OP_MEM
-        elif is_aarch64(): reg, imm, mem = cs.arm.ARM_OP_REG, cs.arm.ARM_OP_IMM, cs.arm.ARM_OP_MEM
-
-        # operand information
-        for op in insn.operands:
-            if op.type == reg:
-                m += "REG={:s} ".format(insn.reg_name(op.value.reg),)
-            if op.type == imm:
-                m += "IMM={:#x} ".format(op.value.imm,)
-            if op.type == mem:
-                if op.value.mem.disp > 0:
-                    m += "MEM={:s}+{:#x} ".format(insn.reg_name(op.value.mem.base), op.value.mem.disp,)
-                elif op.value.mem.disp < 0:
-                    m += "MEM={:s}{:#x} ".format(insn.reg_name(op.value.mem.base), op.value.mem.disp,)
-
-            m += "\n" + "\t" * 5
-
-        return m
+        return (False, "")
 
 
 @register_command
@@ -5963,11 +5944,10 @@ class ContextCommand(GenericCommand):
         self.context_title("code:{}".format(arch_name))
 
         try:
-            if use_capstone:
-                CapstoneDisassembleCommand.disassemble(pc, nb_insn)
-                return
+            instruction_iterator = capstone_disassemble(pc, nb_insn, {"from_top": False}) if use_capstone \
+                                   else gef_disassemble(pc, nb_insn, from_top=False)
 
-            for insn in gef_disassemble(pc, nb_insn):
+            for insn in instruction_iterator:
                 line = []
                 is_branch = False
                 is_taken  = False
