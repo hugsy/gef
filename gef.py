@@ -1010,7 +1010,7 @@ def gdb_get_location_from_symbol(address):
     i = sym.find(" in section ")
     sym = sym[:i].split()
     name, offset = sym[0], 0
-    if len(sym) == 3:
+    if len(sym) == 3 and sym[2].isdigit():
         offset = int(sym[2])
     return name, offset
 
@@ -1934,7 +1934,13 @@ def experimental_feature(f):
 
 def to_unsigned_long(v):
     """Cast a gdb.Value to unsigned long."""
-    unsigned_long_t = cached_lookup_type("unsigned long")
+    if is_elf32():
+        t = "uint32_t"
+    elif is_elf64():
+        t = "uint64_t"
+    else:
+        t = "uint16_t"
+    unsigned_long_t = cached_lookup_type(t)
     return long(v.cast(unsigned_long_t))
 
 
@@ -1947,8 +1953,6 @@ def get_register(regname):
     except gdb.error:
         value = gdb.selected_frame().read_register(regname)
         return long(value)
-
-
 
 
 @lru_cache()
@@ -2647,7 +2651,13 @@ def generate_cyclic_pattern(length):
 def dereference(addr):
     """GEF wrapper for gdb dereference function."""
     try:
-        ulong_t = cached_lookup_type("unsigned long")
+        if is_elf32():
+            t = "uint32_t"
+        elif is_elf64():
+            t = "uint64_t"
+        else:
+            t = "uint16_t"
+        ulong_t = cached_lookup_type(t)
         unsigned_long_type = ulong_t.pointer()
         ret = gdb.Value(addr).cast(unsigned_long_type).dereference()
     except gdb.MemoryError:
