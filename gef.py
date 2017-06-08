@@ -1119,13 +1119,14 @@ def gef_disassemble(addr, nb_insn, from_top=False):
         yield insn
 
 
-def capstone_disassemble(location, nb_insn, *args, **kwargs):
+def capstone_disassemble(location, nb_insn, **kwargs):
     """Disassemble `nb_insn` instructions after `addr` using the Capstone-Engine disassembler, if available.
     If `kwargs["from_top"]` is False (default), it will also disassemble the `nb_insn` instructions before
     `addr`. Return an iterator of Instruction objects."""
 
     def cs_insn_to_gef_insn(cs_insn):
-        loc = "<{}+{}>".format(*gdb_get_location_from_symbol(cs_insn.address)) or ""
+        sym_info = gdb_get_location_from_symbol(cs_insn.address)
+        loc = "<{}+{}>".format(*sym_info) if sym_info else ""
         ops = [] + cs_insn.op_str.split(', ')
         return Instruction(cs_insn.address, loc, cs_insn.mnemonic, ops)
 
@@ -1138,8 +1139,8 @@ def capstone_disassemble(location, nb_insn, *args, **kwargs):
     offset      = location - page_start
     pc          = current_arch.pc
 
-    show_around    = kwargs.get("show_around", True)
-    if show_around in (False, 0, "false"):
+    from_top    = kwargs.get("from_top", True)
+    if from_top in (False, "0", "false", "False"):
         location = gdb_get_nth_previous_instruction_address(pc, nb_insn)
         nb_insn *= 2
 
@@ -1152,7 +1153,6 @@ def capstone_disassemble(location, nb_insn, *args, **kwargs):
         if nb_insn==0:
             break
     return
-
 
 
 def gef_execute_external(command, as_list=False, *args, **kwargs):
@@ -4874,7 +4874,6 @@ class CapstoneDisassembleCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         location = None
-        length = get_gef_setting("context.nb_lines_code")
 
         kwargs = {}
         for arg in argv:
@@ -4887,15 +4886,14 @@ class CapstoneDisassembleCommand(GenericCommand):
                 location = parse_address(arg)
 
         location = location or current_arch.pc
-        show_around = kwargs.get("show_around", "1") == "0"
-        length = kwargs.get("length", length)*2 if show_around else kwargs.get("length", length)
-
+        length = kwargs.get("length", get_gef_setting("context.nb_lines_code"))
+        print(hex(location), length)
         for insn in capstone_disassemble(location, length, **kwargs):
             text_insn = str(insn)
             msg = ""
 
             if insn.address == current_arch.pc:
-                msg = Color.colorify("{}  {}".format(right_arrow, text_insn), attrs="bold red")
+                msg = Color.colorify("{}   {}".format(right_arrow, text_insn), attrs="bold red")
                 branch_taken, reason = self.capstone_analyze_pc(insn, length)
                 if reason:
                     print(msg)
@@ -5944,10 +5942,9 @@ class ContextCommand(GenericCommand):
         self.context_title("code:{}".format(arch_name))
 
         try:
-            instruction_iterator = capstone_disassemble(pc, nb_insn, {"from_top": False}) if use_capstone \
-                                   else gef_disassemble(pc, nb_insn, from_top=False)
+            instruction_iterator = capstone_disassemble if use_capstone else gef_disassemble
 
-            for insn in instruction_iterator:
+            for insn in instruction_iterator(pc, nb_insn, from_top=False):
                 line = []
                 is_branch = False
                 is_taken  = False
@@ -5983,7 +5980,7 @@ class ContextCommand(GenericCommand):
                         # If the operand isn't an address right now we can't parse it
                         is_taken = False
                         continue
-                    for i, insn in enumerate(gef_disassemble(target, nb_insn, from_top=True)):
+                    for i, insn in enumerate(instruction_iterator(target, nb_insn, from_top=True)):
                         text= "   {}  {}".format (down_arrow if i==0 else " ", str(insn))
                         print(text)
                     break
@@ -6701,23 +6698,15 @@ class XorMemoryDisplayCommand(GenericCommand):
         address = long(gdb.parse_and_eval(argv[0]))
         length = long(argv[1], 0)
         key = argv[2]
-        show_as_instructions = True if len(argv) == 4 and argv[3] == "-i" else False
         block = read_memory(address, length)
         info("Displaying XOR-ing {:#x}-{:#x} with {:s}".format(address, address + len(block), repr(key)))
 
         print(titlify("Original block"))
-        if show_as_instructions:
-            CapstoneDisassembleCommand.disassemble(address, -1, code=block)
-        else:
-            print(hexdump(block, base=address))
-
+        print(hexdump(block, base=address))
 
         print(titlify("XOR-ed block"))
         xored = xor(block, key)
-        if show_as_instructions:
-            CapstoneDisassembleCommand.disassemble(address, -1, code=xored)
-        else:
-            print(hexdump(xored, base=address))
+        print(hexdump(xored, base=address))
         return
 
 @register_command
