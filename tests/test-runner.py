@@ -160,6 +160,20 @@ class TestGefCommands(unittest.TestCase):
         return
 
 
+    def test_command_keystone_assemble(self):
+        valid_cmds = [
+            "assemble nop; nop; nop",
+            "assemble -a arm -m arm add r0, r1, r2",
+            "assemble -a mips -m mips32 add $v0, 1",
+            "asm -a sparc -m sparc32  set 0, %o0",
+        ]
+        for cmd in valid_cmds:
+            res = gdb_start_silent_command(cmd)
+            self.assertNoException(res)
+            self.assertTrue(res.splitlines() > 1)
+        return
+
+
     ### testing GEF methods
     def test_which(self):
         res = gdb_test_python_method("which('gdb')")

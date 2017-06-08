@@ -2306,11 +2306,11 @@ def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):
         if mode:
             mode = getattr(module, "{:s}_MODE_{:s}".format(prefix, mode))
         else:
-            mode = ""
+            mode = 0
         if big_endian:
-            mode += getattr(module, "{:s}_MODE_BIG_ENDIAN".format(prefix))
+            mode |= getattr(module, "{:s}_MODE_BIG_ENDIAN".format(prefix))
         else:
-            mode += getattr(module, "{:s}_MODE_LITTLE_ENDIAN".format(prefix))
+            mode |= getattr(module, "{:s}_MODE_LITTLE_ENDIAN".format(prefix))
 
     return arch, mode
 
@@ -5469,7 +5469,7 @@ class AssembleCommand(GenericCommand):
             if is_alive():
                 arch_s, mode_s = get_arch(), ""
                 endian_s = "big" if is_big_endian() else "little"
-                arch, mode = get_keystone_arch()
+                arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=is_big_endian())
             else:
                 # if not alive, defaults to x86-32
                 arch_s = "X86"
