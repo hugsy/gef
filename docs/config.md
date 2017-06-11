@@ -5,7 +5,7 @@ A simple recent GDB compiled with Python scripting support will do.
 
 
 ### Pre-requisites
-Only [GDB 7.x+](https://www.gnu.org/s/gdb) is required. It must be compiled with Python 2 or 3 support.
+Only [GDB 7.7 and higher](https://www.gnu.org/s/gdb) is required. It must be compiled with Python 2 or 3 support.
 
 All recent distributions of Linux now embeds a GDB version compiled with at least Python 2 (although more and more are migrating towards Python 3).
 

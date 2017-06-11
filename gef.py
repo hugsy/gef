@@ -85,6 +85,7 @@ import types
 
 
 PYTHON_MAJOR = sys.version_info[0]
+GDB_MIN_VERSION = (7, 7)
 
 if PYTHON_MAJOR == 2:
     from HTMLParser import HTMLParser
@@ -7745,52 +7746,58 @@ def __gef_prompt__(current_prompt):
 
 if __name__  == "__main__":
 
-    # setup prompt
-    gdb.prompt_hook = __gef_prompt__
+    ver = gdb.VERSION.split('.')
+    current_gdb_version = tuple([int(ver[0]), int(ver[1])])
+    if current_gdb_version < GDB_MIN_VERSION:
+        err("You're using an old version of GDB (current: {}.{}). Many features of GEF won't not work correctly. Consider updating to GDB {}.{} or higher.".format(*current_gdb_version, *GDB_MIN_VERSION))
 
-    # setup config
-    gdb.execute("set confirm off")
-    gdb.execute("set verbose off")
-    gdb.execute("set height 0")
-    gdb.execute("set width 0")
-    gdb.execute("set step-mode on")
+    else:
+        # setup prompt
+        gdb.prompt_hook = __gef_prompt__
 
-    # gdb history
-    gdb.execute("set history save on")
-    gdb.execute("set history filename ~/.gdb_history")
+        # setup config
+        gdb.execute("set confirm off")
+        gdb.execute("set verbose off")
+        gdb.execute("set height 0")
+        gdb.execute("set width 0")
+        gdb.execute("set step-mode on")
 
-    # gdb input and output bases
-    gdb.execute("set output-radix 0x10")
+        # gdb history
+        gdb.execute("set history save on")
+        gdb.execute("set history filename ~/.gdb_history")
 
-    # pretty print
-    gdb.execute("set print pretty on")
+        # gdb input and output bases
+        gdb.execute("set output-radix 0x10")
 
-    try:
-        # this will raise a gdb.error unless we're on x86
-        gdb.execute("set disassembly-flavor intel")
-    except gdb.error:
-        # we can safely ignore this
-        pass
+        # pretty print
+        gdb.execute("set print pretty on")
 
-    # SIGALRM will simply display a message, but gdb won't forward the signal to the process
-    gdb.execute("handle SIGALRM print nopass")
+        try:
+            # this will raise a gdb.error unless we're on x86
+            gdb.execute("set disassembly-flavor intel")
+        except gdb.error:
+            # we can safely ignore this
+            pass
 
-    # saving GDB indexes in GEF tempdir
-    gef_makedirs(GEF_TEMP_DIR)
-    gdb.execute("save gdb-index {}".format(GEF_TEMP_DIR))
+        # SIGALRM will simply display a message, but gdb won't forward the signal to the process
+        gdb.execute("handle SIGALRM print nopass")
 
-    # load GEF
-    __gef__ = GefCommand()
-    __gef__.setup()
+        # saving GDB indexes in GEF tempdir
+        gef_makedirs(GEF_TEMP_DIR)
+        gdb.execute("save gdb-index {}".format(GEF_TEMP_DIR))
 
-    # gdb events configuration
-    gdb.events.cont.connect(continue_handler)
-    gdb.events.stop.connect(hook_stop_handler)
-    gdb.events.new_objfile.connect(new_objfile_handler)
-    gdb.events.exited.connect(exit_handler)
+        # load GEF
+        __gef__ = GefCommand()
+        __gef__.setup()
 
-    GefAliases()
-    GefTmuxSetup()
+        # gdb events configuration
+        gdb.events.cont.connect(continue_handler)
+        gdb.events.stop.connect(hook_stop_handler)
+        gdb.events.new_objfile.connect(new_objfile_handler)
+        gdb.events.exited.connect(exit_handler)
 
-    for alias in ___default_aliases___:
-        GefAlias(alias, ___default_aliases___[alias])
+        GefAliases()
+        GefTmuxSetup()
+
+        for alias in ___default_aliases___:
+            GefAlias(alias, ___default_aliases___[alias])

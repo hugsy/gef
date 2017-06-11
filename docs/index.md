@@ -35,7 +35,7 @@ distros start pushing `gdb` compiled with Python3 support).
 
 ### Install ###
 
-Simply make sure you have [GDB 7.x+](https://www.gnu.org/s/gdb).
+Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb).
 
 ```bash
 # via the install script
