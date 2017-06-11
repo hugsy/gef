@@ -7744,12 +7744,16 @@ def __gef_prompt__(current_prompt):
     return gef_prompt_off
 
 
+def is_recent_gdb():
+    ver = re.sub(r"^[^\d]*([\d]+)\.([\d]+).*$", r"\1.\2", gdb.VERSION)
+    current_gdb_version = tuple([int(_) for _ in ver.split('.')])
+    return current_gdb_version >= GDB_MIN_VERSION
+
+
 if __name__  == "__main__":
 
-    ver = gdb.VERSION.split('.')
-    current_gdb_version = tuple([int(ver[0]), int(ver[1])])
-    if current_gdb_version < GDB_MIN_VERSION:
-        err("You're using an old version of GDB (current: {}.{}). Many features of GEF won't not work correctly. Consider updating to GDB {}.{} or higher.".format(*current_gdb_version, *GDB_MIN_VERSION))
+    if not is_recent_gdb():
+        err("You're using an old version of GDB. GEF cannot work correctly. Consider updating to GDB {}.{} or higher.".format(*GDB_MIN_VERSION))
 
     else:
         # setup prompt
