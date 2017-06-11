@@ -6676,6 +6676,15 @@ class XAddressInfoCommand(GenericCommand):
             print("Segment: {:s} ({:s}-{:s})".format(info.name,
                                                      format_address(info.zone_start),
                                                      format_address(info.zone_end)))
+
+        sym = gdb_get_location_from_symbol(address)
+        if sym:
+            name, offset = sym
+            msg = "Symbol: {:s}".format(name)
+            if offset:
+                msg+= "+{:d}".format(offset)
+            print(msg)
+
         return
 
 
