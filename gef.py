@@ -4865,7 +4865,7 @@ class CapstoneDisassembleCommand(GenericCommand):
     """Use capstone disassembly framework to disassemble code."""
 
     _cmdline_ = "capstone-disassemble"
-    _syntax_  = "{:s} [-n LENGTH] [-t opt] [LOCATION]".format(_cmdline_)
+    _syntax_  = "{:s} [LOCATION] [[length=LENGTH] [option=VALUE]] ".format(_cmdline_)
     _aliases_ = ["cs-dis",]
 
     def pre_load(self):
@@ -4897,7 +4897,7 @@ class CapstoneDisassembleCommand(GenericCommand):
                 location = parse_address(arg)
 
         location = location or current_arch.pc
-        length = kwargs.get("length", get_gef_setting("context.nb_lines_code"))
+        length = int(kwargs.get("length", get_gef_setting("context.nb_lines_code")))
 
         for insn in capstone_disassemble(location, length, **kwargs):
             text_insn = str(insn)
