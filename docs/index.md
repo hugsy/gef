@@ -108,99 +108,30 @@ This shows a few examples of new features available to you when installing
 
 ## Dependencies ##
 
-There are none: `GEF` works out of the box! However, to enjoy all the coolest
-features, it is **highly** recommended to install:
+There are **none**: `GEF` works out of the box! However, to enjoy all the coolest
+features, it is recommended to install:
 
 - [`capstone`](https://github.com/aquynh/capstone)
-- [`keystone`](https://github.com/keystone-engine/keystone): requires `cmake`
+- [`keystone`](https://github.com/keystone-engine/keystone)
 - [`unicorn`](https://github.com/unicorn-engine/unicorn)
 - [`Ropper`](https://github.com/sashs/ropper)
 - [`RetDec`](https://github.com/s3rvac/retdec-python)
 
 
-### Capstone/Keystone/Unicorn ###
-
-`GEF` greatly enhances the capabilities of GDB thanks to a full integration of
-the following libraries:
-   - [`capstone`](https://github.com/aquynh/capstone)
-   (by [Nguyen Anh Quynh](https://github.com/aquynh)) is an alternative disassembly
-   engine, and [`keystone`](https://github.com/keystone-engine/keystone) is an
-   (arguably the best) assembly engine.
-   - [`keystone`](https://github.com/keystone-engine/keystone) allows us to
-   generate opcodes, which can, for example, then be used as part of a
-   shellcode.
-
-![gef-shellcoder](https://i.imgur.com/BPdtr2D.png)
-
-   - [`unicorn`](https://github.com/unicorn-engine/unicorn) (also written
-   by [Nguyen Anh Quynh](https://github.com/aquynh)) is a lightweight Qemu-based
-   framework to emulate almost any architecture currently supported by `GDB`.
-
-#### One-liners ####
-
-For a quick installation, use the `pip` packaged version:
+For a quick installation, simply use the `pip` packaged version:
 
 ```bash
-$ pip2 install capstone unicorn keystone-engine  # for Python2.x
-$ pip3 install capstone unicorn keystone-engine  # for Python3.x
+# for Python2.x
+$ pip2 install capstone unicorn keystone-engine ropper
+
+# for Python3.x
+$ pip3 install capstone unicorn keystone-engine ropper retdec-python
 ```
 
-#### Manual installation ####
-You can use `pip` to simply and quickly install it.
-
-`capstone` and `keystone` are under very active development and improvement, so it is recommended to compile and install them from git.
-```bash
-$ git clone https://github.com/keystone-engine/keystone.git
-$ mkdir -p keystone/build && cd keystone/build
-$ ../make-share.sh
-$ sudo make install
-$ sudo ldconfig
-$ cd ../bindings/python && sudo ./setup.py build && sudo ./setup.py install
-```
-
-`capstone` provides an alternative to the `gdb` disassembler, which could be
-useful specifically when dealing with complex/uncommon instructions.
-
-
-Install is simple through `pip`, but to get the latest features from it,
-installation from the repository is recommended:
-```bash
-$ git clone https://github.com/unicorn-engine/unicorn.git && cd unicorn && ./make.sh && sudo ./make.sh install
-```
-
-`unicorn` integration in `gef` allows to emulate the behaviour to specific
-instructions (or block of instructions) based on the runtime context, without
-actually running it, and therefore sparing the trouble of saving the
-context/running the new context/restoring the old context. Additionally, `gef`
-can generate a standalone `unicorn` Python script, if you want/need to
-reproduce steps outside the debugger.
-
-
-### Ropper ###
-
-[`Ropper`](https://github.com/sashs/ropper) (written by [Sascha
-Schirra](https://github.com/sashs)) is a gadget finder based on
-[`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget). It supports opening
-multiple files and provides an awesome search option to find accurate gadgets.
-```bash
-$ pip[23] install ropper
-```
-
-### One-liner
-
-Some of the optional dependencies can be installed using Python package
-installer, `pip`. Simply run this
-```bash
-$ pip[23] install ropper capstone
-```
-
-## But why not PEDA? ##
-
-Yes! Why not?! [PEDA](https://github.com/longld/peda) is a fantastic tool to
-do the same, but **only** works for x86-32 or x86-64x whereas `GEF` supports
-all the architecture supported by `GDB` (currently x86, ARM, AARCH64, MIPS,
-PowerPC, SPARC) but is designed to integrate new architectures very easily as
-well!
+Just make sure you are using the `pip` corresponding to the version of Python
+your GDB was compiled with. If you are experiencing issues installing them,
+post an issue on the GitHub of the respective projects. If your bug is not
+related to `GEF`, you will not get an answer.
 
 
 ## Bugs & Feedbacks ##

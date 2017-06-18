@@ -14,10 +14,25 @@ architectures very easily as well!
 Also, PEDA development has been quite idle for a few years now, and many new
 interesting features a debugger can provide simply do not exist.
 
+## What if my GDB is < 7.7 ? ##
+
+GDB was introduced with its Python support early 2011 with the release of
+GDB 7. A (very) long way has gone since and the Python API has been massively
+improved, and GEF is taking advantage of them to provide the coolest features
+with as little performance impact as possible.
+
+Therefore, it is highly recommended to run GEF with the latest version of
+GDB. However, all functions should work on a GDB 7.7 and up. If not, send
+a [bug report](https://github.com/hugsy/gef/issues) and provide as much details
+as possible.
+
+If you are running an obsolete version, GEF will show a error and message and
+exit. You can still use GDB the normal way.
+
 
 ## I cannot get GEF to setup!! ##
 
-GEF will work on any GDB 7.x compiled with Python support. You can view
+GEF will work on any GDB 7.7+ compiled with Python support. You can view
 that commands that failed to load using `gef missing`, but this will not affect
 GEF generally.
 
@@ -112,15 +127,15 @@ on [Freenode](https://webchat.freenode.net/?channels=##gef) to get in touch with
 the people involved/using it.
 
 
-## I think I've found a crash, how can I help fixing it? ##
+## I think I've found a bug, how can I help fixing it? ##
 
 `gef` is only getting better through people (like you!) using it, but most
 importantly reporting unexpected behavior.
 
 In most locations, Python exceptions will be properly intercepted. If not, `gef`
 wraps all commands with a generic exception handler, to disturb as little as
-possible your debugging session. If it happens, you'll only see a message like
-this:
+possible your debugging session. If it happens, you'll only get to see a message
+like this:
 ![gef-exception](http://i.imgur.com/J7dUnXV.png)
 
 By switching to debug mode, `gef` will give much more information:
@@ -133,7 +148,6 @@ If you think fixing it is in your skills, then send a [Pull
 Request](https://github.com/hugsy/gef/pulls) with your patched version,
 explaining your bug, and what was your solution for it.
 
-Otherwise, you can open an [Issue on
-GitHub](https://github.com/hugsy/gef/issues), give an exhaustive description of
-your bug and copy/paste the content from above. This will greatly help for
-solving the issue.
+Otherwise, you can open an [issue](https://github.com/hugsy/gef/issues), give a
+thorough description of your bug and copy/paste the content from above. This
+will greatly help for solving the issue.
