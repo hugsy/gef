@@ -42,6 +42,9 @@ Note that the GitHub issue section is to be used to **report bugs** and
 **GEF issues** (like unexpected crash, improper error handling, weird edge case,
 etc.), not a place to ask for help.
 
+But fear not, GDB 7.7 corresponds to the latest packaged version of Ubuntu
+14.04. Any version higher or equal will work just fine. So you might actually
+only need to run `apt install gdb` to get the full-force of GEF.
 
 ## I get a SegFault when starting GDB with GEF ##
 
@@ -151,3 +154,15 @@ explaining your bug, and what was your solution for it.
 Otherwise, you can open an [issue](https://github.com/hugsy/gef/issues), give a
 thorough description of your bug and copy/paste the content from above. This
 will greatly help for solving the issue.
+
+
+## I get weird characters using GDB + Python3, what's up? ##
+
+Chances are you are not using UTF-8. Python3
+is [highly relying on UTF-8](http://www.diveintopython3.net/strings.html) to
+display correctly characters of any alphabet
+and
+[also some cool emojis](http://unicode.org/emoji/charts/full-emoji-list.html). When
+GDB is compiled with Python3, GEF will assume that your current charset is UTF-8
+(for instance, `en_ca.UTF-8`). Use your `$LANG` environment variable to tweak
+this setting.
