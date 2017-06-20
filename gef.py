@@ -1376,8 +1376,8 @@ class ARM(Architecture):
 
 
 class AARCH64(ARM):
-    arch = "ARM"
-    mode = "AARCH64"
+    arch = "ARM64"
+    mode = "ARM"
 
     all_registers = [
         "$x0       ", "$x1       ", "$x2       ", "$x3       ", "$x4       ", "$x5       ", "$x6       ", "$x7       ",
