@@ -95,6 +95,12 @@ $ gdb -q -ex 'pi help(hexdump)' -ex quit
 ### Globals ###
 
 ```
+register_external_command()
+```
+> Procedure to add the new GEF command
+
+
+```
 current_arch
 ```
 > Global variable associated with the architecture of the currently debugged
@@ -145,6 +151,15 @@ gef_disassemble(addr, nb_insn, from_top=False)
 > Return an iterator of Instruction objects (see below).
 
 
+```
+ok(msg)
+info(msg)
+warn(msg)
+err(msg)
+```
+> Logging functions
+
+
 
 ### Decorators ###
 
@@ -174,6 +189,12 @@ $ gdb -q -ex 'pi help(<ClassName>)' -ex quit
 ```
 
 #### Generic ####
+
+New GEF commands **must** inherit `GenericCommand` and have a instance method
+`do_invoke(args)` defined.
+
+Other than that, new commands can enjoy all the GEF abstract layer
+representation classes, such as:
 
  * `Instruction` : GEF representation of instruction as pure Python objects.
  * `Address`: GEF representation of memory addresses.
