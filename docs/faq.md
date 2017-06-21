@@ -29,6 +29,11 @@ as possible.
 If you are running an obsolete version, GEF will show a error and message and
 exit. You can still use GDB the normal way.
 
+_Note_: although some Ubuntu versions are marked as version 7.7 they are
+actually compiled with some missing features that will make `GEF` complain of an
+error. Before lodging a bug report, make sure to update your GDB (via APT is
+fine), or better install `gdb-multiarch` (the package `gdb64` will work as well,
+but is considered obsolete).
 
 ## I cannot get GEF to setup!! ##
 
