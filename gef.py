@@ -759,11 +759,20 @@ class GlibcChunk:
     def str_as_freed(self):
         return "{}\n\n{}".format(self._str_sizes(), self._str_pointers())
 
+    def flags_as_string(self):
+        flags = []
+        if self.has_P_bit():
+            flags.append(Color.colorify("PREV_INUSE", attrs="red bold"))
+        if self.has_M_bit():
+            flags.append(Color.colorify("IS_MMAPED", attrs="red bold"))
+        if self.has_N_bit():
+            flags.append(Color.colorify("NON_MAIN_ARENA", attrs="red bold"))
+        return "|".join(flags)
+
     def __str__(self):
-        m = []
-        m.append(Color.colorify("FreeChunk", attrs="green bold underline") if not self.is_used() else Color.colorify("UsedChunk", attrs="red bold underline"))
-        m.append("(addr={:#x}, size={:#x})".format(long(self.addr),self.get_chunk_size()))
-        return "".join(m)
+        msg = "{:s}(addr={:#x}, size={:#x}, flags={:s})".format(Color.colorify("Chunk", attrs="yellow bold underline"),
+                                                                long(self.addr),self.get_chunk_size(), self.flags_as_string())
+        return msg
 
     def pprint(self):
         msg = []
