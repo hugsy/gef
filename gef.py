@@ -764,7 +764,7 @@ class GlibcChunk:
         if self.has_P_bit():
             flags.append(Color.colorify("PREV_INUSE", attrs="red bold"))
         if self.has_M_bit():
-            flags.append(Color.colorify("IS_MMAPED", attrs="red bold"))
+            flags.append(Color.colorify("IS_MMAPPED", attrs="red bold"))
         if self.has_N_bit():
             flags.append(Color.colorify("NON_MAIN_ARENA", attrs="red bold"))
         return "|".join(flags)
