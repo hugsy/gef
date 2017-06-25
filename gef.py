@@ -1942,15 +1942,21 @@ def experimental_feature(f):
     return wrapper
 
 
+def use_stdtype():
+    if   is_elf32(): return "uint32_t"
+    elif is_elf64(): return "uint64_t"
+    return "uint16_t"
+
+
+def use_default_type():
+    if   is_elf32(): return "unsigned int"
+    elif is_elf64(): return "unsigned long"
+    return "unsigned short"
+
+
 def to_unsigned_long(v):
     """Cast a gdb.Value to unsigned long."""
-    if is_elf32():
-        t = "uint32_t"
-    elif is_elf64():
-        t = "uint64_t"
-    else:
-        t = "uint16_t"
-    unsigned_long_t = cached_lookup_type(t)
+    unsigned_long_t = cached_lookup_type(use_stdtype()) or cached_lookup_type(use_default_type())
     return long(v.cast(unsigned_long_t))
 
 
@@ -2660,14 +2666,9 @@ def generate_cyclic_pattern(length):
 
 def dereference(addr):
     """GEF wrapper for gdb dereference function."""
+
     try:
-        if is_elf32():
-            t = "uint32_t"
-        elif is_elf64():
-            t = "uint64_t"
-        else:
-            t = "uint16_t"
-        ulong_t = cached_lookup_type(t)
+        ulong_t = cached_lookup_type(use_stdtype()) or cached_lookup_type(use_default_type())
         unsigned_long_type = ulong_t.pointer()
         ret = gdb.Value(addr).cast(unsigned_long_type).dereference()
     except gdb.MemoryError:
@@ -4331,7 +4332,7 @@ class UnicornEmulateCommand(GenericCommand):
         fname = get_filename()
 
         if to_script:
-            content += """#!/usr/bin/python2 -i
+            content += """#!/usr/bin/python -i
 #
 # Emulation script for '%s' from %#x to %#x3
 #
@@ -4444,7 +4445,7 @@ def reset():
                         with open(loc, "wb") as f:
                             f.write(bytes(code))
 
-                        content += "    emu.mem_write(%#x, open('%s', 'r').read())\n" % (page_start, loc)
+                        content += "    emu.mem_write(%#x, open('%s', 'rb').read())\n" % (page_start, loc)
                         content += "\n"
 
                     else:
