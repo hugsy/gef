@@ -3843,9 +3843,7 @@ class IdaInteractCommand(GenericCommand):
         return True
 
     def connect(self, host=None, port=None):
-        """
-        Connect to the XML-RPC service.
-        """
+        """Connect to the XML-RPC service."""
         host = host or self.get_setting("host")
         port = port or self.get_setting("port")
 
@@ -3930,9 +3928,7 @@ class IdaInteractCommand(GenericCommand):
 
     def synchronize(self):
         """Submit all active breakpoint addresses to IDA/BN"""
-
         pc = current_arch.pc
-
         vmmap = get_process_maps()
         base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
         end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
@@ -3958,7 +3954,7 @@ class IdaInteractCommand(GenericCommand):
 
         try:
             # it is possible that the server was stopped between now and the last sync
-            rc = self.sock.Sync(hex(pc-base_address).strip('L'), [list(added), list(removed)])
+            rc = self.sock.Sync("{:#x}".format(pc-base_address), [list(added), list(removed)])
         except ConnectionRefusedError:
             self.disconnect()
             return
@@ -3967,9 +3963,10 @@ class IdaInteractCommand(GenericCommand):
 
         # add new bp from IDA
         for new_bp in ida_added:
-            self.old_bps.add(base_address+new_bp)
-            gdb.Breakpoint("*{:#x}".format(new_bp+base_address), type=gdb.BP_BREAKPOINT)
-
+            location = base_address+new_bp
+            gdb.Breakpoint("*{:#x}".format(location), type=gdb.BP_BREAKPOINT)
+            self.old_bps.add(location)
+            
         # and remove the old ones
         breakpoints = gdb.breakpoints() or []
         for bp in breakpoints:
