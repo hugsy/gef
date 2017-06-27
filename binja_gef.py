@@ -20,14 +20,15 @@ If all went well, you will see something like
 """
 
 from binaryninja import *
-# from binaryninja.enums import MessageBoxButtonSet
 
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer, list_public_methods
 import threading, string, inspect, xmlrpclib
 
 HOST, PORT = "0.0.0.0", 1337
 DEBUG = True
-BP_HL_COLOR = 4
+HL_NO_COLOR = enums.HighlightStandardColor.NoHighlightColor
+HL_BP_COLOR = enums.HighlightStandardColor.RedHighlightColor
+HL_CUR_INSN_COLOR = enums.HighlightStandardColor.GreenHighlightColor
 
 started = False
 t = None
@@ -95,14 +96,6 @@ class Gef:
         return inspect.getdoc(f)
 
 
-    def get_function_by_addr(self, addr):
-        """
-        Retrieve a binaryninja.Function from its address, or None.
-        """
-        start_addr = self.view.get_previous_function_start_before(addr)
-        func = self.view.get_function_at(self.view.platform, start_addr)
-        return func
-
     @expose
     def shutdown(self):
         """ shutdown() => None
@@ -129,7 +122,7 @@ class Gef:
         Example: binaryninja Jump 0x4049de
         """
         addr = long(address, 16) if ishex(address) else long(address)
-        return self.view.navigate(self.view, addr)
+        return self.view.file.navigate(self.view.file.view, addr)
 
     @expose
     def MakeComm(self, address, comment):
@@ -138,22 +131,24 @@ class Gef:
         Example: binaryninja MakeComm 0x40000 "Important call here!"
         """
         addr = long(address, 16) if ishex(address) else long(address)
-        func = self.get_function_by_addr(addr)
+        func = self.view.get_function_at(addr)
         return func.set_comment(addr, comment)
 
     @expose
-    def SetColor(self, address, color='1'):
+    def SetColor(self, address, color='0xff0000'):
         """ SetColor(int addr [, int color]) => None
         Set the location pointed by `address` with `color`.
-        Example: binaryninja SetColor 4
+        Example: binaryninja SetColor 0xff0000
         """
         addr = long(address, 16) if ishex(address) else long(address)
         color = long(color, 16) if ishex(color) else long(color)
-        return highlight(self.view, addr, color)
+        R,G,B = (color >> 16)&0xff, (color >> 8)&0xff, (color&0xff)
+        color = highlight.HighlightColor(red=R, blue=G, green=B)
+        return hl(self.view, addr, color)
 
     @expose
     def Sync(self, pc, bps):
-        """ Sync(bps) => None
+        """ Sync(pc, bps) => None
         Synchronize debug info with gef. This is an internal function. It is
         not recommended using it from the command line.
         """
@@ -161,39 +156,40 @@ class Gef:
 
         # we use long() for pc because if using 64bits binaries might create
         # OverflowError for XML-RPC service
-        pc = long(pc)
+        entry = self.view.entry_point
+        pc = entry + long(pc)
+
+        if DEBUG: log_info("[*] current_pc=%#x , old_pc=%#x" % (pc, _current_instruction))
 
         # unhighlight the _current_instruction
         if _current_instruction > 0:
-            highlight(self.view, _current_instruction, 0)
-        highlight(self.view, pc, 2)
+            hl(self.view, _current_instruction, HL_NO_COLOR)
+        hl(self.view, pc, HL_CUR_INSN_COLOR)
 
         # update the _current_instruction
         _current_instruction = pc
 
         # check if all BP defined in gef exists in session, if not set it
         # this allows to re-sync in case IDA/BN was closed
-        for bp in bps:
-            if bp not in _breakpoints:
-                gef_add_breakpoint_to_list(self.view, bp)
-            highlight(self.view, bp, BP_HL_COLOR)
+        added, removed = bps
+        for bp in added:
+            gef_add_breakpoint_to_list(entry + bp)
 
-        # if new breakpoints were manually added, sync them with gef
-        _new = [ x for x in _breakpoints ]
-        return _new
+        for bp in removed:
+            gef_del_breakpoint_from_list(entry + bp)
+
+        return [list(added), list(removed)]
 
 
 class RequestHandler(SimpleXMLRPCRequestHandler):
     rpc_paths = ("/RPC2",)
 
 
-def highlight(bv, addr, color):
-    if DEBUG:
-        log_info("Trying to highlight %#x with color %d" % (addr, color))
-    start_addr = bv.get_previous_function_start_before(addr)
-    func = bv.get_function_at(bv.platform, start_addr)
-    if func is not None:
-        func.set_user_instr_highlight(func.arch, addr, color)
+def hl(bv, addr, color):
+    if DEBUG: log_info("[*] hl(%#x, %s)" % (addr, color))
+    func = bv.get_function_at(addr)
+    if func is None: return
+    func.set_user_instr_highlight(addr, color)
     return
 
 
@@ -207,8 +203,7 @@ def start_service(host, port, bv):
     server.register_instance(Gef(server, bv))
     log_info("[+] Registered {} functions.".format( len(server.system_listMethods()) ))
     while True:
-        if hasattr(server, "shutdown") and server.shutdown==True:
-            break
+        if hasattr(server, "shutdown") and server.shutdown==True: break
         server.handle_request()
     return
 
@@ -237,33 +232,33 @@ def gef_stop(bv):
 def gef_start_stop(bv):
     if t is None:
         gef_start(bv)
-        show_message_box("GEF", "Service successfully started, you can now have gef connect to it", MessageBoxButtonSet.OKButtonSet, MessageBoxIcon.InformationIcon)
+        show_message_box("GEF", "Service successfully started, you can now have gef connect to it",
+                         MessageBoxButtonSet.OKButtonSet, MessageBoxIcon.InformationIcon)
 
     else:
         cli = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(HOST, PORT))
         cli.shutdown()
         gef_stop(bv)
-        show_message_box("GEF", "Service successfully stopped", MessageBoxButtonSet.OKButtonSet, MessageBoxIcon.InformationIcon)
+        show_message_box("GEF", "Service successfully stopped", MessageBoxButtonSet.OKButtonSet,
+                         MessageBoxIcon.InformationIcon)
     return
 
 
 def gef_add_breakpoint_to_list(bv, addr):
     global  _breakpoints
+    if addr in _breakpoints: return
     _breakpoints.add(addr)
-    if DEBUG:
-        log_info("Breakpoint to %#x added to queue" % addr)
-    highlight(bv, addr, BP_HL_COLOR)
+    log_info("[+] Breakpoint %#x added" % addr)
+    hl(bv, addr, HL_BP_COLOR)
     return
 
 
 def gef_del_breakpoint_from_list(bv, addr):
     global _breakpoints
-    if addr not in _breakpoints:
-        return
+    if addr not in _breakpoints: return
     _breakpoints.discard(addr)
-    if DEBUG:
-        log_info("Breakpoint to %#x removed from queue" % addr)
-    highlight(bv, addr, 0)
+    log_info("[+] Breakpoint %#x removed" % addr)
+    hl(bv, addr, HL_NO_COLOR)
     return
 
 
