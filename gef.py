@@ -5487,7 +5487,7 @@ class AssembleCommand(GenericCommand):
 
         if (arch_s, mode_s) == (None, None):
             if is_alive():
-                arch_s, mode_s = get_arch(), ""
+                arch_s, mode_s = current_arch.arch, current_arch.mode
                 endian_s = "big" if is_big_endian() else "little"
                 arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=is_big_endian())
             else:
