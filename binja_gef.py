@@ -35,6 +35,7 @@ t = None
 _breakpoints = set()
 _current_instruction = 0
 
+PAGE_SZ = 0x1000
 
 def expose(f):
     "Decorator to set exposed flag on a function."
@@ -59,6 +60,7 @@ class Gef:
     def __init__(self, server, bv, *args, **kwargs):
         self.server = server
         self.view = bv
+        self.base = bv.entry_point & ~(PAGE_SZ-1)
         self._version = ("Binary Ninja", core_version)
         return
 
@@ -147,7 +149,7 @@ class Gef:
         return hl(self.view, addr, color)
 
     @expose
-    def Sync(self, pc, bps):
+    def Sync(self, off, bps):
         """ Sync(pc, bps) => None
         Synchronize debug info with gef. This is an internal function. It is
         not recommended using it from the command line.
@@ -156,9 +158,8 @@ class Gef:
 
         # we use long() for pc because if using 64bits binaries might create
         # OverflowError for XML-RPC service
-        pc = long(pc, 16) if ishex(pc) else long(pc)
-        entry = self.view.entry_point
-        pc = entry + pc
+        off = long(off, 16) if ishex(off) else long(off)
+        pc = self.base + off
         if DEBUG: log_info("[*] current_pc=%#x , old_pc=%#x" % (pc, _current_instruction))
 
         # unhighlight the _current_instruction
@@ -192,7 +193,8 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
 
 def hl(bv, addr, color):
     if DEBUG: log_info("[*] hl(%#x, %s)" % (addr, color))
-    func = bv.get_function_at(addr)
+    start_addr = bv.get_previous_function_start_before(addr)
+    func = bv.get_function_at(start_addr)
     if func is None: return
     func.set_user_instr_highlight(addr, color)
     return
