@@ -35,6 +35,7 @@ t = None
 _breakpoints = set()
 _current_instruction = 0
 
+PAGE_SZ = 0x1000
 
 def expose(f):
     "Decorator to set exposed flag on a function."
@@ -59,6 +60,7 @@ class Gef:
     def __init__(self, server, bv, *args, **kwargs):
         self.server = server
         self.view = bv
+        self.base = bv.entry_point & ~(PAGE_SZ-1)
         self._version = ("Binary Ninja", core_version)
         return
 
@@ -147,7 +149,7 @@ class Gef:
         return hl(self.view, addr, color)
 
     @expose
-    def Sync(self, pc, bps):
+    def Sync(self, off, bps):
         """ Sync(pc, bps) => None
         Synchronize debug info with gef. This is an internal function. It is
         not recommended using it from the command line.
@@ -156,9 +158,8 @@ class Gef:
 
         # we use long() for pc because if using 64bits binaries might create
         # OverflowError for XML-RPC service
-        pc = long(pc, 16) if ishex(pc) else long(pc)
-        entry = self.view.entry_point
-        pc = entry + pc
+        off = long(off, 16) if ishex(off) else long(off)
+        pc = self.base + off
         if DEBUG: log_info("[*] current_pc=%#x , old_pc=%#x" % (pc, _current_instruction))
 
         # unhighlight the _current_instruction
@@ -176,7 +177,7 @@ class Gef:
         if DEBUG: log_info("[*] sync-ing breakpoints: old=%s , added=%s , removed=%s" % (_breakpoints, added, removed))
         for bp in added:
             gef_add_breakpoint_to_list(entry + bp)
-            
+
         for bp in removed:
             gef_del_breakpoint_from_list(entry + bp)
 
@@ -184,7 +185,7 @@ class Gef:
         removed = old_bps - _breakpoints
         if DEBUG: log_info("[*] old breakpoints: old=%s , new=%s" % (old_bps, _breakpoints))
         return [list(added), list(removed)]
-    
+
 
 class RequestHandler(SimpleXMLRPCRequestHandler):
     rpc_paths = ("/RPC2",)
@@ -192,7 +193,8 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
 
 def hl(bv, addr, color):
     if DEBUG: log_info("[*] hl(%#x, %s)" % (addr, color))
-    func = bv.get_function_at(addr)
+    start_addr = bv.get_previous_function_start_before(addr)
+    func = bv.get_function_at(start_addr)
     if func is None: return
     func.set_user_instr_highlight(addr, color)
     return
