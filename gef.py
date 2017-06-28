@@ -3822,14 +3822,16 @@ class IdaInteractCommand(GenericCommand):
         host, port = "127.0.0.1", 1337
         self.add_setting("host", host, "IP address to use connect to IDA/Binary Ninja script")
         self.add_setting("port", port, "Port to use connect to IDA/Binary Ninja script")
+        self.add_setting("sync_cursor", False, "Enable real-time $pc synchronisation")
+
         self.sock = None
         self.version = ("", "")
         self.old_bps = set()
 
-        if self.is_target_alive(host, port):
-            # if the target responds, we add 2 new handlers to synchronize the
-            # info between gdb and ida/binja
-            self.connect()
+        # if self.is_target_alive(host, port):
+        #     # if the target responds, we add 2 new handlers to synchronize the
+        #     # info between gdb and ida/binja
+        #     self.connect()
         return
 
     def is_target_alive(self, host, port):
@@ -3881,7 +3883,7 @@ class IdaInteractCommand(GenericCommand):
             return args
 
         if self.sock is None:
-            warn("Trying to reconnect")
+            # trying to reconnect
             self.connect()
             if self.sock is None:
                 self.disconnect()
@@ -3912,7 +3914,7 @@ class IdaInteractCommand(GenericCommand):
             else:
                 res = method()
 
-            if res in (0,  None):
+            if res in (0, None):
                 ok("Success")
                 return
 
@@ -3920,6 +3922,11 @@ class IdaInteractCommand(GenericCommand):
                 self.import_structures(res)
             else:
                 print(res)
+
+            if self.get_setting("sync_cursor")==True:
+                self.synchronize()
+                jump = getattr(self.sock, "Jump")
+                jump(hex(current_arch.pc),)
 
         except socket.error:
             self.disconnect()
@@ -3975,13 +3982,14 @@ class IdaInteractCommand(GenericCommand):
                     addr = long(gdb.parse_and_eval(bp.location[1:]))
                 else: # it is a symbol
                     addr = long(gdb.parse_and_eval(bp.location).address)
+
                 if not (base_address <= addr < end_address):
                     continue
+
                 if (addr-base_address) in ida_removed:
                     if (addr-base_address) in self.old_bps:
                         self.old_bps.remove((addr-base_address))
-                    gdb.execute("delete break " + str(bp.number))
-
+                    bp.delete()
         return
 
 

@@ -133,7 +133,8 @@ class Gef:
         Example: binaryninja MakeComm 0x40000 "Important call here!"
         """
         addr = long(address, 16) if ishex(address) else long(address)
-        func = self.view.get_function_at(addr)
+        start_addr = self.view.get_previous_function_start_before(addr)
+        func = self.view.get_function_at(start_addr)
         return func.set_comment(addr, comment)
 
     @expose
@@ -183,7 +184,13 @@ class Gef:
 
         added = _breakpoints - old_bps
         removed = old_bps - _breakpoints
-        if DEBUG: log_info("[*] old breakpoints: old=%s , new=%s" % (old_bps, _breakpoints))
+
+        added = set([ loc-self.base for loc in added ])
+        removed = set([ loc-self.base for loc in removed ])
+        if DEBUG:
+            log_info("[*] gdb-add-breakpoints: %s" % (added,))
+            log_info("[*] gdb-del-breakpoints: %s" % (removed,))
+            log_info("[*] breakpoints: old=%s , new=%s" % (old_bps, _breakpoints))
         return [list(added), list(removed)]
 
 
@@ -246,8 +253,8 @@ def gef_start_stop(bv):
         cli = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(HOST, PORT))
         cli.shutdown()
         gef_stop(bv)
-        show_message_box("GEF", "Service successfully stopped", MessageBoxButtonSet.OKButtonSet,
-                         MessageBoxIcon.InformationIcon)
+        show_message_box("GEF", "Service successfully stopped",
+                         MessageBoxButtonSet.OKButtonSet, MessageBoxIcon.InformationIcon)
     return
 
 
