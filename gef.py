@@ -6584,9 +6584,17 @@ class VMMapCommand(GenericCommand):
         else:
             print("{:<23s} {:<23s} {:<23s} {:<4s} {:s}".format(*headers))
 
+        try:
+            address = long(gdb.parse_and_eval(argv[0]))
+        except:
+            address = None
+
         for entry in vmmap:
-            if argv and not argv[0] in entry.path:
+            if address:
+                if not (entry.page_start < address and entry.page_end > address):
                     continue
+            elif argv and not argv[0] in entry.path:
+                continue
             l = []
             l.append(format_address(entry.page_start))
             l.append(format_address(entry.page_end))
