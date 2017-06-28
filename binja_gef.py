@@ -72,7 +72,7 @@ class Gef:
             raise NotImplementedError('Method "%s" is not exposed' % method)
 
         if DEBUG:
-            print("Executing %s(%s)" % (method, params))
+            log_info("[+] Executing %s(%s)" % (method, params))
         return func(*params)
 
 
@@ -156,9 +156,9 @@ class Gef:
 
         # we use long() for pc because if using 64bits binaries might create
         # OverflowError for XML-RPC service
+        pc = long(pc, 16) if ishex(pc) else long(pc)
         entry = self.view.entry_point
-        pc = entry + long(pc)
-
+        pc = entry + pc
         if DEBUG: log_info("[*] current_pc=%#x , old_pc=%#x" % (pc, _current_instruction))
 
         # unhighlight the _current_instruction
@@ -171,13 +171,18 @@ class Gef:
 
         # check if all BP defined in gef exists in session, if not set it
         # this allows to re-sync in case IDA/BN was closed
-        added, removed = bps
+        added, removed = set(bps[0]), set(bps[1])
+        old_bps = set(_breakpoints)
+        if DEBUG: log_info("[*] sync-ing breakpoints: old=%s , added=%s , removed=%s" % (_breakpoints, added, removed))
         for bp in added:
             gef_add_breakpoint_to_list(entry + bp)
 
         for bp in removed:
             gef_del_breakpoint_from_list(entry + bp)
 
+        added = _breakpoints - old_bps
+        removed = old_bps - _breakpoints
+        if DEBUG: log_info("[*] old breakpoints: old=%s , new=%s" % (old_bps, _breakpoints))
         return [list(added), list(removed)]
 
 
@@ -246,20 +251,20 @@ def gef_start_stop(bv):
 
 def gef_add_breakpoint_to_list(bv, addr):
     global  _breakpoints
-    if addr in _breakpoints: return
+    if addr in _breakpoints: return False
     _breakpoints.add(addr)
     log_info("[+] Breakpoint %#x added" % addr)
     hl(bv, addr, HL_BP_COLOR)
-    return
+    return True
 
 
 def gef_del_breakpoint_from_list(bv, addr):
     global _breakpoints
-    if addr not in _breakpoints: return
+    if addr not in _breakpoints: return False
     _breakpoints.discard(addr)
     log_info("[+] Breakpoint %#x removed" % addr)
     hl(bv, addr, HL_NO_COLOR)
-    return
+    return True
 
 
 def create_binja_menu():
