@@ -3905,28 +3905,28 @@ class IdaInteractCommand(GenericCommand):
 
             elif method_name == "Sync":
                 self.synchronize()
-                return
+                res = 0
 
-            method = getattr(self.sock, method_name)
-            if len(argv) > 1:
-                args = parsed_arglist(argv[1:])
-                res = method(*args)
             else:
-                res = method()
+                method = getattr(self.sock, method_name)
+                if len(argv) > 1:
+                    args = parsed_arglist(argv[1:])
+                    res = method(*args)
+                else:
+                    res = method()
+
+                if method_name in ("ImportStruct", "ImportStructs"):
+                    self.import_structures(res)
+                else:
+                    print(res)
+
+            if self.get_setting("sync_cursor")==True:
+                jump = getattr(self.sock, "Jump")
+                jump(hex(current_arch.pc),)
 
             if res in (0, None):
                 ok("Success")
                 return
-
-            if method_name in ("ImportStruct", "ImportStructs"):
-                self.import_structures(res)
-            else:
-                print(res)
-
-            if self.get_setting("sync_cursor")==True:
-                self.synchronize()
-                jump = getattr(self.sock, "Jump")
-                jump(hex(current_arch.pc),)
 
         except socket.error:
             self.disconnect()
