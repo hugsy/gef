@@ -1,51 +1,51 @@
 site_name: GEF - GDB Enhanced Features documentation
 theme: readthedocs
 pages:
-- [index.md, Home]
-- [config.md, Configuration]
-- [faq.md, Frequently Asked Questions]
-- [api.md, Extending GEF]
-- [commands.md, Features]
-- [commands/aliases.md, Command aliases]
-- [commands/aslr.md, Command aslr]
-- [commands/assemble.md, Command assemble]
-- [commands/canary.md, Command canary]
-- [commands/capstone-disassemble.md, Command capstone-disassemble]
-- [commands/checksec.md, Command checksec]
-- [commands/config.md, Command config]
-- [commands/context.md, Command context]
-- [commands/dereference.md, Command dereference]
-- [commands/edit-flags.md, Command edit-flags]
-- [commands/elf-info.md, Command elf-info]
-- [commands/entry-break.md, Command entry-break]
-- [commands/format-string-helper.md, Command format-string-helper]
-- [commands/gef-remote.md, Command gef-remote]
-- [commands/heap.md, Command heap]
-- [commands/heap-analysis-helper.md, Command heap-analysis-helper]
-- [commands/help.md, Command help]
-- [commands/hexdump.md, Command hexdump]
-- [commands/hijack-fd.md, Command hijack-fd]
-- [commands/ida-interact.md, Command ida-interact]
-- [commands/ksymaddr.md, Command ksymaddr]
-- [commands/nop.md, Command nop]
-- [commands/patch.md, Command patch]
-- [commands/pattern.md, Command pattern]
-- [commands/pcustom.md, Command pcustom]
-- [commands/process-status.md, Command process-status]
-- [commands/process-search.md, Command process-search]
-- [commands/registers.md, Command registers]
-- [commands/reset-cache.md, Command reset-cache]
-- [commands/retdec.md, Command retdec]
-- [commands/ropper.md, Command ropper]
-- [commands/search-pattern.md, Command search-pattern]
-- [commands/set-permission.md, Command set-permission]
-- [commands/shellcode.md, Command shellcode]
-- [commands/stub.md, Command stub]
-- [commands/theme.md, Command theme]
-- [commands/tmux-setup.md, Command tmux-setup]
-- [commands/trace-run.md, Command trace-run]
-- [commands/unicorn-emulate.md, Command unicorn-emulate]
-- [commands/vmmap.md, Command vmmap]
-- [commands/xfiles.md, Command xfiles]
-- [commands/xinfo.md, Command xinfo]
-- [commands/xor-memory.md, Command xor-memory]
+- Home: index.md
+- Configuration: config.md
+- Frequently Asked Questions: faq.md
+- Extending GEF: api.md
+- Features: commands.md
+- Command aliases: commands/aliases.md
+- Command aslr: commands/aslr.md
+- Command assemble: commands/assemble.md
+- Command canary: commands/canary.md
+- Command capstone-disassemble: commands/capstone-disassemble.md
+- Command checksec: commands/checksec.md
+- Command config: commands/config.md
+- Command context: commands/context.md
+- Command dereference: commands/dereference.md
+- Command edit-flags: commands/edit-flags.md
+- Command elf-info: commands/elf-info.md
+- Command entry-break: commands/entry-break.md
+- Command format-string-helper: commands/format-string-helper.md
+- Command gef-remote: commands/gef-remote.md
+- Command heap: commands/heap.md
+- Command heap-analysis-helper: commands/heap-analysis-helper.md
+- Command help: commands/help.md
+- Command hexdump: commands/hexdump.md
+- Command hijack-fd: commands/hijack-fd.md
+- Command ida-interact: commands/ida-interact.md
+- Command ksymaddr: commands/ksymaddr.md
+- Command nop: commands/nop.md
+- Command patch: commands/patch.md
+- Command pattern: commands/pattern.md
+- Command pcustom: commands/pcustom.md
+- Command process-status: commands/process-status.md
+- Command process-search: commands/process-search.md
+- Command registers: commands/registers.md
+- Command reset-cache: commands/reset-cache.md
+- Command retdec: commands/retdec.md
+- Command ropper: commands/ropper.md
+- Command search-pattern: commands/search-pattern.md
+- Command set-permission: commands/set-permission.md
+- Command shellcode: commands/shellcode.md
+- Command stub: commands/stub.md
+- Command theme: commands/theme.md
+- Command tmux-setup: commands/tmux-setup.md
+- Command trace-run: commands/trace-run.md
+- Command unicorn-emulate: commands/unicorn-emulate.md
+- Command vmmap: commands/vmmap.md
+- Command xfiles: commands/xfiles.md
+- Command xinfo: commands/xinfo.md
+- Command xor-memory: commands/xor-memory.md
