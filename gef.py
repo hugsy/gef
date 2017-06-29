@@ -3827,11 +3827,6 @@ class IdaInteractCommand(GenericCommand):
         self.sock = None
         self.version = ("", "")
         self.old_bps = set()
-
-        # if self.is_target_alive(host, port):
-        #     # if the target responds, we add 2 new handlers to synchronize the
-        #     # info between gdb and ida/binja
-        #     self.connect()
         return
 
     def is_target_alive(self, host, port):
@@ -3961,7 +3956,7 @@ class IdaInteractCommand(GenericCommand):
 
         try:
             # it is possible that the server was stopped between now and the last sync
-            rc = self.sock.Sync("{:#x}".format(pc-base_address), [list(added), list(removed)])
+            rc = self.sock.Sync("{:#x}".format(pc-base_address), list(added), list(removed))
         except ConnectionRefusedError:
             self.disconnect()
             return

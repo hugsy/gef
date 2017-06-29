@@ -22,7 +22,7 @@ If all went well, you will see something like
 from binaryninja import *
 
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer, list_public_methods
-import threading, string, inspect, xmlrpclib
+import threading, string, inspect, xmlrpclib, copy
 
 HOST, PORT = "0.0.0.0", 1337
 DEBUG = True
@@ -62,6 +62,7 @@ class Gef:
         self.view = bv
         self.base = bv.entry_point & ~(PAGE_SZ-1)
         self._version = ("Binary Ninja", core_version)
+        self.old_bps = set()
         return
 
 
@@ -150,7 +151,7 @@ class Gef:
         return hl(self.view, addr, color)
 
     @expose
-    def Sync(self, off, bps):
+    def Sync(self, off, added, removed):
         """ Sync(pc, bps) => None
         Synchronize debug info with gef. This is an internal function. It is
         not recommended using it from the command line.
@@ -171,27 +172,27 @@ class Gef:
         # update the _current_instruction
         _current_instruction = pc
 
-        # check if all BP defined in gef exists in session, if not set it
-        # this allows to re-sync in case IDA/BN was closed
-        added, removed = set(bps[0]), set(bps[1])
-        old_bps = set(_breakpoints)
-        if DEBUG: log_info("[*] sync-ing breakpoints: old=%s , added=%s , removed=%s" % (_breakpoints, added, removed))
+        if DEBUG:
+            log_info("[*] pre-gdb-add-breakpoints: %s" % (added,))
+            log_info("[*] pre-gdb-del-breakpoints: %s" % (removed,))
+            log_info("[*] pre-binja-breakpoints: %s" % (_breakpoints))
+
+        bn_added = [ x-self.base for x in _breakpoints if x not in self.old_bps ]
+        bn_removed = [ x-self.base for x in self.old_bps if x not in _breakpoints ]
+            
         for bp in added:
-            gef_add_breakpoint_to_list(entry + bp)
+            gef_add_breakpoint_to_list(self.view, self.base + bp)
 
         for bp in removed:
-            gef_del_breakpoint_from_list(entry + bp)
+            gef_del_breakpoint_from_list(self.view, self.base + bp)
 
-        added = _breakpoints - old_bps
-        removed = old_bps - _breakpoints
+        self.old_bps = copy.deepcopy(_breakpoints)
 
-        added = set([ loc-self.base for loc in added ])
-        removed = set([ loc-self.base for loc in removed ])
         if DEBUG:
-            log_info("[*] gdb-add-breakpoints: %s" % (added,))
-            log_info("[*] gdb-del-breakpoints: %s" % (removed,))
-            log_info("[*] breakpoints: old=%s , new=%s" % (old_bps, _breakpoints))
-        return [list(added), list(removed)]
+            log_info("[*] post-gdb-add-breakpoints: %s" % (bn_added,))
+            log_info("[*] post-gdb-del-breakpoints: %s" % (bn_removed,))
+            log_info("[*] post-binja-breakpoints: %s" % (_breakpoints,))
+        return [bn_added, bn_removed]
 
 
 class RequestHandler(SimpleXMLRPCRequestHandler):
