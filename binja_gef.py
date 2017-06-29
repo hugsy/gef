@@ -152,7 +152,7 @@ class Gef:
 
     @expose
     def Sync(self, off, added, removed):
-        """ Sync(pc, bps) => None
+        """ Sync(off, added, removed) => None
         Synchronize debug info with gef. This is an internal function. It is
         not recommended using it from the command line.
         """

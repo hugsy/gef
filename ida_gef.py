@@ -192,8 +192,8 @@ class Gef:
         return res
 
     @expose
-    def Sync(self, offset, arg):
-        """ Sync(offset, arg) => None
+    def Sync(self, offset, added, removed):
+        """ Sync(offset, added, removed) => None
         Synchronize debug info with gef. This is an internal function. It is
         not recommended using it from the command line.
         """
@@ -217,7 +217,6 @@ class Gef:
         _breakpoints = cur_bps
 
         # update bp from gdb
-        added, removed = arg
         for bp in added:
             idc.AddBpt(base_addr+bp)
             _breakpoints.add(bp)
