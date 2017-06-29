@@ -251,8 +251,11 @@ def gef_start_stop(bv):
                          MessageBoxButtonSet.OKButtonSet, MessageBoxIcon.InformationIcon)
 
     else:
-        cli = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(HOST, PORT))
-        cli.shutdown()
+        try:
+            cli = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(HOST, PORT))
+            cli.shutdown()
+        except socket.error:
+            pass
         gef_stop(bv)
         show_message_box("GEF", "Service successfully stopped",
                          MessageBoxButtonSet.OKButtonSet, MessageBoxIcon.InformationIcon)
