@@ -3658,7 +3658,10 @@ class RetDecCommand(GenericCommand):
             __import__("retdec")
             __import__("retdec.decompiler")
         except ImportError:
-            msg = "Missing `retdec-python` package for Python{0}, install with: `pip{0} install retdec-python`.".format(PYTHON_MAJOR)
+            if PYTHON_MAJOR==2:
+                msg = "Package `retdec-python` is not supported on Python2. See https://github.com/s3rvac/retdec-python#requirements"
+            else:
+                msg = "Missing `retdec-python` package for Python{0}, install with: `pip{0} install retdec-python`.".format(PYTHON_MAJOR)
             raise ImportWarning(msg)
         return
 

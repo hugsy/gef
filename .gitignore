@@ -55,3 +55,4 @@ target/
 site
 tests/binstests/pylint.html
 tests/pylint.html
+tests/pylint3.html
