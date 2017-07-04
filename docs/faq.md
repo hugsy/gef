@@ -161,7 +161,7 @@ thorough description of your bug and copy/paste the content from above. This
 will greatly help for solving the issue.
 
 
-## I get weird characters using GDB + Python3, what's up? ##
+## I get weird issues/characters using GDB + Python3, what's up? ##
 
 Chances are you are not using UTF-8. Python3
 is [highly relying on UTF-8](http://www.diveintopython3.net/strings.html) to
@@ -169,5 +169,12 @@ display correctly characters of any alphabet
 and
 [also some cool emojis](http://unicode.org/emoji/charts/full-emoji-list.html). When
 GDB is compiled with Python3, GEF will assume that your current charset is UTF-8
-(for instance, `en_ca.UTF-8`). Use your `$LANG` environment variable to tweak
+(for instance, `en_US.UTF-8`). Use your `$LANG` environment variable to tweak
 this setting.
+
+In addition, some unexpected results were observed when your local is not set to
+English. If you aren't sure, simply run `gdb` like this:
+
+```
+$ LC_ALL=en_US.UTF-8 gdb /path/to/your/binary
+```
