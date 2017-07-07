@@ -334,7 +334,7 @@ class Color:
     @staticmethod
     def colorify(text, attrs):
         """Color a text following the given attributes."""
-        do_disable = __config__.get("theme.disable_color", False)
+        do_disable = __config__.get("gef.disable_color", False)
         do_disable = do_disable[0] if do_disable else False
         if do_disable: return text
 
@@ -3372,7 +3372,6 @@ class GefThemeCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(GefThemeCommand, self).__init__(GefThemeCommand._cmdline_, prefix=False)
-        self.add_setting("disable_color", False, "Disable all colors in GEF")
         self.add_setting("context_title_line", "green bold")
         self.add_setting("context_title_message", "red bold")
         self.add_setting("default_title_line", "green bold")
@@ -7196,6 +7195,7 @@ class GefCommand(gdb.Command):
         set_gef_setting("gef.debug", False, bool, "Enable debug mode for gef")
         set_gef_setting("gef.autosave_breakpoints_file", "", str, "Automatically save and restore breakpoints")
         set_gef_setting("gef.extra_plugins_dir", "", str, "Autoload additional GEF commands from external directory")
+        self.add_setting("disable_color", False, "Disable all colors in GEF")
 
         self.loaded_commands = []
         self.missing_commands = {}
