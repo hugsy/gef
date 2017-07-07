@@ -3373,16 +3373,16 @@ class GefThemeCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(GefThemeCommand, self).__init__(GefThemeCommand._cmdline_, prefix=False)
-        self.add_setting("context_title_line", "green bold")
-        self.add_setting("context_title_message", "red bold")
-        self.add_setting("default_title_line", "green bold")
-        self.add_setting("default_title_message", "red bold")
-        self.add_setting("xinfo_title_message", "blue bold")
-        self.add_setting("dereference_string", "green")
-        self.add_setting("dereference_code", "red")
-        self.add_setting("dereference_base_address", "bold green")
-        self.add_setting("dereference_register_value", "bold green")
-        self.add_setting("registers_register_name", "bold red")
+        self.add_setting("context_title_line", "green bold", "Color of the borders in context window")
+        self.add_setting("context_title_message", "red bold", "Color of the title in context window")
+        self.add_setting("default_title_line", "green bold", "Default color of borders")
+        self.add_setting("default_title_message", "red bold", "Default color of title")
+        self.add_setting("xinfo_title_message", "blue bold", "Color of the title in xinfo window")
+        self.add_setting("dereference_string", "green", "Color of dereferenced string")
+        self.add_setting("dereference_code", "red", "Color of dereferenced code")
+        self.add_setting("dereference_base_address", "bold green", "Color of dereferenced address")
+        self.add_setting("dereference_register_value", "bold green" , "Color of dereferenced register")
+        self.add_setting("registers_register_name", "bold red", "Color of the changed register in register window")
         return
 
     def do_invoke(self, args):
