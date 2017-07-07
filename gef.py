@@ -965,20 +965,21 @@ def get_gef_setting(name):
 
 
 def set_gef_setting(name, value, _type=None, _desc=None):
-    """Set globally gef settings. Raise ValueError if not existing."""
+    """Set globally gef settings. Raise ValueError if `name` doesn't exist and `type` and `desc`
+    are not provided."""
     global __config__
-    key = __config__.get(name, None)
-    if not key:
-        if _type is None:
-            raise ValueError("Setting '{}' is missing".format(name))
-        __config__[name] = [None, None, None]
 
-    func = __config__[name][1] if key else _type
+    if name not in __config__:
+        # setting creation
+        if _type is None or _desc is None:
+            raise ValueError("Setting '{}' is undefined, need to provide type and description".format(name))
+        __config__[name] = [_type(value), _type, _desc]
+        return
+
+    # setting value affectation
+    func = __config__[name][1]
     __config__[name][0] = func(value)
     __config__[name][1] = func
-
-    if _desc:
-        __config__[name][2] = _desc
     return
 
 
@@ -7195,7 +7196,7 @@ class GefCommand(gdb.Command):
         set_gef_setting("gef.debug", False, bool, "Enable debug mode for gef")
         set_gef_setting("gef.autosave_breakpoints_file", "", str, "Automatically save and restore breakpoints")
         set_gef_setting("gef.extra_plugins_dir", "", str, "Autoload additional GEF commands from external directory")
-        set_gef_setting("gef.disable_color", False, "Disable all colors in GEF")
+        set_gef_setting("gef.disable_color", False, bool, "Disable all colors in GEF")
 
         self.loaded_commands = []
         self.missing_commands = {}
@@ -7760,7 +7761,7 @@ class GefTmuxSetup(gdb.Command):
 
 def __gef_prompt__(current_prompt):
     """GEF custom prompt function."""
-    if __config__.get("gef.readline_compat")[0]: return gef_prompt
+    if get_gef_setting("gef.readline_compat")==True: return gef_prompt
     if is_alive(): return gef_prompt_on
     return gef_prompt_off
 
