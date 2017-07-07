@@ -7195,7 +7195,7 @@ class GefCommand(gdb.Command):
         set_gef_setting("gef.debug", False, bool, "Enable debug mode for gef")
         set_gef_setting("gef.autosave_breakpoints_file", "", str, "Automatically save and restore breakpoints")
         set_gef_setting("gef.extra_plugins_dir", "", str, "Autoload additional GEF commands from external directory")
-        self.add_setting("disable_color", False, "Disable all colors in GEF")
+        set_gef_setting("gef.disable_color", False, "Disable all colors in GEF")
 
         self.loaded_commands = []
         self.missing_commands = {}
