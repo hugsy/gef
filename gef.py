@@ -927,14 +927,15 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
             result.append(hexa)
         else:
             align = get_memory_alignment()*2+2 if is_alive() else 18
-            result.append("{addr:#0{aw}x}     {data:<{dw}}    {text}".format(aw=align, addr=base+i, dw=3*length, data=hexa, text=text))
-
+            result.append("{addr:#0{aw}x}     {data:<{dw}}    {text}".format(aw=align, addr=base+i,
+                                                                             dw=3*length, data=hexa,
+                                                                             text=text))
     return "\n".join(result)
 
 
 def is_debug():
     """Checks if debug mode is enabled."""
-    return __config__.get("gef.debug", False) and __config__["gef.debug"][0] is True
+    return get_gef_setting("gef.debug") == True
 
 
 def enable_redirect_output(to_file="/dev/null"):
@@ -7267,7 +7268,6 @@ class GefCommand(gdb.Command):
         """Load all the commands defined by GEF into GDB.
         """
         nb_missing = 0
-
         self.commands = [(x._cmdline_, x) for x in __commands__]
 
         def is_loaded(x):
@@ -7303,9 +7303,9 @@ class GefCommand(gdb.Command):
                                                                                       Color.colorify(gdb.VERSION, attrs="bold yellow"),
                                                                                       Color.colorify(ver, attrs="bold red")))
 
-        if nb_missing:
-            warn("{:s} commands could not be loaded, run `{:s}` to know why.".format(Color.colorify(str(nb_missing), attrs="bold red"),
-                                                                                     Color.colorify("gef missing", attrs="underline pink")))
+            if nb_missing:
+                warn("{:s} commands could not be loaded, run `{:s}` to know why.".format(Color.colorify(str(nb_missing), attrs="bold red"),
+                                                                                         Color.colorify("gef missing", attrs="underline pink")))
         return
 
 
