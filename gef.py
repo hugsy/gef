@@ -6871,7 +6871,7 @@ class PatternCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(PatternCommand, self).__init__()
-        self.add_setting("length", 1024, "Initial length of a cyclic buffer to generate")
+        self.add_setting("length", 10*1024, "Initial length of a cyclic buffer to generate")
         return
 
     def do_invoke(self, argv):
@@ -6953,9 +6953,16 @@ class PatternSearchCommand(GenericCommand):
             else:
                 pattern_be = struct.pack(">Q", addr)
                 pattern_le = struct.pack("<Q", addr)
+
         except gdb.error as e:
-            err("Incorrect pattern '{:s}': {:s}".format(repr(pattern), str(e)))
-            return
+            # if the register is already string
+            val = binascii.unhexlify("{:x}".format(long(addr)))
+            if all([0x20 <= c < 0x7f for c in val]):
+                pattern_be = val
+                pattern_le = val[::-1]
+            else:
+                err("Incorrect pattern '{:s}': {:s}".format(repr(pattern), str(e)))
+                return
 
         buf = generate_cyclic_pattern(size)
         found = False
@@ -6970,7 +6977,7 @@ class PatternSearchCommand(GenericCommand):
             found = True
 
         if not found:
-            err("Pattern not found")
+            err("Pattern '{}' not found".format(addr))
         return
 
 
