@@ -7793,6 +7793,7 @@ if __name__  == "__main__":
         gdb.execute("set verbose off")
         gdb.execute("set height 0")
         gdb.execute("set width 0")
+        gdb.execute("set pagination off")
         gdb.execute("set step-mode on")
 
         # gdb history
