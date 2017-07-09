@@ -179,7 +179,7 @@ class Gef:
 
         bn_added = [ x-self.base for x in _breakpoints if x not in self.old_bps ]
         bn_removed = [ x-self.base for x in self.old_bps if x not in _breakpoints ]
-            
+
         for bp in added:
             gef_add_breakpoint_to_list(self.view, self.base + bp)
 

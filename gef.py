@@ -3875,6 +3875,10 @@ class IdaInteractCommand(GenericCommand):
                     argval.fetch_lazy()
                     # check if value is addressable
                     argval = long(argval) if argval.address is None else long(argval.address)
+                    # if the bin is PIE, we need to substract the base address
+                    is_pie = checksec(get_filepath())["PIE"]
+                    if is_pie and main_base_address <= argval < main_end_address:
+                        argval -= main_base_address
                     args.append("{:#x}".format(argval,))
                 except Exception:
                     # if gdb can't parse the value, let ida deal with it
@@ -3892,6 +3896,12 @@ class IdaInteractCommand(GenericCommand):
             method_name = argv[1] if len(argv)>1 else None
             self.usage(method_name)
             return
+
+        vmmap = get_process_maps()
+        main_base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
+        main_end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
+
+        is_pie = checksec(get_filepath())["PIE"]
 
         try:
             method_name = argv[0]
