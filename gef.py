@@ -7769,7 +7769,6 @@ class GefTmuxSetup(gdb.Command):
             pty = f.read().strip()
         ok("Setting `context.redirect` to '{}'...".format(pty))
         gdb.execute("gef config context.redirect {}".format(pty))
-        gdb.execute("set height 0")
         ok("Done!")
         os.unlink(script_path)
         os.unlink(tty_path)
@@ -7801,8 +7800,6 @@ if __name__  == "__main__":
         # setup config
         gdb.execute("set confirm off")
         gdb.execute("set verbose off")
-        gdb.execute("set height 0")
-        gdb.execute("set width 0")
         gdb.execute("set pagination off")
         gdb.execute("set step-mode on")
 
