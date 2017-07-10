@@ -3897,25 +3897,26 @@ class IdaInteractCommand(GenericCommand):
             self.usage(method_name)
             return
 
-        vmmap = get_process_maps()
-        main_base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
-        main_end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
+        method_name = argv[0]
+        if method_name == "version":
+            self.version = self.sock.version()
+            info("Enhancing {:s} with {:s} (v.{:s})".format(Color.greenify("gef"),
+                                                             Color.redify(self.version[0]),
+                                                             Color.yellowify(self.version[1])))
+            return
 
-        is_pie = checksec(get_filepath())["PIE"]
+        if not is_alive():
+            main_base_address = main_end_address = 0
+            is_pie = False
+        else:
+            vmmap = get_process_maps()
+            main_base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
+            main_end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
+            is_pie = checksec(get_filepath())["PIE"]
 
         try:
-            method_name = argv[0]
-            if method_name == "version":
-                self.version = self.sock.version()
-                info("Enhancing {:s} with {:s} (v.{:s})".format(Color.greenify("gef"),
-                                                                 Color.redify(self.version[0]),
-                                                                 Color.yellowify(self.version[1])))
-                return
-
-            elif method_name == "Sync":
+            if method_name == "Sync":
                 self.synchronize()
-                res = 0
-
             else:
                 method = getattr(self.sock, method_name)
                 if len(argv) > 1:
@@ -3931,11 +3932,7 @@ class IdaInteractCommand(GenericCommand):
 
             if self.get_setting("sync_cursor")==True:
                 jump = getattr(self.sock, "Jump")
-                jump(hex(current_arch.pc),)
-
-            if res in (0, None):
-                ok("Success")
-                return
+                jump(hex(current_arch.pc-main_base_address),)
 
         except socket.error:
             self.disconnect()

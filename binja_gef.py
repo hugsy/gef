@@ -142,7 +142,7 @@ class Gef:
     def SetColor(self, address, color='0xff0000'):
         """ SetColor(int addr [, int color]) => None
         Set the location pointed by `address` with `color`.
-        Example: binaryninja SetColor 0xff0000
+        Example: binaryninja SetColor 0x40000 0xff0000
         """
         addr = long(address, 16) if ishex(address) else long(address)
         color = long(color, 16) if ishex(color) else long(color)
