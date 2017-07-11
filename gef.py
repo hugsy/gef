@@ -2709,6 +2709,37 @@ def gef_read_canary():
     return None
 
 
+def only_if_events_supported(event_type):
+    """Checks if GDB supports events without crashing."""
+    def wrap(f):
+        def wrapped_f(*args, **kwargs):
+            if getattr(gdb, "events") and getattr(gdb.events, event_type):
+                return f(*args, **kwargs)
+            warn("GDB events cannot be set")
+        return wrapped_f
+    return wrap
+
+@only_if_events_supported("cont")
+def gef_on_continue_hook(func): return gdb.events.cont.connect(func)
+@only_if_events_supported("cont")
+def gef_on_continue_unhook(func): return gdb.events.cont.disconnect(func)
+
+@only_if_events_supported("stop")
+def gef_on_stop_hook(func): return gdb.events.stop.connect(func)
+@only_if_events_supported("stop")
+def gef_on_stop_unhook(func): return gdb.events.stop.disconnect(func)
+
+@only_if_events_supported("exited")
+def gef_on_exit_hook(func): return gdb.events.exited.connect(func)
+@only_if_events_supported("exited")
+def gef_on_exit_unhook(func): return gdb.events.exited.disconnect(func)
+
+@only_if_events_supported("new_objfile")
+def gef_on_new_hook(func): return gdb.events.new_objfile.connect(func)
+@only_if_events_supported("new_objfile")
+def gef_on_new_unhook(func): return gdb.events.new_objfile.disconnect(func)
+
+
 #
 # Breakpoints
 #
@@ -3850,8 +3881,8 @@ class IdaInteractCommand(GenericCommand):
 
         try:
             sock = xmlrpclib.ServerProxy("http://{:s}:{:d}".format(host, port))
-            gdb.events.stop.connect(ida_synchronize_handler)
-            gdb.events.cont.connect(ida_synchronize_handler)
+            gef_on_stop_hook(ida_synchronize_handler)
+            gef_on_continue_hook(ida_synchronize_handler)
             self.version = sock.version()
         except ConnectionRefusedError:
             err("Failed to connect to '{:s}:{:d}'".format(host, port))
@@ -3860,8 +3891,8 @@ class IdaInteractCommand(GenericCommand):
         return
 
     def disconnect(self):
-        gdb.events.stop.disconnect(ida_synchronize_handler)
-        gdb.events.cont.disconnect(ida_synchronize_handler)
+        gef_on_stop_unhook(ida_synchronize_handler)
+        gef_on_continue_unhook(ida_synchronize_handler)
         self.sock = None
         return
 
@@ -4608,7 +4639,7 @@ class RemoteCommand(GenericCommand):
 
         # lazily install handler on first use
         if not self.handler_connected:
-            gdb.events.new_objfile.connect(self.new_objfile_handler)
+            gef_on_new_hook(self.new_objfile_handler)
             self.handler_connected = True
 
         target = args[0]
@@ -5805,8 +5836,8 @@ class ContextCommand(GenericCommand):
         return
 
     def post_load(self):
-        gdb.events.cont.connect(self.update_registers)
-        gdb.events.cont.connect(self.empty_extra_messages)
+        gef_on_continue_hook(self.update_registers)
+        gef_on_continue_hook(self.empty_extra_messages)
         return
 
     @only_if_gdb_running
@@ -7126,7 +7157,7 @@ class HeapAnalysisCommand(GenericCommand):
         warn("{}: The heap analysis slows down noticeably the execution. ".format(Color.colorify("Note", attrs="bold underline yellow")))
 
         # when inferior quits, we need to clean everything for a next execution
-        gdb.events.exited.connect(self.clean)
+        gef_on_exit_hook(self.clean)
         return
 
     def dump_tracked_allocations(self):
@@ -7167,7 +7198,7 @@ class HeapAnalysisCommand(GenericCommand):
         ok("{} - Re-enabling hardware watchpoints".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),))
         gdb.execute("set can-use-hw-watchpoints 1")
 
-        gdb.events.exited.disconnect(self.clean)
+        gef_on_exit_unhook(self.clean)
         return
 
 
@@ -7829,10 +7860,10 @@ if __name__  == "__main__":
         __gef__.setup()
 
         # gdb events configuration
-        gdb.events.cont.connect(continue_handler)
-        gdb.events.stop.connect(hook_stop_handler)
-        gdb.events.new_objfile.connect(new_objfile_handler)
-        gdb.events.exited.connect(exit_handler)
+        gef_on_continue_hook(continue_handler)
+        gef_on_stop_hook(hook_stop_handler)
+        gef_on_new_hook(new_objfile_handler)
+        gef_on_exit_hook(exit_handler)
 
         GefAliases()
         GefTmuxSetup()
