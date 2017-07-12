@@ -3110,7 +3110,7 @@ class GenericCommand(gdb.Command):
         self.__doc__  += "\nSyntax: {}".format(self._syntax_)
         command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
         complete_type = kwargs.setdefault("complete", gdb.COMPLETE_NONE)
-        prefix = kwargs.setdefault("prefix", True)
+        prefix = kwargs.setdefault("prefix", False)
         super(GenericCommand, self).__init__(self._cmdline_, command_type, complete_type, prefix)
         self.post_load()
         return
@@ -4967,16 +4967,17 @@ class GlibcHeapCommand(GenericCommand):
     _cmdline_ = "heap"
     _syntax_  = "{:s} (chunk|bins|arenas)".format(_cmdline_)
 
+    def __init__(self):
+        super(GlibcHeapCommand, self).__init__(prefix=True)
+        return
+
+
 @register_command
 class GlibcHeapArenaCommand(GenericCommand):
     """Display information on a heap chunk."""
 
     _cmdline_ = "heap arenas"
     _syntax_  = _cmdline_
-
-    def __init__(self):
-        super(GlibcHeapArenaCommand, self).__init__(prefix=False)
-        return
 
     @only_if_gdb_running
     def do_invoke(self, argv):
@@ -5028,6 +5029,10 @@ class GlibcHeapBinsCommand(GenericCommand):
     _bins_type_ = ["fast", "unsorted", "small", "large"]
     _cmdline_ = "heap bins"
     _syntax_ = "{:s} [{:s}]".format(_cmdline_, "|".join(_bins_type_))
+
+    def __init__(self):
+        super(GlibcHeapBinsCommand, self).__init__(prefix=True, complete=gdb.COMPLETE_LOCATION)
+        return
 
     @only_if_gdb_running
     def do_invoke(self, argv):
@@ -5324,6 +5329,9 @@ class ShellcodeCommand(GenericCommand):
     _cmdline_ = "shellcode"
     _syntax_  = "{:s} <search|get>".format(_cmdline_)
 
+    def __init__(self):
+        super(ShellcodeCommand, self).__init__(prefix=True)
+        return
 
     def do_invoke(self, argv):
         err("Missing sub-command <search|get>")
@@ -6326,7 +6334,7 @@ class PatchCommand(GenericCommand):
     }
 
     def __init__(self):
-        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=True)
         return
 
     def post_load(self):
@@ -6650,7 +6658,6 @@ class XAddressInfoCommand(GenericCommand):
     _cmdline_ = "xinfo"
     _syntax_  = "{:s} LOCATION".format(_cmdline_)
 
-
     def __init__(self):
         super(XAddressInfoCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
@@ -6715,6 +6722,9 @@ class XorMemoryCommand(GenericCommand):
     _cmdline_ = "xor-memory"
     _syntax_  = "{:s} <display|patch> <address> <size_to_read> <xor_key> ".format(_cmdline_)
 
+    def __init__(self):
+        super(XorMemoryCommand, self).__init__(prefix=True)
+        return
 
     def do_invoke(self, argv):
         if len(argv) == 0:
@@ -6877,7 +6887,7 @@ class PatternCommand(GenericCommand):
     _syntax_  = "{:s} (create|search) <args>".format(_cmdline_)
 
     def __init__(self, *args, **kwargs):
-        super(PatternCommand, self).__init__()
+        super(PatternCommand, self).__init__(prefix=True)
         self.add_setting("length", 10*1024, "Initial length of a cyclic buffer to generate")
         return
 
