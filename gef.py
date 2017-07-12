@@ -4339,7 +4339,7 @@ class UnicornEmulateCommand(GenericCommand):
     _cmdline_ = "unicorn-emulate"
     _syntax_  = "{:s} [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-e PATH] [-h]".format(_cmdline_)
     _aliases_ = ["emulate",]
-    _example_ = "{:s} -f $pc -n 10 -e /tmp/my-gef-emulation.py".format(_example_)
+    _example_ = "{0:s} -f $pc -n 10 -e /tmp/my-gef-emulation.py".format(_cmdline_)
 
     def __init__(self):
         super(UnicornEmulateCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
