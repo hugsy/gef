@@ -4864,7 +4864,7 @@ class NopCommand(GenericCommand):
 
     _cmdline_ = "nop"
     _syntax_  = "{:s} [-b NUM_BYTES] [-h] [LOCATION]".format(_cmdline_)
-
+    _example_ = "{:s} $pc".format(_cmdline_)
 
     def __init__(self):
         super(NopCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -4872,8 +4872,9 @@ class NopCommand(GenericCommand):
 
 
     def get_insn_size(self, addr):
-        insns = [x[0] for x in gef_disassemble(addr, 1, True)]
-        return insns[1] - insns[0]
+        cur_insn = gef_current_instruction(addr)
+        next_insn = gef_instruction_n(addr, 2)
+        return next_insn.address - cur_insn.address
 
 
     def do_invoke(self, argv):
@@ -4932,12 +4933,14 @@ class NopCommand(GenericCommand):
 
 @register_command
 class StubCommand(GenericCommand):
-    """Stub out the specified function."""
+    """Stub out the specified function. This function is useful when needing to skip one
+    function to be called and disrupt your runtime flow (ex. fork)."""
 
     _cmdline_ = "stub"
     _syntax_  = """{:s} [-r RETVAL] [-h] [LOCATION]
 \tLOCATION\taddress/symbol to stub out
 \t-r RETVAL\tSet the return value""".format(_cmdline_)
+    _example_ = "{:s} -r 0 fork"
 
     def __init__(self):
         super(StubCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -4967,6 +4970,7 @@ class CapstoneDisassembleCommand(GenericCommand):
     _cmdline_ = "capstone-disassemble"
     _syntax_  = "{:s} [LOCATION] [[length=LENGTH] [option=VALUE]] ".format(_cmdline_)
     _aliases_ = ["cs-dis",]
+    _example_ = "{:s} $pc length=50".format(_cmdline_)
 
     def pre_load(self):
         try:
@@ -5306,6 +5310,7 @@ class SolveKernelSymbolCommand(GenericCommand):
 
     _cmdline_ = "ksymaddr"
     _syntax_  = "{:s} SymbolToSearch".format(_cmdline_)
+    _example_ = "{:s} prepare_creds".format(_cmdline_)
 
     def do_invoke(self, argv):
         if len(argv) != 1:
@@ -5339,6 +5344,7 @@ class DetailRegistersCommand(GenericCommand):
 
     _cmdline_ = "registers"
     _syntax_  = "{:s} [[Register1][Register2] ... [RegisterN]]".format(_cmdline_)
+    _example_ = "\n{0:s}\n{0:s} $eax $eip $esp".format(_cmdline_)
 
     @only_if_gdb_running
     def do_invoke(self, argv):
@@ -5421,7 +5427,7 @@ class ShellcodeCommand(GenericCommand):
 
 @register_command
 class ShellcodeSearchCommand(GenericCommand):
-    """Search pattern in shellcodes database."""
+    """Search pattern in shell-storm's shellcode database."""
 
     _cmdline_ = "shellcode search"
     _syntax_  = "{:s} <pattern1> <pattern2>".format(_cmdline_)
@@ -5471,7 +5477,7 @@ class ShellcodeSearchCommand(GenericCommand):
 
 @register_command
 class ShellcodeGetCommand(GenericCommand):
-    """Download shellcode from shellcodes database"""
+    """Download shellcode from shell-storm's shellcode database."""
 
     _cmdline_ = "shellcode get"
     _syntax_  = "{:s} <shellcode_id>".format(_cmdline_)
@@ -5518,8 +5524,7 @@ class RopperCommand(GenericCommand):
     """Ropper (http://scoding.de/ropper) plugin"""
 
     _cmdline_ = "ropper"
-    _syntax_  = "{:s} [OPTIONS]".format(_cmdline_)
-
+    _syntax_  = "{:s} [ROPPER_OPTIONS]".format(_cmdline_)
 
     def __init__(self):
         super(RopperCommand, self).__init__(complete=gdb.COMPLETE_NONE)
@@ -5555,6 +5560,7 @@ class AssembleCommand(GenericCommand):
     _cmdline_ = "assemble"
     _syntax_  = "{:s} [-a ARCH] [-m MODE] [-e] [-s] [-l LOCATION] instruction;[instruction;...instruction;])".format(_cmdline_)
     _aliases_ = ["asm",]
+    _example_ = "\n{0:s} -a x86 -m 32 nop ; nop ; inc eax ; int3\n{0:s} -a arm -m arm add r0, r0, 1".format(_cmdline_)
 
     def __init__(self, *args, **kwargs):
         super(AssembleCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -5639,11 +5645,13 @@ class AssembleCommand(GenericCommand):
 
 @register_command
 class ProcessListingCommand(GenericCommand):
-    """List and filter process."""
+    """List and filter process. If a PATTERN is given as argument, results shown will be grepped
+    by this pattern."""
 
     _cmdline_ = "process-search"
     _syntax_  = "{:s} [PATTERN]".format(_cmdline_)
     _aliases_ = ["ps",]
+    _example_ = "{:s} gdb".format(_cmdline_)
 
     def __init__(self):
         super(ProcessListingCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -5706,10 +5714,12 @@ class ProcessListingCommand(GenericCommand):
 
 @register_command
 class ElfInfoCommand(GenericCommand):
-    """Display ELF header informations."""
+    """Display a limited subset of ELF header information. If no argument is provided, the command will
+    show information about the current ELF being debugged."""
 
     _cmdline_ = "elf-info"
-    _syntax_  = _cmdline_
+    _syntax_  = "{:s} [FILE]".format(_cmdline_)
+    _example_  = "{:s} /bin/ls".format(_cmdline_)
 
     def __init__(self, *args, **kwargs):
         super(ElfInfoCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
