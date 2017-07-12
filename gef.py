@@ -5786,11 +5786,18 @@ class ElfInfoCommand(GenericCommand):
 
 @register_command
 class EntryPointBreakCommand(GenericCommand):
-    """Tries to find best entry point and sets a temporary breakpoint on it."""
+    """Tries to find best entry point and sets a temporary breakpoint on it. The command will test for
+    well-known symbols for entry points, such as `main`, `_main`, `__libc_start_main`, etc. defined by
+    the setting `entrypoint_symbols`."""
 
     _cmdline_ = "entry-break"
     _syntax_  = _cmdline_
     _aliases_ = ["start",]
+
+    def __init__(self, *args, **kwargs):
+        super(EntryPointBreakCommand, self).__init__()
+        self.add_setting("entrypoint_symbols", "main _main __libc_start_main __uClibc_main start _start", "Possible symbols for entry points")
+        return
 
     def do_invoke(self, argv):
         fpath = get_filepath()
@@ -5807,7 +5814,9 @@ class EntryPointBreakCommand(GenericCommand):
             return
 
         bp = None
-        for sym in ["main", "_main", "__libc_start_main", "__uClibc_main", "start", "_start"]:
+        entrypoints = self.get_setting("entrypoint_symbols").split()
+
+        for sym in entrypoints:
             try:
                 value = gdb.parse_and_eval(sym)
                 info("Breaking at '{:s}'".format(str(value)))
@@ -5874,6 +5883,7 @@ class ContextCommand(GenericCommand):
     old_registers = {}
 
     def __init__(self):
+        super(ContextCommand, self).__init__()
         self.add_setting("enable", True, "Enable/disable printing the context when breaking")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", False, "Show the registers pane with raw values (no dereference)")
