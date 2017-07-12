@@ -3105,7 +3105,7 @@ class GenericCommand(gdb.Command):
 
     def __init__(self, *args, **kwargs):
         self.pre_load()
-        self.__doc__  += "\nSyntax: {}".format(self._syntax_)
+        self.doc = inspect.cleandoc(self.__doc__ + "\nSyntax: {}".format(self._syntax_))
         command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
         complete_type = kwargs.setdefault("complete", gdb.COMPLETE_NONE)
         prefix = kwargs.setdefault("prefix", False)
@@ -3175,6 +3175,59 @@ class GenericCommand(gdb.Command):
 #         return
 #     def do_invoke(self, argv):
 #         return
+
+
+@register_command
+class SmartEvalCommand(GenericCommand):
+    """SmartEval: Smart eval (vague approach to mimic WinDBG `?`)."""
+    _cmdline_ = "$"
+    _syntax_  = "{0:s} EXPR\n{0:s} ADDRESS1 ADDRESS2".format(_cmdline_)
+
+    def do_invoke(self, argv):
+        argc = len(argv)
+        if argc==1:
+            self.evaluate(argv)
+            return
+
+        if argc==2:
+            self.distance(argv)
+        return
+
+    def evaluate(self, expr):
+        def show_as_int(i):
+            off = current_arch.ptrsize*8
+            def comp2_x(x): return "{:x}".format((x + (1 << off)) % (1 << off))
+            def comp2_b(x): return "{:b}".format((x + (1 << off)) % (1 << off))
+
+            try:
+                s_i = comp2_x(res)
+                s_i = s_i.rjust(len(s_i)+1, '0') if len(s_i)%2 else s_i
+                print("{:d}".format(i))
+                print("0x" + comp2_x(res))
+                print("0b" + comp2_b(res))
+                print("{}".format(binascii.unhexlify(s_i)))
+                print("{}".format(binascii.unhexlify(s_i)[::-1]))
+            except:
+                pass
+            return
+
+        gdb_expr = ["{:d}".format(int(gdb.parse_and_eval(x))) for x in expr]
+        res = eval(" ".join(gdb_expr))
+        if type(res) is int:
+            show_as_int(res)
+        else:
+            print("{}".format(res))
+        return
+
+    def distance(self, args):
+        try:
+            x = int(args[0], 16) if is_hex(args[0]) else int(args[0])
+            y = int(args[1], 16) if is_hex(args[1]) else int(args[1])
+            print("{}".format(x-y))
+            print("{}".format(y-x))
+        except ValueError:
+            warn("Distance requires 2 numbers: {} 0 0xffff".format(self._cmdline_))
+        return
 
 
 @register_command
