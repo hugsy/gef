@@ -160,6 +160,34 @@ err(msg)
 > Logging functions
 
 
+```
+gef_on_continue_hook
+gef_on_continue_unhook
+```
+> Takes a callback function FUNC as parameter: add/remove a call to FUNC
+> when GDB continues execution.
+
+```
+gef_on_stop_hook
+gef_on_stop_unhook
+```
+> Takes a callback function FUNC as parameter: add/remove a call to FUNC
+> when GDB stops execution (breakpoints, watchpoints, interrupt, signal, etc.).
+
+```
+gef_on_new_hook
+gef_on_new_unhook
+```
+> Takes a callback function FUNC as parameter: add/remove a call to FUNC
+> when GDB loads a new binary.
+
+```
+gef_on_exit_hook
+gef_on_exit_unhook
+```
+> Takes a callback function FUNC as parameter: add/remove a call to FUNC
+> when GDB exits an inferior.
+
 
 ### Decorators ###
 
@@ -178,7 +206,6 @@ err(msg)
 ```
 > Checks if the current GDB session is local i.e. not debugging using GDB
 > `remote`.
-
 
 
 ### Classes ###
