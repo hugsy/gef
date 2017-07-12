@@ -3221,8 +3221,8 @@ class GenericCommand(gdb.Command):
 class SmartEvalCommand(GenericCommand):
     """SmartEval: Smart eval (vague approach to mimic WinDBG `?`)."""
     _cmdline_ = "$"
-    _syntax_  = "{0:s} EXPR\n{0:s} ADDRESS1 ADDRESS2".format(_cmdline_)
-
+    _syntax_  = "\n{0:s} EXPR\n{0:s} ADDRESS1 ADDRESS2".format(_cmdline_)
+    _example_ = "\n{0:s} $pc+1\n{0:s} 0x00007ffff7a10000 0x00007ffff7bce000".format(_cmdline_)
     def do_invoke(self, argv):
         argc = len(argv)
         if argc==1:
@@ -3276,7 +3276,7 @@ class CanaryCommand(GenericCommand):
     https://www.elttam.com.au/blog/playing-with-canaries/ to show the canary."""
 
     _cmdline_ = "canary"
-    _syntax_  = "{:s}".format(_cmdline_)
+    _syntax_  = _cmdline_
 
     @only_if_gdb_running
     def do_invoke(self, argv):
@@ -3304,7 +3304,7 @@ class ProcessStatusCommand(GenericCommand):
     process status (file descriptors, ancestor, descendants, etc.). """
 
     _cmdline_ = "process-status"
-    _syntax_  = "{:s}".format(_cmdline_)
+    _syntax_  = _cmdline_
     _aliases_ = ["status", ]
 
     def __init__(self):
@@ -3738,6 +3738,7 @@ class RetDecCommand(GenericCommand):
     _cmdline_ = "retdec"
     _syntax_  = "{:s} [-r RANGE1-RANGE2] [-s SYMBOL] [-a] [-h]".format(_cmdline_)
     _aliases_ = ["decompile",]
+    _example_ = "{:s} -s main".format(_cmdline_)
 
     def __init__(self):
         super(RetDecCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL)
@@ -3870,6 +3871,7 @@ class ChangeFdCommand(GenericCommand):
 
     _cmdline_ = "hijack-fd"
     _syntax_  = "{:s} FD_NUM NEW_OUTPUT".format(_cmdline_)
+    _example_ = "{:s} 2 /tmp/stderr_output.txt".format(_cmdline_)
 
     @only_if_gdb_running
     @only_if_gdb_target_local
@@ -3908,6 +3910,7 @@ class IdaInteractCommand(GenericCommand):
     _cmdline_ = "ida-interact"
     _syntax_  = "{:s} METHOD [ARGS]".format(_cmdline_)
     _aliases_ = ["binaryninja-interact", "bn", "binja"]
+    _example_ = "\n{0:s} Jump $pc\n{0:s} SetColor $pc ff00ff".format(_cmdline_)
 
     def __init__(self):
         super(IdaInteractCommand, self).__init__(prefix=False)
@@ -4146,6 +4149,7 @@ class SearchPatternCommand(GenericCommand):
     _cmdline_ = "search-pattern"
     _syntax_  = "{:s} PATTERN [small|big]".format(_cmdline_)
     _aliases_ = ["grep", "xref"]
+    _example_ = "\n{0:s} AAAAAAAA\n{0:s} 0x555555554000".format(_cmdline_)
 
     def search_pattern_by_address(self, pattern, start_address, end_address):
         """Search a pattern within a range defined by arguments."""
@@ -4223,6 +4227,7 @@ class FlagsCommand(GenericCommand):
     _cmdline_ = "edit-flags"
     _syntax_  = "{:s} [(+|-|~)FLAGNAME ...]".format(_cmdline_)
     _aliases_ = ["flags",]
+    _example_ = "\n{0:s}\n{0:s} +zero # sets ZERO flag".format(_cmdline_)
 
     def do_invoke(self, argv):
         for flag in argv:
@@ -4266,6 +4271,7 @@ class ChangePermissionCommand(GenericCommand):
     _cmdline_ = "set-permission"
     _syntax_  = "{:s} LOCATION [PERMISSION]".format(_cmdline_)
     _aliases_ = ["mprotect",]
+    _example_ = "{:s} $sp 7"
 
     def __init__(self):
         super(ChangePermissionCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -4333,6 +4339,7 @@ class UnicornEmulateCommand(GenericCommand):
     _cmdline_ = "unicorn-emulate"
     _syntax_  = "{:s} [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-e PATH] [-h]".format(_cmdline_)
     _aliases_ = ["emulate",]
+    _example_ = "{:s} -f $pc -n 10 -e /tmp/my-gef-emulation.py".format(_example_)
 
     def __init__(self):
         super(UnicornEmulateCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -4651,6 +4658,7 @@ class RemoteCommand(GenericCommand):
 
     _cmdline_ = "gef-remote"
     _syntax_  = "{:s} [OPTIONS] TARGET".format(_cmdline_)
+    _syntax_  = "\n{0:s} -p 6789 localhost:1234\n{0:s} -q localhost:4444 # when using qemu-user".format(_cmdline_)
 
     def __init__(self):
         super(RemoteCommand, self).__init__(prefix=False)
@@ -4860,7 +4868,8 @@ class RemoteCommand(GenericCommand):
 
 @register_command
 class NopCommand(GenericCommand):
-    """Patch the instruction(s) pointed by parameters with NOP."""
+    """Patch the instruction(s) pointed by parameters with NOP. Note: this command is architecture
+    aware."""
 
     _cmdline_ = "nop"
     _syntax_  = "{:s} [-b NUM_BYTES] [-h] [LOCATION]".format(_cmdline_)
