@@ -18,6 +18,7 @@ pages:
 - Command edit-flags: commands/edit-flags.md
 - Command elf-info: commands/elf-info.md
 - Command entry-break: commands/entry-break.md
+- Command eval: commands/eval.md
 - Command format-string-helper: commands/format-string-helper.md
 - Command gef-remote: commands/gef-remote.md
 - Command heap: commands/heap.md
