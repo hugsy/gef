@@ -3251,12 +3251,23 @@ class SmartEvalCommand(GenericCommand):
                 pass
             return
 
-        gdb_expr = ["{:d}".format(int(gdb.parse_and_eval(x))) for x in expr]
-        res = eval(" ".join(gdb_expr))
-        if type(res) is int:
-            show_as_int(res)
-        else:
-            print("{}".format(res))
+        parsed_expr = []
+        for xp in expr:
+            try:
+                xp = gdb.parse_and_eval(xp)
+                xp = int(xp)
+                parsed_expr.append("{:d}".format(xp))
+            except gdb.error:
+                parsed_expr.append(str(xp))
+
+        try:
+            res = eval(" ".join(parsed_expr))
+            if type(res) is int:
+                show_as_int(res)
+            else:
+                print("{}".format(res))
+        except SyntaxError:
+            print(" ".join(parsed_expr))
         return
 
     def distance(self, args):
@@ -7041,9 +7052,7 @@ class PatternCreateCommand(GenericCommand):
         size = get_gef_setting("pattern.length")
         info("Generating a pattern of {:d} bytes".format(size))
         patt = generate_cyclic_pattern(size).decode("utf-8")
-        if size < 1024:
-            print(patt)
-
+        print(patt)
         var_name = gef_convenience('"{:s}"'.format(patt))
         ok("Saved as '{:s}'".format(var_name))
         return
@@ -7937,6 +7946,7 @@ if __name__  == "__main__":
         gdb.execute("set verbose off")
         gdb.execute("set pagination off")
         gdb.execute("set step-mode on")
+        gdb.execute("set print elements 0")
 
         # gdb history
         gdb.execute("set history save on")
