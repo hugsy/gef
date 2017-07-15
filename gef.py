@@ -3282,8 +3282,7 @@ class SmartEvalCommand(GenericCommand):
         try:
             x = int(args[0], 16) if is_hex(args[0]) else int(args[0])
             y = int(args[1], 16) if is_hex(args[1]) else int(args[1])
-            print("{}".format(x-y))
-            print("{}".format(y-x))
+            print("{}".format(abs(x-y)))
         except ValueError:
             warn("Distance requires 2 numbers: {} 0 0xffff".format(self._cmdline_))
         return
