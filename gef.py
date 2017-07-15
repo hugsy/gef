@@ -1145,7 +1145,7 @@ def capstone_disassemble(location, nb_insn, **kwargs):
         return Instruction(cs_insn.address, loc, cs_insn.mnemonic, ops)
 
     capstone    = sys.modules["capstone"]
-    arch, mode  = get_capstone_arch()
+    arch, mode  = get_capstone_arch(arch=kwargs.get("arch", None), mode=kwargs.get("mode", None), endian=kwargs.get("endian", None))
     cs          = capstone.Cs(arch, mode)
     cs.detail   = True
 
@@ -2374,11 +2374,19 @@ def get_capstone_arch(arch=None, mode=None, endian=None, to_string=False):
         arch = "PPC"
         mode = "32"
         endian = is_big_endian()
-        return get_generic_arch(capstone, "CS", arch, mode, endian, to_string)
+        return get_generic_arch(capstone, "CS",
+                                arch or current_arch.arch,
+                                mode or current_arch.mode,
+                                endian or is_big_endian(),
+                                to_string)
 
     if (arch, mode, endian) == (None,None,None):
         return get_generic_running_arch(capstone, "CS", to_string)
-    return get_generic_arch(capstone, "CS", arch, mode, endian, to_string)
+    return get_generic_arch(capstone, "CS",
+                            arch or current_arch.arch,
+                            mode or current_arch.mode,
+                            endian or is_big_endian(),
+                            to_string)
 
 
 def get_keystone_arch(arch=None, mode=None, endian=None, to_string=False):
