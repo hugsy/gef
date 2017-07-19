@@ -3482,7 +3482,6 @@ class GefThemeCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(GefThemeCommand, self).__init__(GefThemeCommand._cmdline_)
-        self.add_setting("disable_color", False, "Disable all colors in GEF")
         self.add_setting("context_title_line", "green bold", "Color of the borders in context window")
         self.add_setting("context_title_message", "red bold", "Color of the title in context window")
         self.add_setting("default_title_line", "green bold", "Default color of borders")
