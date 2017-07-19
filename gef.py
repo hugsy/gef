@@ -334,9 +334,7 @@ class Color:
     @staticmethod
     def colorify(text, attrs):
         """Color a text following the given attributes."""
-        do_disable = __config__.get("gef.disable_color", False)
-        do_disable = do_disable[0] if do_disable else False
-        if do_disable: return text
+        if get_gef_setting("gef.disable_color")==True: return text
 
         colors = Color.colors
         msg = [colors[attr] for attr in attrs.split() if attr in colors]
@@ -4647,7 +4645,7 @@ if __name__ == "__main__":
             return
 
         if self.get_setting("show_disassembly"):
-            CapstoneDisassembleCommand.disassemble(addr, 1)
+            gdb.execute("capstone-disassemble {:#x} length=1".format(addr))
 
         self.nb_insn -= 1
         return
