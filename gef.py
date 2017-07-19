@@ -7928,6 +7928,7 @@ class GefTmuxSetup(gdb.Command):
 def __gef_prompt__(current_prompt):
     """GEF custom prompt function."""
     if get_gef_setting("gef.readline_compat")==True: return gef_prompt
+    if get_gef_setting("gef.disable_color")==True: return gef_prompt
     if is_alive(): return gef_prompt_on
     return gef_prompt_off
 
