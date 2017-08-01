@@ -5608,7 +5608,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         if get_main_arena() is None:
-            err("Invalid Glibc arena")
+            err("Incorrect Glibc arenas or arenas not found")
             return
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
