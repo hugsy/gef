@@ -590,6 +590,8 @@ class GlibcArena:
     def __init__(self, addr):
         arena = gdb.parse_and_eval(addr)
         malloc_state_t = cached_lookup_type("struct malloc_state")
+        if malloc_state_t is None:
+            raise gdb.error
         self.__arena = arena.cast(malloc_state_t)
         self.__addr = long(arena.address)
         return
@@ -5538,7 +5540,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         if get_main_arena() is None:
-            err("Invalid Glibc arena")
+            err("Incorrect Glibc arenas or arenas not found")
             return
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
