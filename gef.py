@@ -5,7 +5,6 @@
 # GEF - Multi-Architecture GDB Enhanced Features for Exploiters & Reverse-Engineers
 #
 # by  @_hugsy_
-#
 #######################################################################################
 #
 # GEF is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to
@@ -5081,6 +5080,12 @@ class GlibcHeapCommand(GenericCommand):
     def __init__(self):
         super(GlibcHeapCommand, self).__init__(prefix=True)
         return
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+        if len(argv)==0:
+            self.usage()
+            return
 
 
 @register_command
