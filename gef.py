@@ -333,9 +333,7 @@ class Color:
     @staticmethod
     def colorify(text, attrs):
         """Color a text following the given attributes."""
-        do_disable = __config__.get("gef.disable_color", False)
-        do_disable = do_disable[0] if do_disable else False
-        if do_disable: return text
+        if get_gef_setting("gef.disable_color")==True: return text
 
         colors = Color.colors
         msg = [colors[attr] for attr in attrs.split() if attr in colors]
@@ -3481,7 +3479,6 @@ class GefThemeCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(GefThemeCommand, self).__init__(GefThemeCommand._cmdline_)
-        self.add_setting("disable_color", False, "Disable all colors in GEF")
         self.add_setting("context_title_line", "green bold", "Color of the borders in context window")
         self.add_setting("context_title_message", "red bold", "Color of the title in context window")
         self.add_setting("default_title_line", "green bold", "Default color of borders")
@@ -4647,7 +4644,7 @@ if __name__ == "__main__":
             return
 
         if self.get_setting("show_disassembly"):
-            CapstoneDisassembleCommand.disassemble(addr, 1)
+            gdb.execute("capstone-disassemble {:#x} length=1".format(addr))
 
         self.nb_insn -= 1
         return
@@ -7934,6 +7931,7 @@ class GefTmuxSetup(gdb.Command):
 def __gef_prompt__(current_prompt):
     """GEF custom prompt function."""
     if get_gef_setting("gef.readline_compat")==True: return gef_prompt
+    if get_gef_setting("gef.disable_color")==True: return gef_prompt
     if is_alive(): return gef_prompt_on
     return gef_prompt_off
 
