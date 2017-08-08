@@ -7975,9 +7975,6 @@ if __name__  == "__main__":
             # we can safely ignore this
             pass
 
-        # SIGALRM will simply display a message, but gdb won't forward the signal to the process
-        gdb.execute("handle SIGALRM print nopass")
-
         # saving GDB indexes in GEF tempdir
         gef_makedirs(GEF_TEMP_DIR)
         gdb.execute("save gdb-index {}".format(GEF_TEMP_DIR))
