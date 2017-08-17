@@ -6330,9 +6330,8 @@ class ContextCommand(GenericCommand):
         return
 
     def context_memory(self):
-        if watches:
-            self.context_title("memory")
-        for address, opt in watches.items():
+        for address, opt in sorted(watches.items()):
+            self.context_title("memory:{:#x}".format(address))
             gdb.execute("hexdump {} {} L{}".format(opt[1], address, opt[0]))
 
     @classmethod
@@ -6357,7 +6356,10 @@ class MemoryCommand(GenericCommand):
     """Add or remove address ranges to the memory view."""
 
     _cmdline_ = "memory"
-    _syntax_  = "{:s} (watch|unwatch) ADDRESS [SIZE] [(qword|dword|word|byte)]".format(_cmdline_)
+    _syntax_  = """{cmd:s} watch ADDRESS [SIZE] [(qword|dword|word|byte)]
+{cmd:s} unwatch ADDRESS
+{cmd:s} clear
+{cmd:s} list""".format(cmd=_cmdline_)
     _example_ = "{:s} watch 0x603000 0x100 byte".format(_cmdline_)
 
     def __init__(self):
@@ -6368,7 +6370,7 @@ class MemoryCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if len(argv) < 2:
+        if len(argv) < 1:
             self.usage()
             return
         cmd, opt = argv[0], argv[1:]
@@ -6376,6 +6378,10 @@ class MemoryCommand(GenericCommand):
             self.watch(opt)
         elif cmd == "unwatch":
             self.unwatch(int(opt[0], 0))
+        elif cmd == "clear":
+            self.clear()
+        elif cmd == "list":
+            self.list()
         else:
             self.usage()
             return
@@ -6402,6 +6408,19 @@ class MemoryCommand(GenericCommand):
             del watches[address]
         except KeyError:
             warn("You weren't watching {:#x}".format(address))
+
+    def clear(self):
+        info("Memory watches cleared")
+        global watches
+        watches = {}
+
+    def list(self):
+        if not watches:
+            info("No memory watches")
+            return
+        info("Memory watches:")
+        for address, opt in sorted(watches.items()):
+            print("- {:#x} ({}, {})".format(address, opt[0], opt[1]))
 
 
 @register_command
