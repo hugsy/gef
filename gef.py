@@ -5958,6 +5958,7 @@ class ContextCommand(GenericCommand):
             "regs":  self.context_regs,
             "stack": self.context_stack,
             "code": self.context_code,
+            "memory": self.context_memory,
             "source": self.context_source,
             "trace": self.context_trace,
             "threads": self.context_threads,
@@ -6328,6 +6329,11 @@ class ContextCommand(GenericCommand):
             else: info(text)
         return
 
+    def context_memory(self):
+        if watches:
+            self.context_title("memory")
+        for address, opt in watches.items():
+            gdb.execute("hexdump {} {} L{}".format(opt[1], address, opt[0]))
 
     @classmethod
     def update_registers(cls, event):
@@ -6345,6 +6351,57 @@ class ContextCommand(GenericCommand):
         __context_messages__ = []
         return
 
+
+@register_command
+class MemoryCommand(GenericCommand):
+    """Add or remove address ranges to the memory view."""
+
+    _cmdline_ = "memory"
+    _syntax_  = "{:s} (watch|unwatch) ADDRESS [SIZE] [(qword|dword|word|byte)]".format(_cmdline_)
+    _example_ = "{:s} watch 0x603000 0x100 byte".format(_cmdline_)
+
+    def __init__(self):
+        super(MemoryCommand, self).__init__(prefix=True)
+        global watches
+        watches = {}
+        return
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+        if len(argv) < 2:
+            self.usage()
+            return
+        cmd, opt = argv[0], argv[1:]
+        if cmd == "watch":
+            self.watch(opt)
+        elif cmd == "unwatch":
+            self.unwatch(int(opt[0], 0))
+        else:
+            self.usage()
+            return
+
+    def watch(self, opt):
+        address, opt = int(opt[0], 0), opt[1:]
+        if opt:
+            size, opt = int(opt[0], 0), opt[1:]
+        else:
+            size = 0x10
+
+        if opt:
+            group = opt[0].lower()
+            if group not in {"qword", "dword", "word", "byte"}:
+                warn("Unexpected grouping")
+                self.usage()
+        else:
+            group = "byte"
+
+        watches[address] = (size, group)
+
+    def unwatch(self, address):
+        try:
+            del watches[address]
+        except KeyError:
+            warn("You weren't watching {:#x}".format(address))
 
 
 @register_command
