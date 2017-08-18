@@ -1325,8 +1325,6 @@ class Architecture(object):
     def is_conditional_branch(self, insn):         pass
     @abc.abstractmethod
     def is_branch_taken(self, insn):               pass
-    @abc.abstractmethod
-    def print_call_args(self):                     pass
 
     @property
     def pc(self):
@@ -6481,7 +6479,8 @@ class ContextCommand(GenericCommand):
         if not current_arch.is_call(insn):
             return
 
-        self.context_title("args")
+        self.context_title("function arguments")
+        print("Showing guessed arguments:")
         args = current_arch.print_call_args()
         return
 
