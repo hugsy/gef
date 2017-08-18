@@ -1319,8 +1319,6 @@ class Architecture(object):
     def is_conditional_branch(self, insn):         pass
     @abc.abstractmethod
     def is_branch_taken(self, insn):               pass
-    @abc.abstractmethod
-    def print_call_args(self):                     pass
 
     @property
     def pc(self):
@@ -1333,6 +1331,21 @@ class Architecture(object):
     @property
     def ptrsize(self):
         return get_memory_alignment()
+
+    def print_call_args(self):
+        for i, reg in enumerate(self.function_parameters):
+            addr = long(gdb.parse_and_eval(reg))
+            line = "arg[{:d}] ({:5s}) ".format(i, reg)
+
+            line += Color.boldify(format_address(addr))
+            addrs = DereferenceCommand.dereference_from(addr)
+
+            if len(addrs) > 1:
+                sep = " {:s} ".format(right_arrow)
+                line += sep + sep.join(addrs[1:])
+
+            print(line)
+        return
 
 
 class ARM(Architecture):
@@ -1400,28 +1413,24 @@ class ARM(Architecture):
 
     def print_call_args(self):
         # Go back a few instructions, until we see a call, to see which args are set
-        if is_arm_thumb():
-            addr_size = 2
-        else:
-            addr_size = 4
-        addr = self.pc - addr_size
+        addr = self.pc - self.instruction_length
         insn = gef_get_instruction_at(addr)
         arg_regs = set()
-        while not self.is_call(insn) and insn.mnemo != "push":
+        while not self.is_call(insn):
             # Check which registers are being written
             if insn.mnemo in ("mov", "ldr", "sub", "add"):
                 arg_regs.add(insn.operands[0])
 
             # Next instruction back
-            addr -= addr_size
+            addr -= self.instruction_length
             insn = gef_get_instruction_at(addr)
 
-        for i, reg in enumerate(["r0", "r1", "r2", "r3"]):
+        for i, reg in enumerate(self.function_parameters):
             # If we didn't see an arg set, then it must not be an arg
             if reg not in arg_regs: break
 
             addr = long(gdb.parse_and_eval("${}".format(reg)))
-            line = "Arg {:d} ({:s}) ".format(i, reg)
+            line = "arg[{:d}] ({:s}) ".format(i, reg)
 
             line += Color.boldify(format_address(addr))
             addrs = DereferenceCommand.dereference_from(addr)
@@ -1431,6 +1440,7 @@ class ARM(Architecture):
                 line += sep + sep.join(addrs[1:])
 
             print(line)
+        return
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 125
@@ -1619,10 +1629,10 @@ class X86(Architecture):
 
     def print_call_args(self):
         offsets = [0, 4, 8, 12, 16, 20]
-        sp = long(gdb.parse_and_eval("$esp"))
+        sp = get_register("$esp")
         for i, offset in enumerate(offsets):
             addr = sp + offset
-            line = "Arg {:d} (sp+{:#x}) ".format(i, offset)
+            line = "arg[{:d}] (sp+{:#x}) ".format(i, offset)
 
             line += Color.boldify(format_address(addr))
             addrs = DereferenceCommand.dereference_from(addr)
@@ -1632,7 +1642,6 @@ class X86(Architecture):
                 line += sep + sep.join(addrs[1:])
 
             print(line)
-
         return
 
     def mprotect_asm(self, addr, size, perm):
@@ -1659,23 +1668,7 @@ class X86_64(X86):
         "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags",]
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
-
-    def print_call_args(self):
-        regs = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
-        for i, reg in enumerate(regs):
-            addr = long(gdb.parse_and_eval(reg))
-            line = "Arg {:d} ({:s}) ".format(i, reg)
-
-            line += Color.boldify(format_address(addr))
-            addrs = DereferenceCommand.dereference_from(addr)
-
-            if len(addrs) > 1:
-                sep = " {:s} ".format(right_arrow)
-                line += sep + sep.join(addrs[1:])
-
-            print(line)
-
-        return
+    print_call_args = Architecture.print_call_args
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
@@ -6314,7 +6307,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
         self.add_setting("ignore_registers", "", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
         self.add_setting("clear_screen", False, "Clear the screen before printing the context")
-        self.add_setting("layout", "regs args stack code source threads trace extra", "Change the order/display of the context")
+        self.add_setting("layout", "regs args stack code source threads trace extra", "Change the order/display of the context. Available arguments are: regs args stack code source trace threads extra")
         self.add_setting("redirect", "", "Redirect the context information to another TTY")
 
         if "capstone" in list(sys.modules.keys()):
@@ -6464,8 +6457,10 @@ class ContextCommand(GenericCommand):
         if not current_arch.is_call(insn):
             return
 
-        self.context_title("args")
+        self.context_title("function arguments")
+        print("Showing guessed arguments:")
         args = current_arch.print_call_args()
+        return
 
     def context_stack(self):
         self.context_title("stack")
