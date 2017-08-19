@@ -27,6 +27,7 @@ improve it.
 |hijack-fd                 | ChangeFdCommand: redirect file descriptor during runtime.|
 |ida-interact              | IDA Interact: set of commands to interact with IDA via a XML RPC service deployed via the IDA script `ida_gef.py`. It should be noted that this command can also be used to interact with Binary Ninja (using the script `binja_gef.py`) using the same interface. (alias: binaryninja-interact, bn, binja)|
 |ksymaddr                  | Solve kernel symbols from kallsyms table.|
+|memory                    | Add memory watches to the context view.|
 |nop                       | Patch the instruction pointed by parameters with NOP. If the return option is specified, it will set the return register to the specific value.|
 |patch                     | Write specified values to the specified address.|
 |pattern                   | This command will create or search a De Bruijn cyclic pattern to facilitate determining the offset in memory. The algorithm used is the same as the one used by pwntools, and can therefore be used in conjunction.|
