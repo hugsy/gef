@@ -6901,12 +6901,11 @@ class XAddressInfoCommand(GenericCommand):
         info = addr.info
 
         if sect:
-            print("Found {:s}".format(format_address(addr.value)))
             print("Page: {:s} {:s} {:s} (size={:#x})".format(format_address(sect.page_start),
                                                              right_arrow,
                                                              format_address(sect.page_end),
                                                              sect.page_end-sect.page_start))
-            print("Permissions: {:s}".format(str(sect.permission)))
+            print("Permissions: {}".format(sect.permission))
             print("Pathname: {:s}".format(sect.path))
             print("Offset (from page): {:#x}".format(addr.value-sect.page_start))
             print("Inode: {:s}".format(sect.inode))
