@@ -56,6 +56,7 @@
 from __future__ import print_function, division
 
 import abc
+import array
 import binascii
 import codecs
 import collections
@@ -900,25 +901,31 @@ def which(program):
     raise FileNotFoundError("Missing file `{:s}`".format(program))
 
 
-def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
+def hexdump(source, length=0x10, separator=".", show_raw=False, base=0, chunk=1, type='B'):
     """Return the hexdump of `src` argument.
     @param source *MUST* be of type bytes or bytearray
     @param length is the length of items per line
     @param separator is the default character to use if one byte is not printable
     @param show_raw if True, do not add the line nor the text translation
     @param base is the start address of the block being hexdump
-    @param func is the function to use to parse bytes (int for Py3, chr for Py2)
     @return a string with the hexdump """
     result = []
     for i in range(0, len(source), length):
         s = source[i:i + length]
 
         if PYTHON_MAJOR == 3:
-            hexa = " ".join(["{:02x}".format(c) for c in s])
+            line = array.array(type, s)
             text = "".join([chr(c) if 0x20 <= c < 0x7F else separator for c in s])
         else:
-            hexa = " ".join(["{:02x}".format(ord(c)) for c in s])
+            if type == 'Q': # python2 doesn't support qwords in arrays :(
+                line = []
+                for j in range(0, length, 8):
+                    line.append(struct.unpack("<Q", line[j:j+8]))
+            else:
+                line = array.array(type, s)
             text = "".join([c if 0x20 <= ord(c) < 0x7F else separator for c in s])
+
+        hexa = " ".join(["{0:0{1}x}".format(c, chunk*2) for c in line])
 
         if show_raw:
             result.append(hexa)
@@ -6333,7 +6340,20 @@ class ContextCommand(GenericCommand):
     def context_memory(self):
         for address, opt in sorted(watches.items()):
             self.context_title("memory:{:#x}".format(address))
-            gdb.execute("hexdump {} {} L{}".format(opt[1], address, opt[0]))
+            mem = read_memory(address, opt[0])
+            if opt[1] == "byte":
+                t = 'B'
+                chunk = 1
+            elif opt[1] == "word":
+                t = 'H'
+                chunk = 2
+            elif opt[1] == "dword":
+                t = 'I'
+                chunk = 4
+            else:
+                t = 'Q'
+                chunk = 8
+            print(hexdump(mem, length=16, base=address, chunk=chunk, type=t))
 
     @classmethod
     def update_registers(cls, event):
