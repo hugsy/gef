@@ -901,14 +901,23 @@ def which(program):
     raise FileNotFoundError("Missing file `{:s}`".format(program))
 
 
-def hexdump(source, length=0x10, separator=".", show_raw=False, base=0, chunk=1, type='B'):
+def hexdump(source, length=0x10, separator=".", show_raw=False, base=0, fmt='byte'):
     """Return the hexdump of `src` argument.
-    @param source *MUST* be of type bytes or bytearray
+    @param mem is the data to dump, bytes or bytearray only
     @param length is the length of items per line
     @param separator is the default character to use if one byte is not printable
     @param show_raw if True, do not add the line nor the text translation
     @param base is the start address of the block being hexdump
     @return a string with the hexdump """
+    formats = {
+        "qword": ("Q", 8),
+        "dword": ("I", 4),
+        "word": ("H", 2),
+        "byte": ("B", 1),
+    }
+    type = formats[fmt][0]
+    chunk = formats[fmt][1]
+
     result = []
     for i in range(0, len(source), length):
         s = source[i:i + length]
@@ -6341,19 +6350,7 @@ class ContextCommand(GenericCommand):
         for address, opt in sorted(watches.items()):
             self.context_title("memory:{:#x}".format(address))
             mem = read_memory(address, opt[0])
-            if opt[1] == "byte":
-                t = 'B'
-                chunk = 1
-            elif opt[1] == "word":
-                t = 'H'
-                chunk = 2
-            elif opt[1] == "dword":
-                t = 'I'
-                chunk = 4
-            else:
-                t = 'Q'
-                chunk = 8
-            print(hexdump(mem, length=16, base=address, chunk=chunk, type=t))
+            print(hexdump(mem, base=address, fmt=opt[1]))
 
     @classmethod
     def update_registers(cls, event):
@@ -6477,7 +6474,7 @@ class HexdumpCommand(GenericCommand):
 
         start_addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
         read_from = align_address(start_addr)
-        read_len = 10
+        read_len = 0x10
         up_to_down = True
 
         if argc >= 2:
@@ -6494,46 +6491,14 @@ class HexdumpCommand(GenericCommand):
                     up_to_down = False
                     continue
 
-        if fmt == "byte":
-            mem = read_memory(read_from, read_len)
-            lines = hexdump(mem, base=read_from).splitlines()
-        else:
-            lines = self._hexdump(read_from, read_len, fmt)
+        mem = read_memory(read_from, read_len)
+        lines = hexdump(mem, base=read_from, fmt=fmt).splitlines()
 
         if not up_to_down:
             lines.reverse()
 
         print("\n".join(lines))
         return
-
-
-    def _hexdump(self, start_addr, length, arrange_as):
-        elf = get_elf_headers()
-        if elf is None:
-            return
-        endianness = endian_str()
-
-        formats = {
-            "qword": ("Q", 8),
-            "dword": ("I", 4),
-            "word": ("H", 2),
-        }
-
-        r, l = formats[arrange_as]
-        fmt_str = "%#x+%.4x {:s} %#.{:s}x".format(vertical_line, str(l * 2))
-        fmt_pack = endianness + r
-        lines = []
-
-        i = 0
-        while i < length:
-            cur_addr = start_addr + i * l
-            mem = read_memory(cur_addr, l)
-            val = struct.unpack(fmt_pack, mem)[0]
-            lines.append(fmt_str % (start_addr, i * l, val))
-            i += 1
-
-        return lines
-
 
 @register_command
 class PatchCommand(GenericCommand):
