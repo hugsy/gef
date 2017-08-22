@@ -6481,10 +6481,14 @@ class HexdumpCommand(GenericCommand):
             for arg in argv[1:]:
                 arg = arg.lower()
                 if arg.startswith("l"):
-                    if arg[1:].isdigit():
-                        read_len = long(arg[1:])
-                        continue
-                elif arg == "up":
+                    arg = arg[1:]
+                try:
+                    read_len = long(arg, 0)
+                    continue
+                except ValueError:
+                    pass
+
+                if arg == "up":
                     up_to_down = True
                     continue
                 elif arg == "down":
