@@ -6391,11 +6391,11 @@ class MemoryCommand(GenericCommand):
         if len(argv) < 1:
             self.usage()
             return
-        cmd, opt = argv[0], argv[1:]
+        cmd, argv = argv[0], argv[1:]
         if cmd == "watch":
-            self.watch(opt)
+            self.watch(argv)
         elif cmd == "unwatch":
-            self.unwatch(int(opt[0], 0))
+            self.unwatch(to_unsigned_long(gdb.parse_and_eval(argv[0])))
         elif cmd == "clear":
             self.clear()
         elif cmd == "list":
@@ -6404,15 +6404,17 @@ class MemoryCommand(GenericCommand):
             self.usage()
             return
 
-    def watch(self, opt):
-        address, opt = int(opt[0], 0), opt[1:]
-        if opt:
-            size, opt = int(opt[0], 0), opt[1:]
+    def watch(self, argv):
+        address = to_unsigned_long(gdb.parse_and_eval(argv[0]))
+        argv = argv[1:]
+        if argv:
+            size = to_unsigned_long(gdb.parse_and_eval(argv[0]))
+            argv = argv[1:]
         else:
             size = 0x10
 
-        if opt:
-            group = opt[0].lower()
+        if argv:
+            group = argv[0].lower()
             if group not in {"qword", "dword", "word", "byte"}:
                 warn("Unexpected grouping")
                 self.usage()
