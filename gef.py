@@ -6928,9 +6928,7 @@ class XorMemoryCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
-        if len(argv) == 0:
-            err("Missing subcommand <display|patch>")
-            self.usage()
+        self.usage()
         return
 
 @register_command
@@ -6944,7 +6942,7 @@ class XorMemoryDisplayCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if len(argv) not in (3, 4):
+        if len(argv) != 3:
             self.usage()
             return
 
