@@ -6420,6 +6420,11 @@ class MemoryCommand(GenericCommand):
                 self.usage()
         else:
             group = "byte"
+            if current_arch:
+                if current_arch.ptrsize == 4:
+                    group = "dword"
+                elif current_arch.ptrsize == 8:
+                    group = "qword"
 
         watches[address] = (size, group)
 
