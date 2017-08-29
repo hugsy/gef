@@ -915,7 +915,7 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0, fmt='byt
         "word": ("H", 2),
         "byte": ("B", 1),
     }
-    type = formats[fmt][0]
+    typecode = formats[fmt][0]
     chunk = formats[fmt][1]
 
     result = []
@@ -923,15 +923,15 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0, fmt='byt
         s = source[i:i + length]
 
         if PYTHON_MAJOR == 3:
-            line = array.array(type, s)
+            line = array.array(typecode, s)
             text = "".join([chr(c) if 0x20 <= c < 0x7F else separator for c in s])
         else:
-            if type == 'Q': # python2 doesn't support qwords in arrays :(
+            if typecode == 'Q': # python2 doesn't support qwords in arrays :(
                 line = []
                 for j in range(0, length, 8):
                     line.append(struct.unpack("<Q", line[j:j+8]))
             else:
-                line = array.array(type, s)
+                line = array.array(typecode, s)
             text = "".join([c if 0x20 <= ord(c) < 0x7F else separator for c in s])
 
         hexa = " ".join(["{0:0{1}x}".format(c, chunk*2) for c in line])
