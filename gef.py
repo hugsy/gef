@@ -56,6 +56,7 @@
 from __future__ import print_function, division
 
 import abc
+import array
 import binascii
 import codecs
 import collections
@@ -900,25 +901,40 @@ def which(program):
     raise FileNotFoundError("Missing file `{:s}`".format(program))
 
 
-def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
+def hexdump(source, length=0x10, separator=".", show_raw=False, base=0, fmt='byte'):
     """Return the hexdump of `src` argument.
-    @param source *MUST* be of type bytes or bytearray
+    @param mem is the data to dump, bytes or bytearray only
     @param length is the length of items per line
     @param separator is the default character to use if one byte is not printable
     @param show_raw if True, do not add the line nor the text translation
     @param base is the start address of the block being hexdump
-    @param func is the function to use to parse bytes (int for Py3, chr for Py2)
     @return a string with the hexdump """
+    formats = {
+        "qword": ("Q", 8),
+        "dword": ("I", 4),
+        "word": ("H", 2),
+        "byte": ("B", 1),
+    }
+    typecode = formats[fmt][0]
+    chunk = formats[fmt][1]
+
     result = []
     for i in range(0, len(source), length):
         s = source[i:i + length]
 
         if PYTHON_MAJOR == 3:
-            hexa = " ".join(["{:02x}".format(c) for c in s])
+            line = array.array(typecode, s)
             text = "".join([chr(c) if 0x20 <= c < 0x7F else separator for c in s])
         else:
-            hexa = " ".join(["{:02x}".format(ord(c)) for c in s])
+            if typecode == 'Q': # python2 doesn't support qwords in arrays :(
+                line = []
+                for j in range(0, length, 8):
+                    line.append(struct.unpack("<Q", line[j:j+8]))
+            else:
+                line = array.array(typecode, s)
             text = "".join([c if 0x20 <= ord(c) < 0x7F else separator for c in s])
+
+        hexa = " ".join(["{0:0{1}x}".format(c, chunk*2) for c in line])
 
         if show_raw:
             result.append(hexa)
@@ -6333,7 +6349,8 @@ class ContextCommand(GenericCommand):
     def context_memory(self):
         for address, opt in sorted(watches.items()):
             self.context_title("memory:{:#x}".format(address))
-            gdb.execute("hexdump {} {} L{}".format(opt[1], address, opt[0]))
+            mem = read_memory(address, opt[0])
+            print(hexdump(mem, base=address, fmt=opt[1]))
 
     @classmethod
     def update_registers(cls, event):
@@ -6374,11 +6391,11 @@ class MemoryCommand(GenericCommand):
         if len(argv) < 1:
             self.usage()
             return
-        cmd, opt = argv[0], argv[1:]
+        cmd, argv = argv[0], argv[1:]
         if cmd == "watch":
-            self.watch(opt)
+            self.watch(argv)
         elif cmd == "unwatch":
-            self.unwatch(int(opt[0], 0))
+            self.unwatch(to_unsigned_long(gdb.parse_and_eval(argv[0])))
         elif cmd == "clear":
             self.clear()
         elif cmd == "list":
@@ -6387,20 +6404,27 @@ class MemoryCommand(GenericCommand):
             self.usage()
             return
 
-    def watch(self, opt):
-        address, opt = int(opt[0], 0), opt[1:]
-        if opt:
-            size, opt = int(opt[0], 0), opt[1:]
+    def watch(self, argv):
+        address = to_unsigned_long(gdb.parse_and_eval(argv[0]))
+        argv = argv[1:]
+        if argv:
+            size = to_unsigned_long(gdb.parse_and_eval(argv[0]))
+            argv = argv[1:]
         else:
             size = 0x10
 
-        if opt:
-            group = opt[0].lower()
+        if argv:
+            group = argv[0].lower()
             if group not in {"qword", "dword", "word", "byte"}:
                 warn("Unexpected grouping")
                 self.usage()
         else:
             group = "byte"
+            if current_arch:
+                if current_arch.ptrsize == 4:
+                    group = "dword"
+                elif current_arch.ptrsize == 8:
+                    group = "qword"
 
         watches[address] = (size, group)
 
@@ -6457,63 +6481,35 @@ class HexdumpCommand(GenericCommand):
 
         start_addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
         read_from = align_address(start_addr)
-        read_len = 10
+        read_len = 0x10
         up_to_down = True
 
         if argc >= 2:
             for arg in argv[1:]:
                 arg = arg.lower()
                 if arg.startswith("l"):
-                    if arg[1:].isdigit():
-                        read_len = long(arg[1:])
-                        continue
-                elif arg == "up":
+                    arg = arg[1:]
+                try:
+                    read_len = long(arg, 0)
+                    continue
+                except ValueError:
+                    pass
+
+                if arg == "up":
                     up_to_down = True
                     continue
                 elif arg == "down":
                     up_to_down = False
                     continue
 
-        if fmt == "byte":
-            mem = read_memory(read_from, read_len)
-            lines = hexdump(mem, base=read_from).splitlines()
-        else:
-            lines = self._hexdump(read_from, read_len, fmt)
+        mem = read_memory(read_from, read_len)
+        lines = hexdump(mem, base=read_from, fmt=fmt).splitlines()
 
         if not up_to_down:
             lines.reverse()
 
         print("\n".join(lines))
         return
-
-
-    def _hexdump(self, start_addr, length, arrange_as):
-        elf = get_elf_headers()
-        if elf is None:
-            return
-        endianness = endian_str()
-
-        formats = {
-            "qword": ("Q", 8),
-            "dword": ("I", 4),
-            "word": ("H", 2),
-        }
-
-        r, l = formats[arrange_as]
-        fmt_str = "%#x+%.4x {:s} %#.{:s}x".format(vertical_line, str(l * 2))
-        fmt_pack = endianness + r
-        lines = []
-
-        i = 0
-        while i < length:
-            cur_addr = start_addr + i * l
-            mem = read_memory(cur_addr, l)
-            val = struct.unpack(fmt_pack, mem)[0]
-            lines.append(fmt_str % (start_addr, i * l, val))
-            i += 1
-
-        return lines
-
 
 @register_command
 class PatchCommand(GenericCommand):
@@ -6939,9 +6935,7 @@ class XorMemoryCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
-        if len(argv) == 0:
-            err("Missing subcommand <display|patch>")
-            self.usage()
+        self.usage()
         return
 
 @register_command
@@ -6955,7 +6949,7 @@ class XorMemoryDisplayCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if len(argv) not in (3, 4):
+        if len(argv) != 3:
             self.usage()
             return
 
