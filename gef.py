@@ -6455,7 +6455,7 @@ class HexdumpCommand(GenericCommand):
     """Display SIZE lines of hexdump from the memory location pointed by ADDRESS."""
 
     _cmdline_ = "hexdump"
-    _syntax_  = "{:s} (qword|dword|word|byte) ADDRESS [L[SIZE]] [UP|DOWN]".format(_cmdline_)
+    _syntax_  = "{:s} (qword|dword|word|byte) ADDRESS [L[SIZE]|[SIZE]] [UP|DOWN]".format(_cmdline_)
     _example_ = "{:s} byte $rsp L16 DOWN".format(_cmdline_)
 
     def __init__(self):
