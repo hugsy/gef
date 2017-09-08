@@ -585,6 +585,8 @@ class GlibcArena:
     def __init__(self, addr=None):
         arena = gdb.parse_and_eval(addr)
         malloc_state_t = cached_lookup_type("struct malloc_state")
+        if malloc_state_t is None:
+            raise gdb.error
         self.__arena = arena.cast(malloc_state_t)
         self.__addr = long(arena.address)
         return
