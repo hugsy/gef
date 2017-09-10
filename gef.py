@@ -582,7 +582,7 @@ class Instruction:
 class GlibcArena:
     """Glibc arena class
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671 """
-    def __init__(self, addr=None):
+    def __init__(self, addr):
         arena = gdb.parse_and_eval(addr)
         malloc_state_t = cached_lookup_type("struct malloc_state")
         self.__arena = arena.cast(malloc_state_t)
@@ -5155,9 +5155,9 @@ class GlibcHeapBinsCommand(GenericCommand):
     """Display information on the bins on an arena (default: main_arena).
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
 
-    _bins_type_ = ["fast", "unsorted", "small", "large"]
+    _bin_types_ = ["fast", "unsorted", "small", "large"]
     _cmdline_ = "heap bins"
-    _syntax_ = "{:s} [{:s}]".format(_cmdline_, "|".join(_bins_type_))
+    _syntax_ = "{:s} [{:s}]".format(_cmdline_, "|".join(_bin_types_))
 
     def __init__(self):
         super(GlibcHeapBinsCommand, self).__init__(prefix=True, complete=gdb.COMPLETE_LOCATION)
@@ -5166,12 +5166,12 @@ class GlibcHeapBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         if len(argv) == 0:
-            for bin_t in GlibcHeapBinsCommand._bins_type_:
+            for bin_t in GlibcHeapBinsCommand._bin_types_:
                 gdb.execute("heap bins {:s}".format(bin_t))
             return
 
         bin_t = argv[0]
-        if bin_t not in GlibcHeapBinsCommand._bins_type_:
+        if bin_t not in GlibcHeapBinsCommand._bin_types_:
             self.usage()
             return
 
@@ -5280,7 +5280,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         if get_main_arena() is None:
-            err("Incorrect Glibc arenas")
+            err("Invalid Glibc arena")
             return
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
@@ -5304,7 +5304,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         if get_main_arena() is None:
-            err("Incorrect Glibc arenas")
+            err("Invalid Glibc arena")
             return
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
@@ -5333,7 +5333,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         if get_main_arena() is None:
-            err("Incorrect Glibc arenas")
+            err("Invalid Glibc arena")
             return
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
