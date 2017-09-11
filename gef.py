@@ -788,12 +788,11 @@ class GlibcChunk:
 @lru_cache()
 def get_main_arena():
     try:
-        arena = GlibcArena("main_arena")
-    except gdb.error as e:
+        return GlibcArena("main_arena")
+    except Exception  as e:
         err("Failed to get `main_arena` symbol, heap commands may not work properly: {}".format(e))
         warn("Did you install `libc6-dbg`?")
-        arena = None
-    return arena
+        return None
 
 
 def titlify(text, color=None, msg_color=None):
