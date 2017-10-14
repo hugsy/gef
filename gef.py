@@ -2019,8 +2019,14 @@ def get_filepath():
         else:
             return filename
     else:
+        if filename is not None:
+            return filename
+        # inferior probably did not have name,
+        # extract cmdline from info proc
+        tmp = gdb.execute("info proc", to_string=True)
+        tmp = [x for x in tmp.split("\n") if x.startswith("cmdline")][0]
+        filename = tmp.split("'")[1]
         return filename
-
 
 @lru_cache()
 def get_filename():
