@@ -900,7 +900,7 @@ def which(program):
     raise FileNotFoundError("Missing file `{:s}`".format(program))
 
 
-def hexdump(source, length=0x10, separator=".", show_raw=False, base=0, fmt='byte'):
+def hexdump(source, length=0x10, separator=".", show_raw=False, base=0, fmt='byte', need_sym=False):
     """Return the hexdump of `src` argument.
     @param mem is the data to dump, bytes or bytearray only
     @param length is the length of items per line
@@ -939,9 +939,24 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0, fmt='byt
             result.append(hexa)
         else:
             align = get_memory_alignment()*2+2 if is_alive() else 18
-            result.append("{addr:#0{aw}x}     {data:<{dw}}    {text}".format(aw=align, addr=base+i,
-                                                                             dw=3*length, data=hexa,
-                                                                             text=text))
+            if need_sym:
+                sym = '<' + gdb.execute('info sym {}'.format(base+i), to_string=True) \
+                    .split('in section')[0] \
+                    .replace(' ', '') \
+                    + '>'
+                sym = '' if 'Nosymbolmatches' in sym else sym
+            else:
+                sym = ''
+            result.append("{addr:#0{aw}x} {sym}   {data:<{dw}}    {text}" \
+                    .format(
+                        aw=align, 
+                        addr=base+i,
+                        sym=sym,
+                        dw=3*length,
+                        data=hexa,
+                        text=text
+                    )
+            )
     return "\n".join(result)
 
 
@@ -6455,10 +6470,10 @@ class MemoryCommand(GenericCommand):
 
 @register_command
 class HexdumpCommand(GenericCommand):
-    """Display SIZE lines of hexdump from the memory location pointed by ADDRESS."""
+    """Display SIZE lines of hexdump from the memory location pointed by ADDRESS. """
 
     _cmdline_ = "hexdump"
-    _syntax_  = "{:s} (qword|dword|word|byte) ADDRESS [[L][SIZE]] [UP|DOWN]".format(_cmdline_)
+    _syntax_  = "{:s} (qword|dword|word|byte) ADDRESS [[L][SIZE]] [UP|DOWN] [S]".format(_cmdline_)
     _example_ = "{:s} byte $rsp L16 DOWN".format(_cmdline_)
 
     def __init__(self):
@@ -6488,6 +6503,7 @@ class HexdumpCommand(GenericCommand):
         read_from = align_address(start_addr)
         read_len = 0x10
         up_to_down = True
+        need_sym = False
 
         if argc >= 2:
             for arg in argv[1:]:
@@ -6506,9 +6522,12 @@ class HexdumpCommand(GenericCommand):
                 elif arg == "down":
                     up_to_down = False
                     continue
+                
+                if arg == "s":
+                    need_sym = True
 
         mem = read_memory(read_from, read_len)
-        lines = hexdump(mem, base=read_from, fmt=fmt).splitlines()
+        lines = hexdump(mem, base=read_from, fmt=fmt, need_sym=need_sym).splitlines()
 
         if not up_to_down:
             lines.reverse()
