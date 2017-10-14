@@ -900,63 +900,36 @@ def which(program):
     raise FileNotFoundError("Missing file `{:s}`".format(program))
 
 
-def hexdump(source, length=0x10, separator=".", show_raw=False, base=0, fmt='byte', need_sym=False):
+def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
     """Return the hexdump of `src` argument.
-    @param mem is the data to dump, bytes or bytearray only
+    @param source *MUST* be of type bytes or bytearray
     @param length is the length of items per line
     @param separator is the default character to use if one byte is not printable
     @param show_raw if True, do not add the line nor the text translation
     @param base is the start address of the block being hexdump
+    @param func is the function to use to parse bytes (int for Py3, chr for Py2)
     @return a string with the hexdump """
-    formats = {
-        "qword": ("Q", 8),
-        "dword": ("I", 4),
-        "word": ("H", 2),
-        "byte": ("B", 1),
-    }
-    typecode = formats[fmt][0]
-    chunk = formats[fmt][1]
-
     result = []
+    align = get_memory_alignment()*2+2 if is_alive() else 18
+
     for i in range(0, len(source), length):
-        s = source[i:i + length]
-
-        if PYTHON_MAJOR == 3:
-            line = array.array(typecode, s)
-            text = "".join([chr(c) if 0x20 <= c < 0x7F else separator for c in s])
-        else:
-            if typecode == 'Q': # python2 doesn't support qwords in arrays :(
-                line = []
-                for j in range(0, length, 8):
-                    line.append(struct.unpack("<Q", line[j:j+8]))
-            else:
-                line = array.array(typecode, s)
-            text = "".join([c if 0x20 <= ord(c) < 0x7F else separator for c in s])
-
-        hexa = " ".join(["{0:0{1}x}".format(c, chunk*2) for c in line])
+        chunk = bytearray(source[i:i + length])
+        hexa = " ".join(["{:02x}".format(b) for b in chunk])
 
         if show_raw:
             result.append(hexa)
-        else:
-            align = get_memory_alignment()*2+2 if is_alive() else 18
-            if need_sym:
-                sym = '<' + gdb.execute('info sym {}'.format(base+i), to_string=True) \
-                    .split('in section')[0] \
-                    .replace(' ', '') \
-                    + '>'
-                sym = '' if 'Nosymbolmatches' in sym else sym
-            else:
-                sym = ''
-            result.append("{addr:#0{aw}x} {sym}   {data:<{dw}}    {text}" \
-                    .format(
-                        aw=align, 
-                        addr=base+i,
-                        sym=sym,
-                        dw=3*length,
-                        data=hexa,
-                        text=text
-                    )
-            )
+            continue
+
+        text = "".join([chr(b) if 0x20 <= b < 0x7F else separator for b in chunk])
+        sym = gdb_get_location_from_symbol(base+i)
+        sym = "<{:s}+{:04x}>".format(*sym) if sym else ''
+
+        result.append("{addr:#0{aw}x} {sym}    {data:<{dw}}    {text}".format(aw=align,
+                                                                              addr=base+i,
+                                                                              sym=sym,
+                                                                              dw=3*length,
+                                                                              data=hexa,
+                                                                              text=text))
     return "\n".join(result)
 
 
@@ -6484,7 +6457,7 @@ class HexdumpCommand(GenericCommand):
         GefAlias("dq", "hexdump qword", completer_class=gdb.COMPLETE_LOCATION)
         GefAlias("dd", "hexdump dword", completer_class=gdb.COMPLETE_LOCATION)
         GefAlias("dw", "hexdump word", completer_class=gdb.COMPLETE_LOCATION)
-        GefAlias("dc", "hexdump byte", completer_class=gdb.COMPLETE_LOCATION)
+        GefAlias("db", "hexdump byte", completer_class=gdb.COMPLETE_LOCATION)
         return
 
     @only_if_gdb_running
@@ -6503,7 +6476,6 @@ class HexdumpCommand(GenericCommand):
         read_from = align_address(start_addr)
         read_len = 0x10
         up_to_down = True
-        need_sym = False
 
         if argc >= 2:
             for arg in argv[1:]:
@@ -6522,18 +6494,49 @@ class HexdumpCommand(GenericCommand):
                 elif arg == "down":
                     up_to_down = False
                     continue
-                
-                if arg == "s":
-                    need_sym = True
 
-        mem = read_memory(read_from, read_len)
-        lines = hexdump(mem, base=read_from, fmt=fmt, need_sym=need_sym).splitlines()
+        if fmt == "byte":
+            mem = read_memory(read_from, read_len)
+            lines = hexdump(mem, base=read_from).splitlines()
+        else:
+            lines = self._hexdump(read_from, read_len, fmt)
 
         if not up_to_down:
             lines.reverse()
 
         print("\n".join(lines))
         return
+
+
+    def _hexdump(self, start_addr, length, arrange_as):
+        elf = get_elf_headers()
+        if elf is None:
+            return
+        endianness = endian_str()
+
+        formats = {
+            "qword": ("Q", 8),
+            "dword": ("I", 4),
+            "word": ("H", 2),
+        }
+
+        r, l = formats[arrange_as]
+        fmt_str = "%#x+%.4x %s  {:s} %#.{:s}x".format(vertical_line, str(l * 2))
+        fmt_pack = endianness + r
+        lines = []
+
+        i = 0
+        while i < length:
+            cur_addr = start_addr + i * l
+            sym = gdb_get_location_from_symbol(cur_addr)
+            sym = "<{:s}+{:04x}>".format(*sym) if sym else ''
+            mem = read_memory(cur_addr, l)
+            val = struct.unpack(fmt_pack, mem)[0]
+            lines.append(fmt_str % (cur_addr, i * l,  sym, val))
+            i += 1
+
+        return lines
+
 
 @register_command
 class PatchCommand(GenericCommand):
