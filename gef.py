@@ -376,6 +376,7 @@ class Address:
             return None
 
 
+
 class Permission:
     """GEF representation of Linux permission."""
     NONE      = 0
@@ -838,6 +839,12 @@ def push_context_message(level, message):
 
 def show_last_exception():
     """Display the last Python exception."""
+
+    def _show_code_line(fname, idx):
+        fname = os.path.expanduser( os.path.expandvars(fname) )
+        __data = open(fname, "r").read().splitlines()
+        return __data[idx-1] if idx < len(__data) else ""
+
     print("")
     exc_type, exc_value, exc_traceback = sys.exc_info()
     print(" Exception raised ".center(80, horizontal_line))
@@ -848,6 +855,9 @@ def show_last_exception():
             filename, lineno, method, code = fs
         else:
             filename, lineno, method, code = fs.filename, fs.lineno, fs.name, fs.line
+
+        if not code or len(code.strip())==0:
+            code = _show_code_line(filename, lineno)
 
         print("""{} File "{}", line {:d}, in {}()""".format(down_arrow, Color.yellowify(filename),
                                                             lineno, Color.greenify(method)))
