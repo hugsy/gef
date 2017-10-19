@@ -6352,8 +6352,11 @@ class ContextCommand(GenericCommand):
     def context_memory(self):
         for address, opt in sorted(watches.items()):
             self.context_title("memory:{:#x}".format(address))
-            mem = read_memory(address, opt[0])
-            print(hexdump(mem, base=address, fmt=opt[1]))
+            gdb.execute('hexdump {fmt:s} {address:d} {size:d}'.format(
+                address=address,
+                size=opt[0],
+                fmt=opt[1]
+            ))
 
     @classmethod
     def update_registers(cls, event):
