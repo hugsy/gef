@@ -202,6 +202,7 @@ ___default_aliases___                  = {
     "bp"  :   "break",
     "bd"  :   "disable breakpoints",
     "be"  :   "enable breakpoints",
+    "da"  :   "x/s",
     "tbp" :   "tbreak",
     "pa"  :   "advance",
     "ptc" :   "finish",
@@ -1168,7 +1169,7 @@ def capstone_disassemble(location, nb_insn, **kwargs):
         location = gdb_get_nth_previous_instruction_address(pc, nb_insn)
         nb_insn *= 2
 
-    code = kwargs.get("code", read_memory(location, DEFAULT_PAGE_SIZE - offset - 1))
+    code = kwargs.get("code", read_memory(location, gef_getpagesize() - offset - 1))
     code = bytes(code)
 
     for insn in cs.disasm(code, location):
@@ -2713,26 +2714,41 @@ def gef_convenience(value):
     return var_name
 
 
-def gef_read_canary():
-    """Read the canary of a running process using Auxiliary Vector. Return a tuple of (canary, location)
-    if found, None otherwise."""
-
+@lru_cache()
+def gef_get_auxiliary_values():
+    """Retrieves the auxiliary values of the current execution. Returns None if not running, or a dict()
+    of values."""
     if not is_alive():
         return None
 
-    canary = None
-    canary_location = None
+    res = {}
     for line in gdb.execute("info auxv", to_string=True).splitlines():
         tmp = line.split()
-        _type, _addr = tmp[1], tmp[-1]
-        if _type != "AT_RANDOM":
-            continue
-        canary_location = int(_addr, 16)
-        canary = read_int_from_memory(canary_location)
-        canary &= ~0xff
-        return canary, canary_location
+        _type = tmp[1]
+        res[_type] = int(tmp[-2], 16) if _type in ("AT_PLATFORM", "AT_EXECFN") else int(tmp[-1], 16)
+    return res
 
-    return None
+
+def gef_read_canary():
+    """Read the canary of a running process using Auxiliary Vector. Return a tuple of (canary, location)
+    if found, None otherwise."""
+    auxval = gef_get_auxiliary_values()
+    if not auxval:
+        return None
+
+    canary_location = auxval["AT_RANDOM"]
+    canary = read_int_from_memory(canary_location)
+    canary &= ~0xff
+    return canary, canary_location
+
+
+@lru_cache()
+def gef_getpagesize():
+    """Get the page size from auxiliary values."""
+    auxval = gef_get_auxiliary_values()
+    if not auxval:
+        return DEFAULT_PAGE_SIZE
+    return auxval["AT_PAGESZ"]
 
 
 def only_if_events_supported(event_type):
@@ -3372,7 +3388,7 @@ class ProcessStatusCommand(GenericCommand):
         ps = which("ps")
         cmd = [ps, "-o", "pid", "--ppid","{}".format(pid), "--noheaders"]
         try:
-            return gef_execute_external(cmd, as_list=True)
+            return [int(x) for x in gef_execute_external(cmd, as_list=True)]
         except Exception:
             return []
 
