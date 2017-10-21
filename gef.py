@@ -6417,7 +6417,7 @@ class MemoryWatchCommand(GenericCommand):
     """Adds address ranges to the memory view."""
     _cmdline_ = "memory watch"
     _syntax_  = "{:s} ADDRESS [SIZE] [(qword|dword|word|byte)]".format(_cmdline_)
-    _example_ = "\n\t{0:s} 0x603000 0x100 byte\n\t{0:s} watch $sp".format(_cmdline_)
+    _example_ = "\n\t{0:s} 0x603000 0x100 byte\n\t{0:s} $sp".format(_cmdline_)
 
     @only_if_gdb_running
     def do_invoke(self, argv):
