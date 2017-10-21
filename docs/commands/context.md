@@ -31,20 +31,36 @@ gef➤ gef config context.layout
 
 There are currently 6 sections that can be displayed:
 
-   * `regs`
-   * `stack`
-   * `code`
-   * `source`
-   * `threads`
-   * `trace`
+   * `regs` : the state of registers
+   * `stack` : the content of memory pointed by `$sp` register
+   * `code` : the code being executed
+   * `source` : if compiled with source, this will show the corresponding line
+     of source code
+   * `threads` : all the threads
+   * `trace` : the execution call trace
+   * `extra` : if an automatic behavior is detected (vulnerable format string,
+     heap vulnerability, etc.) it will be displayed in this pane
+   * `memory` : peek into arbitrary memory locations
 
 To prevent one section to be displayed, simply use the `context.layout` setting,
 and prepend the section name with `-` or just omit it.
 
 ```
-gef➤ gef config context.layout "regs stack code -source -threads -trace"
+gef➤ gef config context.layout "regs stack code -source -threads -trace extra memory"
 ```
 Will not display the `source`, `threads`, and `trace` sections.
+
+The `memory` pane will display the content of all locations specified by the
+`memory` command. For instance,
+
+```
+gef➤ memory watch $sp 0x40 byte
+```
+
+will print an
+hexdump version of 0x40 byte of the stack. This command makes it convenient for
+tracking the evolution of arbitrary locations in memory. Tracked locations can
+be removed one by one using `memory unwatch`, or altogether with `memory reset`.
 
 
 ### Redirecting context output to another tty/file ###
