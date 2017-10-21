@@ -182,6 +182,7 @@ __gef__                                = None
 __commands__                           = []
 __aliases__                            = []
 __config__                             = {}
+__watches__                            = {}
 __infos_files__                        = []
 __gef_convenience_vars_index__         = 0
 __context_messages__                   = []
@@ -6366,7 +6367,8 @@ class ContextCommand(GenericCommand):
         return
 
     def context_memory(self):
-        for address, opt in sorted(watches.items()):
+        global __watches__
+        for address, opt in sorted(__watches__.items()):
             self.context_title("memory:{:#x}".format(address))
             mem = read_memory(address, opt[0])
             print(hexdump(mem, base=address, fmt=opt[1]))
@@ -6391,80 +6393,110 @@ class ContextCommand(GenericCommand):
 @register_command
 class MemoryCommand(GenericCommand):
     """Add or remove address ranges to the memory view."""
-
     _cmdline_ = "memory"
-    _syntax_  = """{cmd:s} watch ADDRESS [SIZE] [(qword|dword|word|byte)]
-{cmd:s} unwatch ADDRESS
-{cmd:s} clear
-{cmd:s} list""".format(cmd=_cmdline_)
-    _example_ = "{:s} watch 0x603000 0x100 byte".format(_cmdline_)
+    _syntax_  = "{:s}".format(_cmdline_)
 
     def __init__(self):
         super(MemoryCommand, self).__init__(prefix=True)
-        global watches
-        watches = {}
+        return
+
+    def post_load(self):
+        gdb.execute("memory reset")
         return
 
     @only_if_gdb_running
     def do_invoke(self, argv):
+        self.usage()
+        return
+
+@register_command
+class MemoryWatchCommand(GenericCommand):
+    """Adds address ranges to the memory view."""
+    _cmdline_ = "memory watch"
+    _syntax_  = "{:s} ADDRESS [SIZE] [(qword|dword|word|byte)]".format(_cmdline_)
+    _example_ = "\n\t{0:s} 0x603000 0x100 byte\n\t{0:s} watch $sp".format(_cmdline_)
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+        global __watches__
+
+        if len(argv) not in (1, 2, 3):
+            self.usage()
+            return
+
+        address = to_unsigned_long(gdb.parse_and_eval(argv[0]))
+        size    = to_unsigned_long(gdb.parse_and_eval(argv[1])) if len(argv) > 1  else 0x10
+        group   = "byte"
+
+        if len(argv) == 3:
+            group = argv[2].lower()
+            if group not in ("qword", "dword", "word", "byte"):
+                warn("Unexpected grouping '{}'".format(group))
+                self.usage()
+                return
+        else:
+            if current_arch.ptrsize == 4:
+                group = "dword"
+            elif current_arch.ptrsize == 8:
+                group = "qword"
+
+        __watches__[address] = (size, group)
+        ok("Adding memwatch to {:#x}".format(address))
+        return
+
+@register_command
+class MemoryUnwatchCommand(GenericCommand):
+    """Removes address ranges to the memory view."""
+    _cmdline_ = "memory unwatch"
+    _syntax_  = "{:s} ADDRESS".format(_cmdline_)
+    _example_ = "\n\t{0:s} 0x603000\n\t{0:s} $sp".format(_cmdline_)
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+        global __watches__
         if len(argv) < 1:
             self.usage()
             return
-        cmd, argv = argv[0], argv[1:]
-        if cmd == "watch":
-            self.watch(argv)
-        elif cmd == "unwatch":
-            self.unwatch(to_unsigned_long(gdb.parse_and_eval(argv[0])))
-        elif cmd == "clear":
-            self.clear()
-        elif cmd == "list":
-            self.list()
-        else:
-            self.usage()
-            return
 
-    def watch(self, argv):
         address = to_unsigned_long(gdb.parse_and_eval(argv[0]))
-        argv = argv[1:]
-        if argv:
-            size = to_unsigned_long(gdb.parse_and_eval(argv[0]))
-            argv = argv[1:]
-        else:
-            size = 0x10
-
-        if argv:
-            group = argv[0].lower()
-            if group not in {"qword", "dword", "word", "byte"}:
-                warn("Unexpected grouping")
-                self.usage()
-        else:
-            group = "byte"
-            if current_arch:
-                if current_arch.ptrsize == 4:
-                    group = "dword"
-                elif current_arch.ptrsize == 8:
-                    group = "qword"
-
-        watches[address] = (size, group)
-
-    def unwatch(self, address):
-        try:
-            del watches[address]
-        except KeyError:
+        res = __watches__.pop(address, None)
+        if not res:
             warn("You weren't watching {:#x}".format(address))
+        else:
+            ok("Removed memwatch of {:#x}".format(address))
+        return
 
-    def clear(self):
-        info("Memory watches cleared")
-        global watches
-        watches = {}
+@register_command
+class MemoryWatchResetCommand(GenericCommand):
+    """Removes all watchpoints."""
+    _cmdline_ = "memory reset"
+    _syntax_  = "{:s}".format(_cmdline_)
 
-    def list(self):
-        if not watches:
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+        global __watches__
+        __watches__.clear()
+        ok("Memory watches cleared")
+        return
+
+@register_command
+class MemoryWatchListCommand(GenericCommand):
+    """Lists all watchpoints to display in context layout."""
+    _cmdline_ = "memory list"
+    _syntax_  = "{:s}".format(_cmdline_)
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+        global __watches__
+
+        if not __watches__:
             info("No memory watches")
             return
+
         info("Memory watches:")
-        for address, opt in sorted(watches.items()):
+        for address, opt in sorted(__watches__.items()):
             print("- {:#x} ({}, {})".format(address, opt[0], opt[1]))
+        return
 
 
 @register_command
