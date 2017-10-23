@@ -5614,7 +5614,13 @@ class RopperCommand(GenericCommand):
             argv.append("-I")
             argv.append("{:#x}".format(sect.page_start))
 
+        import readline
+        # ropper set up own autocompleter after which gdb/gef autocomplete don't work
+        old_completer_delims = readline.get_completer_delims()
+        old_completer = readline.get_completer()
         ropper.start(argv)
+        readline.set_completer(old_completer)
+        readline.set_completer_delims(old_completer_delims)
         return
 
 
