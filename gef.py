@@ -82,7 +82,6 @@ import termios
 import time
 import traceback
 import types
-import readline
 
 
 PYTHON_MAJOR = sys.version_info[0]
@@ -5598,6 +5597,7 @@ class RopperCommand(GenericCommand):
             argv.append("-I")
             argv.append("{:#x}".format(sect.page_start))
 
+        import readline
         # ropper set up own autocompleter after which gdb/gef autocomplete don't work
         old_completer_delims = readline.get_completer_delims()
         old_completer = readline.get_completer()
