@@ -5635,6 +5635,15 @@ class AssembleCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(AssembleCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.valid_arch_modes = {
+            "ARM" : ["ARM", "THUMB"],
+            "ARM64" : ["ARM", "THUMB", "V5", "V8", ],
+            "MIPS" : ["MICRO", "MIPS3", "MIPS32", "MIPS32R6", "MIPS64",],
+            "PPC" : ["PPC32", "PPC64", "QPX",],
+            "SPARC" : ["SPARC32", "SPARC64", "V9",],
+            "SYSTEMZ" : ["32",],
+            "X86" : ["16", "32", "64"],
+        }
         return
 
     def pre_load(self):
@@ -5643,6 +5652,15 @@ class AssembleCommand(GenericCommand):
         except ImportError:
             msg = "Missing `keystone-engine` package for Python{0}, install with: `pip{0} install keystone-engine`.".format(PYTHON_MAJOR)
             raise ImportWarning(msg)
+        return
+
+    def usage(self):
+        super(AssembleCommand, self).usage()
+        print("\nAvailable architectures/modes:")
+        # for updates, see https://github.com/keystone-engine/keystone/blob/master/include/keystone/keystone.h
+        for arch in self.valid_arch_modes:
+            print(" - {} ".format(arch))
+            print("  * {}".format( " / ".join(self.valid_arch_modes[arch]) ))
         return
 
     def do_invoke(self, argv):
