@@ -189,6 +189,8 @@ __context_messages__                   = []
 __heap_allocated_list__                = []
 __heap_freed_list__                    = []
 __heap_uaf_watchpoints__               = []
+__pie_breakpoints__                    = {}
+__pie_counter__                        = 1
 
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
@@ -2742,6 +2744,9 @@ def gef_read_canary():
     canary &= ~0xff
     return canary, canary_location
 
+def gef_get_pie_breakpoint(num):
+    global __pie_breakpoints__
+    return __pie_breakpoints__[num]
 
 @lru_cache()
 def gef_getpagesize():
@@ -2782,10 +2787,55 @@ def gef_on_new_hook(func): return gdb.events.new_objfile.connect(func)
 @only_if_events_supported("new_objfile")
 def gef_on_new_unhook(func): return gdb.events.new_objfile.disconnect(func)
 
+#
+# Virtual breakpoints
+#
+
+class PieVirtualBreakpoint(object):
+    """PIE virtual breakpoint (not real breakpoint)."""
+    def __init__(self, set_func, vbp_num, addr):
+        # set_func(base): given a base address return a 
+        # set breakpoint gdb command string
+        self.set_func = set_func
+        self.vbp_num = vbp_num
+        # breakpoint num, 0 represents not instantiated yet
+        self.bp_num = 0
+        self.bp_addr = 0
+        # this address might be a symbol, just to know where to break
+        if isinstance(addr, int):
+            self.addr = hex(addr)
+        else:
+            self.addr = addr
+
+    def instantiate(self, base):
+        if self.bp_num:
+            self.destroy()
+
+        try:
+            res = gdb.execute(self.set_func(base), to_string=True)
+        except gdb.error as e:
+            err(e)
+            return
+
+        if "Breakpoint" not in res:
+            err(res)
+            return
+        res_list = res.split()
+        # Breakpoint (no) at (addr)
+        self.bp_num = res_list[1]
+        self.bp_addr = res_list[3]
+
+    def destroy(self):
+        if not self.bp_num:
+            err("Destroy PIE breakpoint not even set")
+            return
+        gdb.execute("delete {}".format(self.bp_num))
+        self.bp_num = 0
 
 #
 # Breakpoints
 #
+
 class FormatStringBreakpoint(gdb.Breakpoint):
     """Inspect stack for format string"""
     def __init__(self, spec, num_args):
@@ -3257,6 +3307,195 @@ class GenericCommand(gdb.Command):
 #     def do_invoke(self, argv):
 #         return
 
+@register_command
+class PieCommand(GenericCommand):
+    """PIE breakpoint support."""
+
+    _cmdline_ = "pie"
+    _syntax_  = "{:s} (breakpoint|info|delete|run|attach|remote)".format(_cmdline_)
+
+    def __init__(self):
+        super(PieCommand, self).__init__(prefix=True)
+        return
+
+    def do_invoke(self, argv):
+        if len(argv) == 0:
+            self.usage()
+        return
+
+
+@register_command
+class PieBreakpointCommand(GenericCommand):
+    """Set a PIE breakpoint."""
+
+    _cmdline_ = "pie breakpoint"
+    _syntax_  = "{:s} BREAKPOINT".format(_cmdline_)
+
+    def do_invoke(self, argv):
+        global __pie_counter__, __pie_breakpoints__
+        if len(argv) < 1:
+            self.usage()
+            return
+        bp_expr = " ".join(argv)
+        tmp_bp_expr = bp_expr
+        bp_expr = bp_expr[1:].replace(" ", "")
+        try:
+            addr = int(bp_expr, 0)
+            self.set_pie_breakpoint(lambda base: "b *{}".format(base + addr), addr)
+        except ValueError:
+            bp_expr = tmp_bp_expr
+            self.set_pie_breakpoint(lambda base: "b {}".format(bp_expr), bp_expr)
+
+    @staticmethod
+    def set_pie_breakpoint(set_func, addr):
+        global __pie_counter__, __pie_breakpoints__
+        __pie_breakpoints__[__pie_counter__] = PieVirtualBreakpoint(set_func, __pie_counter__, addr)
+        __pie_counter__ += 1
+                
+
+@register_command
+class PieInfoCommand(GenericCommand):
+    """Display breakpoint info."""
+
+    _cmdline_ = "pie info"
+    _syntax_  = "{:s} BREAKPOINT".format(_cmdline_)
+
+    def do_invoke(self, argv):
+        global __pie_breakpoints__
+        if len(argv) < 1:
+            # No breakpoint info needed
+            bps = [__pie_breakpoints__[x] for x in __pie_breakpoints__]
+        else:
+            try:
+                bps = [__pie_breakpoints__[int(x)] for x in argv]
+            except ValueError:
+                err("Please give me breakpoint number")
+                return
+        lines = []
+        lines.append("VNum\tNum\tAddr")
+        lines += [
+            "{}\t{}\t{}".format(x.vbp_num, x.bp_num if x.bp_num else "N/A", x.addr) for x in bps
+        ]
+        print("\n".join(lines))
+
+
+@register_command
+class PieDeleteCommand(GenericCommand):
+    """Delete a PIE breakpoint."""
+
+    _cmdline_ = "pie delete"
+    _syntax_  = "{:s} [BREAKPOINT]".format(_cmdline_)
+
+    def do_invoke(self, argv):
+        global __pie_breakpoints__
+        if len(argv) < 1:
+            # no arg, delete all
+            to_delete = [__pie_breakpoints__[x] for x in __pie_breakpoints__]
+            self.delete_bp(to_delete)
+        try:
+            self.delete_bp([__pie_breakpoints__[int(x)] for x in argv])
+        except ValueError:
+            err("Please input PIE virtual breakpoint number to delete")
+
+    @staticmethod
+    def delete_bp(breakpoints):
+        global __pie_breakpoints__
+        for bp in breakpoints:
+            # delete current real breakpoints if exists
+            gdb.execute(
+                "delete {}".format(bp.bp_num)
+            ) if bp.bp_num else 0
+            # delete virtual breakpoints
+            del __pie_breakpoints__[bp.vbp_num]
+
+
+@register_command
+class PieRunCommand(GenericCommand):
+    """Run process with PIE breakpoint support."""
+
+    _cmdline_ = "pie run"
+    _syntax_  = _cmdline_
+
+    def do_invoke(self, argv):
+        global __pie_breakpoints__
+        fpath = get_filepath()
+        if fpath is None:
+            warn("No executable to debug, use `file` to load a binary")
+            return
+
+        if not os.access(fpath, os.X_OK):
+            warn("The file '{}' is not executable.".format(fpath))
+            return
+
+        if is_alive():
+            warn("gdb is already running. Restart process.")
+
+        # get base address
+        gdb.execute("set stop-on-solib-events 1")
+        disable_context()
+        gdb.execute("run")
+        enable_context()
+        gdb.execute("set stop-on-solib-events 0")
+        vmmap = get_process_maps()
+        base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
+        info("base address {}".format(hex(base_address)))
+
+        # modify all breakpoints
+        for bp, bp_ins in __pie_breakpoints__.items():
+            bp_ins.instantiate(base_address)
+        
+        try:
+            gdb.execute("continue")
+        except gdb.error as e:
+            err(e)
+            gdb.execute("kill")
+
+
+@register_command
+class PieAttachCommand(GenericCommand):
+    """Do attach with PIE breakpoint support."""
+
+    _cmdline_ = "pie attach"
+    _syntax_  = "{:s} PID".format(_cmdline_)
+
+    def do_invoke(self, argv):
+        try:
+            gdb.execute("attach {}".format(" ".join(argv)), to_string=True)
+        except gdb.error as e:
+            err(e)
+            return
+        # after attach, we are stopped so that we can 
+        # get base address to modify our breakpoint
+        vmmap = get_process_maps()
+        base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
+
+        for bp, bp_ins in __pie_breakpoints__.items():
+            bp_ins.instantiate(base_address)
+        gdb.execute("context")
+
+
+@register_command
+class PieRemoteCommand(GenericCommand):
+    """Attach to a remote connection with PIE breakpoint support."""
+
+    _cmdline_ = "pie remote"
+    _syntax_  = "{:s} REMOTE".format(_cmdline_)
+
+    def do_invoke(self, argv):
+        try:
+            gdb.execute("target remote {}".format(" ".join(argv)))
+        except gdb.error as e:
+            err(e)
+            return
+        # after remote attach, we are stopped so that we can
+        # get base address to modify our breakpoint
+        vmmap = get_process_maps()
+        base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
+
+        for bp, bp_ins in __pie_breakpoints__.items():
+            bp_ins.instantiate(base_address)
+        gdb.execute("context")
+
 
 @register_command
 class SmartEvalCommand(GenericCommand):
@@ -3282,7 +3521,7 @@ class SmartEvalCommand(GenericCommand):
 
             try:
                 s_i = comp2_x(res)
-                s_i = s_i.rjust(len(s_i)+1, '0') if len(s_i)%2 else s_i
+                s_i = s_i.rjust(len(s_i)+1, "0") if len(s_i)%2 else s_i
                 print("{:d}".format(i))
                 print("0x" + comp2_x(res))
                 print("0b" + comp2_b(res))
