@@ -32,6 +32,7 @@ pages:
 - Command patch: commands/patch.md
 - Command pattern: commands/pattern.md
 - Command pcustom: commands/pcustom.md
+- Command pie: commands/pie.md
 - Command process-status: commands/process-status.md
 - Command process-search: commands/process-search.md
 - Command registers: commands/registers.md
