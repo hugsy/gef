@@ -5928,6 +5928,12 @@ class AssembleCommand(GenericCommand):
                 mode_s = "32"
                 endian_s = "little"
                 arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=False)
+        elif not arch_s:
+            err("An architecture (-a) must be provided")
+            return
+        elif not mode_s:
+            err("A mode (-m) must be provided")
+            return
         else:
             arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=big_endian)
             endian_s = "big" if big_endian else "little"
