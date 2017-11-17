@@ -1071,7 +1071,7 @@ def gdb_disassemble(start_pc, **kwargs):
 def gdb_get_nth_previous_instruction_address(addr, n):
     """Return the address (Integer) of the `n`-th instruction before `addr`."""
     # fixed-length ABI
-    if not (is_x86_32() or is_x86_64()):
+    if current_arch.instruction_length:
         return addr - n*current_arch.instruction_length
 
     # variable-length ABI
@@ -1106,7 +1106,7 @@ def gdb_get_nth_previous_instruction_address(addr, n):
 def gdb_get_nth_next_instruction_address(addr, n):
     """Return the address (Integer) of the `n`-th instruction after `addr`."""
     # fixed-length ABI
-    if not (is_x86_32() or is_x86_64()):
+    if current_arch.instruction_length:
         return addr + n*current_arch.instruction_length
 
     # variable-length ABI
@@ -1352,7 +1352,8 @@ class ARM(Architecture):
 
     @property
     def instruction_length(self):
-        return 2 if is_arm_thumb() else 4
+        # Thumb instructions have variable-length (2 or 4-byte)
+        return None if is_arm_thumb() else 4
 
     def is_call(self, insn):
         mnemo = insn.mnemo
