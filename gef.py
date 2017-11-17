@@ -1046,10 +1046,11 @@ def gdb_get_location_from_symbol(address):
 def gdb_disassemble(start_pc, **kwargs):
     """""Disassemble instructions starting from `start_pc` (Integer)
     Accepts the following optional named parameters:
-    - `end_pc` (Integer) to disassemble only instructions whose startaddress
+    - `end_pc` (Integer) to disassemble only instructions whose start address
                          fall in the closed memory address interval from
                          start_pc to end_pc.
     - `count` (Integer) to disassemble at most this number of instructions
+
     If `end_pc` and `count` are not provided, the function will behave as if
     `count=1`.
     Return an iterator of Instruction objects
