@@ -1133,17 +1133,13 @@ def gef_disassemble(addr, nb_insn, from_top=False):
     """Disassemble `nb_insn` instructions after `addr`. If `from_top` is False (default), it will
     also disassemble the `nb_insn` instructions before `addr`.
     Return an iterator of Instruction objects."""
-    if nb_insn & 1:
-        count = nb_insn + 1
-
     if not from_top:
-        start_addr = gdb_get_nth_previous_instruction_address(addr, count)
+        start_addr = gdb_get_nth_previous_instruction_address(addr, nb_insn+1)
         if start_addr > 0:
-            for insn in gdb_disassemble(start_addr, count=count):
-                if insn.address == addr: break
+            for insn in gdb_disassemble(start_addr, count=nb_insn):
                 yield insn
 
-    for insn in gdb_disassemble(addr, count=count):
+    for insn in gdb_disassemble(addr, count=nb_insn+1):
         yield insn
 
 
