@@ -1133,8 +1133,7 @@ def gef_disassemble(addr, nb_insn, from_top=False):
     """Disassemble `nb_insn` instructions after `addr`. If `from_top` is False (default), it will
     also disassemble the `nb_insn` instructions before `addr`.
     Return an iterator of Instruction objects."""
-    if nb_insn & 1:
-        count = nb_insn + 1
+    count = nb_insn + 1 if nb_insn & 1 else nb_insn
 
     if not from_top:
         start_addr = gdb_get_nth_previous_instruction_address(addr, count)
@@ -2794,7 +2793,7 @@ def gef_on_new_unhook(func): return gdb.events.new_objfile.disconnect(func)
 class PieVirtualBreakpoint(object):
     """PIE virtual breakpoint (not real breakpoint)."""
     def __init__(self, set_func, vbp_num, addr):
-        # set_func(base): given a base address return a 
+        # set_func(base): given a base address return a
         # set breakpoint gdb command string
         self.set_func = set_func
         self.vbp_num = vbp_num
@@ -3351,7 +3350,7 @@ class PieBreakpointCommand(GenericCommand):
         global __pie_counter__, __pie_breakpoints__
         __pie_breakpoints__[__pie_counter__] = PieVirtualBreakpoint(set_func, __pie_counter__, addr)
         __pie_counter__ += 1
-                
+
 
 @register_command
 class PieInfoCommand(GenericCommand):
@@ -3443,7 +3442,7 @@ class PieRunCommand(GenericCommand):
         # modify all breakpoints
         for bp, bp_ins in __pie_breakpoints__.items():
             bp_ins.instantiate(base_address)
-        
+
         try:
             gdb.execute("continue")
         except gdb.error as e:
@@ -3464,7 +3463,7 @@ class PieAttachCommand(GenericCommand):
         except gdb.error as e:
             err(e)
             return
-        # after attach, we are stopped so that we can 
+        # after attach, we are stopped so that we can
         # get base address to modify our breakpoint
         vmmap = get_process_maps()
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
