@@ -2727,7 +2727,7 @@ def gef_get_auxiliary_values():
     for line in gdb.execute("info auxv", to_string=True).splitlines():
         tmp = line.split()
         _type = tmp[1]
-        res[_type] = int(tmp[-2], 16) if _type in ("AT_PLATFORM", "AT_EXECFN") else int(tmp[-1], 16)
+        res[_type] = int(tmp[-2], base=0) if _type in ("AT_PLATFORM", "AT_EXECFN") else int(tmp[-1], base=0)
     return res
 
 
