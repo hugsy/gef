@@ -1080,7 +1080,7 @@ def gdb_get_nth_previous_instruction_address(addr, n):
 
     # we try to find a good set of previous instructions by "guessing" disassembling backwards
     # the 15 comes from the longest instruction valid size
-    for i in range(15*n, 1, -1):
+    for i in range(15*n, 0, -1):
         try:
             insns = list(gdb_disassemble(addr-i, end_pc=next_insn_addr))
         except gdb.MemoryError:
