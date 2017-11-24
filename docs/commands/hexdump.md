@@ -12,7 +12,7 @@ The command provides WinDBG compatible aliases by default:
   - `hexdump qword` -> `dq`
   - `hexdump dword` -> `dd`
   - `hexdump word` -> `dw`
-  - `hexdump byte` -> `dc`
+  - `hexdump byte` -> `db`
 
 `hexdump byte` will also try to display the ASCII character values if the byte
 is printable (similarly to the `hexdump -C` command on Linux).
@@ -35,7 +35,7 @@ gef➤  dq $pc l4
 
   * Display 32 bytes from a location in the stack:
 ```
-gef➤  dc 0x00007fffffffe5e5 l32
+gef➤  db 0x00007fffffffe5e5 l32
 0x00007fffffffe5e5     2f 68 6f 6d 65 2f 68 75 67 73 79 2f 63 6f 64 65     /home/hugsy/code
 0x00007fffffffe5f5     2f 67 65 66 2f 74 65 73 74 73 2f 77 69 6e 00 41     /gef/tests/win.A
 ```
