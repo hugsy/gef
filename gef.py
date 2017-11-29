@@ -4946,14 +4946,13 @@ emulate(uc, %#x, %#x)
         os.write(tmp_fd, gef_pybytes(content))
         os.close(tmp_fd)
 
-        info("Unicorn script generated as '%s'" % tmp_filename)
+        if kwargs.get("to_file", None):
+            info("Unicorn script generated as '%s'" % tmp_filename)
 
         if to_script_only:
             return
 
-        ok("Starting emulation: %#x %s %#x" % (start_insn_addr,
-                                               right_arrow,
-                                               end_insn_addr))
+        ok("Starting emulation: %#x %s %#x" % (start_insn_addr, right_arrow, end_insn_addr))
 
         res = gef_execute_external(["python", tmp_filename], as_list=True)
         print("\n".join(res))
