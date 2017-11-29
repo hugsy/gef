@@ -590,8 +590,6 @@ class GlibcArena:
     def __init__(self, addr):
         arena = gdb.parse_and_eval(addr)
         malloc_state_t = cached_lookup_type("struct malloc_state")
-        if malloc_state_t is None:
-            raise gdb.error
         self.__arena = arena.cast(malloc_state_t)
         self.__addr = long(arena.address)
         return
@@ -1073,7 +1071,7 @@ def gdb_disassemble(start_pc, **kwargs):
 def gdb_get_nth_previous_instruction_address(addr, n):
     """Return the address (Integer) of the `n`-th instruction before `addr`."""
     # fixed-length ABI
-    if not (is_x86_32() or is_x86_64()):
+    if current_arch.instruction_length:
         return addr - n*current_arch.instruction_length
 
     # variable-length ABI
@@ -1082,7 +1080,7 @@ def gdb_get_nth_previous_instruction_address(addr, n):
 
     # we try to find a good set of previous instructions by "guessing" disassembling backwards
     # the 15 comes from the longest instruction valid size
-    for i in range(15*n, 1, -1):
+    for i in range(15*n, 0, -1):
         try:
             insns = list(gdb_disassemble(addr-i, end_pc=next_insn_addr))
         except gdb.MemoryError:
@@ -1108,7 +1106,7 @@ def gdb_get_nth_previous_instruction_address(addr, n):
 def gdb_get_nth_next_instruction_address(addr, n):
     """Return the address (Integer) of the `n`-th instruction after `addr`."""
     # fixed-length ABI
-    if not (is_x86_32() or is_x86_64()):
+    if current_arch.instruction_length:
         return addr + n*current_arch.instruction_length
 
     # variable-length ABI
@@ -1119,12 +1117,6 @@ def gdb_get_nth_next_instruction_address(addr, n):
 def gef_instruction_n(addr, n):
     """Return the `n`-th instruction after `addr` as an Instruction object."""
     return list(gdb_disassemble(addr, count=n+1))[n-1]
-
-
-def gef_get_instruction_at(addr):
-    """Return the full Instruction found at the specified address."""
-    insn = list(gef_disassemble(addr, 1, from_top=True))[0]
-    return insn
 
 
 def gef_current_instruction(addr):
@@ -1333,21 +1325,6 @@ class Architecture(object):
     def ptrsize(self):
         return get_memory_alignment()
 
-    def print_call_args(self):
-        for i, reg in enumerate(self.function_parameters):
-            addr = long(gdb.parse_and_eval(reg))
-            line = "arg[{:d}] ({:5s}) ".format(i, reg)
-
-            line += Color.boldify(format_address(addr))
-            addrs = DereferenceCommand.dereference_from(addr)
-
-            if len(addrs) > 1:
-                sep = " {:s} ".format(right_arrow)
-                line += sep + sep.join(addrs[1:])
-
-            print(line)
-        return
-
 
 class ARM(Architecture):
     arch = "ARM"
@@ -1375,7 +1352,8 @@ class ARM(Architecture):
 
     @property
     def instruction_length(self):
-        return 2 if is_arm_thumb() else 4
+        # Thumb instructions have variable-length (2 or 4-byte)
+        return None if is_arm_thumb() else 4
 
     def is_call(self, insn):
         mnemo = insn.mnemo
@@ -1410,37 +1388,6 @@ class ARM(Architecture):
         elif mnemo.endswith("bvs"): taken, reason = val&(1<<flags["overflow"]), "O"
         elif mnemo.endswith("bvc"): taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
         return taken, reason
-
-    def print_call_args(self):
-        # Go back a few instructions, until we see a call, to see which args are set
-        addr = self.pc - self.instruction_length
-        insn = gef_get_instruction_at(addr)
-        arg_regs = set()
-        while not self.is_call(insn):
-            # Check which registers are being written
-            if insn.mnemo in ("mov", "ldr", "sub", "add"):
-                arg_regs.add(insn.operands[0])
-
-            # Next instruction back
-            addr -= self.instruction_length
-            insn = gef_get_instruction_at(addr)
-
-        for i, reg in enumerate(self.function_parameters):
-            # If we didn't see an arg set, then it must not be an arg
-            if reg not in arg_regs: break
-
-            addr = long(gdb.parse_and_eval("${}".format(reg)))
-            line = "arg[{:d}] ({:s}) ".format(i, reg)
-
-            line += Color.boldify(format_address(addr))
-            addrs = DereferenceCommand.dereference_from(addr)
-
-            if len(addrs) > 1:
-                sep = " {:s} ".format(right_arrow)
-                line += sep + sep.join(addrs[1:])
-
-            print(line)
-        return
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 125
@@ -1627,23 +1574,6 @@ class X86(Architecture):
             taken, reason = val&(1<<flags["sign"]), "S"
         return taken, reason
 
-    def print_call_args(self):
-        offsets = [0, 4, 8, 12, 16, 20]
-        sp = get_register("$esp")
-        for i, offset in enumerate(offsets):
-            addr = sp + offset
-            line = "arg[{:d}] (sp+{:#x}) ".format(i, offset)
-
-            line += Color.boldify(format_address(addr))
-            addrs = DereferenceCommand.dereference_from(addr)
-
-            if len(addrs) > 1:
-                sep = " {:s} ".format(right_arrow)
-                line += sep + sep.join(addrs[1:])
-
-            print(line)
-        return
-
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 125
         insns = [
@@ -1668,7 +1598,6 @@ class X86_64(X86):
         "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags",]
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
-    print_call_args = Architecture.print_call_args
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
@@ -2799,7 +2728,7 @@ def gef_get_auxiliary_values():
     for line in gdb.execute("info auxv", to_string=True).splitlines():
         tmp = line.split()
         _type = tmp[1]
-        res[_type] = int(tmp[-2], 16) if _type in ("AT_PLATFORM", "AT_EXECFN") else int(tmp[-1], 16)
+        res[_type] = int(tmp[-2], base=0) if _type in ("AT_PLATFORM", "AT_EXECFN") else int(tmp[-1], base=0)
     return res
 
 
@@ -4697,7 +4626,7 @@ class UnicornEmulateCommand(GenericCommand):
     the next instruction from current PC."""
 
     _cmdline_ = "unicorn-emulate"
-    _syntax_  = "{:s} [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-e PATH] [-h]".format(_cmdline_)
+    _syntax_  = "{:s} [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-s] [-e PATH] [-h]".format(_cmdline_)
     _aliases_ = ["emulate",]
     _example_ = "{0:s} -f $pc -n 10 -e /tmp/my-gef-emulation.py".format(_cmdline_)
 
@@ -4711,7 +4640,8 @@ class UnicornEmulateCommand(GenericCommand):
         h = self._syntax_
         h += "\n\t-f LOCATION specifies the start address of the emulated run (default $pc).\n"
         h += "\t-t LOCATION specifies the end address of the emulated run.\n"
-        h += "\t-e /PATH/TO/SCRIPT.py generates a standalone Python script from the current runtime context.\n"
+        h += "\t-s      Script-Only: do not execute the script once generated.\n"
+        h += "\t-o /PATH/TO/SCRIPT.py writes the persistent Unicorn script into this file.\n"
         h += "\t-n NB_INSTRUCTION indicates the number of instructions to execute (mutually exclusive with `-t` and `-g`).\n"
         h += "\t-g NB_GADGET indicates the number of gadgets to execute (mutually exclusive with `-t` and `-n`).\n"
         h += "\nAdditional options can be setup via `gef config unicorn-emulate`\n"
@@ -4736,10 +4666,11 @@ class UnicornEmulateCommand(GenericCommand):
     def do_invoke(self, argv):
         start_insn = None
         end_insn = -1
-        self.nb_insn = -1
-        self.until_next_gadget = -1
-        to_script = None
-        opts = getopt.getopt(argv, "f:t:n:e:g:h")[0]
+        nb_insn = -1
+        until_next_gadget = -1
+        to_file = None
+        to_script_only = None
+        opts = getopt.getopt(argv, "f:t:n:so:h")[0]
         for o,a in opts:
             if   o == "-f":   start_insn = int(a, 16)
             elif o == "-t":
@@ -4747,18 +4678,16 @@ class UnicornEmulateCommand(GenericCommand):
                 self.nb_insn = -1
                 self.until_next_gadget = -1
 
-            elif o == "-g":
-                self.until_next_gadget = int(a)
-                self.nb_insn = -1
-                end_insn = -1
-
             elif o == "-n":
-                self.nb_insn = int(a)
+                nb_insn = int(a)
                 self.until_next_gadget = -1
                 end_insn = -1
 
-            elif o == "-e":
-                to_script = a
+            elif o == "-s":
+                to_script_only = True
+
+            elif o == "-o":
+                to_file = a
 
             elif o == "-h":
                 self.help()
@@ -4767,43 +4696,101 @@ class UnicornEmulateCommand(GenericCommand):
         if start_insn is None:
             start_insn = current_arch.pc
 
-        if end_insn == -1 and self.nb_insn == -1 and self.until_next_gadget == -1:
-            err("No stop condition (-t|-n|-g) defined.")
+        if end_insn < 0 and nb_insn < 0:
+            err("No stop condition (-t|-n) defined.")
             return
 
-        self.run_unicorn(start_insn, end_insn, to_script=to_script)
+        if end_insn > 0:
+            self.run_unicorn(start_insn, end_insn, to_script_only=to_script_only, to_file=to_file)
+
+        elif nb_insn > 0:
+            end_insn = self.get_unicorn_end_addr(start_insn, nb_insn)
+            self.run_unicorn(start_insn, end_insn, to_script_only=to_script_only, to_file=to_file)
+
+        else:
+            raise Exception("Should never be here")
         return
 
     def get_unicorn_end_addr(self, start_addr, nb):
-        dis = list(gef_disassemble(start_addr, nb +1, True))
-        return dis[-1][0]
+        dis = list(gef_disassemble(start_addr, nb+1, True))
+        last_insn = dis[-1]
+        return last_insn.address
 
     def run_unicorn(self, start_insn_addr, end_insn_addr, *args, **kwargs):
         start_regs = {}
         end_regs = {}
         verbose = self.get_setting("verbose") or False
-        to_script = kwargs.get("to_script", None)
-        content = ""
-        arch, mode = get_unicorn_arch(to_string=to_script)
-        unicorn_registers = get_unicorn_registers(to_string=to_script)
-        cs_arch, cs_mode = get_capstone_arch(to_string=to_script)
+        to_script_only = kwargs.get("to_script_only", False)
+        arch, mode = get_unicorn_arch(to_string=True)
+        unicorn_registers = get_unicorn_registers(to_string=True)
+        cs_arch, cs_mode = get_capstone_arch(to_string=True)
         fname = get_filename()
+        to_file = kwargs.get("to_file", None)
 
-        if to_script:
-            content += """#!/usr/bin/python -i
+        if to_file:
+            tmp_filename = to_file
+            to_file = open(to_file, "wb")
+            tmp_fd = to_file.fileno()
+        else:
+            tmp_fd, tmp_filename = tempfile.mkstemp(suffix=".py", prefix="gef-uc-")
+
+        if is_x86_32() or is_x86_64():
+            # need to handle segmentation (and pagination) via MSR
+            emulate_segmentation_block = """
+# from https://github.com/unicorn-engine/unicorn/blob/master/tests/regress/x86_64_msr.py
+SCRATCH_ADDR = 0xf000
+SEGMENT_FS_ADDR = 0x5000
+SEGMENT_GS_ADDR = 0x6000
+SEGMENT_SIZE = SCRATCH_SIZE = 0x1000
+FSMSR = 0xC0000100
+GSMSR = 0xC0000101
+
+def set_msr(uc, msr, value, scratch=SCRATCH_ADDR):
+    orax = uc.reg_read(unicorn.x86_const.UC_X86_REG_RAX)
+    ordx = uc.reg_read(unicorn.x86_const.UC_X86_REG_RDX)
+    orcx = uc.reg_read(unicorn.x86_const.UC_X86_REG_RCX)
+    orip = uc.reg_read(unicorn.x86_const.UC_X86_REG_RIP)
+    buf = '\\x0f\\x30'  # x86: wrmsr
+    uc.mem_map(scratch, SCRATCH_SIZE)
+    uc.mem_write(scratch, buf)
+    uc.reg_write(unicorn.x86_const.UC_X86_REG_RAX, value & 0xFFFFFFFF)
+    uc.reg_write(unicorn.x86_const.UC_X86_REG_RDX, (value >> 32) & 0xFFFFFFFF)
+    uc.reg_write(unicorn.x86_const.UC_X86_REG_RCX, msr & 0xFFFFFFFF)
+    uc.emu_start(scratch, scratch+len(buf), count=1)
+    uc.mem_unmap(scratch, SCRATCH_SIZE)
+    uc.reg_write(unicorn.x86_const.UC_X86_REG_RAX, orax)
+    uc.reg_write(unicorn.x86_const.UC_X86_REG_RDX, ordx)
+    uc.reg_write(unicorn.x86_const.UC_X86_REG_RCX, orcx)
+    uc.reg_write(unicorn.x86_const.UC_X86_REG_RIP, orip)
+    return
+
+def set_gs(uc, addr):    return set_msr(uc, GSMSR, addr)
+def set_fs(uc, addr):    return set_msr(uc, FSMSR, addr)
+
+"""
+            context_segmentation_block = """
+    emu.mem_map(SEGMENT_FS_ADDR, SEGMENT_SIZE)
+    emu.mem_map(SEGMENT_GS_ADDR, SEGMENT_SIZE)
+    set_fs(emu, SEGMENT_FS_ADDR)
+    set_gs(emu, SEGMENT_GS_ADDR)
+"""
+
+
+        content = """#!/usr/bin/python -i
 #
-# Emulation script for '%s' from %#x to %#x3
+# Emulation script for '%s' from %#x to %#x
 #
 # Powered by gef, unicorn-engine, and capstone-engine
 #
 # @_hugsy_
 #
-import readline, code
+from __future__ import print_function
+import collections
 import capstone, unicorn
 
-regs = {%s}
+registers = collections.OrderedDict(sorted({%s}.items(), key=lambda t: t[0]))
 uc = None
-
+verbose = %s
 
 def disassemble(code, addr):
     cs = capstone.Cs(%s, %s)
@@ -4812,200 +4799,129 @@ def disassemble(code, addr):
 
 
 def hook_code(emu, address, size, user_data):
-    print(">> Executing instruction at 0x{:x}".format(address))
     code = emu.mem_read(address, size)
     insn = disassemble(code, address)
     print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
     return
 
 
-def print_regs(emu, regs):
-    for r in regs:
-        print(">> {:s} = 0x{:x}".format(r, emu.reg_read(regs[r])))
+def code_hook(emu, address, size, user_data):
+    code = emu.mem_read(address, size)
+    insn = disassemble(code, address)
+    print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
     return
 
 
+def intr_hook(emu, intno, data):
+    print(" \-> interrupt={:d}".format(intno))
+    return
+
+
+def print_regs(emu, regs):
+    for i, r in enumerate(regs):
+        print("{:7s} = 0x{:0%dx}  ".format(r, emu.reg_read(regs[r])), end="")
+        if i %% 4 == 3: print("")
+    return
+
+%s
+
 def reset():
-""" % (fname, start_insn_addr, end_insn_addr, ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]), cs_arch, cs_mode)
+    emu = unicorn.Uc(%s, %s)
+%s
+""" % (fname, start_insn_addr, end_insn_addr,
+       ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]),
+       "True" if verbose else "False",
+       cs_arch, cs_mode,
+       16 if is_elf64() else 8,
+       emulate_segmentation_block if (is_x86_32() or is_x86_64() ) else "",
+       arch, mode,
+       context_segmentation_block if (is_x86_32() or is_x86_64() ) else "",
+)
 
-        unicorn = sys.modules["unicorn"]
         if verbose:
-            info("Initializing Unicorn engine")
-
-        if to_script:
-            content += "    emu = unicorn.Uc(%s, %s)\n" % (arch, mode)
-        else:
-            emu = unicorn.Uc(arch, mode)
-
-        if verbose:
-            info("Populating registers")
+            info("Duplicating registers")
 
         for r in current_arch.all_registers:
             gregval = get_register(r)
-            if to_script:
-                content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers[r], gregval)
-            else:
-                emu.reg_write(unicorn_registers[r], gregval)
-                start_regs[r] = gregval
+            content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers[r], gregval)
+
 
         vmmap = get_process_maps()
-        if vmmap is None or len(vmmap) == 0:
+        if not vmmap:
             warn("An error occured when reading memory map.")
             return
 
         if verbose:
             info("Duplicating memory map")
 
-        # Hack hack hack (- again !!)
-        # Because of fs/gs registers used for different purposes (canary and stuff), we map
-        # the NULL page as RW- to allow UC to treat instructions dealing with those regs
-        # If anybody has a better approach, please send me a PR ;)
-        if is_x86_32() or is_x86_64():
-            page_sz = resource.getpagesize()
-            FS = 0x00
-            GS = FS + page_sz
-            if to_script:
-                content += "    emu.mem_map(%#x, %d, %d)\n" % (FS, page_sz, 3)
-                content += "    emu.mem_map(%#x, %d, %d)\n" % (GS, page_sz, 3)
-                content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers["$fs    "], FS)
-                content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers["$gs    "], GS)
-            else:
-                emu.mem_map(FS, page_sz, 3)
-                emu.mem_map(GS, page_sz, 3)
-                emu.reg_write(unicorn_registers["$fs    "], FS)
-                emu.reg_write(unicorn_registers["$gs    "], GS)
-
-
         for sect in vmmap:
-            try:
-                page_start = sect.page_start
-                page_end   = sect.page_end
-                size       = sect.size
-                perm       = sect.permission
-
-                if to_script:
-                    content += "    # Mapping %s: %#x-%#x\n"%(sect.path, page_start, page_end)
-                    content += "    emu.mem_map(%#x, %#x, %d)\n" % (page_start, size, perm.value)
-                else:
-                    emu.mem_map(page_start, size, perm.value)
-
-                if perm & Permission.READ:
-                    code = read_memory(page_start, size)
-                    if verbose:
-                        info("Populating path=%s page=%#x-%#x size=%d perm=%s" % (sect.path,
-                                                                                  page_start,
-                                                                                  page_end,
-                                                                                  size,
-                                                                                  perm))
-
-                    if to_script:
-                        loc = "/tmp/gef-%s-%#x.raw" % (fname, page_start)
-                        with open(loc, "wb") as f:
-                            f.write(bytes(code))
-
-                        content += "    emu.mem_write(%#x, open('%s', 'rb').read())\n" % (page_start, loc)
-                        content += "\n"
-
-                    else:
-                        emu.mem_write(page_start, bytes(code))
-            except Exception as e:
-                warn("Cannot copy page=%#x-%#x : %s" % (page_start, page_end, e))
+            if sect.path == "[vvar]":
+                # this section is for GDB only, skip it
                 continue
 
-        if to_script:
-            content += "    emu.hook_add(unicorn.UC_HOOK_CODE, hook_code)\n"
-            content += "    return emu\n"
-        else:
-            emu.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
-            emu.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
+            page_start = sect.page_start
+            page_end   = sect.page_end
+            size       = sect.size
+            perm       = sect.permission
 
-        if to_script:
-            content += """
+            content += "    # Mapping %s: %#x-%#x\n" % (sect.path, page_start, page_end)
+            content += "    emu.mem_map(%#x, %#x, %s)\n" % (page_start, size, oct(perm.value))
+
+            if perm & Permission.READ:
+                code = read_memory(page_start, size)
+                loc = "/tmp/gef-%s-%#x.raw" % (fname, page_start)
+                with open(loc, "wb") as f:
+                    f.write(bytes(code))
+
+                content += "    emu.mem_write(%#x, open('%s', 'rb').read())\n" % (page_start, loc)
+                content += "\n"
+
+
+        content += "    emu.hook_add(unicorn.UC_HOOK_CODE, code_hook)\n"
+        content += "    emu.hook_add(unicorn.UC_HOOK_INTR, intr_hook)\n"
+        content += "    return emu\n"
+
+        content += """
 def emulate(emu, start_addr, end_addr):
     print("========================= Initial registers =========================")
-    print_regs(emu, regs)
+    print_regs(emu, registers)
 
     try:
+        print("========================= Starting emulation =========================")
         emu.emu_start(start_addr, end_addr)
     except Exception as e:
         emu.emu_stop()
-        print("Error: {}".format(e))
+        print("========================= Emulation failed =========================")
+        print("[!] Error: {}".format(e))
 
     print("========================= Final registers =========================")
-    print_regs(emu, regs)
+    print_regs(emu, registers)
     return
 
 
-if __name__ == "__main__":
-    uc = reset()
-    emulate(uc, %#x, %#x)
+uc = reset()
+emulate(uc, %#x, %#x)
 
 # unicorn-engine script generated by gef
 """ % (start_insn_addr, end_insn_addr)
 
-            with open(to_script, "w") as f:
-                f.write(content)
+        os.write(tmp_fd, gef_pybytes(content))
+        os.close(tmp_fd)
 
-            info("Unicorn script generated as '%s'" % to_script)
+        info("Unicorn script generated as '%s'" % tmp_filename)
+
+        if to_script_only:
             return
 
         ok("Starting emulation: %#x %s %#x" % (start_insn_addr,
                                                right_arrow,
                                                end_insn_addr))
 
-        try:
-            emu.emu_start(start_insn_addr, end_insn_addr)
-        except unicorn.UcError as e:
-            emu.emu_stop()
-            err("An error occured during emulation: %s" % e)
-            return
+        res = gef_execute_external(["python", tmp_filename], as_list=True)
+        print("\n".join(res))
 
-        ok("Emulation ended, showing %s registers:" % Color.redify("tainted"))
-
-        for r in current_arch.all_registers:
-            # ignoring $fs and $gs because of the dirty hack we did to emulate the selectors
-            if r in ("$gs    ", "$fs    "): continue
-
-            end_regs[r] = emu.reg_read(unicorn_registers[r])
-            tainted = (start_regs[r] != end_regs[r])
-
-            if not tainted:
-                continue
-
-            msg = ""
-            if r != current_arch.flag_register:
-                msg = "%-10s : old=%#016x || new=%#016x" % (r.strip(), start_regs[r], end_regs[r])
-            else:
-                msg = "%-10s : old=%s \n" % (r.strip(), current_arch.flag_register_to_human(start_regs[r]))
-                msg += "%-16s new=%s" % ("", current_arch.flag_register_to_human(end_regs[r]),)
-
-            ok(msg)
-
-        return
-
-    def hook_code(self, emu, addr, size, misc):
-        if self.nb_insn == 0:
-            ok("Stopping emulation on user's demand (max_instructions reached)")
-            emu.emu_stop()
-            return
-
-        if self.get_setting("show_disassembly"):
-            gdb.execute("capstone-disassemble {:#x} length=1".format(addr))
-
-        self.nb_insn -= 1
-        return
-
-    def hook_block(self, emu, addr, size, misc):
-        if self.until_next_gadget == 0:
-            ok("Stopping emulation on user's demand (max_gadgets reached)")
-            emu.emu_stop()
-            return
-
-        if self.get_setting("show_disassembly"):
-            addr_s = format_address(addr)
-            info("Entering new block at {:s}".format(addr_s))
-
-        self.until_next_gadget -= 1
+        if not kwargs.get("to_file", None):
+            os.unlink(tmp_filename)
         return
 
 
@@ -5371,6 +5287,7 @@ class CapstoneDisassembleCommand(GenericCommand):
 
         location = location or current_arch.pc
         length = int(kwargs.get("length", get_gef_setting("context.nb_lines_code")))
+
         for insn in capstone_disassemble(location, length, **kwargs):
             text_insn = str(insn)
             msg = ""
@@ -5387,6 +5304,7 @@ class CapstoneDisassembleCommand(GenericCommand):
 
             print(msg)
         return
+
 
     def capstone_analyze_pc(self, insn, nb_insn):
         cs = sys.modules["capstone"]
@@ -5608,7 +5526,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         if get_main_arena() is None:
-            err("Incorrect Glibc arenas or arenas not found")
+            err("Invalid Glibc arena")
             return
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
@@ -6298,7 +6216,6 @@ class ContextCommand(GenericCommand):
     def __init__(self):
         super(ContextCommand, self).__init__()
         self.add_setting("enable", True, "Enable/disable printing the context when breaking")
-        self.add_setting("show_args", True, "Take a guess at the args")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", False, "Show the registers pane with raw values (no dereference)")
         self.add_setting("peek_calls", True, "Peek into calls")
@@ -6307,7 +6224,8 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
         self.add_setting("ignore_registers", "", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
         self.add_setting("clear_screen", False, "Clear the screen before printing the context")
-        self.add_setting("layout", "regs args stack code source threads trace extra", "Change the order/display of the context. Available arguments are: regs args stack code source trace threads extra")
+        self.add_setting("layout", "regs stack code source memory threads trace extra",
+                         "Change the order/presence of the context sections")
         self.add_setting("redirect", "", "Redirect the context information to another TTY")
 
         if "capstone" in list(sys.modules.keys()):
@@ -6331,7 +6249,6 @@ class ContextCommand(GenericCommand):
         self.tty_rows, self.tty_columns = get_terminal_size()
         layout_mapping = {
             "regs":  self.context_regs,
-            "args": self.context_args,
             "stack": self.context_stack,
             "code": self.context_code,
             "memory": self.context_memory,
@@ -6449,17 +6366,6 @@ class ContextCommand(GenericCommand):
             print(line)
 
         print("Flags: {:s}".format(current_arch.flag_register_to_human()))
-        return
-
-    def context_args(self):
-        pc = current_arch.pc
-        insn = gef_get_instruction_at(pc)
-        if not current_arch.is_call(insn):
-            return
-
-        self.context_title("function arguments")
-        print("Showing guessed arguments:")
-        args = current_arch.print_call_args()
         return
 
     def context_stack(self):
@@ -6885,7 +6791,7 @@ class HexdumpCommand(GenericCommand):
 
         start_addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
         read_from = align_address(start_addr)
-        read_len = 0x10
+        read_len = 0x40 if fmt=="byte" else 0x10
         up_to_down = True
 
         if argc >= 2:
@@ -7050,8 +6956,7 @@ class DereferenceCommand(GenericCommand):
         GefAlias("dps", "dereference", completer_class=gdb.COMPLETE_LOCATION)
         return
 
-    @staticmethod
-    def pprint_dereferenced(addr, off):
+    def pprint_dereferenced(self, addr, off):
         base_address_color = get_gef_setting("theme.dereference_base_address")
         registers_color = get_gef_setting("theme.dereference_register_value")
 
