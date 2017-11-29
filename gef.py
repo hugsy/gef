@@ -5632,11 +5632,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         if get_main_arena() is None:
-<<<<<<< HEAD
             err("Invalid Glibc arena")
-=======
-            err("Incorrect Glibc arenas or arenas not found")
->>>>>>> 16f7c160f3db6a712e460740d9fa369fe13d862c
             return
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
@@ -5665,11 +5661,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         if get_main_arena() is None:
-<<<<<<< HEAD
             err("Invalid Glibc arena")
-=======
-            err("Incorrect Glibc arenas or arenas not found")
->>>>>>> 16f7c160f3db6a712e460740d9fa369fe13d862c
             return
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
