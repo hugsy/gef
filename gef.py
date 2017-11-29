@@ -4741,27 +4741,18 @@ class UnicornEmulateCommand(GenericCommand):
 SCRATCH_ADDR = 0xf000
 SEGMENT_FS_ADDR = 0x5000
 SEGMENT_GS_ADDR = 0x6000
-SEGMENT_SIZE = SCRATCH_SIZE = 0x1000
 FSMSR = 0xC0000100
 GSMSR = 0xC0000101
 
 def set_msr(uc, msr, value, scratch=SCRATCH_ADDR):
-    orax = uc.reg_read(unicorn.x86_const.UC_X86_REG_RAX)
-    ordx = uc.reg_read(unicorn.x86_const.UC_X86_REG_RDX)
-    orcx = uc.reg_read(unicorn.x86_const.UC_X86_REG_RCX)
-    orip = uc.reg_read(unicorn.x86_const.UC_X86_REG_RIP)
     buf = '\\x0f\\x30'  # x86: wrmsr
-    uc.mem_map(scratch, SCRATCH_SIZE)
+    uc.mem_map(scratch, 0x1000)
     uc.mem_write(scratch, buf)
     uc.reg_write(unicorn.x86_const.UC_X86_REG_RAX, value & 0xFFFFFFFF)
     uc.reg_write(unicorn.x86_const.UC_X86_REG_RDX, (value >> 32) & 0xFFFFFFFF)
     uc.reg_write(unicorn.x86_const.UC_X86_REG_RCX, msr & 0xFFFFFFFF)
     uc.emu_start(scratch, scratch+len(buf), count=1)
-    uc.mem_unmap(scratch, SCRATCH_SIZE)
-    uc.reg_write(unicorn.x86_const.UC_X86_REG_RAX, orax)
-    uc.reg_write(unicorn.x86_const.UC_X86_REG_RDX, ordx)
-    uc.reg_write(unicorn.x86_const.UC_X86_REG_RCX, orcx)
-    uc.reg_write(unicorn.x86_const.UC_X86_REG_RIP, orip)
+    uc.mem_unmap(scratch, 0x1000)
     return
 
 def set_gs(uc, addr):    return set_msr(uc, GSMSR, addr)
@@ -4769,8 +4760,7 @@ def set_fs(uc, addr):    return set_msr(uc, FSMSR, addr)
 
 """
             context_segmentation_block = """
-    emu.mem_map(SEGMENT_FS_ADDR, SEGMENT_SIZE)
-    emu.mem_map(SEGMENT_GS_ADDR, SEGMENT_SIZE)
+    emu.mem_map(SEGMENT_FS_ADDR-0x1000, 0x3000)
     set_fs(emu, SEGMENT_FS_ADDR)
     set_gs(emu, SEGMENT_GS_ADDR)
 """
