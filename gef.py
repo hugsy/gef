@@ -4910,6 +4910,7 @@ emulate(uc, %#x, %#x)
 
         if kwargs.get("to_file", None):
             info("Unicorn script generated as '%s'" % tmp_filename)
+            os.chmod(tmp_filename, 0o700)
 
         if to_script_only:
             return
