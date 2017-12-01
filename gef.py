@@ -7487,7 +7487,8 @@ class PatternSearchCommand(GenericCommand):
 
     _cmdline_ = "pattern search"
     _syntax_  = "{:s} PATTERN [SIZE]".format(_cmdline_)
-    _example_ = "{:s} $pc"
+    _example_ = "{0:s} $pc\n{0:s} 0x61616164".format(_cmdline_)
+    _aliases_ = ["pattern offset",]
 
     def do_invoke(self, argv):
         argc = len(argv)
@@ -7526,19 +7527,16 @@ class PatternSearchCommand(GenericCommand):
                 pattern_be = struct.pack(">Q", addr)
                 pattern_le = struct.pack("<Q", addr)
 
-        except gdb.error as e:
-            if not addr:
-                err("Failed to parse address")
-                return
-
-            # if the register is already string
-            val = binascii.unhexlify("{:x}".format(long(addr)))
-            if all([0x20 <= c < 0x7f for c in val]):
+        except gdb.error as me:
+            # here if dereference has failed, try to parse argument
+            if is_hex(pattern):
+                val = binascii.unhexlify(pattern[2:])
                 pattern_be = val
                 pattern_le = val[::-1]
+
             else:
-                err("Incorrect pattern '{:s}': {:s}".format(repr(pattern), str(e)))
-                return
+                pattern_be = pattern
+                pattern_le = pattern[::-1]
 
         buf = generate_cyclic_pattern(size)
         found = False
@@ -7553,7 +7551,7 @@ class PatternSearchCommand(GenericCommand):
             found = True
 
         if not found:
-            err("Pattern '{}' not found".format(addr))
+            err("Pattern '{}' not found".format(pattern))
         return
 
 
