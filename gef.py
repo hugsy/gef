@@ -53,7 +53,7 @@
 #
 #
 
-from __future__ import print_function, division, absolute_import
+from __future__ import print_function, division
 
 import abc
 import array
@@ -4819,6 +4819,8 @@ import capstone, unicorn
 registers = collections.OrderedDict(sorted({%s}.items(), key=lambda t: t[0]))
 uc = None
 verbose = %s
+syscall_register = "$rax"
+
 
 def disassemble(code, addr):
     cs = capstone.Cs(%s, %s)
@@ -4842,6 +4844,12 @@ def code_hook(emu, address, size, user_data):
 
 def intr_hook(emu, intno, data):
     print(" \-> interrupt={:d}".format(intno))
+    return
+
+
+def syscall_hook(emu, user_data):
+    sysno = emu.reg_read(registers[syscall_register])
+    print(" \-> syscall={:d}".format(sysno))
     return
 
 
@@ -4907,6 +4915,8 @@ def reset():
 
         content += "    emu.hook_add(unicorn.UC_HOOK_CODE, code_hook)\n"
         content += "    emu.hook_add(unicorn.UC_HOOK_INTR, intr_hook)\n"
+        if is_x86_64():
+            content += "    emu.hook_add(unicorn.UC_HOOK_INSN, syscall_hook, None, 1, 0, unicorn.x86_const.UC_X86_INS_SYSCALL)\n"
         content += "    return emu\n"
 
         content += """
@@ -7537,6 +7547,7 @@ class PatternSearchCommand(GenericCommand):
         return
 
     def search(self, pattern, size):
+        addr = None
         try:
             addr = gdb.parse_and_eval(pattern)
             derefed = dereference(addr)
@@ -7554,6 +7565,10 @@ class PatternSearchCommand(GenericCommand):
                 pattern_le = struct.pack("<Q", addr)
 
         except gdb.error as e:
+            if not addr:
+                err("Failed to parse address")
+                return
+
             # if the register is already string
             val = binascii.unhexlify("{:x}".format(long(addr)))
             if all([0x20 <= c < 0x7f for c in val]):
