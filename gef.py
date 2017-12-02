@@ -1045,8 +1045,8 @@ def gdb_get_location_from_symbol(address):
 
 def gdb_disassemble(start_pc, **kwargs):
     """Disassemble instructions from `start_pc` (Integer). Accepts the following named parameters:
-    - `end_pc` (Integer) to disassemble until this address
-    - `count` (Integer) to disassemble this number of instruction.
+    - `end_pc` (Integer) only instructions whose start address fall in the interval from start_pc to end_pc are returned.
+    - `count` (Integer) list at most this many disassembled instructions
     If `end_pc` and `count` are not provided, the function will behave as if `count=1`.
     Return an iterator of Instruction objects
     """
@@ -1075,20 +1075,19 @@ def gdb_get_nth_previous_instruction_address(addr, n):
         return addr - n*current_arch.instruction_length
 
     # variable-length ABI
-    next_insn_addr = gef_next_instruction(addr).address
-    cur_insn_addr  = gef_current_instruction(addr).address
+    cur_insn_addr = gef_current_instruction(addr).address
 
     # we try to find a good set of previous instructions by "guessing" disassembling backwards
     # the 15 comes from the longest instruction valid size
     for i in range(15*n, 0, -1):
         try:
-            insns = list(gdb_disassemble(addr-i, end_pc=next_insn_addr))
+            insns = list(gdb_disassemble(addr-i, end_pc=cur_insn_addr))
         except gdb.MemoryError:
             # this is because we can hit an unmapped page trying to read backward
             break
 
         # 1. check that the disassembled instructions list size is correct
-        if len(insns)!=n:
+        if len(insns)!=n+1: # we expect the current instruction plus the n before it
             continue
 
         # 2. check all instructions are valid
@@ -1116,7 +1115,7 @@ def gdb_get_nth_next_instruction_address(addr, n):
 
 def gef_instruction_n(addr, n):
     """Return the `n`-th instruction after `addr` as an Instruction object."""
-    return list(gdb_disassemble(addr, count=n+1))[n-1]
+    return list(gdb_disassemble(addr, count=n+1))[n]
 
 
 def gef_current_instruction(addr):
