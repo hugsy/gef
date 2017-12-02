@@ -6266,8 +6266,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
         self.add_setting("ignore_registers", "", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
         self.add_setting("clear_screen", False, "Clear the screen before printing the context")
-        self.add_setting("layout", "regs stack code source memory threads trace extra",
-                         "Change the order/presence of the context sections")
+        self.add_setting("layout", "regs stack code source memory threads trace extra", "Change the order/presence of the context sections")
         self.add_setting("redirect", "", "Redirect the context information to another TTY")
 
         if "capstone" in list(sys.modules.keys()):
@@ -6307,20 +6306,10 @@ class ContextCommand(GenericCommand):
         if self.get_setting("clear_screen"):
             clear_screen(redirect)
 
-        do_warn = False  # Deprecating "!"
         for section in current_layout:
-            # Deprecating "!" from the layout syntax
-            if section[0] == "!":
-                do_warn = True
-                continue
             if section[0] == "-":
                 continue
             layout_mapping[section]()
-
-        # Deprecating "!"
-        if do_warn:
-            push_context_message("warn", "context.layout: '!' deprecated: Use '-' before section names to hide them.")
-            push_context_message("warn", "Please fix your config as '!' will not work in a future release")
 
         self.context_title("")
 
