@@ -122,7 +122,7 @@ class TestGefCommands(unittest.TestCase):
     def test_command_pattern_create(self):
         res = gdb_run_command("pattern create 16")
         self.assertNoException(res)
-        self.assertTrue("aaaabaaacaaadaaa" in res)
+        self.assertTrue("aaaaaaaabaaaaaaa" in res)
         return
 
     def test_command_theme(self):
