@@ -373,12 +373,8 @@ class Address:
 
     def dereference(self):
         addr = align_address(long(self.value))
-        try:
-            addr = dereference(addr)
-            return long(addr)
-        except gdb.MemoryError:
-            return None
-
+        derefed = dereference(addr)
+        return long(derefed) if derefed else None
 
 
 class Permission:
@@ -2697,8 +2693,7 @@ def is_remote_debug():
 
 
 def de_bruijn(alphabet, n):
-    """De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib)
-    Source: https://github.com/Gallopsled/pwntools/blob/master/pwnlib/util/cyclic.py#L38 """
+    """De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib)."""
     k = len(alphabet)
     a = [0] * k * n
     def db(t, p):
@@ -2715,35 +2710,44 @@ def de_bruijn(alphabet, n):
                 a[t] = j
                 for c in db(t + 1, t):
                     yield c
-
     return db(1,1)
 
 
 def generate_cyclic_pattern(length):
-    """Create a cyclic pattern based on de Bruijn sequence."""
-    charset = b"""abcdefghijklmnopqrstuvwxyz"""
-    cycle = get_memory_alignment() if is_alive() else 4
-    i = 0
-    res = []
+    """Create a `length` byte bytearray of a de Bruijn cyclic pattern."""
+    charset = bytearray(b"abcdefghijklmnopqrstuvwxyz")
+    cycle = get_memory_alignment()
+    res = bytearray()
 
-    for c in de_bruijn(charset, cycle):
-        if i == length: break
+    for i, c in enumerate(de_bruijn(charset, cycle)):
+        if i == length:
+            break
         res.append(c)
-        i += 1
 
-    return bytearray(res)
+    return res
+
+
+def safe_parse_and_eval(value):
+    """GEF wrapper for gdb.parse_and_eval(): this function returns None instead of raising
+    gdb.error if the eval failed."""
+    try:
+        return gdb.parse_and_eval(value)
+    except gdb.error:
+        return None
 
 
 def dereference(addr):
     """GEF wrapper for gdb dereference function."""
-
     try:
         ulong_t = cached_lookup_type(use_stdtype()) or cached_lookup_type(use_default_type())
         unsigned_long_type = ulong_t.pointer()
-        ret = gdb.Value(addr).cast(unsigned_long_type).dereference()
+        res = gdb.Value(addr).cast(unsigned_long_type).dereference()
+        # GDB does lazy fetch, so we need to force access to the value
+        res.fetch_lazy()
+        return res
     except gdb.MemoryError:
-        ret = None
-    return ret
+        pass
+    return None
 
 
 def gef_convenience(value):
@@ -2751,7 +2755,7 @@ def gef_convenience(value):
     global __gef_convenience_vars_index__
     var_name = "$_gef{:d}".format(__gef_convenience_vars_index__)
     __gef_convenience_vars_index__ += 1
-    gdb.execute("""set {:s} = {:s} """.format(var_name, value))
+    gdb.execute("""set {:s} = "{:s}" """.format(var_name, value))
     return var_name
 
 
@@ -7049,8 +7053,7 @@ class DereferenceCommand(GenericCommand):
         string_color = get_gef_setting("theme.dereference_string")
         prev_addr_value = None
         max_recursion = get_gef_setting("dereference.max_recursion") or 10
-        value = align_address(long(addr))
-        addr = lookup_address(value)
+        addr = lookup_address(align_address(long(addr)))
         msg = [format_address(addr.value),]
         seen_addrs = set()
 
@@ -7065,7 +7068,7 @@ class DereferenceCommand(GenericCommand):
             # Is this value a pointer or a value?
             # -- If it's a pointer, dereference
             deref = addr.dereference()
-            if deref is None:
+            if not deref:
                 # if here, dereferencing addr has triggered a MemoryError, no need to go further
                 msg.append(format_address(addr.value))
                 break
@@ -7478,7 +7481,7 @@ class PatternCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(PatternCommand, self).__init__(prefix=True)
-        self.add_setting("length", 10*1024, "Initial length of a cyclic buffer to generate")
+        self.add_setting("length", 1024, "Initial length of a cyclic buffer to generate")
         return
 
     def do_invoke(self, argv):
@@ -7495,11 +7498,6 @@ class PatternCreateCommand(GenericCommand):
     _cmdline_ = "pattern create"
     _syntax_  = "{:s} [SIZE]".format(_cmdline_)
 
-    def post_load(self):
-        size = get_gef_setting("pattern.length")
-        generate_cyclic_pattern(size).decode("utf-8")
-        return
-
     def do_invoke(self, argv):
         if len(argv) == 1:
             if not argv[0].isdigit():
@@ -7512,10 +7510,9 @@ class PatternCreateCommand(GenericCommand):
 
         size = get_gef_setting("pattern.length")
         info("Generating a pattern of {:d} bytes".format(size))
-        patt = generate_cyclic_pattern(size).decode("utf-8")
-        print(patt)
-        var_name = gef_convenience('"{:s}"'.format(patt))
-        ok("Saved as '{:s}'".format(var_name))
+        pattern_str = gef_pystring(generate_cyclic_pattern(size))
+        print(pattern_str)
+        ok("Saved as '{:s}'".format( gef_convenience(pattern_str) ))
         return
 
 @register_command
@@ -7525,9 +7522,10 @@ class PatternSearchCommand(GenericCommand):
 
     _cmdline_ = "pattern search"
     _syntax_  = "{:s} PATTERN [SIZE]".format(_cmdline_)
-    _example_ = "{0:s} $pc\n{0:s} 0x61616164".format(_cmdline_)
+    _example_ = "\n{0:s} $pc\n{0:s} 0x61616164\n{0:s} aaab".format(_cmdline_)
     _aliases_ = ["pattern offset",]
 
+    @only_if_gdb_running
     def do_invoke(self, argv):
         argc = len(argv)
         if argc not in (1, 2):
@@ -7548,42 +7546,38 @@ class PatternSearchCommand(GenericCommand):
         return
 
     def search(self, pattern, size):
-        addr = None
-        try:
-            addr = gdb.parse_and_eval(pattern)
-            derefed = dereference(addr)
-            if derefed:
-                warn("Following {:#x} {:s} {:#x}".format(long(addr), right_arrow, long(derefed)))
-                addr = long(derefed)
-            else:
-                addr = long(addr)
+        pattern_be, pattern_le = None, None
 
-            if get_memory_alignment(in_bits=True) == 32:
+        # 1. check if it's a symbol (like '$sp' or '0x1337')
+        symbol = safe_parse_and_eval(pattern)
+        if symbol:
+            addr = long(symbol)
+            dereferenced_value = dereference(addr)
+            # 1-bis. try to dereference
+            if dereferenced_value:
+                addr = long(dereferenced_value)
+
+            if current_arch.ptrsize == 4:
                 pattern_be = struct.pack(">I", addr)
                 pattern_le = struct.pack("<I", addr)
             else:
                 pattern_be = struct.pack(">Q", addr)
                 pattern_le = struct.pack("<Q", addr)
 
-        except gdb.error as me:
-            # here if dereference has failed, try to parse argument
-            if is_hex(pattern):
-                val = binascii.unhexlify(pattern[2:])
-                pattern_be = val
-                pattern_le = val[::-1]
+        else:
+            # 2. assume it's a plain string
+            pattern_be = gef_pybytes(pattern)
+            pattern_le = gef_pybytes(pattern[::-1])
 
-            else:
-                pattern_be = pattern
-                pattern_le = pattern[::-1]
 
-        buf = generate_cyclic_pattern(size)
+        cyclic_pattern = generate_cyclic_pattern(size)
         found = False
-        off = buf.find(pattern_le)
+        off = cyclic_pattern.find(pattern_le)
         if off >= 0:
             ok("Found at offset {:d} (little-endian search) {:s}".format(off, Color.colorify("likely", attrs="bold red") if is_little_endian() else ""))
             found = True
 
-        off = buf.find(pattern_be)
+        off = cyclic_pattern.find(pattern_be)
         if off >= 0:
             ok("Found at offset {:d} (big-endian search) {:s}".format(off, Color.colorify("likely", attrs="bold green") if is_big_endian() else ""))
             found = True
@@ -7602,7 +7596,7 @@ class ChecksecCommand(GenericCommand):
     - RelRO
     - Glibc Stack Canaries
     - Fortify Source
-    Inspired by checksec.sh (http://www.trapkit.de/tools/checksec.html)."""
+    """
 
     _cmdline_ = "checksec"
     _syntax_  = "{:s} [FILENAME]".format(_cmdline_)
