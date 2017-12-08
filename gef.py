@@ -600,7 +600,8 @@ class GlibcArena:
         return self.__addr
 
     def dereference_as_long(self, addr):
-        return long(dereference(addr).address)
+        deref_addr = dereference(addr)
+        return 0 if deref_addr == None else long(deref_addr.address)
 
     def fastbin(self, i):
         addr = self.dereference_as_long(self.fastbinsY[i])
