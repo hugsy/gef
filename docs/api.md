@@ -7,10 +7,6 @@ But it most importantly provides all the primitives required to allow hackers to
 quickly create their own commands. This page intends to summarize how to
 create advanced GDB commands in moments using `GEF` as a library.
 
-_Side note_: [Other projects](https://github.com/pwndbg/pwndbg) accuses `GEF` to
-not be easily hackable for new features. This documentation also aims to prove
-them wrong.
-
 A [dedicated repository](https://github.com/hugsy/gef-scripts) was born to host
 external scripts. This repo is open to all for contributions, no restrictions
 and the most valuable ones will be integrated into `gef.py`.
@@ -21,20 +17,20 @@ Here is the most basic skeleton for creating a new `GEF` command named `newcmd`:
 
 ```python
 class NewCommand(GenericCommand):
-    """Dummy one-time command."""
+    """Dummy new command."""
     _cmdline_ = "newcmd"
     _syntax_  = "{:s}".format(_cmdline_)
 
     @only_if_gdb_running         # not required, ensures that the debug session is started
     def do_invoke(self, argv):
-    # do anything allowed by gef, for example show the current running
-    # architecture as Python object:
-    print(" = {}".format(current_arch) )
-    # or showing the current $pc
-    print("pc = {:#x}".format(current_arch.pc))
+        # do anything allowed by gef, for example show the current running
+        # architecture as Python object:
+        print(" = {}".format(current_arch) )
+        # or showing the current $pc
+        print("pc = {:#x}".format(current_arch.pc))
+        return
 
-if __name__ == "__main__":
-    register_external_command(NewCommand())
+register_external_command(NewCommand())
 ```
 
 Yes, that's it!
