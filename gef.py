@@ -7057,7 +7057,7 @@ class DereferenceCommand(GenericCommand):
             # Is this value a pointer or a value?
             # -- If it's a pointer, dereference
             deref = addr.dereference()
-            if not deref:
+            if deref is None:
                 # if here, dereferencing addr has triggered a MemoryError, no need to go further
                 msg.append(format_address(addr.value))
                 break
