@@ -204,6 +204,14 @@ gef_on_exit_unhook
 > `remote`.
 
 
+```
+@only_if_gdb_version_higher_than( (MAJOR, MINOR) )
+```
+> Checks if the GDB version is higher or equal to the MAJOR and MINOR provided
+> as arguments (both as Integers). This is required since some commands/API of
+> GDB are only present in the very latest version of GDB.
+
+
 ### Classes ###
 
 For exhaustive documentation, run

@@ -85,7 +85,7 @@ import types
 
 
 PYTHON_MAJOR = sys.version_info[0]
-GDB_MIN_VERSION = (7, 7)
+
 
 if PYTHON_MAJOR == 2:
     from HTMLParser import HTMLParser
@@ -213,6 +213,9 @@ ___default_aliases___                  = {
     "kp"  :   "info stack",
 }
 
+GDB_MIN_VERSION = (7, 7)
+GDB_VERSION_MAJOR, GDB_VERSION_MINOR = [int(_) for _ in gdb.VERSION.split(".")[:2]]
+GDB_VERSION = (GDB_VERSION_MAJOR, GDB_VERSION_MINOR)
 
 current_elf  = None
 current_arch = None
@@ -1991,6 +1994,19 @@ def experimental_feature(f):
     def wrapper(*args, **kwargs):
         warn("This feature is under development, expect bugs and unstability...")
         return f(*args, **kwargs)
+    return wrapper
+
+
+def only_if_gdb_version_higher_than(required_gdb_version):
+    """Decorator to check whether current GDB version requirements."""
+    def wrapper(f):
+        def inner_f(*args, **kwargs):
+            if GDB_VERSION >= required_gdb_version:
+                f(*args, **kwargs)
+            else:
+                reason = "GDB >= {} for this command".format(required_gdb_version)
+                raise EnvironmentError(reason)
+        return inner_f
     return wrapper
 
 
@@ -7646,7 +7662,6 @@ class FormatStringSearchCommand(GenericCommand):
     _syntax_ = _cmdline_
     _aliases_ = ["fmtstr-helper",]
 
-
     def do_invoke(self, argv):
         dangerous_functions = {
             "printf": 0,
@@ -8345,15 +8360,10 @@ def __gef_prompt__(current_prompt):
     return gef_prompt_off
 
 
-def is_recent_gdb():
-    ver = re.sub(r"^[^\d]*([\d]+)\.([\d]+).*$", r"\1.\2", gdb.VERSION)
-    current_gdb_version = tuple([int(_) for _ in ver.split('.')])
-    return current_gdb_version >= GDB_MIN_VERSION
-
 
 if __name__  == "__main__":
 
-    if not is_recent_gdb():
+    if GDB_VERSION < GDB_MIN_VERSION:
         err("You're using an old version of GDB. GEF cannot work correctly. Consider updating to GDB {}.{} or higher.".format(*GDB_MIN_VERSION))
 
     else:
