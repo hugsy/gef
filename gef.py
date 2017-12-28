@@ -5322,11 +5322,9 @@ class CapstoneDisassembleCommand(GenericCommand):
             raise ImportWarning(msg)
         return
 
-
     def __init__(self):
         super(CapstoneDisassembleCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
-
 
     @only_if_gdb_running
     def do_invoke(self, argv):
@@ -5337,7 +5335,6 @@ class CapstoneDisassembleCommand(GenericCommand):
             if '=' in arg:
                 key, value = arg.split('=', 1)
                 kwargs[key] = value
-                argv.remove(arg)
 
             elif location is None:
                 location = parse_address(arg)
@@ -5361,7 +5358,6 @@ class CapstoneDisassembleCommand(GenericCommand):
 
             print(msg)
         return
-
 
     def capstone_analyze_pc(self, insn, nb_insn):
         cs = sys.modules["capstone"]
