@@ -2022,9 +2022,17 @@ def use_default_type():
     return "unsigned short"
 
 
+def use_golang_type():
+    if   is_elf32(): return "uint32"
+    elif is_elf64(): return "uint64"
+    return "uint16"
+
+
 def to_unsigned_long(v):
     """Cast a gdb.Value to unsigned long."""
-    unsigned_long_t = cached_lookup_type(use_stdtype()) or cached_lookup_type(use_default_type())
+    unsigned_long_t = cached_lookup_type(use_stdtype()) \
+                      or cached_lookup_type(use_default_type()) \
+                      or cached_lookup_type(use_golang_type())
     return long(v.cast(unsigned_long_t))
 
 
@@ -2754,7 +2762,9 @@ def safe_parse_and_eval(value):
 def dereference(addr):
     """GEF wrapper for gdb dereference function."""
     try:
-        ulong_t = cached_lookup_type(use_stdtype()) or cached_lookup_type(use_default_type())
+        ulong_t = cached_lookup_type(use_stdtype()) or \
+                  cached_lookup_type(use_default_type()) or \
+                  cached_lookup_type(use_golang_type())
         unsigned_long_type = ulong_t.pointer()
         res = gdb.Value(addr).cast(unsigned_long_type).dereference()
         # GDB does lazy fetch, so we need to force access to the value
