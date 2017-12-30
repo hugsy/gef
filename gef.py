@@ -1128,7 +1128,7 @@ def gef_instruction_n(addr, n):
 
 def gef_get_instruction_at(addr):
     """Return the full Instruction found at the specified address."""
-    insn = list(gef_disassemble(addr, 1, from_top=True))[0]
+    insn = next(gef_disassemble(addr, 1))
     return insn
 
 
@@ -1142,16 +1142,15 @@ def gef_next_instruction(addr):
     return gef_instruction_n(addr, 1)
 
 
-def gef_disassemble(addr, nb_insn, from_top=False):
-    """Disassemble `nb_insn` instructions after `addr`. If `from_top` is False (default), it will
-    also disassemble the `nb_insn` instructions before `addr`.
+def gef_disassemble(addr, nb_insn, nb_prev=0):
+    """Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`.
     Return an iterator of Instruction objects."""
     count = nb_insn + 1 if nb_insn & 1 else nb_insn
 
-    if not from_top:
-        start_addr = gdb_get_nth_previous_instruction_address(addr, count)
+    if nb_prev > 0:
+        start_addr = gdb_get_nth_previous_instruction_address(addr, nb_prev)
         if start_addr > 0:
-            for insn in gdb_disassemble(start_addr, count=count):
+            for insn in gdb_disassemble(start_addr, count=nb_prev):
                 if insn.address == addr: break
                 yield insn
 
@@ -1160,9 +1159,9 @@ def gef_disassemble(addr, nb_insn, from_top=False):
 
 
 def capstone_disassemble(location, nb_insn, **kwargs):
-    """Disassemble `nb_insn` instructions after `addr` using the Capstone-Engine disassembler, if available.
-    If `kwargs["from_top"]` is False (default), it will also disassemble the `nb_insn` instructions before
-    `addr`. Return an iterator of Instruction objects."""
+    """Disassemble `nb_insn` instructions after `addr` and `nb_prev` before
+    `addr` using the Capstone-Engine disassembler, if available.
+    Return an iterator of Instruction objects."""
 
     def cs_insn_to_gef_insn(cs_insn):
         sym_info = gdb_get_location_from_symbol(cs_insn.address)
@@ -1179,10 +1178,10 @@ def capstone_disassemble(location, nb_insn, **kwargs):
     offset      = location - page_start
     pc          = current_arch.pc
 
-    from_top    = kwargs.get("from_top", True)
-    if from_top in (False, "0", "false", "False"):
-        location = gdb_get_nth_previous_instruction_address(pc, nb_insn)
-        nb_insn *= 2
+    nb_prev    = int(kwargs.get("nb_prev", 0))
+    if nb_prev > 0:
+        location = gdb_get_nth_previous_instruction_address(pc, nb_prev)
+        nb_insn += nb_prev
 
     code = kwargs.get("code", read_memory(location, gef_getpagesize() - offset - 1))
     code = bytes(code)
@@ -5344,11 +5343,9 @@ class CapstoneDisassembleCommand(GenericCommand):
             raise ImportWarning(msg)
         return
 
-
     def __init__(self):
         super(CapstoneDisassembleCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
-
 
     @only_if_gdb_running
     def do_invoke(self, argv):
@@ -5359,7 +5356,6 @@ class CapstoneDisassembleCommand(GenericCommand):
             if '=' in arg:
                 key, value = arg.split('=', 1)
                 kwargs[key] = value
-                argv.remove(arg)
 
             elif location is None:
                 location = parse_address(arg)
@@ -5384,7 +5380,6 @@ class CapstoneDisassembleCommand(GenericCommand):
             print(msg)
         return
 
-
     def capstone_analyze_pc(self, insn, nb_insn):
         cs = sys.modules["capstone"]
 
@@ -5401,7 +5396,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         if current_arch.is_call(insn):
             target_address = int(insn.operands[-1].split()[0], 16)
             msg = []
-            for i, new_insn in enumerate(capstone_disassemble(target_address, nb_insn, from_top=True)):
+            for i, new_insn in enumerate(capstone_disassemble(target_address, nb_insn)):
                 msg.append("   {}  {}".format (down_arrow if i==0 else " ", str(new_insn)))
             return (True, "\n".join(msg))
 
@@ -6308,7 +6303,8 @@ class ContextCommand(GenericCommand):
         self.add_setting("peek_calls", True, "Peek into calls")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
-        self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
+        self.add_setting("nb_lines_code", 6, "Number of instruction after $pc")
+        self.add_setting("nb_lines_code_prev", 3, "Number of instruction before $pc")
         self.add_setting("ignore_registers", "", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
         self.add_setting("clear_screen", False, "Clear the screen before printing the context")
         self.add_setting("layout", "regs stack code source memory threads trace extra", "Change the order/presence of the context sections")
@@ -6478,6 +6474,7 @@ class ContextCommand(GenericCommand):
 
     def context_code(self):
         nb_insn = self.get_setting("nb_lines_code")
+        nb_insn_prev = self.get_setting("nb_lines_code_prev")
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
         pc = current_arch.pc
 
@@ -6493,7 +6490,7 @@ class ContextCommand(GenericCommand):
         try:
             instruction_iterator = capstone_disassemble if use_capstone else gef_disassemble
 
-            for insn in instruction_iterator(pc, nb_insn, from_top=False):
+            for insn in instruction_iterator(pc, nb_insn, nb_prev=nb_insn_prev):
                 line = []
                 is_branch = False
                 is_taken  = False
@@ -6529,7 +6526,7 @@ class ContextCommand(GenericCommand):
                         # If the operand isn't an address right now we can't parse it
                         is_taken = False
                         continue
-                    for i, insn in enumerate(instruction_iterator(target, nb_insn, from_top=True)):
+                    for i, insn in enumerate(instruction_iterator(target, nb_insn)):
                         text= "   {}  {}".format (down_arrow if i==0 else " ", str(insn))
                         print(text)
                     break
@@ -6639,7 +6636,7 @@ class ContextCommand(GenericCommand):
                 items.append(m)
             else:
                 try:
-                    insn = next(gef_disassemble(pc, 1, from_top=True))
+                    insn = next(gef_disassemble(pc, 1))
                 except gdb.MemoryError:
                     break
                 items.append(Color.redify("{} {}".format(insn.mnemo, ', '.join(insn.operands))))
