@@ -42,13 +42,13 @@ There are currently 6 sections that can be displayed:
      heap vulnerability, etc.) it will be displayed in this pane
    * `memory` : peek into arbitrary memory locations
 
-To prevent one section to be displayed, simply use the `context.layout` setting,
-and prepend the section name with `-` or just omit it.
+To hide a section, simply use the `context.layout` setting, and prepend the
+section name with `-` or just omit it.
 
 ```
 gef➤ gef config context.layout "regs stack code -source -threads -trace extra memory"
 ```
-Will not display the `source`, `threads`, and `trace` sections.
+This configuration will not display the `source`, `threads`, and `trace` sections.
 
 The `memory` pane will display the content of all locations specified by the
 `memory` command. For instance,
@@ -57,10 +57,17 @@ The `memory` pane will display the content of all locations specified by the
 gef➤ memory watch $sp 0x40 byte
 ```
 
-will print an
-hexdump version of 0x40 byte of the stack. This command makes it convenient for
-tracking the evolution of arbitrary locations in memory. Tracked locations can
-be removed one by one using `memory unwatch`, or altogether with `memory reset`.
+will print a hexdump version of 0x40 bytes of the stack. This command makes it
+convenient for tracking the evolution of arbitrary locations in memory. Tracked
+locations can be removed one by one using `memory unwatch`, or altogether with
+`memory reset`.
+
+The size of most sections are also customizable:
+
+* `nb_lines_stack` configures how many lines of the stack to show.
+* `nb_lines_backtrack` configures how many lines of the backtrace to show.
+* `nb_lines_code` and `nb_lines_code_prev` configure how many lines to show
+  after and before the PC, respectively.
 
 
 ### Redirecting context output to another tty/file ###
@@ -94,9 +101,9 @@ gef➤ gef config context.redirect ""
 
 ### Examples ###
 
-* Display the code section first, then register, and stack:
+* Display the code section first, then register, and stack, hiding everything else:
 ```
-gef➤ gef config context.layout "code regs stack -source -threads -trace"
+gef➤ gef config context.layout "code regs stack"
 ```
 
 * Stop showing the context sections when breaking:
@@ -118,3 +125,8 @@ gef➤ gef config context.show_registers_raw 0
 ```
 gef➤  gef config context.peek_calls False
 ```
+
+* Hide specific registers from the registers view.
+```
+gef➤  gef config context.ignore_registers "$cs $ds $gs"
+``` 

@@ -14,8 +14,8 @@ Or get one setting value:
 gef➤  gef config pcustom.struct_path
 ```
 
-Feel free to edit the values. For example, if you want the screen to be cleared
-before displaying the current context when reaching a breakpoing:
+Of course you can edit the values. For example, if you want the screen to be
+cleared before displaying the current context when reaching a breakpoing:
 ```
 gef➤  gef config context.clear_screen 1
 ```
@@ -36,4 +36,5 @@ gef➤  gef restore
 [+] Configuration from '/home/hugsy/.gef.rc' restored
 ```
 
-You can tweak this configuration outside your `gdb` session to suit your needs.
+You can tweak this configuration file outside your `gdb` session to suit your
+needs.
