@@ -53,6 +53,8 @@
 #
 #
 
+# x86 aggregate selectors
+
 from __future__ import print_function, division, absolute_import
 
 import abc
@@ -363,16 +365,23 @@ class Address:
         return
 
     def __str__(self):
-        return hex(self.value)
+        value = format_address( self.value )
+        if self.is_in_text_segment():
+            return Color.redify(value)
+        if self.is_in_heap_segment():
+            return Color.yellowify(value)
+        if self.is_in_stack_segment():
+            return Color.pinkify(value)
+        return value
 
     def is_in_text_segment(self):
         return hasattr(self.info, "name") and ".text" in self.info.name
 
     def is_in_stack_segment(self):
-        return hasattr(self.info, "name") and "[stack]" in self.info.name
+        return hasattr(self.section, "path") and "[stack]" in self.section.path
 
     def is_in_heap_segment(self):
-        return hasattr(self.info, "name") and "[heap]" in self.info.name
+        return hasattr(self.section, "path") and "[heap]" in self.section.path
 
     def dereference(self):
         addr = align_address(long(self.value))
@@ -1489,14 +1498,17 @@ class X86(Architecture):
     mode = "32"
 
     nop_insn = b"\x90"
-    all_registers = [
+    flag_register = "$eflags"
+    msr_registers = [
+        "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ",
+    ]
+    gpr_registers = [
         "$eax   ", "$ebx   ", "$ecx   ", "$edx   ", "$esp   ", "$ebp   ", "$esi   ",
-        "$edi   ", "$eip   ", "$cs    ", "$ss    ", "$ds    ", "$es    ",
-        "$fs    ", "$gs    ", "$eflags",]
+        "$edi   ", "$eip   ", ]
+    all_registers = gpr_registers + [ flag_register, ] + msr_registers
     instruction_length = None
     return_register = "$eax"
     function_parameters = ["$esp", ]
-    flag_register = "$eflags"
     flags_table = {
         6: "zero",
         0: "carry",
@@ -1611,11 +1623,11 @@ class X86_64(X86):
     arch = "X86"
     mode = "64"
 
-    all_registers = [
+    gpr_registers = [
         "$rax   ", "$rbx   ", "$rcx   ", "$rdx   ", "$rsp   ", "$rbp   ", "$rsi   ",
         "$rdi   ", "$rip   ", "$r8    ", "$r9    ", "$r10   ", "$r11   ", "$r12   ",
-        "$r13   ", "$r14   ", "$r15   ",
-        "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ", "$eflags",]
+        "$r13   ", "$r14   ", "$r15   ", ]
+    all_registers = gpr_registers + [ X86.flag_register, ] + X86.msr_registers
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
 
@@ -5724,9 +5736,17 @@ class DetailRegistersCommand(GenericCommand):
             if reg.type.code == gdb.TYPE_CODE_VOID:
                 continue
 
-            line = ""
-            line+= Color.colorify(regname, attrs=regname_color)
-            line+= ": "
+            if ( is_x86_64() or is_x86_32() ) and regname in current_arch.msr_registers:
+                msr = set(current_arch.msr_registers)
+                for r in set(regs) & msr:
+                    line = "{}: ".format( Color.colorify(r.strip(), attrs=regname_color) )
+                    line+= "0x{:04x}".format(get_register(r))
+                    print(line, end="  ")
+                    regs.remove(r)
+                print()
+                continue
+
+            line = "{}: ".format( Color.colorify(regname, attrs=regname_color) )
 
             if str(reg) == "<unavailable>":
                 line += Color.colorify("no value", attrs="yellow underline")
@@ -6330,6 +6350,19 @@ class ContextCommand(GenericCommand):
 
         if self.get_setting("clear_screen"):
             clear_screen(redirect)
+
+        if get_gef_setting("gef.disable_color")!=True:
+            code_color = get_gef_setting("theme.dereference_code")
+            str_color = get_gef_setting("theme.dereference_string")
+            print("[ Legend: {} | {} | {} | {} | {} ]".format( Color.colorify("Modified register",
+                                                                              attrs="bold red"),
+                                                               Color.colorify("Code",
+                                                                              attrs=code_color),
+                                                               Color.yellowify("Heap"),
+                                                               Color.pinkify("Stack"),
+                                                               Color.colorify("String",
+                                                                              attrs=str_color)
+            ))
 
         for section in current_layout:
             if section[0] == "-":
@@ -7080,13 +7113,13 @@ class DereferenceCommand(GenericCommand):
             deref = addr.dereference()
             if deref is None:
                 # if here, dereferencing addr has triggered a MemoryError, no need to go further
-                msg.append(format_address(addr.value))
+                msg.append(str(addr))
                 break
 
             new_addr = lookup_address(deref)
             if new_addr.valid:
                 addr = new_addr
-                msg.append(format_address(addr.value))
+                msg.append(str(addr))
                 continue
 
             # -- Otherwise try to parse the value
