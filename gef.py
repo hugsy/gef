@@ -366,12 +366,15 @@ class Address:
 
     def __str__(self):
         value = format_address( self.value )
+        code_color = get_gef_setting("theme.address_code")
+        stack_color = get_gef_setting("theme.address_stack")
+        heap_color = get_gef_setting("theme.address_heap")
         if self.is_in_text_segment():
-            return Color.redify(value)
+            return Color.colorify(value, attrs=code_color)
         if self.is_in_heap_segment():
-            return Color.yellowify(value)
+            return Color.colorify(value, attrs=heap_color)
         if self.is_in_stack_segment():
-            return Color.pinkify(value)
+            return Color.colorify(value, attrs=stack_color)
         return value
 
     def is_in_text_segment(self):
@@ -3842,6 +3845,9 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("dereference_base_address", "bold green", "Color of dereferenced address")
         self.add_setting("dereference_register_value", "bold green" , "Color of dereferenced register")
         self.add_setting("registers_register_name", "bold red", "Color of the changed register in register window")
+        self.add_setting("address_stack", "pink", "Color to use when a stack address is found")
+        self.add_setting("address_heap", "yellow", "Color to use when a heap address is found")
+        self.add_setting("address_code", "red", "Color to use when a code address is found")
         return
 
     def do_invoke(self, args):
@@ -3849,7 +3855,7 @@ class GefThemeCommand(GenericCommand):
         argc = len(args)
 
         if argc==0:
-            for item in self.settings:
+            for item in sorted(self.settings):
                 value = self.settings[item][0]
                 value = Color.colorify(value, attrs=value)
                 print("{:40s}: {:s}".format(item, value))
@@ -6350,14 +6356,15 @@ class ContextCommand(GenericCommand):
         if get_gef_setting("gef.disable_color")!=True:
             code_color = get_gef_setting("theme.dereference_code")
             str_color = get_gef_setting("theme.dereference_string")
-            print("[ Legend: {} | {} | {} | {} | {} ]".format( Color.colorify("Modified register",
-                                                                              attrs="bold red"),
-                                                               Color.colorify("Code",
-                                                                              attrs=code_color),
-                                                               Color.yellowify("Heap"),
-                                                               Color.pinkify("Stack"),
-                                                               Color.colorify("String",
-                                                                              attrs=str_color)
+            code_addr_color = get_gef_setting("theme.address_code")
+            stack_addr_color = get_gef_setting("theme.address_stack")
+            heap_addr_color = get_gef_setting("theme.address_heap")
+
+            print("[ Legend: {} | {} | {} | {} | {} ]".format( Color.colorify("Modified register", attrs="bold red"),
+                                                               Color.colorify("Code", attrs=code_addr_color),
+                                                               Color.colorify("Heap", attrs=heap_addr_color),
+                                                               Color.colorify("Stack", attrs=stack_addr_color),
+                                                               Color.colorify("String", attrs=str_color)
             ))
 
         for section in current_layout:
