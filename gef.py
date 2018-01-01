@@ -378,13 +378,14 @@ class Address:
         return value
 
     def is_in_text_segment(self):
-        return hasattr(self.info, "name") and ".text" in self.info.name
+        return (hasattr(self.info, "name") and ".text" in self.info.name) or \
+            (get_filepath() == self.section.path and self.section.is_executable())
 
     def is_in_stack_segment(self):
-        return hasattr(self.section, "path") and "[stack]" in self.section.path
+        return hasattr(self.section, "path") and "[stack]" == self.section.path
 
     def is_in_heap_segment(self):
-        return hasattr(self.section, "path") and "[heap]" in self.section.path
+        return hasattr(self.section, "path") and "[heap]" == self.section.path
 
     def dereference(self):
         addr = align_address(long(self.value))
