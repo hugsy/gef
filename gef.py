@@ -1338,6 +1338,10 @@ class Architecture(object):
         return get_register("$sp")
 
     @property
+    def fp(self):
+        return get_register("$fp")
+
+    @property
     def ptrsize(self):
         return get_memory_alignment()
 
@@ -2252,6 +2256,24 @@ def get_info_sections():
             continue
 
     return
+
+
+def get_saved_ip():
+    """Retrieves the saved ip using the 'info frame' command."""
+
+    lines = gdb.execute("info frame", to_string=True).splitlines()
+    if lines:
+        saved_regs = lines[-1].split()
+        saved_ip_str = saved_regs[-1]
+
+        try:
+            saved_ip = int(saved_ip_str, 16)
+            return saved_ip
+        except ValueError:
+            # ignore
+            pass
+
+    return 0
 
 
 def get_info_files():
@@ -6309,6 +6331,8 @@ class ContextCommand(GenericCommand):
         self.add_setting("show_registers_raw", False, "Show the registers pane with raw values (no dereference)")
         self.add_setting("peek_calls", True, "Peek into calls")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
+        self.add_setting("show_saved_ip", False, "Show saved IP and EBP even if outside of nb_lines_stack")
+        self.add_setting("grow_stack_down", False, "Order of stack downward starts at largest down to stack pointer")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
         self.add_setting("nb_lines_code", 6, "Number of instruction after $pc")
         self.add_setting("nb_lines_code_prev", 3, "Number of instruction before $pc")
@@ -7042,7 +7066,7 @@ class DereferenceCommand(GenericCommand):
         return
 
     def post_load(self):
-        GefAlias("stack", "dereference $sp L10")
+        GefAlias("stack", "dereference $sp")
         GefAlias("dps", "dereference", completer_class=gdb.COMPLETE_LOCATION)
         return
 
@@ -7051,6 +7075,10 @@ class DereferenceCommand(GenericCommand):
         registers_color = get_gef_setting("theme.dereference_register_value")
 
         regs = [(k.strip(), get_register(k)) for k in current_arch.all_registers]
+
+        if get_gef_setting("context.show_saved_ip"):
+            regs.append(("savedip", get_saved_ip()))
+
         sep = " {:s} ".format(right_arrow)
         memalign = current_arch.ptrsize
 
@@ -7064,6 +7092,7 @@ class DereferenceCommand(GenericCommand):
                                              sep.join(addrs[1:]), ma=(memalign*2 + 2))
 
         values = []
+
         for regname, regvalue in regs:
             if current_address == regvalue:
                 values.append(regname)
@@ -7077,18 +7106,68 @@ class DereferenceCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
+        grow_stack_down = get_gef_setting("context.grow_stack_down")
+
         if len(argv) < 1:
             err("Missing location.")
             return
 
         nb = 10
-        if len(argv)==2 and argv[1][0] in ("l", "L") and argv[1][1:].isdigit():
+
+        if len(argv) == 2 and argv[1][0] in ("l", "L") and argv[1][1:].isdigit():
             nb = int(argv[1][1:])
+        elif len(argv) == 2 and argv[0] == "$sp" and argv[1].isdigit():
+            nb = int(argv[1])
 
         start_address = align_address(long(gdb.parse_and_eval(argv[0])))
+        largest_addresss_to_be_shown = start_address + (current_arch.ptrsize * nb)
 
-        for i in range(0, nb):
-            print(self.pprint_dereferenced(start_address, i))
+        stackoffs = range(0, nb)
+
+        # adjusts order of stack so that it grows downward
+        if grow_stack_down:
+            stackoffs = reversed(stackoffs)
+
+        stack_str = ""
+        for i in stackoffs:
+            stack_str += self.pprint_dereferenced(start_address, i) + "\n"
+        stack_str = stack_str[:-1]
+
+        # prints saved instruction pointer
+        if get_gef_setting("context.show_saved_ip"):
+
+            frame_ptr = current_arch.fp
+            saved_ip = get_saved_ip()
+
+            # only add saved_ip if it isn't already shown and we are displaying the stack
+            if saved_ip > largest_addresss_to_be_shown and start_address == current_arch.sp:
+                bytes_skipped_label = Color.grayify(". . . ({:d} bytes skipped)".format(saved_ip - largest_addresss_to_be_shown))
+
+                saved_ip_str = self.pprint_dereferenced(saved_ip, 0)
+                out_info_str = saved_ip_str
+                if abs(frame_ptr - saved_ip) == current_arch.ptrsize:
+                    frame_str = self.pprint_dereferenced(frame_ptr, 0)
+                    if frame_str:
+                        if (saved_ip > frame_ptr and grow_stack_down) or (saved_ip < frame_ptr and not grow_stack_down):
+                            out_info_str += "\n" + frame_str
+                        else:
+                            out_info_str = frame_str + "\n"
+                            out_info_str += saved_ip_str
+
+                if grow_stack_down:
+                    print(out_info_str)
+                    print(bytes_skipped_label)
+                    print(stack_str)
+                else:
+                    print(stack_str)
+                    print(bytes_skipped_label)
+                    print(out_info_str)
+
+            else:
+                print(stack_str)
+        else:
+            print(stack_str)
+
         return
 
 
