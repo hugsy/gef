@@ -1326,8 +1326,8 @@ class Architecture(object):
         return get_register("$sp")
 
     @property
-    def get_stack_top(self):
-        return get_register("$bp")
+    def fp(self):
+        return get_register("$fp")
 
     @property
     def ptrsize(self):
@@ -1362,10 +1362,6 @@ class ARM(Architecture):
     def instruction_length(self):
         # Thumb instructions have variable-length (2 or 4-byte)
         return None if is_arm_thumb() else 4
-
-    @property
-    def get_stack_top(self):
-        return 0
 
     def is_call(self, insn):
         mnemo = insn.mnemo
@@ -1440,14 +1436,6 @@ class AARCH64(ARM):
         mnemo = insn.mnemo
         call_mnemos = {"bl", "blr"}
         return mnemo in call_mnemos
-
-    @property
-    def get_stack_top(self):
-        return 0
-
-    @property
-    def get_stack_address(self):
-        return 0
 
     def flag_register_to_human(self, val=None):
         # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
@@ -1699,10 +1687,6 @@ class PowerPC(Architecture):
             val = get_register(reg)
         return flags_to_human(val, self.flags_table)
 
-    @property
-    def get_stack_top(self):
-        return 0
-
     def is_call(self, insn):
         return False
 
@@ -1785,10 +1769,6 @@ class SPARC(Architecture):
     def is_call(self, insn):
         return False
 
-    @property
-    def get_stack_top(self):
-        return 0
-
     def is_conditional_branch(self, insn):
         mnemo = insn.mnemo
         # http://moss.csc.ncsu.edu/~mueller/codeopt/codeopt00/notes/condbranch.html
@@ -1865,10 +1845,6 @@ class SPARC64(SPARC):
         32: "carry",
     }
 
-    @property
-    def get_stack_top(self):
-        return 0
-
 
 
 class MIPS(Architecture):
@@ -1894,10 +1870,6 @@ class MIPS(Architecture):
 
     def is_call(self, insn):
         return False
-
-    @property
-    def get_stack_top(self):
-        return 0
 
     def is_conditional_branch(self, insn):
         mnemo = insn.mnemo
@@ -2261,6 +2233,24 @@ def get_info_sections():
             continue
 
     return
+
+
+def get_saved_ip():
+    """Retrieves the saved ip using the 'info frame' command."""
+
+    lines = gdb.execute("info frame", to_string=True).splitlines()
+    if lines:
+        saved_regs = lines[-1].split()
+        saved_ip_str = saved_regs[-1]
+
+        try:
+            saved_ip = int(saved_ip_str, 16)
+            return saved_ip
+        except ValueError:
+            # ignore
+            pass
+
+    return 0
 
 
 def get_info_files():
@@ -6310,7 +6300,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("peek_calls", True, "Peek into calls")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("show_saved_ip", False, "Show saved IP and EBP even if outside of nb_lines_stack")
-        self.add_setting("grow_stack_up", False, "Order of stack downward starts at largest down to stack pointer")
+        self.add_setting("grow_stack_down", False, "Order of stack downward starts at largest down to stack pointer")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
         self.add_setting("nb_lines_code", 5, "Number of instruction before and after $pc")
         self.add_setting("ignore_registers", "", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
@@ -7028,7 +7018,7 @@ class DereferenceCommand(GenericCommand):
         return
 
     def post_load(self):
-        GefAlias("stack", "dereference $sp ")
+        GefAlias("stack", "dereference $sp")
         GefAlias("dps", "dereference", completer_class=gdb.COMPLETE_LOCATION)
         return
 
@@ -7038,8 +7028,8 @@ class DereferenceCommand(GenericCommand):
 
         regs = [(k.strip(), get_register(k)) for k in current_arch.all_registers]
 
-        if (is_x86_32() or is_x86_64() ) and get_gef_setting("context.show_saved_ip"):
-            regs.append(("savedeip", (get_register("$bp") + (current_arch.ptrsize))))
+        if get_gef_setting("context.show_saved_ip"):
+            regs.append(("savedip", get_saved_ip()))
 
         sep = " {:s} ".format(right_arrow)
         memalign = current_arch.ptrsize
@@ -7068,16 +7058,17 @@ class DereferenceCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        grow_stack_up = get_gef_setting("context.grow_stack_up")
+        grow_stack_down = get_gef_setting("context.grow_stack_down")
+
         if len(argv) < 1:
             err("Missing location.")
             return
 
         nb = 10
 
-        if len(argv)==2 and argv[1][0] in ("l", "L") and argv[1][1:].isdigit():
+        if len(argv) == 2 and argv[1][0] in ("l", "L") and argv[1][1:].isdigit():
             nb = int(argv[1][1:])
-        if len(argv) == 2 and argv[0] == "$sp" and argv[1].isdigit():
+        elif len(argv) == 2 and argv[0] == "$sp" and argv[1].isdigit():
             nb = int(argv[1])
 
         start_address = align_address(long(gdb.parse_and_eval(argv[0])))
@@ -7086,30 +7077,48 @@ class DereferenceCommand(GenericCommand):
         stackoffs = range(0, nb)
 
         # adjusts order of stack so that it grows downward
-        if grow_stack_up:
-            stackoffs = range(nb - 1, -1, -1)
+        if grow_stack_down:
+            stackoffs = reversed(stackoffs)
 
-        # prints saved EBP at top of stack
-        if get_gef_setting("context.show_saved_ip"):
-            # is saved EIP already shown in stack dereference?
-
-            if current_arch.get_stack_top > largest_addresss_to_be_shown and start_address == current_arch.sp:
-                if grow_stack_up:
-                    gdb.execute('dereference {} L1'.format(current_arch.get_stack_top + current_arch.ptrsize ))
-                    gdb.execute('dereference {} L1'.format(current_arch.get_stack_top ))
-                    print(". . . ({:d} bytes skipped)".format(current_arch.get_stack_top - largest_addresss_to_be_shown))
-                    for i in stackoffs:
-                        print(self.pprint_dereferenced(start_address, i))
-                else:
-                    for i in stackoffs:
-                        print(self.pprint_dereferenced(start_address, i))
-                    print(". . . ({:d} bytes skipped)".format(get_register("$bp") - get_register("$sp")))
-                    gdb.execute('dereference $bp L2')
-
-                return
-
+        stack_str = ""
         for i in stackoffs:
-            print(self.pprint_dereferenced(start_address, i))
+            stack_str += self.pprint_dereferenced(start_address, i) + "\n"
+        stack_str = stack_str[:-1]
+
+        # prints saved instruction pointer
+        if get_gef_setting("context.show_saved_ip"):
+
+            frame_ptr = current_arch.fp
+            saved_ip = get_saved_ip()
+
+            # only add saved_ip if it isn't already shown and we are displaying the stack
+            if saved_ip > largest_addresss_to_be_shown and start_address == current_arch.sp:
+                bytes_skipped_label = Color.grayify(". . . ({:d} bytes skipped)".format(saved_ip - largest_addresss_to_be_shown))
+
+                saved_ip_str = self.pprint_dereferenced(saved_ip, 0)
+                out_info_str = saved_ip_str
+                if abs(frame_ptr - saved_ip) == current_arch.ptrsize:
+                    frame_str = self.pprint_dereferenced(frame_ptr, 0)
+                    if frame_str:
+                        if (saved_ip > frame_ptr and grow_stack_down) or (saved_ip < frame_ptr and not grow_stack_down):
+                            out_info_str += "\n" + frame_str
+                        else:
+                            out_info_str = frame_str + "\n"
+                            out_info_str += saved_ip_str
+
+                if grow_stack_down:
+                    print(out_info_str)
+                    print(bytes_skipped_label)
+                    print(stack_str)
+                else:
+                    print(stack_str)
+                    print(bytes_skipped_label)
+                    print(out_info_str)
+
+            else:
+                print(stack_str)
+        else:
+            print(stack_str)
 
         return
 

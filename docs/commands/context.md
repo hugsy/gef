@@ -62,6 +62,34 @@ hexdump version of 0x40 byte of the stack. This command makes it convenient for
 tracking the evolution of arbitrary locations in memory. Tracked locations can
 be removed one by one using `memory unwatch`, or altogether with `memory reset`.
 
+To have the stack displayed with the largest stack addresses on top (i.e., grow the
+stack downward), enable the following setting:
+```
+gef➤ gef config context.grow_stack_down True
+```
+
+To always display the saved instruction pointer in the stack view, enable the following:
+```
+gef➤ gef config context.show_saved_ip True
+```
+
+If the saved instruction pointer is not within the portion of the stack being displayed,
+then a section is created that includes the saved ip and depending on the architecture
+the frame pointer.  Since not all the addresses can be displayed, the missing addresses
+are squished into an ellipsis.
+```
+0x00007fffffffc9e8│+0x00: 0x00007ffff7a2d830  →  <__main+240> mov edi, eax    ← savedip
+0x00007fffffffc9e0│+0x00: 0x00000000004008c0  →  <__init+0> push r15    ← $rbp
+. . . (440 bytes skipped)
+0x00007fffffffc7e8│+0x38: 0x0000000000000000
+0x00007fffffffc7e0│+0x30: 0x0000000000000026 ("&"?)
+0x00007fffffffc7d8│+0x28: 0x0000000001958ac0
+0x00007fffffffc7d0│+0x20: 0x00007ffff7ffa2b0  →  0x5f6f7364765f5f00
+0x00007fffffffc7c8│+0x18: 0x00007fff00000000
+0x00007fffffffc7c0│+0x10: 0x00007fffffffc950  →  0x0000000000000000
+0x00007fffffffc7b8│+0x08: 0x0000000000000000
+0x00007fffffffc7b0│+0x00: 0x00007fffffffc7e4  →  0x0000000000000000      ← $rsp
+```
 
 ### Redirecting context output to another tty/file ###
 
