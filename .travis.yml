@@ -13,9 +13,14 @@ addons:
     packages:
       - python3
       - gcc
+      - g++
+      - pkg-config
       - gdb
       - python3-pip
       - pylint
+      - git
+      - cmake
+      - libglib2.0-dev
 
 before_script:
   - pip3 install --user --upgrade ropper retdec-python keystone-engine capstone unicorn
