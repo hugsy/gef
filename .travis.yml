@@ -11,19 +11,19 @@ branches:
 addons:
   apt:
     packages:
-      - python
+      - python3
       - gcc
       - gdb
-      - python-pip
+      - python3-pip
       - pylint
 
 before_script:
-  - pip install ropper retdec-python keystone-engine capstone unicorn
+  - pip3 install ropper retdec-python keystone-engine capstone unicorn
   - echo "source `pwd`/gef.py" > ~/.gdbinit
 
 script:
   - gdb -q -ex 'gef help' -ex 'gef config' -ex 'quit' /bin/ls
-  - python ./tests/test-runner.py
+  - python3 ./tests/test-runner.py
 
 notifications:
   email:
