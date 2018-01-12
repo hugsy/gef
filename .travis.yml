@@ -18,12 +18,11 @@ addons:
       - pylint
 
 before_script:
+  - pip install ropper retdec-python keystone-engine capstone unicorn
   - echo "source `pwd`/gef.py" > ~/.gdbinit
 
 script:
   - gdb -q -ex 'gef help' -ex 'gef config' -ex 'quit' /bin/ls
-
-after_script:
   - python ./tests/test-runner.py
 
 notifications:
