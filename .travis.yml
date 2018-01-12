@@ -18,7 +18,7 @@ addons:
       - pylint
 
 before_script:
-  - pip3 install ropper retdec-python keystone-engine capstone unicorn
+  - pip3 install --user --upgrade ropper retdec-python keystone-engine capstone unicorn
   - echo "source `pwd`/gef.py" > ~/.gdbinit
 
 script:
