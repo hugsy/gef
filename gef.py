@@ -53,7 +53,6 @@
 #
 #
 
-# x86 aggregate selectors
 
 from __future__ import print_function, division, absolute_import
 
@@ -616,7 +615,8 @@ class GlibcArena:
         return self.__addr
 
     def dereference_as_long(self, addr):
-        return long(dereference(addr).address)
+        derefed = dereference(addr)
+        return long(derefed.address) if derefed is not None else 0
 
     def fastbin(self, i):
         addr = self.dereference_as_long(self.fastbinsY[i])
@@ -4693,8 +4693,17 @@ class ChangePermissionCommand(GenericCommand):
         else:
             perm = Permission.READ | Permission.WRITE | Permission.EXECUTE
 
-        loc = long(gdb.parse_and_eval(argv[0]))
+        loc = safe_parse_and_eval(argv[0])
+        if loc is None:
+            err("Invalid address")
+            return
+
+        loc = long(loc)
         sect = process_lookup_address(loc)
+        if sect is None:
+            err("Unmapped address")
+            return
+
         size = sect.page_end - sect.page_start
         original_pc = current_arch.pc
 
@@ -5941,6 +5950,7 @@ class RopperCommand(GenericCommand):
         return
 
 
+    @only_if_gdb_running
     def do_invoke(self, argv):
         ropper = sys.modules["ropper"]
         if "--file" not in argv:
@@ -7119,7 +7129,17 @@ class DereferenceCommand(GenericCommand):
         elif len(argv) == 2 and argv[0] == "$sp" and argv[1].isdigit():
             nb = int(argv[1])
 
-        start_address = align_address(long(gdb.parse_and_eval(argv[0])))
+        addr = safe_parse_and_eval(argv[0])
+        if addr is None:
+            err("Invalid address")
+            return
+
+        addr = long(addr)
+        if process_lookup_address(addr) is None:
+            err("Unmapped address")
+            return
+
+        start_address = align_address(addr)
         largest_addresss_to_be_shown = start_address + (current_arch.ptrsize * nb)
 
         stackoffs = range(0, nb)

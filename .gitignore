@@ -32,5 +32,4 @@ coverage.xml
 docs/_build/
 target/
 site
-tests/bins
 tests/pylint*.html

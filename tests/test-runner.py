@@ -1,33 +1,172 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Run tests by spawning a gdb instance for every command.
 #
 
 from __future__ import print_function
 
-import unittest, sys, shutil, os
+import difflib
+import os
+import shutil
+import subprocess
+import sys
+import unittest
 
-from helpers import *
+from helpers import gdb_run_command, \
+    gdb_run_silent_command, \
+    gdb_run_command_last_line, \
+    gdb_start_silent_command, \
+    gdb_start_silent_command_last_line, \
+    gdb_test_python_method
 
 
-class TestGefCommands(unittest.TestCase):
-    """Global class for command testing"""
 
-    ### unittest helpers
+class GefUnitTestGeneric(unittest.TestCase):
+    """Generic class for command testing, that defines all helpers"""
 
     def assertNoException(self, buf):
-        return "Python Exception <" not in buf or "'gdb.error'" in buf
+        return b"Python Exception <" not in buf \
+            or b"'gdb.error'" in buf \
+            or b"failed to execute properly, reason:" in buf
 
     def assertFailIfInactiveSession(self, buf):
-        return "No debugging session active" in buf
+        return b"No debugging session active" in buf
 
 
-    ### testing GEF commands
+class TestGefCommands(GefUnitTestGeneric):
+    """Tests GEF GDB commands."""
+
+    def test_command_canary(self):
+        self.assertFailIfInactiveSession(gdb_run_command("canary"))
+        res = gdb_start_silent_command("canary")
+        self.assertNoException(res)
+        self.assertTrue(b"Found AT_RANDOM at" in res)
+        self.assertTrue(b"The canary of process " in res)
+        return
+
+
+    def test_command_capstone_disassemble(self):
+        self.assertFailIfInactiveSession(gdb_run_command("capstone-disassemble"))
+        res = gdb_start_silent_command("capstone-disassemble")
+        self.assertNoException(res)
+        self.assertTrue(len(res.splitlines()) > 1)
+        return
+
+
+    def test_command_checksec(self):
+        cmd = "checksec"
+        res = gdb_run_command(cmd)
+        self.assertNoException(res)
+
+        target = "tests/binaries/checksec-no-canary.out"
+        res = gdb_run_command(cmd, target=target)
+        self.assertTrue("Canary                        : No")
+
+        target = "tests/binaries/checksec-no-nx.out"
+        res = gdb_run_command(cmd, target=target)
+        self.assertTrue("NX                            : No")
+
+        target = "tests/binaries/checksec-no-pie.out"
+        res = gdb_run_command(cmd, target=target)
+        self.assertTrue("PIE                           : No")
+        return
+
+
+    def test_command_dereference(self):
+        self.assertFailIfInactiveSession(gdb_run_command("dereference"))
+
+        res = gdb_start_silent_command("dereference $sp")
+        self.assertNoException(res)
+        self.assertTrue(len(res.splitlines()) > 2)
+        self.assertTrue(b"$rsp" in res)
+
+        res = gdb_start_silent_command("dereference 0")
+        self.assertNoException(res)
+        self.assertTrue(b"Unmapped address" in res)
+        return
+
+
+    def test_command_edit_flags(self):
+        self.assertFailIfInactiveSession(gdb_run_command("edit-flags"))
+        # force enable flag
+        res = gdb_start_silent_command_last_line("edit-flags +carry")
+        self.assertNoException(res)
+        self.assertTrue(b"CARRY " in res)
+        # force disable flag
+        res = gdb_start_silent_command_last_line("edit-flags -carry")
+        self.assertNoException(res)
+        self.assertTrue(b"carry " in res)
+        # toggle flag
+        before = gdb_start_silent_command_last_line("edit-flags")
+        self.assertNoException(before)
+        after = gdb_start_silent_command_last_line("edit-flags ~carry")
+        self.assertNoException(after)
+        s = difflib.SequenceMatcher(None, before, after)
+        self.assertTrue(s.ratio() > 0.90)
+        return
+
+
+    def test_command_elf_info(self):
+        res = gdb_run_command("elf-info")
+        self.assertNoException(res)
+        self.assertTrue(b"7f 45 4c 46" in res)
+        return
+
 
     def test_command_entry_break(self):
         res = gdb_run_command("entry-break")
         self.assertNoException(res)
         return
+
+
+    def test_command_format_string_helper(self):
+        cmd = "format-string-helper"
+        target = "tests/binaries/format-string-helper.out"
+        res = gdb_run_command(cmd,
+                              after=["set args testtest",
+                                     "run",],
+                              target=target)
+        self.assertNoException(res)
+        self.assertTrue(b"Possible insecure format string:" in res)
+        return
+
+
+    def test_command_heap_arenas(self):
+        cmd = "heap arenas"
+        target = "tests/binaries/heap.out"
+        self.assertFailIfInactiveSession(gdb_run_command(cmd, target=target))
+        res = gdb_start_silent_command(cmd, target=target)
+        self.assertNoException(res)
+        self.assertTrue(b"Arena (base=" in res)
+        return
+
+    def test_command_heap_chunk(self):
+        cmd = "heap chunk p1"
+        target = "tests/binaries/heap.out"
+        self.assertFailIfInactiveSession(gdb_run_command(cmd, target=target))
+        res = gdb_run_silent_command(cmd, target=target)
+        self.assertNoException(res)
+        self.assertTrue(b"NON_MAIN_ARENA flag: " in res)
+        return
+
+    def test_command_heap_bins_fast(self):
+        cmd = "heap bins fast"
+        target = "tests/binaries/heap-fastbins.out"
+        self.assertFailIfInactiveSession(gdb_run_command(cmd, target=target))
+        res = gdb_run_silent_command(cmd, target=target)
+        self.assertNoException(res)
+        self.assertTrue(b"Fastbins[idx=0, size=0x10]" in res)
+        self.assertTrue(b"Chunk(addr=" in res)
+        return
+
+
+    def test_command_heap_analysis(self):
+        cmd = "heap-analysis-helper"
+        self.assertFailIfInactiveSession(gdb_run_command(cmd))
+        res = gdb_start_silent_command(cmd)
+        self.assertNoException(res)
+        return
+
 
     def test_command_hexdump(self):
         self.assertFailIfInactiveSession(gdb_run_command("hexdump $pc"))
@@ -41,69 +180,173 @@ class TestGefCommands(unittest.TestCase):
         self.assertNoException(res)
         return
 
-    def test_command_vmmap(self):
-        self.assertFailIfInactiveSession(gdb_run_command("vmmap"))
-        res = gdb_start_silent_command("vmmap")
-        self.assertNoException(res)
-        self.assertTrue(res.splitlines() > 1)
+
+    def test_command_keystone_assemble(self):
+        valid_cmds = [
+            "assemble nop; xor eax, eax; int 0x80",
+            "assemble -a arm -m arm add r0, r1, r2",
+            "assemble -a mips -m mips32 add $v0, 1",
+            "assemble -a sparc -m sparc32  set 0, %o0",
+            "assemble -a arm64 -m little_endian add x29, sp, 0; mov  w0, 0; ret"
+        ]
+        for cmd in valid_cmds:
+            res = gdb_start_silent_command(cmd)
+            self.assertNoException(res)
+            self.assertTrue(len(res.splitlines()) > 1)
         return
 
-    def test_command_xinfo(self):
-        self.assertFailIfInactiveSession(gdb_run_command("xinfo $sp"))
-        res = gdb_start_silent_command("xinfo")
-        self.assertTrue("At least one valid address must be specified" in res)
-        res = gdb_start_silent_command("xinfo $sp")
-        self.assertNoException(res)
-        self.assertTrue(res.splitlines() >= 7)
+
+    def test_command_patch(self):
+        self.assertFailIfInactiveSession(gdb_run_command("patch"))
         return
 
-    def test_command_process_search(self):
-        self.assertFailIfInactiveSession(gdb_run_command("grep /bin/sh"))
-        res = gdb_start_silent_command("grep /bin/sh")
-        self.assertNoException(res)
-        self.assertTrue("0x" in res)
+    def test_command_patch_byte(self):
+        before = gdb_start_silent_command_last_line("x/8bx $pc")
+        after = gdb_start_silent_command_last_line("patch byte $pc 0x42", after=["x/8bx $pc",])
+        self.assertNoException(after)
+        r = difflib.SequenceMatcher(None, before, after).ratio()
+        self.assertTrue( 0.90 < r < 1.0 )
         return
 
-    def test_command_registers(self):
-        self.assertFailIfInactiveSession(gdb_run_command("registers"))
-        res = gdb_start_silent_command("registers")
-        self.assertNoException(res)
-        self.assertTrue("$rax" in res and "$eflags" in res)
+    def test_command_patch_word(self):
+        before = gdb_start_silent_command_last_line("x/8bx $pc")
+        after = gdb_start_silent_command_last_line("patch word $pc 0x4242", after=["x/8bx $pc",])
+        self.assertNoException(after)
+        r = difflib.SequenceMatcher(None, before, after).ratio()
+        self.assertTrue( 0.90 < r < 1.0 )
         return
+
+    def test_command_patch_dword(self):
+        before = gdb_start_silent_command_last_line("x/8bx $pc")
+        after = gdb_start_silent_command_last_line("patch dword $pc 0x42424242", after=["x/8bx $pc",])
+        self.assertNoException(after)
+        r = difflib.SequenceMatcher(None, before, after).ratio()
+        self.assertTrue( 0.80 < r < 0.90 )
+        return
+
+    def test_command_patch_qword(self):
+        before = gdb_start_silent_command_last_line("x/8bx $pc")
+        after = gdb_start_silent_command_last_line("patch qword $pc 0x4242424242424242", after=["x/8bx $pc",])
+        self.assertNoException(after)
+        r = difflib.SequenceMatcher(None, before, after).ratio()
+        self.assertTrue( 0.60 < r < 0.70 )
+        return
+
+    def test_command_patch_string(self):
+        res = gdb_start_silent_command_last_line("patch string $sp \"Gef!Gef!Gef!Gef!\"", after=["grep Gef!Gef!Gef!Gef!",])
+        self.assertNoException(res)
+        self.assertTrue(b"\"Gef!Gef!Gef!Gef!\"" in res)
+        return
+
+
+    def test_command_pattern(self):
+        cmd = "pattern create 32"
+        target = "tests/binaries/pattern.out"
+        res = gdb_run_command(cmd, target=target)
+        self.assertNoException(res)
+        self.assertTrue(b"aaaaaaaabaaaaaaacaaaaaaadaaaaaaa" in res)
+
+        cmd = "pattern search $rbp"
+        target = "tests/binaries/pattern.out"
+        res = gdb_run_command(cmd, before=["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"], target=target)
+        self.assertNoException(res)
+        self.assertTrue(b"Found at offset" in res)
+        return
+
 
     def test_command_process_status(self):
         self.assertFailIfInactiveSession(gdb_run_command("process-status"))
         res = gdb_start_silent_command("process-status")
         self.assertNoException(res)
-        self.assertTrue("Process Information" in res \
-                        and "No child process" in res \
-                        and "No open connections" in res)
+        self.assertTrue(b"Process Information" in res \
+                        and b"No child process" in res \
+                        and b"No open connections" in res)
         return
 
-    def test_command_xor_memory(self):
-        cmd = "xor-memory display 0x555555774000 0x10 0x41"
+
+    def test_command_registers(self):
+        self.assertFailIfInactiveSession(gdb_run_command("registers"))
+        res = gdb_start_silent_command("registers")
+        self.assertNoException(res)
+        self.assertTrue(b"$rax" in res)
+        self.assertTrue(b"$eflags" in res)
+        return
+
+
+    def test_command_reset_cache(self):
+        res = gdb_start_silent_command("reset-cache")
+        self.assertNoException(res)
+        return
+
+
+    def test_command_retdec(self):
+        cmd = "retdec -s main"
+        target = "tests/binaries/retdec.out"
+        res = gdb_start_silent_command(cmd, target=target)
+        if b"No RetDec API key provided" in res:
+            api_key = os.getenv("GEF_RETDEC_API_KEY")
+            if api_key is None:
+                return
+            before = ["gef config retdec.key {}".format(api_key),]
+            res = gdb_start_silent_command(cmd, before=before, target=target)
+
+        self.assertNoException(res)
+        self.assertTrue(b"Saved as" in res)
+        return
+
+
+    def test_command_ropper(self):
+        cmd = "ropper"
         self.assertFailIfInactiveSession(gdb_run_command(cmd))
+        cmd = "ropper --search \"pop %; pop %; ret\""
+        res = gdb_run_silent_command(cmd)
+        self.assertNoException(res)
+        self.assertFalse(b": error:" in res)
+        self.assertTrue(len(res.splitlines()) > 2)
+        return
+
+
+    def test_command_search_pattern(self):
+        self.assertFailIfInactiveSession(gdb_run_command("grep /bin/sh"))
+        res = gdb_start_silent_command("grep /bin/sh")
+        self.assertNoException(res)
+        self.assertTrue(b"0x" in res)
+        return
+
+
+    def test_command_set_permission(self):
+        self.assertFailIfInactiveSession(gdb_run_command("set-permission"))
+        target = "tests/binaries/set-permission.out"
+
+        res = gdb_run_silent_command("set-permission 0x1337000", after=["vmmap",], target=target)
+        self.assertNoException(res)
+        self.assertTrue(b"0x0000000001337000 0x0000000001338000 0x0000000000000000 rwx" in res)
+
+        res = gdb_run_silent_command("set-permission 0x1338000", target=target)
+        self.assertNoException(res)
+        self.assertTrue(b"Unmapped address")
+        return
+
+
+    def test_command_shellcode(self):
+        res = gdb_start_silent_command("shellcode")
+        self.assertNoException(res)
+        self.assertTrue(b"Missing sub-command <search|get>" in res)
+        return
+
+    def test_command_shellcode_search(self):
+        cmd = "shellcode search execve /bin/sh"
         res = gdb_start_silent_command(cmd)
         self.assertNoException(res)
-        self.assertTrue("Original block" in res and "XOR-ed block" in res)
-
-        cmd = "xor-memory patch 0x555555774000 0x10 0x41"
-        res = gdb_start_silent_command(cmd)
-        self.assertNoException(res)
-        self.assertTrue("Patching XOR-ing 0x555555774000-0x555555774010 with '0x41'")
+        self.assertTrue(b"setuid(0) + execve(/bin/sh) 49 bytes" in res)
         return
 
-    def test_command_elf_info(self):
-        res = gdb_run_command("elf-info")
+    def test_command_shellcode_get(self):
+        res = gdb_start_silent_command("shellcode get 77")
         self.assertNoException(res)
-        self.assertTrue("7f 45 4c 46" in res)
+        self.assertTrue(b"Shellcode written to " in res)
         return
 
-    def test_command_checksec(self):
-        res = gdb_run_command("checksec")
-        self.assertNoException(res)
-        # todo: add more granular tests (with specific binaries (no canary, no pic, etc.))
-        return
 
     def test_command_stub(self):
         cmd = "stub printf"
@@ -112,33 +355,21 @@ class TestGefCommands(unittest.TestCase):
         self.assertNoException(res)
         return
 
-    def test_command_heap_analysis(self):
-        cmd = "heap-analysis-helper"
-        self.assertFailIfInactiveSession(gdb_run_command(cmd))
-        res = gdb_start_silent_command(cmd)
-        self.assertNoException(res)
-        return
-
-    def test_command_pattern_create(self):
-        res = gdb_run_command("pattern create 16")
-        self.assertNoException(res)
-        self.assertTrue("aaaaaaaabaaaaaaa" in res)
-        return
 
     def test_command_theme(self):
         res = gdb_run_command("theme")
         self.assertNoException(res)
         possible_themes = [
-        "context_title_line"
-        "dereference_base_address"
-        "context_title_message"
-        "disable_color"
-        "dereference_code"
-        "dereference_string"
-        "default_title_message",
-        "default_title_line"
-        "dereference_register_value",
-        "xinfo_title_message",
+            "context_title_line"
+            "dereference_base_address"
+            "context_title_message"
+            "disable_color"
+            "dereference_code"
+            "dereference_string"
+            "default_title_message",
+            "default_title_line"
+            "dereference_register_value",
+            "xinfo_title_message",
         ]
         for t in possible_themes:
             # testing command viewing
@@ -152,50 +383,133 @@ class TestGefCommands(unittest.TestCase):
         return
 
 
-    def test_command_capstone_disassemble(self):
-        self.assertFailIfInactiveSession(gdb_run_command("capstone-disassemble"))
-        res = gdb_start_silent_command("capstone-disassemble")
+    def test_command_trace_run(self):
+        cmd = "trace-run"
+        res = gdb_run_command(cmd)
+        self.assertFailIfInactiveSession(res)
+
+        cmd = "trace-run $pc+1"
+        res = gdb_start_silent_command(cmd,
+                                       before=["gef config trace-run.tracefile_prefix /tmp/gef-trace-"])
         self.assertNoException(res)
-        self.assertTrue(res.splitlines() > 1)
+        self.assertTrue(b"Tracing from" in res)
         return
 
 
-    def test_command_keystone_assemble(self):
-        valid_cmds = [
-            "assemble nop; nop; nop",
-            "assemble -a arm -m arm add r0, r1, r2",
-            "assemble -a mips -m mips32 add $v0, 1",
-            "asm -a sparc -m sparc32  set 0, %o0",
-        ]
-        for cmd in valid_cmds:
-            res = gdb_start_silent_command(cmd)
-            self.assertNoException(res)
-            self.assertTrue(res.splitlines() > 1)
+    def test_command_unicorn_emulate(self):
+        cmd = "emu -n 1"
+        res = gdb_run_command(cmd)
+        self.assertFailIfInactiveSession(res)
+
+        res = gdb_start_silent_command(cmd)
+        self.assertNoException(res)
+        self.assertTrue(b"Final registers" in res)
         return
 
 
-    ### testing GEF methods
-    def test_which(self):
-        res = gdb_test_python_method("which('gdb')")
-        self.assertTrue(res.splitlines()[-1].startswith("/"))
-        res = gdb_test_python_method("which('__IDontExist__')")
-        self.assertTrue("Missing file `__IDontExist__`" in res)
+    def test_command_vmmap(self):
+        self.assertFailIfInactiveSession(gdb_run_command("vmmap"))
+        res = gdb_start_silent_command("vmmap")
+        self.assertNoException(res)
+        self.assertTrue(len(res.splitlines()) > 1)
+
+        res = gdb_start_silent_command("vmmap stack")
+        self.assertNoException(res)
+        self.assertTrue(len(res.splitlines()) > 1)
         return
 
-    def test_get_memory_alignment(self):
+
+    def test_command_xfiles(self):
+        self.assertFailIfInactiveSession(gdb_run_command("xfiles"))
+        res = gdb_start_silent_command("xfiles")
+        self.assertNoException(res)
+        self.assertTrue(len(res.splitlines()) >= 3)
+        return
+
+
+    def test_command_xinfo(self):
+        self.assertFailIfInactiveSession(gdb_run_command("xinfo $sp"))
+        res = gdb_start_silent_command("xinfo")
+        self.assertTrue(b"At least one valid address must be specified" in res)
+
+        res = gdb_start_silent_command("xinfo $sp")
+        self.assertNoException(res)
+        self.assertTrue(len(res.splitlines()) >= 7)
+        return
+
+
+    def test_command_xor_memory(self):
+        cmd = "xor-memory display $sp 0x10 0x41"
+        self.assertFailIfInactiveSession(gdb_run_command(cmd))
+        res = gdb_start_silent_command(cmd)
+        self.assertNoException(res)
+        self.assertTrue(b"Original block" in res)
+        self.assertTrue(b"XOR-ed block" in res)
+
+        cmd = "xor-memory patch $sp 0x10 0x41"
+        res = gdb_start_silent_command(cmd)
+        self.assertNoException(res)
+        self.assertTrue(b"Patching XOR-ing ")
+        return
+
+
+class TestGefFunctions(GefUnitTestGeneric):
+    """Tests GEF internal functions."""
+
+
+    def test_function_get_memory_alignment(self):
         res = gdb_test_python_method("get_memory_alignment(in_bits=False)")
-        self.assertTrue(res.splitlines()[-1] in ("4", "8"))
+        self.assertTrue(res.splitlines()[-1] in (b"4", b"8"))
         return
 
-    def test_set_arch(self):
+
+    def test_function_set_arch(self):
         res = gdb_test_python_method("current_arch.arch, current_arch.mode", before="set_arch()")
         res = (res.splitlines()[-1])
-        self.assertTrue('X86' in res)
+        self.assertTrue(b"X86" in res)
         return
+
+
+    def test_function_which(self):
+        res = gdb_test_python_method("which('gdb')")
+        lines = res.splitlines()
+        self.assertTrue(b"/gdb" in lines[-1])
+        res = gdb_test_python_method("which('__IDontExist__')")
+        self.assertTrue(b"Missing file `__IDontExist__`" in res)
+        return
+
+
+
+def setup():
+    subprocess.call(["make","-C", "tests/binaries", "all"])
+    shutil.copy2("./gef.py", "/tmp/gef.py")
+    return
+
+
+def cleanup():
+    os.unlink("/tmp/gef.py")
+    subprocess.call(["make","-C", "tests/binaries", "clean"])
+    return
+
+
+def run_tests():
+    test_instances = [
+        TestGefCommands,
+        TestGefFunctions,
+    ]
+
+    runner = unittest.TextTestRunner(verbosity=3)
+    total_errors = 0
+
+    for test in [ unittest.TestLoader().loadTestsFromTestCase(x) for x in test_instances ]:
+        res = runner.run(test)
+        total_errors += len(res.errors) + len(res.failures)
+
+    return total_errors
 
 
 if __name__ == "__main__":
-    shutil.copy2("./gef.py", "/tmp/gef.py")
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestGefCommands)
-    unittest.TextTestRunner(verbosity=3).run(suite)
-    os.unlink("/tmp/gef.py")
+    setup()
+    errnum = run_tests()
+    cleanup()
+    sys.exit(errnum)
