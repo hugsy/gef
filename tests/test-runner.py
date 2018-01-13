@@ -229,7 +229,7 @@ class TestGefCommands(GefUnitTestGeneric):
         after = gdb_start_silent_command_last_line("patch qword $pc 0x4242424242424242", after=["x/8bx $pc",])
         self.assertNoException(after)
         r = difflib.SequenceMatcher(None, before, after).ratio()
-        self.assertTrue( 0.60 < r < 0.70 )
+        self.assertTrue( 0.50 < r < 0.70 )
         return
 
     def test_command_patch_string(self):
