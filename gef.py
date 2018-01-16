@@ -2832,7 +2832,11 @@ def gef_get_auxiliary_values():
     for line in gdb.execute("info auxv", to_string=True).splitlines():
         tmp = line.split()
         _type = tmp[1]
-        res[_type] = int(tmp[-2], base=0) if _type in ("AT_PLATFORM", "AT_EXECFN") else int(tmp[-1], base=0)
+        if _type in ("AT_PLATFORM", "AT_EXECFN"):
+            idx = line[:-1].rfind('"') - 1
+            tmp = line[:idx].split()
+
+        res[_type] = int(tmp[-1], base=0)
     return res
 
 
@@ -2848,9 +2852,11 @@ def gef_read_canary():
     canary &= ~0xff
     return canary, canary_location
 
+
 def gef_get_pie_breakpoint(num):
     global __pie_breakpoints__
     return __pie_breakpoints__[num]
+
 
 @lru_cache()
 def gef_getpagesize():
