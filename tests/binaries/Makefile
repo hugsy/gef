@@ -38,3 +38,5 @@ checksec-no-pie.out: EXTRA_FLAGS := -fno-pie
 checksec-no-nx.out: EXTRA_FLAGS := -z execstack
 
 pattern.out: EXTRA_FLAGS := -D_FORTIFY_SOURCE=0 -fno-stack-protector
+
+canary.out: EXTRA_FLAGS := -fstack-protector-all

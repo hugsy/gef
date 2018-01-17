@@ -38,7 +38,7 @@ class TestGefCommands(GefUnitTestGeneric):
 
     def test_command_canary(self):
         self.assertFailIfInactiveSession(gdb_run_command("canary"))
-        res = gdb_start_silent_command("canary")
+        res = gdb_start_silent_command("canary", target="tests/binaries/canary.out")
         self.assertNoException(res)
         self.assertTrue(b"Found AT_RANDOM at" in res)
         self.assertTrue(b"The canary of process " in res)
@@ -320,7 +320,12 @@ class TestGefCommands(GefUnitTestGeneric):
 
         res = gdb_run_silent_command("set-permission 0x1337000", after=["vmmap",], target=target)
         self.assertNoException(res)
-        self.assertTrue(b"0x0000000001337000 0x0000000001338000 0x0000000000000000 rwx" in res)
+        line = [ l for l in res.splitlines() if b"0x0000000001337000" in l ][0]
+        line = line.split()
+        self.assertEqual(line[0], b"0x0000000001337000")
+        self.assertEqual(line[1], b"0x0000000001338000")
+        self.assertEqual(line[2], b"0x0000000000000000")
+        self.assertEqual(line[3], b"rwx")
 
         res = gdb_run_silent_command("set-permission 0x1338000", target=target)
         self.assertNoException(res)
