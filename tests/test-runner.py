@@ -489,6 +489,13 @@ class TestGefFunctions(GefUnitTestGeneric):
         return
 
 
+    def test_function_get_pid(self):
+        res = gdb_test_python_method("get_pid()", target="/bin/ls")
+        self.assertNoException(res)
+        self.assertTrue(int(res.splitlines()[-1]))
+        return
+
+
 
 def setup():
     subprocess.call(["make","-C", "tests/binaries", "all"])
@@ -504,7 +511,7 @@ def cleanup():
 
 def run_tests():
     test_instances = [
-        #TestGefCommands,
+        TestGefCommands,
         TestGefFunctions,
     ]
 
