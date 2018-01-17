@@ -7101,7 +7101,17 @@ class DereferenceCommand(GenericCommand):
         if len(argv)==2 and argv[1][0] in ("l", "L") and argv[1][1:].isdigit():
             nb = int(argv[1][1:])
 
-        start_address = align_address(long(gdb.parse_and_eval(argv[0])))
+        addr = safe_parse_and_eval(argv[0])
+        if addr is None:
+            err("Invalid address")
+            return
+
+        addr = long(addr)
+        if process_lookup_address(addr) is None:
+            err("Unmapped address")
+            return
+
+        start_address = align_address(addr)
 
         for i in range(0, nb):
             print(self.pprint_dereferenced(start_address, i))
