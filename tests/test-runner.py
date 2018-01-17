@@ -479,6 +479,16 @@ class TestGefFunctions(GefUnitTestGeneric):
         return
 
 
+    def test_function_get_filepath(self):
+        res = gdb_test_python_method("get_filepath()", target="/bin/ls")
+        self.assertNoException(res)
+        subprocess.call(["cp", "/bin/ls", "/tmp/foo bar"])
+        res = gdb_test_python_method("get_filepath()", target="/tmp/foo bar")
+        self.assertNoException(res)
+        subprocess.call(["rm", "/tmp/foo bar"])
+        return
+
+
 
 def setup():
     subprocess.call(["make","-C", "tests/binaries", "all"])
@@ -494,7 +504,7 @@ def cleanup():
 
 def run_tests():
     test_instances = [
-        TestGefCommands,
+        #TestGefCommands,
         TestGefFunctions,
     ]
 
