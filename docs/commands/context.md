@@ -69,6 +69,12 @@ The size of most sections are also customizable:
 * `nb_lines_code` and `nb_lines_code_prev` configure how many lines to show
   after and before the PC, respectively.
 
+To have the stack displayed with the largest stack addresses on top (i.e., grow the
+stack downward), enable the following setting:
+```
+gef➤ gef config context.grow_stack_down True
+```
+
 
 ### Redirecting context output to another tty/file ###
 
@@ -129,4 +135,4 @@ gef➤  gef config context.peek_calls False
 * Hide specific registers from the registers view.
 ```
 gef➤  gef config context.ignore_registers "$cs $ds $gs"
-``` 
+```

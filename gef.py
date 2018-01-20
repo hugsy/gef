@@ -1338,6 +1338,10 @@ class Architecture(object):
         return get_register("$sp")
 
     @property
+    def fp(self):
+        return get_register("$fp")
+
+    @property
     def ptrsize(self):
         return get_memory_alignment()
 
@@ -6325,6 +6329,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("show_registers_raw", False, "Show the registers pane with raw values (no dereference)")
         self.add_setting("peek_calls", True, "Peek into calls")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
+        self.add_setting("grow_stack_down", False, "Order of stack downward starts at largest down to stack pointer")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
         self.add_setting("nb_lines_code", 6, "Number of instruction after $pc")
         self.add_setting("nb_lines_code_prev", 3, "Number of instruction before $pc")
@@ -7058,7 +7063,7 @@ class DereferenceCommand(GenericCommand):
         return
 
     def post_load(self):
-        GefAlias("stack", "dereference $sp L10")
+        GefAlias("stack", "dereference $sp")
         GefAlias("dps", "dereference", completer_class=gdb.COMPLETE_LOCATION)
         return
 
@@ -7080,6 +7085,7 @@ class DereferenceCommand(GenericCommand):
                                              sep.join(addrs[1:]), ma=(memalign*2 + 2))
 
         values = []
+
         for regname, regvalue in regs:
             if current_address == regvalue:
                 values.append(regname)
@@ -7093,13 +7099,17 @@ class DereferenceCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if len(argv) < 1:
+        argc = len(argv)
+
+        if argc < 1:
             err("Missing location.")
             return
 
         nb = 10
-        if len(argv)==2 and argv[1][0] in ("l", "L") and argv[1][1:].isdigit():
+        if argc==2 and argv[1][0] in ("l", "L") and argv[1][1:].isdigit():
             nb = int(argv[1][1:])
+        elif argc == 2 and argv[1].isdigit():
+            nb = int(argv[1])
 
         addr = safe_parse_and_eval(argv[0])
         if addr is None:
@@ -7111,10 +7121,20 @@ class DereferenceCommand(GenericCommand):
             err("Unmapped address")
             return
 
+        if get_gef_setting("context.grow_stack_down") == True:
+            from_insnum = nb-1
+            to_insnum = -1
+            insnum_step = -1
+        else:
+            from_insnum = 0
+            to_insnum = nb
+            insnum_step = 1
+
         start_address = align_address(addr)
 
-        for i in range(0, nb):
+        for i in range(from_insnum, to_insnum, insnum_step):
             print(self.pprint_dereferenced(start_address, i))
+
         return
 
 
