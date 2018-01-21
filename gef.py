@@ -1444,6 +1444,7 @@ class AARCH64(ARM):
     }
     function_parameters = ["$x0", "$x1", "$x2", "$x3"]
 
+
     def is_call(self, insn):
         mnemo = insn.mnemo
         call_mnemos = {"bl", "blr"}
@@ -7067,11 +7068,25 @@ class DereferenceCommand(GenericCommand):
         GefAlias("dps", "dereference", completer_class=gdb.COMPLETE_LOCATION)
         return
 
+    def get_saved_ip(self):
+        """Retrieves the current GDB frame saved ip, returns None if none available/existing."""
+        current_frame = gdb.selected_frame()
+        if not current_frame:
+            return None
+
+        older_frame = current_frame.older()
+        if not older_frame:
+            return None
+
+        return older_frame.pc()
+
+
     def pprint_dereferenced(self, addr, off):
         base_address_color = get_gef_setting("theme.dereference_base_address")
         registers_color = get_gef_setting("theme.dereference_register_value")
 
         regs = [(k.strip(), get_register(k)) for k in current_arch.all_registers]
+
         sep = " {:s} ".format(right_arrow)
         memalign = current_arch.ptrsize
 
@@ -7084,18 +7099,26 @@ class DereferenceCommand(GenericCommand):
                                              vertical_line, offset,
                                              sep.join(addrs[1:]), ma=(memalign*2 + 2))
 
-        values = []
+        register_hints = []
 
         for regname, regvalue in regs:
             if current_address == regvalue:
-                values.append(regname)
+                register_hints.append(regname)
 
-        if values:
-            m = "\t{:s}{:s}".format(left_arrow, ", ".join(list(values)))
+        if register_hints:
+            m = "\t{:s}{:s}".format(left_arrow, ", ".join(list(register_hints)))
             l += Color.colorify(m, attrs=registers_color)
+
+        saved_ip = self.get_saved_ip()
+        if saved_ip:
+            formatted_saved_ip = format_address(saved_ip)
+            for _addr in addrs:
+                if formatted_saved_ip in _addr:
+                    l += " " + Color.colorify("($current_frame_savedip)", attrs="gray underline")
 
         offset += memalign
         return l
+
 
     @only_if_gdb_running
     def do_invoke(self, argv):
