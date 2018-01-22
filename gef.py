@@ -7063,24 +7063,12 @@ class DereferenceCommand(GenericCommand):
         return
 
     def post_load(self):
-        GefAlias("stack", "dereference $sp")
         GefAlias("dps", "dereference", completer_class=gdb.COMPLETE_LOCATION)
         return
 
-    def get_saved_ip(self):
-        """Retrieves the current GDB frame saved ip, returns None if none available/existing."""
-        current_frame = gdb.selected_frame()
-        if not current_frame:
-            return None
 
-        older_frame = current_frame.older()
-        if not older_frame:
-            return None
-
-        return older_frame.pc()
-
-
-    def pprint_dereferenced(self, addr, off):
+    @staticmethod
+    def pprint_dereferenced(addr, off):
         base_address_color = get_gef_setting("theme.dereference_base_address")
         registers_color = get_gef_setting("theme.dereference_register_value")
 
@@ -7107,13 +7095,6 @@ class DereferenceCommand(GenericCommand):
         if register_hints:
             m = "\t{:s}{:s}".format(left_arrow, ", ".join(list(register_hints)))
             l += Color.colorify(m, attrs=registers_color)
-
-        saved_ip = self.get_saved_ip()
-        if saved_ip:
-            formatted_saved_ip = format_address(saved_ip)
-            for _addr in addrs:
-                if formatted_saved_ip in _addr:
-                    l += " " + Color.colorify("($current_frame_savedip)", attrs="gray underline")
 
         offset += memalign
         return l
@@ -7155,7 +7136,7 @@ class DereferenceCommand(GenericCommand):
         start_address = align_address(addr)
 
         for i in range(from_insnum, to_insnum, insnum_step):
-            print(self.pprint_dereferenced(start_address, i))
+            print(DereferenceCommand.pprint_dereferenced(start_address, i))
 
         return
 
