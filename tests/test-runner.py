@@ -511,6 +511,14 @@ def setup():
 def cleanup():
     os.unlink("/tmp/gef.py")
     subprocess.call(["make","-C", "tests/binaries", "clean"])
+    for p in os.listdir("/tmp"):
+        fpath = "/tmp/{:s}".format(p)
+        if not os.path.isfile(fpath):
+            continue
+        if p.startswith("gef-ls-") and p.endswith(".raw"):
+            os.unlink(fpath)
+        if p.startswith("gef-trace-") and p.endswith(".txt"):
+            os.unlink(fpath)
     return
 
 
