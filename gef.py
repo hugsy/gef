@@ -3295,7 +3295,6 @@ def register_external_command(obj):
     global __commands__, __gef__
     cls = obj.__class__
     fpath = os.path.realpath(os.path.expanduser(inspect.getfile(cls)))
-    info("Loading '{}' (from '{}') as '{}'".format(cls.__name__, fpath, cls._cmdline_))
     __commands__.append(cls)
     __gef__.load(initial=False)
     __gef__.doc.add_command_to_doc((cls._cmdline_, cls, None))
@@ -7951,16 +7950,23 @@ class GefCommand(gdb.Command):
             ]
             gef_execute_gdb_script("\n".join(source) + "\n")
 
+        # load plugins from `extra_plugins_dir`
         try:
+            nb_inital = len(self.loaded_commands)
             directory = get_gef_setting("gef.extra_plugins_dir")
             if len(directory):
                 directory = os.path.realpath(os.path.expanduser(directory))
                 if os.path.isdir(directory):
-                    for f in os.listdir(directory):
-                        if f in (".", "..") or not f.endswith(".py"): continue
-                        fpath = "{:s}/{:s}".format(directory, f)
+                    for fname in os.listdir(directory):
+                        if not fname.endswith(".py"): continue
+                        fpath = "{:s}/{:s}".format(directory, fname)
                         if os.path.isfile(fpath):
                             gdb.execute("source {:s}".format(fpath))
+            nb_added = len(self.loaded_commands) - nb_inital
+            if nb_added > 0:
+                ok("{:s} extra commands added from '{:s}'".format(Color.colorify(str(nb_added), attrs="bold green"),
+                                                                  Color.colorify(directory, attrs="bold blue")))
+
         except gdb.error as e:
             err("failed: {}".format(str(e)))
         return
@@ -8260,7 +8266,7 @@ class GefRestoreCommand(gdb.Command):
                 except Exception:
                     pass
 
-        ok("Configuration from '{:s}' restored".format(GEF_RC))
+        ok("Configuration from '{:s}' restored".format(Color.colorify(GEF_RC, attrs="bold blue")))
         return
 
 
