@@ -4274,7 +4274,7 @@ class ChangeFdCommand(GenericCommand):
         disable_context()
         res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
         # Output example: $1 = 3
-        new_fd = int(res.split()[2])
+        new_fd = int(res.split()[2], 0)
         info("Opened '{:s}' as fd=#{:d}".format(new_output, new_fd))
         gdb.execute("""call dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
         info("Duplicated FD #{:d} {:s} #{:d}".format(old_fd, right_arrow, new_fd))
