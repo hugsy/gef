@@ -215,7 +215,7 @@ ___default_aliases___                  = {
 }
 
 GDB_MIN_VERSION = (7, 7)
-GDB_VERSION_MAJOR, GDB_VERSION_MINOR = [int(_) for _ in gdb.VERSION.split(".")[:2]]
+GDB_VERSION_MAJOR, GDB_VERSION_MINOR = [int(_) for _ in gdb.VERSION.replace("Fedora ","").split(".")[:2]]
 GDB_VERSION = (GDB_VERSION_MAJOR, GDB_VERSION_MINOR)
 
 current_elf  = None
