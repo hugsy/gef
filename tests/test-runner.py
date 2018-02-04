@@ -156,7 +156,6 @@ class TestGefCommands(GefUnitTestGeneric):
         res = gdb_run_silent_command(cmd, target=target)
         self.assertNoException(res)
         self.assertTrue(b"Fastbins[idx=0, size=0x10]" in res)
-        self.assertTrue(b"Chunk(addr=" in res)
         return
 
 
