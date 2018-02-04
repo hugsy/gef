@@ -12,7 +12,7 @@ CFLAGS          +=      -m32
 endif
 
 ifeq ($(DEBUG), 1)
-CFLAGS          +=      -DDEBUG=1 -ggdb -O0 -static
+CFLAGS          +=      -DDEBUG=1 -ggdb -O0
 else
 CFLAGS          +=      -O1
 endif
