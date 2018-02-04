@@ -41,8 +41,10 @@ GEF will work on any GDB 7.7+ compiled with Python support. You can view
 that commands that failed to load using `gef missing`, but this will not affect
 GEF generally.
 
-If you have problems setting up on your host, please use the
-IRC [`freenode##gef`](https://webchat.freenode.net/?channels=##gef) for that.
+If you experience problems setting it up on your host, first go to the
+IRC channel [`freenode##gef`](https://webchat.freenode.net/?channels=##gef) for
+that. You will find great people there willing to help.
+
 Note that the GitHub issue section is to be used to **report bugs** and
 **GEF issues** (like unexpected crash, improper error handling, weird edge case,
 etc.), not a place to ask for help.
@@ -178,3 +180,36 @@ English. If you aren't sure, simply run `gdb` like this:
 ```
 $ LC_ALL=en_US.UTF-8 gdb /path/to/your/binary
 ```
+
+## GDB crashes on ARM memory corruption with `gdb_exception_RETURN_MASK_ERROR` ##
+
+This issue is **NOT** GEF related, but GDB's, or more precisely some versions of
+GDB packaged with Debian/Kali for ARM
+
+>
+> Original Issue and Mitigation
+>
+> gdb version 7.12, as distributed w/ Raspbian/Kali rolling (only distro's
+> tested,) throws an exception while disassembling ARM binaries when using gef.
+> This is not a gef problem, this is a gdb problem. gef is just the tool that
+> revealed the gdb dain bramage! (The issue was not observed using vanilla
+> gdb/peda/pwndbg) This issue was first noted when using si to step through a
+> simple ARM assembly program (noted above) when instead of exiting cleanly,
+> gdb's disassembly failed with a SIGABRT and threw an exception:
+>
+>  `gdb_exception_RETURN_MASK_ERROR`
+>
+> This turns out to be a known problem (regression) with gdb, and affects
+> gef users running the ARM platform (Raspberry Pi).
+>
+> The mitigation is for ARM users to compile gdb from source and run the latest
+> version, 8.1 as of this writing.
+>
+
+**Do not file an issue**, again it is **NOT** a bug from GEF, or neither from GDB
+Python API. Therefore, there is nothing GEF's developers can do about that. The
+correct solution as mentioned above is to recompile your GDB with a newer
+(better) version.
+
+The whole topic was already internally discussed, so please refer to
+the [issue #206](https://github.com/hugsy/gef/issues/206) for the whole story.
