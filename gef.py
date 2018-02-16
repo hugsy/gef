@@ -1980,8 +1980,8 @@ def is_readable_string(address):
 def is_alive():
     """Check if GDB is running."""
     try:
-        return get_pid() > 0
-    except gdb.error:
+        return gdb.selected_inferior().pid > 0
+    except:
         return False
     return False
 
