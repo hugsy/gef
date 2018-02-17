@@ -33,3 +33,4 @@ docs/_build/
 target/
 site
 tests/pylint*.html
+TAGS
