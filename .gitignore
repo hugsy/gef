@@ -34,3 +34,7 @@ target/
 site
 tests/pylint*.html
 TAGS
+GPATH
+GRTAGS
+GTAGS
+.gitignore
