@@ -1484,11 +1484,23 @@ class AARCH64(ARM):
                 if op==0: taken, reason = True, "{}==0".format(reg)
                 else: taken, reason = False, "{}!=0".format(reg)
             elif mnemo=="tbnz":
-                i = int(operands[1])
+                # maybe a bit overkill
+                op1 = operands[1]
+                if not isinstance(op1, basestring):
+                    op1 = str(op1)
+                op1 = op1.strip()
+                op1.lstrip("#")
+                i = int(op1)
                 if (op & 1<<i) != 0: taken, reason = True, "{}&1<<{}!=0".format(reg,i)
                 else: taken, reason = False, "{}&1<<{}==0".format(reg,i)
             elif mnemo=="tbz":
-                i = int(operands[1])
+                # maybe a bit overkill
+                op1 = operands[1]
+                if not isinstance(op1, basestring):
+                    op1 = str(op1)
+                op1 = op1.strip()
+                op1.lstrip("#")
+                i = int(op1)
                 if (op & 1<<i) == 0: taken, reason = True, "{}&1<<{}==0".format(reg,i)
                 else: taken, reason = False, "{}&1<<{}!=0".format(reg,i)
 
