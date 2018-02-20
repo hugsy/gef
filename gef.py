@@ -73,6 +73,7 @@ import os
 import platform
 import re
 import resource
+import shutil
 import socket
 import string
 import struct
@@ -192,6 +193,8 @@ __heap_freed_list__                    = []
 __heap_uaf_watchpoints__               = []
 __pie_breakpoints__                    = {}
 __pie_counter__                        = 1
+__gef_remote__                         = None
+__gef_qemu_mode__                      = False
 
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
@@ -220,7 +223,6 @@ GDB_VERSION = (GDB_VERSION_MAJOR, GDB_VERSION_MINOR)
 
 current_elf  = None
 current_arch = None
-qemu_mode    = False
 
 if PYTHON_MAJOR==3:
     lru_cache = functools.lru_cache
@@ -291,11 +293,11 @@ else:
 def reset_all_caches():
     """Free all caches. If an object is cached, it will have a callable attribute `cache_clear`
     which will be invoked to purge the function cache."""
+
     for mod in dir(sys.modules["__main__"]):
         obj = getattr(sys.modules["__main__"], mod)
         if hasattr(obj, "cache_clear"):
             obj.cache_clear()
-    qemu_mode = False
     return
 
 
@@ -460,8 +462,7 @@ class Section:
     path            = None
 
     def __init__(self, *args, **kwargs):
-        attrs = ["page_start", "page_end", "offset", "permission", "inode", "path"]
-        for attr in attrs:
+        for attr in ["page_start", "page_end", "offset", "permission", "inode", "path", ]:
             value = kwargs.get(attr)
             setattr(self, attr, value)
         return
@@ -480,6 +481,11 @@ class Section:
         if self.page_end is None or self.page_start is None:
             return -1
         return self.page_end - self.page_start
+
+    @property
+    def realpath(self):
+        # when in a `gef-remote` session, realpath returns the path to the binary on the local disk, not remote
+        return self.path if __gef_remote__ is None else "/tmp/gef/{:d}/{:s}".format(__gef_remote__, self.path)
 
 
 class Zone:
@@ -2067,6 +2073,13 @@ def get_register(regname):
         return long(value)
 
 
+def get_path_from_info_proc():
+    for x in gdb.execute("info proc", to_string=True).splitlines():
+        if x.startswith("exe = "):
+            return x.split(" = ")[1].replace("'", "")
+    return None
+
+
 @lru_cache()
 def get_os():
     """Return the current OS."""
@@ -2081,7 +2094,7 @@ def get_pid():
 
 @lru_cache()
 def get_filepath():
-    """Return the absolute path of the file currently debugged."""
+    """Return the local absolute path of the file currently debugged."""
     filename = gdb.current_progspace().filename
 
     if is_remote_debug():
@@ -2095,17 +2108,20 @@ def get_filepath():
 
         # if target is remote file, download
         elif filename.startswith("target:"):
-            return download_file(filename[len("target:"):], use_cache=True)
+            fname = filename[len("target:"):]
+            return download_file(fname, use_cache=True, local_name=fname)
+
+        elif __gef_remote__ is not None:
+            return "/tmp/gef/{:d}/{:s}".format(__gef_remote__, get_path_from_info_proc())
+
         else:
             return filename
     else:
         if filename is not None:
             return filename
         # inferior probably did not have name, extract cmdline from info proc
-        tmp = [x for x in gdb.execute("info proc", to_string=True).splitlines() \
-               if x.startswith("exe")][0]
-        filename = tmp.split("'")[1]
-        return filename
+        return get_path_from_info_proc()
+
 
 @lru_cache()
 def get_filename():
@@ -2113,15 +2129,19 @@ def get_filename():
     return os.path.basename(get_filepath())
 
 
-def download_file(target, use_cache=False):
+def download_file(target, use_cache=False, local_name=None):
     """Download filename `target` inside the mirror tree inside the GEF_TEMP_DIR.
     The tree architecture must be GEF_TEMP_DIR/gef/<local_pid>/<remote_filepath>.
     This allow a "chroot-like" tree format."""
 
     try:
         local_root = os.path.sep.join([GEF_TEMP_DIR, str(get_pid())])
-        local_path = os.path.sep.join([local_root, os.path.dirname(target)])
-        local_name = os.path.sep.join([local_path, os.path.basename(target)])
+        if local_name is None:
+            local_path = os.path.sep.join([local_root, os.path.dirname(target)])
+            local_name = os.path.sep.join([local_path, os.path.basename(target)])
+        else:
+            local_path = os.path.sep.join([local_root, os.path.dirname(local_name)])
+            local_name = os.path.sep.join([local_path, os.path.basename(local_name)])
 
         if use_cache and os.access(local_name, os.R_OK):
             return local_name
@@ -2165,8 +2185,7 @@ def get_function_length(sym):
 
 def get_process_maps_linux(proc_map_file):
     """Parse the Linux process `/proc/pid/maps` file."""
-    f = open_file(proc_map_file, use_cache=False)
-    for line in f:
+    for line in open_file(proc_map_file, use_cache=False):
         line = line.strip()
         addr, perm, off, _, rest = line.split(" ", 4)
         rest = rest.split(" ", 1)
@@ -2177,8 +2196,7 @@ def get_process_maps_linux(proc_map_file):
             inode = rest[0]
             pathname = rest[1].replace(" ", "")
 
-        addr_start, addr_end = addr.split("-")
-        addr_start, addr_end = long(addr_start, 16), long(addr_end, 16)
+        addr_start, addr_end = list(map(lambda x: long(x, 16), addr.split("-")))
         off = long(off, 16)
         perm = Permission.from_process_maps(perm)
 
@@ -2191,35 +2209,15 @@ def get_process_maps_linux(proc_map_file):
     return
 
 
-def get_process_maps_freebsd(proc_map_file):
-    """Parse the FreeBSD process `/proc/pid/maps` file."""
-    f = open_file(proc_map_file, use_cache=False)
-    for line in f:
-        line = line.strip()
-        start_addr, end_addr, _, _, _, perm, _, _, _, _, _, inode, pathname, _, _ = line.split()
-        start_addr, end_addr = long(start_addr, 0x10), long(end_addr, 0x10)
-        offset = 0
-        perm = Permission.from_process_maps(perm)
-
-        yield Section(page_start=start_addr,
-                      page_end=end_addr,
-                      offset=offset,
-                      permission=perm,
-                      inode=inode,
-                      path=pathname)
-    return
-
-
 @lru_cache()
 def get_process_maps():
     """Parse the `/proc/pid/maps` file."""
+
     sections = []
     try:
         pid = get_pid()
-        if sys.platform.startswith("linux"):
-            sections = get_process_maps_linux("/proc/{:d}/maps".format(pid))
-        elif sys.platform.startswith("freebsd"):
-            sections = get_process_maps_freebsd("/proc/{:d}/map".format(pid))
+        fpath = "/proc/{:d}/maps".format(pid)
+        sections = get_process_maps_linux(fpath)
         return list(sections)
 
     except FileNotFoundError as e:
@@ -2392,7 +2390,13 @@ def new_objfile_handler(event):
 
 def exit_handler(event):
     """GDB event handler for exit cases."""
+    global __gef_remote__, __gef_qemu_mode__
+
     reset_all_caches()
+    __gef_qemu_mode__ = False
+    if __gef_remote__ and get_gef_setting("gef-remote.clean_on_exit") == True:
+        shutil.rmtree("/tmp/gef/{:d}".format(__gef_remote__))
+        __gef_remote__ = None
     return
 
 
@@ -2732,7 +2736,7 @@ def endian_str():
 @lru_cache()
 def is_remote_debug():
     """"Return True is the current debugging session is running through GDB remote session."""
-    return "remote" in gdb.execute("maintenance print target-stack", to_string=True)
+    return __gef_remote__ is not None or "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
 
 def de_bruijn(alphabet, n):
@@ -3575,14 +3579,14 @@ class PieRemoteCommand(GenericCommand):
 
     def do_invoke(self, argv):
         try:
-            gdb.execute("target remote {}".format(" ".join(argv)))
+            gdb.execute("gef-remote {}".format(" ".join(argv)))
         except gdb.error as e:
             err(e)
             return
         # after remote attach, we are stopped so that we can
         # get base address to modify our breakpoint
         vmmap = get_process_maps()
-        base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
+        base_address = [x.page_start for x in vmmap if x.realpath == get_filepath()][0]
 
         for bp, bp_ins in __pie_breakpoints__.items():
             bp_ins.instantiate(base_address)
@@ -3593,8 +3597,9 @@ class PieRemoteCommand(GenericCommand):
 class SmartEvalCommand(GenericCommand):
     """SmartEval: Smart eval (vague approach to mimic WinDBG `?`)."""
     _cmdline_ = "$"
-    _syntax_  = "\n{0:s} EXPR\n{0:s} ADDRESS1 ADDRESS2".format(_cmdline_)
+    _syntax_  = "{0:s} EXPR\n{0:s} ADDRESS1 ADDRESS2".format(_cmdline_)
     _example_ = "\n{0:s} $pc+1\n{0:s} 0x00007ffff7a10000 0x00007ffff7bce000".format(_cmdline_)
+
     def do_invoke(self, argv):
         argc = len(argv)
         if argc==1:
@@ -4385,8 +4390,8 @@ class IdaInteractCommand(GenericCommand):
             is_pie = False
         else:
             vmmap = get_process_maps()
-            main_base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
-            main_end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
+            main_base_address = min([x.page_start for x in vmmap if x.realpath == get_filepath()])
+            main_end_address = max([x.page_end for x in vmmap if x.realpath == get_filepath()])
             is_pie = checksec(get_filepath())["PIE"]
 
         try:
@@ -5038,14 +5043,21 @@ class RemoteCommand(GenericCommand):
 
     _cmdline_ = "gef-remote"
     _syntax_  = "{:s} [OPTIONS] TARGET".format(_cmdline_)
-    _syntax_  = "\n{0:s} -p 6789 localhost:1234\n{0:s} -q localhost:4444 # when using qemu-user".format(_cmdline_)
+    _example_  = "\n{0:s} -p 6789 localhost:1234\n{0:s} -q localhost:4444 # when using qemu-user".format(_cmdline_)
 
     def __init__(self):
         super(RemoteCommand, self).__init__(prefix=False)
         self.handler_connected = False
+        self.add_setting("clean_on_exit", False, "Clean the temporary data downloaded when the session exits.")
         return
 
     def do_invoke(self, argv):
+        global __gef_remote__
+
+        if __gef_remote__ is not None:
+            err("You already are in remote session. Close it first before opening a new one...")
+            return
+
         target = None
         rpid = -1
         update_solib = False
@@ -5126,6 +5138,7 @@ class RemoteCommand(GenericCommand):
             self.refresh_shared_library_path()
 
         set_arch()
+        __gef_remote__ = rpid
         return
 
     def new_objfile_handler(self, event):
@@ -5148,22 +5161,23 @@ class RemoteCommand(GenericCommand):
         all the extra commands as it was local debugging."""
         gdb.execute("reset-cache")
 
-        ok("Downloading remote information")
         infos = {}
-        for i in ["exe", "maps", "environ", "cmdline"]:
-            infos[i] = self.load_target_proc(pid, i)
+        for i in ("maps", "environ", "cmdline",):
+            infos[i] = self.load_from_remote_proc(pid, i)
             if infos[i] is None:
                 err("Failed to load memory map of '{:s}'".format(i))
                 return
 
+        exepath = get_path_from_info_proc()
+        infos["exe"] = download_file("/proc/{:d}/exe".format(pid), use_cache=False, local_name=exepath)
         if not os.access(infos["exe"], os.R_OK):
             err("Source binary is not readable")
             return
 
         directory  = os.path.sep.join([GEF_TEMP_DIR, str(get_pid())])
-        gdb.execute("file {:s}".format(infos["exe"]))
+        # gdb.execute("file {:s}".format(infos["exe"]))
         self.add_setting("root", directory, "Path to store the remote data")
-        ok("Remote information loaded, remember to clean '{:s}' when your session is over".format(directory))
+        ok("Remote information loaded to temporary path '{:s}'".format(directory))
         return
 
 
@@ -5183,7 +5197,7 @@ class RemoteCommand(GenericCommand):
         return ret
 
 
-    def load_target_proc(self, pid, info):
+    def load_from_remote_proc(self, pid, info):
         """Download one item from /proc/pid"""
         remote_name = "/proc/{:d}/{:s}".format(pid, info)
         return download_file(remote_name, use_cache=False)
@@ -5210,10 +5224,9 @@ class RemoteCommand(GenericCommand):
 
 
     def prepare_qemu_stub(self, target):
-        global current_arch, current_elf, qemu_mode
+        global current_arch, current_elf, __gef_qemu_mode__
 
         reset_all_caches()
-        qemu_mode = True
         arch = get_arch()
         current_elf  = Elf(minimalist=True)
         if   arch.startswith("arm"):
@@ -5243,6 +5256,7 @@ class RemoteCommand(GenericCommand):
 
         ok("Setting QEMU-stub for '{}' (memory mapping may be wrong)".format(current_arch.arch))
         gdb.execute("target remote {}".format(target))
+        __gef_qemu_mode__ = True
         return
 
 
@@ -8044,7 +8058,8 @@ class GefHelpCommand(gdb.Command):
         doc = class_name.__doc__ if hasattr(class_name, "__doc__") else ""
         doc = "\n                         ".join(doc.split("\n"))
         aliases = "(alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
-        msg = "{:<25s} -- {:s} {:s}".format(cmd, Color.greenify(doc), aliases)
+        w = get_terminal_size()[1] - 29 - len(aliases)
+        msg = "{cmd:<25s} -- {help:{w}s} {aliases:s}".format(cmd=cmd, help=Color.greenify(doc), w=w, aliases=aliases)
         self.docs.append(msg)
         return
 
