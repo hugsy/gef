@@ -1486,7 +1486,7 @@ class AARCH64(ARM):
             elif mnemo=="tbnz":
                 # maybe a bit overkill
                 op1 = operands[1]
-                if not isinstance(op1, basestring):
+                if not isinstance(op1, str):
                     op1 = str(op1)
                 op1 = op1.strip()
                 op1.lstrip("#")
@@ -1496,7 +1496,7 @@ class AARCH64(ARM):
             elif mnemo=="tbz":
                 # maybe a bit overkill
                 op1 = operands[1]
-                if not isinstance(op1, basestring):
+                if not isinstance(op1, str):
                     op1 = str(op1)
                 op1 = op1.strip()
                 op1.lstrip("#")
