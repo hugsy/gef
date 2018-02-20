@@ -1485,6 +1485,7 @@ class AARCH64(ARM):
                 else: taken, reason = False, "{}!=0".format(reg)
             elif mnemo=="tbnz":
                 # maybe a bit overkill
+                if is_debug(): warn("type(operands[1]) = {}".format(type(operands[1])))
                 op1 = operands[1]
                 if is_debug(): warn("op1 = '{}'".format(op1))
                 if not isinstance(op1, str):
@@ -1499,6 +1500,7 @@ class AARCH64(ARM):
                 else: taken, reason = False, "{}&1<<{}==0".format(reg,i)
             elif mnemo=="tbz":
                 # maybe a bit overkill
+                if is_debug(): warn("type(operands[1]) = {}".format(type(operands[1])))
                 op1 = operands[1]
                 if is_debug(): warn("op1 = '{}'".format(op1))
                 if not isinstance(op1, str):
