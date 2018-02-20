@@ -1486,20 +1486,28 @@ class AARCH64(ARM):
             elif mnemo=="tbnz":
                 # maybe a bit overkill
                 op1 = operands[1]
+                if is_debug(): warn("op1 = '{}'".format(op1))
                 if not isinstance(op1, str):
+                    if is_debug(): warn("isinstance(op1, str) == False")
                     op1 = str(op1)
                 op1 = op1.strip()
+                if is_debug(): warn("op1.strip() = '{}'".format(op1))
                 op1.lstrip("#")
+                if is_debug(): warn("op1.lstrip('#') = '{}'".format(op1))
                 i = int(op1)
                 if (op & 1<<i) != 0: taken, reason = True, "{}&1<<{}!=0".format(reg,i)
                 else: taken, reason = False, "{}&1<<{}==0".format(reg,i)
             elif mnemo=="tbz":
                 # maybe a bit overkill
                 op1 = operands[1]
+                if is_debug(): warn("op1 = '{}'".format(op1))
                 if not isinstance(op1, str):
+                    if is_debug(): warn("isinstance(op1, str) == False")
                     op1 = str(op1)
                 op1 = op1.strip()
+                if is_debug(): warn("op1.strip() = '{}'".format(op1))
                 op1.lstrip("#")
+                if is_debug(): warn("op1.lstrip('#') = '{}'".format(op1))
                 i = int(op1)
                 if (op & 1<<i) == 0: taken, reason = True, "{}&1<<{}==0".format(reg,i)
                 else: taken, reason = False, "{}&1<<{}!=0".format(reg,i)
