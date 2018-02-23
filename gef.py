@@ -2405,9 +2405,13 @@ def get_terminal_size():
     if is_debug():
         return 600, 100
 
-    cmd = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, "1234"))
-    tty_rows, tty_columns = int(cmd[0]), int(cmd[1])
-    return tty_rows, tty_columns
+    try:
+        cmd = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, "1234"))
+        tty_rows, tty_columns = int(cmd[0]), int(cmd[1])
+        return tty_rows, tty_columns
+
+    except OSError:
+        return 600, 100
 
 
 def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):

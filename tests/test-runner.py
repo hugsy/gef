@@ -228,13 +228,13 @@ class TestGefCommands(GefUnitTestGeneric):
         after = gdb_start_silent_command_last_line("patch qword $pc 0x4242424242424242", after=["x/8bx $pc",])
         self.assertNoException(after)
         r = difflib.SequenceMatcher(None, before, after).ratio()
-        self.assertTrue( 0.50 < r < 0.70 )
+        self.assertTrue( r > 0.50 )
         return
 
     def test_command_patch_string(self):
         res = gdb_start_silent_command_last_line("patch string $sp \"Gef!Gef!Gef!Gef!\"", after=["grep Gef!Gef!Gef!Gef!",])
         self.assertNoException(res)
-        self.assertTrue(b"\"Gef!Gef!Gef!Gef!\"" in res)
+        self.assertTrue(b"Gef!Gef!Gef!Gef!" in res)
         return
 
 
