@@ -1490,11 +1490,15 @@ class AARCH64(ARM):
                 if op==0: taken, reason = True, "{}==0".format(reg)
                 else: taken, reason = False, "{}!=0".format(reg)
             elif mnemo=="tbnz":
-                i = int(operands[1])
+                # operands[1] has one or more white spaces in front, then a #, then the number
+                # so we need to eliminate them
+                i = int(operands[1].strip().lstrip("#"))
                 if (op & 1<<i) != 0: taken, reason = True, "{}&1<<{}!=0".format(reg,i)
                 else: taken, reason = False, "{}&1<<{}==0".format(reg,i)
             elif mnemo=="tbz":
-                i = int(operands[1])
+                # operands[1] has one or more white spaces in front, then a #, then the number
+                # so we need to eliminate them
+                i = int(operands[1].strip().lstrip("#"))
                 if (op & 1<<i) == 0: taken, reason = True, "{}&1<<{}==0".format(reg,i)
                 else: taken, reason = False, "{}&1<<{}!=0".format(reg,i)
 
