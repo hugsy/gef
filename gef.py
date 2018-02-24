@@ -195,6 +195,7 @@ __pie_breakpoints__                    = {}
 __pie_counter__                        = 1
 __gef_remote__                         = None
 __gef_qemu_mode__                      = False
+__gef_default_main_arena__             = "main_arena"
 
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
@@ -604,9 +605,10 @@ class Instruction:
 class GlibcArena:
     """Glibc arena class
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671 """
-    def __init__(self, addr):
+    def __init__(self, addr, name=__gef_default_main_arena__):
         arena = gdb.parse_and_eval(addr)
         malloc_state_t = cached_lookup_type("struct malloc_state")
+        self.__name = name
         self.__arena = arena.cast(malloc_state_t)
         self.__addr = long(arena.address)
         return
@@ -638,7 +640,7 @@ class GlibcArena:
 
     def get_next(self):
         addr_next = self.dereference_as_long(self.next)
-        arena_main = GlibcArena("main_arena")
+        arena_main = GlibcArena(self.__name)
         if addr_next == arena_main.__addr:
             return None
         return GlibcArena("*{:#x} ".format(addr_next))
@@ -661,12 +663,12 @@ class GlibcChunk:
         self.ptrsize = current_arch.ptrsize
         if from_base:
             self.start_addr = addr
-            self.addr = addr + 2 * self.ptrsize
+            self.address = addr + 2 * self.ptrsize
         else:
             self.start_addr = int(addr - 2 * self.ptrsize)
-            self.addr = addr
+            self.address = addr
 
-        self.size_addr  = int(self.addr - self.ptrsize)
+        self.size_addr  = int(self.address - self.ptrsize)
         self.prev_size_addr = self.start_addr
         return
 
@@ -684,19 +686,19 @@ class GlibcChunk:
         return read_int_from_memory(self.prev_size_addr)
 
     def get_next_chunk(self):
-        addr = self.addr + self.get_chunk_size()
+        addr = self.address + self.get_chunk_size()
         return GlibcChunk(addr)
 
     # if free-ed functions
     def get_fwd_ptr(self):
-        return read_int_from_memory(self.addr)
+        return read_int_from_memory(self.address)
 
     @property
     def fwd(self):
         return self.get_fwd_ptr()
 
     def get_bkw_ptr(self):
-        return read_int_from_memory(self.addr + self.ptrsize)
+        return read_int_from_memory(self.address + self.ptrsize)
 
     @property
     def bck(self):
@@ -758,8 +760,8 @@ class GlibcChunk:
         return "\n".join(msg)
 
     def _str_pointers(self):
-        fwd = self.addr
-        bkw = self.addr + self.ptrsize
+        fwd = self.address
+        bkw = self.address + self.ptrsize
 
         msg = []
         try:
@@ -792,7 +794,7 @@ class GlibcChunk:
 
     def __str__(self):
         msg = "{:s}(addr={:#x}, size={:#x}, flags={:s})".format(Color.colorify("Chunk", attrs="yellow bold underline"),
-                                                                long(self.addr),self.get_chunk_size(), self.flags_as_string())
+                                                                long(self.address),self.get_chunk_size(), self.flags_as_string())
         return msg
 
     def pprint(self):
@@ -811,10 +813,9 @@ class GlibcChunk:
 @lru_cache()
 def get_main_arena():
     try:
-        return GlibcArena("main_arena")
-    except Exception  as e:
-        err("Failed to get `main_arena` symbol, heap commands may not work properly: {}".format(e))
-        warn("Did you install `libc6-dbg`?")
+        return GlibcArena(__gef_default_main_arena__)
+    except Exception as e:
+        err("Failed to get the main arena, heap commands may not work properly: {}".format(e))
         return None
 
 
@@ -2799,7 +2800,7 @@ def dereference(addr):
                   cached_lookup_type(use_golang_type())
         unsigned_long_type = ulong_t.pointer()
         res = gdb.Value(addr).cast(unsigned_long_type).dereference()
-        # GDB does lazy fetch, so we need to force access to the value
+        # GDB does lazy fetch by default so we need to force access to the value
         res.fetch_lazy()
         return res
     except gdb.MemoryError:
@@ -2872,6 +2873,11 @@ def only_if_events_supported(event_type):
         return wrapped_f
     return wrap
 
+
+#
+# Event hooking
+#
+
 @only_if_events_supported("cont")
 def gef_on_continue_hook(func): return gdb.events.cont.connect(func)
 @only_if_events_supported("cont")
@@ -2891,6 +2897,7 @@ def gef_on_exit_unhook(func): return gdb.events.exited.disconnect(func)
 def gef_on_new_hook(func): return gdb.events.new_objfile.connect(func)
 @only_if_events_supported("new_objfile")
 def gef_on_new_unhook(func): return gdb.events.new_objfile.disconnect(func)
+
 
 #
 # Virtual breakpoints
@@ -5468,6 +5475,38 @@ class GlibcHeapCommand(GenericCommand):
             self.usage()
             return
 
+@register_command
+class GlibcHeapSetArenaCommand(GenericCommand):
+    """Display information on a heap chunk."""
+
+    _cmdline_ = "heap set-arena"
+    _syntax_  = "{:s} LOCATION".format(_cmdline_)
+    _example_ = "{:s} 0x001337001337".format(_cmdline_)
+
+    def __init__(self):
+        super(GlibcHeapSetArenaCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+        global __gef_default_main_arena__
+
+        if len(argv) < 1:
+            ok("Current main_arena set to: '{}'".format(__gef_default_main_arena__))
+            return
+
+        new_arena = safe_parse_and_eval(argv[0])
+        if new_arena is None:
+            err("Invalid location")
+            return
+
+        new_arena = Address(to_unsigned_long(new_arena))
+        if new_arena is None or not new_arena.valid:
+            err("Invalid location")
+            return
+
+        __gef_default_main_arena__ = "*{:s}".format(format_address(new_arena.value))
+        return
 
 @register_command
 class GlibcHeapArenaCommand(GenericCommand):
@@ -5479,7 +5518,7 @@ class GlibcHeapArenaCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         try:
-            arena = GlibcArena("main_arena")
+            arena = GlibcArena(__gef_default_main_arena__)
         except gdb.error:
             err("Could not find Glibc main arena")
             return
@@ -5497,7 +5536,7 @@ class GlibcHeapChunkCommand(GenericCommand):
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
 
     _cmdline_ = "heap chunk"
-    _syntax_  = "{:s} MALLOCED_LOCATION".format(_cmdline_)
+    _syntax_  = "{:s} LOCATION".format(_cmdline_)
 
     def __init__(self):
         super(GlibcHeapChunkCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
