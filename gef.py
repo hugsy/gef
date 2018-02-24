@@ -5471,7 +5471,7 @@ class GlibcHeapCommand(GenericCommand):
     """Base command to get information about the Glibc heap structure."""
 
     _cmdline_ = "heap"
-    _syntax_  = "{:s} (chunk|bins|arenas)".format(_cmdline_)
+    _syntax_  = "{:s} (chunk|chunk|bins|arenas)".format(_cmdline_)
 
     def __init__(self):
         super(GlibcHeapCommand, self).__init__(prefix=True)
@@ -5479,9 +5479,9 @@ class GlibcHeapCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if len(argv)==0:
-            self.usage()
-            return
+        self.usage()
+        return
+
 
 @register_command
 class GlibcHeapSetArenaCommand(GenericCommand):

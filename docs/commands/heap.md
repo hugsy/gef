@@ -11,17 +11,35 @@ gef➤ heap <sub_commands>
 ```
 
 
+### `heap chunks` command ###
+
+Displays all the chunks from the `heap` section.
+
+```
+gef➤ heap chunks
+```
+
+In some cases, the allocation will start immediately from start of the page. If
+so, specify the base address of the first chunk as follow:
+
+```
+gef➤ heap chunks <LOCATION>
+```
+
+![heap-chunks](https://i.imgur.com/2Ew2fA6.png)
+
+
 ### `heap chunk` command ###
 
 This command gives visual information of a Glibc malloc-ed chunked. Simply
 provide the address to the user memory pointer of the chunk to show the
-information related to the current chunk:
+information related to a specific chunk:
 
 ```
 gef➤ heap chunk <LOCATION>
 ```
 
-![heap-chunks](https://i.imgur.com/SAWNptW.png)
+![heap-chunk](https://i.imgur.com/SAWNptW.png)
 
 
 
@@ -32,8 +50,22 @@ Multi-threaded programs have different arenas, and the only knowledge of the
 to help you list all the arenas allocated in your program **at the moment you
 call the command**.
 
-![heap-arena](https://i.imgur.com/ajbLiCF.png)
+![heap-arenas](https://i.imgur.com/ajbLiCF.png)
 
+
+
+### `heap set-arena` command ###
+
+In cases where the debug symbol are not present (e.g. statically stripped
+binary), it is possible to instruct GEF to find the `main_arena` at a different
+location with the command:
+
+```
+gef➤ heap set-arena <LOCATION>
+```
+
+If the arena address is correct, all `heap` commands will be functional, and use
+the specified address for `main_arena`.
 
 
 ### `heap bins` command ###
@@ -84,4 +116,3 @@ All the other subcommands for the `heap bins` work the same way as `fast`. If
 no argument is provided, `gef` will fall back to `main_arena`. Otherwise, it
 will use the address pointed as the base of the `malloc_state` structure and
 print out information accordingly.
-
