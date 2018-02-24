@@ -662,18 +662,22 @@ class GlibcChunk:
     def __init__(self, addr, from_base=False):
         self.ptrsize = current_arch.ptrsize
         if from_base:
-            self.start_addr = addr
+            self.chunk_base_address = addr
             self.address = addr + 2 * self.ptrsize
         else:
-            self.start_addr = int(addr - 2 * self.ptrsize)
+            self.chunk_base_address = int(addr - 2 * self.ptrsize)
             self.address = addr
 
         self.size_addr  = int(self.address - self.ptrsize)
-        self.prev_size_addr = self.start_addr
+        self.prev_size_addr = self.chunk_base_address
         return
 
     def get_chunk_size(self):
         return read_int_from_memory(self.size_addr) & (~0x03)
+
+    @property
+    def size(self):
+        return self.get_chunk_size()
 
     def get_usable_size(self):
         # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L4537
@@ -681,6 +685,10 @@ class GlibcChunk:
         if cursz == 0: return cursz
         if self.has_M_bit(): return cursz - 2 * self.ptrsize
         return cursz - self.ptrsize
+
+    @property
+    def usable_size(self):
+        return self.get_usable_size()
 
     def get_prev_chunk_size(self):
         return read_int_from_memory(self.prev_size_addr)
@@ -694,14 +702,14 @@ class GlibcChunk:
         return read_int_from_memory(self.address)
 
     @property
-    def fwd(self):
+    def fw(self):
         return self.get_fwd_ptr()
 
     def get_bkw_ptr(self):
         return read_int_from_memory(self.address + self.ptrsize)
 
     @property
-    def bck(self):
+    def bk(self):
         return self.get_bkw_ptr()
     # endif free-ed functions
 
@@ -752,7 +760,7 @@ class GlibcChunk:
             msg.append("Previous chunk size: {0:d} ({0:#x})".format(self.get_prev_chunk_size()))
             failed = True
         except gdb.MemoryError:
-            msg.append("Previous chunk size: Cannot read at {:#x} (corrupted?)".format(self.start_addr))
+            msg.append("Previous chunk size: Cannot read at {:#x} (corrupted?)".format(self.chunk_base_address))
 
         if failed:
             msg.append(self.str_chunk_size_flag())
@@ -5555,6 +5563,67 @@ class GlibcHeapChunkCommand(GenericCommand):
         addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
         chunk = GlibcChunk(addr)
         chunk.pprint()
+        return
+
+@register_command
+class GlibcHeapChunksCommand(GenericCommand):
+    """Display information all chunks from main_arena heap. If a location is passed,
+    it must correspond to the base address of the first chunk."""
+
+    _cmdline_ = "heap chunks"
+    _syntax_  = "{0} [LOCATION]".format(_cmdline_)
+    _example_ = "\n{0}\n{0} 0x555555775000".format(_cmdline_)
+
+    def __init__(self):
+        super(GlibcHeapChunksCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+
+        if len(argv) == 0:
+            heap_section = [x for x in get_process_maps() if x.path == "[heap]"]
+            if len(heap_section) == 0:
+                err("No heap section")
+                return
+
+            heap_section = heap_section[0].page_start
+        else:
+            heap_section = int(argv[0], 0)
+
+
+        arena = get_main_arena()
+        if arena is None:
+            err("No valid arena")
+            return
+
+        current_chunk = GlibcChunk(heap_section, from_base=True)
+        while True:
+
+            if current_chunk.chunk_base_address == arena.top:
+                print("{} {} {}".format(str(current_chunk), left_arrow, Color.greenify("top chunk")))
+                break
+
+            if current_chunk.chunk_base_address > arena.top:
+                break
+
+            if current_chunk.size == 0:
+                # EOF
+                break
+
+            print(current_chunk)
+
+            next_chunk = current_chunk.get_next_chunk()
+            if next_chunk is None:
+                break
+
+            next_chunk_addr = Address(next_chunk.address)
+            if not next_chunk_addr.valid:
+                # corrupted
+                break
+
+
+            current_chunk = next_chunk
         return
 
 @register_command
