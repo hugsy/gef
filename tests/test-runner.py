@@ -140,6 +140,17 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertTrue(b"Arena (base=" in res)
         return
 
+
+    def test_command_heap_set_arena(self):
+        cmd = "heap set-arena main_arena"
+        target = "tests/binaries/heap.out"
+        self.assertFailIfInactiveSession(gdb_run_command(cmd, target=target))
+        res = gdb_run_silent_command(cmd, target=target, after=["heap arenas",])
+        self.assertNoException(res)
+        self.assertTrue(b"Arena (base=" in res)
+        return
+
+
     def test_command_heap_chunk(self):
         cmd = "heap chunk p1"
         target = "tests/binaries/heap.out"
@@ -147,6 +158,15 @@ class TestGefCommands(GefUnitTestGeneric):
         res = gdb_run_silent_command(cmd, target=target)
         self.assertNoException(res)
         self.assertTrue(b"NON_MAIN_ARENA flag: " in res)
+        return
+
+    def test_command_heap_chunks(self):
+        cmd = "heap chunks"
+        target = "tests/binaries/heap.out"
+        self.assertFailIfInactiveSession(gdb_run_command(cmd, target=target))
+        res = gdb_run_silent_command(cmd, target=target)
+        self.assertNoException(res)
+        self.assertTrue(b"Chunk(addr=" in res and b"top chunk" in res)
         return
 
     def test_command_heap_bins_fast(self):

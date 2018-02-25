@@ -5508,12 +5508,15 @@ class GlibcHeapSetArenaCommand(GenericCommand):
             err("Invalid location")
             return
 
-        new_arena = Address(to_unsigned_long(new_arena))
-        if new_arena is None or not new_arena.valid:
-            err("Invalid location")
-            return
+        if argv[0].startswith("0x"):
+            new_arena = Address(to_unsigned_long(new_arena))
+            if new_arena is None or not new_arena.valid:
+                err("Invalid location")
+                return
 
-        __gef_default_main_arena__ = "*{:s}".format(format_address(new_arena.value))
+            __gef_default_main_arena__ = "*{:s}".format(format_address(new_arena.value))
+        else:
+            __gef_default_main_arena__ = argv[0]
         return
 
 @register_command
