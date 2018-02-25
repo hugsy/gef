@@ -573,17 +573,21 @@ class Elf:
 class Instruction:
     """GEF representation of instruction."""
     def __init__(self, address, location, mnemo, operands):
-        self.address, self.location, self.mnemo, self.operands = address, location, mnemo, operands
+        self.address, self.location, self.mnemonic, self.operands = address, location, mnemo, operands
         return
 
     def __str__(self):
         return "{:#10x} {:16} {:6} {:s}".format(self.address,
                                                 self.location,
-                                                self.mnemo,
+                                                self.mnemonic,
                                                 ", ".join(self.operands))
 
     def is_valid(self):
         return "(bad)" not in self.mnemo
+
+    @property
+    def mnemo(self):
+        return self.mnemonic
 
 
 
@@ -1380,7 +1384,7 @@ class ARM(Architecture):
         return None if is_arm_thumb() else 4
 
     def is_call(self, insn):
-        mnemo = insn.mnemo
+        mnemo = insn.mnemonic
         call_mnemos = {"bl", "blx"}
         return mnemo in call_mnemos
 
@@ -1394,10 +1398,10 @@ class ARM(Architecture):
     def is_conditional_branch(self, insn):
         branch_mnemos = {"beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
                   "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"}
-        return insn.mnemo in branch_mnemos
+        return insn.mnemonic in branch_mnemos
 
     def is_branch_taken(self, insn):
-        mnemo = insn.mnemo
+        mnemo = insn.mnemonic
         # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register(self.flag_register)
@@ -1450,7 +1454,7 @@ class AARCH64(ARM):
 
 
     def is_call(self, insn):
-        mnemo = insn.mnemo
+        mnemo = insn.mnemonic
         call_mnemos = {"bl", "blr"}
         return mnemo in call_mnemos
 
@@ -1468,12 +1472,12 @@ class AARCH64(ARM):
     def is_conditional_branch(self, insn):
         # https://www.element14.com/community/servlet/JiveServlet/previewBody/41836-102-1-229511/ARM.Reference_Manual.pdf
         # sect. 5.1.1
-        mnemo = insn.mnemo
+        mnemo = insn.mnemonic
         branch_mnemos = {"cbnz", "cbz", "tbnz", "tbz"}
         return mnemo.startswith("b.") or mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        mnemo, operands = insn.mnemo, insn.operands
+        mnemo, operands = insn.mnemonic, insn.operands
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register(self.flag_register)
         taken, reason = False, ""
@@ -1547,12 +1551,12 @@ class X86(Architecture):
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn):
-        mnemo = insn.mnemo
+        mnemo = insn.mnemonic
         call_mnemos = {"call", "callq"}
         return mnemo in call_mnemos
 
     def is_conditional_branch(self, insn):
-        mnemo = insn.mnemo
+        mnemo = insn.mnemonic
         branch_mnemos = {
             "ja", "jnbe", "jae", "jnb", "jnc", "jb", "jc", "jnae", "jbe", "jna",
             "jcxz", "jecxz", "jrcxz", "je", "jz", "jg", "jnle", "jge", "jnl",
@@ -1562,7 +1566,7 @@ class X86(Architecture):
         return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        mnemo = insn.mnemo
+        mnemo = insn.mnemonic
         # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register(self.flag_register)
@@ -1715,12 +1719,12 @@ class PowerPC(Architecture):
         return False
 
     def is_conditional_branch(self, insn):
-        mnemo = insn.mnemo
+        mnemo = insn.mnemonic
         branch_mnemos = {"beq", "bne", "ble", "blt", "bgt", "bge"}
         return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        mnemo = insn.mnemo
+        mnemo = insn.mnemonic
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register(self.flag_register)
         taken, reason = False, ""
@@ -1794,7 +1798,7 @@ class SPARC(Architecture):
         return False
 
     def is_conditional_branch(self, insn):
-        mnemo = insn.mnemo
+        mnemo = insn.mnemonic
         # http://moss.csc.ncsu.edu/~mueller/codeopt/codeopt00/notes/condbranch.html
         branch_mnemos = {
             "be", "bne", "bg", "bge", "bgeu", "bgu", "bl", "ble", "blu", "bleu",
@@ -1803,7 +1807,7 @@ class SPARC(Architecture):
         return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        mnemo = insn.mnemo
+        mnemo = insn.mnemonic
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register(self.flag_register)
         taken, reason = False, ""
@@ -1896,12 +1900,12 @@ class MIPS(Architecture):
         return False
 
     def is_conditional_branch(self, insn):
-        mnemo = insn.mnemo
+        mnemo = insn.mnemonic
         branch_mnemos = {"beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez"}
         return mnemo in branch_mnemos
 
     def is_branch_taken(self, insn):
-        mnemo, ops = insn.mnemo, insn.operands
+        mnemo, ops = insn.mnemonic, insn.operands
         taken, reason = False, ""
 
         if mnemo == "beq":
@@ -3285,7 +3289,7 @@ class UafWatchpoint(gdb.Breakpoint):
         msg = []
         msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
         msg.append("Possible Use-after-Free in '{:s}': pointer {:#x} was freed, but is attempted to be used at {:#x}".format(get_filepath(), self.address, pc))
-        msg.append("{:#x}   {:s} {:s}".format(insn.address, insn.mnemo, Color.yellowify(", ".join(insn.operands))))
+        msg.append("{:#x}   {:s} {:s}".format(insn.address, insn.mnemonic, Color.yellowify(", ".join(insn.operands))))
         push_context_message("warn", "\n".join(msg))
         return True
 
@@ -6786,7 +6790,7 @@ class ContextCommand(GenericCommand):
                     insn = next(gef_disassemble(pc, 1))
                 except gdb.MemoryError:
                     break
-                items.append(Color.redify("{} {}".format(insn.mnemo, ', '.join(insn.operands))))
+                items.append(Color.redify("{} {}".format(insn.mnemonic, ', '.join(insn.operands))))
 
             print("[{:s}] {:s}".format(Color.colorify("#{:d}".format(i), "bold pink"),
                                        right_arrow.join(items)))
@@ -7279,7 +7283,7 @@ class DereferenceCommand(GenericCommand):
             if addr.section:
                 if addr.section.is_executable() and addr.is_in_text_segment() and not is_readable_string(addr.value):
                     insn = gef_current_instruction(addr.value)
-                    insn_str = "{} {} {}".format(insn.location, insn.mnemo, ", ".join(insn.operands))
+                    insn_str = "{} {} {}".format(insn.location, insn.mnemonic, ", ".join(insn.operands))
                     msg.append(Color.colorify(insn_str, attrs=code_color))
                     break
 
