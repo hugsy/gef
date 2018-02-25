@@ -6474,6 +6474,17 @@ class ContextCommand(GenericCommand):
 
         if "capstone" in list(sys.modules.keys()):
             self.add_setting("use_capstone", False, "Use capstone as disassembler in the code pane (instead of GDB)")
+
+        self.layout_mapping = {
+            "regs":  self.context_regs,
+            "stack": self.context_stack,
+            "code": self.context_code,
+            "memory": self.context_memory,
+            "source": self.context_source,
+            "trace": self.context_trace,
+            "threads": self.context_threads,
+            "extra": self.context_additional_information,
+        }
         return
 
     def post_load(self):
@@ -6491,16 +6502,6 @@ class ContextCommand(GenericCommand):
             return
 
         self.tty_rows, self.tty_columns = get_terminal_size()
-        layout_mapping = {
-            "regs":  self.context_regs,
-            "stack": self.context_stack,
-            "code": self.context_code,
-            "memory": self.context_memory,
-            "source": self.context_source,
-            "trace": self.context_trace,
-            "threads": self.context_threads,
-            "extra": self.context_additional_information,
-        }
 
         redirect = self.get_setting("redirect")
         if redirect and os.access(redirect, os.W_OK):
@@ -6526,7 +6527,7 @@ class ContextCommand(GenericCommand):
         for section in current_layout:
             if section[0] == "-":
                 continue
-            layout_mapping[section]()
+            self.layout_mapping[section]()
 
         self.context_title("")
 
