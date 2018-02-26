@@ -7312,7 +7312,7 @@ class DereferenceCommand(GenericCommand):
 
             # -- Otherwise try to parse the value
             if addr.section:
-                if addr.section.is_executable() and addr.is_in_text_segment():
+                if addr.section.is_executable() and addr.is_in_text_segment() and not is_readable_string(addr.value):
                     insn = gef_current_instruction(addr.value)
                     insn_str = "{} {} {}".format(insn.location, insn.mnemo, ", ".join(insn.operands))
                     msg.append(Color.colorify(insn_str, attrs=code_color))
