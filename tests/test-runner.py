@@ -220,32 +220,32 @@ class TestGefCommands(GefUnitTestGeneric):
         return
 
     def test_command_patch_byte(self):
-        before = gdb_start_silent_command_last_line("x/8bx $pc")
-        after = gdb_start_silent_command_last_line("patch byte $pc 0x42", after=["x/8bx $pc",])
+        before = gdb_start_silent_command_last_line("display/8bx $pc")
+        after = gdb_start_silent_command_last_line("patch byte $pc 0x42", after=["display/8bx $pc",])
         self.assertNoException(after)
         r = difflib.SequenceMatcher(None, before, after).ratio()
         self.assertTrue( 0.90 < r < 1.0 )
         return
 
     def test_command_patch_word(self):
-        before = gdb_start_silent_command_last_line("x/8bx $pc")
-        after = gdb_start_silent_command_last_line("patch word $pc 0x4242", after=["x/8bx $pc",])
+        before = gdb_start_silent_command_last_line("display/8bx $pc")
+        after = gdb_start_silent_command_last_line("patch word $pc 0x4242", after=["display/8bx $pc",])
         self.assertNoException(after)
         r = difflib.SequenceMatcher(None, before, after).ratio()
         self.assertTrue( 0.90 < r < 1.0 )
         return
 
     def test_command_patch_dword(self):
-        before = gdb_start_silent_command_last_line("x/8bx $pc")
-        after = gdb_start_silent_command_last_line("patch dword $pc 0x42424242", after=["x/8bx $pc",])
+        before = gdb_start_silent_command_last_line("display/8bx $pc")
+        after = gdb_start_silent_command_last_line("patch dword $pc 0x42424242", after=["display/8bx $pc",])
         self.assertNoException(after)
         r = difflib.SequenceMatcher(None, before, after).ratio()
         self.assertTrue( 0.80 < r < 0.90 )
         return
 
     def test_command_patch_qword(self):
-        before = gdb_start_silent_command_last_line("x/8bx $pc")
-        after = gdb_start_silent_command_last_line("patch qword $pc 0x4242424242424242", after=["x/8bx $pc",])
+        before = gdb_start_silent_command_last_line("display/8bx $pc")
+        after = gdb_start_silent_command_last_line("patch qword $pc 0x4242424242424242", after=["display/8bx $pc",])
         self.assertNoException(after)
         r = difflib.SequenceMatcher(None, before, after).ratio()
         self.assertTrue( r > 0.50 )
