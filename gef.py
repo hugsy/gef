@@ -6464,6 +6464,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("grow_stack_down", False, "Order of stack downward starts at largest down to stack pointer")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
+        self.add_setting("nb_lines_threads", -1, "Number of line in the threads pane")
         self.add_setting("nb_lines_code", 6, "Number of instruction after $pc")
         self.add_setting("nb_lines_code_prev", 3, "Number of instruction before $pc")
         self.add_setting("ignore_registers", "", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
@@ -6837,7 +6838,11 @@ class ContextCommand(GenericCommand):
 
         self.context_title("threads")
 
-        threads = gdb.selected_inferior().threads()
+        threads = gdb.selected_inferior().threads()[::-1]
+        idx = self.get_setting("nb_lines_threads") or -1
+        if idx > 0:
+            threads = threads[0:idx]
+
         if not threads:
             warn("No thread selected")
             return
