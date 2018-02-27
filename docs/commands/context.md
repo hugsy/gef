@@ -68,6 +68,11 @@ The size of most sections are also customizable:
 * `nb_lines_backtrack` configures how many lines of the backtrace to show.
 * `nb_lines_code` and `nb_lines_code_prev` configure how many lines to show
   after and before the PC, respectively.
+* `context.nb_lines_threads` determines the number of lines to display inside
+  the thread pane. This is convenient when debugging heavily multi-threaded
+  applications (apache2, firefox, etc.). It receives an integer as value: if
+  this value is `-1` then all threads state will be displayed. Otherwise, if the
+  value is set to `N`, then at most `N` thread states will be shown.
 
 To have the stack displayed with the largest stack addresses on top (i.e., grow the
 stack downward), enable the following setting:
