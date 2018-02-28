@@ -6479,6 +6479,7 @@ class ContextCommand(GenericCommand):
             "regs":  self.context_regs,
             "stack": self.context_stack,
             "code": self.context_code,
+            "args": self.context_args,
             "memory": self.context_memory,
             "source": self.context_source,
             "trace": self.context_trace,
@@ -6698,6 +6699,134 @@ class ContextCommand(GenericCommand):
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
         return
+
+
+    def context_args(self):
+        use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
+        insn = gef_current_instruction(current_arch.pc)
+        if not current_arch.is_call(insn):
+            return
+
+        self.size2type = {
+            1: "BYTE",
+            2: "WORD",
+            4: "DWORD",
+            8: "QWORD",
+        }
+
+        if insn.operands[-1].startswith(self.size2type[current_arch.ptrsize]+" PTR"):
+            target = "*" + insn.operands[-1].split()[-1]
+        else:
+            target = insn.operands[-1].split()[1]
+            target = target.replace("<", "").replace(">", "")
+
+        sym = gdb.lookup_global_symbol(target)
+        if sym is None:
+            self.print_guessed_arguments(target)
+            return
+
+        if sym.type.code != gdb.TYPE_CODE_FUNC:
+            err("Symbol '{}' is not a function: type={}".format(target, sym.type.code))
+            return
+
+        self.print_arguments_from_symbol(target, sym)
+        return
+
+    def get_ith_parameter(self, i):
+        """Retrieves the correct parameter used for the current function call."""
+        if is_x86_32():
+            sp = current_arch.sp
+            sz =  current_arch.ptrsize
+            loc = sp + (i * sz) + sz
+            val = read_int_from_memory(loc)
+            key = "[sp + {:#x}]".format(i * sz)
+        else:
+            reg = current_arch.function_parameters[i]
+            val = get_register(reg)
+            key = reg
+        return (key, val)
+
+    def print_arguments_from_symbol(self, function_name, symbol):
+        """If symbols were found, parse them and print the argument adequately."""
+        args = []
+
+        for i, f in enumerate(symbol.type.fields()):
+            _key, _value = self.get_ith_parameter(i)
+            _value = right_arrow.join(DereferenceCommand.dereference_from(_value))
+            _name = f.name or "var_{}".format(i)
+            _type = f.type.name or self.size2type[f.type.sizeof]
+            args.append("{} {} = {}".format(_type, _name, _value))
+
+        self.context_title("arguments")
+        print("{} (".format(function_name))
+        if len(args):
+            print("   " + ",\n   ".join(args))
+        print(")")
+        return
+
+    def print_guessed_arguments(self, function_name):
+        """When no symbol, read the current basic block and look for "interesting" instructions."""
+
+        def __get_current_block_start_address():
+            pc = current_arch.pc
+            try:
+                block_start = gdb.block_for_pc(pc).start
+            except RuntimeError:
+                # if stripped, let's roll back 5 instructions
+                block_start = gdb_get_nth_previous_instruction_address(pc, 5)
+            return block_start
+
+
+        parameter_set = set()
+        pc = current_arch.pc
+        block_start = __get_current_block_start_address()
+        use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
+        instruction_iterator = capstone_disassemble if use_capstone else gef_disassemble
+        function_parameters = current_arch.function_parameters
+
+        for insn in instruction_iterator(block_start, pc-block_start):
+            if len(insn.operands) < 1:
+                continue
+
+            if is_x86_32():
+                if insn.mnemonic == "push":
+                    parameter_set.add(insn.operands[0])
+            else:
+                op = "$"+insn.operands[0]
+                if op in function_parameters:
+                    parameter_set.add(op)
+
+                if is_x86_64():
+                    # also consider extended registers
+                    extended_registers = { "$rdi": ["$edi", "$di"],
+                                           "$rsi": ["$esi", "$si"],
+                                           "$rdx": ["$edx", "$dx"],
+                                           "$rcx": ["$ecx", "$cx"],
+                    }
+                    for exreg in extended_registers:
+                        if op in extended_registers[exreg]:
+                            parameter_set.add(exreg)
+
+        if is_x86_32():
+            nb_argument = len(parameter_set)
+        else:
+            nb_argument = 0
+            for p in parameter_set:
+                nb_argument = max(nb_argument, function_parameters.index(p)+1)
+
+        args = []
+        for i in range(nb_argument):
+            _key, _value = self.get_ith_parameter(i)
+            _value = right_arrow.join(DereferenceCommand.dereference_from(_value))
+            args.append("{} = {}".format(_key, _value))
+
+        self.context_title("arguments (guessed)")
+        print("{} (".format(function_name))
+        if (len(args)):
+            print("   "+",\n   ".join(args))
+        print(")")
+        return
+
 
     def context_source(self):
         try:
