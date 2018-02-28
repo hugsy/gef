@@ -34,6 +34,7 @@ There are currently 6 sections that can be displayed:
    * `regs` : the state of registers
    * `stack` : the content of memory pointed by `$sp` register
    * `code` : the code being executed
+   * `args` : if stopping at a function calls, print the call arguments
    * `source` : if compiled with source, this will show the corresponding line
      of source code
    * `threads` : all the threads
@@ -46,7 +47,7 @@ To hide a section, simply use the `context.layout` setting, and prepend the
 section name with `-` or just omit it.
 
 ```
-gef➤ gef config context.layout "regs stack code -source -threads -trace extra memory"
+gef➤ gef config context.layout "regs stack code args -source -threads -trace extra memory"
 ```
 This configuration will not display the `source`, `threads`, and `trace` sections.
 
