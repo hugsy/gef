@@ -8029,8 +8029,8 @@ class GefCommand(gdb.Command):
         # load plugins from `extra_plugins_dir`
         try:
             nb_inital = len(self.loaded_commands)
-            directory = get_gef_setting("gef.extra_plugins_dir")
-            if len(directory):
+            directories = get_gef_setting("gef.extra_plugins_dir") or ""
+            for directory in directories.split(";"):
                 directory = os.path.realpath(os.path.expanduser(directory))
                 if os.path.isdir(directory):
                     sys.path.append(directory)
