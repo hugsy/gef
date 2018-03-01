@@ -203,24 +203,9 @@ GEF_RC                                 = os.path.join(os.getenv("HOME"), ".gef.r
 GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
 GEF_MAX_STRING_LENGTH                  = 50
 
-___default_aliases___                  = {
-    # WinDBG style breakpoints
-    "bl"  :   "info breakpoints",
-    "bc"  :   "delete breakpoints",
-    "bp"  :   "break",
-    "bd"  :   "disable breakpoints",
-    "be"  :   "enable breakpoints",
-    "da"  :   "x/s",
-    "tbp" :   "tbreak",
-    "pa"  :   "advance",
-    "ptc" :   "finish",
-    "uf"  :   "disassemble",
-    "kp"  :   "info stack",
-}
-
-GDB_MIN_VERSION = (7, 7)
-GDB_VERSION_MAJOR, GDB_VERSION_MINOR = [int(_) for _ in gdb.VERSION.replace("Fedora ","").split(".")[:2]]
-GDB_VERSION = (GDB_VERSION_MAJOR, GDB_VERSION_MINOR)
+GDB_MIN_VERSION                         = (7, 7)
+GDB_VERSION_MAJOR, GDB_VERSION_MINOR    = [int(_) for _ in gdb.VERSION.replace("Fedora ","").split(".")[:2]]
+GDB_VERSION                             = (GDB_VERSION_MAJOR, GDB_VERSION_MINOR)
 
 current_elf  = None
 current_arch = None
@@ -8629,6 +8614,3 @@ if __name__  == "__main__":
 
         GefAliases()
         GefTmuxSetup()
-
-        for alias in ___default_aliases___:
-            GefAlias(alias, ___default_aliases___[alias])
