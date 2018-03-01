@@ -298,22 +298,6 @@ class TestGefCommands(GefUnitTestGeneric):
         return
 
 
-    def test_command_retdec(self):
-        cmd = "retdec -s main"
-        target = "tests/binaries/retdec.out"
-        res = gdb_start_silent_command(cmd, target=target)
-        if b"No RetDec API key provided" in res:
-            api_key = os.getenv("GEF_RETDEC_API_KEY")
-            if api_key is None:
-                return
-            before = ["gef config retdec.key {}".format(api_key),]
-            res = gdb_start_silent_command(cmd, before=before, target=target)
-
-        self.assertNoException(res)
-        self.assertTrue(b"Saved as" in res)
-        return
-
-
     def test_command_ropper(self):
         cmd = "ropper"
         self.assertFailIfInactiveSession(gdb_run_command(cmd))
