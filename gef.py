@@ -8206,6 +8206,7 @@ class GefCommand(gdb.Command):
             if len(directory):
                 directory = os.path.realpath(os.path.expanduser(directory))
                 if os.path.isdir(directory):
+                    sys.path.append(directory)
                     for fname in os.listdir(directory):
                         if not fname.endswith(".py"): continue
                         fpath = "{:s}/{:s}".format(directory, fname)
