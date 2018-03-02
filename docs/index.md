@@ -87,14 +87,14 @@ If no updates are available, `gef` will respond `No update` instead.
 To install from Git, simply clone this repository and specify the path to
 `gef.py` inside the `~/.gdbinit` file:
 
-```
+```bash
 $ git clone https://github.com/hugsy/gef.git
 $ echo source `pwd`/gef/gef.py >> ~/.gdbinit
 ```
 
 If you like living on the edge, you can then switch to the `dev` branch:
 
-```
+```bash
 $ git checkout dev
 ```
 
@@ -136,7 +136,7 @@ GEF's API.
 
 To benefit from it:
 
-```
+```bash
 # clone the repo
 $ https://github.com/hugsy/gef-scripts.git
 # specify gef to load this directory
