@@ -687,15 +687,19 @@ class GlibcChunk:
         return read_int_from_memory(self.address)
 
     @property
-    def fw(self):
+    def fwd(self):
         return self.get_fwd_ptr()
+    
+    fd = fwd # for compat
 
     def get_bkw_ptr(self):
         return read_int_from_memory(self.address + self.ptrsize)
 
     @property
-    def bk(self):
+    def bck(self):
         return self.get_bkw_ptr()
+    
+    bk = bck # for compat
     # endif free-ed functions
 
     def has_P_bit(self):
