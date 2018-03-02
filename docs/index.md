@@ -69,7 +69,7 @@ local:~ $ gdb -q
 gef➤  gef-remote -t your.ip.address:1234 -p 666
 ```
 
-### Update ###
+#### Update ####
 
 If your host/VM is connected to the Internet, you can update `gef` easily to the
 latest version (even without `git` installed). with
@@ -83,6 +83,7 @@ Updated
 This will deploy the latest version of `gef`'s `master` branch from Github.
 If no updates are available, `gef` will respond `No update` instead.
 
+<<<<<<< HEAD
 
 ### Install via Git ###
 
