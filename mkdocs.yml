@@ -6,6 +6,7 @@ pages:
 - Frequently Asked Questions: faq.md
 - Extending GEF: api.md
 - Features: commands.md
+- Screenshots: screenshots.md
 - Command aliases: commands/aliases.md
 - Command aslr: commands/aslr.md
 - Command assemble: commands/assemble.md

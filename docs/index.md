@@ -31,9 +31,9 @@ distros start pushing `gdb` compiled with Python3 support).
     CTF (unlike _PEDA_ or _PwnDBG_)
 
 
-## Quick start ##
+## Setup ##
 
-### Install ###
+### Quick install ###
 
 Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb).
 
@@ -67,43 +67,36 @@ local:~ $ gdb -q
 gef➤  gef-remote -t your.ip.address:1234 -p 666
 ```
 
-### Update ###
+#### Update ####
 
-If your host/VM is connected to the Internet, you can update `gef` easily to the latest version (even without `git` installed). with `python /path/to/gef.py --update`
-
-For example:
+If your host/VM is connected to the Internet, you can update `gef` easily to the
+latest version (even without `git` installed). with
+`python /path/to/gef.py --update`
 
 ```bash
 $ python ~/.gdbinit-gef.py --update
 Updated
 ```
 
+This will deploy the latest version of `gef`'s `master` branch from Github.
 If no updates are available, `gef` will respond `No update` instead.
 
-## Screenshots ##
 
-This shows a few examples of new features available to you when installing
-`GEF`, with the supported architecture.
+### Git ###
 
-#### Emulating code in GDB via Unicorn-Engine (x86-64) ####
+To install from Git, simply clone this repository and specify the path to
+`gef.py` inside the `~/.gdbinit` file:
 
-![gef-x86](https://i.imgur.com/emhEsol.png)
+```
+$ git clone https://github.com/hugsy/gef.git
+$ echo source `pwd`/gef/gef.py >> ~/.gdbinit
+```
 
-#### Displaying ELF information, memory mapping and using Capstone/Keystone integration (ARM v6) ####
+If you like living on the edge, you can then switch to the `dev` branch:
 
-![gef-arm](http://i.imgur.com/qOL8CnL.png)
-
-#### Automatic dereferencing of registers values and identifying binary protections (PowerPC) ####
-
-![gef-ppc](https://i.imgur.com/IN6x6lw.png)
-
-#### Showing current context and heap information (MIPS) ####
-
-![gef-mips](https://i.imgur.com/dBaB9os.png)
-
-#### Playing with Capstone engine (SPARC v9) ####
-
-![gef-sparc](https://i.imgur.com/VD2FpDt.png)
+```
+$ git checkout dev
+```
 
 
 ## Dependencies ##
@@ -132,6 +125,26 @@ Just make sure you are using the `pip` corresponding to the version of Python
 your GDB was compiled with. If you are experiencing issues installing them,
 post an issue on the GitHub of the respective projects. If your bug is not
 related to `GEF`, you will not get an answer.
+
+
+## Additional commands ##
+
+GEF was built to also provide a solid base for external scripts. The
+repository [`gef-scripts`](https://github.com/hugsy/gef-scripts) is an open
+repository where anyone can freely submit their own commands to extend GDB via
+GEF's API.
+
+To benefit from it:
+
+```
+# clone the repo
+$ https://github.com/hugsy/gef-scripts.git
+# specify gef to load this directory
+$ gdb -ex 'gef config gef.extra_plugins_dir "/path/to/gef-scripts"' -ex 'gef save' -ex quit
+[+] Configuration saved
+```
+
+There, you're now fully equipped epic pwnage with **all** GEF's goodness!!
 
 
 ## Bugs & Feedbacks ##
