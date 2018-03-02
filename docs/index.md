@@ -46,6 +46,8 @@ $ wget -O ~/.gdbinit-gef.py -q https://github.com/hugsy/gef/raw/master/gef.py
 $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 ```
 
+### Run ###
+
 Then just start playing (for local files):
 
 ```bash
@@ -67,7 +69,7 @@ local:~ $ gdb -q
 gef➤  gef-remote -t your.ip.address:1234 -p 666
 ```
 
-#### Update ####
+### Update ###
 
 If your host/VM is connected to the Internet, you can update `gef` easily to the
 latest version (even without `git` installed). with
@@ -82,7 +84,7 @@ This will deploy the latest version of `gef`'s `master` branch from Github.
 If no updates are available, `gef` will respond `No update` instead.
 
 
-### Git ###
+### Install via Git ###
 
 To install from Git, simply clone this repository and specify the path to
 `gef.py` inside the `~/.gdbinit` file:
