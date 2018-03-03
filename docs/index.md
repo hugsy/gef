@@ -30,6 +30,8 @@ distros start pushing `gdb` compiled with Python3 support).
   * Suited for real-life apps debugging, exploit development, just as much as
     CTF (unlike _PEDA_ or _PwnDBG_)
 
+Check out the [Screenshot page](screenshots/) for more.
+
 
 ## Setup ##
 
@@ -104,14 +106,15 @@ $ git checkout dev
 
 ## Dependencies ##
 
-There are **none**: `GEF` works out of the box! However, to enjoy all the coolest
-features, it is recommended to install:
+There are **none**: `GEF` works out of the box!
+
+However, to enjoy all the coolest features from some commands, it is recommended
+to install:
 
 - [`capstone`](https://github.com/aquynh/capstone)
 - [`keystone`](https://github.com/keystone-engine/keystone)
 - [`unicorn`](https://github.com/unicorn-engine/unicorn)
 - [`Ropper`](https://github.com/sashs/ropper)
-- [`RetDec`](https://github.com/s3rvac/retdec-python)
 
 
 For a quick installation, simply use the `pip` packaged version:
@@ -133,7 +136,7 @@ related to `GEF`, you will not get an answer.
 ## Additional commands ##
 
 GEF was built to also provide a solid base for external scripts. The
-repository [`gef-scripts`](https://github.com/hugsy/gef-scripts) is an open
+repository [`gef-extra`](https://github.com/hugsy/gef-extra) is an open
 repository where anyone can freely submit their own commands to extend GDB via
 GEF's API.
 
@@ -141,11 +144,18 @@ To benefit from it:
 
 ```bash
 # clone the repo
-$ https://github.com/hugsy/gef-scripts.git
+$ https://github.com/hugsy/gef-extras.git
 # specify gef to load this directory
-$ gdb -ex 'gef config gef.extra_plugins_dir "/path/to/gef-scripts"' -ex 'gef save' -ex quit
+$ gdb -ex 'gef config gef.extra_plugins_dir "/path/to/gef-extras/scripts"' -ex 'gef save' -ex quit
 [+] Configuration saved
 ```
+
+You can also use the structures defined from this repository:
+```bash
+$ gdb -ex 'gef config pcustom.struct_path "/path/to/gef-extras/structs"' -ex 'gef save' -ex quit
+[+] Configuration saved
+```
+
 
 There, you're now fully equipped epic pwnage with **all** GEF's goodness!!
 
