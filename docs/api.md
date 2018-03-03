@@ -7,9 +7,10 @@ But it most importantly provides all the primitives required to allow hackers to
 quickly create their own commands. This page intends to summarize how to
 create advanced GDB commands in moments using `GEF` as a library.
 
-A [dedicated repository](https://github.com/hugsy/gef-scripts) was born to host
-external scripts. This repo is open to all for contributions, no restrictions
-and the most valuable ones will be integrated into `gef.py`.
+A [dedicated repository](https://github.com/hugsy/gef-extras) was born to host
+[external scripts](https://github.com/hugsy/gef-extras/tree/master/scripts). This
+repo is open to all for contributions, no restrictions and the most valuable
+ones will be integrated into `gef.py`.
 
 ## Quick start ##
 
