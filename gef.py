@@ -692,6 +692,8 @@ class GlibcChunk:
 
     fd = fwd # for compat
 
+    fd = fwd # for compat
+
     def get_bkw_ptr(self):
         return read_int_from_memory(self.address + self.ptrsize)
 
