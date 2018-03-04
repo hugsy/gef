@@ -1351,6 +1351,10 @@ class Architecture(object):
     def ptrsize(self):
         return get_memory_alignment()
 
+    @property
+    def all_registers_stripped(self):
+        return [x.strip() for x in self.all_registers]
+
 
 class ARM(Architecture):
     arch = "ARM"
@@ -6573,8 +6577,11 @@ class ContextCommand(GenericCommand):
         if insn.operands[-1].startswith(self.size2type[current_arch.ptrsize]+" PTR"):
             target = "*" + insn.operands[-1].split()[-1]
         else:
-            target = insn.operands[-1].split()[1]
-            target = target.replace("<", "").replace(">", "")
+            if '$'+insn.operands[0] in current_arch.all_registers_stripped:
+                target = "*{:#x}".format(get_register('$'+insn.operands[0]))
+            else:
+                target = insn.operands[-1].split()[1]
+                target = target.replace("<", "").replace(">", "")
 
         sym = gdb.lookup_global_symbol(target)
         if sym is None:
