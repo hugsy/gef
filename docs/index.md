@@ -136,7 +136,7 @@ related to `GEF`, you will not get an answer.
 ## Additional commands ##
 
 GEF was built to also provide a solid base for external scripts. The
-repository [`gef-extra`](https://github.com/hugsy/gef-extra) is an open
+repository [`gef-extras`](https://github.com/hugsy/gef-extras) is an open
 repository where anyone can freely submit their own commands to extend GDB via
 GEF's API.
 
