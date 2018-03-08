@@ -7768,7 +7768,7 @@ class PatternSearchCommand(GenericCommand):
             return
 
         if argc==2:
-            if not argv[0].isdigit():
+            if not argv[1].isdigit():
                 err("Invalid size")
                 return
             size = long(argv[1])
