@@ -583,11 +583,7 @@ class Instruction:
                                                 ", ".join(self.operands))
 
     def is_valid(self):
-        return "(bad)" not in self.mnemo
-
-    @property
-    def mnemo(self):
-        return self.mnemonic
+        return "(bad)" not in self.mnemonic
 
 
 
@@ -6654,7 +6650,7 @@ class ContextCommand(GenericCommand):
                 continue
 
             if is_x86_32():
-                if insn.mnemo == "push":
+                if insn.mnemonic == "push":
                     parameter_set.add(insn.operands[0])
             else:
                 op = "$"+insn.operands[0]
