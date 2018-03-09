@@ -6652,7 +6652,7 @@ class ContextCommand(GenericCommand):
                 continue
 
             if is_x86_32():
-                if insn.mnemonic == "push":
+                if insn.mnemo == "push":
                     parameter_set.add(insn.operands[0])
             else:
                 op = "$"+insn.operands[0]
