@@ -692,11 +692,6 @@ class GlibcChunk:
 
     fd = fwd # for compat
 
-<<<<<<< HEAD
-=======
-    fd = fwd # for compat
-
->>>>>>> 31b0649b99357696aab975b1594615949e1f28df
     def get_bkw_ptr(self):
         return read_int_from_memory(self.address + self.ptrsize)
 
@@ -6655,11 +6650,7 @@ class ContextCommand(GenericCommand):
                 continue
 
             if is_x86_32():
-<<<<<<< HEAD
                 if insn.mnemonic == "push":
-=======
-                if insn.mnemo == "push":
->>>>>>> 31b0649b99357696aab975b1594615949e1f28df
                     parameter_set.add(insn.operands[0])
             else:
                 op = "$"+insn.operands[0]
