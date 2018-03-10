@@ -85,7 +85,6 @@ Updated
 This will deploy the latest version of `gef`'s `master` branch from Github.
 If no updates are available, `gef` will respond `No update` instead.
 
-<<<<<<< HEAD
 
 ### Install via Git ###
 
