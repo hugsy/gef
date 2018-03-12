@@ -871,10 +871,7 @@ def show_last_exception():
     print("{}: {}".format(Color.colorify(exc_type.__name__, attrs="bold underline red"), exc_value))
     print(" Detailed stacktrace ".center(80, horizontal_line))
     for fs in traceback.extract_tb(exc_traceback)[::-1]:
-        if PYTHON_MAJOR==2:
-            filename, lineno, method, code = fs
-        else:
-            filename, lineno, method, code = fs.filename, fs.lineno, fs.name, fs.line
+        filename, lineno, method, code = fs
 
         if not code or len(code.strip())==0:
             code = _show_code_line(filename, lineno)
