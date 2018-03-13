@@ -6579,7 +6579,7 @@ class ContextCommand(GenericCommand):
                 target = target.replace("<", "").replace(">", "")
 
         sym = gdb.lookup_global_symbol(target)
-        if sym is None:
+        if sym is None or GDB_VERSION < (7, 11): # Functions do not export their gdb.Type.fields() before 7.11
             self.print_guessed_arguments(target)
             return
 
