@@ -905,7 +905,7 @@ def show_last_exception():
         if not code or len(code.strip())==0:
             code = _show_code_line(filename, lineno)
 
-        gef_print("""{} File "{}", line {:d}, in {}()""".format(down_arrow, Color.yellowify(filename),
+        gef_print("""{} File "{}", line {:d}, in {}()""".format(DOWN_ARROW, Color.yellowify(filename),
                                                             lineno, Color.greenify(method)))
         gef_print("   {}    {}".format(right_arrow, code))
 
@@ -1355,9 +1355,13 @@ class Architecture(object):
     @abc.abstractmethod
     def is_call(self, insn):                       pass
     @abc.abstractmethod
+    def is_ret(self, insn):                        pass
+    @abc.abstractmethod
     def is_conditional_branch(self, insn):         pass
     @abc.abstractmethod
     def is_branch_taken(self, insn):               pass
+    @abc.abstractmethod
+    def get_ra(self, insn, frame):                 pass
 
     @property
     def pc(self):
@@ -1416,6 +1420,18 @@ class ARM(Architecture):
         call_mnemos = {"bl", "blx"}
         return mnemo in call_mnemos
 
+    def is_ret(self, insn):
+        pop_mnemos = {"pop"}
+        branch_mnemos = {"bl", "bx"}
+        write_mnemos = {"ldr", "add"}
+        if insn.mnemonic in pop_mnemos:
+            return insn.operands[-1] == " pc}"
+        if insn.mnemonic in branch_mnemos:
+            return insn.operands[-1] == "lr"
+        if insn.mnemonic in write_mnemos:
+            return insn.operands[0] == "pc"
+        return
+
     def flag_register_to_human(self, val=None):
         # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
         if val is None:
@@ -1445,7 +1461,23 @@ class ARM(Architecture):
         elif mnemo.endswith("bvc"): taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
         return taken, reason
 
-    def mprotect_asm(self, addr, size, perm):
+    def get_ra(self, insn, frame):
+        ra = None
+        if self.is_ret(insn):
+            # If it's a pop, we have to peek into the stack, otherwise use lr
+            if insn.mnemonic == "pop":
+                ra_addr = current_arch.sp + (len(insn.operands)-1) * get_memory_alignment()
+                ra = to_unsigned_long(dereference(ra_addr))
+            elif insn.mnemonic == "ldr":
+                return to_unsigned_long(dereference(current_arch.sp))
+            else: # 'bx lr' or 'add pc, lr, #0'
+                return get_register("$lr")
+        elif frame.older():
+            ra = frame.older().pc()
+        return ra
+
+    @classmethod
+    def mprotect_asm(cls, addr, size, perm):
         _NR_mprotect = 125
         insns = [
             "push {r0-r2, r7}",
@@ -1586,6 +1618,9 @@ class X86(Architecture):
         call_mnemos = {"call", "callq"}
         return mnemo in call_mnemos
 
+    def is_ret(self, insn):
+        return insn.mnemonic == "ret"
+
     def is_conditional_branch(self, insn):
         mnemo = insn.mnemonic
         branch_mnemos = {
@@ -1641,7 +1676,17 @@ class X86(Architecture):
             taken, reason = val&(1<<flags["sign"]), "S"
         return taken, reason
 
-    def mprotect_asm(self, addr, size, perm):
+    def get_ra(self, insn, frame):
+        ra = None
+        if self.is_ret(insn):
+            ra = to_unsigned_long(dereference(current_arch.sp))
+        if frame.older():
+            ra = frame.older().pc()
+
+        return ra
+
+    @classmethod
+    def mprotect_asm(cls, addr, size, perm):
         _NR_mprotect = 125
         insns = [
             "pushad",
@@ -1720,6 +1765,9 @@ class PowerPC(Architecture):
     def is_call(self, insn):
         return False
 
+    def is_ret(self, insn):
+        return insn.mnemonic == "blr"
+
     def is_conditional_branch(self, insn):
         mnemo = insn.mnemonic
         branch_mnemos = {"beq", "bne", "ble", "blt", "bgt", "bge"}
@@ -1738,7 +1786,16 @@ class PowerPC(Architecture):
         elif mnemo == "bgt": taken, reason = val&(1<<flags["greater[7]"]), "G"
         return taken, reason
 
-    def mprotect_asm(self, addr, size, perm):
+    def get_ra(self, insn, frame):
+        ra = None
+        if self.is_ret(insn):
+            ra = get_register("$lr")
+        elif frame.older():
+            ra = frame.older().pc()
+        return ra
+
+    @classmethod
+    def mprotect_asm(cls, addr, size, perm):
         """Ref: http://www.ibm.com/developerworks/library/l-ppc/index.html"""
         _NR_mprotect = 125
         insns = ["addi 1, 1, -16",                 # 1 = r1 = sp
@@ -1801,6 +1858,10 @@ class SPARC(Architecture):
     def is_call(self, insn):
         return False
 
+    def is_ret(self, insn):
+        # TODO: rett?
+        return insn.mnemonic == "ret"
+
     def is_conditional_branch(self, insn):
         mnemo = insn.mnemonic
         # http://moss.csc.ncsu.edu/~mueller/codeopt/codeopt00/notes/condbranch.html
@@ -1834,7 +1895,16 @@ class SPARC(Architecture):
         elif mnemo == "bcc": taken, reason = val&(1<<flags["carry"]) == 0, "!C"
         return taken, reason
 
-    def mprotect_asm(self, addr, size, perm):
+    def get_ra(self, insn, frame):
+        ra = None
+        if self.is_ret(insn):
+            ra = get_register("$o7")
+        elif frame.older():
+            ra = frame.older().pc()
+        return ra
+
+    @classmethod
+    def mprotect_asm(cls, addr, size, perm):
         hi = (addr & 0xffff0000) >> 16
         lo = (addr & 0x0000ffff)
         _NR_mprotect = 125
@@ -1907,6 +1977,9 @@ class MIPS(Architecture):
     def is_call(self, insn):
         return False
 
+    def is_ret(self, insn):
+        return insn.mnemonic == "jr" and insn.operands[0] == "ra"
+
     def is_conditional_branch(self, insn):
         mnemo = insn.mnemonic
         branch_mnemos = {"beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez"}
@@ -1934,7 +2007,16 @@ class MIPS(Architecture):
             taken, reason = get_register(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
         return taken, reason
 
-    def mprotect_asm(self, addr, size, perm):
+    def get_ra(self, insn, frame):
+        ra = None
+        if self.is_ret(insn):
+            ra = get_register("$ra")
+        elif frame.older():
+            ra = frame.older().pc()
+        return ra
+
+    @classmethod
+    def mprotect_asm(cls, addr, size, perm):
         _NR_mprotect = 4125
         insns = ["addi $sp, $sp, -16",
                  "sw $v0, 0($sp)", "sw $a0, 4($sp)",
@@ -6510,6 +6592,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", False, "Show the registers pane with raw values (no dereference)")
         self.add_setting("peek_calls", True, "Peek into calls")
+        self.add_setting("peek_ret", True, "Peek at return address")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("grow_stack_down", False, "Order of stack downward starts at largest down to stack pointer")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
@@ -6717,7 +6800,8 @@ class ContextCommand(GenericCommand):
 
             for insn in instruction_iterator(pc, nb_insn, nb_prev=nb_insn_prev):
                 line = []
-                is_taken = False
+                is_taken  = False
+                target    = None
                 text = str(insn)
 
                 if insn.address < pc:
@@ -6729,36 +6813,38 @@ class ContextCommand(GenericCommand):
                     if current_arch.is_conditional_branch(insn):
                         is_taken, reason = current_arch.is_branch_taken(insn)
                         if is_taken:
+                            target = insn.operands[-1].split()[0]
                             reason = "[Reason: {:s}]".format(reason) if reason else ""
                             line += Color.colorify("\tTAKEN {:s}".format(reason), attrs="bold green")
                         else:
                             reason = "[Reason: !({:s})]".format(reason) if reason else ""
                             line += Color.colorify("\tNOT taken {:s}".format(reason), attrs="bold red")
                     elif current_arch.is_call(insn) and self.get_setting("peek_calls") == True:
-                        is_taken = True
+                        target = insn.operands[-1].split()[0]
+                    elif current_arch.is_ret(insn) and self.get_setting("peek_ret") == True:
+                        target = current_arch.get_ra(insn, frame)
 
                 else:
                     line += "   {}".format(text)
 
                 gef_print("".join(line))
 
-                if is_taken:
-                    target = insn.operands[-1].split()[0]
+                if target:
                     try:
-                        target = int(target, 16)
+                        target = int(target, 0)
+                    except TypeError:  # Already an int
+                        pass
                     except ValueError:
                         # If the operand isn't an address right now we can't parse it
-                        is_taken = False
                         continue
                     for i, insn in enumerate(instruction_iterator(target, nb_insn)):
-                        text= "   {}  {}".format (down_arrow if i==0 else " ", str(insn))
+                        text = "   {}  {}".format (DOWN_ARROW if i==0 else " ", str(insn))
                         gef_print(text)
                     break
 
         except gdb.MemoryError:
             err("Cannot disassemble from $PC")
         return
-
 
     def context_args(self):
         insn = gef_current_instruction(current_arch.pc)
