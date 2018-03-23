@@ -6571,15 +6571,20 @@ class ContextCommand(GenericCommand):
 
         if insn.operands[-1].startswith(self.size2type[current_arch.ptrsize]+" PTR"):
             target = "*" + insn.operands[-1].split()[-1]
+        elif '$'+insn.operands[0] in current_arch.all_registers_stripped:
+            target = "*{:#x}".format(get_register('$'+insn.operands[0]))
         else:
-            if '$'+insn.operands[0] in current_arch.all_registers_stripped:
-                target = "*{:#x}".format(get_register('$'+insn.operands[0]))
+            # is there a symbol?
+            ops = " ".join(insn.operands)
+            if "<" in ops and ">" in ops:
+                # extract it
+                target = re.sub(r".*<([^\(>]*).*", r"\1", ops)
             else:
-                target = insn.operands[-1].split()[1]
-                target = target.replace("<", "").replace(">", "")
+                # it's an address, just use as is
+                target = re.sub(r".*(0x[a-fA-F0-9]*).*", r"\1", ops)
 
         sym = gdb.lookup_global_symbol(target)
-        if sym is None or GDB_VERSION < (7, 11): # Functions do not export their gdb.Type.fields() before 7.11
+        if sym is None:
             self.print_guessed_arguments(target)
             return
 
@@ -6616,9 +6621,13 @@ class ContextCommand(GenericCommand):
             args.append("{} {} = {}".format(_type, _name, _value))
 
         self.context_title("arguments")
+
+        if not  len(args):
+            print("{} (<void>)".format(function_name))
+            return
+
         print("{} (".format(function_name))
-        if len(args):
-            print("   " + ",\n   ".join(args))
+        print("   " + ",\n   ".join(args))
         print(")")
         return
 
