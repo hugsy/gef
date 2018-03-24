@@ -4421,19 +4421,29 @@ class SearchPatternCommand(GenericCommand):
     def search_pattern_by_address(self, pattern, start_address, end_address):
         """Search a pattern within a range defined by arguments."""
         pattern = gef_pybytes(pattern)
-        length = end_address - start_address
-        buf = read_memory(start_address, length)
+        step = 0x400 * 0x1000
         locations = []
 
-        for m in re.finditer(pattern, buf):
-            try:
-                start = start_address + m.start()
-                string = read_cstring_from_memory(start)
-                end   = start + len(string)
-            except UnicodeError:
-                string = gef_pystring(pattern)+"[...]"
-                end    = start + len(pattern)
-            locations.append((start, end, string))
+        for chunk_addr in range(start_address, end_address, step):
+            if chunk_addr + step > end_address:
+                chunk_size = end_address - chunk_addr
+            else:
+                chunk_size = step
+
+            mem = read_memory(chunk_addr, chunk_size)
+
+            for match in re.finditer(pattern, mem):
+                start = chunk_addr + match.start()
+                try:
+                    string = read_cstring_from_memory(start)
+                    end   = start + len(string)
+                except UnicodeError:
+                    string = gef_pystring(pattern)+"[...]"
+                    end    = start + len(pattern)
+                locations.append((start, end, string))
+
+            del mem
+
         return locations
 
     def search_pattern(self, pattern, endian):
@@ -4613,9 +4623,9 @@ class UnicornEmulateCommand(GenericCommand):
     the next instruction from current PC."""
 
     _cmdline_ = "unicorn-emulate"
-    _syntax_  = "{:s} [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-s] [-e PATH] [-h]".format(_cmdline_)
+    _syntax_  = "{:s} [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-s] [-o PATH] [-h]".format(_cmdline_)
     _aliases_ = ["emulate",]
-    _example_ = "{0:s} -f $pc -n 10 -e /tmp/my-gef-emulation.py".format(_cmdline_)
+    _example_ = "{0:s} -f $pc -n 10 -o /tmp/my-gef-emulation.py".format(_cmdline_)
 
     def __init__(self):
         super(UnicornEmulateCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -5555,7 +5565,6 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         def fastbin_index(sz):
             return (sz >> 4) - 2 if SIZE_SZ == 8 else (sz >> 3) - 2
 
-        # glibc2.24 - malloc.c l1573
         SIZE_SZ = current_arch.ptrsize
         MAX_FAST_SIZE = (80 * SIZE_SZ // 4)
         NFASTBINS = fastbin_index(MAX_FAST_SIZE) - 1
@@ -5579,14 +5588,14 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
                 try:
                     print("{:s} {:s} ".format(left_arrow, str(chunk)), end="")
-                    if chunk.addr in chunks:
+                    if chunk.address in chunks:
                         print("{:s} [loop detected]".format(right_arrow), end="")
                         break
 
                     if fastbin_index(chunk.get_chunk_size()) != i:
                         print("[incorrect fastbin_index] ", end="")
 
-                    chunks.append(chunk.addr)
+                    chunks.append(chunk.address)
 
                     next_chunk = chunk.get_fwd_ptr()
                     if next_chunk == 0:
@@ -5594,7 +5603,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
                     chunk = GlibcChunk(next_chunk, from_base=True)
                 except gdb.MemoryError:
-                    print("{:s} [Corrupted chunk at {:#x}]".format(left_arrow, chunk.addr), end="")
+                    print("{:s} [Corrupted chunk at {:#x}]".format(left_arrow, chunk.address), end="")
                     break
             print()
         return
