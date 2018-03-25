@@ -1389,7 +1389,15 @@ class ARM(Architecture):
         return mnemo in call_mnemos
 
     def is_ret(self, insn):
-        ret_mnemos = {"bl", "bx", "pop"}
+        pop_mnemos = {"pop"}
+        branch_mnemos = {"bl", "bx"}
+        write_mnemos = {"ldr", "add"}
+        if insn.mnemo in pop_mnemos:
+            return insn.operands[-1] == " pc}"
+        if insn.mnemo in branch_mnemos:
+            return insn.operands[-1] == "lr"
+        if insn.mnemo in write_mnemos:
+            return insn.operands[0] == "pc"
         return
 
     def flag_register_to_human(self, val=None):
@@ -1424,7 +1432,14 @@ class ARM(Architecture):
     def get_ra(self, insn, frame):
         ra = None
         if self.is_ret(insn):
-            return get_register("$lr")
+            # If it's a pop, we have to peek into the stack, otherwise use lr
+            if insn.mnemo == "pop":
+                ra_addr = current_arch.sp + (len(insn.operands)-1) * get_memory_alignment()
+                ra = to_unsigned_long(dereference(ra_addr))
+            elif insn.mnemo == "ldr":
+                return to_unsigned_long(dereference(current_arch.sp))
+            else: # 'bx lr' or 'add pc, lr, #0'
+                return get_register("$lr")
         elif frame.older():
             ra = frame.older().pc()
         return ra
