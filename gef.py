@@ -8065,16 +8065,17 @@ class GefCommand(gdb.Command):
         # load plugins from `extra_plugins_dir`
         try:
             nb_inital = len(self.loaded_commands)
-            directories = get_gef_setting("gef.extra_plugins_dir") or ""
-            for directory in directories.split(";"):
-                directory = os.path.realpath(os.path.expanduser(directory))
-                if os.path.isdir(directory):
-                    sys.path.append(directory)
-                    for fname in os.listdir(directory):
-                        if not fname.endswith(".py"): continue
-                        fpath = "{:s}/{:s}".format(directory, fname)
-                        if os.path.isfile(fpath):
-                            gdb.execute("source {:s}".format(fpath))
+            directories = get_gef_setting("gef.extra_plugins_dir")
+            if directories:
+                for directory in directories.split(";"):
+                    directory = os.path.realpath(os.path.expanduser(directory))
+                    if os.path.isdir(directory):
+                        sys.path.append(directory)
+                        for fname in os.listdir(directory):
+                            if not fname.endswith(".py"): continue
+                            fpath = "{:s}/{:s}".format(directory, fname)
+                            if os.path.isfile(fpath):
+                                gdb.execute("source {:s}".format(fpath))
             nb_added = len(self.loaded_commands) - nb_inital
             if nb_added > 0:
                 ok("{:s} extra commands added from '{:s}'".format(Color.colorify(str(nb_added), attrs="bold green"),
