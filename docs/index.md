@@ -41,7 +41,7 @@ Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb).
 
 ```bash
 # via the install script
-$ wget -q -O- https://github.com/hugsy/gef/raw/master/gef.sh | sh
+$ wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
 
 # manually
 $ wget -O ~/.gdbinit-gef.py -q https://github.com/hugsy/gef/raw/master/gef.py

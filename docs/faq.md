@@ -29,6 +29,9 @@ as possible.
 If you are running an obsolete version, GEF will show a error and message and
 exit. You can still use GDB the normal way.
 
+Some pre-compiled static binaries for both recent GDB and GDBServer can be
+downloaded from the [`gdb-static`](https://github.com/hugsy/gdb-static) repository.
+
 _Note_: although some Ubuntu versions are marked as version 7.7 they are
 actually compiled with some missing features that will make `GEF` complain of an
 error. Before lodging a bug report, make sure to update your GDB (via APT is

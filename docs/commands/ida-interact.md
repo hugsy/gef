@@ -2,9 +2,9 @@
 
 
 `gef` provides a simple XML-RPC client designed to communicate with a server
-running inside a specific IDA Python plugin, called `ida_gef_xmlrpc.py` (which
+running inside a specific IDA Python plugin, called `ida_gef.py` (which
 can be downloaded freely
-[here](https://raw.githubusercontent.com/hugsy/gef/master/ida_gef.py)).
+[here](https://raw.githubusercontent.com/hugsy/gef/master/scripts/ida_gef.py)).
 
 Simply download this script, and run it inside IDA. When the server is running,
 you will see a text in the Output Window such as:
@@ -51,4 +51,6 @@ Please use the `--help` argument to see all the methods available and their
 syntax.
 
 It is also note-worthy that [Binary Ninja](https://binary.ninja) support has be added:
-![](https://pbs.twimg.com/media/CzSso9bUAAArL1f.jpg:large)
+![](https://pbs.twimg.com/media/CzSso9bUAAArL1f.jpg:large), by using the
+script
+[`binja_gef.py`](https://raw.githubusercontent.com/hugsy/gef/master/scripts/binja_gef.py).
