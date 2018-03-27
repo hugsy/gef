@@ -24,12 +24,14 @@ all: $(LINKED)
 
 
 %.out : %.c
-	@echo "[+] Linking C file '$@'"
+	@echo "[+] Building '$@'"
 	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -o $@ $? $(LDFLAGS)
 
 clean :
 	@echo "[+] Cleaning stuff"
 	@rm -f $(COMPILED) $(LINKED)
+
+format-string-helper.out: EXTRA_FLAGS := -Wno-format-security
 
 checksec-no-canary.out: EXTRA_FLAGS := -fno-stack-protector
 
