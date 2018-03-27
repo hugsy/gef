@@ -5449,6 +5449,7 @@ class GlibcHeapChunksCommand(GenericCommand):
 
     def __init__(self):
         super(GlibcHeapChunksCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.add_setting("peek_nb_byte", 16, "Hexdump N first byte(s) inside the chunk data (0 to disable)")
         return
 
     @only_if_gdb_running
@@ -5470,6 +5471,7 @@ class GlibcHeapChunksCommand(GenericCommand):
             err("No valid arena")
             return
 
+        nb = self.get_setting("peek_nb_byte")
         current_chunk = GlibcChunk(heap_section, from_base=True)
         while True:
 
@@ -5484,7 +5486,10 @@ class GlibcHeapChunksCommand(GenericCommand):
                 # EOF
                 break
 
-            print(current_chunk)
+            line = str(current_chunk)
+            if nb:
+                line += "\n    [" + hexdump(read_memory(current_chunk.address, nb), nb, base=current_chunk.address)  + "]"
+            print(line)
 
             next_chunk = current_chunk.get_next_chunk()
             if next_chunk is None:
