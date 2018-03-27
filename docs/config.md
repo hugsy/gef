@@ -5,28 +5,30 @@ A simple recent GDB compiled with Python scripting support will do.
 
 
 ### Pre-requisites
-Only [GDB 7.7 and higher](https://www.gnu.org/s/gdb) is required. It must be compiled with Python 2 or 3 support.
+Only [GDB 7.7 and higher](https://www.gnu.org/s/gdb) is required. It must be
+compiled with Python 2 or 3 support.
 
-All recent distributions of Linux now embeds a GDB version compiled with at least Python 2 (although more and more are migrating towards Python 3).
+All recent distributions of Linux now embeds a GDB version compiled with at
+least Python 2 (although more and more are migrating towards Python 3).
 
 You can verify it with the following command:
 
 ```bash
-$ gdb -nx -ex 'python print (sys.version)' -ex quit
+$ gdb -nx -ex 'pi print(sys.version)' -ex quit
 ```
 
 This should display your version of Python compiled with `gdb`.
 
 For example, with Python2
 ```bash
-$ gdb -nx -ex 'python print (sys.version)' -ex quit
+$ gdb -nx -ex 'pi print(sys.version)' -ex quit
 2.7.3 (default, Mar 18 2014, 06:31:17)
 [GCC 4.6.3]
 ```
 
 Or Python3
 ```bash
-$ gdb -nx -ex 'python print (sys.version)' -ex quit
+$ gdb -nx -ex 'pi print(sys.version)' -ex quit
 3.4.0 (default, Apr 11 2014, 13:08:40)
 [GCC 4.8.2]
 ```
@@ -43,7 +45,7 @@ smoothly.
 ### Setup from repository
 
 The best way to use `GEF` is through cloning the git repository from GitHub, and
-source the file from your `~/.gdbinit`.
+then sourcing the file from your `~/.gdbinit`.
 
 ```bash
 $ git clone https://github.com/hugsy/gef.git  # or git pull to update
@@ -77,7 +79,7 @@ $ pip install ropper
 ```
 
 Please refer to each project for installation and troubleshooting guides. As
-`gef` works out of the box, please do not send Issues to this project if you
+`gef` works out of the box, please do not send issues to this project if you
 have problems while installing those modules.
 
 `gef` will assume the module installations are valid. Otherwise, it will
@@ -94,7 +96,7 @@ $ gdb -q /bin/ls
 
 You should see the following header and prompt
 ```bash
-$ gdb-gef -q /bin/ls
+$ gdb -q /bin/ls
 gef loaded, `gef help' to start, `gef config' to configure
 37 commands loaded (15 sub-commands), using Python engine 3.5
 Reading symbols from /bin/ls...(no debugging symbols found)...done.

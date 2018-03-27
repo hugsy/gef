@@ -38,7 +38,7 @@ error. Before lodging a bug report, make sure to update your GDB (via APT is
 fine), or better install `gdb-multiarch` (the package `gdb64` will work as well,
 but is considered obsolete).
 
-## I cannot get GEF to setup!! ##
+## I cannot get GEF setup!! ##
 
 GEF will work on any GDB 7.7+ compiled with Python support. You can view
 that commands that failed to load using `gef missing`, but this will not affect
@@ -111,7 +111,7 @@ To verify this, you can simply start GDB with GEF, which will show you the
 Python version currently supported by your GDB, or run the command:
 
 ```bash
-$ gdb -q -nx -ex 'python print (sys.version)' -ex quit
+$ gdb -q -nx -ex 'pi print (sys.version)' -ex quit
 3.5.2+ (default, Dec 13 2016, 14:16:35)
 [GCC 6.2.1 20161124]
 ```

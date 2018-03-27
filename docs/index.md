@@ -82,7 +82,7 @@ $ python ~/.gdbinit-gef.py --update
 Updated
 ```
 
-This will deploy the latest version of `gef`'s `master` branch from Github.
+This will deploy the latest version of `gef`'s _master_ branch from Github.
 If no updates are available, `gef` will respond `No update` instead.
 
 
@@ -155,7 +155,6 @@ $ gdb -ex 'gef config pcustom.struct_path "/path/to/gef-extras/structs"' -ex 'ge
 [+] Configuration saved
 ```
 
-
 There, you're now fully equipped epic pwnage with **all** GEF's goodness!!
 
 
@@ -170,9 +169,9 @@ For bugs or feature requests, just
 go [here](https://github.com/hugsy/gef/issues) and provide a thorough description
 if you want help.
 
-_Side Note_: `GEF` fully relies on GDB API and other Linux-specific sources of information
-(such as `/proc/<pid>`). As a consequence, some of the features might not work on
-custom or hardened systems such as GrSec.
+_Side Note_: `GEF` fully relies on the GDB API and other Linux-specific sources
+of information (such as `/proc/<pid>`). As a consequence, some of the features
+might not work on custom or hardened systems such as GrSec.
 
 ## Contribution ##
 

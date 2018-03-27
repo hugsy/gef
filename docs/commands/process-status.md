@@ -1,10 +1,10 @@
 ## Command process-status ##
 
-> This command replaces and obsoletes the commands `pid` and `fd`.
+> This command replaces the old commands `pid` and `fd`.
 
-Provides an exhaustive description of the current running process, by extending
-the information provided by GDB `info proc` command, with all the information
-from the `procfs` structure.
+`process-status` provides an exhaustive description of the current running
+process, by extending the information provided by GDB `info proc` command, with
+all the information from the `procfs` structure.
 
 ```
 gef➤ ps -s zsh

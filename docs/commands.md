@@ -10,6 +10,7 @@ improve it.
 
 | Command    | Description |
 |:-----------|----------------:|
+|aliases                   | GEF defined aliases|
 |aslr                      | View/modify GDB ASLR behavior.|
 |assemble                  | Inline code assemble. Architecture can be set in GEF runtime config (default is x86).  (alias: asm) |
 |capstone-disassemble      | Use capstone disassembly framework to disassemble code. (alias: cs-dis) |
@@ -20,9 +21,9 @@ improve it.
 |elf-info                  | Display ELF header informations.|
 |entry-break               | Tries to find best entry point and sets a temporary breakpoint on it. (alias: start-break)|
 |format-string-helper      | Exploitable format-string helper: this command will set up specific breakpoints at well-known dangerous functions (printf, snprintf, etc.), and check if the pointer holding the format string is writable, and  susceptible to format string attacks if an attacker can control its content. (alias: fmtstr-helper)|
-|gef-alias                 | GEF defined aliases|
 |gef-remote                | gef wrapper for the `target remote` command. This command will automatically download the target binary in the local temporary directory (defaut /tmp) and then source it. Additionally, it will fetch all the /proc/PID/maps and loads all its information.|
 |heap                      | Base command to get information about the Glibc heap structure.|
+|heap-analysis-helper      | Tracks dynamic heap allocation through malloc/free to try to detect heap vulnerabilities.|
 |hexdump                   | Display arranged hexdump (according to architecture endianness) of memory range.|
 |hijack-fd                 | ChangeFdCommand: redirect file descriptor during runtime.|
 |ida-interact              | IDA Interact: set of commands to interact with IDA via a XML RPC service deployed via the IDA script `ida_gef.py`. It should be noted that this command can also be used to interact with Binary Ninja (using the script `binja_gef.py`) using the same interface. (alias: binaryninja-interact, bn, binja)|
@@ -46,6 +47,6 @@ improve it.
 |trace-run                 | Create a runtime trace of all instructions executed from $pc to LOCATION specified.|
 |unicorn-emulate           | Use Unicorn-Engine to emulate the behavior of the binary, without affecting the GDB runtime. By default the command will emulate only the next instruction, but location and number of instruction can be changed via arguments to the command line. By default, it will emulate the next instruction from current PC. (alias: emulate)|
 |vmmap                     | Display virtual memory mapping|
-|xfiles                    | Shows all libraries (and sections) loaded by binary (Truth is out there).|
+|xfiles                    | Shows all libraries (and sections) loaded by binary (The truth is out there).|
 |xinfo                     | Get virtual section information for specific address|
 |xor-memory                | XOR a block of memory.|

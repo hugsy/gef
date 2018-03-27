@@ -1,6 +1,5 @@
 ## Command ida-interact ##
 
-
 `gef` provides a simple XML-RPC client designed to communicate with a server
 running inside a specific IDA Python plugin, called `ida_gef.py` (which
 can be downloaded freely

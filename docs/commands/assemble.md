@@ -1,5 +1,4 @@
-## Command assemble
-
+## Command assemble ##
 
 If you have installed [`keystone`](http://www.keystone-engine.org/), then `gef` will provide
 a convenient command to assemble native instructions directly to opcodes of the

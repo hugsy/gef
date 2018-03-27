@@ -6,20 +6,23 @@ using the GlibC library.
 
 It will use this new breakpoint against several targets, including:
 
-   * `printf()`
-   * `sprintf()`
-   * `fprintf()`
-   * `snprintf()`
-   * `vsnprintf()`
+* `printf()`
+* `sprintf()`
+* `fprintf()`
+* `snprintf()`
+* `vsnprintf()`
 
-Just call the command to enable this functionality. `fmtstr-helper` is an alias of `format-string-helper`.
+Just call the command to enable this functionality.
+
+`fmtstr-helper` is a shorter alias.
+
 ```
 gef➤ fmtstr-helper
 ```
 
 Then start the binary execution.
 ```
-gef➤ g
+gef➤ r
 ```
 
 If a potentially insecure entry is found, the breakpoint will trigger, stop the

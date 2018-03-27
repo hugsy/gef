@@ -1,9 +1,8 @@
 ## Command trace-run ##
 
-
-The `trace-run` is meant to be provide a visual appreciation directly in IDA
-disassembler of the path taken by a specific execution. It should be used with
-the IDA script
+The `trace-run` command is meant to be provide a visual appreciation directly
+in IDA disassembler of the path taken by a specific execution. It should be
+used with the IDA script
 [`ida_color_gdb_trace.py`](https://github.com/hugsy/stuff/blob/master/ida_scripts/ida_color_gdb_trace.py)
 
 It will trace and store all values taken by `$pc` during the execution flow,

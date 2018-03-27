@@ -52,8 +52,7 @@ We can call it:
 Our new command must be a class that inherits from GEF's `GenericCommand`. The
 *only* requirements are:
 
- * the new class must declare a `_cmdline_` attribute (the command to type on
-   the GDB prompt).
+ * a `_cmdline_` attribute (the command to type on the GDB prompt).
  * a `_syntax_` attribute, which GEF will use to auto-generate the help menu.
  * a method `do_invoke(self, args)` which will be executed when the command
    is invoked. `args` is a list of the command line args provided when invoked.
@@ -62,7 +61,7 @@ We make GEF aware of this new command by registering it in the `__main__`
 section of the script, by invoking the global function
 `register_external_command()`.
 
-Now you have a working new GEF command, which you can load, either from cli:
+Now you have a new GEF command which you can load, either from cli:
 ```
 gef➤  source /path/to/newcmd.py
 ```
@@ -222,8 +221,8 @@ $ gdb -q -ex 'pi help(<ClassName>)' -ex quit
 
 #### Generic ####
 
-New GEF commands **must** inherit `GenericCommand` and have a instance method
-`do_invoke(args)` defined.
+New GEF commands **must** inherit `GenericCommand`, have `_cmdline_` and
+`_syntax_` attrivutes, and have a instance method `do_invoke(args)` defined.
 
 Other than that, new commands can enjoy all the GEF abstract layer
 representation classes, such as:
