@@ -1392,11 +1392,11 @@ class ARM(Architecture):
         pop_mnemos = {"pop"}
         branch_mnemos = {"bl", "bx"}
         write_mnemos = {"ldr", "add"}
-        if insn.mnemo in pop_mnemos:
+        if insn.mnemonic in pop_mnemos:
             return insn.operands[-1] == " pc}"
-        if insn.mnemo in branch_mnemos:
+        if insn.mnemonic in branch_mnemos:
             return insn.operands[-1] == "lr"
-        if insn.mnemo in write_mnemos:
+        if insn.mnemonic in write_mnemos:
             return insn.operands[0] == "pc"
         return
 
@@ -1433,10 +1433,10 @@ class ARM(Architecture):
         ra = None
         if self.is_ret(insn):
             # If it's a pop, we have to peek into the stack, otherwise use lr
-            if insn.mnemo == "pop":
+            if insn.mnemonic == "pop":
                 ra_addr = current_arch.sp + (len(insn.operands)-1) * get_memory_alignment()
                 ra = to_unsigned_long(dereference(ra_addr))
-            elif insn.mnemo == "ldr":
+            elif insn.mnemonic == "ldr":
                 return to_unsigned_long(dereference(current_arch.sp))
             else: # 'bx lr' or 'add pc, lr, #0'
                 return get_register("$lr")
@@ -1583,7 +1583,7 @@ class X86(Architecture):
         return mnemo in call_mnemos
 
     def is_ret(self, insn):
-        return insn.mnemo == "ret"
+        return insn.mnemonic == "ret"
 
     def is_conditional_branch(self, insn):
         mnemo = insn.mnemonic
@@ -1758,7 +1758,7 @@ class PowerPC(Architecture):
         return False
 
     def is_ret(self, insn):
-        return insn.mnemo == "blr"
+        return insn.mnemonic == "blr"
 
     def is_conditional_branch(self, insn):
         mnemo = insn.mnemonic
@@ -1849,7 +1849,7 @@ class SPARC(Architecture):
 
     def is_ret(self, insn):
         # TODO: rett?
-        return insn.mnemo == "ret"
+        return insn.mnemonic == "ret"
 
     def is_conditional_branch(self, insn):
         mnemo = insn.mnemonic
@@ -1962,7 +1962,7 @@ class MIPS(Architecture):
         return False
 
     def is_ret(self, insn):
-        return insn.mnemo == "jr" and insn.operands[0] == "ra"
+        return insn.mnemonic == "jr" and insn.operands[0] == "ra"
 
     def is_conditional_branch(self, insn):
         mnemo = insn.mnemonic
