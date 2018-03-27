@@ -984,31 +984,30 @@ def disable_redirect_output():
 
 
 def get_gef_setting(name):
-    """Read globally gef settings. Returns None if not found. A valid config setting can never return None,
+    """Read global gef settings. Return None if not found. A valid config setting can never return None,
     but False, 0 or "". So using None as a retval on error is fine."""
     global __config__
-    key = __config__.get(name, None)
-    if not key:
+    setting = __config__.get(name, None)
+    if not setting:
         return None
-    return __config__[name][0]
+    return setting[0]
 
 
 def set_gef_setting(name, value, _type=None, _desc=None):
-    """Set globally gef settings. Raise ValueError if `name` doesn't exist and `type` and `desc`
+    """Set global gef settings. Raise ValueError if `name` doesn't exist and `type` and `desc`
     are not provided."""
     global __config__
 
     if name not in __config__:
-        # setting creation
+        # create new setting
         if _type is None or _desc is None:
             raise ValueError("Setting '{}' is undefined, need to provide type and description".format(name))
         __config__[name] = [_type(value), _type, _desc]
         return
 
-    # setting value affectation
+    # set existing setting
     func = __config__[name][1]
     __config__[name][0] = func(value)
-    __config__[name][1] = func
     return
 
 
@@ -3385,12 +3384,18 @@ class GenericCommand(gdb.Command):
 
     @property
     def settings(self):
-        return { x.split(".", 1)[1]: __config__[x] for x in __config__
-                 if x.startswith("{:s}.".format(self._cmdline_)) }
+        """Return the list of settings for this command."""
+        return [ x.split(".", 1)[1] for x in __config__
+                 if x.startswith("{:s}.".format(self._cmdline_)) ]
 
-    def get_setting(self, name): return self.settings[name][1](self.settings[name][0])
+    def get_setting(self, name):
+        key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
+        setting = __config__[key]
+        return setting[1](setting[0])
 
-    def has_setting(self, name): return name in self.settings
+    def has_setting(self, name):
+        key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
+        return key in __config__
 
     def add_setting(self, name, value, description=""):
         key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
@@ -3399,7 +3404,7 @@ class GenericCommand(gdb.Command):
 
     def del_setting(self, name):
         key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
-        __config__.pop(key)
+        del __config__[key]
         return
 
 
@@ -3884,25 +3889,25 @@ class GefThemeCommand(GenericCommand):
         argc = len(args)
 
         if argc==0:
-            for item in sorted(self.settings):
-                value = self.settings[item][0]
+            for setting in sorted(self.settings):
+                value = self.get_setting(setting)
                 value = Color.colorify(value, attrs=value)
-                print("{:40s}: {:s}".format(item, value))
+                print("{:40s}: {:s}".format(setting, value))
             return
 
-        key = args[0]
-        if not self.has_setting(key):
+        setting = args[0]
+        if not self.has_setting(setting):
             err("Invalid key")
             return
 
         if argc==1:
-            value = self.settings[key][0]
+            value = self.get_setting(setting)
             value = Color.colorify(value, attrs=value)
-            print("{:40s}: {:s}".format(key, value))
+            print("{:40s}: {:s}".format(setting, value))
             return
 
         val = [x for x in args[1:] if x in Color.colors]
-        self.add_setting(key, " ".join(val))
+        self.add_setting(setting, " ".join(val))
         return
 
 
@@ -8222,20 +8227,22 @@ class GefConfigCommand(gdb.Command):
         return
 
     def print_setting(self, plugin_name, show_description=False):
-        res = __config__.get(plugin_name, None)
+        res = __config__.get(plugin_name)
         string_color = __config__.get("theme.dereference_string")[0]
 
-        if res is not None:
-            _value, _type, _desc = res
-            _setting = Color.colorify(plugin_name, attrs="pink bold underline")
-            _type = _type.__name__
-            _value = Color.colorify(str(_value), attrs="yellow") if _type!='str' else '"{:s}"'.format(Color.colorify(str(_value), attrs=string_color))
-            print("{:s} ({:s}) = {:s}".format(_setting, _type, _value))
+        if not res:
+            return
 
-            if show_description:
-                print("")
-                print(Color.colorify("Description:", attrs="bold underline"))
-                print("\t{:s}".format(_desc))
+        _value, _type, _desc = res
+        _setting = Color.colorify(plugin_name, attrs="pink bold underline")
+        _type = _type.__name__
+        _value = Color.colorify(str(_value), attrs="yellow") if _type!='str' else '"{:s}"'.format(Color.colorify(str(_value), attrs=string_color))
+        print("{:s} ({:s}) = {:s}".format(_setting, _type, _value))
+
+        if show_description:
+            print("")
+            print(Color.colorify("Description:", attrs="bold underline"))
+            print("\t{:s}".format(_desc))
         return
 
     def print_settings(self):
