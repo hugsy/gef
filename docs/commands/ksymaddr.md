@@ -1,6 +1,6 @@
-## Command ksymaddr
+## Command ksymaddr ##
 
-Locate a kernel symbol by its name.
+`ksymaddr` helps locate a kernel symbol by its name.
 
 The syntax is straight forward:
 

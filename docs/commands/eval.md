@@ -1,6 +1,6 @@
-## Command $
+## Command $ ##
 
-This command attempts to mimic WinDBG `?` command.
+The `$` command attempts to mimic WinDBG `?` command.
 
 When provided one argument, it will evaluate the expression, and try to display
 the result with various formats:
@@ -21,7 +21,7 @@ b'\xff\xff\xff\xff\xff\xff\xf0\x00'
 b'\x00\xf0\xff\xff\xff\xff\xff\xff'
 ```
 
-With 2 arguments, it will simply compute the delta between them:
+With two arguments, it will simply compute the delta between them:
 
 ```
 gef➤  vmmap libc

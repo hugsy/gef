@@ -1,4 +1,4 @@
-## Command help
+## Command help ##
 
 Displays the help menu for the commands loaded.
 

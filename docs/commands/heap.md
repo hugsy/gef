@@ -3,8 +3,7 @@
 The `heap` command provides information on the heap chunk specified as argument. For
 the moment, it only supports GlibC heap format (see
 [this link](http://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_chunk)
-for `malloc` structure information). Syntax to the subcommands is pretty
-straight forward :
+for `malloc` structure information). Syntax to the subcommands is straight forward:
 
 ```
 gef➤ heap <sub_commands>
@@ -45,7 +44,7 @@ gef➤ heap chunk <LOCATION>
 
 ### `heap arenas` command ###
 
-Multi-threaded programs have different arenas, and the only knowledge of the
+Multi-threaded programs have different arenas, and the knowledge of the
 `main_arena` is not enough. `gef` therefore provides the `arena` sub-commands
 to help you list all the arenas allocated in your program **at the moment you
 call the command**.
@@ -70,12 +69,13 @@ the specified address for `main_arena`.
 
 ### `heap bins` command ###
 
-Glibc bins are the structures used for keeping tracks of free-ed chunks. The
-reason for that is that allocation (using `sbrk`) is costly. So Glibc uses those
-bins to remember formely allocated chunks. Because bins are structured in single
-or doubly linked list, I found that quite painful to always interrogate `gdb` to
-get a pointer address, dereference it, get the value chunk, etc... So I
-decided to implement in `gef` the `heap bins` sub-command, which allows to get info on:
+Glibc uses bints for keeping tracks of `free`d chunks. This is because making
+allocations through `sbrk` (requiring a syscall) is costly. Glibc uses those
+bins to remember formerly allocated chunks. Because bins are structured in
+single or doubly linked list, I found that quite painful to always interrogate
+`gdb` to get a pointer address, dereference it, get the value chunk, etc... So
+I decided to implement the `heap bins` sub-command, which allows to get info
+on:
 
    - `fastbins`
    - `bins`
@@ -84,11 +84,11 @@ decided to implement in `gef` the `heap bins` sub-command, which allows to get i
       - `large bins`
 
 
-
 #### `heap bins fast` command ####
 
 When exploiting heap corruption vulnerabilities, it is sometimes convenient to
 know the state of the `fastbinsY` array.
+
 The `fast` sub-command helps by displaying the list of fast chunks in this
 array. Without any other argument, it will display the info of the `main_arena`
 arena. It accepts an optional argument, the address of another arena (which you

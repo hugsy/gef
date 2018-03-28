@@ -1,4 +1,4 @@
-## Command hexdump
+## Command hexdump ##
 
 Imitation of the WinDBG command.
 
@@ -18,6 +18,7 @@ The command provides WinDBG compatible aliases by default:
 is printable (similarly to the `hexdump -C` command on Linux).
 
 The syntax is as following:
+
 ```
 hexdump (qword|dword|word|byte) LOCATION L[SIZE] [UP|DOWN]
 ```
@@ -25,6 +26,7 @@ hexdump (qword|dword|word|byte) LOCATION L[SIZE] [UP|DOWN]
 Examples:
 
    * Display 4 QWORD from `$pc`:
+
 ```
 gef➤  dq $pc l4
 0x7ffff7a5c1c0+0000 │ 0x4855544155415641
@@ -34,6 +36,7 @@ gef➤  dq $pc l4
 ```
 
   * Display 32 bytes from a location in the stack:
+
 ```
 gef➤  db 0x00007fffffffe5e5 l32
 0x00007fffffffe5e5     2f 68 6f 6d 65 2f 68 75 67 73 79 2f 63 6f 64 65     /home/hugsy/code

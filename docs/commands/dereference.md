@@ -1,14 +1,14 @@
 ## Command dereference
 
-The `dereference` (also aliased `telescope` for PEDA former users) aims to
-simplify the dereferencing of an address in GDB to determine the content it
+The `dereference` command (also aliased `telescope` for PEDA former users) aims
+to simplify the dereferencing of an address in GDB to determine the content it
 actually points to.
 
 It is a useful convienence function to spare to process of manually tracking
 values with successive `x/x` in GDB.
 
-`dereference` can take one mandatory argument, an address (or symbol or
-register, etc) to dereference:
+`dereference` takes one mandatory argument, an address (or symbol or register,
+etc) to dereference:
 
 ```
 gef➤  dereference $sp
@@ -22,6 +22,7 @@ addresses to dereference (by default, `1`).
 
 For example, if you want to dereference all the stack entries inside a function
 context (on a 64bit architecture):
+
 ```
 gef➤  p ($rbp - $rsp)/8
 $3 = 4

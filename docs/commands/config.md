@@ -1,15 +1,15 @@
-## Command config
+## Command config ##
 
-`gef` can also be configured at runtime through a configuration file locate at
-`~/.gef.rc`.
+In addition to reading its config from _~/.gef.rc~, `gef` can also be
+configured at runtime with the `gef config` command.
 
-To view all the defined settings for all commands loaded:
+To view all settings for all commands loaded:
 ```
 gef➤  gef config
 ```
 ![gef-config](https://i.imgur.com/bd2ZqsU.png)
 
-Or get one setting value:
+Or to get one setting value:
 ```
 gef➤  gef config pcustom.struct_path
 ```
