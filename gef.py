@@ -1393,7 +1393,7 @@ class ARM(Architecture):
         branch_mnemos = {"bl", "bx"}
         write_mnemos = {"ldr", "add"}
         if insn.mnemonic in pop_mnemos:
-            return insn.operands[-1] == " pc}"
+            return insn.operands[-1] == "pc"
         if insn.mnemonic in branch_mnemos:
             return insn.operands[-1] == "lr"
         if insn.mnemonic in write_mnemos:
