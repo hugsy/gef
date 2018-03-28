@@ -194,8 +194,8 @@ better.
 The rule is simple, provide a (substantial) contribution to `GEF`, such as:
 
    1. Submitting a Pull-Request for a new feature/command.
-   1. Submitting a Pull-Request for a new architecture support.
-   1. Or sending a relevant issue request (like a bug, crash, or else).
+   2. Submitting a Pull-Request for a new architecture support.
+   3. Or sending a relevant issue request (like a bug, crash, or else).
 
 Poke me on the IRC `##gef` channel about it, and next time we meet in person
 (like at a conference), I'll be happy to pay you a beer.
