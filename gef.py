@@ -3874,14 +3874,17 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("default_title_line", "green bold", "Default color of borders")
         self.add_setting("default_title_message", "red bold", "Default color of title")
         self.add_setting("xinfo_title_message", "blue bold", "Color of the title in xinfo window")
+        self.add_setting("disassemble_current_instruction", "bold red", "Color to use to highlight the current $pc when disassembling")
         self.add_setting("dereference_string", "green", "Color of dereferenced string")
         self.add_setting("dereference_code", "red", "Color of dereferenced code")
         self.add_setting("dereference_base_address", "bold green", "Color of dereferenced address")
         self.add_setting("dereference_register_value", "bold green" , "Color of dereferenced register")
-        self.add_setting("registers_register_name", "bold red", "Color of the changed register in register window")
+        self.add_setting("registers_register_name", "bold red", "Color of the register name in the register window")
+        self.add_setting("registers_value_changed", "bold red", "Color of the changed register in the register window")
         self.add_setting("address_stack", "pink", "Color to use when a stack address is found")
         self.add_setting("address_heap", "yellow", "Color to use when a heap address is found")
         self.add_setting("address_code", "red", "Color to use when a code address is found")
+        self.add_setting("source_current_line", "bold red", "Color to use for the current code line in the source window")
         return
 
     def do_invoke(self, args):
@@ -5748,6 +5751,7 @@ class DetailRegistersCommand(GenericCommand):
     def do_invoke(self, argv):
         regs = []
         regname_color = get_gef_setting("theme.registers_register_name")
+        changed_register_value_color = get_gef_setting("theme.registers_value_changed")
         string_color = get_gef_setting("theme.dereference_string")
 
         if argv:
@@ -5791,7 +5795,7 @@ class DetailRegistersCommand(GenericCommand):
             if new_value == old_value:
                 line += format_address(new_value)
             else:
-                line += Color.colorify(format_address(new_value), attrs="bold red")
+                line += Color.colorify(format_address(new_value), attrs=changed_register_value_color)
             addrs = DereferenceCommand.dereference_from(new_value)
 
             if len(addrs) > 1:
@@ -6391,8 +6395,9 @@ class ContextCommand(GenericCommand):
             code_addr_color = get_gef_setting("theme.address_code")
             stack_addr_color = get_gef_setting("theme.address_stack")
             heap_addr_color = get_gef_setting("theme.address_heap")
+            changed_register_color = get_gef_setting("theme.registers_value_changed")
 
-            print("[ Legend: {} | {} | {} | {} | {} ]".format( Color.colorify("Modified register", attrs="bold red"),
+            print("[ Legend: {} | {} | {} | {} | {} ]".format( Color.colorify("Modified register", attrs=changed_register_color),
                                                                Color.colorify("Code", attrs=code_addr_color),
                                                                Color.colorify("Heap", attrs=heap_addr_color),
                                                                Color.colorify("Stack", attrs=stack_addr_color),
@@ -6446,6 +6451,7 @@ class ContextCommand(GenericCommand):
         nb = get_terminal_size()[1]//l
         i = 1
         line = ""
+        color = get_gef_setting("theme.registers_value_changed")
 
         for reg in current_arch.all_registers:
             if reg.strip() in ignored_registers:
@@ -6479,7 +6485,7 @@ class ContextCommand(GenericCommand):
                 if new_value == old_value:
                     line += "{:s} ".format(format_address(new_value))
                 else:
-                    line += "{:s} ".format(Color.colorify(format_address(new_value), attrs="bold red"))
+                    line += "{:s} ".format(Color.colorify(format_address(new_value), attrs=color))
 
             if i % nb == 0 :
                 print(line)
@@ -6515,6 +6521,7 @@ class ContextCommand(GenericCommand):
         nb_insn = self.get_setting("nb_lines_code")
         nb_insn_prev = self.get_setting("nb_lines_code_prev")
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
+        cur_insn_color = get_gef_setting("theme.disassemble_current_instruction")
         pc = current_arch.pc
 
         frame = gdb.selected_frame()
@@ -6539,7 +6546,7 @@ class ContextCommand(GenericCommand):
                     line += Color.grayify("   {}".format(text))
 
                 elif insn.address == pc:
-                    line += Color.colorify("{:s}{:s}".format(right_arrow, text), attrs="bold red")
+                    line += Color.colorify("{:s}{:s}".format(right_arrow, text), attrs=cur_insn_color)
 
                     if current_arch.is_conditional_branch(insn):
                         is_taken, reason = current_arch.is_branch_taken(insn)
@@ -6732,6 +6739,7 @@ class ContextCommand(GenericCommand):
 
         nb_line = self.get_setting("nb_lines_code")
         title = "source:{0:s}+{1:d}".format(symtab.filename, line_num + 1)
+        cur_line_color = get_gef_setting("theme.source_current_line")
         self.context_title(title)
 
         for i in range(line_num - nb_line + 1, line_num + nb_line):
@@ -6745,7 +6753,7 @@ class ContextCommand(GenericCommand):
                 extra_info = self.get_pc_context_info(pc, lines[i])
                 if extra_info:
                     print(extra_info)
-                print(Color.colorify("{}{:4d}\t {:s}".format(right_arrow, i + 1, lines[i]), attrs="bold red"))
+                print(Color.colorify("{}{:4d}\t {:s}".format(right_arrow, i + 1, lines[i]), attrs=cur_line_color))
 
             if i > line_num:
                 try:
