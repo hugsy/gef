@@ -2259,6 +2259,7 @@ def get_info_sections():
     return
 
 
+@lru_cache()
 def get_info_files():
     """Retrieves all the files loaded by debuggee."""
     lines = gdb.execute("info files", to_string=True).splitlines()
