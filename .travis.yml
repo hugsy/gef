@@ -27,8 +27,8 @@ before_script:
   - echo "source `pwd`/gef.py" > ~/.gdbinit
 
 script:
-  - gdb -q -ex 'gef help' -ex 'gef config' -ex 'quit' /bin/ls
-  - python3 ./tests/test-runner.py
+  - gdb -q -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
+
 
 notifications:
   email:

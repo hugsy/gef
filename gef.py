@@ -4751,7 +4751,7 @@ FSMSR = 0xC0000100
 GSMSR = 0xC0000101
 
 def set_msr(uc, msr, value, scratch=SCRATCH_ADDR):
-    buf = '\\x0f\\x30'  # x86: wrmsr
+    buf = b'\\x0f\\x30'  # x86: wrmsr
     uc.mem_map(scratch, 0x1000)
     uc.mem_write(scratch, buf)
     uc.reg_write(unicorn.x86_const.UC_X86_REG_RAX, value & 0xFFFFFFFF)
