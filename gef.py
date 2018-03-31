@@ -3461,6 +3461,15 @@ class PieBreakpointCommand(GenericCommand):
             bp_expr = tmp_bp_expr
             self.set_pie_breakpoint(lambda base: "b {}".format(bp_expr), bp_expr)
 
+        # When the process is already on, set real breakpoints immediately
+        if is_alive():
+            vmmap = get_process_maps()
+            base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
+
+            for bp, bp_ins in __pie_breakpoints__.items():
+                bp_ins.instantiate(base_address)
+            
+
     @staticmethod
     def set_pie_breakpoint(set_func, addr):
         global __pie_counter__, __pie_breakpoints__
