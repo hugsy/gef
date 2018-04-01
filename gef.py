@@ -3468,7 +3468,7 @@ class PieBreakpointCommand(GenericCommand):
 
             for bp, bp_ins in __pie_breakpoints__.items():
                 bp_ins.instantiate(base_address)
-            
+
 
     @staticmethod
     def set_pie_breakpoint(set_func, addr):
@@ -6417,7 +6417,13 @@ class ContextCommand(GenericCommand):
         for section in current_layout:
             if section[0] == "-":
                 continue
-            self.layout_mapping[section]()
+
+            try:
+                self.layout_mapping[section]()
+            except gdb.MemoryError as e:
+                # a MemoryError will happen when $pc is corrupted (invalid address)
+                err(str(e))
+
 
         self.context_title("")
 
