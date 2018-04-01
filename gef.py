@@ -3027,10 +3027,10 @@ class ChangePermissionBreakpoint(gdb.Breakpoint):
 
 
 class TraceMallocBreakpoint(gdb.Breakpoint):
-    """Track allocations done with malloc()."""
+    """Track allocations done with malloc() or calloc."""
 
-    def __init__(self):
-        super(TraceMallocBreakpoint, self).__init__("__libc_malloc", gdb.BP_BREAKPOINT, internal=True)
+    def __init__(self, name):
+        super(TraceMallocBreakpoint, self).__init__(name, gdb.BP_BREAKPOINT, internal=True)
         self.silent = True
         return
 
@@ -3042,6 +3042,7 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
             size = get_register(current_arch.function_parameters[0])
         self.retbp = TraceMallocRetBreakpoint(size)
         return False
+
 
 
 class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
@@ -7954,7 +7955,7 @@ class HeapAnalysisCommand(GenericCommand):
         self.add_setting("check_uaf", True, "Break execution when a possible Use-after-Free condition is found")
         self.add_setting("check_heap_overlap", True, "Break execution when a possible overlap in allocation is found")
 
-        self.bp_malloc, self.bp_free, self.bp_realloc = None, None, None
+        self.bp_malloc, self.bp_calloc, self.bp_free, self.bp_realloc = None, None, None, None
         return
 
     @only_if_gdb_running
@@ -7969,8 +7970,9 @@ class HeapAnalysisCommand(GenericCommand):
         return
 
     def setup(self):
-        ok("Tracking malloc()")
-        self.bp_malloc = TraceMallocBreakpoint()
+        ok("Tracking malloc() & calloc()")
+        self.bp_malloc = TraceMallocBreakpoint("__libc_malloc")
+        self.bp_calloc = TraceMallocBreakpoint("__libc_calloc")
         ok("Tracking free()")
         self.bp_free = TraceFreeBreakpoint()
         ok("Tracking realloc()")
@@ -8006,7 +8008,7 @@ class HeapAnalysisCommand(GenericCommand):
         global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
 
         ok("{} - Cleaning up".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),))
-        for bp in [self.bp_malloc, self.bp_free, self.bp_realloc]:
+        for bp in [self.bp_malloc, self.bp_calloc, self.bp_free, self.bp_realloc]:
             if hasattr(bp, "retbp") and bp.retbp:
                 bp.retbp.delete()
             bp.delete()
