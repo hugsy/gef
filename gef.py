@@ -57,7 +57,6 @@
 from __future__ import print_function, division, absolute_import
 
 import abc
-import array
 import binascii
 import codecs
 import collections
@@ -72,7 +71,6 @@ import itertools
 import os
 import platform
 import re
-import resource
 import shutil
 import socket
 import string
@@ -83,7 +81,6 @@ import tempfile
 import termios
 import time
 import traceback
-import types
 
 
 PYTHON_MAJOR = sys.version_info[0]
@@ -1042,7 +1039,7 @@ def gdb_get_location_from_symbol(address):
     Return a tuple with the name and offset if found, None otherwise."""
     # this is horrible, ugly hack and shitty perf...
     # find a *clean* way to get gdb.Location from an address
-    name, off = None, 0
+    name = None
     sym = gdb.execute("info symbol {:#x}".format(address), to_string=True)
     if sym.startswith("No symbol matches"):
         return None
@@ -3098,7 +3095,6 @@ class TraceReallocBreakpoint(gdb.Breakpoint):
         else:
             ptr = get_register(current_arch.function_parameters[0])
             size = get_register(current_arch.function_parameters[1])
-        retaddr = gdb.selected_frame().older().pc()
         self.retbp = TraceReallocRetBreakpoint(ptr, size)
         return False
 
@@ -3279,7 +3275,6 @@ def register_external_command(obj):
     """Registering function for new GEF (sub-)command to GDB."""
     global __commands__, __gef__
     cls = obj.__class__
-    fpath = os.path.realpath(os.path.expanduser(inspect.getfile(cls)))
     __commands__.append(cls)
     __gef__.load(initial=False)
     __gef__.doc.add_command_to_doc((cls._cmdline_, cls, None))
@@ -4251,12 +4246,10 @@ class IdaInteractCommand(GenericCommand):
 
         if not is_alive():
             main_base_address = main_end_address = 0
-            is_pie = False
         else:
             vmmap = get_process_maps()
             main_base_address = min([x.page_start for x in vmmap if x.realpath == get_filepath()])
             main_end_address = max([x.page_end for x in vmmap if x.realpath == get_filepath()])
-            is_pie = checksec(get_filepath())["PIE"]
 
         try:
             if method_name == "Sync":
@@ -4650,7 +4643,6 @@ class UnicornEmulateCommand(GenericCommand):
         start_insn = None
         end_insn = -1
         nb_insn = -1
-        until_next_gadget = -1
         to_file = None
         to_script_only = None
         opts = getopt.getopt(argv, "f:t:n:so:h")[0]
@@ -4659,11 +4651,9 @@ class UnicornEmulateCommand(GenericCommand):
             elif o == "-t":
                 end_insn = int(a, 16)
                 self.nb_insn = -1
-                self.until_next_gadget = -1
 
             elif o == "-n":
                 nb_insn = int(a)
-                self.until_next_gadget = -1
                 end_insn = -1
 
             elif o == "-s":
@@ -4700,8 +4690,6 @@ class UnicornEmulateCommand(GenericCommand):
         return last_insn.address
 
     def run_unicorn(self, start_insn_addr, end_insn_addr, *args, **kwargs):
-        start_regs = {}
-        end_regs = {}
         verbose = self.get_setting("verbose") or False
         to_script_only = kwargs.get("to_script_only", False)
         arch, mode = get_unicorn_arch(to_string=True)
@@ -5295,8 +5283,6 @@ class CapstoneDisassembleCommand(GenericCommand):
         return
 
     def capstone_analyze_pc(self, insn, nb_insn):
-        cs = sys.modules["capstone"]
-
         if current_arch.is_conditional_branch(insn):
             is_taken, reason = current_arch.is_branch_taken(insn)
             if is_taken:
@@ -6352,7 +6338,6 @@ class ContextCommand(GenericCommand):
 
     def show_legend(self):
         if get_gef_setting("gef.disable_color")!=True:
-            code_color = get_gef_setting("theme.dereference_code")
             str_color = get_gef_setting("theme.dereference_string")
             code_addr_color = get_gef_setting("theme.address_code")
             stack_addr_color = get_gef_setting("theme.address_stack")
@@ -6531,8 +6516,7 @@ class ContextCommand(GenericCommand):
 
             for insn in instruction_iterator(pc, nb_insn, nb_prev=nb_insn_prev):
                 line = []
-                is_branch = False
-                is_taken  = False
+                is_taken = False
                 text = str(insn)
 
                 if insn.address < pc:
@@ -6576,7 +6560,6 @@ class ContextCommand(GenericCommand):
 
 
     def context_args(self):
-        use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
         insn = gef_current_instruction(current_arch.pc)
         if not current_arch.is_call(insn):
             return
@@ -6914,7 +6897,6 @@ class ContextCommand(GenericCommand):
 
     def empty_extra_messages(self, event):
         global __context_messages__
-        del __context_messages__
         __context_messages__ = []
         return
 
@@ -7280,7 +7262,6 @@ class DereferenceCommand(GenericCommand):
 
         code_color = get_gef_setting("theme.dereference_code")
         string_color = get_gef_setting("theme.dereference_string")
-        prev_addr_value = None
         max_recursion = get_gef_setting("dereference.max_recursion") or 10
         addr = lookup_address(align_address(long(addr)))
         msg = [format_address(addr.value),]
@@ -7992,11 +7973,8 @@ class HeapAnalysisCommand(GenericCommand):
         for wp in __heap_uaf_watchpoints__:
             wp.delete()
 
-        del __heap_allocated_list__
         __heap_allocated_list__ = []
-        del __heap_freed_list__
         __heap_freed_list__ = []
-        del __heap_uaf_watchpoints__
         __heap_uaf_watchpoints__ = []
 
         ok("{} - Re-enabling hardware watchpoints".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),))
