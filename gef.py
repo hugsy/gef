@@ -1606,22 +1606,6 @@ class X86(Architecture):
             taken, reason = val&(1<<flags["sign"]), "S"
         return taken, reason
 
-    def print_call_args(self):
-        offsets = [0, 4, 8, 12, 16, 20]
-        sp = get_register("$esp")
-        for i, offset in enumerate(offsets):
-            addr = sp + offset
-            line = "arg[{:d}] (sp+{:#x}) ".format(i, offset)
-            line += Color.boldify(format_address(addr))
-            addrs = DereferenceCommand.dereference_from(addr)
-
-            if len(addrs) > 1:
-                sep = " {:s} ".format(right_arrow)
-                line += sep + sep.join(addrs[1:])
-
-            print(line)
-        return
-
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 125
         insns = [
@@ -1646,23 +1630,6 @@ class X86_64(X86):
     all_registers = gpr_registers + [ X86.flag_register, ] + X86.msr_registers
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
-
-    def print_call_args(self):
-        regs = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
-        for i, reg in enumerate(regs):
-            addr = long(gdb.parse_and_eval(reg))
-            line = "Arg {:d} ({:s}) ".format(i, reg)
-
-            line += Color.boldify(format_address(addr))
-            addrs = DereferenceCommand.dereference_from(addr)
-
-            if len(addrs) > 1:
-                sep = " {:s} ".format(right_arrow)
-                line += sep + sep.join(addrs[1:])
-
-            print(line)
-
-        return
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
