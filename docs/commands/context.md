@@ -157,3 +157,8 @@ gef➤  gef config context.peek_calls False
 ```
 gef➤  gef config context.ignore_registers "$cs $ds $gs"
 ```
+
+* Hide the legend
+```
+gef➤  gef config context.legend_position off
+```
