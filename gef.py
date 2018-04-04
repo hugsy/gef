@@ -6316,6 +6316,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("enable", True, "Enable/disable printing the context when breaking")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", False, "Show the registers pane with raw values (no dereference)")
+        self.add_setting("legend_position", "top", "Specify where to add the legend (top/bottom/hide)")
         self.add_setting("peek_calls", True, "Peek into calls")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("grow_stack_down", False, "Order of stack downward starts at largest down to stack pointer")
@@ -6349,6 +6350,23 @@ class ContextCommand(GenericCommand):
         gef_on_continue_hook(self.empty_extra_messages)
         return
 
+    def show_legend(self):
+        if get_gef_setting("gef.disable_color")!=True:
+            code_color = get_gef_setting("theme.dereference_code")
+            str_color = get_gef_setting("theme.dereference_string")
+            code_addr_color = get_gef_setting("theme.address_code")
+            stack_addr_color = get_gef_setting("theme.address_stack")
+            heap_addr_color = get_gef_setting("theme.address_heap")
+            changed_register_color = get_gef_setting("theme.registers_value_changed")
+
+            print("[ Legend: {} | {} | {} | {} | {} ]".format( Color.colorify("Modified register", attrs=changed_register_color),
+                                                               Color.colorify("Code", attrs=code_addr_color),
+                                                               Color.colorify("Heap", attrs=heap_addr_color),
+                                                               Color.colorify("Stack", attrs=stack_addr_color),
+                                                               Color.colorify("String", attrs=str_color)
+            ))
+        return
+
     @only_if_gdb_running
     def do_invoke(self, argv):
         if not self.get_setting("enable"):
@@ -6367,20 +6385,8 @@ class ContextCommand(GenericCommand):
         if self.get_setting("clear_screen"):
             clear_screen(redirect)
 
-        if get_gef_setting("gef.disable_color")!=True:
-            code_color = get_gef_setting("theme.dereference_code")
-            str_color = get_gef_setting("theme.dereference_string")
-            code_addr_color = get_gef_setting("theme.address_code")
-            stack_addr_color = get_gef_setting("theme.address_stack")
-            heap_addr_color = get_gef_setting("theme.address_heap")
-            changed_register_color = get_gef_setting("theme.registers_value_changed")
-
-            print("[ Legend: {} | {} | {} | {} | {} ]".format( Color.colorify("Modified register", attrs=changed_register_color),
-                                                               Color.colorify("Code", attrs=code_addr_color),
-                                                               Color.colorify("Heap", attrs=heap_addr_color),
-                                                               Color.colorify("Stack", attrs=stack_addr_color),
-                                                               Color.colorify("String", attrs=str_color)
-            ))
+        if self.get_setting("legend_position").lower() == "top":
+            self.show_legend()
 
         for section in current_layout:
             if section[0] == "-":
@@ -6394,6 +6400,9 @@ class ContextCommand(GenericCommand):
 
 
         self.context_title("")
+
+        if self.get_setting("legend_position").lower() == "bottom":
+            self.show_legend()
 
         if redirect and os.access(redirect, os.W_OK):
             disable_redirect_output()
