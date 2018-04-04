@@ -6,7 +6,7 @@ python:
 
 matrix:
     allow_failures:
-        - python: "3.6"
+        - python: "2.7"
 
 os:
     - linux
