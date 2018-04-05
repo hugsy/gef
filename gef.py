@@ -6302,7 +6302,6 @@ class ContextCommand(GenericCommand):
         self.add_setting("enable", True, "Enable/disable printing the context when breaking")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", False, "Show the registers pane with raw values (no dereference)")
-        self.add_setting("legend_position", "top", "Specify where to add the legend (top/bottom/hide)")
         self.add_setting("peek_calls", True, "Peek into calls")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("grow_stack_down", False, "Order of stack downward starts at largest down to stack pointer")
@@ -6312,13 +6311,14 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_code_prev", 3, "Number of instruction before $pc")
         self.add_setting("ignore_registers", "", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
         self.add_setting("clear_screen", False, "Clear the screen before printing the context")
-        self.add_setting("layout", "regs stack code args source memory threads trace extra", "Change the order/presence of the context sections")
+        self.add_setting("layout", "legend regs stack code args source memory threads trace extra", "Change the order/presence of the context sections")
         self.add_setting("redirect", "", "Redirect the context information to another TTY")
 
         if "capstone" in list(sys.modules.keys()):
             self.add_setting("use_capstone", False, "Use capstone as disassembler in the code pane (instead of GDB)")
 
         self.layout_mapping = {
+            "legend":  self.show_legend,
             "regs":  self.context_regs,
             "stack": self.context_stack,
             "code": self.context_code,
@@ -6370,9 +6370,6 @@ class ContextCommand(GenericCommand):
         if self.get_setting("clear_screen"):
             clear_screen(redirect)
 
-        if self.get_setting("legend_position").lower() == "top":
-            self.show_legend()
-
         for section in current_layout:
             if section[0] == "-":
                 continue
@@ -6385,9 +6382,6 @@ class ContextCommand(GenericCommand):
 
 
         self.context_title("")
-
-        if self.get_setting("legend_position").lower() == "bottom":
-            self.show_legend()
 
         if redirect and os.access(redirect, os.W_OK):
             disable_redirect_output()
