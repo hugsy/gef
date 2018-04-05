@@ -1090,7 +1090,7 @@ def gdb_get_nth_previous_instruction_address(addr, n):
     # the 15 comes from the longest instruction valid size
     for i in range(15*n, 0, -1):
         try:
-            insns = list(gdb_disassemble(addr-i, end_pc=cur_insn_addr))
+            insns = list(gdb_disassemble(addr-i, end_pc=cur_insn_addr, count=n+1))
         except gdb.MemoryError:
             # this is because we can hit an unmapped page trying to read backward
             break
