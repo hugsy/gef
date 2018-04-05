@@ -1,1 +1,8 @@
 *.out
+*.pyc
+TAGS
+*/__pycache__/
+tests/helpers.pyc
+tests/pylint.html
+tests/pylint.txt
+tests/pylint3.html
