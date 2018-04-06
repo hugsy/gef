@@ -31,6 +31,7 @@ install:
   - echo "source `pwd`/gef.py" > ~/.gdbinit
 
 script:
+  - gdb -q -ex r -ex quit --args python -c "import sys ; print(sys.version)"
   - gdb -q -ex 'gef help' -ex 'gef config' -ex 'gef missing' -ex start -ex continue -ex quit /bin/ls
 
 notifications:
