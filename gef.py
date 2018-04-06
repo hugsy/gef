@@ -155,16 +155,16 @@ def update_gef(argv):
     gef_remote = "https://raw.githubusercontent.com/hugsy/gef/master/gef.py"
     gef_remote_data = http_get(gef_remote)
     if gef_remote_data is None:
-        print("[-] Failed to get remote gef")
+        gef_print("[-] Failed to get remote gef")
         return 1
 
     hash_gef_remote = hashlib.sha512(gef_remote_data).digest()
     if hash_gef_local == hash_gef_remote:
-        print("[-] No update")
+        gef_print("[-] No update")
     else:
         with open(gef_local, "wb") as f:
             f.write(gef_remote_data)
-        print("[+] Updated")
+        gef_print("[+] Updated")
     return 0
 
 
@@ -174,7 +174,7 @@ except ImportError:
     # if out of gdb, the only action allowed is to update gef.py
     if len(sys.argv)==2 and sys.argv[1]=="--update":
         sys.exit( update_gef(sys.argv) )
-    print("[-] gef cannot run as standalone")
+    gef_print("[-] gef cannot run as standalone")
     sys.exit(0)
 
 __gef__                                = None
@@ -193,6 +193,7 @@ __pie_counter__                        = 1
 __gef_remote__                         = None
 __gef_qemu_mode__                      = False
 __gef_default_main_arena__             = "main_arena"
+__gef_int_stream_buffer__              = None
 
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
@@ -282,6 +283,35 @@ def reset_all_caches():
         if hasattr(obj, "cache_clear"):
             obj.cache_clear()
     return
+
+
+def gef_print(x="", *args, **kwargs):
+    global __gef_int_stream_buffer__
+    if __gef_int_stream_buffer__ and not is_debug():
+        if "end" not in kwargs:
+            kwargs["end"] = "\n"
+        return __gef_int_stream_buffer__.write(x + kwargs["end"])
+    return print(x, *args, **kwargs)
+
+
+def bufferize(f):
+    """Stores in memory the content to be printed for a function, and flushes it on function exit."""
+
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        global __gef_int_stream_buffer__
+
+        if __gef_int_stream_buffer__ == None:
+            __gef_int_stream_buffer__ = StringIO()
+            f(*args, **kwargs)
+            sys.stdout.write(__gef_int_stream_buffer__.getvalue())
+            sys.stdout.flush()
+            __gef_int_stream_buffer__ = None
+        else:
+            # else we're already are buffering, nothing to do
+            f(*args, **kwargs)
+
+    return wrapper
 
 
 class Color:
@@ -700,18 +730,12 @@ class GlibcChunk:
     # endif free-ed functions
 
     def has_P_bit(self):
-        """Check for in PREV_INUSE bit
-        Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1267"""
         return read_int_from_memory(self.size_addr) & 0x01
 
     def has_M_bit(self):
-        """Check for in IS_MMAPPED bit
-        Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1274"""
         return read_int_from_memory(self.size_addr) & 0x02
 
     def has_N_bit(self):
-        """Check for in NON_MAIN_ARENA bit.
-        Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1283"""
         return read_int_from_memory(self.size_addr) & 0x04
 
     def is_used(self):
@@ -862,32 +886,32 @@ def show_last_exception():
         __data = open(fname, "r").read().splitlines()
         return __data[idx-1] if idx < len(__data) else ""
 
-    print("")
+    gef_print("")
     exc_type, exc_value, exc_traceback = sys.exc_info()
-    print(" Exception raised ".center(80, horizontal_line))
-    print("{}: {}".format(Color.colorify(exc_type.__name__, attrs="bold underline red"), exc_value))
-    print(" Detailed stacktrace ".center(80, horizontal_line))
+    gef_print(" Exception raised ".center(80, horizontal_line))
+    gef_print("{}: {}".format(Color.colorify(exc_type.__name__, attrs="bold underline red"), exc_value))
+    gef_print(" Detailed stacktrace ".center(80, horizontal_line))
     for fs in traceback.extract_tb(exc_traceback)[::-1]:
         filename, lineno, method, code = fs
 
         if not code or len(code.strip())==0:
             code = _show_code_line(filename, lineno)
 
-        print("""{} File "{}", line {:d}, in {}()""".format(down_arrow, Color.yellowify(filename),
+        gef_print("""{} File "{}", line {:d}, in {}()""".format(down_arrow, Color.yellowify(filename),
                                                             lineno, Color.greenify(method)))
-        print("   {}    {}".format(right_arrow, code))
+        gef_print("   {}    {}".format(right_arrow, code))
 
-    print(" Last 10 GDB commands ".center(80, horizontal_line))
+    gef_print(" Last 10 GDB commands ".center(80, horizontal_line))
     gdb.execute("show commands")
-    print(" Runtime environment ".center(80, horizontal_line))
-    print("* GDB: {}".format(gdb.VERSION))
-    print("* Python: {:d}.{:d}.{:d} - {:s}".format(sys.version_info.major, sys.version_info.minor,
+    gef_print(" Runtime environment ".center(80, horizontal_line))
+    gef_print("* GDB: {}".format(gdb.VERSION))
+    gef_print("* Python: {:d}.{:d}.{:d} - {:s}".format(sys.version_info.major, sys.version_info.minor,
                                                    sys.version_info.micro, sys.version_info.releaselevel))
-    print("* OS: {:s} - {:s} ({:s}) on {:s}".format(platform.system(), platform.release(),
+    gef_print("* OS: {:s} - {:s} ({:s}) on {:s}".format(platform.system(), platform.release(),
                                                     platform.architecture()[0],
                                                     " ".join(platform.dist())))
-    print(horizontal_line*80)
-    print("")
+    gef_print(horizontal_line*80)
+    gef_print("")
     return
 
 
@@ -3316,6 +3340,7 @@ class GenericCommand(gdb.Command):
     def invoke(self, args, from_tty):
         try:
             argv = gdb.string_to_argv(args)
+            #bufferize(self.do_invoke(argv))
             self.do_invoke(argv)
         except Exception as e:
             # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
@@ -3463,7 +3488,7 @@ class PieInfoCommand(GenericCommand):
         lines += [
             "{}\t{}\t{}".format(x.vbp_num, x.bp_num if x.bp_num else "N/A", x.addr) for x in bps
         ]
-        print("\n".join(lines))
+        gef_print("\n".join(lines))
 
 
 @register_command
@@ -3610,11 +3635,11 @@ class SmartEvalCommand(GenericCommand):
             try:
                 s_i = comp2_x(res)
                 s_i = s_i.rjust(len(s_i)+1, "0") if len(s_i)%2 else s_i
-                print("{:d}".format(i))
-                print("0x" + comp2_x(res))
-                print("0b" + comp2_b(res))
-                print("{}".format(binascii.unhexlify(s_i)))
-                print("{}".format(binascii.unhexlify(s_i)[::-1]))
+                gef_print("{:d}".format(i))
+                gef_print("0x" + comp2_x(res))
+                gef_print("0b" + comp2_b(res))
+                gef_print("{}".format(binascii.unhexlify(s_i)))
+                gef_print("{}".format(binascii.unhexlify(s_i)[::-1]))
             except:
                 pass
             return
@@ -3633,16 +3658,16 @@ class SmartEvalCommand(GenericCommand):
             if type(res) is int:
                 show_as_int(res)
             else:
-                print("{}".format(res))
+                gef_print("{}".format(res))
         except SyntaxError:
-            print(" ".join(parsed_expr))
+            gef_print(" ".join(parsed_expr))
         return
 
     def distance(self, args):
         try:
             x = int(args[0], 16) if is_hex(args[0]) else int(args[0])
             y = int(args[1], 16) if is_hex(args[1]) else int(args[1])
-            print("{}".format(abs(x-y)))
+            gef_print("{}".format(abs(x-y)))
         except ValueError:
             warn("Distance requires 2 numbers: {} 0 0xffff".format(self._cmdline_))
         return
@@ -3724,9 +3749,9 @@ class ProcessStatusCommand(GenericCommand):
         info("Process Information")
         pid = get_pid()
         cmdline = self.get_cmdline_of(pid)
-        print("\tPID {} {}".format(right_arrow, pid))
-        print("\tExecutable {} {}".format(right_arrow, self.get_process_path_of(pid)))
-        print("\tCommand line {} '{}'".format(right_arrow, cmdline))
+        gef_print("\tPID {} {}".format(right_arrow, pid))
+        gef_print("\tExecutable {} {}".format(right_arrow, self.get_process_path_of(pid)))
+        gef_print("\tCommand line {} '{}'".format(right_arrow, cmdline))
         return
 
     def show_ancestor(self):
@@ -3734,21 +3759,21 @@ class ProcessStatusCommand(GenericCommand):
         ppid = int(self.get_state_of(get_pid())["PPid"])
         state = self.get_state_of(ppid)
         cmdline = self.get_cmdline_of(ppid)
-        print("\tParent PID {} {}".format(right_arrow, state["Pid"]))
-        print("\tCommand line {} '{}'".format(right_arrow, cmdline))
+        gef_print("\tParent PID {} {}".format(right_arrow, state["Pid"]))
+        gef_print("\tCommand line {} '{}'".format(right_arrow, cmdline))
         return
 
     def show_descendants(self):
         info("Children Process Information")
         children = self.get_children_pids(get_pid())
         if len(children)==0:
-            print("\tNo child process")
+            gef_print("\tNo child process")
             return
 
         for child_pid in children:
             state = self.get_state_of(child_pid)
             pid = state["Pid"]
-            print("\tPID {} {} (Name: '{}', CmdLine: '{}')".format(right_arrow,
+            gef_print("\tPID {} {} (Name: '{}', CmdLine: '{}')".format(right_arrow,
                                                                    pid,
                                                                    self.get_process_path_of(pid),
                                                                    self.get_cmdline_of(pid)))
@@ -3761,13 +3786,13 @@ class ProcessStatusCommand(GenericCommand):
         info("File Descriptors:")
         items = os.listdir(path)
         if len(items)==0:
-            print("\tNo FD opened")
+            gef_print("\tNo FD opened")
             return
 
         for fname in items:
             fullpath = os.path.join(path, fname)
             if os.path.islink(fullpath):
-                print("\t{:s} {:s} {:s}".format (fullpath, right_arrow, os.readlink(fullpath)))
+                gef_print("\t{:s} {:s} {:s}".format (fullpath, right_arrow, os.readlink(fullpath)))
         return
 
     def list_sockets(self, pid):
@@ -3810,7 +3835,7 @@ class ProcessStatusCommand(GenericCommand):
         pid = get_pid()
         sockets = self.list_sockets(pid)
         if len(sockets)==0:
-            print("\tNo open connections")
+            gef_print("\tNo open connections")
             return
 
         entries = {}
@@ -3827,7 +3852,7 @@ class ProcessStatusCommand(GenericCommand):
                     state = int(state, 16)
                     state_str = tcp_states_str[state] if proto=="TCP" else udp_states_str[state]
 
-                    print("\t{}:{} {} {}:{} ({})".format(local[0], local[1],
+                    gef_print("\t{}:{} {} {}:{} ({})".format(local[0], local[1],
                                                          right_arrow,
                                                          remote[0], remote[1],
                                                          state_str))
@@ -3868,7 +3893,7 @@ class GefThemeCommand(GenericCommand):
             for setting in sorted(self.settings):
                 value = self.get_setting(setting)
                 value = Color.colorify(value, attrs=value)
-                print("{:40s}: {:s}".format(setting, value))
+                gef_print("{:40s}: {:s}".format(setting, value))
             return
 
         setting = args[0]
@@ -3879,7 +3904,7 @@ class GefThemeCommand(GenericCommand):
         if argc==1:
             value = self.get_setting(setting)
             value = Color.colorify(value, attrs=value)
-            print("{:40s}: {:s}".format(setting, value))
+            gef_print("{:40s}: {:s}".format(setting, value))
             return
 
         val = [x for x in args[1:] if x in Color.colors]
@@ -3978,7 +4003,7 @@ class PCustomCommand(GenericCommand):
 
         for _name, _type in _class._fields_:
             _size = ctypes.sizeof(_type)
-            print("+{:04x} {:s} {:s} ({:#x})".format(_offset, _name, _type.__name__, _size))
+            gef_print("+{:04x} {:s} {:s} ({:#x})".format(_offset, _name, _type.__name__, _size))
             _offset += _size
         return
 
@@ -4043,7 +4068,7 @@ class PCustomCommand(GenericCommand):
             parsed_value = self.get_ctypes_value(_class, _name, _value)
             if parsed_value:
                 line += " {} {}".format(right_arrow, parsed_value)
-            print("".join(line))
+            gef_print("".join(line))
 
             if issubclass(_type, ctypes.Structure):
                 self.apply_structure_to_address(mod_name, _type.__name__, addr + _offset, depth + 1)
@@ -4265,7 +4290,7 @@ class IdaInteractCommand(GenericCommand):
                 if method_name in ("ImportStruct", "ImportStructs"):
                     self.import_structures(res)
                 else:
-                    print(res)
+                    gef_print(res)
 
             if self.get_setting("sync_cursor")==True:
                 jump = getattr(self.sock, "Jump")
@@ -4341,15 +4366,15 @@ class IdaInteractCommand(GenericCommand):
             return
 
         if meth is not None:
-            print(titlify(meth))
-            print(self.sock.system.methodHelp(meth))
+            gef_print(titlify(meth))
+            gef_print(self.sock.system.methodHelp(meth))
             return
 
         info("Listing available methods and syntax examples: ")
         for m in self.sock.system.listMethods():
             if m.startswith("system."): continue
-            print(titlify(m))
-            print(self.sock.system.methodHelp(m))
+            gef_print(titlify(m))
+            gef_print(self.sock.system.methodHelp(m))
         return
 
 
@@ -4455,7 +4480,7 @@ class SearchPatternCommand(GenericCommand):
                         ok(title)
                         old_section = addr_loc_start.section
 
-                print("""  {:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], right_arrow, Color.pinkify(loc[2]),))
+                gef_print("""  {:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], right_arrow, Color.pinkify(loc[2]),))
         return
 
     @only_if_gdb_running
@@ -4516,7 +4541,7 @@ class FlagsCommand(GenericCommand):
 
             gdb.execute("set ({:s}) = {:#x}".format(current_arch.flag_register, new_flags))
 
-        print(current_arch.flag_register_to_human())
+        gef_print(current_arch.flag_register_to_human())
         return
 
 
@@ -4889,7 +4914,7 @@ emulate(uc, %#x, %#x)
         ok("Starting emulation: %#x %s %#x" % (start_insn_addr, right_arrow, end_insn_addr))
 
         res = gef_execute_external(["python", tmp_filename], as_list=True)
-        print("\n".join(res))
+        gef_print("\n".join(res))
 
         if not kwargs.get("to_file", None):
             os.unlink(tmp_filename)
@@ -5273,13 +5298,13 @@ class CapstoneDisassembleCommand(GenericCommand):
                 msg = Color.colorify("{}   {}".format(right_arrow, text_insn), attrs="bold red")
                 branch_taken, reason = self.capstone_analyze_pc(insn, length)
                 if reason:
-                    print(msg)
-                    print(reason)
+                    gef_print(msg)
+                    gef_print(reason)
                     break
             else:
                 msg = "{} {}".format(" "*5, text_insn)
 
-            print(msg)
+            gef_print(msg)
         return
 
     def capstone_analyze_pc(self, insn, nb_insn):
@@ -5372,7 +5397,7 @@ class GlibcHeapArenaCommand(GenericCommand):
             return
 
         while True:
-            print("{}".format(arena))
+            gef_print("{}".format(arena))
             arena = arena.get_next()
             if arena is None:
                 break
@@ -5443,7 +5468,7 @@ class GlibcHeapChunksCommand(GenericCommand):
         while True:
 
             if current_chunk.chunk_base_address == arena.top:
-                print("{} {} {}".format(str(current_chunk), left_arrow, Color.greenify("top chunk")))
+                gef_print("{} {} {}".format(str(current_chunk), left_arrow, Color.greenify("top chunk")))
                 break
 
             if current_chunk.chunk_base_address > arena.top:
@@ -5456,7 +5481,7 @@ class GlibcHeapChunksCommand(GenericCommand):
             line = str(current_chunk)
             if nb:
                 line += "\n    [" + hexdump(read_memory(current_chunk.address, nb), nb, base=current_chunk.address)  + "]"
-            print(line)
+            gef_print(line)
 
             next_chunk = current_chunk.get_next_chunk()
             if next_chunk is None:
@@ -5522,7 +5547,7 @@ class GlibcHeapBinsCommand(GenericCommand):
             fw = chunk.fwd
             nb_chunk += 1
 
-        print("  ".join(m))
+        gef_print("  ".join(m))
         return nb_chunk
 
 @register_command
@@ -5552,25 +5577,25 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        print(titlify("Fastbins for arena {:#x}".format(int(arena))))
+        gef_print(titlify("Fastbins for arena {:#x}".format(int(arena))))
         for i in range(NFASTBINS):
-            print("Fastbins[idx={:d}, size={:#x}] ".format(i, (i+1)*SIZE_SZ*2), end="")
+            gef_print("Fastbins[idx={:d}, size={:#x}] ".format(i, (i+1)*SIZE_SZ*2), end="")
             chunk = arena.fastbin(i)
             chunks = []
 
             while True:
                 if chunk is None:
-                    print("0x00", end="")
+                    gef_print("0x00", end="")
                     break
 
                 try:
-                    print("{:s} {:s} ".format(left_arrow, str(chunk)), end="")
+                    gef_print("{:s} {:s} ".format(left_arrow, str(chunk)), end="")
                     if chunk.address in chunks:
-                        print("{:s} [loop detected]".format(right_arrow), end="")
+                        gef_print("{:s} [loop detected]".format(right_arrow), end="")
                         break
 
                     if fastbin_index(chunk.get_chunk_size()) != i:
-                        print("[incorrect fastbin_index] ", end="")
+                        gef_print("[incorrect fastbin_index] ", end="")
 
                     chunks.append(chunk.address)
 
@@ -5580,9 +5605,9 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
                     chunk = GlibcChunk(next_chunk, from_base=True)
                 except gdb.MemoryError:
-                    print("{:s} [Corrupted chunk at {:#x}]".format(left_arrow, chunk.address), end="")
+                    gef_print("{:s} [Corrupted chunk at {:#x}]".format(left_arrow, chunk.address), end="")
                     break
-            print()
+            gef_print()
         return
 
 @register_command
@@ -5604,7 +5629,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
             return
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
-        print(titlify("Unsorted Bin for arena '{:s}'".format(arena_addr)))
+        gef_print(titlify("Unsorted Bin for arena '{:s}'".format(arena_addr)))
         nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, 0, "unsorted_")
         if nb_chunk >= 0:
             info("Found {:d} chunks in unsorted bin.".format(nb_chunk))
@@ -5628,7 +5653,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
             return
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
-        print(titlify("Small Bins for arena '{:s}'".format(arena_addr)))
+        gef_print(titlify("Small Bins for arena '{:s}'".format(arena_addr)))
         bins = {}
         for i in range(1, 63):
             nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, i, "small_")
@@ -5657,7 +5682,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
             return
 
         arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
-        print(titlify("Large Bins for arena '{:s}'".format(arena_addr)))
+        gef_print(titlify("Large Bins for arena '{:s}'".format(arena_addr)))
         bins = {}
         for i in range(63, 126):
             nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, i, "large_")
@@ -5737,21 +5762,21 @@ class DetailRegistersCommand(GenericCommand):
                 for r in set(regs) & msr:
                     line = "{}: ".format( Color.colorify(r.strip(), attrs=regname_color) )
                     line+= "0x{:04x}".format(get_register(r))
-                    print(line, end="  ")
+                    gef_print(line, end="  ")
                     regs.remove(r)
-                print()
+                gef_print()
                 continue
 
             line = "{}: ".format( Color.colorify(regname, attrs=regname_color) )
 
             if str(reg) == "<unavailable>":
                 line += Color.colorify("no value", attrs="yellow underline")
-                print(line)
+                gef_print(line)
                 continue
 
             if regname.strip() == current_arch.flag_register:
                 line += current_arch.flag_register_to_human()
-                print(line)
+                gef_print(line)
                 continue
 
             old_value = ContextCommand.old_registers.get(regname, 0)
@@ -5777,7 +5802,7 @@ class DetailRegistersCommand(GenericCommand):
             except ValueError:
                 pass
 
-            print(line)
+            gef_print(line)
         return
 
 
@@ -5842,7 +5867,7 @@ class ShellcodeSearchCommand(GenericCommand):
             for ref in refs:
                 try:
                     _, arch, cmd, sid, _ = ref
-                    print("\t".join([sid, arch, cmd]))
+                    gef_print("\t".join([sid, arch, cmd]))
                 except ValueError:
                     continue
 
@@ -5966,11 +5991,11 @@ class AssembleCommand(GenericCommand):
 
     def usage(self):
         super(AssembleCommand, self).usage()
-        print("\nAvailable architectures/modes:")
+        gef_print("\nAvailable architectures/modes:")
         # for updates, see https://github.com/keystone-engine/keystone/blob/master/include/keystone/keystone.h
         for arch in self.valid_arch_modes:
-            print(" - {} ".format(arch))
-            print("  * {}".format( " / ".join(self.valid_arch_modes[arch]) ))
+            gef_print(" - {} ".format(arch))
+            gef_print("  * {}".format( " / ".join(self.valid_arch_modes[arch]) ))
         return
 
     def do_invoke(self, argv):
@@ -6019,13 +6044,13 @@ class AssembleCommand(GenericCommand):
                                                                      endian_s))
 
         if as_shellcode:
-            print("""sc="" """)
+            gef_print("""sc="" """)
 
         raw = b""
         for insn in insns:
             res = keystone_assemble(insn, arch, mode, raw=True)
             if res is None:
-                print("(Invalid)")
+                gef_print("(Invalid)")
                 continue
 
             if write_to_location:
@@ -6039,7 +6064,7 @@ class AssembleCommand(GenericCommand):
             if as_shellcode:
                 res = """sc+="{0:s}" """.format(res)
 
-            print("{0:60s} # {1}".format(res, insn))
+            gef_print("{0:60s} # {1}".format(res, insn))
 
         if write_to_location:
             l = len(raw)
@@ -6093,7 +6118,7 @@ class ProcessListingCommand(GenericCommand):
                 return None
 
             line = [process[i] for i in ("pid", "user", "cpu", "mem", "tty", "command")]
-            print("\t\t".join(line))
+            gef_print("\t\t".join(line))
 
         return None
 
@@ -6195,7 +6220,7 @@ class ElfInfoCommand(GenericCommand):
         ]
 
         for title, content in data:
-            print("{:<30}: {}".format(Color.boldify(title), content))
+            gef_print("{:<30}: {}".format(Color.boldify(title), content))
         return
 
 
@@ -6344,7 +6369,7 @@ class ContextCommand(GenericCommand):
             heap_addr_color = get_gef_setting("theme.address_heap")
             changed_register_color = get_gef_setting("theme.registers_value_changed")
 
-            print("[ Legend: {} | {} | {} | {} | {} ]".format( Color.colorify("Modified register", attrs=changed_register_color),
+            gef_print("[ Legend: {} | {} | {} | {} | {} ]".format( Color.colorify("Modified register", attrs=changed_register_color),
                                                                Color.colorify("Code", attrs=code_addr_color),
                                                                Color.colorify("Heap", attrs=heap_addr_color),
                                                                Color.colorify("Stack", attrs=stack_addr_color),
@@ -6392,7 +6417,7 @@ class ContextCommand(GenericCommand):
         msg_color = get_gef_setting("theme.context_title_message")
 
         if not m:
-            print(Color.colorify(horizontal_line * self.tty_columns, line_color))
+            gef_print(Color.colorify(horizontal_line * self.tty_columns, line_color))
             return
 
         trail_len = len(m) + 8
@@ -6404,7 +6429,7 @@ class ContextCommand(GenericCommand):
         title += Color.colorify(m, msg_color)
         title += Color.colorify(" ]{:{padd}<4}".format("", padd=horizontal_line),
                                 attrs=line_color)
-        print(title)
+        gef_print(title)
         return
 
     def context_regs(self):
@@ -6460,14 +6485,14 @@ class ContextCommand(GenericCommand):
                     line += "{:s} ".format(Color.colorify(format_address(new_value), attrs=color))
 
             if i % nb == 0 :
-                print(line)
+                gef_print(line)
                 line = ""
             i += 1
 
         if line:
-            print(line)
+            gef_print(line)
 
-        print("Flags: {:s}".format(current_arch.flag_register_to_human()))
+        gef_print("Flags: {:s}".format(current_arch.flag_register_to_human()))
         return
 
     def context_stack(self):
@@ -6480,7 +6505,7 @@ class ContextCommand(GenericCommand):
             sp = current_arch.sp
             if show_raw == True:
                 mem = read_memory(sp, 0x10 * nb_lines)
-                print(hexdump(mem, base=sp))
+                gef_print(hexdump(mem, base=sp))
             else:
                 gdb.execute("dereference {:#x} l{:d}".format(sp, nb_lines))
 
@@ -6533,7 +6558,7 @@ class ContextCommand(GenericCommand):
                 else:
                     line += "   {}".format(text)
 
-                print("".join(line))
+                gef_print("".join(line))
 
                 if is_taken:
                     target = insn.operands[-1].split()[0]
@@ -6545,7 +6570,7 @@ class ContextCommand(GenericCommand):
                         continue
                     for i, insn in enumerate(instruction_iterator(target, nb_insn)):
                         text= "   {}  {}".format (down_arrow if i==0 else " ", str(insn))
-                        print(text)
+                        gef_print(text)
                     break
 
         except gdb.MemoryError:
@@ -6619,12 +6644,12 @@ class ContextCommand(GenericCommand):
         self.context_title("arguments")
 
         if not  len(args):
-            print("{} (<void>)".format(function_name))
+            gef_print("{} (<void>)".format(function_name))
             return
 
-        print("{} (".format(function_name))
-        print("   " + ",\n   ".join(args))
-        print(")")
+        gef_print("{} (".format(function_name))
+        gef_print("   " + ",\n   ".join(args))
+        gef_print(")")
         return
 
     def print_guessed_arguments(self, function_name):
@@ -6684,10 +6709,10 @@ class ContextCommand(GenericCommand):
             args.append("{} = {}".format(_key, _value))
 
         self.context_title("arguments (guessed)")
-        print("{} (".format(function_name))
+        gef_print("{} (".format(function_name))
         if (len(args)):
-            print("   "+",\n   ".join(args))
-        print(")")
+            gef_print("   "+",\n   ".join(args))
+        gef_print(")")
         return
 
 
@@ -6717,17 +6742,17 @@ class ContextCommand(GenericCommand):
                 continue
 
             if i < line_num:
-                print(Color.grayify("   {:4d}\t {:s}".format(i + 1, lines[i],)))
+                gef_print(Color.grayify("   {:4d}\t {:s}".format(i + 1, lines[i],)))
 
             if i == line_num:
                 extra_info = self.get_pc_context_info(pc, lines[i])
                 if extra_info:
-                    print(extra_info)
-                print(Color.colorify("{}{:4d}\t {:s}".format(right_arrow, i + 1, lines[i]), attrs=cur_line_color))
+                    gef_print(extra_info)
+                gef_print(Color.colorify("{}{:4d}\t {:s}".format(right_arrow, i + 1, lines[i]), attrs=cur_line_color))
 
             if i > line_num:
                 try:
-                    print("   {:4d}\t {:s}".format(i + 1, lines[i],))
+                    gef_print("   {:4d}\t {:s}".format(i + 1, lines[i],))
                 except IndexError:
                     break
         return
@@ -6798,7 +6823,7 @@ class ContextCommand(GenericCommand):
                     break
                 items.append(Color.redify("{} {}".format(insn.mnemonic, ', '.join(insn.operands))))
 
-            print("[{:s}] {:s}".format(Color.colorify("#{:d}".format(i), "bold pink"),
+            gef_print("[{:s}] {:s}".format(Color.colorify("#{:d}".format(i), "bold pink"),
                                        right_arrow.join(items)))
             current_frame = current_frame.older()
             i += 1
@@ -6852,7 +6877,7 @@ class ContextCommand(GenericCommand):
                 line += ", reason: {}".format(Color.colorify(reason(), attrs="bold pink"))
             elif thread.is_exited():
                 line += Color.colorify("exited", attrs="bold yellow")
-            print(line)
+            gef_print(line)
             i += 1
         return
 
@@ -6996,7 +7021,7 @@ class MemoryWatchListCommand(GenericCommand):
 
         info("Memory watches:")
         for address, opt in sorted(__watches__.items()):
-            print("- {:#x} ({}, {})".format(address, opt[0], opt[1]))
+            gef_print("- {:#x} ({}, {})".format(address, opt[0], opt[1]))
         return
 
 
@@ -7056,7 +7081,7 @@ class HexdumpCommand(GenericCommand):
         if not up_to_down:
             lines.reverse()
 
-        print("\n".join(lines))
+        gef_print("\n".join(lines))
         return
 
 
@@ -7153,7 +7178,7 @@ class PatchStringCommand(GenericCommand):
         try:
             s = codecs.escape_decode(s)[0]
         except binascii.Error:
-            print("Could not decode '\\xXX' encoded string \"{}\"".format(s))
+            gef_print("Could not decode '\\xXX' encoded string \"{}\"".format(s))
             return
 
         write_memory(addr, s, len(s))
@@ -7244,7 +7269,7 @@ class DereferenceCommand(GenericCommand):
         start_address = align_address(addr)
 
         for i in range(from_insnum, to_insnum, insnum_step):
-            print(DereferenceCommand.pprint_dereferenced(start_address, i))
+            gef_print(DereferenceCommand.pprint_dereferenced(start_address, i))
 
         return
 
@@ -7335,7 +7360,7 @@ class ASLRCommand(GenericCommand):
             else:
                 msg += Color.greenify("enabled")
 
-            print(msg)
+            gef_print(msg)
             return
 
         elif argc == 1:
@@ -7386,9 +7411,9 @@ class VMMapCommand(GenericCommand):
         color = get_gef_setting("theme.xinfo_title_message")
         headers = [Color.colorify(x, attrs=color) for x in ["Start", "End", "Offset", "Perm", "Path"]]
         if is_elf64():
-            print("{:<31s} {:<31s} {:<31s} {:<4s} {:s}".format(*headers))
+            gef_print("{:<31s} {:<31s} {:<31s} {:<4s} {:s}".format(*headers))
         else:
-            print("{:<23s} {:<23s} {:<23s} {:<4s} {:s}".format(*headers))
+            gef_print("{:<23s} {:<23s} {:<23s} {:<4s} {:s}".format(*headers))
 
         for entry in vmmap:
             if argv and not argv[0] in entry.path:
@@ -7404,7 +7429,7 @@ class VMMapCommand(GenericCommand):
                 l.append(str(entry.permission))
 
             l.append(entry.path)
-            print(" ".join(l))
+            gef_print(" ".join(l))
         return
 
 
@@ -7424,9 +7449,9 @@ class XFilesCommand(GenericCommand):
         color = get_gef_setting("theme.xinfo_title_message")
         headers = [Color.colorify(x, attrs=color) for x in ["Start", "End", "Name", "File",]]
         if is_elf64():
-            print("{:<31s} {:<31s} {:<34s} {:s}".format(*headers))
+            gef_print("{:<31s} {:<31s} {:<34s} {:s}".format(*headers))
         else:
-            print("{:<23s} {:<23s} {:<23s} {:s}".format(*headers))
+            gef_print("{:<23s} {:<23s} {:<23s} {:s}".format(*headers))
 
         filter_by_file = argv[0] if len(argv) > 0 and argv[0] else None
         filter_by_name = argv[1] if len(argv) > 1 and argv[1] else None
@@ -7443,7 +7468,7 @@ class XFilesCommand(GenericCommand):
             l.append(format_address(xfile.zone_end))
             l.append("{:<21s}".format(xfile.name))
             l.append(xfile.filename)
-            print(" ".join(l))
+            gef_print(" ".join(l))
         return
 
 
@@ -7469,7 +7494,7 @@ class XAddressInfoCommand(GenericCommand):
         for sym in argv:
             try:
                 addr = align_address(parse_address(sym))
-                print(titlify("xinfo: {:#x}".format(addr)))
+                gef_print(titlify("xinfo: {:#x}".format(addr)))
                 self.infos(addr)
 
             except gdb.error as gdb_err:
@@ -7486,17 +7511,17 @@ class XAddressInfoCommand(GenericCommand):
         info = addr.info
 
         if sect:
-            print("Page: {:s} {:s} {:s} (size={:#x})".format(format_address(sect.page_start),
+            gef_print("Page: {:s} {:s} {:s} (size={:#x})".format(format_address(sect.page_start),
                                                              right_arrow,
                                                              format_address(sect.page_end),
                                                              sect.page_end-sect.page_start))
-            print("Permissions: {}".format(sect.permission))
-            print("Pathname: {:s}".format(sect.path))
-            print("Offset (from page): {:#x}".format(addr.value-sect.page_start))
-            print("Inode: {:s}".format(sect.inode))
+            gef_print("Permissions: {}".format(sect.permission))
+            gef_print("Pathname: {:s}".format(sect.path))
+            gef_print("Offset (from page): {:#x}".format(addr.value-sect.page_start))
+            gef_print("Inode: {:s}".format(sect.inode))
 
         if info:
-            print("Segment: {:s} ({:s}-{:s})".format(info.name,
+            gef_print("Segment: {:s} ({:s}-{:s})".format(info.name,
                                                      format_address(info.zone_start),
                                                      format_address(info.zone_end)))
 
@@ -7506,7 +7531,7 @@ class XAddressInfoCommand(GenericCommand):
             msg = "Symbol: {:s}".format(name)
             if offset:
                 msg+= "+{:d}".format(offset)
-            print(msg)
+            gef_print(msg)
 
         return
 
@@ -7548,11 +7573,11 @@ class XorMemoryDisplayCommand(GenericCommand):
         block = read_memory(address, length)
         info("Displaying XOR-ing {:#x}-{:#x} with {:s}".format(address, address + len(block), repr(key)))
 
-        print(titlify("Original block"))
-        print(hexdump(block, base=address))
+        gef_print(titlify("Original block"))
+        gef_print(hexdump(block, base=address))
 
-        print(titlify("XOR-ed block"))
-        print(hexdump(xor(block, key), base=address))
+        gef_print(titlify("XOR-ed block"))
+        gef_print(hexdump(xor(block, key), base=address))
         return
 
 @register_command
@@ -7632,7 +7657,7 @@ class TraceRunCommand(GenericCommand):
         logfile = "{:s}{:#x}-{:#x}.txt".format(self.get_setting("tracefile_prefix"), loc_start, loc_end)
         enable_redirect_output(to_file=logfile)
         disable_context()
-        self._do_trace(loc_start, loc_end, depth)
+        self.start_tracing(loc_start, loc_end, depth)
         enable_context()
         disable_redirect_output()
         ok("Done, logfile stored as '{:s}'".format(logfile))
@@ -7640,17 +7665,17 @@ class TraceRunCommand(GenericCommand):
         return
 
 
-    def _do_trace(self, loc_start, loc_end, depth):
+    def start_tracing(self, loc_start, loc_end, depth):
         loc_cur = loc_start
         frame_count_init = self.get_frames_size()
 
-        print("#")
-        print("# Execution tracing of {:s}".format(get_filepath()))
-        print("# Start address: {:s}".format(format_address(loc_start)))
-        print("# End address: {:s}".format(format_address(loc_end)))
-        print("# Recursion level: {:d}".format(depth))
-        print("# automatically generated by gef.py")
-        print("#\n")
+        gef_print("#")
+        gef_print("# Execution tracing of {:s}".format(get_filepath()))
+        gef_print("# Start address: {:s}".format(format_address(loc_start)))
+        gef_print("# End address: {:s}".format(format_address(loc_end)))
+        gef_print("# Recursion level: {:d}".format(depth))
+        gef_print("# automatically generated by gef.py")
+        gef_print("#\n")
 
         while loc_cur != loc_end:
             try:
@@ -7665,10 +7690,10 @@ class TraceRunCommand(GenericCommand):
                 gdb.flush()
 
             except gdb.error as e:
-                print("#")
-                print("# Execution interrupted at address {:s}".format(format_address(loc_cur)))
-                print("# Exception: {:s}".format(e))
-                print("#\n")
+                gef_print("#")
+                gef_print("# Execution interrupted at address {:s}".format(format_address(loc_cur)))
+                gef_print("# Exception: {:s}".format(e))
+                gef_print("#\n")
                 break
 
         return
@@ -7715,7 +7740,7 @@ class PatternCreateCommand(GenericCommand):
         size = get_gef_setting("pattern.length")
         info("Generating a pattern of {:d} bytes".format(size))
         pattern_str = gef_pystring(generate_cyclic_pattern(size))
-        print(pattern_str)
+        gef_print(pattern_str)
         ok("Saved as '{:s}'".format( gef_convenience(pattern_str) ))
         return
 
@@ -7799,8 +7824,7 @@ class ChecksecCommand(GenericCommand):
     - NX
     - RelRO
     - Glibc Stack Canaries
-    - Fortify Source
-    """
+    - Fortify Source"""
 
     _cmdline_ = "checksec"
     _syntax_  = "{:s} [FILENAME]".format(_cmdline_)
@@ -7845,14 +7869,14 @@ class ChecksecCommand(GenericCommand):
                 canary, _ = gef_read_canary()
                 msg+= "{} value: {:#x}".format(right_arrow, canary)
 
-            print("{:<30s}: {:s}".format(prop, msg))
+            gef_print("{:<30s}: {:s}".format(prop, msg))
 
         if sec["Full RelRO"]:
-            print("{:<30s}: {:s}".format("RelRO", Color.greenify("Full")))
+            gef_print("{:<30s}: {:s}".format("RelRO", Color.greenify("Full")))
         elif sec["Partial RelRO"]:
-            print("{:<30s}: {:s}".format("RelRO", Color.yellowify("Partial")))
+            gef_print("{:<30s}: {:s}".format("RelRO", Color.yellowify("Partial")))
         else:
-            print("{:<30s}: {:s}".format("RelRO", Color.redify("No")))
+            gef_print("{:<30s}: {:s}".format("RelRO", Color.redify("No")))
         return
 
 
@@ -7944,13 +7968,13 @@ class HeapAnalysisCommand(GenericCommand):
 
         if __heap_allocated_list__:
             ok("Tracked as in-use chunks:")
-            for addr, sz in __heap_allocated_list__: print("{} malloc({:d}) = {:#x}".format(cross, sz, addr))
+            for addr, sz in __heap_allocated_list__: gef_print("{} malloc({:d}) = {:#x}".format(cross, sz, addr))
         else:
             ok("No malloc() chunk tracked")
 
         if __heap_freed_list__:
             ok("Tracked as free-ed chunks:")
-            for addr, sz in __heap_freed_list__: print("{}  free({:d}) = {:#x}".format(tick, sz, addr))
+            for addr, sz in __heap_freed_list__: gef_print("{}  free({:d}) = {:#x}".format(tick, sz, addr))
         else:
             ok("No free() chunk tracked")
         return
@@ -8099,13 +8123,13 @@ class GefCommand(gdb.Command):
         self.loaded_commands = sorted(self.loaded_commands, key=lambda x: x[1]._cmdline_)
 
         if initial:
-            print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure".format(Color.greenify("GEF"), get_os(),
-                                                                                          Color.colorify("gef",attrs="underline yellow"),
-                                                                                          Color.colorify("gef config", attrs="underline pink")))
+            gef_print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure".format(Color.greenify("GEF"), get_os(),
+                                                                                            Color.colorify("gef",attrs="underline yellow"),
+                                                                                            Color.colorify("gef config", attrs="underline pink")))
 
             ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
             nb_cmds = len(self.loaded_commands)
-            print("{:s} commands loaded for GDB {:s} using Python engine {:s}".format(Color.colorify(str(nb_cmds), attrs="bold green"),
+            gef_print("{:s} commands loaded for GDB {:s} using Python engine {:s}".format(Color.colorify(str(nb_cmds), attrs="bold green"),
                                                                                       Color.colorify(gdb.VERSION, attrs="bold yellow"),
                                                                                       Color.colorify(ver, attrs="bold red")))
 
@@ -8132,8 +8156,8 @@ class GefHelpCommand(gdb.Command):
 
     def invoke(self, args, from_tty):
         self.dont_repeat()
-        print(titlify("GEF - GDB Enhanced Features"))
-        print(self.__doc__)
+        gef_print(titlify("GEF - GDB Enhanced Features"))
+        gef_print(self.__doc__)
         return
 
     def generate_help(self, commands):
@@ -8187,7 +8211,7 @@ class GefConfigCommand(gdb.Command):
             return
 
         if argc == 0:
-            print(titlify("GEF configuration settings"))
+            gef_print(titlify("GEF configuration settings"))
             self.print_settings()
             return
 
@@ -8196,10 +8220,10 @@ class GefConfigCommand(gdb.Command):
             names = list(filter(lambda x: x.startswith(prefix), __config__.keys()))
             if names:
                 if len(names)==1:
-                    print(titlify("GEF configuration setting: {:s}".format(names[0])))
+                    gef_print(titlify("GEF configuration setting: {:s}".format(names[0])))
                     self.print_setting(names[0], show_description=True)
                 else:
-                    print(titlify("GEF configuration settings matching '{:s}'".format(argv[0])))
+                    gef_print(titlify("GEF configuration settings matching '{:s}'".format(argv[0])))
                     for name in names: self.print_setting(name)
             return
 
@@ -8217,12 +8241,12 @@ class GefConfigCommand(gdb.Command):
         _setting = Color.colorify(plugin_name, attrs="pink bold underline")
         _type = _type.__name__
         _value = Color.colorify(str(_value), attrs="yellow") if _type!='str' else '"{:s}"'.format(Color.colorify(str(_value), attrs=string_color))
-        print("{:s} ({:s}) = {:s}".format(_setting, _type, _value))
+        gef_print("{:s} ({:s}) = {:s}".format(_setting, _type, _value))
 
         if show_description:
-            print("")
-            print(Color.colorify("Description:", attrs="bold underline"))
-            print("\t{:s}".format(_desc))
+            gef_print("")
+            gef_print(Color.colorify("Description:", attrs="bold underline"))
+            gef_print("\t{:s}".format(_desc))
         return
 
     def print_settings(self):
@@ -8492,7 +8516,7 @@ class GefAliases(gdb.Command):
         self.dont_repeat()
         ok("Aliases defined:")
         for _alias in __aliases__:
-            print("{:30s} {} {}".format(_alias._alias, right_arrow, _alias._command))
+            gef_print("{:30s} {} {}".format(_alias._alias, right_arrow, _alias._command))
         return
 
 
