@@ -43,6 +43,11 @@ _breakpoints = set()
 _current_instruction_color = None
 _current_instruction = 0
 
+try:
+  long        # Python 2
+except NameError:
+  long = int  # Python 3
+
 
 def expose(f):
     "Decorator to set exposed flag on a function."
