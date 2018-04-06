@@ -18,7 +18,7 @@ addons:
       - gcc
       - g++
       - pkg-config
-      - gdb python${TRAVIS_PYTHON_VERSION}-dbg
+      - gdb
       - pylint
       - git
       - cmake
@@ -37,7 +37,7 @@ install:
   - cat ~/.gdbinit
 
 script:
-  - gdb -q -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
+  - gdb python${TRAVIS_PYTHON_VERSION}-dbg -q -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
 
 
 notifications:
