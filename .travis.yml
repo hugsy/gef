@@ -1,4 +1,3 @@
-#sudo: required
 language: python
 
 python:
@@ -16,26 +15,18 @@ branches:
 addons:
   apt:
     packages:
-      - gcc
+      - cmake
       - g++
+      - gcc
       - gdb
+      - git
+      - libglib2.0-dev
       - pkg-config
       - python2.7-dbg
-      - python3.6-dbg
-      - git
-      - cmake
-      - libglib2.0-dev
 
-# before_script:
 install:
   - pip install --upgrade pip setuptools
   - pip install capstone flake8 keystone-engine pylint ropper unicorn
-  #- if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then sudo apt-get install gdb python2.7-dbg; fi
-  #- if [ "$TRAVIS_PYTHON_VERSION" != "2.7" ]; then sudo apt-get install gdb python3.6-dbg; fi
-  # stop the build if there are Python syntax errors or undefined names
-  ##- flake8 . --count --select=E901,E999,F821,F822,F823 --show-source --statistics
-  # exit-zero treats all errors as warnings.  The GitHub editor is 127 chars wide
-  ##- flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
   - echo "source `pwd`/gef.py" > ~/.gdbinit
  
 script:
