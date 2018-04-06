@@ -28,11 +28,9 @@ install:
   - pip install --upgrade pip setuptools
   - pip install capstone flake8 keystone-engine pylint ropper unicorn
   - echo "source `pwd`/gef.py" > ~/.gdbinit
- 
-script:
-  - sleep 2  # allow the previous command to complete
-  - gdb -q -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
 
+script:
+  - gdb -q -ex 'gef help' -ex 'gef config' -ex 'gef missing' -ex start -ex continue -ex quit /bin/ls
 
 notifications:
   email:
