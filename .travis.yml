@@ -23,6 +23,7 @@ addons:
       - libglib2.0-dev
       - pkg-config
       - python2.7-dbg
+      - python3-all-dbg
 
 install:
   - pip install --upgrade pip setuptools
