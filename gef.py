@@ -2670,14 +2670,11 @@ def set_arch(arch=None, default=None):
     """
     arches = {
         "ARM": ARM, Elf.ARM: ARM,
-        "AARCH64": AARCH64, Elf.AARCH64: AARCH64,
-        "ARM64": AARCH64,
+        "AARCH64": AARCH64, "ARM64": AARCH64, Elf.AARCH64: AARCH64,
         "X86": X86, Elf.X86_32: X86,
         "X86_64": X86_64, Elf.X86_64: X86_64,
-        "PowerPC": PowerPC, Elf.POWERPC: PowerPC,
-        "PPC": PowerPC,
-        "PowerPC64": PowerPC64, Elf.POWERPC64: PowerPC64,
-        "PPC64": PowerPC64,
+        "PowerPC": PowerPC, "PPC": PowerPC, Elf.POWERPC: PowerPC,
+        "PowerPC64": PowerPC64, "PPC64": PowerPC64, Elf.POWERPC64: PowerPC64,
         "SPARC": SPARC, Elf.SPARC: SPARC,
         "SPARC64": SPARC64, Elf.SPARC64: SPARC64,
         "MIPS": MIPS, Elf.MIPS: MIPS,
