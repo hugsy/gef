@@ -4782,7 +4782,7 @@ def set_fs(uc, addr):    return set_msr(uc, FSMSR, addr)
 """
 
 
-        content = """#!/usr/bin/python%d -i
+        content = """#!/usr/bin/python -i
 #
 # Emulation script for '%s' from %#x to %#x
 #
@@ -4842,7 +4842,7 @@ def print_regs(emu, regs):
 def reset():
     emu = unicorn.Uc(%s, %s)
 %s
-""" % (PYTHON_MAJOR, fname, start_insn_addr, end_insn_addr,
+""" % (fname, start_insn_addr, end_insn_addr,
        ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]),
        "True" if verbose else "False",
        cs_arch, cs_mode,
