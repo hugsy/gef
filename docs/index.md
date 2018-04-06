@@ -123,7 +123,7 @@ For a quick installation, simply use the `pip` packaged version:
 $ pip2 install capstone unicorn keystone-engine ropper
 
 # for Python3.x
-$ pip3 install capstone unicorn keystone-engine ropper retdec-python
+$ pip3 install capstone unicorn keystone-engine ropper
 ```
 
 Just make sure you are using the `pip` corresponding to the version of Python
