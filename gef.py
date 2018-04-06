@@ -8204,7 +8204,8 @@ class GefHelpCommand(gdb.Command):
         doc = "\n                         ".join(doc.split("\n"))
         aliases = "(alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
         w = get_terminal_size()[1] - 29 - len(aliases)
-        msg = "{cmd:<25s} -- {help:{w}s} {aliases:s}".format(cmd=cmd, help=Color.greenify(doc), w=w, aliases=aliases)
+        fmt = "{cmd:<25s} -- {help:%ss} {aliases:s}" % w
+        msg = fmt.format(cmd=cmd, help=Color.greenify(doc), w=w, aliases=aliases)
         self.docs.append(msg)
         return
 
