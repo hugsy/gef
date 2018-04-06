@@ -3,7 +3,7 @@ language: python
 
 python:
     - "2.7"
-    - "3.6"
+    #- "3.6"
 
 os:
     - linux
@@ -28,8 +28,8 @@ addons:
 install:
   - pip install --upgrade pip
   - pip install flake8 ropper keystone-engine capstone unicorn
-  - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then apt-get install gdb python2.7-dbg; fi
-  - if [ "$TRAVIS_PYTHON_VERSION" != "2.7" ]; then apt-get install gdb; fi
+  - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then sudo apt-get install gdb python2.7-dbg; fi
+  - if [ "$TRAVIS_PYTHON_VERSION" != "2.7" ]; then sudo apt-get install gdb; fi
   # stop the build if there are Python syntax errors or undefined names
   ##- flake8 . --count --select=E901,E999,F821,F822,F823 --show-source --statistics
   # exit-zero treats all errors as warnings.  The GitHub editor is 127 chars wide
