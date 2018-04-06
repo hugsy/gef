@@ -881,8 +881,7 @@ def show_last_exception():
     gdb.execute("show commands")
     print(" Runtime environment ".center(80, horizontal_line))
     print("* GDB: {}".format(gdb.VERSION))
-    print("* Python: {:d}.{:d}.{:d} - {:s}".format(sys.version_info.major, sys.version_info.minor,
-                                                   sys.version_info.micro, sys.version_info.releaselevel))
+    print("* Python: {}.{}.{} - {}".format(*sys.version_info))
     print("* OS: {:s} - {:s} ({:s}) on {:s}".format(platform.system(), platform.release(),
                                                     platform.architecture()[0],
                                                     " ".join(platform.dist())))
