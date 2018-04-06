@@ -1,3 +1,4 @@
+sudo: required
 language: python
 
 python:
@@ -34,10 +35,10 @@ install:
   # exit-zero treats all errors as warnings.  The GitHub editor is 127 chars wide
   ##- flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
   - echo "source `pwd`/gef.py" > ~/.gdbinit
-  - cat ~/.gdbinit
+  - cat ~/gef.py
 
 script:
-  - gdb python${TRAVIS_PYTHON_VERSION}-dbg -q -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
+  - gdb -q -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
 
 
 notifications:
