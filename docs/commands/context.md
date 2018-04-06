@@ -30,6 +30,7 @@ gef➤ gef config context.layout
 
 There are currently 6 sections that can be displayed:
 
+   * `legend` : a text explanation of the color code
    * `regs` : the state of registers
    * `stack` : the content of memory pointed by `$sp` register
    * `code` : the code being executed
@@ -46,7 +47,7 @@ To hide a section, simply use the `context.layout` setting, and prepend the
 section name with `-` or just omit it.
 
 ```
-gef➤ gef config context.layout "regs stack code args -source -threads -trace extra memory"
+gef➤ gef config context.layout "-legend regs stack code args -source -threads -trace extra memory"
 ```
 This configuration will not display the `source`, `threads`, and `trace` sections.
 
@@ -156,9 +157,4 @@ gef➤  gef config context.peek_calls False
 * Hide specific registers from the registers view.
 ```
 gef➤  gef config context.ignore_registers "$cs $ds $gs"
-```
-
-* Hide the legend
-```
-gef➤  gef config context.legend_position off
 ```
