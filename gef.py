@@ -2635,23 +2635,48 @@ def is_aarch64():
     return elf.e_machine == Elf.AARCH64
 
 
-def set_arch():
-    """Sets the current architecture."""
+def set_arch(arch=None, default=None):
+    """Sets the current architecture.
+    If an arch is explicitly specified, use that one, otherwise try to parse it
+    out of the ELF header. If that fails, and default is specified, select and
+    set that arch.
+    Return the selected arch, or raise an OSError.
+    """
+    arches = {
+        "ARM": ARM, Elf.ARM: ARM,
+        "AARCH64": AARCH64, Elf.AARCH64: AARCH64,
+        "ARM64": AARCH64,
+        "X86": X86, Elf.X86_32: X86,
+        "X86_64": X86_64, Elf.X86_64: X86_64,
+        "PowerPC": PowerPC, Elf.POWERPC: PowerPC,
+        "PPC": PowerPC,
+        "PowerPC64": PowerPC64, Elf.POWERPC64: PowerPC64,
+        "PPC64": PowerPC64,
+        "SPARC": SPARC, Elf.SPARC: SPARC,
+        "SPARC64": SPARC64, Elf.SPARC64: SPARC64,
+        "MIPS": MIPS, Elf.MIPS: MIPS,
+    }
     global current_arch, current_elf
 
+    if arch:
+        try:
+            current_arch = arches[arch.upper()]()
+            return current_arch
+        except KeyError:
+            raise OSError("Specified arch {:s} is not supported".format(arch.upper())) from None
+
     current_elf = current_elf or get_elf_headers()
-    if   current_elf.e_machine == Elf.ARM:        current_arch = ARM()
-    elif current_elf.e_machine == Elf.AARCH64:    current_arch = AARCH64()
-    elif current_elf.e_machine == Elf.X86_32:     current_arch = X86()
-    elif current_elf.e_machine == Elf.X86_64:     current_arch = X86_64()
-    elif current_elf.e_machine == Elf.POWERPC:    current_arch = PowerPC()
-    elif current_elf.e_machine == Elf.POWERPC64:  current_arch = PowerPC64()
-    elif current_elf.e_machine == Elf.SPARC:      current_arch = SPARC()
-    elif current_elf.e_machine == Elf.SPARC64:    current_arch = SPARC64()
-    elif current_elf.e_machine == Elf.MIPS:       current_arch = MIPS()
-    else:
-        raise OSError("CPU type is currently not supported: {:s}".format(get_arch()))
-    return
+    try:
+        current_arch = arches[current_elf.e_machine]()
+    except KeyError:
+        if default:
+            try:
+                current_arch = arches[default.upper()]()
+            except KeyError:
+                raise OSError("CPU not supported, neither is default {:s}".format(default.upper())) from None
+        else:
+            raise OSError("CPU type is currently not supported: {:s}".format(get_arch())) from None
+    return current_arch
 
 
 @lru_cache()
