@@ -1,33 +1,35 @@
+group: travis_latest
+sudo: required
 language: python
+cache: pip
 
-os:
-    - linux
+python:
+  - '2.7'
+  - '3.6'
 
 branches:
   only:
-    - master
     - dev
+    - master
 
 addons:
   apt:
     packages:
-      - python3
-      - gcc
-      - g++
-      - pkg-config
       - gdb
+      - python2.7-dbg
+      - python3-all-dbg
       - python3-pip
-      - pylint
-      - git
-      - cmake
-      - libglib2.0-dev
 
 before_script:
-  - pip3 install --user --upgrade ropper retdec-python keystone-engine capstone unicorn
+  - /usr/bin/python3 -m pip install --user capstone keystone-engine ropper
+  - sudo /usr/bin/python3 -m pip install --user unicorn
   - echo "source `pwd`/gef.py" > ~/.gdbinit
 
 script:
   - gdb -q -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
+  # TODO: Reenable the next two lines once hugsy/gef-extras#5 is resolved
+  # - scripts/gef-extras.sh
+  # - gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
 
 
 notifications:
