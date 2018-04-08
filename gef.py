@@ -2921,7 +2921,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         msg = []
         if is_x86_32():
             sp = current_arch.sp
-            sz =  current_arch.instruction_length
+            sz =  get_memory_alignment()
             val = sp + (self.num_args * sz) + sz
             ptr = read_int_from_memory(val)
             addr = lookup_address(ptr)
