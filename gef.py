@@ -286,30 +286,28 @@ def reset_all_caches():
 
 
 def gef_print(x="", *args, **kwargs):
-    global __gef_int_stream_buffer__
+    """Wrapper around print(), using string buffering feature."""
     if __gef_int_stream_buffer__ and not is_debug():
-        if "end" not in kwargs:
-            kwargs["end"] = "\n"
-        return __gef_int_stream_buffer__.write(x + kwargs["end"])
+        return __gef_int_stream_buffer__.write(x + kwargs.get("end", "\n"))
     return print(x, *args, **kwargs)
 
 
 def bufferize(f):
-    """Stores in memory the content to be printed for a function, and flushes it on function exit."""
+    """Store in memory the content to be printed for a function, and flush it on function exit."""
 
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         global __gef_int_stream_buffer__
 
-        if __gef_int_stream_buffer__ == None:
-            __gef_int_stream_buffer__ = StringIO()
+        if __gef_int_stream_buffer__:
             f(*args, **kwargs)
-            sys.stdout.write(__gef_int_stream_buffer__.getvalue())
-            sys.stdout.flush()
-            __gef_int_stream_buffer__ = None
-        else:
-            # else we're already are buffering, nothing to do
-            f(*args, **kwargs)
+            return
+
+        __gef_int_stream_buffer__ = StringIO()
+        f(*args, **kwargs)
+        sys.stdout.write(__gef_int_stream_buffer__.getvalue())
+        sys.stdout.flush()
+        __gef_int_stream_buffer__ = None
 
     return wrapper
 
@@ -379,7 +377,7 @@ class Address:
         return
 
     def __str__(self):
-        value = format_address( self.value )
+        value = format_address(self.value)
         code_color = get_gef_setting("theme.address_code")
         stack_color = get_gef_setting("theme.address_stack")
         heap_color = get_gef_setting("theme.address_heap")
