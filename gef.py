@@ -1923,11 +1923,11 @@ def read_int_from_memory(addr):
     return struct.unpack(fmt, mem)[0]
 
 
-def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH):
+def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding='unicode_escape'):
     """Return a C-string from memory."""
     char_t = cached_lookup_type("char")
     char_ptr = char_t.pointer()
-    res = gdb.Value(address).cast(char_ptr).string().strip()
+    res = gdb.Value(address).cast(char_ptr).string(encoding=encoding).strip()
     res2 = res.replace('\n','\\n').replace('\r','\\r').replace('\t','\\t')
 
     if max_length and len(res) > max_length:
