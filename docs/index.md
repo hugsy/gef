@@ -140,8 +140,11 @@ repository where anyone can freely submit their own commands to extend GDB via
 GEF's API.
 
 To benefit from it:
-
 ```bash
+# via the install script
+$ wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef-extras.sh | sh
+
+# manually
 # clone the repo
 $ https://github.com/hugsy/gef-extras.git
 # specify gef to load this directory
