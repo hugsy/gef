@@ -55,7 +55,7 @@ run_on_git_revisions() {
         git reset --hard --quiet
     done
 
-    echo "Restoring original commit: $(git log --oneline -1 $orig_rev)"
+    echo "Restoring original commit/branch: $orig_rev"
     git checkout --quiet $orig_rev
 }
 
