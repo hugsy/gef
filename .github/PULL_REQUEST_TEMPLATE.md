@@ -1,39 +1,22 @@
-## Descriptive title of your patch ##
+## <TITLE OF YOUR PATCH HERE> ##
 
-### Description ###
-<!--- Describe technically what your patch does. -->
-
-
-### Related Issue ###
-
-https://github.com/hugsy/gef/issues/XX
-
-
-### Motivation and Context ###
-
-<!--- Why is this change required? What problem does it solve? -->
-<!--- Why is this patch will make a better world? -->
-
+### Description/Motivation/Screenshots ###
+<!-- Describe technically what your patch does. -->
+<!-- Why is this change required? What problem does it solve? -->
+<!-- Why is this patch will make a better world? -->
+<!-- How does this look? Add a screenshot if you can -->
 
 ### How Has This Been Tested? ###
 
-Has this patch been tested on (example)
-
 | Architecture | Yes/No                   | Comments               |
 |--------------|:------------------------:|------------------------|
-| x86-32       | :heavy_check_mark:       | rock'n roll            |
+| x86-32       | :heavy_multiplication_x: |                        |
 | x86-64       | :heavy_multiplication_x: |                        |
-| ARM          | :heavy_check_mark:       |                        |
+| ARM          | :heavy_multiplication_x: |                        |
 | AARCH64      | :heavy_multiplication_x: |                        |
-| MIPS         | :heavy_check_mark:       |                        |
-| POWERPC      | :heavy_check_mark:       |                        |
-| SPARC        | :heavy_multiplication_x: | Who uses SPARC anyway? |
-
-
-### Screenshots (if applicable) ###
-
-<!--- Screenshots make everything better. -->
-
+| MIPS         | :heavy_multiplication_x: |                        |
+| POWERPC      | :heavy_multiplication_x: |                        |
+| SPARC        | :heavy_multiplication_x: |                        |
 
 ### Types of changes ###
 
@@ -46,6 +29,5 @@ Has this patch been tested on (example)
 
 <!--- Put an `x` in all the boxes that apply. -->
 - [ ] My code follows the code style of this project.
-- [ ] My change requires a change to the documentation.
-- [ ] I have updated the documentation accordingly.
+- [ ] My change includes a change to the documentation, if required.
 - [ ] I have read and agree to the **CONTRIBUTING** document.
