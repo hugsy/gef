@@ -30,12 +30,22 @@ clear_stats() {
     fi
 }
 
+get_current_branch_or_commit() {
+    b=`git branch | grep '\* '`
+    case "$b" in
+        *HEAD*)
+            echo "$b" | tr -d ')' | cut -f 5 -d ' ';;
+        *)
+            echo "$b" | cut -f 2 -d ' ';;
+    esac
+}
+
 run_on_git_revisions() {
     start_ref=$1
     end_ref=$2
     test_command=$3
 
-    orig_rev=`git rev-list @^..@`
+    orig_rev=`get_current_branch_or_commit`
     revs=`git rev-list --reverse ${start_ref}..${end_ref}`
 
     for rev in $revs; do
