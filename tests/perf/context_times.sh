@@ -1,15 +1,16 @@
 #!/bin/bash
 
+# Bail out early on an unexpected error
 set -e
 
 time_gef_context() {
     # Run twice to minimize jitter
-    gdb -ex 'start' -ex 'ni' -ex 'ni' -ex 'quit' ../binaries/pattern.out >/dev/null 2>&1
-    (time gdb -ex 'start' -ex 'ni' -ex 'ni' -ex 'quit' ../binaries/pattern.out 2>&1 >/dev/null) |& get_real_time
+    gdb -ex 'start' -ex 'ni' -ex 'pi import profile' -ex "pi profile.run(\"gdb.execute('context')\", sort=\"cumtime\")" -ex 'quit' ../binaries/pattern.out >/dev/null 2>&1
+    gdb -ex 'start' -ex 'ni' -ex 'pi import profile' -ex "pi profile.run(\"gdb.execute('context')\", sort=\"cumtime\")" -ex 'quit' ../binaries/pattern.out 2>&1 | get_context_time
 }
 
-get_real_time() {
-    grep real | tr -s ' ' | cut -f 2 | cut -f 2 -d 'm' | cut -f 1 -d 's'
+get_context_time() {
+    grep "gdb.execute('context')" | tr -s ' ' | cut -d ' ' -f 5
 }
 
 log_this_revision() {
