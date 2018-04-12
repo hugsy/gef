@@ -5,8 +5,8 @@ set -e
 
 time_gef_context() {
     # Run twice to minimize jitter
-    gdb -ex 'start' -ex 'ni' -ex 'pi import profile' -ex "pi profile.run(\"gdb.execute('context')\", sort=\"cumtime\")" -ex 'quit' ../binaries/pattern.out >/dev/null 2>&1
-    gdb -ex 'start' -ex 'ni' -ex 'pi import profile' -ex "pi profile.run(\"gdb.execute('context')\", sort=\"cumtime\")" -ex 'quit' ../binaries/pattern.out 2>&1 | get_context_time
+    gdb -ex 'start' -ex 'pi import profile' -ex "pi profile.run(\"gdb.execute('context')\", sort=\"cumtime\")" -ex 'quit' ../binaries/pattern.out >/dev/null 2>&1
+    gdb -ex 'start' -ex 'pi import profile' -ex "pi profile.run(\"gdb.execute('context')\", sort=\"cumtime\")" -ex 'quit' ../binaries/pattern.out 2>&1 | get_context_time
 }
 
 get_context_time() {
