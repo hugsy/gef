@@ -28,8 +28,8 @@ before_script:
 script:
   - gdb -q -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
   # TODO: Reenable the next two lines once hugsy/gef-extras#5 is resolved
-  # - scripts/gef-extras.sh
-  # - gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
+  - scripts/gef-extras.sh
+  - gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
 
 
 notifications:
