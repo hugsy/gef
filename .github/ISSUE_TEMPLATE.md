@@ -31,6 +31,7 @@ Feel free to include in this section screenshots, stack traces, or
 code to reproduce
 ```
 
-By enabling `gef.debug` (`gef config gef.debug 1`), gef will display a
-full stack trace if an exception occurs. It is a good idea to copy/paste it here
-as it contains useful information making it easier to reproduce.
+If you enable `gef.debug` (`gef config gef.debug 1`), gef will display a
+full stack trace when an exception occurs. It is a good idea to copy/paste it here
+(and/or add a screen shot) as it contains useful information that will make it easier
+to reproduce.
