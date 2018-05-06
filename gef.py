@@ -201,7 +201,7 @@ GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "ge
 GEF_MAX_STRING_LENGTH                  = 50
 
 GDB_MIN_VERSION                         = (7, 7)
-GDB_VERSION_MAJOR, GDB_VERSION_MINOR    = [int(_) for _ in gdb.VERSION.replace("Fedora ","").replace("-",".").split(".")[:2]]
+GDB_VERSION_MAJOR, GDB_VERSION_MINOR    = [int(_) for _ in re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()]
 GDB_VERSION                             = (GDB_VERSION_MAJOR, GDB_VERSION_MINOR)
 
 current_elf  = None
