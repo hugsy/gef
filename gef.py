@@ -2735,7 +2735,7 @@ def set_arch(arch=None, default=None):
             current_arch = arches[arch.upper()]()
             return current_arch
         except KeyError:
-            raise OSError("Specified arch {:s} is not supported".format(arch.upper())) from None
+            raise OSError("Specified arch {:s} is not supported".format(arch.upper()))
 
     current_elf = current_elf or get_elf_headers()
     try:
@@ -2745,9 +2745,9 @@ def set_arch(arch=None, default=None):
             try:
                 current_arch = arches[default.upper()]()
             except KeyError:
-                raise OSError("CPU not supported, neither is default {:s}".format(default.upper())) from None
+                raise OSError("CPU not supported, neither is default {:s}".format(default.upper()))
         else:
-            raise OSError("CPU type is currently not supported: {:s}".format(get_arch())) from None
+            raise OSError("CPU type is currently not supported: {:s}".format(get_arch()))
     return current_arch
 
 
@@ -3437,8 +3437,7 @@ class GenericCommand(gdb.Command):
 
     def invoke(self, args, from_tty):
         try:
-            argv = gdb.string_to_argv(args)
-            #bufferize(self.do_invoke(argv))
+            bufferize(self.do_invoke(argv))
             self.do_invoke(argv)
         except Exception as e:
             # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
@@ -3459,7 +3458,6 @@ class GenericCommand(gdb.Command):
     @abc.abstractproperty
     def _syntax_(self): pass
 
-    # @classmethod
     @abc.abstractproperty
     def _example_(cls): return ""
 
@@ -3470,6 +3468,15 @@ class GenericCommand(gdb.Command):
 
     def post_load(self): pass
 
+    def __get_setting_name(self, name):
+        def __sanitize_class_name(clsname):
+            if " " not in clsname:
+                return clsname
+            return "-".join(clsname.split())
+
+        class_name = __sanitize_class_name(self.__class__._cmdline_)
+        return "{:s}.{:s}".format(class_name, name)
+
     @property
     def settings(self):
         """Return the list of settings for this command."""
@@ -3477,21 +3484,21 @@ class GenericCommand(gdb.Command):
                  if x.startswith("{:s}.".format(self._cmdline_)) ]
 
     def get_setting(self, name):
-        key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
+        key = self.__get_setting_name(name)
         setting = __config__[key]
         return setting[1](setting[0])
 
     def has_setting(self, name):
-        key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
+        key = self.__get_setting_name(name)
         return key in __config__
 
     def add_setting(self, name, value, description=""):
-        key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
+        key = self.__get_setting_name(name)
         __config__[key] = [value, type(value), description]
         return
 
     def del_setting(self, name):
-        key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
+        key = self.__get_setting_name(name)
         del __config__[key]
         return
 
