@@ -3519,7 +3519,7 @@ class PieRunCommand(GenericCommand):
         # get base address
         gdb.execute("set stop-on-solib-events 1")
         disable_context()
-        gdb.execute("run")
+        gdb.execute("run {}".format(" ".join(argv)))
         enable_context()
         gdb.execute("set stop-on-solib-events 0")
         vmmap = get_process_maps()
