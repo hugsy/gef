@@ -6841,16 +6841,18 @@ class ContextCommand(GenericCommand):
         self.context_title("threads")
 
         threads = gdb.selected_inferior().threads()[::-1]
-        idx = self.get_setting("nb_lines_threads") or -1
+        idx = self.get_setting("nb_lines_threads")
         if idx > 0:
             threads = threads[0:idx]
 
-        if not threads:
-            warn("No thread selected")
+        if idx==0:
             return
 
-        i = 0
-        for thread in threads:
+        if len(threads) < 1:
+            err("No thread selected")
+            return
+
+        for i, thread in enumerate(threads):
             line = """[{:s}] Id {:d}, Name: "{:s}", """.format(Color.colorify("#{:d}".format(i), attrs="bold pink"),
                                                                thread.num, thread.name or "")
             if thread.is_running():
@@ -6861,7 +6863,6 @@ class ContextCommand(GenericCommand):
             elif thread.is_exited():
                 line += Color.colorify("exited", attrs="bold yellow")
             print(line)
-            i += 1
         return
 
 
