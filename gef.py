@@ -3437,7 +3437,11 @@ class GenericCommand(gdb.Command):
 
     def invoke(self, args, from_tty):
         try:
-            bufferize(self.do_invoke(args))
+            if PYTHON_MAJOR == 2:
+                argv = gdb.string_to_argv(args)
+                self.do_invoke(argv)
+            else:
+                bufferize(self.do_invoke(args))
         except Exception as e:
             # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
             # catching generic Exception, but rather specific ones. This is allows a much cleaner use.
