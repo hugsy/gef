@@ -3345,6 +3345,15 @@ class GenericCommand(gdb.Command):
 
     def post_load(self): pass
 
+    def __get_setting_name(self, name):
+        def __sanitize_class_name(clsname):
+            if " " not in clsname:
+                return clsname
+            return "-".join(clsname.split())
+
+        class_name = __sanitize_class_name(self.__class__._cmdline_)
+        return "{:s}.{:s}".format(class_name, name)
+
     @property
     def settings(self):
         """Return the list of settings for this command."""
@@ -3352,21 +3361,21 @@ class GenericCommand(gdb.Command):
                  if x.startswith("{:s}.".format(self._cmdline_)) ]
 
     def get_setting(self, name):
-        key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
+        key = self.__get_setting_name(name)
         setting = __config__[key]
         return setting[1](setting[0])
 
     def has_setting(self, name):
-        key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
+        key = self.__get_setting_name(name)
         return key in __config__
 
     def add_setting(self, name, value, description=""):
-        key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
+        key = self.__get_setting_name(name)
         __config__[key] = [value, type(value), description]
         return
 
     def del_setting(self, name):
-        key = "{:s}.{:s}".format(self.__class__._cmdline_, name)
+        key = self.__get_setting_name(name)
         del __config__[key]
         return
 
