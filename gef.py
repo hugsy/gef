@@ -8029,17 +8029,22 @@ class GefCommand(gdb.Command):
         GefSetCommand()
         GefRunCommand()
 
-        # restore saved settings (if any)
-        if os.access(GEF_RC, os.R_OK):
-            gdb.execute("gef restore")
-
-        # restore the follow-fork-mode policy
-        if __config__.get("gef.follow_child")[0]:
-            gdb.execute("set follow-fork-mode child")
-        else:
-            gdb.execute("set follow-fork-mode parent")
+        # load the saved settings
+        gdb.execute("gef restore")
 
         # restore the autosave/autoreload breakpoints policy (if any)
+        self.__reload_auto_breakpoints()
+
+        # load plugins from `extra_plugins_dir`
+        if self.__load_extra_plugins() > 0:
+            # if here, at least one extra plugin was loaded, so we need to restore
+            # the settings once more
+            gdb.execute("gef restore quiet")
+
+        return
+
+
+    def __reload_auto_breakpoints(self):
         bkp_fname = __config__.get("gef.autosave_breakpoints_file", None)
         bkp_fname = bkp_fname[0] if bkp_fname else None
         if bkp_fname:
@@ -8054,8 +8059,11 @@ class GefCommand(gdb.Command):
                 "end"
             ]
             gef_execute_gdb_script("\n".join(source) + "\n")
+        return
 
-        # load plugins from `extra_plugins_dir`
+
+    def __load_extra_plugins(self):
+        nb_added = -1
         try:
             nb_inital = len(self.loaded_commands)
             directories = get_gef_setting("gef.extra_plugins_dir")
@@ -8073,10 +8081,9 @@ class GefCommand(gdb.Command):
             if nb_added > 0:
                 ok("{:s} extra commands added from '{:s}'".format(Color.colorify(str(nb_added), attrs="bold green"),
                                                                   Color.colorify(directory, attrs="bold blue")))
-
         except gdb.error as e:
             err("failed: {}".format(str(e)))
-        return
+        return nb_added
 
 
     @property
@@ -8349,11 +8356,12 @@ class GefRestoreCommand(gdb.Command):
 
     def invoke(self, args, from_tty):
         self.dont_repeat()
+        if not os.access(GEF_RC, os.R_OK):
+            return
+
+        quiet = args.lower() == "quiet"
         cfg = configparser.ConfigParser()
         cfg.read(GEF_RC)
-
-        if not cfg.sections():
-            return
 
         for section in cfg.sections():
             if section == "aliases":
@@ -8373,10 +8381,11 @@ class GefRestoreCommand(gdb.Command):
                     else:
                         new_value = _type(new_value)
                     __config__[key][0] = new_value
-                except Exception:
+                except Exception as e:
                     pass
 
-        ok("Configuration from '{:s}' restored".format(Color.colorify(GEF_RC, attrs="bold blue")))
+        if not quiet:
+            ok("Configuration from '{:s}' restored".format(Color.colorify(GEF_RC, attrs="bold blue")))
         return
 
 
