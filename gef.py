@@ -94,7 +94,17 @@ if PYTHON_MAJOR == 2:
     import xmlrpclib
 
     # Compat Py2/3 hacks
-    range = xrange
+    def range(*args):
+        """Replace range() builtin with an iterator version."""
+        if len(args) < 1:
+            raise TypeError()
+        start, end, step = 0, args[0], 1
+        if len(args) == 2: start, end = args
+        if len(args) == 3: start, end, step = args
+        for n in itertools.count(start=start, step=step):
+            if n >= end: break
+            yield n
+
     FileNotFoundError = IOError
     ConnectionRefusedError = socket.error
 
