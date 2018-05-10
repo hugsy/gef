@@ -102,7 +102,7 @@ if PYTHON_MAJOR == 2:
         if len(args) == 2: start, end = args
         if len(args) == 3: start, end, step = args
         for n in itertools.count(start=start, step=step):
-            if n >= end: break
+            if (step>0 and n >= end) or (step<0 and n<=end): break
             yield n
 
     FileNotFoundError = IOError
@@ -1933,8 +1933,11 @@ def read_int_from_memory(addr):
     return struct.unpack(fmt, mem)[0]
 
 
-def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding='unicode_escape'):
+def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding=None):
     """Return a C-string from memory."""
+    if not encoding:
+        encoding = "unicode_escape" if PYTHON_MAJOR==3 else "ascii"
+
     char_t = cached_lookup_type("char")
     char_ptr = char_t.pointer()
     res = gdb.Value(address).cast(char_ptr).string(encoding=encoding).strip()
