@@ -298,7 +298,7 @@ class Color:
     """Colorify class."""
     colors = {
         "normal"         : "\033[0m",
-        "gray"           : "\033[1;30m",
+        "gray"           : "\033[1;38;5;240m",
         "red"            : "\033[31m",
         "green"          : "\033[32m",
         "yellow"         : "\033[33m",
