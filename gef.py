@@ -6790,6 +6790,8 @@ class ContextCommand(GenericCommand):
         self.context_title("trace")
 
         nb_backtrace = self.get_setting("nb_lines_backtrace")
+        if nb_backtrace <= 0:
+            return
         orig_frame = current_frame = gdb.selected_frame()
         i = 0
 
