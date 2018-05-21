@@ -8687,5 +8687,10 @@ if __name__  == "__main__":
         gef_on_new_hook(new_objfile_handler)
         gef_on_exit_hook(exit_handler)
 
+        if gdb.current_progspace().filename is not None:
+            # if here, we are sourcing gef from a gdb session already attached
+            # we must force a call to the new_objfile handler (see issue #278)
+            new_objfile_handler(None)
+
         GefAliases()
         GefTmuxSetup()
