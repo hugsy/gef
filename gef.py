@@ -1379,6 +1379,7 @@ class ARM(Architecture):
         5: "thumb"
     }
     function_parameters = ["$r0", "$r1", "$r2", "$r3"]
+    syscall_register = "$r0"
 
     @property
     def instruction_length(self):
@@ -1453,7 +1454,7 @@ class AARCH64(ARM):
         6: "fast"
     }
     function_parameters = ["$x0", "$x1", "$x2", "$x3"]
-
+    syscall_register = "$x0"
 
     def is_call(self, insn):
         mnemo = insn.mnemonic
@@ -1545,6 +1546,7 @@ class X86(Architecture):
         17: "virtualx86",
         21: "identification",
     }
+    syscall_register = "$eax"
 
     def flag_register_to_human(self, val=None):
         reg = self.flag_register
@@ -1636,6 +1638,7 @@ class X86_64(X86):
     all_registers = gpr_registers + [ X86.flag_register, ] + X86.msr_registers
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
+    syscall_register = "$rax"
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
@@ -1676,6 +1679,7 @@ class PowerPC(Architecture):
         28: "overflow[7]",
     }
     function_parameters = ["$i0", "$i1", "$i2", "$i3", "$i4", "$i5"]
+    syscall_register = "$r0"
 
     def flag_register_to_human(self, val=None):
         # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
@@ -1755,6 +1759,7 @@ class SPARC(Architecture):
         5: "trap",
     }
     function_parameters = ["$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",]
+    syscall_register = "%g1"
 
     def flag_register_to_human(self, val=None):
         # http://www.gaisler.com/doc/sparcv8.pdf
@@ -1861,6 +1866,7 @@ class MIPS(Architecture):
     flag_register = "$fcsr"
     flags_table = {}
     function_parameters = ["$a0", "$a1", "$a2", "$a3"]
+    syscall_register = "$v0"
 
     def flag_register_to_human(self, val=None):
         return Color.colorify("No flag register", attrs="yellow underline")
@@ -4751,6 +4757,7 @@ def set_gs(uc, addr):    return set_msr(uc, GSMSR, addr)
 def set_fs(uc, addr):    return set_msr(uc, FSMSR, addr)
 
 """
+
             context_segmentation_block = """
     emu.mem_map(SEGMENT_FS_ADDR-0x1000, 0x3000)
     set_fs(emu, SEGMENT_FS_ADDR)
@@ -4773,14 +4780,12 @@ import capstone, unicorn
 registers = collections.OrderedDict(sorted({%s}.items(), key=lambda t: t[0]))
 uc = None
 verbose = %s
-syscall_register = "$rax"
-
+syscall_register = "%s"
 
 def disassemble(code, addr):
     cs = capstone.Cs(%s, %s)
     for i in cs.disasm(str(code),addr):
         return i
-
 
 def hook_code(emu, address, size, user_data):
     code = emu.mem_read(address, size)
@@ -4788,39 +4793,37 @@ def hook_code(emu, address, size, user_data):
     print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
     return
 
-
 def code_hook(emu, address, size, user_data):
     code = emu.mem_read(address, size)
     insn = disassemble(code, address)
     print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
     return
 
-
 def intr_hook(emu, intno, data):
     print(" \-> interrupt={:d}".format(intno))
     return
-
 
 def syscall_hook(emu, user_data):
     sysno = emu.reg_read(registers[syscall_register])
     print(" \-> syscall={:d}".format(sysno))
     return
 
-
 def print_regs(emu, regs):
     for i, r in enumerate(regs):
         print("{:7s} = 0x{:0%dx}  ".format(r, emu.reg_read(regs[r])), end="")
-        if i %% 4 == 3: print("")
+        if (i %% 4 == 3) or (i == len(regs)-1): print("")
     return
 
 %s
 
 def reset():
     emu = unicorn.Uc(%s, %s)
+
 %s
 """ % (fname, start_insn_addr, end_insn_addr,
        ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]),
        "True" if verbose else "False",
+       current_arch.syscall_register,
        cs_arch, cs_mode,
        16 if is_elf64() else 8,
        emulate_segmentation_block if (is_x86_32() or is_x86_64() ) else "",
