@@ -3438,6 +3438,54 @@ class GenericCommand(gdb.Command):
 #         return
 
 @register_command
+class PrintFormatCommand(GenericCommand):
+    """Print bytes format in high level languages"""
+
+    _cmdline_ = "print-format"
+    _syntax_  = "{:s} (py|c|js) (8|16|32|64) ADDRESS LENGTH".format(_cmdline_)
+    bitformat = {8: '<B', 16: '<H', 32: '<I', 64: '<L'}
+    c_type = {8: 'char', 16: 'short', 32: 'int', 64: 'long'}
+
+    def __init__(self):
+        super(PrintFormatCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+        return
+
+    def do_invoke(self, argv):
+        if len(argv) < 4:
+            self.usage()
+            return
+
+        lang = argv[0]
+        bitlen = long(argv[1])
+        start_addr = long(gdb.parse_and_eval(argv[2]))
+        length = long(argv[3])
+
+        size = long(bitlen / 8)
+        end_addr = start_addr+length*size
+        bf = self.bitformat[bitlen]
+        data = []
+
+        for address in range(start_addr, end_addr, size):
+            value = struct.unpack(bf, read_memory(address, size))[0]
+            data += [value]
+        sdata = ", ".join(map(hex, data))
+        
+        if lang == 'py':
+            print('buf = ['.format(bitlen), end='')
+            print(sdata, end='')
+            print(']')
+
+        elif lang == 'c':
+            print('unsigned {0} buf[{1}] = {{ '.format(self.c_type[bitlen], length), end='')
+            print(sdata, end='')
+            print(' };')
+
+        elif lang == 'js':
+            print('var buf = ['.format(bitlen), end='')
+            print(sdata, end='')
+            print('];')
+
+@register_command
 class PieCommand(GenericCommand):
     """PIE breakpoint support."""
 
