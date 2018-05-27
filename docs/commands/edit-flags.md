@@ -10,10 +10,10 @@ One or many arguments can be provided, following the syntax below:
 gef➤ flags [(+|-|~)FLAGNAME ...]
 ```
 Where `FLAGNAME` is the name of the flag (case insensitive), and `+|-|~` indicates
-the action on wether to set, unset, or toggle the flag.
+the action on whether to set, unset, or toggle the flag.
 
 For instance, on x86 architecture, if we don't want to take a conditional jump
-(`jz` condition), but we want to have the Carry flag set, simply go with:
+(e.g. a `jz` instruction), but we want to have the Carry flag set, simply go with:
 
 ```
 gef➤ flags -ZERO +CARRY

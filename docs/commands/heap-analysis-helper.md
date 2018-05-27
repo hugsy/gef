@@ -1,7 +1,7 @@
 ## Command heap-analysis-helper ##
 
 `heap-analysis-helper` command aims to help the process of idenfitying Glibc
-heap inconsistencies by tracking and analyzing allocations and liberations of
+heap inconsistencies by tracking and analyzing allocations and deallocations of
 chunks of memory.
 
 Currently, the following issues can be tracked:
@@ -11,7 +11,7 @@ Currently, the following issues can be tracked:
    * Double Free
    * Heap overlap
 
-The helper can simply be activated by running the command `heap-analysis-helper`
+The helper can simply be activated by running the command `heap-analysis-helper`.
 
 ```
 gef➤ heap-analysis
@@ -43,11 +43,9 @@ The following settings are accepted:
 
 ![uaf](https://i.imgur.com/NfV5Cu9.png)
 
-
 Just like the format string vulnerability helper, the `heap-analysis-helper`
 can fail to detect complex heap scenarios and/or provide some false positive
 alerts. Each finding must of course be ascertained manually.
-
 
 The `heap-analysis-helper` can also be used to simply track allocation and
 liberation of chunks of memory. One can simply enable the tracking by setting

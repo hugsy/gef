@@ -1,21 +1,21 @@
-## Command config
+## Command config ##
 
-`gef` can also be configured at runtime through a configuration file locate at
-`~/.gef.rc`.
+In addition to reading its config from _~/.gef.rc~, `gef` can also be
+configured at runtime with the `gef config` command.
 
-To view all the defined settings for all commands loaded:
+To view all settings for all commands loaded:
 ```
 gef➤  gef config
 ```
 ![gef-config](https://i.imgur.com/bd2ZqsU.png)
 
-Or get one setting value:
+Or to get one setting value:
 ```
 gef➤  gef config pcustom.struct_path
 ```
 
-Feel free to edit the values. For example, if you want the screen to be cleared
-before displaying the current context when reaching a breakpoing:
+Of course you can edit the values. For example, if you want the screen to be
+cleared before displaying the current context when reaching a breakpoing:
 ```
 gef➤  gef config context.clear_screen 1
 ```
@@ -36,4 +36,5 @@ gef➤  gef restore
 [+] Configuration from '/home/hugsy/.gef.rc' restored
 ```
 
-You can tweak this configuration outside your `gdb` session to suit your needs.
+You can tweak this configuration file outside your `gdb` session to suit your
+needs.

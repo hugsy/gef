@@ -1,8 +1,9 @@
-## Command patch
+## Command patch ##
 
 Patch the specified values to the specified address.
 
-This command is automatically aliased to the standard WinDBG commands: `eb`, `ew`, `ed`, `eq`, and `ea`.
+This command is automatically aliased to the standard WinDBG commands: `eb`,
+`ew`, `ed`, `eq`, and `ea`.
 
 ```bash
 gef➤ patch byte $eip 0x90

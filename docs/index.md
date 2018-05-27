@@ -30,21 +30,25 @@ distros start pushing `gdb` compiled with Python3 support).
   * Suited for real-life apps debugging, exploit development, just as much as
     CTF (unlike _PEDA_ or _PwnDBG_)
 
+Check out the [Screenshot page](screenshots/) for more.
 
-## Quick start ##
 
-### Install ###
+## Setup ##
+
+### Quick install ###
 
 Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb).
 
 ```bash
 # via the install script
-$ wget -q -O- https://github.com/hugsy/gef/raw/master/gef.sh | sh
+$ wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
 
 # manually
 $ wget -O ~/.gdbinit-gef.py -q https://github.com/hugsy/gef/raw/master/gef.py
 $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 ```
+
+### Run ###
 
 Then just start playing (for local files):
 
@@ -69,53 +73,47 @@ gef➤  gef-remote -t your.ip.address:1234 -p 666
 
 ### Update ###
 
-If your host/VM is connected to the Internet, you can update `gef` easily to the latest version (even without `git` installed). with `python /path/to/gef.py --update`
-
-For example:
+If your host/VM is connected to the Internet, you can update `gef` easily to the
+latest version (even without `git` installed). with
+`python /path/to/gef.py --update`
 
 ```bash
 $ python ~/.gdbinit-gef.py --update
 Updated
 ```
 
+This will deploy the latest version of `gef`'s _master_ branch from Github.
 If no updates are available, `gef` will respond `No update` instead.
 
-## Screenshots ##
 
-This shows a few examples of new features available to you when installing
-`GEF`, with the supported architecture.
+### Install via Git ###
 
-#### Emulating code in GDB via Unicorn-Engine (x86-64) ####
+To install from Git, simply clone this repository and specify the path to
+`gef.py` inside the `~/.gdbinit` file:
 
-![gef-x86](https://i.imgur.com/emhEsol.png)
+```bash
+$ git clone https://github.com/hugsy/gef.git
+$ echo source `pwd`/gef/gef.py >> ~/.gdbinit
+```
 
-#### Displaying ELF information, memory mapping and using Capstone/Keystone integration (ARM v6) ####
+If you like living on the edge, you can then switch to the `dev` branch:
 
-![gef-arm](http://i.imgur.com/qOL8CnL.png)
-
-#### Automatic dereferencing of registers values and identifying binary protections (PowerPC) ####
-
-![gef-ppc](https://i.imgur.com/IN6x6lw.png)
-
-#### Showing current context and heap information (MIPS) ####
-
-![gef-mips](https://i.imgur.com/dBaB9os.png)
-
-#### Playing with Capstone engine (SPARC v9) ####
-
-![gef-sparc](https://i.imgur.com/VD2FpDt.png)
+```bash
+$ git checkout dev
+```
 
 
 ## Dependencies ##
 
-There are **none**: `GEF` works out of the box! However, to enjoy all the coolest
-features, it is recommended to install:
+There are **none**: `GEF` works out of the box!
+
+However, to enjoy all the coolest features from some commands, it is recommended
+to install:
 
 - [`capstone`](https://github.com/aquynh/capstone)
 - [`keystone`](https://github.com/keystone-engine/keystone)
 - [`unicorn`](https://github.com/unicorn-engine/unicorn)
 - [`Ropper`](https://github.com/sashs/ropper)
-- [`RetDec`](https://github.com/s3rvac/retdec-python)
 
 
 For a quick installation, simply use the `pip` packaged version:
@@ -134,6 +132,35 @@ post an issue on the GitHub of the respective projects. If your bug is not
 related to `GEF`, you will not get an answer.
 
 
+## Additional commands ##
+
+GEF was built to also provide a solid base for external scripts. The
+repository [`gef-extras`](https://github.com/hugsy/gef-extras) is an open
+repository where anyone can freely submit their own commands to extend GDB via
+GEF's API.
+
+To benefit from it:
+```bash
+# via the install script
+$ wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef-extras.sh | sh
+
+# manually
+# clone the repo
+$ https://github.com/hugsy/gef-extras.git
+# specify gef to load this directory
+$ gdb -ex 'gef config gef.extra_plugins_dir "/path/to/gef-extras/scripts"' -ex 'gef save' -ex quit
+[+] Configuration saved
+```
+
+You can also use the structures defined from this repository:
+```bash
+$ gdb -ex 'gef config pcustom.struct_path "/path/to/gef-extras/structs"' -ex 'gef save' -ex quit
+[+] Configuration saved
+```
+
+There, you're now fully equipped epic pwnage with **all** GEF's goodness!!
+
+
 ## Bugs & Feedbacks ##
 
 To discuss `gef`, `gdb`, exploitation or other topics, feel free to join the
@@ -145,9 +172,9 @@ For bugs or feature requests, just
 go [here](https://github.com/hugsy/gef/issues) and provide a thorough description
 if you want help.
 
-_Side Note_: `GEF` fully relies on GDB API and other Linux-specific sources of information
-(such as `/proc/<pid>`). As a consequence, some of the features might not work on
-custom or hardened systems such as GrSec.
+_Side Note_: `GEF` fully relies on the GDB API and other Linux-specific sources
+of information (such as `/proc/<pid>`). As a consequence, some of the features
+might not work on custom or hardened systems such as GrSec.
 
 ## Contribution ##
 
@@ -170,8 +197,8 @@ better.
 The rule is simple, provide a (substantial) contribution to `GEF`, such as:
 
    1. Submitting a Pull-Request for a new feature/command.
-   1. Submitting a Pull-Request for a new architecture support.
-   1. Or sending a relevant issue request (like a bug, crash, or else).
+   2. Submitting a Pull-Request for a new architecture support.
+   3. Or sending a relevant issue request (like a bug, crash, or else).
 
 Poke me on the IRC `##gef` channel about it, and next time we meet in person
 (like at a conference), I'll be happy to pay you a beer.

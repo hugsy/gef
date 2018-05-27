@@ -30,7 +30,7 @@ In this example, we can see that after executing
 ```
 The registers `eax` and `esp` are tainted (modified).
 
-A convenient option is `-e /path/to/file.py` that will generate a pure Python
+A convenient option is `-o /path/to/file.py` that will generate a pure Python
 script embedding your current execution context, ready to be re-used outside
 `gef`!! This can be useful for dealing with obfuscation or solve crackmes if
 powered with a SMT for instance.

@@ -1,6 +1,6 @@
 ## Command xinfo ##
 
-`xinfo` display all the information known to `gef` about the specific address
+`xinfo` displays all the information known to `gef` about the specific address
 given as argument:
 
 ![xinfo-example](https://pbs.twimg.com/media/CCSW9JkW4AAx8gD.png:large)

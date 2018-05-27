@@ -1,6 +1,7 @@
-## Command elf-info
+## Command elf-info ##
 
-`elf-info` provides some basic information on the currently loaded ELF binary:
+`elf-info` (alias `elf`) provides some basic information on the currently
+loaded ELF binary:
 
 ```
 gef➤  elf

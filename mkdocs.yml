@@ -6,6 +6,7 @@ pages:
 - Frequently Asked Questions: faq.md
 - Extending GEF: api.md
 - Features: commands.md
+- Screenshots: screenshots.md
 - Command aliases: commands/aliases.md
 - Command aslr: commands/aslr.md
 - Command assemble: commands/assemble.md
@@ -38,7 +39,6 @@ pages:
 - Command process-search: commands/process-search.md
 - Command registers: commands/registers.md
 - Command reset-cache: commands/reset-cache.md
-- Command retdec: commands/retdec.md
 - Command ropper: commands/ropper.md
 - Command search-pattern: commands/search-pattern.md
 - Command set-permission: commands/set-permission.md

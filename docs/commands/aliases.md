@@ -1,4 +1,4 @@
-## Command aliases
+## Command aliases ##
 
 List the aliases defined by `GEF`.
 

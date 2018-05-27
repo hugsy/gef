@@ -1,4 +1,4 @@
-## Command aslr
+## Command aslr ##
 
 Easily check, enable or disable ASLR on the debugged binary.
 
@@ -22,6 +22,6 @@ gef➤  aslr off
 [+] Disabling ASLR
 ```
 
-**Note**: This command cannot effect a process that has already loaded, to which
-GDB was attached later on. The only way to disable this randomization is by
-setting to 0 the kernel variable `/proc/sys/kernel/randomize_va_space`.
+**Note**: This command cannot affect a process that has already been loaded, to
+which GDB attached to later. The only way to disable this randomization is by
+setting the kernel setting `/proc/sys/kernel/randomize_va_space` to 0..

@@ -7,13 +7,10 @@ But it most importantly provides all the primitives required to allow hackers to
 quickly create their own commands. This page intends to summarize how to
 create advanced GDB commands in moments using `GEF` as a library.
 
-_Side note_: [Other projects](https://github.com/pwndbg/pwndbg) accuses `GEF` to
-not be easily hackable for new features. This documentation also aims to prove
-them wrong.
-
-A [dedicated repository](https://github.com/hugsy/gef-scripts) was born to host
-external scripts. This repo is open to all for contributions, no restrictions
-and the most valuable ones will be integrated into `gef.py`.
+A [dedicated repository](https://github.com/hugsy/gef-extras) was born to host
+[external scripts](https://github.com/hugsy/gef-extras/tree/master/scripts). This
+repo is open to all for contributions, no restrictions and the most valuable
+ones will be integrated into `gef.py`.
 
 ## Quick start ##
 
@@ -21,20 +18,20 @@ Here is the most basic skeleton for creating a new `GEF` command named `newcmd`:
 
 ```python
 class NewCommand(GenericCommand):
-    """Dummy one-time command."""
+    """Dummy new command."""
     _cmdline_ = "newcmd"
     _syntax_  = "{:s}".format(_cmdline_)
 
     @only_if_gdb_running         # not required, ensures that the debug session is started
     def do_invoke(self, argv):
-    # do anything allowed by gef, for example show the current running
-    # architecture as Python object:
-    print(" = {}".format(current_arch) )
-    # or showing the current $pc
-    print("pc = {:#x}".format(current_arch.pc))
+        # do anything allowed by gef, for example show the current running
+        # architecture as Python object:
+        print(" = {}".format(current_arch) )
+        # or showing the current $pc
+        print("pc = {:#x}".format(current_arch.pc))
+        return
 
-if __name__ == "__main__":
-    register_external_command(NewCommand())
+register_external_command(NewCommand())
 ```
 
 Yes, that's it!
@@ -55,8 +52,7 @@ We can call it:
 Our new command must be a class that inherits from GEF's `GenericCommand`. The
 *only* requirements are:
 
- * the new class must declare a `_cmdline_` attribute (the command to type on
-   the GDB prompt).
+ * a `_cmdline_` attribute (the command to type on the GDB prompt).
  * a `_syntax_` attribute, which GEF will use to auto-generate the help menu.
  * a method `do_invoke(self, args)` which will be executed when the command
    is invoked. `args` is a list of the command line args provided when invoked.
@@ -65,7 +61,7 @@ We make GEF aware of this new command by registering it in the `__main__`
 section of the script, by invoking the global function
 `register_external_command()`.
 
-Now you have a working new GEF command, which you can load, either from cli:
+Now you have a new GEF command which you can load, either from cli:
 ```
 gef➤  source /path/to/newcmd.py
 ```
@@ -208,6 +204,14 @@ gef_on_exit_unhook
 > `remote`.
 
 
+```
+@only_if_gdb_version_higher_than( (MAJOR, MINOR) )
+```
+> Checks if the GDB version is higher or equal to the MAJOR and MINOR provided
+> as arguments (both as Integers). This is required since some commands/API of
+> GDB are only present in the very latest version of GDB.
+
+
 ### Classes ###
 
 For exhaustive documentation, run
@@ -217,8 +221,8 @@ $ gdb -q -ex 'pi help(<ClassName>)' -ex quit
 
 #### Generic ####
 
-New GEF commands **must** inherit `GenericCommand` and have a instance method
-`do_invoke(args)` defined.
+New GEF commands **must** inherit `GenericCommand`, have `_cmdline_` and
+`_syntax_` attrivutes, and have a instance method `do_invoke(args)` defined.
 
 Other than that, new commands can enjoy all the GEF abstract layer
 representation classes, such as:

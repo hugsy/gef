@@ -1,6 +1,5 @@
 ## Command context ##
 
-
 ![gef-context](https://i.imgur.com/aZiG8Yb.png)
 
 
@@ -31,9 +30,11 @@ gef➤ gef config context.layout
 
 There are currently 6 sections that can be displayed:
 
+   * `legend` : a text explanation of the color code
    * `regs` : the state of registers
    * `stack` : the content of memory pointed by `$sp` register
    * `code` : the code being executed
+   * `args` : if stopping at a function calls, print the call arguments
    * `source` : if compiled with source, this will show the corresponding line
      of source code
    * `threads` : all the threads
@@ -42,13 +43,13 @@ There are currently 6 sections that can be displayed:
      heap vulnerability, etc.) it will be displayed in this pane
    * `memory` : peek into arbitrary memory locations
 
-To prevent one section to be displayed, simply use the `context.layout` setting,
-and prepend the section name with `-` or just omit it.
+To hide a section, simply use the `context.layout` setting, and prepend the
+section name with `-` or just omit it.
 
 ```
-gef➤ gef config context.layout "regs stack code -source -threads -trace extra memory"
+gef➤ gef config context.layout "-legend regs stack code args -source -threads -trace extra memory"
 ```
-Will not display the `source`, `threads`, and `trace` sections.
+This configuration will not display the `source`, `threads`, and `trace` sections.
 
 The `memory` pane will display the content of all locations specified by the
 `memory` command. For instance,
@@ -57,11 +58,45 @@ The `memory` pane will display the content of all locations specified by the
 gef➤ memory watch $sp 0x40 byte
 ```
 
-will print an
-hexdump version of 0x40 byte of the stack. This command makes it convenient for
-tracking the evolution of arbitrary locations in memory. Tracked locations can
-be removed one by one using `memory unwatch`, or altogether with `memory reset`.
+will print a hexdump version of 0x40 bytes of the stack. This command makes it
+convenient for tracking the evolution of arbitrary locations in memory. Tracked
+locations can be removed one by one using `memory unwatch`, or altogether with
+`memory reset`.
 
+The size of most sections are also customizable:
+
+* `nb_lines_stack` configures how many lines of the stack to show.
+* `nb_lines_backtrack` configures how many lines of the backtrace to show.
+* `nb_lines_code` and `nb_lines_code_prev` configure how many lines to show
+  after and before the PC, respectively.
+* `context.nb_lines_threads` determines the number of lines to display inside
+  the thread pane. This is convenient when debugging heavily multi-threaded
+  applications (apache2, firefox, etc.). It receives an integer as value: if
+  this value is `-1` then all threads state will be displayed. Otherwise, if the
+  value is set to `N`, then at most `N` thread states will be shown.
+
+To have the stack displayed with the largest stack addresses on top (i.e., grow the
+stack downward), enable the following setting:
+```
+gef➤ gef config context.grow_stack_down True
+```
+
+If the saved instruction pointer is not within the portion of the stack being displayed,
+then a section is created that includes the saved ip and depending on the architecture
+the frame pointer.
+```
+0x00007fffffffc9e8│+0x00: 0x00007ffff7a2d830  →  <__main+240> mov edi, eax    ($current_frame_savedip)
+0x00007fffffffc9e0│+0x00: 0x00000000004008c0  →  <__init+0> push r15    ← $rbp
+. . . (440 bytes skipped)
+0x00007fffffffc7e8│+0x38: 0x0000000000000000
+0x00007fffffffc7e0│+0x30: 0x0000000000000026 ("&"?)
+0x00007fffffffc7d8│+0x28: 0x0000000001958ac0
+0x00007fffffffc7d0│+0x20: 0x00007ffff7ffa2b0  →  0x5f6f7364765f5f00
+0x00007fffffffc7c8│+0x18: 0x00007fff00000000
+0x00007fffffffc7c0│+0x10: 0x00007fffffffc950  →  0x0000000000000000
+0x00007fffffffc7b8│+0x08: 0x0000000000000000
+0x00007fffffffc7b0│+0x00: 0x00007fffffffc7e4  →  0x0000000000000000      ← $rsp
+```
 
 ### Redirecting context output to another tty/file ###
 
@@ -94,9 +129,9 @@ gef➤ gef config context.redirect ""
 
 ### Examples ###
 
-* Display the code section first, then register, and stack:
+* Display the code section first, then register, and stack, hiding everything else:
 ```
-gef➤ gef config context.layout "code regs stack -source -threads -trace"
+gef➤ gef config context.layout "code regs stack"
 ```
 
 * Stop showing the context sections when breaking:
@@ -117,4 +152,9 @@ gef➤ gef config context.show_registers_raw 0
 * Don't 'peek' into the start of functions that are called.
 ```
 gef➤  gef config context.peek_calls False
+```
+
+* Hide specific registers from the registers view.
+```
+gef➤  gef config context.ignore_registers "$cs $ds $gs"
 ```
