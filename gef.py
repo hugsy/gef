@@ -643,13 +643,8 @@ class GlibcArena:
         return self.__addr
 
     def dereference_as_long(self, addr):
-<<<<<<< HEAD
-        deref_addr = dereference(addr)
-        return 0 if deref_addr == None else long(deref_addr.address)
-=======
         derefed = dereference(addr)
         return long(derefed.address) if derefed is not None else 0
->>>>>>> 5825a1abdfbfdc82dc8632336f064f145122d554
 
     def fastbin(self, i):
         addr = self.dereference_as_long(self.fastbinsY[i])
