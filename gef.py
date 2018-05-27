@@ -3443,8 +3443,8 @@ class PrintFormatCommand(GenericCommand):
 
     _cmdline_ = "print-format"
     _syntax_  = "{:s} (py|c|js) (8|16|32|64) ADDRESS LENGTH".format(_cmdline_)
-    bitformat = {8: '<B', 16: '<H', 32: '<I', 64: '<L'}
-    c_type = {8: 'char', 16: 'short', 32: 'int', 64: 'long'}
+    bitformat = {8: '<B', 16: '<H', 32: '<I', 64: '<Q'}
+    c_type = {8: 'char', 16: 'short', 32: 'int', 64: 'long long'}
 
     def __init__(self):
         super(PrintFormatCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
