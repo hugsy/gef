@@ -3442,9 +3442,10 @@ class PrintFormatCommand(GenericCommand):
     """Print bytes format in high level languages"""
 
     _cmdline_ = "print-format"
-    _syntax_  = "{:s} (py|c|js) (8|16|32|64) ADDRESS LENGTH".format(_cmdline_)
+    _syntax_  = "{:s} (py|c|js|asm) (8|16|32|64) ADDRESS LENGTH".format(_cmdline_)
     bitformat = {8: '<B', 16: '<H', 32: '<I', 64: '<Q'}
     c_type = {8: 'char', 16: 'short', 32: 'int', 64: 'long long'}
+    asm_type = {8: 'db', 16: 'dw', 32: 'dd', 64: 'dq'}
 
     def __init__(self):
         super(PrintFormatCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
@@ -3455,17 +3456,17 @@ class PrintFormatCommand(GenericCommand):
             self.usage()
             return
         
-
         lang = argv[0]
         bitlen = long(argv[1])
         start_addr = long(gdb.parse_and_eval(argv[2]))
         length = long(argv[3])
 
         if bitlen not in [8, 16, 32, 64]:
-            err("Size of bit must be in 8, 16, 32, 64")
+            err("Size of bit must be in 8, 16, 32, or 64")
             return
-        if lang not in ['py', 'c', 'js']:
-            err("Language must be py, c or, js")
+
+        if lang not in ['py', 'c', 'js', 'asm']:
+            err("Language must be py, c, js, or asm")
             return
 
         size = long(bitlen / 8)
@@ -3492,6 +3493,10 @@ class PrintFormatCommand(GenericCommand):
             print('var buf = ['.format(bitlen), end='')
             print(sdata, end='')
             print('];')
+        
+        elif lang == 'asm':
+            print('buf {} '.format(self.asm_type[bitlen]), end='')
+            print(sdata)
 
 @register_command
 class PieCommand(GenericCommand):
