@@ -3454,11 +3454,19 @@ class PrintFormatCommand(GenericCommand):
         if len(argv) < 4:
             self.usage()
             return
+        
 
         lang = argv[0]
         bitlen = long(argv[1])
         start_addr = long(gdb.parse_and_eval(argv[2]))
         length = long(argv[3])
+
+        if bitlen not in [8, 16, 32, 64]:
+            err("Size of bit must be in 8, 16, 32, 64")
+            return
+        if lang not in ['py', 'c', 'js']:
+            err("Language must be py, c or, js")
+            return
 
         size = long(bitlen / 8)
         end_addr = start_addr+length*size
