@@ -3546,8 +3546,10 @@ class PrintFormatCommand(GenericCommand):
             out += 'buf {} '.format(self.asm_type[bitlen])
             out += sdata
         if copy:
-            self.clip(bytes(out, 'utf-8'))
-            info("Copied to clipboard")
+            if self.clip(bytes(out, 'utf-8'))
+                info("Copied to clipboard")
+            else:
+                warn("There's a problem while copying")
         print(out)
 
 @register_command
