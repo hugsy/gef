@@ -3459,7 +3459,7 @@ class PrintFormatCommand(GenericCommand):
         h += "\n\t-f FORMAT specifies the output format for programming language, avaliable value is py, c, js, asm (default py).\n"
         h += "\t-b BITSIZE sepecifies size of bit, avaliable values is 8, 16, 32, 64 (default is 8).\n"
         h += "\t-l LENGTH specifies length of array (default is 256).\n"
-        h += "\t-c The result of data will copied to clipboard"
+        h += "\t-c The result of data will copied to clipboard\n"
         h += "\tLOCATION specifies where the address of bytes is stored."
         info(h)
 
