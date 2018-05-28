@@ -3484,7 +3484,7 @@ class PrintFormatCommand(GenericCommand):
         p.stdin.write(data)
         p.stdin.close()
         retcode = p.wait()
-        return retcode
+        return True
 
     def do_invoke(self, argv):
         """Default value for print-format command"""
