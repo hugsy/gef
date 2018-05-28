@@ -3493,13 +3493,15 @@ class PrintFormatCommand(GenericCommand):
         bitlen = 8
         copy = False
 
-        opts, args = getopt.getopt(argv, "f:l:b:c")
+        opts, args = getopt.getopt(argv, "f:l:b:ch")
         for o,a in opts:
             if   o == "-f": lang = a
             elif o == "-l": length = long(gdb.parse_and_eval(a))
             elif o == "-b": bitlen = long(a)
             elif o == "-c": copy = True
-            elif o == '-h': self.help()
+            elif o == '-h': 
+                self.help()
+                return
 
         if len(args) < 1:
             err("No address specified")
