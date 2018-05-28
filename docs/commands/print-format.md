@@ -1,12 +1,12 @@
 ## Command print-format ##
 This command (`print-format` alias `pf`) will shows array of bytes like
 programming language format. language format supported only python, c,
-and javascript.
+asm, and javascript.
 
 Use `-h` for help
 ```
 gef➤  print-format -h
-+] print-format [-f FORMAT] [-b BITSIZE] [-l LENGTH] [-c] [-h] LOCATION
+[+] print-format [-f FORMAT] [-b BITSIZE] [-l LENGTH] [-c] [-h] LOCATION
         -f FORMAT specifies the output format for programming language, avaliable value is py, c, js, asm (default py).
         -b BITSIZE sepecifies size of bit, avaliable values is 8, 16, 32, 64 (default is 8).
         -l LENGTH specifies length of array (default is 256).
