@@ -3451,7 +3451,7 @@ class PrintFormatCommand(GenericCommand):
     asm_type = {8: 'db', 16: 'dw', 32: 'dd', 64: 'dq'}
 
     def __init__(self):
-        super(PrintFormatCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+        super(PrintFormatCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
     def help(self):
@@ -3465,20 +3465,19 @@ class PrintFormatCommand(GenericCommand):
 
     def clip(self, data):
         if sys.platform == "linux":
-            prog = ["xclip", "-selection", "clipboard", "-i"] # For linux
+            xclip = which("xclip")
+            prog = [xclip, "-selection", "clipboard", "-i"] # For linux
         elif sys.platform == "darwin":
-            prog = ["pbcopy"] # For OSX
+            pbcopy = which("pbcopy")
+            prog = [pbcopy] # For OSX
         else:
             warn("Can't copy to clipboard, platform not supported")
             return False
 
         try:
             p = subprocess.Popen(prog, stdin=subprocess.PIPE)
-        except OSError as e:
-            if e.errno == os.errno.ENOENT:
-                warn("Can't copy to clipboard, executable {0:s} not found".format(prog))
-            else:
-                warn("Can't copy to clipboard, Something went wrong while copying")
+        except Exception:
+            warn("Can't copy to clipboard, Something went wrong while copying")
             return False
 
         p.stdin.write(data)
