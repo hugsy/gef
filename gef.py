@@ -3454,7 +3454,7 @@ class PrintFormatCommand(GenericCommand):
         super(PrintFormatCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
-    def help(self):
+    def usage(self):
         h = self._syntax_
         h += "\n\t-f FORMAT specifies the output format for programming language, avaliable value is py, c, js, asm (default py).\n"
         h += "\t-b BITSIZE sepecifies size of bit, avaliable values is 8, 16, 32, 64 (default is 8).\n"
@@ -3462,6 +3462,7 @@ class PrintFormatCommand(GenericCommand):
         h += "\t-c The result of data will copied to clipboard\n"
         h += "\tLOCATION specifies where the address of bytes is stored."
         info(h)
+        return
 
     def clip(self, data):
         if sys.platform == "linux":
@@ -3485,34 +3486,37 @@ class PrintFormatCommand(GenericCommand):
         retcode = p.wait()
         return True
 
+    @only_if_gdb_running
     def do_invoke(self, argv):
         """Default value for print-format command"""
         lang = 'py'
         length = 256
         bitlen = 8
-        copy = False
+        copy_to_clipboard = False
+        supported_formats = ['py', 'c', 'js', 'asm']
 
         opts, args = getopt.getopt(argv, "f:l:b:ch")
         for o,a in opts:
             if   o == "-f": lang = a
             elif o == "-l": length = long(gdb.parse_and_eval(a))
             elif o == "-b": bitlen = long(a)
-            elif o == "-c": copy = True
-            elif o == '-h': 
-                self.help()
+            elif o == "-c": copy_to_clipboard = True
+            elif o == '-h':
+                self.usage()
                 return
 
         if len(args) < 1:
             err("No address specified")
             return
+
         start_addr = long(gdb.parse_and_eval(args[0]))
 
         if bitlen not in [8, 16, 32, 64]:
             err("Size of bit must be in 8, 16, 32, or 64")
             return
 
-        if lang not in ['py', 'c', 'js', 'asm']:
-            err("Language must be py, c, js, or asm")
+        if lang not in supported_formats:
+            err("Language must be : {}".format(str(supported_formats)))
             return
 
         size = long(bitlen / 8)
@@ -3525,7 +3529,7 @@ class PrintFormatCommand(GenericCommand):
             value = struct.unpack(bf, read_memory(address, size))[0]
             data += [value]
         sdata = ", ".join(map(hex, data))
-        
+
         if lang == 'py':
             out = 'buf = ['.format(bitlen)
             out += sdata
@@ -3540,16 +3544,18 @@ class PrintFormatCommand(GenericCommand):
             out =  'var buf = ['.format(bitlen)
             out += sdata
             out += '];'
-        
+
         elif lang == 'asm':
             out += 'buf {} '.format(self.asm_type[bitlen])
             out += sdata
-        if copy:
+        if copy_to_clipboard:
             if self.clip(bytes(out, 'utf-8')):
                 info("Copied to clipboard")
             else:
                 warn("There's a problem while copying")
         print(out)
+        return
+
 
 @register_command
 class PieCommand(GenericCommand):

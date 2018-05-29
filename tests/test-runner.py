@@ -273,6 +273,20 @@ class TestGefCommands(GefUnitTestGeneric):
         return
 
 
+    def test_command_print_format(self):
+        self.assertFailIfInactiveSession(gdb_run_command("print-format"))
+        res = gdb_start_silent_command("print-format $rsp")
+        self.assertNoException(res)
+        self.assertTrue(b"buf = [" in res)
+        res = gdb_start_silent_command("print-format -f js $rsp")
+        self.assertNoException(res)
+        self.assertTrue(b"var buf = [" in res)
+        res = gdb_start_silent_command("print-format -f iDontExist $rsp")
+        self.assertNoException(res)
+        self.assertTrue(b"Language must be :" in res)
+        return
+
+
     def test_command_process_status(self):
         self.assertFailIfInactiveSession(gdb_run_command("process-status"))
         res = gdb_start_silent_command("process-status")
