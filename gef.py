@@ -3438,6 +3438,120 @@ class GenericCommand(gdb.Command):
 #         return
 
 @register_command
+class PrintFormatCommand(GenericCommand):
+    """Print bytes format in high level languages"""
+
+    _cmdline_ = "print-format"
+    _syntax_  = "{:s} [-f FORMAT] [-b BITSIZE] [-l LENGTH] [-c] [-h] LOCATION".format(_cmdline_)
+    _aliases_ = ["pf",]
+    _example_ = "{0:s} -f py -b 8 -l 256 $rsp".format(_cmdline_)
+
+    bitformat = {8: '<B', 16: '<H', 32: '<I', 64: '<Q'}
+    c_type = {8: 'char', 16: 'short', 32: 'int', 64: 'long long'}
+    asm_type = {8: 'db', 16: 'dw', 32: 'dd', 64: 'dq'}
+
+    def __init__(self):
+        super(PrintFormatCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+    def help(self):
+        h = self._syntax_
+        h += "\n\t-f FORMAT specifies the output format for programming language, avaliable value is py, c, js, asm (default py).\n"
+        h += "\t-b BITSIZE sepecifies size of bit, avaliable values is 8, 16, 32, 64 (default is 8).\n"
+        h += "\t-l LENGTH specifies length of array (default is 256).\n"
+        h += "\t-c The result of data will copied to clipboard\n"
+        h += "\tLOCATION specifies where the address of bytes is stored."
+        info(h)
+
+    def clip(self, data):
+        if sys.platform == "linux":
+            xclip = which("xclip")
+            prog = [xclip, "-selection", "clipboard", "-i"] # For linux
+        elif sys.platform == "darwin":
+            pbcopy = which("pbcopy")
+            prog = [pbcopy] # For OSX
+        else:
+            warn("Can't copy to clipboard, platform not supported")
+            return False
+
+        try:
+            p = subprocess.Popen(prog, stdin=subprocess.PIPE)
+        except Exception:
+            warn("Can't copy to clipboard, Something went wrong while copying")
+            return False
+
+        p.stdin.write(data)
+        p.stdin.close()
+        retcode = p.wait()
+        return True
+
+    def do_invoke(self, argv):
+        """Default value for print-format command"""
+        lang = 'py'
+        length = 256
+        bitlen = 8
+        copy = False
+
+        opts, args = getopt.getopt(argv, "f:l:b:ch")
+        for o,a in opts:
+            if   o == "-f": lang = a
+            elif o == "-l": length = long(gdb.parse_and_eval(a))
+            elif o == "-b": bitlen = long(a)
+            elif o == "-c": copy = True
+            elif o == '-h': 
+                self.help()
+                return
+
+        if len(args) < 1:
+            err("No address specified")
+            return
+        start_addr = long(gdb.parse_and_eval(args[0]))
+
+        if bitlen not in [8, 16, 32, 64]:
+            err("Size of bit must be in 8, 16, 32, or 64")
+            return
+
+        if lang not in ['py', 'c', 'js', 'asm']:
+            err("Language must be py, c, js, or asm")
+            return
+
+        size = long(bitlen / 8)
+        end_addr = start_addr+length*size
+        bf = self.bitformat[bitlen]
+        data = []
+        out = ""
+
+        for address in range(start_addr, end_addr, size):
+            value = struct.unpack(bf, read_memory(address, size))[0]
+            data += [value]
+        sdata = ", ".join(map(hex, data))
+        
+        if lang == 'py':
+            out = 'buf = ['.format(bitlen)
+            out += sdata
+            out += ']'
+
+        elif lang == 'c':
+            out =  'unsigned {0} buf[{1}] = {{ '.format(self.c_type[bitlen], length)
+            out += sdata
+            out += ' };'
+
+        elif lang == 'js':
+            out =  'var buf = ['.format(bitlen)
+            out += sdata
+            out += '];'
+        
+        elif lang == 'asm':
+            out += 'buf {} '.format(self.asm_type[bitlen])
+            out += sdata
+        if copy:
+            if self.clip(bytes(out, 'utf-8')):
+                info("Copied to clipboard")
+            else:
+                warn("There's a problem while copying")
+        print(out)
+
+@register_command
 class PieCommand(GenericCommand):
     """PIE breakpoint support."""
 
