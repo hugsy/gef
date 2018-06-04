@@ -5477,7 +5477,7 @@ class GlibcHeapCommand(GenericCommand):
     """Base command to get information about the Glibc heap structure."""
 
     _cmdline_ = "heap"
-    _syntax_  = "{:s} (chunk|chunk|bins|arenas)".format(_cmdline_)
+    _syntax_  = "{:s} (chunk|chunks|bins|arenas)".format(_cmdline_)
 
     def __init__(self):
         super(GlibcHeapCommand, self).__init__(prefix=True)
