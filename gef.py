@@ -1482,7 +1482,7 @@ class AARCH64(ARM):
     function_parameters = ["$x0", "$x1", "$x2", "$x3"]
     syscall_register = "$x0"
 
-    syscall_instruction = 'svc $x0'
+    syscall_instructions = ['svc $x0']
 
     def is_call(self, insn):
         mnemo = insn.mnemonic
@@ -1576,7 +1576,7 @@ class X86(Architecture):
     }
     syscall_register = "$eax"
 
-    syscall_instruction = 'int 0x80'
+    syscall_instructions = ['sysenter', 'int 0x80']
 
     def flag_register_to_human(self, val=None):
         reg = self.flag_register
@@ -1670,7 +1670,7 @@ class X86_64(X86):
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
     syscall_register = "$rax"
 
-    syscall_instruction = 'syscall'
+    syscall_instructions = ['syscall']
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
@@ -1713,7 +1713,7 @@ class PowerPC(Architecture):
     function_parameters = ["$i0", "$i1", "$i2", "$i3", "$i4", "$i5"]
     syscall_register = "$r0"
 
-    syscall_instruction = 'sc'
+    syscall_instructions = ['sc']
 
     def flag_register_to_human(self, val=None):
         # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
@@ -1795,7 +1795,7 @@ class SPARC(Architecture):
     function_parameters = ["$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",]
     syscall_register = "%g1"
 
-    syscall_instruction = 't 0x10'
+    syscall_instructions = ['t 0x10']
 
     def flag_register_to_human(self, val=None):
         # http://www.gaisler.com/doc/sparcv8.pdf
@@ -1883,7 +1883,7 @@ class SPARC64(SPARC):
         32: "carry",
     }
 
-    syscall_instruction = 't 0x6d'
+    syscall_instructions = ['t 0x6d']
 
 
 
@@ -1906,7 +1906,7 @@ class MIPS(Architecture):
     function_parameters = ["$a0", "$a1", "$a2", "$a3"]
     syscall_register = "$v0"
 
-    syscall_instruction = 'syscall'
+    syscall_instructions = ['syscall']
 
     def flag_register_to_human(self, val=None):
         return Color.colorify("No flag register", attrs="yellow underline")
@@ -2689,7 +2689,7 @@ def set_arch():
 
 def is_syscall(arch, instruction):
     insn_str = instruction.mnemonic  + ' ' + ', '.join(instruction.operands)
-    return insn_str.strip() == arch.syscall_instruction
+    return insn_str.strip() in arch.syscall_instructions
 
 def get_syscall_args(arch):
     pass
