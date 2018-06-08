@@ -1405,6 +1405,8 @@ class ARM(Architecture):
     function_parameters = ["$r0", "$r1", "$r2", "$r3"]
     syscall_register = "$r0"
 
+    syscall = 'swi 0x0'
+
     @property
     def instruction_length(self):
         # Thumb instructions have variable-length (2 or 4-byte)
@@ -1479,6 +1481,8 @@ class AARCH64(ARM):
     }
     function_parameters = ["$x0", "$x1", "$x2", "$x3"]
     syscall_register = "$x0"
+
+    syscall_instruction = 'svc $x0'
 
     def is_call(self, insn):
         mnemo = insn.mnemonic
@@ -1572,6 +1576,8 @@ class X86(Architecture):
     }
     syscall_register = "$eax"
 
+    syscall_instruction = 'int 0x80'
+
     def flag_register_to_human(self, val=None):
         reg = self.flag_register
         if not val:
@@ -1664,6 +1670,8 @@ class X86_64(X86):
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
     syscall_register = "$rax"
 
+    syscall_instruction = 'syscall'
+
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
         insns = ["push rax", "push rdi", "push rsi", "push rdx",
@@ -1704,6 +1712,8 @@ class PowerPC(Architecture):
     }
     function_parameters = ["$i0", "$i1", "$i2", "$i3", "$i4", "$i5"]
     syscall_register = "$r0"
+
+    syscall_instruction = 'sc'
 
     def flag_register_to_human(self, val=None):
         # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
@@ -1784,6 +1794,8 @@ class SPARC(Architecture):
     }
     function_parameters = ["$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",]
     syscall_register = "%g1"
+
+    syscall_instruction = 't 0x10'
 
     def flag_register_to_human(self, val=None):
         # http://www.gaisler.com/doc/sparcv8.pdf
@@ -1871,6 +1883,8 @@ class SPARC64(SPARC):
         32: "carry",
     }
 
+    syscall_instruction = 't 0x6d'
+
 
 
 class MIPS(Architecture):
@@ -1891,6 +1905,8 @@ class MIPS(Architecture):
     flags_table = {}
     function_parameters = ["$a0", "$a1", "$a2", "$a3"]
     syscall_register = "$v0"
+
+    syscall_instruction = 'syscall'
 
     def flag_register_to_human(self, val=None):
         return Color.colorify("No flag register", attrs="yellow underline")
@@ -2669,6 +2685,14 @@ def set_arch():
     else:
         raise OSError("CPU type is currently not supported: {:s}".format(get_arch()))
     return
+
+
+def is_syscall(arch, instruction):
+    insn_str = instruction.mnemonic  + ' ' + ', '.join(instruction.operands)
+    return insn_str.strip() == arch.syscall_instruction
+
+def get_syscall_args(arch):
+    pass
 
 
 @lru_cache()
@@ -8149,6 +8173,76 @@ class HeapAnalysisCommand(GenericCommand):
 
         gef_on_exit_unhook(self.clean)
         return
+
+
+@register_command
+class IsSyscallCommand(GenericCommand):
+    """
+    Checks if the current instruction is a system call."""
+    _cmdline_ = 'is-syscall'
+    _syntax_ = _cmdline_
+
+    def do_invoke(self, argv):
+        insn = gef_current_instruction(current_arch.pc)
+        ok('Current instruction is{}a syscall'.format(' ' if is_syscall(current_arch, insn) else ' not '))
+
+        return
+
+@register_command
+class SyscallArgsCommand(GenericCommand):
+    """
+    Gets the syscall name and arguments based on the register values in the current state."""
+    _cmdline_ = 'syscall-args'
+    _syntax_ = _cmdline_
+
+    def __init__(self):
+        super(SyscallArgsCommand, self).__init__()
+        self.add_setting("path", os.path.join(GEF_TEMP_DIR, "syscall-tables"),
+                         "Path to store/load the syscall tables files")
+        return
+
+    def do_invoke(self, argv):
+        color = get_gef_setting("theme.xinfo_title_message")
+
+        path = self.get_path()
+        # TODO: this can be removed once we get syscall table file ready
+        # if path is None:
+        #     err("Cannot open '{0}': check directory and/or `gef config {0}` setting, currently: '{1}'".format("syscall-args.path",
+        #                                                                                                 self.get_setting("path")))
+        #     return
+
+        # This should be how each entry in the syscall table stored
+
+        # TODO: create syscall table file and load entries from there based on syscall number
+        SyscallEntry = collections.namedtuple('SyscallEntry', 'name params')
+        SyscallParam = collections.namedtuple('SyscallParam', 'param reg')
+        syscall_entry = SyscallEntry(
+            'write',
+            [SyscallParam('unsigned int fd', 'rbx'), SyscallParam('char *buf', 'rcx'), SyscallParam('size_t count', 'rdx')]
+        )
+
+        # TODO: replace with actual register values
+        syscall_values = [0, 0xdeadbeef, 10]
+
+        # everything below here is fixed
+        syscall_parameters = [s.param for s in syscall_entry.params]
+        syscall_registers = [s.reg for s in syscall_entry.params]
+
+        info("Detected syscall {}".format(Color.colorify(syscall_entry.name, attrs=color)))
+        print("    {}({})".format(syscall_entry.name, ', '.join(syscall_parameters)));
+
+        headers = [Color.colorify(x, attrs=color) for x in ["Parameter", "Register", "Value"]]
+        syscall_param_names = [re.split(' |\*', s)[-1] for s in syscall_parameters]
+        info("{:<28} {:<28} {}".format(*headers))
+        for i in range(len(syscall_parameters)):
+            print("    {:<15} {:<15} 0x{:x}".format(syscall_param_names[i], syscall_registers[i], syscall_values[i]))
+
+        return
+
+    def get_path(self):
+        path = os.path.expanduser(self.get_setting("path"))
+        path = os.path.realpath(path)
+        return path if os.path.isdir(path) else None
 
 
 class GefCommand(gdb.Command):

@@ -1,0 +1,1054 @@
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+AARCH64	gef.py	/^    AARCH64           = 0xb7$/;"	v	class:Elf
+AARCH64	gef.py	/^class AARCH64(ARM):$/;"	c
+ALL	gef.py	/^    ALL       = READ | WRITE | EXECUTE$/;"	v	class:Permission
+ARM	gef.py	/^    ARM               = 0x28$/;"	v	class:Elf
+ARM	gef.py	/^class ARM(Architecture):$/;"	c
+ASLRCommand	gef.py	/^class ASLRCommand(GenericCommand):$/;"	c
+Address	gef.py	/^class Address:$/;"	c
+Architecture	gef.py	/^class Architecture(object):$/;"	c
+AssembleCommand	gef.py	/^class AssembleCommand(GenericCommand):$/;"	c
+BIG_ENDIAN	gef.py	/^    BIG_ENDIAN        = 0$/;"	v	class:Elf
+CanaryCommand	gef.py	/^class CanaryCommand(GenericCommand):$/;"	c
+CapstoneDisassembleCommand	gef.py	/^class CapstoneDisassembleCommand(GenericCommand):$/;"	c
+ChangeFdCommand	gef.py	/^class ChangeFdCommand(GenericCommand):$/;"	c
+ChangePermissionBreakpoint	gef.py	/^class ChangePermissionBreakpoint(gdb.Breakpoint):$/;"	c
+ChangePermissionCommand	gef.py	/^class ChangePermissionCommand(GenericCommand):$/;"	c
+ChecksecCommand	gef.py	/^class ChecksecCommand(GenericCommand):$/;"	c
+Color	gef.py	/^class Color:$/;"	c
+ConnectionRefusedError	gef.py	/^    ConnectionRefusedError = socket.error$/;"	v
+ContextCommand	gef.py	/^class ContextCommand(GenericCommand):$/;"	c
+DEFAULT_PAGE_ALIGN_SHIFT	gef.py	/^DEFAULT_PAGE_ALIGN_SHIFT               = 12$/;"	v
+DEFAULT_PAGE_SIZE	gef.py	/^DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT$/;"	v
+DereferenceCommand	gef.py	/^class DereferenceCommand(GenericCommand):$/;"	c
+DetailRegistersCommand	gef.py	/^class DetailRegistersCommand(GenericCommand):$/;"	c
+ELF_32_BITS	gef.py	/^    ELF_32_BITS       = 0x01$/;"	v	class:Elf
+ELF_64_BITS	gef.py	/^    ELF_64_BITS       = 0x02$/;"	v	class:Elf
+ET_CORE	gef.py	/^    ET_CORE           = 4$/;"	v	class:Elf
+ET_DYN	gef.py	/^    ET_DYN            = 3$/;"	v	class:Elf
+ET_EXEC	gef.py	/^    ET_EXEC           = 2$/;"	v	class:Elf
+EXECUTE	gef.py	/^    EXECUTE   = 4$/;"	v	class:Permission
+Elf	gef.py	/^class Elf:$/;"	c
+ElfInfoCommand	gef.py	/^class ElfInfoCommand(GenericCommand):$/;"	c
+EntryBreakBreakpoint	gef.py	/^class EntryBreakBreakpoint(gdb.Breakpoint):$/;"	c
+EntryPointBreakCommand	gef.py	/^class EntryPointBreakCommand(GenericCommand):$/;"	c
+FileNotFoundError	gef.py	/^    FileNotFoundError = IOError$/;"	v
+FlagsCommand	gef.py	/^class FlagsCommand(GenericCommand):$/;"	c
+FormatStringBreakpoint	gef.py	/^class FormatStringBreakpoint(gdb.Breakpoint):$/;"	c
+FormatStringSearchCommand	gef.py	/^class FormatStringSearchCommand(GenericCommand):$/;"	c
+GDB_MIN_VERSION	gef.py	/^GDB_MIN_VERSION                         = (7, 7)$/;"	v
+GDB_VERSION	gef.py	/^GDB_VERSION                             = (GDB_VERSION_MAJOR, GDB_VERSION_MINOR)$/;"	v
+GEF_MAX_STRING_LENGTH	gef.py	/^GEF_MAX_STRING_LENGTH                  = 50$/;"	v
+GEF_RC	gef.py	/^GEF_RC                                 = os.path.join(os.getenv("HOME"), ".gef.rc")$/;"	v
+GEF_TEMP_DIR	gef.py	/^GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")$/;"	v
+GefAlias	gef.py	/^class GefAlias(gdb.Command):$/;"	c
+GefAliases	gef.py	/^class GefAliases(gdb.Command):$/;"	c
+GefCommand	gef.py	/^class GefCommand(gdb.Command):$/;"	c
+GefConfigCommand	gef.py	/^class GefConfigCommand(gdb.Command):$/;"	c
+GefHelpCommand	gef.py	/^class GefHelpCommand(gdb.Command):$/;"	c
+GefLruCache	gef.py	/^        class GefLruCache(object):$/;"	c	function:.lru_cache
+GefMissingCommand	gef.py	/^class GefMissingCommand(gdb.Command):$/;"	c
+GefRestoreCommand	gef.py	/^class GefRestoreCommand(gdb.Command):$/;"	c
+GefRunCommand	gef.py	/^class GefRunCommand(gdb.Command):$/;"	c
+GefSaveCommand	gef.py	/^class GefSaveCommand(gdb.Command):$/;"	c
+GefSetCommand	gef.py	/^class GefSetCommand(gdb.Command):$/;"	c
+GefThemeCommand	gef.py	/^class GefThemeCommand(GenericCommand):$/;"	c
+GefTmuxSetup	gef.py	/^class GefTmuxSetup(gdb.Command):$/;"	c
+GenericCommand	gef.py	/^class GenericCommand(gdb.Command):$/;"	c
+GlibcArena	gef.py	/^class GlibcArena:$/;"	c
+GlibcChunk	gef.py	/^class GlibcChunk:$/;"	c
+GlibcHeapArenaCommand	gef.py	/^class GlibcHeapArenaCommand(GenericCommand):$/;"	c
+GlibcHeapBinsCommand	gef.py	/^class GlibcHeapBinsCommand(GenericCommand):$/;"	c
+GlibcHeapChunkCommand	gef.py	/^class GlibcHeapChunkCommand(GenericCommand):$/;"	c
+GlibcHeapChunksCommand	gef.py	/^class GlibcHeapChunksCommand(GenericCommand):$/;"	c
+GlibcHeapCommand	gef.py	/^class GlibcHeapCommand(GenericCommand):$/;"	c
+GlibcHeapFastbinsYCommand	gef.py	/^class GlibcHeapFastbinsYCommand(GenericCommand):$/;"	c
+GlibcHeapLargeBinsCommand	gef.py	/^class GlibcHeapLargeBinsCommand(GenericCommand):$/;"	c
+GlibcHeapSetArenaCommand	gef.py	/^class GlibcHeapSetArenaCommand(GenericCommand):$/;"	c
+GlibcHeapSmallBinsCommand	gef.py	/^class GlibcHeapSmallBinsCommand(GenericCommand):$/;"	c
+GlibcHeapUnsortedBinsCommand	gef.py	/^class GlibcHeapUnsortedBinsCommand(GenericCommand):$/;"	c
+HeapAnalysisCommand	gef.py	/^class HeapAnalysisCommand(GenericCommand):$/;"	c
+HexdumpCommand	gef.py	/^class HexdumpCommand(GenericCommand):$/;"	c
+IdaInteractCommand	gef.py	/^class IdaInteractCommand(GenericCommand):$/;"	c
+Instruction	gef.py	/^class Instruction:$/;"	c
+IsSyscallCommand	gef.py	/^class IsSyscallCommand(GenericCommand):$/;"	c
+LITTLE_ENDIAN	gef.py	/^    LITTLE_ENDIAN     = 1$/;"	v	class:Elf
+MIPS	gef.py	/^    MIPS              = 0x08$/;"	v	class:Elf
+MIPS	gef.py	/^class MIPS(Architecture):$/;"	c
+MemoryCommand	gef.py	/^class MemoryCommand(GenericCommand):$/;"	c
+MemoryUnwatchCommand	gef.py	/^class MemoryUnwatchCommand(GenericCommand):$/;"	c
+MemoryWatchCommand	gef.py	/^class MemoryWatchCommand(GenericCommand):$/;"	c
+MemoryWatchListCommand	gef.py	/^class MemoryWatchListCommand(GenericCommand):$/;"	c
+MemoryWatchResetCommand	gef.py	/^class MemoryWatchResetCommand(GenericCommand):$/;"	c
+NONE	gef.py	/^    NONE      = 0$/;"	v	class:Permission
+NopCommand	gef.py	/^class NopCommand(GenericCommand):$/;"	c
+PCustomCommand	gef.py	/^class PCustomCommand(GenericCommand):$/;"	c
+POWERPC	gef.py	/^    POWERPC           = 0x14$/;"	v	class:Elf
+POWERPC64	gef.py	/^    POWERPC64         = 0x15$/;"	v	class:Elf
+PYTHON_MAJOR	gef.py	/^PYTHON_MAJOR = sys.version_info[0]$/;"	v
+PatchCommand	gef.py	/^class PatchCommand(GenericCommand):$/;"	c
+PatchStringCommand	gef.py	/^class PatchStringCommand(GenericCommand):$/;"	c
+PatternCommand	gef.py	/^class PatternCommand(GenericCommand):$/;"	c
+PatternCreateCommand	gef.py	/^class PatternCreateCommand(GenericCommand):$/;"	c
+PatternSearchCommand	gef.py	/^class PatternSearchCommand(GenericCommand):$/;"	c
+Permission	gef.py	/^class Permission:$/;"	c
+PieAttachCommand	gef.py	/^class PieAttachCommand(GenericCommand):$/;"	c
+PieBreakpointCommand	gef.py	/^class PieBreakpointCommand(GenericCommand):$/;"	c
+PieCommand	gef.py	/^class PieCommand(GenericCommand):$/;"	c
+PieDeleteCommand	gef.py	/^class PieDeleteCommand(GenericCommand):$/;"	c
+PieInfoCommand	gef.py	/^class PieInfoCommand(GenericCommand):$/;"	c
+PieRemoteCommand	gef.py	/^class PieRemoteCommand(GenericCommand):$/;"	c
+PieRunCommand	gef.py	/^class PieRunCommand(GenericCommand):$/;"	c
+PieVirtualBreakpoint	gef.py	/^class PieVirtualBreakpoint(object):$/;"	c
+PowerPC	gef.py	/^class PowerPC(Architecture):$/;"	c
+PowerPC64	gef.py	/^class PowerPC64(PowerPC):$/;"	c
+ProcessListingCommand	gef.py	/^class ProcessListingCommand(GenericCommand):$/;"	c
+ProcessStatusCommand	gef.py	/^class ProcessStatusCommand(GenericCommand):$/;"	c
+READ	gef.py	/^    READ      = 1$/;"	v	class:Permission
+RemoteCommand	gef.py	/^class RemoteCommand(GenericCommand):$/;"	c
+ResetCacheCommand	gef.py	/^class ResetCacheCommand(GenericCommand):$/;"	c
+RopperCommand	gef.py	/^class RopperCommand(GenericCommand):$/;"	c
+SPARC	gef.py	/^    SPARC             = 0x02$/;"	v	class:Elf
+SPARC	gef.py	/^class SPARC(Architecture):$/;"	c
+SPARC64	gef.py	/^    SPARC64           = 0x2b$/;"	v	class:Elf
+SPARC64	gef.py	/^class SPARC64(SPARC):$/;"	c
+SUPPORTED_SIZES	gef.py	/^    SUPPORTED_SIZES = {$/;"	v	class:PatchCommand
+SearchPatternCommand	gef.py	/^class SearchPatternCommand(GenericCommand):$/;"	c
+Section	gef.py	/^class Section:$/;"	c
+ShellcodeCommand	gef.py	/^class ShellcodeCommand(GenericCommand):$/;"	c
+ShellcodeGetCommand	gef.py	/^class ShellcodeGetCommand(GenericCommand):$/;"	c
+ShellcodeSearchCommand	gef.py	/^class ShellcodeSearchCommand(GenericCommand):$/;"	c
+SmartEvalCommand	gef.py	/^class SmartEvalCommand(GenericCommand):$/;"	c
+SolveKernelSymbolCommand	gef.py	/^class SolveKernelSymbolCommand(GenericCommand):$/;"	c
+StubBreakpoint	gef.py	/^class StubBreakpoint(gdb.Breakpoint):$/;"	c
+StubCommand	gef.py	/^class StubCommand(GenericCommand):$/;"	c
+TraceFreeBreakpoint	gef.py	/^class TraceFreeBreakpoint(gdb.Breakpoint):$/;"	c
+TraceFreeRetBreakpoint	gef.py	/^class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):$/;"	c
+TraceMallocBreakpoint	gef.py	/^class TraceMallocBreakpoint(gdb.Breakpoint):$/;"	c
+TraceMallocRetBreakpoint	gef.py	/^class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):$/;"	c
+TraceReallocBreakpoint	gef.py	/^class TraceReallocBreakpoint(gdb.Breakpoint):$/;"	c
+TraceReallocRetBreakpoint	gef.py	/^class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):$/;"	c
+TraceRunCommand	gef.py	/^class TraceRunCommand(GenericCommand):$/;"	c
+UafWatchpoint	gef.py	/^class UafWatchpoint(gdb.Breakpoint):$/;"	c
+UnicornEmulateCommand	gef.py	/^class UnicornEmulateCommand(GenericCommand):$/;"	c
+VMMapCommand	gef.py	/^class VMMapCommand(GenericCommand):$/;"	c
+WRITE	gef.py	/^    WRITE     = 2$/;"	v	class:Permission
+X86	gef.py	/^class X86(Architecture):$/;"	c
+X86_32	gef.py	/^    X86_32            = 0x03$/;"	v	class:Elf
+X86_64	gef.py	/^    X86_64            = 0x3e$/;"	v	class:Elf
+X86_64	gef.py	/^class X86_64(X86):$/;"	c
+XAddressInfoCommand	gef.py	/^class XAddressInfoCommand(GenericCommand):$/;"	c
+XFilesCommand	gef.py	/^class XFilesCommand(GenericCommand):$/;"	c
+XorMemoryCommand	gef.py	/^class XorMemoryCommand(GenericCommand):$/;"	c
+XorMemoryDisplayCommand	gef.py	/^class XorMemoryDisplayCommand(GenericCommand):$/;"	c
+XorMemoryPatchCommand	gef.py	/^class XorMemoryPatchCommand(GenericCommand):$/;"	c
+Zone	gef.py	/^class Zone:$/;"	c
+__aliases__	gef.py	/^__aliases__                            = []$/;"	v
+__and__	gef.py	/^    def __and__(self, value):$/;"	m	class:Permission	file:
+__call__	gef.py	/^            def __call__(self, *args, **kwargs):$/;"	m	class:.lru_cache.GefLruCache	file:
+__check_security_property	gef.py	/^    def __check_security_property(opt, filename, pattern):$/;"	f	function:checksec	file:
+__commands__	gef.py	/^__commands__                           = []$/;"	v
+__config__	gef.py	/^__config__                             = {}$/;"	v
+__context_messages__	gef.py	/^__context_messages__                   = []$/;"	v
+__eq__	gef.py	/^    def __eq__(self, value):$/;"	m	class:Permission	file:
+__gef__	gef.py	/^__gef__                                = None$/;"	v
+__gef_convenience_vars_index__	gef.py	/^__gef_convenience_vars_index__         = 0$/;"	v
+__gef_default_main_arena__	gef.py	/^__gef_default_main_arena__             = "main_arena"$/;"	v
+__gef_prompt__	gef.py	/^def __gef_prompt__(current_prompt):$/;"	f	file:
+__gef_qemu_mode__	gef.py	/^__gef_qemu_mode__                      = False$/;"	v
+__gef_remote__	gef.py	/^__gef_remote__                         = None$/;"	v
+__get__	gef.py	/^            def __get__(self, obj, objtype):$/;"	m	class:.lru_cache.GefLruCache	file:
+__get_current_block_start_address	gef.py	/^        def __get_current_block_start_address():$/;"	f	function:ContextCommand.print_guessed_arguments	file:
+__getattr__	gef.py	/^    def __getattr__(self, item):$/;"	m	class:GlibcArena	file:
+__getitem__	gef.py	/^    def __getitem__(self, item):$/;"	m	class:GlibcArena	file:
+__heap_allocated_list__	gef.py	/^__heap_allocated_list__                = []$/;"	v
+__heap_freed_list__	gef.py	/^__heap_freed_list__                    = []$/;"	v
+__heap_uaf_watchpoints__	gef.py	/^__heap_uaf_watchpoints__               = []$/;"	v
+__infos_files__	gef.py	/^__infos_files__                        = []$/;"	v
+__init__	gef.py	/^            def __init__(self, input_func, max_size):$/;"	m	class:.lru_cache.GefLruCache
+__init__	gef.py	/^    def __init__(self):$/;"	f
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:CapstoneDisassembleCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:ChangePermissionCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:ChecksecCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:ContextCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:DereferenceCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:GefAliases
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:GefCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:GefTmuxSetup
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:GlibcHeapBinsCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:GlibcHeapChunkCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:GlibcHeapChunksCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:GlibcHeapCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:GlibcHeapFastbinsYCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:GlibcHeapLargeBinsCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:GlibcHeapSetArenaCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:GlibcHeapSmallBinsCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:GlibcHeapUnsortedBinsCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:HexdumpCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:IdaInteractCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:MemoryCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:NopCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:PCustomCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:PatchCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:PieCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:ProcessListingCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:ProcessStatusCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:RemoteCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:RopperCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:ShellcodeCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:TraceFreeBreakpoint
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:TraceReallocBreakpoint
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:TraceRunCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:UnicornEmulateCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:XAddressInfoCommand
+__init__	gef.py	/^    def __init__(self):$/;"	m	class:XorMemoryCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:Address
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:AssembleCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:ElfInfoCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:EntryPointBreakCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:GefMissingCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:GefRestoreCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:GefRunCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:GefSaveCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:GefSetCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:GefThemeCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:GenericCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:HeapAnalysisCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:PatternCommand
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:Permission
+__init__	gef.py	/^    def __init__(self, *args, **kwargs):$/;"	m	class:Section
+__init__	gef.py	/^    def __init__(self, addr):$/;"	m	class:TraceFreeRetBreakpoint
+__init__	gef.py	/^    def __init__(self, addr):$/;"	m	class:UafWatchpoint
+__init__	gef.py	/^    def __init__(self, addr, from_base=False):$/;"	m	class:GlibcChunk
+__init__	gef.py	/^    def __init__(self, addr, name=__gef_default_main_arena__):$/;"	m	class:GlibcArena
+__init__	gef.py	/^    def __init__(self, address, location, mnemo, operands):$/;"	m	class:Instruction
+__init__	gef.py	/^    def __init__(self, alias, command, completer_class=gdb.COMPLETE_NONE, command_class=gdb.COMMAND_NONE):$/;"	m	class:GefAlias
+__init__	gef.py	/^    def __init__(self, commands, *args, **kwargs):$/;"	m	class:GefHelpCommand
+__init__	gef.py	/^    def __init__(self, elf="", minimalist=False):$/;"	m	class:Elf
+__init__	gef.py	/^    def __init__(self, func, retval):$/;"	m	class:StubBreakpoint
+__init__	gef.py	/^    def __init__(self, loaded_commands, *args, **kwargs):$/;"	m	class:GefConfigCommand
+__init__	gef.py	/^    def __init__(self, loc, code, pc):$/;"	m	class:ChangePermissionBreakpoint
+__init__	gef.py	/^    def __init__(self, location):$/;"	m	class:EntryBreakBreakpoint
+__init__	gef.py	/^    def __init__(self, name):$/;"	m	class:TraceMallocBreakpoint
+__init__	gef.py	/^    def __init__(self, ptr, size):$/;"	m	class:TraceReallocRetBreakpoint
+__init__	gef.py	/^    def __init__(self, set_func, vbp_num, addr):$/;"	m	class:PieVirtualBreakpoint
+__init__	gef.py	/^    def __init__(self, size):$/;"	m	class:TraceMallocRetBreakpoint
+__init__	gef.py	/^    def __init__(self, spec, num_args):$/;"	m	class:FormatStringBreakpoint
+__int__	gef.py	/^    def __int__(self):$/;"	m	class:GlibcArena	file:
+__metaclass__	gef.py	/^    __metaclass__ = abc.ABCMeta$/;"	v	class:Architecture
+__metaclass__	gef.py	/^    __metaclass__ = abc.ABCMeta$/;"	v	class:GenericCommand
+__ne__	gef.py	/^    def __ne__(self, value):$/;"	m	class:Permission	file:
+__or__	gef.py	/^    def __or__(self, value):$/;"	m	class:Permission	file:
+__pie_breakpoints__	gef.py	/^__pie_breakpoints__                    = {}$/;"	v
+__pie_counter__	gef.py	/^__pie_counter__                        = 1$/;"	v
+__str__	gef.py	/^    def __str__(self):$/;"	m	class:Address	file:
+__str__	gef.py	/^    def __str__(self):$/;"	m	class:GlibcArena	file:
+__str__	gef.py	/^    def __str__(self):$/;"	m	class:GlibcChunk	file:
+__str__	gef.py	/^    def __str__(self):$/;"	m	class:Instruction	file:
+__str__	gef.py	/^    def __str__(self):$/;"	m	class:Permission	file:
+__watches__	gef.py	/^__watches__                            = {}$/;"	v
+__xor__	gef.py	/^    def __xor__(self, value):$/;"	m	class:Permission	file:
+_aliases_	gef.py	/^    _aliases_ = ["asm",]$/;"	v	class:AssembleCommand
+_aliases_	gef.py	/^    _aliases_ = ["binaryninja-interact", "bn", "binja"]$/;"	v	class:IdaInteractCommand
+_aliases_	gef.py	/^    _aliases_ = ["cs-dis",]$/;"	v	class:CapstoneDisassembleCommand
+_aliases_	gef.py	/^    _aliases_ = ["ctx",]$/;"	v	class:ContextCommand
+_aliases_	gef.py	/^    _aliases_ = ["emulate",]$/;"	v	class:UnicornEmulateCommand
+_aliases_	gef.py	/^    _aliases_ = ["flags",]$/;"	v	class:FlagsCommand
+_aliases_	gef.py	/^    _aliases_ = ["fmtstr-helper",]$/;"	v	class:FormatStringSearchCommand
+_aliases_	gef.py	/^    _aliases_ = ["grep", "xref"]$/;"	v	class:SearchPatternCommand
+_aliases_	gef.py	/^    _aliases_ = ["mprotect",]$/;"	v	class:ChangePermissionCommand
+_aliases_	gef.py	/^    _aliases_ = ["pattern offset",]$/;"	v	class:PatternSearchCommand
+_aliases_	gef.py	/^    _aliases_ = ["ps",]$/;"	v	class:ProcessListingCommand
+_aliases_	gef.py	/^    _aliases_ = ["sc-get",]$/;"	v	class:ShellcodeGetCommand
+_aliases_	gef.py	/^    _aliases_ = ["sc-search",]$/;"	v	class:ShellcodeSearchCommand
+_aliases_	gef.py	/^    _aliases_ = ["start",]$/;"	v	class:EntryPointBreakCommand
+_aliases_	gef.py	/^    _aliases_ = ["status", ]$/;"	v	class:ProcessStatusCommand
+_aliases_	gef.py	/^    _aliases_ = ["telescope", ]$/;"	v	class:DereferenceCommand
+_bin_types_	gef.py	/^    _bin_types_ = ["fast", "unsorted", "small", "large"]$/;"	v	class:GlibcHeapBinsCommand
+_cache_wrapper	gef.py	/^            def _cache_wrapper(self, caller, *args, **kwargs):$/;"	m	class:.lru_cache.GefLruCache
+_cmdline_	gef.py	/^    _cmdline_ = "$"$/;"	v	class:SmartEvalCommand
+_cmdline_	gef.py	/^    _cmdline_ = "aslr"$/;"	v	class:ASLRCommand
+_cmdline_	gef.py	/^    _cmdline_ = "assemble"$/;"	v	class:AssembleCommand
+_cmdline_	gef.py	/^    _cmdline_ = "canary"$/;"	v	class:CanaryCommand
+_cmdline_	gef.py	/^    _cmdline_ = "capstone-disassemble"$/;"	v	class:CapstoneDisassembleCommand
+_cmdline_	gef.py	/^    _cmdline_ = "checksec"$/;"	v	class:ChecksecCommand
+_cmdline_	gef.py	/^    _cmdline_ = "context"$/;"	v	class:ContextCommand
+_cmdline_	gef.py	/^    _cmdline_ = "dereference"$/;"	v	class:DereferenceCommand
+_cmdline_	gef.py	/^    _cmdline_ = "edit-flags"$/;"	v	class:FlagsCommand
+_cmdline_	gef.py	/^    _cmdline_ = "elf-info"$/;"	v	class:ElfInfoCommand
+_cmdline_	gef.py	/^    _cmdline_ = "entry-break"$/;"	v	class:EntryPointBreakCommand
+_cmdline_	gef.py	/^    _cmdline_ = "format-string-helper"$/;"	v	class:FormatStringSearchCommand
+_cmdline_	gef.py	/^    _cmdline_ = "gef config"$/;"	v	class:GefConfigCommand
+_cmdline_	gef.py	/^    _cmdline_ = "gef help"$/;"	v	class:GefHelpCommand
+_cmdline_	gef.py	/^    _cmdline_ = "gef missing"$/;"	v	class:GefMissingCommand
+_cmdline_	gef.py	/^    _cmdline_ = "gef restore"$/;"	v	class:GefRestoreCommand
+_cmdline_	gef.py	/^    _cmdline_ = "gef run"$/;"	v	class:GefRunCommand
+_cmdline_	gef.py	/^    _cmdline_ = "gef save"$/;"	v	class:GefSaveCommand
+_cmdline_	gef.py	/^    _cmdline_ = "gef set"$/;"	v	class:GefSetCommand
+_cmdline_	gef.py	/^    _cmdline_ = "gef"$/;"	v	class:GefCommand
+_cmdline_	gef.py	/^    _cmdline_ = "gef-remote"$/;"	v	class:RemoteCommand
+_cmdline_	gef.py	/^    _cmdline_ = "heap arenas"$/;"	v	class:GlibcHeapArenaCommand
+_cmdline_	gef.py	/^    _cmdline_ = "heap bins fast"$/;"	v	class:GlibcHeapFastbinsYCommand
+_cmdline_	gef.py	/^    _cmdline_ = "heap bins large"$/;"	v	class:GlibcHeapLargeBinsCommand
+_cmdline_	gef.py	/^    _cmdline_ = "heap bins small"$/;"	v	class:GlibcHeapSmallBinsCommand
+_cmdline_	gef.py	/^    _cmdline_ = "heap bins unsorted"$/;"	v	class:GlibcHeapUnsortedBinsCommand
+_cmdline_	gef.py	/^    _cmdline_ = "heap bins"$/;"	v	class:GlibcHeapBinsCommand
+_cmdline_	gef.py	/^    _cmdline_ = "heap chunk"$/;"	v	class:GlibcHeapChunkCommand
+_cmdline_	gef.py	/^    _cmdline_ = "heap chunks"$/;"	v	class:GlibcHeapChunksCommand
+_cmdline_	gef.py	/^    _cmdline_ = "heap set-arena"$/;"	v	class:GlibcHeapSetArenaCommand
+_cmdline_	gef.py	/^    _cmdline_ = "heap"$/;"	v	class:GlibcHeapCommand
+_cmdline_	gef.py	/^    _cmdline_ = "heap-analysis-helper"$/;"	v	class:HeapAnalysisCommand
+_cmdline_	gef.py	/^    _cmdline_ = "hexdump"$/;"	v	class:HexdumpCommand
+_cmdline_	gef.py	/^    _cmdline_ = "hijack-fd"$/;"	v	class:ChangeFdCommand
+_cmdline_	gef.py	/^    _cmdline_ = "ida-interact"$/;"	v	class:IdaInteractCommand
+_cmdline_	gef.py	/^    _cmdline_ = "ksymaddr"$/;"	v	class:SolveKernelSymbolCommand
+_cmdline_	gef.py	/^    _cmdline_ = "memory list"$/;"	v	class:MemoryWatchListCommand
+_cmdline_	gef.py	/^    _cmdline_ = "memory reset"$/;"	v	class:MemoryWatchResetCommand
+_cmdline_	gef.py	/^    _cmdline_ = "memory unwatch"$/;"	v	class:MemoryUnwatchCommand
+_cmdline_	gef.py	/^    _cmdline_ = "memory watch"$/;"	v	class:MemoryWatchCommand
+_cmdline_	gef.py	/^    _cmdline_ = "memory"$/;"	v	class:MemoryCommand
+_cmdline_	gef.py	/^    _cmdline_ = "nop"$/;"	v	class:NopCommand
+_cmdline_	gef.py	/^    _cmdline_ = "patch string"$/;"	v	class:PatchStringCommand
+_cmdline_	gef.py	/^    _cmdline_ = "patch"$/;"	v	class:PatchCommand
+_cmdline_	gef.py	/^    _cmdline_ = "pattern create"$/;"	v	class:PatternCreateCommand
+_cmdline_	gef.py	/^    _cmdline_ = "pattern search"$/;"	v	class:PatternSearchCommand
+_cmdline_	gef.py	/^    _cmdline_ = "pattern"$/;"	v	class:PatternCommand
+_cmdline_	gef.py	/^    _cmdline_ = "pcustom"$/;"	v	class:PCustomCommand
+_cmdline_	gef.py	/^    _cmdline_ = "pie attach"$/;"	v	class:PieAttachCommand
+_cmdline_	gef.py	/^    _cmdline_ = "pie breakpoint"$/;"	v	class:PieBreakpointCommand
+_cmdline_	gef.py	/^    _cmdline_ = "pie delete"$/;"	v	class:PieDeleteCommand
+_cmdline_	gef.py	/^    _cmdline_ = "pie info"$/;"	v	class:PieInfoCommand
+_cmdline_	gef.py	/^    _cmdline_ = "pie remote"$/;"	v	class:PieRemoteCommand
+_cmdline_	gef.py	/^    _cmdline_ = "pie run"$/;"	v	class:PieRunCommand
+_cmdline_	gef.py	/^    _cmdline_ = "pie"$/;"	v	class:PieCommand
+_cmdline_	gef.py	/^    _cmdline_ = "process-search"$/;"	v	class:ProcessListingCommand
+_cmdline_	gef.py	/^    _cmdline_ = "process-status"$/;"	v	class:ProcessStatusCommand
+_cmdline_	gef.py	/^    _cmdline_ = "registers"$/;"	v	class:DetailRegistersCommand
+_cmdline_	gef.py	/^    _cmdline_ = "reset-cache"$/;"	v	class:ResetCacheCommand
+_cmdline_	gef.py	/^    _cmdline_ = "ropper"$/;"	v	class:RopperCommand
+_cmdline_	gef.py	/^    _cmdline_ = "search-pattern"$/;"	v	class:SearchPatternCommand
+_cmdline_	gef.py	/^    _cmdline_ = "set-permission"$/;"	v	class:ChangePermissionCommand
+_cmdline_	gef.py	/^    _cmdline_ = "shellcode get"$/;"	v	class:ShellcodeGetCommand
+_cmdline_	gef.py	/^    _cmdline_ = "shellcode search"$/;"	v	class:ShellcodeSearchCommand
+_cmdline_	gef.py	/^    _cmdline_ = "shellcode"$/;"	v	class:ShellcodeCommand
+_cmdline_	gef.py	/^    _cmdline_ = "stub"$/;"	v	class:StubCommand
+_cmdline_	gef.py	/^    _cmdline_ = "theme"$/;"	v	class:GefThemeCommand
+_cmdline_	gef.py	/^    _cmdline_ = "trace-run"$/;"	v	class:TraceRunCommand
+_cmdline_	gef.py	/^    _cmdline_ = "unicorn-emulate"$/;"	v	class:UnicornEmulateCommand
+_cmdline_	gef.py	/^    _cmdline_ = "vmmap"$/;"	v	class:VMMapCommand
+_cmdline_	gef.py	/^    _cmdline_ = "xfiles"$/;"	v	class:XFilesCommand
+_cmdline_	gef.py	/^    _cmdline_ = "xinfo"$/;"	v	class:XAddressInfoCommand
+_cmdline_	gef.py	/^    _cmdline_ = "xor-memory display"$/;"	v	class:XorMemoryDisplayCommand
+_cmdline_	gef.py	/^    _cmdline_ = "xor-memory patch"$/;"	v	class:XorMemoryPatchCommand
+_cmdline_	gef.py	/^    _cmdline_ = "xor-memory"$/;"	v	class:XorMemoryCommand
+_cmdline_	gef.py	/^    _cmdline_ = 'is_syscall'$/;"	v	class:IsSyscallCommand
+_cmdline_	gef.py	/^    def _cmdline_(self): pass$/;"	m	class:GenericCommand
+_do_trace	gef.py	/^    def _do_trace(self, loc_start, loc_end, depth):$/;"	m	class:TraceRunCommand
+_example_	gef.py	/^    _example_  = "\\n{0:s} -p 6789 localhost:1234\\n{0:s} -q localhost:4444 # when using qemu-user".format(_cmdline_)$/;"	v	class:RemoteCommand
+_example_	gef.py	/^    _example_  = "{:s} \/bin\/ls".format(_cmdline_)$/;"	v	class:ElfInfoCommand
+_example_	gef.py	/^    _example_ = "\\n\\t{0:s} 0x603000 0x100 byte\\n\\t{0:s} $sp".format(_cmdline_)$/;"	v	class:MemoryWatchCommand
+_example_	gef.py	/^    _example_ = "\\n\\t{0:s} 0x603000\\n\\t{0:s} $sp".format(_cmdline_)$/;"	v	class:MemoryUnwatchCommand
+_example_	gef.py	/^    _example_ = "\\n{0:s} $pc+1\\n{0:s} 0x00007ffff7a10000 0x00007ffff7bce000".format(_cmdline_)$/;"	v	class:SmartEvalCommand
+_example_	gef.py	/^    _example_ = "\\n{0:s} $pc\\n{0:s} 0x61616164\\n{0:s} aaab".format(_cmdline_)$/;"	v	class:PatternSearchCommand
+_example_	gef.py	/^    _example_ = "\\n{0:s} -a x86 -m 32 nop ; nop ; inc eax ; int3\\n{0:s} -a arm -m arm add r0, r0, 1".format(_cmdline_)$/;"	v	class:AssembleCommand
+_example_	gef.py	/^    _example_ = "\\n{0:s} AAAAAAAA\\n{0:s} 0x555555554000".format(_cmdline_)$/;"	v	class:SearchPatternCommand
+_example_	gef.py	/^    _example_ = "\\n{0:s} Jump $pc\\n{0:s} SetColor $pc ff00ff".format(_cmdline_)$/;"	v	class:IdaInteractCommand
+_example_	gef.py	/^    _example_ = "\\n{0:s} libc\\n{0:s} libc IO_vtables".format(_cmdline_)$/;"	v	class:XFilesCommand
+_example_	gef.py	/^    _example_ = "\\n{0:s}\\n{0:s} $eax $eip $esp".format(_cmdline_)$/;"	v	class:DetailRegistersCommand
+_example_	gef.py	/^    _example_ = "\\n{0:s}\\n{0:s} +zero # sets ZERO flag".format(_cmdline_)$/;"	v	class:FlagsCommand
+_example_	gef.py	/^    _example_ = "\\n{0}\\n{0} 0x555555775000".format(_cmdline_)$/;"	v	class:GlibcHeapChunksCommand
+_example_	gef.py	/^    _example_ = "{0:s} -f $pc -n 10 -o \/tmp\/my-gef-emulation.py".format(_cmdline_)$/;"	v	class:UnicornEmulateCommand
+_example_	gef.py	/^    _example_ = "{:s} $pc".format(_cmdline_)$/;"	v	class:NopCommand
+_example_	gef.py	/^    _example_ = "{:s} $pc".format(_cmdline_)$/;"	v	class:XAddressInfoCommand
+_example_	gef.py	/^    _example_ = "{:s} $sp 16 41414141".format(_cmdline_)$/;"	v	class:XorMemoryDisplayCommand
+_example_	gef.py	/^    _example_ = "{:s} $sp 16 41414141".format(_cmdline_)$/;"	v	class:XorMemoryPatchCommand
+_example_	gef.py	/^    _example_ = "{:s} $sp 7"$/;"	v	class:ChangePermissionCommand
+_example_	gef.py	/^    _example_ = "{:s} $sp \\"GEFROCKS\\"".format(_cmdline_)$/;"	v	class:PatchStringCommand
+_example_	gef.py	/^    _example_ = "{:s} $sp l20".format(_cmdline_)$/;"	v	class:DereferenceCommand
+_example_	gef.py	/^    _example_ = "{:s} -r 0 fork"$/;"	v
+_example_	gef.py	/^    _example_ = "{:s} 0x001337001337".format(_cmdline_)$/;"	v	class:GlibcHeapSetArenaCommand
+_example_	gef.py	/^    _example_ = "{:s} 0x555555554610".format(_cmdline_)$/;"	v	class:TraceRunCommand
+_example_	gef.py	/^    _example_ = "{:s} 2 \/tmp\/stderr_output.txt".format(_cmdline_)$/;"	v	class:ChangeFdCommand
+_example_	gef.py	/^    _example_ = "{:s} byte $rsp L16 DOWN".format(_cmdline_)$/;"	v	class:HexdumpCommand
+_example_	gef.py	/^    _example_ = "{:s} gdb".format(_cmdline_)$/;"	v	class:ProcessListingCommand
+_example_	gef.py	/^    _example_ = "{:s} libc".format(_cmdline_)$/;"	v	class:VMMapCommand
+_example_	gef.py	/^    _example_ = "{:s} prepare_creds".format(_cmdline_)$/;"	v	class:SolveKernelSymbolCommand
+_example_	gef.py	/^    _example_ = "{} \/bin\/ls".format(_cmdline_)$/;"	v	class:ChecksecCommand
+_example_	gef.py	/^    def _example_(self): return ""$/;"	m	class:GenericCommand
+_hexdump	gef.py	/^    def _hexdump(self, start_addr, length, arrange_as):$/;"	m	class:HexdumpCommand
+_show_code_line	gef.py	/^    def _show_code_line(fname, idx):$/;"	f	function:show_last_exception
+_str_pointers	gef.py	/^    def _str_pointers(self):$/;"	m	class:GlibcChunk
+_str_sizes	gef.py	/^    def _str_sizes(self):$/;"	m	class:GlibcChunk
+_syntax_	gef.py	/^    _syntax_  = "{0:s} EXPR\\n{0:s} ADDRESS1 ADDRESS2".format(_cmdline_)$/;"	v	class:SmartEvalCommand
+_syntax_	gef.py	/^    _syntax_  = "{0} [LOCATION]".format(_cmdline_)$/;"	v	class:GlibcHeapChunksCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} (breakpoint|info|delete|run|attach|remote)".format(_cmdline_)$/;"	v	class:PieCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} (chunk|chunk|bins|arenas)".format(_cmdline_)$/;"	v	class:GlibcHeapCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} (create|search) <args>".format(_cmdline_)$/;"	v	class:PatternCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} (missing|config|save|restore|set|run)".format(_cmdline_)$/;"	v	class:GefCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} (on|off)".format(_cmdline_)$/;"	v	class:ASLRCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} (qword|dword|word|byte) ADDRESS [[L][SIZE]] [UP|DOWN] [S]".format(_cmdline_)$/;"	v	class:HexdumpCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} <display|patch> ADDRESS SIZE KEY".format(_cmdline_)$/;"	v	class:XorMemoryCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} <pattern1> <pattern2>".format(_cmdline_)$/;"	v	class:ShellcodeSearchCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} <search|get>".format(_cmdline_)$/;"	v	class:ShellcodeCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} <shellcode_id>".format(_cmdline_)$/;"	v	class:ShellcodeGetCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} ADDRESS SIZE KEY".format(_cmdline_)$/;"	v	class:XorMemoryDisplayCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} ADDRESS SIZE KEY".format(_cmdline_)$/;"	v	class:XorMemoryPatchCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} ADDRESS [SIZE] [(qword|dword|word|byte)]".format(_cmdline_)$/;"	v	class:MemoryWatchCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} ADDRESS \\"double backslash-escaped string\\"".format(_cmdline_)$/;"	v	class:PatchStringCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} ADDRESS".format(_cmdline_)$/;"	v	class:MemoryUnwatchCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} BREAKPOINT".format(_cmdline_)$/;"	v	class:PieBreakpointCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} BREAKPOINT".format(_cmdline_)$/;"	v	class:PieInfoCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} FD_NUM NEW_OUTPUT".format(_cmdline_)$/;"	v	class:ChangeFdCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} LOCATION [MAX_CALL_DEPTH]".format(_cmdline_)$/;"	v	class:TraceRunCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} LOCATION [PERMISSION]".format(_cmdline_)$/;"	v	class:ChangePermissionCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} LOCATION".format(_cmdline_)$/;"	v	class:GlibcHeapChunkCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} LOCATION".format(_cmdline_)$/;"	v	class:GlibcHeapSetArenaCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} LOCATION".format(_cmdline_)$/;"	v	class:XAddressInfoCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} METHOD [ARGS]".format(_cmdline_)$/;"	v	class:IdaInteractCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} PATTERN [SIZE]".format(_cmdline_)$/;"	v	class:PatternSearchCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} PATTERN [small|big]".format(_cmdline_)$/;"	v	class:SearchPatternCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} PID".format(_cmdline_)$/;"	v	class:PieAttachCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} REMOTE".format(_cmdline_)$/;"	v	class:PieRemoteCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} SymbolToSearch".format(_cmdline_)$/;"	v	class:SolveKernelSymbolCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [(+|-|~)FLAGNAME ...]".format(_cmdline_)$/;"	v	class:FlagsCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [-a ARCH] [-m MODE] [-e] [-s] [-l LOCATION] instruction;[instruction;...instruction;])".format(_cmdline_)$/;"	v	class:AssembleCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [-b NUM_BYTES] [-h] [LOCATION]".format(_cmdline_)$/;"	v	class:NopCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-s] [-o PATH] [-h]".format(_cmdline_)$/;"	v	class:UnicornEmulateCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [-l] [StructA [0xADDRESS] [-e]]".format(_cmdline_)$/;"	v	class:PCustomCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)$/;"	v	class:GlibcHeapFastbinsYCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)$/;"	v	class:GlibcHeapLargeBinsCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)$/;"	v	class:GlibcHeapSmallBinsCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)$/;"	v	class:GlibcHeapUnsortedBinsCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [BREAKPOINT]".format(_cmdline_)$/;"	v	class:PieDeleteCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [FILE [NAME]]".format(_cmdline_)$/;"	v	class:XFilesCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [FILENAME]".format(_cmdline_)$/;"	v	class:ChecksecCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [FILE]".format(_cmdline_)$/;"	v	class:ElfInfoCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [FILTER]".format(_cmdline_)$/;"	v	class:VMMapCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [GDB_RUN_ARGUMENTS]".format(_cmdline_)$/;"	v	class:GefRunCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [GDB_SET_ARGUMENTS]".format(_cmdline_)$/;"	v	class:GefSetCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [KEY [VALUE]]".format(_cmdline_)$/;"	v	class:GefThemeCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [LOCATION] [l[NB]]".format(_cmdline_)$/;"	v	class:DereferenceCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [OPTIONS] TARGET".format(_cmdline_)$/;"	v	class:RemoteCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [PATTERN]".format(_cmdline_)$/;"	v	class:ProcessListingCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [ROPPER_OPTIONS]".format(_cmdline_)$/;"	v	class:RopperCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [SIZE]".format(_cmdline_)$/;"	v	class:PatternCreateCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [[Register1][Register2] ... [RegisterN]]".format(_cmdline_)$/;"	v	class:DetailRegistersCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s} [setting_name] [setting_value]".format(_cmdline_)$/;"	v	class:GefConfigCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s}".format(_cmdline_)$/;"	v	class:MemoryCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s}".format(_cmdline_)$/;"	v	class:MemoryWatchListCommand
+_syntax_	gef.py	/^    _syntax_  = "{:s}".format(_cmdline_)$/;"	v	class:MemoryWatchResetCommand
+_syntax_	gef.py	/^    _syntax_  = ("{0:s} <qword|dword|word|byte> <location> <values>\\n"$/;"	v	class:PatchCommand
+_syntax_	gef.py	/^    _syntax_  = _cmdline_$/;"	v	class:CanaryCommand
+_syntax_	gef.py	/^    _syntax_  = _cmdline_$/;"	v	class:ContextCommand
+_syntax_	gef.py	/^    _syntax_  = _cmdline_$/;"	v	class:EntryPointBreakCommand
+_syntax_	gef.py	/^    _syntax_  = _cmdline_$/;"	v	class:GefHelpCommand
+_syntax_	gef.py	/^    _syntax_  = _cmdline_$/;"	v	class:GefMissingCommand
+_syntax_	gef.py	/^    _syntax_  = _cmdline_$/;"	v	class:GefRestoreCommand
+_syntax_	gef.py	/^    _syntax_  = _cmdline_$/;"	v	class:GefSaveCommand
+_syntax_	gef.py	/^    _syntax_  = _cmdline_$/;"	v	class:GlibcHeapArenaCommand
+_syntax_	gef.py	/^    _syntax_  = _cmdline_$/;"	v	class:PieRunCommand
+_syntax_	gef.py	/^    _syntax_  = _cmdline_$/;"	v	class:ProcessStatusCommand
+_syntax_	gef.py	/^    _syntax_  = _cmdline_$/;"	v	class:ResetCacheCommand
+_syntax_	gef.py	/^    _syntax_ = "{:s} [{:s}]".format(_cmdline_, "|".join(_bin_types_))$/;"	v	class:GlibcHeapBinsCommand
+_syntax_	gef.py	/^    _syntax_ = _cmdline_$/;"	v	class:FormatStringSearchCommand
+_syntax_	gef.py	/^    _syntax_ = _cmdline_$/;"	v	class:HeapAnalysisCommand
+_syntax_	gef.py	/^    _syntax_ = _cmdline_$/;"	v	class:IsSyscallCommand
+_syntax_	gef.py	/^    def _syntax_(self): pass$/;"	m	class:GenericCommand
+_xlog	gef.py	/^def _xlog(text, stream, cr=True):$/;"	f
+add_command_to_doc	gef.py	/^    def add_command_to_doc(self, command):$/;"	m	class:GefHelpCommand
+add_setting	gef.py	/^    def add_setting(self, name, value, description=""):$/;"	m	class:GenericCommand
+align_address	gef.py	/^def align_address(address):$/;"	f
+align_address_to_page	gef.py	/^def align_address_to_page(address):$/;"	f
+all_registers	gef.py	/^    all_registers = ["$r0   ", "$r1   ", "$r2   ", "$r3   ", "$r4   ", "$r5   ", "$r6   ",$/;"	v	class:ARM
+all_registers	gef.py	/^    all_registers = [$/;"	v	class:AARCH64
+all_registers	gef.py	/^    all_registers = [$/;"	v	class:MIPS
+all_registers	gef.py	/^    all_registers = [$/;"	v	class:PowerPC
+all_registers	gef.py	/^    all_registers = [$/;"	v	class:SPARC
+all_registers	gef.py	/^    all_registers = [$/;"	v	class:SPARC64
+all_registers	gef.py	/^    all_registers = gpr_registers + [ X86.flag_register, ] + X86.msr_registers$/;"	v	class:X86_64
+all_registers	gef.py	/^    all_registers = gpr_registers + [ flag_register, ] + msr_registers$/;"	v	class:X86
+all_registers	gef.py	/^    def all_registers(self):                       pass$/;"	m	class:Architecture
+all_registers_stripped	gef.py	/^    def all_registers_stripped(self):$/;"	m	class:Architecture
+api_base	gef.py	/^    api_base = "http:\/\/shell-storm.org"$/;"	v	class:ShellcodeGetCommand
+api_base	gef.py	/^    api_base = "http:\/\/shell-storm.org"$/;"	v	class:ShellcodeSearchCommand
+apply_structure_to_address	gef.py	/^    def apply_structure_to_address(self, mod_name, struct_name, addr, depth=0):$/;"	m	class:PCustomCommand
+arch	gef.py	/^    arch = "ARM"$/;"	v	class:ARM
+arch	gef.py	/^    arch = "ARM64"$/;"	v	class:AARCH64
+arch	gef.py	/^    arch = "MIPS"$/;"	v	class:MIPS
+arch	gef.py	/^    arch = "PPC"$/;"	v	class:PowerPC
+arch	gef.py	/^    arch = "PPC"$/;"	v	class:PowerPC64
+arch	gef.py	/^    arch = "SPARC"$/;"	v	class:SPARC
+arch	gef.py	/^    arch = "SPARC"$/;"	v	class:SPARC64
+arch	gef.py	/^    arch = "X86"$/;"	v	class:X86
+arch	gef.py	/^    arch = "X86"$/;"	v	class:X86_64
+bck	gef.py	/^    def bck(self):$/;"	m	class:GlibcChunk
+bin	gef.py	/^    def bin(self, i):$/;"	m	class:GlibcArena
+bk	gef.py	/^    bk = bck # for compat$/;"	v	class:GlibcChunk
+blinkify	gef.py	/^    def blinkify(msg):     return Color.colorify(msg, attrs="blink")$/;"	m	class:Color
+blueify	gef.py	/^    def blueify(msg):      return Color.colorify(msg, attrs="blue")$/;"	m	class:Color
+boldify	gef.py	/^    def boldify(msg):      return Color.colorify(msg, attrs="bold")$/;"	m	class:Color
+cache_clear	gef.py	/^            def cache_clear(self, caller=None):$/;"	m	class:.lru_cache.GefLruCache
+cache_info	gef.py	/^            def cache_info(self, caller=None):$/;"	m	class:.lru_cache.GefLruCache
+cached_lookup_type	gef.py	/^def cached_lookup_type(_type):$/;"	f
+capstone_analyze_pc	gef.py	/^    def capstone_analyze_pc(self, insn, nb_insn):$/;"	m	class:CapstoneDisassembleCommand
+capstone_disassemble	gef.py	/^def capstone_disassemble(location, nb_insn, **kwargs):$/;"	f
+checksec	gef.py	/^def checksec(filename):$/;"	f
+clean	gef.py	/^    def clean(self, event):$/;"	m	class:HeapAnalysisCommand
+clear_screen	gef.py	/^def clear_screen(tty=""):$/;"	f
+colorify	gef.py	/^    def colorify(text, attrs):$/;"	m	class:Color
+colors	gef.py	/^    colors = {$/;"	v	class:Color
+comp2_b	gef.py	/^            def comp2_b(x): return "{:b}".format((x + (1 << off)) % (1 << off))$/;"	f	function:SmartEvalCommand.evaluate.show_as_int
+comp2_x	gef.py	/^            def comp2_x(x): return "{:x}".format((x + (1 << off)) % (1 << off))$/;"	f	function:SmartEvalCommand.evaluate.show_as_int
+complete	gef.py	/^    def complete(self, text, word):$/;"	m	class:GefConfigCommand
+connect	gef.py	/^    def connect(self, host=None, port=None):$/;"	m	class:IdaInteractCommand
+connect_target	gef.py	/^    def connect_target(self, target, is_extended_remote):$/;"	m	class:RemoteCommand
+context_additional_information	gef.py	/^    def context_additional_information(self):$/;"	m	class:ContextCommand
+context_args	gef.py	/^    def context_args(self):$/;"	m	class:ContextCommand
+context_code	gef.py	/^    def context_code(self):$/;"	m	class:ContextCommand
+context_memory	gef.py	/^    def context_memory(self):$/;"	m	class:ContextCommand
+context_regs	gef.py	/^    def context_regs(self):$/;"	m	class:ContextCommand
+context_source	gef.py	/^    def context_source(self):$/;"	m	class:ContextCommand
+context_stack	gef.py	/^    def context_stack(self):$/;"	m	class:ContextCommand
+context_threads	gef.py	/^    def context_threads(self):$/;"	m	class:ContextCommand
+context_title	gef.py	/^    def context_title(self, m):$/;"	m	class:ContextCommand
+context_trace	gef.py	/^    def context_trace(self):$/;"	m	class:ContextCommand
+continue_handler	gef.py	/^def continue_handler(event):$/;"	f
+create_or_edit_structure	gef.py	/^    def create_or_edit_structure(self, mod_name, struct_name):$/;"	m	class:PCustomCommand
+cross	gef.py	/^    cross = "\\u2718 "$/;"	v
+cross	gef.py	/^    cross = "x"$/;"	v
+cs_insn_to_gef_insn	gef.py	/^    def cs_insn_to_gef_insn(cs_insn):$/;"	f	function:capstone_disassemble
+current_arch	gef.py	/^current_arch = None$/;"	v
+current_elf	gef.py	/^current_elf  = None$/;"	v
+db	gef.py	/^    def db(t, p):$/;"	f	function:de_bruijn
+de_bruijn	gef.py	/^def de_bruijn(alphabet, n):$/;"	f
+del_setting	gef.py	/^    def del_setting(self, name):$/;"	m	class:GenericCommand
+delete_bp	gef.py	/^    def delete_bp(breakpoints):$/;"	m	class:PieDeleteCommand
+dereference	gef.py	/^    def dereference(self):$/;"	m	class:Address
+dereference	gef.py	/^def dereference(addr):$/;"	f
+dereference_as_long	gef.py	/^    def dereference_as_long(self, addr):$/;"	m	class:GlibcArena
+dereference_from	gef.py	/^    def dereference_from(addr):$/;"	m	class:DereferenceCommand
+deserialize	gef.py	/^    def deserialize(self, struct, data):$/;"	m	class:PCustomCommand
+destroy	gef.py	/^    def destroy(self):$/;"	m	class:PieVirtualBreakpoint
+disable_context	gef.py	/^def disable_context(): set_gef_setting("context.enable", False)$/;"	f
+disable_redirect_output	gef.py	/^def disable_redirect_output():$/;"	f
+disconnect	gef.py	/^    def disconnect(self):$/;"	m	class:IdaInteractCommand
+distance	gef.py	/^    def distance(self, args):$/;"	m	class:SmartEvalCommand
+do_invoke	gef.py	/^    def do_invoke (self, argv):$/;"	m	class:XAddressInfoCommand
+do_invoke	gef.py	/^    def do_invoke(self, args):$/;"	m	class:GefThemeCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv): pass$/;"	m	class:GenericCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	f
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:ASLRCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:AssembleCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:CanaryCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:CapstoneDisassembleCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:ChangeFdCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:ChangePermissionCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:ChecksecCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:ContextCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:DereferenceCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:DetailRegistersCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:ElfInfoCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:EntryPointBreakCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:FlagsCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:FormatStringSearchCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:GlibcHeapArenaCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:GlibcHeapBinsCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:GlibcHeapChunkCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:GlibcHeapChunksCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:GlibcHeapCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:GlibcHeapFastbinsYCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:GlibcHeapLargeBinsCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:GlibcHeapSetArenaCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:GlibcHeapSmallBinsCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:GlibcHeapUnsortedBinsCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:HeapAnalysisCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:HexdumpCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:IdaInteractCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:IsSyscallCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:MemoryCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:MemoryUnwatchCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:MemoryWatchCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:MemoryWatchListCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:MemoryWatchResetCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:NopCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PCustomCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PatchCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PatchStringCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PatternCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PatternCreateCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PatternSearchCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PieAttachCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PieBreakpointCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PieCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PieDeleteCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PieInfoCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PieRemoteCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:PieRunCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:ProcessListingCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:ProcessStatusCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:RemoteCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:ResetCacheCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:RopperCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:SearchPatternCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:ShellcodeCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:ShellcodeGetCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:ShellcodeSearchCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:SmartEvalCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:SolveKernelSymbolCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:TraceRunCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:UnicornEmulateCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:VMMapCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:XFilesCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:XorMemoryCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:XorMemoryDisplayCommand
+do_invoke	gef.py	/^    def do_invoke(self, argv):$/;"	m	class:XorMemoryPatchCommand
+down_arrow	gef.py	/^    down_arrow = "\\\\->"$/;"	v
+down_arrow	gef.py	/^    down_arrow = "\\u21b3"$/;"	v
+download_file	gef.py	/^def download_file(target, use_cache=False, local_name=None):$/;"	f
+dump_custom_structure	gef.py	/^    def dump_custom_structure(self, mod_name, struct_name):$/;"	m	class:PCustomCommand
+dump_structure	gef.py	/^    def dump_structure(self, mod_name, struct_name):$/;"	m	class:PCustomCommand
+dump_tracked_allocations	gef.py	/^    def dump_tracked_allocations(self):$/;"	m	class:HeapAnalysisCommand
+e_abiversion	gef.py	/^    e_abiversion      = None$/;"	v	class:Elf
+e_class	gef.py	/^    e_class           = ELF_32_BITS$/;"	v	class:Elf
+e_ehsize	gef.py	/^    e_ehsize          = None$/;"	v	class:Elf
+e_eiversion	gef.py	/^    e_eiversion       = None$/;"	v	class:Elf
+e_endianness	gef.py	/^    e_endianness      = LITTLE_ENDIAN$/;"	v	class:Elf
+e_entry	gef.py	/^    e_entry           = 0x00$/;"	v	class:Elf
+e_flags	gef.py	/^    e_flags           = None$/;"	v	class:Elf
+e_machine	gef.py	/^    e_machine         = X86_32$/;"	v	class:Elf
+e_magic	gef.py	/^    e_magic           = b'\\x7fELF'$/;"	v	class:Elf
+e_osabi	gef.py	/^    e_osabi           = None$/;"	v	class:Elf
+e_pad	gef.py	/^    e_pad             = None$/;"	v	class:Elf
+e_phentsize	gef.py	/^    e_phentsize       = None$/;"	v	class:Elf
+e_phnum	gef.py	/^    e_phnum           = None$/;"	v	class:Elf
+e_phoff	gef.py	/^    e_phoff           = None$/;"	v	class:Elf
+e_shentsize	gef.py	/^    e_shentsize       = None$/;"	v	class:Elf
+e_shnum	gef.py	/^    e_shnum           = None$/;"	v	class:Elf
+e_shoff	gef.py	/^    e_shoff           = None$/;"	v	class:Elf
+e_shstrndx	gef.py	/^    e_shstrndx        = None$/;"	v	class:Elf
+e_type	gef.py	/^    e_type            = ET_EXEC$/;"	v	class:Elf
+e_version	gef.py	/^    e_version         = None$/;"	v	class:Elf
+empty_extra_messages	gef.py	/^    def empty_extra_messages(self, event):$/;"	m	class:ContextCommand
+enable_context	gef.py	/^def enable_context(): set_gef_setting("context.enable", True)$/;"	f
+enable_redirect_output	gef.py	/^def enable_redirect_output(to_file="\/dev\/null"):$/;"	f
+endian_str	gef.py	/^def endian_str():$/;"	f
+err	gef.py	/^def err(msg, cr=True):   return _xlog("{} {}".format(Color.colorify("[!]", attrs="bold red"), msg), gdb.STDERR, cr)$/;"	f
+evaluate	gef.py	/^    def evaluate(self, expr):$/;"	m	class:SmartEvalCommand
+exit_handler	gef.py	/^def exit_handler(event):$/;"	f
+experimental_feature	gef.py	/^def experimental_feature(f):$/;"	f
+fastbin	gef.py	/^    def fastbin(self, i):$/;"	m	class:GlibcArena
+fastbin_index	gef.py	/^        def fastbin_index(sz):$/;"	f	function:GlibcHeapFastbinsYCommand.do_invoke
+fd	gef.py	/^    fd = fwd # for compat$/;"	v	class:GlibcChunk
+file_lookup_address	gef.py	/^def file_lookup_address(address):$/;"	f
+filename	gef.py	/^    filename          = None$/;"	v	class:Zone
+flag_register	gef.py	/^    def flag_register(self):                       pass$/;"	m	class:Architecture
+flag_register	gef.py	/^    flag_register = "$cpsr"$/;"	v	class:AARCH64
+flag_register	gef.py	/^    flag_register = "$cpsr"$/;"	v	class:ARM
+flag_register	gef.py	/^    flag_register = "$cr"$/;"	v	class:PowerPC
+flag_register	gef.py	/^    flag_register = "$eflags"$/;"	v	class:X86
+flag_register	gef.py	/^    flag_register = "$fcsr"$/;"	v	class:MIPS
+flag_register	gef.py	/^    flag_register = "$psr"$/;"	v	class:SPARC
+flag_register	gef.py	/^    flag_register = "$state" # sparcv9.pdf, 5.1.5.1 (ccr)$/;"	v	class:SPARC64
+flag_register_to_human	gef.py	/^    def flag_register_to_human(self, val=None):    pass$/;"	m	class:Architecture
+flag_register_to_human	gef.py	/^    def flag_register_to_human(self, val=None):$/;"	m	class:AARCH64
+flag_register_to_human	gef.py	/^    def flag_register_to_human(self, val=None):$/;"	m	class:ARM
+flag_register_to_human	gef.py	/^    def flag_register_to_human(self, val=None):$/;"	m	class:MIPS
+flag_register_to_human	gef.py	/^    def flag_register_to_human(self, val=None):$/;"	m	class:PowerPC
+flag_register_to_human	gef.py	/^    def flag_register_to_human(self, val=None):$/;"	m	class:SPARC
+flag_register_to_human	gef.py	/^    def flag_register_to_human(self, val=None):$/;"	m	class:X86
+flags_as_string	gef.py	/^    def flags_as_string(self):$/;"	m	class:GlibcChunk
+flags_table	gef.py	/^    def flags_table(self):                         pass$/;"	m	class:Architecture
+flags_table	gef.py	/^    flags_table = {$/;"	v	class:AARCH64
+flags_table	gef.py	/^    flags_table = {$/;"	v	class:ARM
+flags_table	gef.py	/^    flags_table = {$/;"	v	class:PowerPC
+flags_table	gef.py	/^    flags_table = {$/;"	v	class:SPARC
+flags_table	gef.py	/^    flags_table = {$/;"	v	class:SPARC64
+flags_table	gef.py	/^    flags_table = {$/;"	v	class:X86
+flags_table	gef.py	/^    flags_table = {}$/;"	v	class:MIPS
+flags_to_human	gef.py	/^def flags_to_human(reg_value, value_table):$/;"	f
+format_address	gef.py	/^def format_address(addr):$/;"	f
+fp	gef.py	/^    def fp(self):$/;"	m	class:Architecture
+from_info_sections	gef.py	/^    def from_info_sections(*args):$/;"	m	class:Permission
+from_process_maps	gef.py	/^    def from_process_maps(perm_str):$/;"	m	class:Permission
+function_parameters	gef.py	/^    def function_parameters(self):                 pass$/;"	m	class:Architecture
+function_parameters	gef.py	/^    function_parameters = ["$a0", "$a1", "$a2", "$a3"]$/;"	v	class:MIPS
+function_parameters	gef.py	/^    function_parameters = ["$esp", ]$/;"	v	class:X86
+function_parameters	gef.py	/^    function_parameters = ["$i0", "$i1", "$i2", "$i3", "$i4", "$i5"]$/;"	v	class:PowerPC
+function_parameters	gef.py	/^    function_parameters = ["$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",]$/;"	v	class:SPARC
+function_parameters	gef.py	/^    function_parameters = ["$r0", "$r1", "$r2", "$r3"]$/;"	v	class:ARM
+function_parameters	gef.py	/^    function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]$/;"	v	class:X86_64
+function_parameters	gef.py	/^    function_parameters = ["$x0", "$x1", "$x2", "$x3"]$/;"	v	class:AARCH64
+fwd	gef.py	/^    def fwd(self):$/;"	m	class:GlibcChunk
+gdb_disassemble	gef.py	/^def gdb_disassemble(start_pc, **kwargs):$/;"	f
+gdb_get_location_from_symbol	gef.py	/^def gdb_get_location_from_symbol(address):$/;"	f
+gdb_get_nth_next_instruction_address	gef.py	/^def gdb_get_nth_next_instruction_address(addr, n):$/;"	f
+gdb_get_nth_previous_instruction_address	gef.py	/^def gdb_get_nth_previous_instruction_address(addr, n):$/;"	f
+gdb_lookup_symbol	gef.py	/^def gdb_lookup_symbol(sym):$/;"	f
+gef_convenience	gef.py	/^def gef_convenience(value):$/;"	f
+gef_current_instruction	gef.py	/^def gef_current_instruction(addr):$/;"	f
+gef_disassemble	gef.py	/^def gef_disassemble(addr, nb_insn, nb_prev=0):$/;"	f
+gef_execute_external	gef.py	/^def gef_execute_external(command, as_list=False, *args, **kwargs):$/;"	f
+gef_execute_gdb_script	gef.py	/^def gef_execute_gdb_script(commands):$/;"	f
+gef_get_auxiliary_values	gef.py	/^def gef_get_auxiliary_values():$/;"	f
+gef_get_instruction_at	gef.py	/^def gef_get_instruction_at(addr):$/;"	f
+gef_get_pie_breakpoint	gef.py	/^def gef_get_pie_breakpoint(num):$/;"	f
+gef_getpagesize	gef.py	/^def gef_getpagesize():$/;"	f
+gef_instruction_n	gef.py	/^def gef_instruction_n(addr, n):$/;"	f
+gef_makedirs	gef.py	/^def gef_makedirs(path, mode=0o755):$/;"	f
+gef_next_instruction	gef.py	/^def gef_next_instruction(addr):$/;"	f
+gef_on_continue_hook	gef.py	/^def gef_on_continue_hook(func): return gdb.events.cont.connect(func)$/;"	f
+gef_on_continue_unhook	gef.py	/^def gef_on_continue_unhook(func): return gdb.events.cont.disconnect(func)$/;"	f
+gef_on_exit_hook	gef.py	/^def gef_on_exit_hook(func): return gdb.events.exited.connect(func)$/;"	f
+gef_on_exit_unhook	gef.py	/^def gef_on_exit_unhook(func): return gdb.events.exited.disconnect(func)$/;"	f
+gef_on_new_hook	gef.py	/^def gef_on_new_hook(func): return gdb.events.new_objfile.connect(func)$/;"	f
+gef_on_new_unhook	gef.py	/^def gef_on_new_unhook(func): return gdb.events.new_objfile.disconnect(func)$/;"	f
+gef_on_stop_hook	gef.py	/^def gef_on_stop_hook(func): return gdb.events.stop.connect(func)$/;"	f
+gef_on_stop_unhook	gef.py	/^def gef_on_stop_unhook(func): return gdb.events.stop.disconnect(func)$/;"	f
+gef_prompt	gef.py	/^    gef_prompt = "gef> "$/;"	v
+gef_prompt	gef.py	/^    gef_prompt = "gef\\u27a4  "$/;"	v
+gef_prompt_off	gef.py	/^    gef_prompt_off = "\\001\\033[1;31m\\002{0:s}\\001\\033[0m\\002".format(gef_prompt)$/;"	v
+gef_prompt_on	gef.py	/^    gef_prompt_on = "\\001\\033[1;32m\\002{0:s}\\001\\033[0m\\002".format(gef_prompt)$/;"	v
+gef_pybytes	gef.py	/^def gef_pybytes(x):$/;"	f
+gef_pystring	gef.py	/^def gef_pystring(x):$/;"	f
+gef_read_canary	gef.py	/^def gef_read_canary():$/;"	f
+generate_cyclic_pattern	gef.py	/^def generate_cyclic_pattern(length):$/;"	f
+generate_help	gef.py	/^    def generate_help(self, commands):$/;"	m	class:GefHelpCommand
+get_arch	gef.py	/^def get_arch():$/;"	f
+get_bkw_ptr	gef.py	/^    def get_bkw_ptr(self):$/;"	m	class:GlibcChunk
+get_capstone_arch	gef.py	/^def get_capstone_arch(arch=None, mode=None, endian=None, to_string=False):$/;"	f
+get_children_pids	gef.py	/^    def get_children_pids(self, pid):$/;"	m	class:ProcessStatusCommand
+get_chunk_size	gef.py	/^    def get_chunk_size(self):$/;"	m	class:GlibcChunk
+get_class	gef.py	/^    def get_class(self, modname, classname):$/;"	m	class:PCustomCommand
+get_cmdline_of	gef.py	/^    def get_cmdline_of(self, pid):$/;"	m	class:ProcessStatusCommand
+get_ctypes_value	gef.py	/^    def get_ctypes_value(self, struct, item, value):$/;"	m	class:PCustomCommand
+get_elf_headers	gef.py	/^def get_elf_headers(filename=None):$/;"	f
+get_endian	gef.py	/^def get_endian():$/;"	f
+get_filename	gef.py	/^def get_filename():$/;"	f
+get_filepath	gef.py	/^def get_filepath():$/;"	f
+get_frames_size	gef.py	/^    def get_frames_size(self):$/;"	m	class:TraceRunCommand
+get_function_length	gef.py	/^def get_function_length(sym):$/;"	f
+get_fwd_ptr	gef.py	/^    def get_fwd_ptr(self):$/;"	m	class:GlibcChunk
+get_gef_setting	gef.py	/^def get_gef_setting(name):$/;"	f
+get_generic_arch	gef.py	/^def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):$/;"	f
+get_generic_running_arch	gef.py	/^def get_generic_running_arch(module, prefix, to_string=False):$/;"	f
+get_info_files	gef.py	/^def get_info_files():$/;"	f
+get_info_sections	gef.py	/^def get_info_sections():$/;"	f
+get_insn_size	gef.py	/^    def get_insn_size(self, addr):$/;"	m	class:NopCommand
+get_ith_parameter	gef.py	/^    def get_ith_parameter(self, i):$/;"	m	class:ContextCommand
+get_keystone_arch	gef.py	/^def get_keystone_arch(arch=None, mode=None, endian=None, to_string=False):$/;"	f
+get_main_arena	gef.py	/^def get_main_arena():$/;"	f
+get_memory_alignment	gef.py	/^def get_memory_alignment(in_bits=False):$/;"	f
+get_module	gef.py	/^    def get_module(self, modname):$/;"	m	class:PCustomCommand
+get_next	gef.py	/^    def get_next(self):$/;"	m	class:GlibcArena
+get_next_chunk	gef.py	/^    def get_next_chunk(self):$/;"	m	class:GlibcChunk
+get_os	gef.py	/^def get_os():$/;"	f
+get_path_from_info_proc	gef.py	/^def get_path_from_info_proc():$/;"	f
+get_pc_context_info	gef.py	/^    def get_pc_context_info(self, pc, line):$/;"	m	class:ContextCommand
+get_pid	gef.py	/^def get_pid():$/;"	f
+get_prev_chunk_size	gef.py	/^    def get_prev_chunk_size(self):$/;"	m	class:GlibcChunk
+get_process_maps	gef.py	/^def get_process_maps():$/;"	f
+get_process_maps_linux	gef.py	/^def get_process_maps_linux(proc_map_file):$/;"	f
+get_process_path_of	gef.py	/^    def get_process_path_of(self, pid):$/;"	m	class:ProcessStatusCommand
+get_processes	gef.py	/^    def get_processes(self):$/;"	m	class:ProcessListingCommand
+get_register	gef.py	/^def get_register(regname):$/;"	f
+get_setting	gef.py	/^    def get_setting(self, name):$/;"	m	class:GenericCommand
+get_shellcode	gef.py	/^    def get_shellcode(self, sid):$/;"	m	class:ShellcodeGetCommand
+get_state_of	gef.py	/^    def get_state_of(self, pid):$/;"	m	class:ProcessStatusCommand
+get_struct_path	gef.py	/^    def get_struct_path(self):$/;"	m	class:PCustomCommand
+get_stub_by_arch	gef.py	/^    def get_stub_by_arch(self, addr, size, perm):$/;"	m	class:ChangePermissionCommand
+get_template	gef.py	/^    def get_template(self, structname):$/;"	m	class:PCustomCommand
+get_terminal_size	gef.py	/^def get_terminal_size():$/;"	f
+get_unicorn_arch	gef.py	/^def get_unicorn_arch(arch=None, mode=None, endian=None, to_string=False):$/;"	f
+get_unicorn_end_addr	gef.py	/^    def get_unicorn_end_addr(self, start_addr, nb):$/;"	m	class:UnicornEmulateCommand
+get_unicorn_registers	gef.py	/^def get_unicorn_registers(to_string=False):$/;"	f
+get_url	gef.py	/^    get_url = "{}\/shellcode\/files\/shellcode-{{:d}}.php".format(api_base)$/;"	v	class:ShellcodeGetCommand
+get_usable_size	gef.py	/^    def get_usable_size(self):$/;"	m	class:GlibcChunk
+gpr_registers	gef.py	/^    gpr_registers = [$/;"	v	class:X86
+gpr_registers	gef.py	/^    gpr_registers = [$/;"	v	class:X86_64
+grayify	gef.py	/^    def grayify(msg):      return Color.colorify(msg, attrs="gray")$/;"	m	class:Color
+greenify	gef.py	/^    def greenify(msg):     return Color.colorify(msg, attrs="green")$/;"	m	class:Color
+has_M_bit	gef.py	/^    def has_M_bit(self):$/;"	m	class:GlibcChunk
+has_N_bit	gef.py	/^    def has_N_bit(self):$/;"	m	class:GlibcChunk
+has_P_bit	gef.py	/^    def has_P_bit(self):$/;"	m	class:GlibcChunk
+has_setting	gef.py	/^    def has_setting(self, name):$/;"	m	class:GenericCommand
+help	gef.py	/^    def help(self):$/;"	m	class:NopCommand
+help	gef.py	/^    def help(self):$/;"	m	class:RemoteCommand
+help	gef.py	/^    def help(self):$/;"	m	class:UnicornEmulateCommand
+hexdump	gef.py	/^def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):$/;"	f
+highlightify	gef.py	/^    def highlightify(msg): return Color.colorify(msg, attrs="highlight")$/;"	m	class:Color
+hook_stop_handler	gef.py	/^def hook_stop_handler(event):$/;"	f
+horizontal_line	gef.py	/^    horizontal_line = "-"$/;"	v
+horizontal_line	gef.py	/^    horizontal_line = "\\u2500"$/;"	v
+http_get	gef.py	/^def http_get(url):$/;"	f
+ida_synchronize_handler	gef.py	/^def ida_synchronize_handler(event):$/;"	f
+import_structures	gef.py	/^    def import_structures(self, structs):$/;"	m	class:IdaInteractCommand
+info	gef.py	/^def info(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[+]", attrs="bold blue"), msg), gdb.STDLOG, cr)$/;"	f
+infos	gef.py	/^    def infos(self, address):$/;"	m	class:XAddressInfoCommand
+inner_f	gef.py	/^        def inner_f(*args, **kwargs):$/;"	f	function:only_if_gdb_version_higher_than.wrapper
+inode	gef.py	/^    inode           = None$/;"	v	class:Section
+instantiate	gef.py	/^    def instantiate(self, base):$/;"	m	class:PieVirtualBreakpoint
+instruction_length	gef.py	/^    def instruction_length(self):                  pass$/;"	m	class:Architecture
+instruction_length	gef.py	/^    def instruction_length(self):$/;"	m	class:ARM
+instruction_length	gef.py	/^    instruction_length = 4$/;"	v	class:MIPS
+instruction_length	gef.py	/^    instruction_length = 4$/;"	v	class:PowerPC
+instruction_length	gef.py	/^    instruction_length = 4$/;"	v	class:SPARC
+instruction_length	gef.py	/^    instruction_length = None$/;"	v	class:X86
+invoke	gef.py	/^    def invoke(self, args, from_tty):$/;"	m	class:GefAlias
+invoke	gef.py	/^    def invoke(self, args, from_tty):$/;"	m	class:GefAliases
+invoke	gef.py	/^    def invoke(self, args, from_tty):$/;"	m	class:GefCommand
+invoke	gef.py	/^    def invoke(self, args, from_tty):$/;"	m	class:GefConfigCommand
+invoke	gef.py	/^    def invoke(self, args, from_tty):$/;"	m	class:GefHelpCommand
+invoke	gef.py	/^    def invoke(self, args, from_tty):$/;"	m	class:GefMissingCommand
+invoke	gef.py	/^    def invoke(self, args, from_tty):$/;"	m	class:GefRestoreCommand
+invoke	gef.py	/^    def invoke(self, args, from_tty):$/;"	m	class:GefRunCommand
+invoke	gef.py	/^    def invoke(self, args, from_tty):$/;"	m	class:GefSaveCommand
+invoke	gef.py	/^    def invoke(self, args, from_tty):$/;"	m	class:GefSetCommand
+invoke	gef.py	/^    def invoke(self, args, from_tty):$/;"	m	class:GefTmuxSetup
+invoke	gef.py	/^    def invoke(self, args, from_tty):$/;"	m	class:GenericCommand
+is_aarch64	gef.py	/^def is_aarch64():$/;"	f
+is_alive	gef.py	/^def is_alive():$/;"	f
+is_arm	gef.py	/^def is_arm(filename=None):$/;"	f
+is_arm_thumb	gef.py	/^def is_arm_thumb():$/;"	f
+is_big_endian	gef.py	/^def is_big_endian():     return get_endian() == Elf.BIG_ENDIAN$/;"	f
+is_branch_taken	gef.py	/^    def is_branch_taken(self, insn):               pass$/;"	m	class:Architecture
+is_branch_taken	gef.py	/^    def is_branch_taken(self, insn):$/;"	m	class:AARCH64
+is_branch_taken	gef.py	/^    def is_branch_taken(self, insn):$/;"	m	class:ARM
+is_branch_taken	gef.py	/^    def is_branch_taken(self, insn):$/;"	m	class:MIPS
+is_branch_taken	gef.py	/^    def is_branch_taken(self, insn):$/;"	m	class:PowerPC
+is_branch_taken	gef.py	/^    def is_branch_taken(self, insn):$/;"	m	class:SPARC
+is_branch_taken	gef.py	/^    def is_branch_taken(self, insn):$/;"	m	class:X86
+is_call	gef.py	/^    def is_call(self, insn):                       pass$/;"	m	class:Architecture
+is_call	gef.py	/^    def is_call(self, insn):$/;"	m	class:AARCH64
+is_call	gef.py	/^    def is_call(self, insn):$/;"	m	class:ARM
+is_call	gef.py	/^    def is_call(self, insn):$/;"	m	class:MIPS
+is_call	gef.py	/^    def is_call(self, insn):$/;"	m	class:PowerPC
+is_call	gef.py	/^    def is_call(self, insn):$/;"	m	class:SPARC
+is_call	gef.py	/^    def is_call(self, insn):$/;"	m	class:X86
+is_conditional_branch	gef.py	/^    def is_conditional_branch(self, insn):         pass$/;"	m	class:Architecture
+is_conditional_branch	gef.py	/^    def is_conditional_branch(self, insn):$/;"	m	class:AARCH64
+is_conditional_branch	gef.py	/^    def is_conditional_branch(self, insn):$/;"	m	class:ARM
+is_conditional_branch	gef.py	/^    def is_conditional_branch(self, insn):$/;"	m	class:MIPS
+is_conditional_branch	gef.py	/^    def is_conditional_branch(self, insn):$/;"	m	class:PowerPC
+is_conditional_branch	gef.py	/^    def is_conditional_branch(self, insn):$/;"	m	class:SPARC
+is_conditional_branch	gef.py	/^    def is_conditional_branch(self, insn):$/;"	m	class:X86
+is_debug	gef.py	/^def is_debug():$/;"	f
+is_elf32	gef.py	/^def is_elf32(filename=None):$/;"	f
+is_elf64	gef.py	/^def is_elf64(filename=None):$/;"	f
+is_exe	gef.py	/^    def is_exe(fpath):$/;"	f	function:which
+is_executable	gef.py	/^    def is_executable(self):$/;"	m	class:Section
+is_hex	gef.py	/^def is_hex(pattern):$/;"	f
+is_in_heap_segment	gef.py	/^    def is_in_heap_segment(self):$/;"	m	class:Address
+is_in_stack_segment	gef.py	/^    def is_in_stack_segment(self):$/;"	m	class:Address
+is_in_text_segment	gef.py	/^    def is_in_text_segment(self):$/;"	m	class:Address
+is_in_x86_kernel	gef.py	/^def is_in_x86_kernel(address):$/;"	f
+is_little_endian	gef.py	/^def is_little_endian():  return not is_big_endian()$/;"	f
+is_loaded	gef.py	/^        def is_loaded(x):$/;"	f	function:GefCommand.load
+is_mips	gef.py	/^def is_mips():$/;"	f
+is_pie	gef.py	/^    def is_pie(self, fpath):$/;"	m	class:EntryPointBreakCommand
+is_powerpc	gef.py	/^def is_powerpc():$/;"	f
+is_ppc64	gef.py	/^def is_ppc64():$/;"	f
+is_readable	gef.py	/^    def is_readable(self):$/;"	m	class:Section
+is_readable_string	gef.py	/^def is_readable_string(address):$/;"	f
+is_remote_debug	gef.py	/^def is_remote_debug():$/;"	f
+is_sparc	gef.py	/^def is_sparc():$/;"	f
+is_sparc64	gef.py	/^def is_sparc64():$/;"	f
+is_syscall	gef.py	/^def is_syscall(arch, instruction):$/;"	f
+is_target_alive	gef.py	/^    def is_target_alive(self, host, port):$/;"	m	class:IdaInteractCommand
+is_used	gef.py	/^    def is_used(self):$/;"	m	class:GlibcChunk
+is_valid	gef.py	/^    def is_valid(self):$/;"	m	class:Instruction
+is_valid_struct	gef.py	/^    def is_valid_struct(self, x):$/;"	m	class:PCustomCommand
+is_writable	gef.py	/^    def is_writable(self):$/;"	m	class:Section
+is_x86_32	gef.py	/^def is_x86_32(filename=None):$/;"	f
+is_x86_64	gef.py	/^def is_x86_64(filename=None):$/;"	f
+keystone_assemble	gef.py	/^def keystone_assemble(code, arch, mode, *args, **kwargs):$/;"	f
+left_arrow	gef.py	/^    left_arrow = " \\u2190 "$/;"	v
+left_arrow	gef.py	/^    left_arrow = "<-"$/;"	v
+list_all_structs	gef.py	/^    def list_all_structs(self, modname):$/;"	m	class:PCustomCommand
+list_custom_structures	gef.py	/^    def list_custom_structures(self):$/;"	m	class:PCustomCommand
+list_sockets	gef.py	/^    def list_sockets(self, pid):$/;"	m	class:ProcessStatusCommand
+load	gef.py	/^    def load(self, initial=False):$/;"	m	class:GefCommand
+load_from_remote_proc	gef.py	/^    def load_from_remote_proc(self, pid, info):$/;"	m	class:RemoteCommand
+loaded_command_names	gef.py	/^    def loaded_command_names(self):$/;"	m	class:GefCommand
+long	gef.py	/^    long = int$/;"	v
+lookup_address	gef.py	/^def lookup_address(address):$/;"	f
+lookup_command	gef.py	/^    def lookup_command(self, cmd):$/;"	m	class:GefAlias
+lru_cache	gef.py	/^    def lru_cache(maxsize = 128):$/;"	f
+lru_cache	gef.py	/^    lru_cache = functools.lru_cache$/;"	v
+mode	gef.py	/^    mode = ""$/;"	v	class:SPARC
+mode	gef.py	/^    mode = "32"$/;"	v	class:X86
+mode	gef.py	/^    mode = "64"$/;"	v	class:X86_64
+mode	gef.py	/^    mode = "ARM"$/;"	v	class:AARCH64
+mode	gef.py	/^    mode = "ARM"$/;"	v	class:ARM
+mode	gef.py	/^    mode = "MIPS32"$/;"	v	class:MIPS
+mode	gef.py	/^    mode = "PPC32"$/;"	v	class:PowerPC
+mode	gef.py	/^    mode = "PPC64"$/;"	v	class:PowerPC64
+mode	gef.py	/^    mode = "V9"$/;"	v	class:SPARC64
+mprotect_asm	gef.py	/^    def mprotect_asm(self, addr, size, perm):$/;"	m	class:AARCH64
+mprotect_asm	gef.py	/^    def mprotect_asm(self, addr, size, perm):$/;"	m	class:ARM
+mprotect_asm	gef.py	/^    def mprotect_asm(self, addr, size, perm):$/;"	m	class:MIPS
+mprotect_asm	gef.py	/^    def mprotect_asm(self, addr, size, perm):$/;"	m	class:PowerPC
+mprotect_asm	gef.py	/^    def mprotect_asm(self, addr, size, perm):$/;"	m	class:SPARC
+mprotect_asm	gef.py	/^    def mprotect_asm(self, addr, size, perm):$/;"	m	class:X86
+mprotect_asm	gef.py	/^    def mprotect_asm(self, addr, size, perm):$/;"	m	class:X86_64
+msr_registers	gef.py	/^    msr_registers = [$/;"	v	class:X86
+name	gef.py	/^    name              = None$/;"	v	class:Zone
+new_objfile_handler	gef.py	/^    def new_objfile_handler(self, event):$/;"	m	class:RemoteCommand
+new_objfile_handler	gef.py	/^def new_objfile_handler(event):$/;"	f
+nop_bytes	gef.py	/^    def nop_bytes(self, loc, num_bytes):$/;"	m	class:NopCommand
+nop_insn	gef.py	/^    def nop_insn(self):                            pass$/;"	m	class:Architecture
+nop_insn	gef.py	/^    nop_insn = b"\\x00\\x00\\x00\\x00"  # sethi 0, %g0$/;"	v	class:SPARC
+nop_insn	gef.py	/^    nop_insn = b"\\x00\\x00\\x00\\x00" # sll $0,$0,0$/;"	v	class:MIPS
+nop_insn	gef.py	/^    nop_insn = b"\\x01\\x10\\xa0\\xe1" # mov r1,r1$/;"	v	class:ARM
+nop_insn	gef.py	/^    nop_insn = b"\\x60\\x00\\x00\\x00" # http:\/\/www.ibm.com\/developerworks\/library\/l-ppc\/index.html$/;"	v	class:PowerPC
+nop_insn	gef.py	/^    nop_insn = b"\\x90"$/;"	v	class:X86
+offset	gef.py	/^    offset          = None$/;"	v	class:Section
+ok	gef.py	/^def ok(msg, cr=True):    return _xlog("{} {}".format(Color.colorify("[+]", attrs="bold green"), msg), gdb.STDLOG, cr)$/;"	f
+old_registers	gef.py	/^    old_registers = {}$/;"	v	class:ContextCommand
+only_if_events_supported	gef.py	/^def only_if_events_supported(event_type):$/;"	f
+only_if_gdb_running	gef.py	/^def only_if_gdb_running(f):$/;"	f
+only_if_gdb_target_local	gef.py	/^def only_if_gdb_target_local(f):$/;"	f
+only_if_gdb_version_higher_than	gef.py	/^def only_if_gdb_version_higher_than(required_gdb_version):$/;"	f
+open_file	gef.py	/^def open_file(path, use_cache=False):$/;"	f
+page_end	gef.py	/^    page_end        = None$/;"	v	class:Section
+page_start	gef.py	/^    page_start      = None$/;"	v	class:Section
+parse_address	gef.py	/^def parse_address(address):$/;"	f
+parse_ip_port	gef.py	/^    def parse_ip_port(self, addr):$/;"	m	class:ProcessStatusCommand
+parsed_arglist	gef.py	/^        def parsed_arglist(arglist):$/;"	f	function:IdaInteractCommand.do_invoke
+path	gef.py	/^    path            = None$/;"	v	class:Section
+pc	gef.py	/^    def pc(self):$/;"	m	class:Architecture
+pcustom_filepath	gef.py	/^    def pcustom_filepath(self, x):$/;"	m	class:PCustomCommand
+permission	gef.py	/^    permission      = None$/;"	v	class:Section
+pinkify	gef.py	/^    def pinkify(msg):      return Color.colorify(msg, attrs="pink")$/;"	m	class:Color
+post_load	gef.py	/^    def post_load(self): pass$/;"	m	class:GenericCommand
+post_load	gef.py	/^    def post_load(self):$/;"	m	class:ContextCommand
+pprint	gef.py	/^    def pprint(self):$/;"	m	class:GlibcChunk
+pprint_bin	gef.py	/^    def pprint_bin(arena_addr, index, _type=""):$/;"	m	class:GlibcHeapBinsCommand
+pprint_dereferenced	gef.py	/^    def pprint_dereferenced(addr, off):$/;"	m	class:DereferenceCommand
+pre_load	gef.py	/^    def pre_load(self): pass$/;"	m	class:GenericCommand
+pre_load	gef.py	/^    def pre_load(self):$/;"	m	class:AssembleCommand
+pre_load	gef.py	/^    def pre_load(self):$/;"	m	class:CapstoneDisassembleCommand
+pre_load	gef.py	/^    def pre_load(self):$/;"	m	class:ChangePermissionCommand
+pre_load	gef.py	/^    def pre_load(self):$/;"	m	class:ChecksecCommand
+pre_load	gef.py	/^    def pre_load(self):$/;"	m	class:RopperCommand
+pre_load	gef.py	/^    def pre_load(self):$/;"	m	class:UnicornEmulateCommand
+prepare_qemu_stub	gef.py	/^    def prepare_qemu_stub(self, target):$/;"	m	class:RemoteCommand
+print_arguments_from_symbol	gef.py	/^    def print_arguments_from_symbol(self, function_name, symbol):$/;"	m	class:ContextCommand
+print_guessed_arguments	gef.py	/^    def print_guessed_arguments(self, function_name):$/;"	m	class:ContextCommand
+print_security_properties	gef.py	/^    def print_security_properties(self, filename):$/;"	m	class:ChecksecCommand
+print_setting	gef.py	/^    def print_setting(self, plugin_name, show_description=False):$/;"	m	class:GefConfigCommand
+print_settings	gef.py	/^    def print_settings(self):$/;"	m	class:GefConfigCommand
+process_lookup_address	gef.py	/^def process_lookup_address(address):$/;"	f
+process_lookup_path	gef.py	/^def process_lookup_path(name, perm=Permission.ALL):$/;"	f
+ptrsize	gef.py	/^    def ptrsize(self):$/;"	m	class:Architecture
+push_context_message	gef.py	/^def push_context_message(level, message):$/;"	f
+range	gef.py	/^    range = xrange$/;"	v
+read_cstring_from_memory	gef.py	/^def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding='unicode_escape'):$/;"	f
+read_int_from_memory	gef.py	/^def read_int_from_memory(addr):$/;"	f
+read_memory	gef.py	/^def read_memory(addr, length=0x10):$/;"	f
+realpath	gef.py	/^    def realpath(self):$/;"	m	class:Section
+reason	gef.py	/^        def reason():$/;"	f	function:ContextCommand.context_threads
+redify	gef.py	/^    def redify(msg):       return Color.colorify(msg, attrs="red")$/;"	m	class:Color
+refresh	gef.py	/^    def refresh(self):$/;"	m	class:GefHelpCommand
+refresh_shared_library_path	gef.py	/^    def refresh_shared_library_path(self):$/;"	m	class:RemoteCommand
+register_command	gef.py	/^def register_command(cls):$/;"	f
+register_external_command	gef.py	/^def register_external_command(obj):$/;"	f
+register_priority_command	gef.py	/^def register_priority_command(cls):$/;"	f
+reset_all_caches	gef.py	/^def reset_all_caches():$/;"	f
+return_register	gef.py	/^    def return_register(self):                     pass$/;"	m	class:Architecture
+return_register	gef.py	/^    return_register = "$eax"$/;"	v	class:X86
+return_register	gef.py	/^    return_register = "$i0"$/;"	v	class:SPARC
+return_register	gef.py	/^    return_register = "$r0"$/;"	v	class:ARM
+return_register	gef.py	/^    return_register = "$r0"$/;"	v	class:PowerPC
+return_register	gef.py	/^    return_register = "$rax"$/;"	v	class:X86_64
+return_register	gef.py	/^    return_register = "$v0"$/;"	v	class:MIPS
+return_register	gef.py	/^    return_register = "$x0"$/;"	v	class:AARCH64
+right_arrow	gef.py	/^    right_arrow = " \\u2192 "$/;"	v
+right_arrow	gef.py	/^    right_arrow = "->"$/;"	v
+run_unicorn	gef.py	/^    def run_unicorn(self, start_insn_addr, end_insn_addr, *args, **kwargs):$/;"	m	class:UnicornEmulateCommand
+safe_parse_and_eval	gef.py	/^def safe_parse_and_eval(value):$/;"	f
+screen_setup	gef.py	/^    def screen_setup(self):$/;"	m	class:GefTmuxSetup
+search	gef.py	/^    def search(self, pattern, size):$/;"	m	class:PatternSearchCommand
+search_pattern	gef.py	/^    def search_pattern(self, pattern, endian):$/;"	m	class:SearchPatternCommand
+search_pattern_by_address	gef.py	/^    def search_pattern_by_address(self, pattern, start_address, end_address):$/;"	m	class:SearchPatternCommand
+search_shellcode	gef.py	/^    def search_shellcode(self, search_options):$/;"	m	class:ShellcodeSearchCommand
+set_arch	gef.py	/^def set_arch():$/;"	f
+set_gef_setting	gef.py	/^def set_gef_setting(name, value, _type=None, _desc=None):$/;"	f
+set_init_tbreak	gef.py	/^    def set_init_tbreak(self, addr):$/;"	m	class:EntryPointBreakCommand
+set_init_tbreak_pie	gef.py	/^    def set_init_tbreak_pie(self, addr):$/;"	m	class:EntryPointBreakCommand
+set_pie_breakpoint	gef.py	/^    def set_pie_breakpoint(set_func, addr):$/;"	m	class:PieBreakpointCommand
+set_setting	gef.py	/^    def set_setting(self, argc, argv):$/;"	m	class:GefConfigCommand
+settings	gef.py	/^    def settings(self):$/;"	m	class:GenericCommand
+setup	gef.py	/^    def setup(self):$/;"	m	class:GefCommand
+setup	gef.py	/^    def setup(self):$/;"	m	class:HeapAnalysisCommand
+setup_remote_environment	gef.py	/^    def setup_remote_environment(self, pid, update_solib=False):$/;"	m	class:RemoteCommand
+show_ancestor	gef.py	/^    def show_ancestor(self):$/;"	m	class:ProcessStatusCommand
+show_as_int	gef.py	/^        def show_as_int(i):$/;"	f	function:SmartEvalCommand.evaluate
+show_connections	gef.py	/^    def show_connections(self):$/;"	m	class:ProcessStatusCommand
+show_descendants	gef.py	/^    def show_descendants(self):$/;"	m	class:ProcessStatusCommand
+show_fds	gef.py	/^    def show_fds(self):$/;"	m	class:ProcessStatusCommand
+show_info_proc	gef.py	/^    def show_info_proc(self):$/;"	m	class:ProcessStatusCommand
+show_last_exception	gef.py	/^def show_last_exception():$/;"	f
+show_legend	gef.py	/^    def show_legend(self):$/;"	m	class:ContextCommand
+size	gef.py	/^    def size(self):$/;"	m	class:GlibcChunk
+size	gef.py	/^    def size(self):$/;"	m	class:Section
+sp	gef.py	/^    def sp(self):$/;"	m	class:Architecture
+stop	gef.py	/^    def stop(self):$/;"	m	class:ChangePermissionBreakpoint
+stop	gef.py	/^    def stop(self):$/;"	m	class:EntryBreakBreakpoint
+stop	gef.py	/^    def stop(self):$/;"	m	class:FormatStringBreakpoint
+stop	gef.py	/^    def stop(self):$/;"	m	class:StubBreakpoint
+stop	gef.py	/^    def stop(self):$/;"	m	class:TraceFreeBreakpoint
+stop	gef.py	/^    def stop(self):$/;"	m	class:TraceFreeRetBreakpoint
+stop	gef.py	/^    def stop(self):$/;"	m	class:TraceMallocBreakpoint
+stop	gef.py	/^    def stop(self):$/;"	m	class:TraceMallocRetBreakpoint
+stop	gef.py	/^    def stop(self):$/;"	m	class:TraceReallocBreakpoint
+stop	gef.py	/^    def stop(self):$/;"	m	class:TraceReallocRetBreakpoint
+stop	gef.py	/^    def stop(self):$/;"	m	class:UafWatchpoint
+str_as_alloced	gef.py	/^    def str_as_alloced(self):$/;"	m	class:GlibcChunk
+str_as_freed	gef.py	/^    def str_as_freed(self):$/;"	m	class:GlibcChunk
+str_chunk_size_flag	gef.py	/^    def str_chunk_size_flag(self):$/;"	m	class:GlibcChunk
+synchronize	gef.py	/^    def synchronize(self):$/;"	m	class:IdaInteractCommand
+syscall	gef.py	/^    syscall = 'swi 0x0'$/;"	v	class:ARM
+syscall_instruction	gef.py	/^    syscall_instruction = 'int 0x80'$/;"	v	class:X86
+syscall_instruction	gef.py	/^    syscall_instruction = 'sc'$/;"	v	class:PowerPC
+syscall_instruction	gef.py	/^    syscall_instruction = 'svc #0'$/;"	v	class:AARCH64
+syscall_instruction	gef.py	/^    syscall_instruction = 'syscall'$/;"	v	class:MIPS
+syscall_instruction	gef.py	/^    syscall_instruction = 'syscall'$/;"	v	class:X86_64
+syscall_instruction	gef.py	/^    syscall_instruction = 't 0x10'$/;"	v	class:SPARC
+syscall_instruction	gef.py	/^    syscall_instruction = 't 0x6d'$/;"	v	class:SPARC64
+tick	gef.py	/^    tick = "\\u2713 "$/;"	v
+tick	gef.py	/^    tick = "v"$/;"	v
+titlify	gef.py	/^def titlify(text, color=None, msg_color=None):$/;"	f
+tmux_setup	gef.py	/^    def tmux_setup(self):$/;"	m	class:GefTmuxSetup
+to_unsigned_long	gef.py	/^def to_unsigned_long(v):$/;"	f
+trace	gef.py	/^    def trace(self, loc_start, loc_end, depth):$/;"	m	class:TraceRunCommand
+underlinify	gef.py	/^    def underlinify(msg):  return Color.colorify(msg, attrs="underline")$/;"	m	class:Color
+unicode	gef.py	/^    unicode = str$/;"	v
+update_gef	gef.py	/^def update_gef(argv):$/;"	f
+update_registers	gef.py	/^    def update_registers(cls, event):$/;"	m	class:ContextCommand
+usable_size	gef.py	/^    def usable_size(self):$/;"	m	class:GlibcChunk
+usage	gef.py	/^    def usage(self):$/;"	m	class:AssembleCommand
+usage	gef.py	/^    def usage(self):$/;"	m	class:GenericCommand
+usage	gef.py	/^    def usage(self, meth=None):$/;"	m	class:IdaInteractCommand
+use_default_type	gef.py	/^def use_default_type():$/;"	f
+use_golang_type	gef.py	/^def use_golang_type():$/;"	f
+use_stdtype	gef.py	/^def use_stdtype():$/;"	f
+vertical_line	gef.py	/^    vertical_line = "\\u2502"$/;"	v
+vertical_line	gef.py	/^    vertical_line = "|"$/;"	v
+warn	gef.py	/^def warn(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[*]", attrs="bold yellow"), msg), gdb.STDLOG, cr)$/;"	f
+which	gef.py	/^def which(program):$/;"	f
+wrap	gef.py	/^    def wrap(f):$/;"	f	function:only_if_events_supported
+wrapped_f	gef.py	/^        def wrapped_f(*args, **kwargs):$/;"	f	function:only_if_events_supported.wrap
+wrapper	gef.py	/^    def wrapper(*args, **kwargs):$/;"	f	function:experimental_feature
+wrapper	gef.py	/^    def wrapper(*args, **kwargs):$/;"	f	function:only_if_gdb_running
+wrapper	gef.py	/^    def wrapper(*args, **kwargs):$/;"	f	function:only_if_gdb_target_local
+wrapper	gef.py	/^    def wrapper(f):$/;"	f	function:only_if_gdb_version_higher_than
+write_memory	gef.py	/^def write_memory(address, buffer, length=0x10):$/;"	f
+xor	gef.py	/^def xor(data, key):$/;"	f
+yellowify	gef.py	/^    def yellowify(msg):    return Color.colorify(msg, attrs="yellow")$/;"	m	class:Color
+zone_end	gef.py	/^    zone_end          = None$/;"	v	class:Zone
+zone_start	gef.py	/^    zone_start        = None$/;"	v	class:Zone
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
