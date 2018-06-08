@@ -1403,8 +1403,8 @@ class ARM(Architecture):
         5: "thumb"
     }
     function_parameters = ["$r0", "$r1", "$r2", "$r3"]
-    syscall_register = "$r0"
-    syscall = 'swi 0x0'
+    syscall_register = "$r7"
+    syscall_instructions = ['swi 0x0', 'swi NR']
 
     @property
     def instruction_length(self):
@@ -1479,7 +1479,7 @@ class AARCH64(ARM):
         6: "fast"
     }
     function_parameters = ["$x0", "$x1", "$x2", "$x3"]
-    syscall_register = "$x0"
+    syscall_register = "$x8"
     syscall_instructions = ['svc $x0']
 
     def is_call(self, insn):
@@ -8200,7 +8200,9 @@ class SyscallArgsCommand(GenericCommand):
                                                                                                         self.get_setting("path")))
             return
 
-        syscall_table = self.get_syscall_table(current_arch.arch, current_arch.arch)
+        arch = current_arch.__class__.__name__
+
+        syscall_table = self.get_syscall_table(arch)
         syscall_entry = syscall_table[get_register(current_arch.syscall_register)]
 
         values = []
@@ -8241,7 +8243,7 @@ class SyscallArgsCommand(GenericCommand):
         return imp.load_source(modname, _fullname)
 
 
-    def get_syscall_table(self, modname, classname):
+    def get_syscall_table(self, modname):
         _mod = self.get_module(modname)
         return getattr(_mod, 'syscall_table')
 
