@@ -1404,7 +1404,6 @@ class ARM(Architecture):
     }
     function_parameters = ["$r0", "$r1", "$r2", "$r3"]
     syscall_register = "$r0"
-
     syscall = 'swi 0x0'
 
     @property
@@ -1481,7 +1480,6 @@ class AARCH64(ARM):
     }
     function_parameters = ["$x0", "$x1", "$x2", "$x3"]
     syscall_register = "$x0"
-
     syscall_instructions = ['svc $x0']
 
     def is_call(self, insn):
@@ -1575,7 +1573,6 @@ class X86(Architecture):
         21: "identification",
     }
     syscall_register = "$eax"
-
     syscall_instructions = ['sysenter', 'int 0x80']
 
     def flag_register_to_human(self, val=None):
@@ -1669,9 +1666,7 @@ class X86_64(X86):
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
     syscall_register = "$rax"
-
     syscall_instructions = ['syscall']
-    syscall_number_register = '$rax'
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
@@ -1713,7 +1708,6 @@ class PowerPC(Architecture):
     }
     function_parameters = ["$i0", "$i1", "$i2", "$i3", "$i4", "$i5"]
     syscall_register = "$r0"
-
     syscall_instructions = ['sc']
 
     def flag_register_to_human(self, val=None):
@@ -1795,7 +1789,6 @@ class SPARC(Architecture):
     }
     function_parameters = ["$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",]
     syscall_register = "%g1"
-
     syscall_instructions = ['t 0x10']
 
     def flag_register_to_human(self, val=None):
@@ -1906,7 +1899,6 @@ class MIPS(Architecture):
     flags_table = {}
     function_parameters = ["$a0", "$a1", "$a2", "$a3"]
     syscall_register = "$v0"
-
     syscall_instructions = ['syscall']
 
     def flag_register_to_human(self, val=None):
@@ -8209,7 +8201,7 @@ class SyscallArgsCommand(GenericCommand):
             return
 
         syscall_table = self.get_syscall_table(current_arch.arch, current_arch.arch)
-        syscall_entry = syscall_table[get_register(current_arch.syscall_number_register)]
+        syscall_entry = syscall_table[get_register(current_arch.syscall_register)]
 
         values = []
         for param in syscall_entry.params:
