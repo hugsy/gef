@@ -1671,6 +1671,7 @@ class X86_64(X86):
     syscall_register = "$rax"
 
     syscall_instructions = ['syscall']
+    syscall_number_register = '$rax'
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
@@ -2685,14 +2686,6 @@ def set_arch():
     else:
         raise OSError("CPU type is currently not supported: {:s}".format(get_arch()))
     return
-
-
-def is_syscall(arch, instruction):
-    insn_str = instruction.mnemonic  + ' ' + ', '.join(instruction.operands)
-    return insn_str.strip() in arch.syscall_instructions
-
-def get_syscall_args(arch):
-    pass
 
 
 @lru_cache()
@@ -8184,9 +8177,14 @@ class IsSyscallCommand(GenericCommand):
 
     def do_invoke(self, argv):
         insn = gef_current_instruction(current_arch.pc)
-        ok('Current instruction is{}a syscall'.format(' ' if is_syscall(current_arch, insn) else ' not '))
+        ok('Current instruction is{}a syscall'.format(' ' if self.is_syscall(current_arch, insn) else ' not '))
 
         return
+
+    def is_syscall(self, arch, instruction):
+        insn_str = instruction.mnemonic  + ' ' + ', '.join(instruction.operands)
+        return insn_str.strip() in arch.syscall_instructions
+
 
 @register_command
 class SyscallArgsCommand(GenericCommand):
@@ -8204,42 +8202,59 @@ class SyscallArgsCommand(GenericCommand):
     def do_invoke(self, argv):
         color = get_gef_setting("theme.xinfo_title_message")
 
-        path = self.get_path()
-        # TODO: this can be removed once we get syscall table file ready
-        # if path is None:
-        #     err("Cannot open '{0}': check directory and/or `gef config {0}` setting, currently: '{1}'".format("syscall-args.path",
-        #                                                                                                 self.get_setting("path")))
-        #     return
+        path = self.get_settings_path()
+        if path is None:
+            err("Cannot open '{0}': check directory and/or `gef config {0}` setting, currently: '{1}'".format("syscall-args.path",
+                                                                                                        self.get_setting("path")))
+            return
 
-        # This should be how each entry in the syscall table stored
+        syscall_table = self.get_syscall_table(current_arch.arch, current_arch.arch)
+        syscall_entry = syscall_table[get_register(current_arch.syscall_number_register)]
 
-        # TODO: create syscall table file and load entries from there based on syscall number
-        SyscallEntry = collections.namedtuple('SyscallEntry', 'name params')
-        SyscallParam = collections.namedtuple('SyscallParam', 'param reg')
-        syscall_entry = SyscallEntry(
-            'write',
-            [SyscallParam('unsigned int fd', 'rbx'), SyscallParam('char *buf', 'rcx'), SyscallParam('size_t count', 'rdx')]
-        )
+        values = []
+        for param in syscall_entry.params:
+            values.append(get_register(param.reg))
 
-        # TODO: replace with actual register values
-        syscall_values = [0, 0xdeadbeef, 10]
-
-        # everything below here is fixed
-        syscall_parameters = [s.param for s in syscall_entry.params]
-        syscall_registers = [s.reg for s in syscall_entry.params]
+        parameters = [s.param for s in syscall_entry.params]
+        registers = [s.reg for s in syscall_entry.params]
 
         info("Detected syscall {}".format(Color.colorify(syscall_entry.name, attrs=color)))
-        print("    {}({})".format(syscall_entry.name, ', '.join(syscall_parameters)));
+        gef_print("    {}({})".format(syscall_entry.name, ', '.join(parameters)));
 
         headers = [Color.colorify(x, attrs=color) for x in ["Parameter", "Register", "Value"]]
-        syscall_param_names = [re.split(' |\*', s)[-1] for s in syscall_parameters]
+        param_names = [re.split(' |\*', p)[-1] for p in parameters]
         info("{:<28} {:<28} {}".format(*headers))
-        for i in range(len(syscall_parameters)):
-            print("    {:<15} {:<15} 0x{:x}".format(syscall_param_names[i], syscall_registers[i], syscall_values[i]))
+        for i in range(len(parameters)):
+            line = "    {:<15} {:<15} 0x{:x}".format(param_names[i], registers[i], values[i])
+
+            addrs = DereferenceCommand.dereference_from(values[i])
+
+            if len(addrs) > 1:
+                sep = " {:s} ".format(right_arrow)
+                line += sep
+                line += sep.join(addrs[1:])
+
+            gef_print(line)
 
         return
 
-    def get_path(self):
+    def get_filepath(self, x):
+        p = self.get_settings_path()
+        if not p: return None
+        return os.path.join(p, "{}.py".format(x))
+
+
+    def get_module(self, modname):
+        _fullname = self.get_filepath(modname)
+        return imp.load_source(modname, _fullname)
+
+
+    def get_syscall_table(self, modname, classname):
+        _mod = self.get_module(modname)
+        return getattr(_mod, 'syscall_table')
+
+
+    def get_settings_path(self):
         path = os.path.expanduser(self.get_setting("path"))
         path = os.path.realpath(path)
         return path if os.path.isdir(path) else None
