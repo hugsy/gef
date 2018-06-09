@@ -4310,34 +4310,35 @@ class ChangeFdCommand(GenericCommand):
         disable_context()
 
         if ':' in new_output:
+            address = socket.gethostbyname(new_output.split(':')[0])
+            port = int(new_output.split(':')[1])
+
             # AF_INET = 2, SOCK_STREAM = 1
             res = gdb.execute("""call socket(2, 1, 0)""", to_string=True)
             new_fd = int(res.split()[2], 0)
-            '''
-            struct sockaddr_in {
-                short            sin_family;   // e.g. AF_INET
-                unsigned short   sin_port;     // e.g. htons(3490)
-                struct in_addr   sin_addr;     // see struct in_addr, below
-                char             sin_zero[8];  // zero this if you want to
-            };
 
-            struct in_addr {
-                unsigned long s_addr;  // load with inet_aton()
-            };
-            '''
-            info('Created fd')
-            address = new_output.split(':')[0]
-            port = int(new_output.split(':')[1])
+            # fill in memory with sockaddr_in struct contents
+            # we will do this in the stack, since connect() wants a pointer to a struct
+            vmmap = get_process_maps()
+            stack_addr = next(entry.page_start for entry in vmmap if entry.path == '[stack]')
+            original_contents = read_memory(stack_addr, 8)
 
-            address = socket.gethostbyname(address)
+            write_memory(stack_addr, '\x02\x00', 2)
+            write_memory(stack_addr + 0x2, struct.pack('<H', socket.htons(port)), 2)
+            write_memory(stack_addr + 0x4, socket.inet_aton(address), 4)
 
-            socketaddr = '(struct sockaddr*)&((struct sockaddr_in) {{ 2, {}, {{ 0x{:x} }} }})'.format(socket.htons(port), struct.unpack('<L', socket.inet_aton(address))[0])            
-            # sizeof(sockaddr_in) = 16
-            info(socketaddr)
-            info('Connecting fd')
-            res = gdb.execute("""call connect({}, {}, {})""".format(new_fd, socketaddr, 16), to_string=True)
-            info('Connected fd')
-            print(res)
+            info('Trying to connect to {}'.format(new_output))
+            res = gdb.execute("""call connect({}, {}, {})""".format(new_fd, stack_addr, 16), to_string=True)
+
+            # recover stack state
+            write_memory(stack_addr, original_contents, 8)
+
+            res = int(res.split()[2], 0)
+            if res == -1:
+                err('Failed to connect to {}'.format(addr))
+                return
+
+            info('Connected to {}'.format(new_output))
         else:
             res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
             # Output example: $1 = 3
