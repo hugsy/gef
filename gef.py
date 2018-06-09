@@ -4231,12 +4231,16 @@ class PCustomCommand(GenericCommand):
         default = ""
         for name, values in values_list:
             if name != item: continue
-            if type(values) == list:
-                for val, desc in values:
-                    if value == val: return desc
-                    if val is None: default = desc
-            else:
+            if callable(values):
                 return values(value)
+            else:
+                try:
+                    for val, desc in values:
+                        if value == val: return desc
+                        if val is None: default = desc
+                except:
+                    err("Error while trying to obtain values from __values__[\"{}\"]".format(name))
+
         return default
 
 
