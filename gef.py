@@ -4231,9 +4231,12 @@ class PCustomCommand(GenericCommand):
         default = ""
         for name, values in values_list:
             if name != item: continue
-            for val, desc in values:
-                if value == val: return desc
-                if val is None: default = desc
+            if type(values) == list:
+                for val, desc in values:
+                    if value == val: return desc
+                    if val is None: default = desc
+            else:
+                return values(value)
         return default
 
 
