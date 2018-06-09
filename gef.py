@@ -4308,9 +4308,41 @@ class ChangeFdCommand(GenericCommand):
         new_output = argv[1]
 
         disable_context()
-        res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
-        # Output example: $1 = 3
-        new_fd = int(res.split()[2], 0)
+
+        if ':' in new_output:
+            # AF_INET = 2, SOCK_STREAM = 1
+            res = gdb.execute("""call socket(2, 1, 0)""", to_string=True)
+            new_fd = int(res.split()[2], 0)
+            '''
+            struct sockaddr_in {
+                short            sin_family;   // e.g. AF_INET
+                unsigned short   sin_port;     // e.g. htons(3490)
+                struct in_addr   sin_addr;     // see struct in_addr, below
+                char             sin_zero[8];  // zero this if you want to
+            };
+
+            struct in_addr {
+                unsigned long s_addr;  // load with inet_aton()
+            };
+            '''
+            info('Created fd')
+            address = new_output.split(':')[0]
+            port = int(new_output.split(':')[1])
+
+            address = socket.gethostbyname(address)
+
+            socketaddr = '(struct sockaddr*)&((struct sockaddr_in) {{ 2, {}, {{ 0x{:x} }} }})'.format(socket.htons(port), struct.unpack('<L', socket.inet_aton(address))[0])            
+            # sizeof(sockaddr_in) = 16
+            info(socketaddr)
+            info('Connecting fd')
+            res = gdb.execute("""call connect({}, {}, {})""".format(new_fd, socketaddr, 16), to_string=True)
+            info('Connected fd')
+            print(res)
+        else:
+            res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
+            # Output example: $1 = 3
+            new_fd = int(res.split()[2], 0)
+        
         info("Opened '{:s}' as fd=#{:d}".format(new_output, new_fd))
         gdb.execute("""call dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
         info("Duplicated FD #{:d} {:s} #{:d}".format(old_fd, right_arrow, new_fd))
