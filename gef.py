@@ -8163,7 +8163,7 @@ class HeapAnalysisCommand(GenericCommand):
 @register_command
 class IsSyscallCommand(GenericCommand):
     """
-    Checks if the current instruction is a system call."""
+    Tells whether the next instruction is a system call."""
     _cmdline_ = 'is-syscall'
     _syntax_ = _cmdline_
 
