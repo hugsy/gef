@@ -1404,7 +1404,7 @@ class ARM(Architecture):
     }
     function_parameters = ["$r0", "$r1", "$r2", "$r3"]
     syscall_register = "$r7"
-    syscall_instructions = ['swi 0x0', 'swi NR']
+    syscall_instructions = ["swi 0x0", "swi NR"]
 
     @property
     def instruction_length(self):
@@ -1480,7 +1480,7 @@ class AARCH64(ARM):
     }
     function_parameters = ["$x0", "$x1", "$x2", "$x3"]
     syscall_register = "$x8"
-    syscall_instructions = ['svc $x0']
+    syscall_instructions = ["svc $x0"]
 
     def is_call(self, insn):
         mnemo = insn.mnemonic
@@ -1573,7 +1573,7 @@ class X86(Architecture):
         21: "identification",
     }
     syscall_register = "$eax"
-    syscall_instructions = ['sysenter', 'int 0x80']
+    syscall_instructions = ["sysenter", "int 0x80"]
 
     def flag_register_to_human(self, val=None):
         reg = self.flag_register
@@ -1666,7 +1666,7 @@ class X86_64(X86):
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
     syscall_register = "$rax"
-    syscall_instructions = ['syscall']
+    syscall_instructions = ["syscall"]
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
@@ -1708,7 +1708,7 @@ class PowerPC(Architecture):
     }
     function_parameters = ["$i0", "$i1", "$i2", "$i3", "$i4", "$i5"]
     syscall_register = "$r0"
-    syscall_instructions = ['sc']
+    syscall_instructions = ["sc"]
 
     def flag_register_to_human(self, val=None):
         # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
@@ -1789,7 +1789,7 @@ class SPARC(Architecture):
     }
     function_parameters = ["$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",]
     syscall_register = "%g1"
-    syscall_instructions = ['t 0x10']
+    syscall_instructions = ["t 0x10"]
 
     def flag_register_to_human(self, val=None):
         # http://www.gaisler.com/doc/sparcv8.pdf
@@ -1877,7 +1877,7 @@ class SPARC64(SPARC):
         32: "carry",
     }
 
-    syscall_instructions = ['t 0x6d']
+    syscall_instructions = ["t 0x6d"]
 
 
 
@@ -1899,7 +1899,7 @@ class MIPS(Architecture):
     flags_table = {}
     function_parameters = ["$a0", "$a1", "$a2", "$a3"]
     syscall_register = "$v0"
-    syscall_instructions = ['syscall']
+    syscall_instructions = ["syscall"]
 
     def flag_register_to_human(self, val=None):
         return Color.colorify("No flag register", attrs="yellow underline")
@@ -8196,8 +8196,8 @@ class SyscallArgsCommand(GenericCommand):
 
         path = self.get_settings_path()
         if path is None:
-            err("Cannot open '{0}': check directory and/or `gef config {0}` setting, currently: '{1}'".format("syscall-args.path",
-                                                                                                        self.get_setting("path")))
+            err("Cannot open '{0}': check directory and/or `gef config {0}` setting, "
+                "currently: '{1}'".format("syscall-args.path", self.get_setting("path")))
             return
 
         arch = current_arch.__class__.__name__
@@ -8218,10 +8218,10 @@ class SyscallArgsCommand(GenericCommand):
         headers = [Color.colorify(x, attrs=color) for x in ["Parameter", "Register", "Value"]]
         param_names = [re.split(' |\*', p)[-1] for p in parameters]
         info("{:<28} {:<28} {}".format(*headers))
-        for i in range(len(parameters)):
-            line = "    {:<15} {:<15} 0x{:x}".format(param_names[i], registers[i], values[i])
+        for name, register, value in zip(param_names, registers, values):
+            line = "    {:<15} {:<15} 0x{:x}".format(name, register, value)
 
-            addrs = DereferenceCommand.dereference_from(values[i])
+            addrs = DereferenceCommand.dereference_from(value)
 
             if len(addrs) > 1:
                 sep = " {:s} ".format(right_arrow)
@@ -8237,16 +8237,13 @@ class SyscallArgsCommand(GenericCommand):
         if not p: return None
         return os.path.join(p, "{}.py".format(x))
 
-
     def get_module(self, modname):
         _fullname = self.get_filepath(modname)
         return imp.load_source(modname, _fullname)
 
-
     def get_syscall_table(self, modname):
         _mod = self.get_module(modname)
         return getattr(_mod, 'syscall_table')
-
 
     def get_settings_path(self):
         path = os.path.expanduser(self.get_setting("path"))
