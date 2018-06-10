@@ -80,7 +80,6 @@ class person_t(Structure):
     		(None, "Invalid person")
     	])
     ]
-
 ```
 
 `pcustom` requires at least one argument, which is the name of the

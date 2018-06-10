@@ -4239,7 +4239,7 @@ class PCustomCommand(GenericCommand):
                         if value == val: return desc
                         if val is None: default = desc
                 except:
-                    err("Error while trying to obtain values from __values__[\"{}\"]".format(name))
+                    err("Error while trying to obtain values from _values_[\"{}\"]".format(name))
 
         return default
 
