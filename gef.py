@@ -8162,8 +8162,7 @@ class HeapAnalysisCommand(GenericCommand):
 
 @register_command
 class IsSyscallCommand(GenericCommand):
-    """
-    Tells whether the next instruction is a system call."""
+    """Tells whether the next instruction is a system call."""
     _cmdline_ = 'is-syscall'
     _syntax_ = _cmdline_
 
@@ -8180,8 +8179,7 @@ class IsSyscallCommand(GenericCommand):
 
 @register_command
 class SyscallArgsCommand(GenericCommand):
-    """
-    Gets the syscall name and arguments based on the register values in the current state."""
+    """Gets the syscall name and arguments based on the register values in the current state."""
     _cmdline_ = 'syscall-args'
     _syntax_ = _cmdline_
 
