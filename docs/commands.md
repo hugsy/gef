@@ -27,6 +27,7 @@ improve it.
 |hexdump                   | Display arranged hexdump (according to architecture endianness) of memory range.|
 |hijack-fd                 | ChangeFdCommand: redirect file descriptor during runtime.|
 |ida-interact              | IDA Interact: set of commands to interact with IDA via a XML RPC service deployed via the IDA script `ida_gef.py`. It should be noted that this command can also be used to interact with Binary Ninja (using the script `binja_gef.py`) using the same interface. (alias: binaryninja-interact, bn, binja)|
+|is-syscall                | Tells whether the next instruction to be executed is a system call.|
 |ksymaddr                  | Solve kernel symbols from kallsyms table.|
 |memory                    | Add memory watches to the context view.|
 |nop                       | Patch the instruction pointed by parameters with NOP. If the return option is specified, it will set the return register to the specific value.|
@@ -44,6 +45,7 @@ improve it.
 |set-permission            | Change a page permission. By default, it will change it to RWX. (alias: mprotect)|
 |shellcode                 | ShellcodeCommand uses @JonathanSalwan simple-yet-awesome shellcode API to download shellcodes.|
 |stub                      | Stub out the specified function.|
+|syscall-args              | Gets the syscall name and arguments based on the register values in the current state.|
 |trace-run                 | Create a runtime trace of all instructions executed from $pc to LOCATION specified.|
 |unicorn-emulate           | Use Unicorn-Engine to emulate the behavior of the binary, without affecting the GDB runtime. By default the command will emulate only the next instruction, but location and number of instruction can be changed via arguments to the command line. By default, it will emulate the next instruction from current PC. (alias: emulate)|
 |vmmap                     | Display virtual memory mapping|

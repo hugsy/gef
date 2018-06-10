@@ -1403,7 +1403,8 @@ class ARM(Architecture):
         5: "thumb"
     }
     function_parameters = ["$r0", "$r1", "$r2", "$r3"]
-    syscall_register = "$r0"
+    syscall_register = "$r7"
+    syscall_instructions = ["swi 0x0", "swi NR"]
 
     @property
     def instruction_length(self):
@@ -1478,7 +1479,8 @@ class AARCH64(ARM):
         6: "fast"
     }
     function_parameters = ["$x0", "$x1", "$x2", "$x3"]
-    syscall_register = "$x0"
+    syscall_register = "$x8"
+    syscall_instructions = ["svc $x0"]
 
     def is_call(self, insn):
         mnemo = insn.mnemonic
@@ -1571,6 +1573,7 @@ class X86(Architecture):
         21: "identification",
     }
     syscall_register = "$eax"
+    syscall_instructions = ["sysenter", "int 0x80"]
 
     def flag_register_to_human(self, val=None):
         reg = self.flag_register
@@ -1663,6 +1666,7 @@ class X86_64(X86):
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
     syscall_register = "$rax"
+    syscall_instructions = ["syscall"]
 
     def mprotect_asm(self, addr, size, perm):
         _NR_mprotect = 10
@@ -1704,6 +1708,7 @@ class PowerPC(Architecture):
     }
     function_parameters = ["$i0", "$i1", "$i2", "$i3", "$i4", "$i5"]
     syscall_register = "$r0"
+    syscall_instructions = ["sc"]
 
     def flag_register_to_human(self, val=None):
         # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
@@ -1784,6 +1789,7 @@ class SPARC(Architecture):
     }
     function_parameters = ["$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",]
     syscall_register = "%g1"
+    syscall_instructions = ["t 0x10"]
 
     def flag_register_to_human(self, val=None):
         # http://www.gaisler.com/doc/sparcv8.pdf
@@ -1871,6 +1877,8 @@ class SPARC64(SPARC):
         32: "carry",
     }
 
+    syscall_instructions = ["t 0x6d"]
+
 
 
 class MIPS(Architecture):
@@ -1891,6 +1899,7 @@ class MIPS(Architecture):
     flags_table = {}
     function_parameters = ["$a0", "$a1", "$a2", "$a3"]
     syscall_register = "$v0"
+    syscall_instructions = ["syscall"]
 
     def flag_register_to_human(self, val=None):
         return Color.colorify("No flag register", attrs="yellow underline")
@@ -8149,6 +8158,95 @@ class HeapAnalysisCommand(GenericCommand):
 
         gef_on_exit_unhook(self.clean)
         return
+
+
+@register_command
+class IsSyscallCommand(GenericCommand):
+    """Tells whether the next instruction is a system call."""
+    _cmdline_ = 'is-syscall'
+    _syntax_ = _cmdline_
+
+    def do_invoke(self, argv):
+        insn = gef_current_instruction(current_arch.pc)
+        ok('Current instruction is{}a syscall'.format(' ' if self.is_syscall(current_arch, insn) else ' not '))
+
+        return
+
+    def is_syscall(self, arch, instruction):
+        insn_str = instruction.mnemonic  + ' ' + ', '.join(instruction.operands)
+        return insn_str.strip() in arch.syscall_instructions
+
+
+@register_command
+class SyscallArgsCommand(GenericCommand):
+    """Gets the syscall name and arguments based on the register values in the current state."""
+    _cmdline_ = 'syscall-args'
+    _syntax_ = _cmdline_
+
+    def __init__(self):
+        super(SyscallArgsCommand, self).__init__()
+        self.add_setting("path", os.path.join(GEF_TEMP_DIR, "syscall-tables"),
+                         "Path to store/load the syscall tables files")
+        return
+
+    def do_invoke(self, argv):
+        color = get_gef_setting("theme.xinfo_title_message")
+
+        path = self.get_settings_path()
+        if path is None:
+            err("Cannot open '{0}': check directory and/or `gef config {0}` setting, "
+                "currently: '{1}'".format("syscall-args.path", self.get_setting("path")))
+            return
+
+        arch = current_arch.__class__.__name__
+
+        syscall_table = self.get_syscall_table(arch)
+        syscall_entry = syscall_table[get_register(current_arch.syscall_register)]
+
+        values = []
+        for param in syscall_entry.params:
+            values.append(get_register(param.reg))
+
+        parameters = [s.param for s in syscall_entry.params]
+        registers = [s.reg for s in syscall_entry.params]
+
+        info("Detected syscall {}".format(Color.colorify(syscall_entry.name, attrs=color)))
+        gef_print("    {}({})".format(syscall_entry.name, ', '.join(parameters)));
+
+        headers = [Color.colorify(x, attrs=color) for x in ["Parameter", "Register", "Value"]]
+        param_names = [re.split(' |\*', p)[-1] for p in parameters]
+        info("{:<28} {:<28} {}".format(*headers))
+        for name, register, value in zip(param_names, registers, values):
+            line = "    {:<15} {:<15} 0x{:x}".format(name, register, value)
+
+            addrs = DereferenceCommand.dereference_from(value)
+
+            if len(addrs) > 1:
+                sep = " {:s} ".format(right_arrow)
+                line += sep
+                line += sep.join(addrs[1:])
+
+            gef_print(line)
+
+        return
+
+    def get_filepath(self, x):
+        p = self.get_settings_path()
+        if not p: return None
+        return os.path.join(p, "{}.py".format(x))
+
+    def get_module(self, modname):
+        _fullname = self.get_filepath(modname)
+        return imp.load_source(modname, _fullname)
+
+    def get_syscall_table(self, modname):
+        _mod = self.get_module(modname)
+        return getattr(_mod, 'syscall_table')
+
+    def get_settings_path(self):
+        path = os.path.expanduser(self.get_setting("path"))
+        path = os.path.realpath(path)
+        return path if os.path.isdir(path) else None
 
 
 class GefCommand(gdb.Command):
