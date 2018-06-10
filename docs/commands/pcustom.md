@@ -70,6 +70,16 @@ class person_t(Structure):
         ("id", c_int),
     ]
 
+    _values_ = [
+    	# You can define a function to substitute the value
+    	("age", lambda age: "Old" if age > 40 else "Young"),
+    	# Or alternatively a list of 2-tuples
+    	("id", [
+    		(0, "root"),
+    		(1, "normal user"),
+    		(None, "Invalid person")
+    	])
+    ]
 ```
 
 `pcustom` requires at least one argument, which is the name of the
@@ -78,9 +88,9 @@ structure.
 
 ```
 gef➤  dt person_t
-+0000 age c_int (0x4)
++0000 age c_int (0x4)  →  Young
 +0004 name c_char_Array_256 (0x100)
-+0104 id c_int (0x4)
++0104 id c_int (0x1)   →  normal user
 ```
 
 
