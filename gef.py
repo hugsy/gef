@@ -8169,7 +8169,8 @@ class HeapAnalysisCommand(GenericCommand):
 
 @register_command
 class IsSyscallCommand(GenericCommand):
-    """Tells whether the next instruction is a system call."""
+    """
+    Tells whether the next instruction is a system call."""
     _cmdline_ = 'is-syscall'
     _syntax_ = _cmdline_
 
@@ -8433,7 +8434,7 @@ class GefHelpCommand(gdb.Command):
         if " " in cmd:
             # do not print subcommands in gef help
             return
-        doc = class_name.__doc__ if hasattr(class_name, "__doc__") else ""
+        doc = class_name.__doc__.lstrip() if hasattr(class_name, "__doc__") else ""
         doc = "\n                         ".join(doc.split("\n"))
         aliases = "(alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
         w = max(1, get_terminal_size()[1] - 29 - len(aliases))  # use max() to avoid zero or negative numbers
