@@ -25,4 +25,3 @@
 - [ ] My code follows the code style of this project.
 - [ ] My change includes a change to the documentation, if required.
 - [ ] I have read and agree to the **CONTRIBUTING** document.
-- [ ] I have tagged the PR as appropriate (e.g. bug fix).
