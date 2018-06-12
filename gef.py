@@ -8434,7 +8434,7 @@ class GefHelpCommand(gdb.Command):
         if " " in cmd:
             # do not print subcommands in gef help
             return
-        doc = getattr(class_name, "__doc__", "").lstrip() if hasattr(class_name, "__doc__") else ""
+        doc = getattr(class_name, "__doc__", "").lstrip()
         doc = "\n                         ".join(doc.split("\n"))
         aliases = "(alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
         w = max(1, get_terminal_size()[1] - 29 - len(aliases))  # use max() to avoid zero or negative numbers
