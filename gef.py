@@ -401,7 +401,7 @@ class Address:
 
     def is_in_text_segment(self):
         return (hasattr(self.info, "name") and ".text" in self.info.name) or \
-            (get_filepath() == self.section.path and self.section.is_executable())
+            (hasattr(self.section, "path") and get_filepath() == self.section.path and self.section.is_executable())
 
     def is_in_stack_segment(self):
         return hasattr(self.section, "path") and "[stack]" == self.section.path
