@@ -5746,7 +5746,6 @@ class GlibcHeapChunksCommand(GenericCommand):
             if next_chunk is None:
                 break
 
-            import pdb; pdb.set_trace()
             next_chunk_addr = Address(next_chunk.address)
             if not next_chunk_addr.valid:
                 # corrupted
