@@ -39,7 +39,6 @@ improve it.
 |process-status            | Extends the info given by GDB `info proc`, by giving an exhaustive description of the process status.|
 |registers                 | Display full details on one, many or all registers value from current architecture.|
 |reset-cache               | Reset cache of all stored data.|
-|retdec                    | Decompile code from GDB context using RetDec API. (alias: decompile)|
 |ropper                    | Ropper (http://scoding.de/ropper) plugin|
 |search-pattern            | SearchPatternCommand: search a pattern in memory. (alias: grep)|
 |set-permission            | Change a page permission. By default, it will change it to RWX. (alias: mprotect)|
