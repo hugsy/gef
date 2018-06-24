@@ -3540,28 +3540,23 @@ class PrintFormatCommand(GenericCommand):
         sdata = ", ".join(map(hex, data))
 
         if lang == 'py':
-            out = 'buf = ['.format(bitlen)
-            out += sdata
-            out += ']'
+            out = 'buf = [{}]'.format(sdata)
 
         elif lang == 'c':
-            out =  'unsigned {0} buf[{1}] = {{ '.format(self.c_type[bitlen], length)
-            out += sdata
-            out += ' };'
+            out =  'unsigned {0} buf[{1}] = {{{2}}};'.format(self.c_type[bitlen], length, sdata)
 
         elif lang == 'js':
-            out =  'var buf = ['.format(bitlen)
-            out += sdata
-            out += '];'
+            out =  'var buf = [{}]'.format(s_data)
 
         elif lang == 'asm':
-            out += 'buf {} '.format(self.asm_type[bitlen])
-            out += sdata
+            out += 'buf {0} {1}'.format(self.asm_type[bitlen], sdata)
+
         if copy_to_clipboard:
             if self.clip(bytes(out, 'utf-8')):
                 info("Copied to clipboard")
             else:
                 warn("There's a problem while copying")
+
         print(out)
         return
 
