@@ -2766,7 +2766,7 @@ def set_arch(arch=None, default=None):
             current_arch = arches[arch.upper()]()
             return current_arch
         except KeyError:
-            raise OSError("Specified arch {:s} is not supported".format(arch.upper())) from None
+            raise OSError("Specified arch {:s} is not supported".format(arch.upper()))
 
     current_elf = current_elf or get_elf_headers()
     try:
@@ -2776,9 +2776,9 @@ def set_arch(arch=None, default=None):
             try:
                 current_arch = arches[default.upper()]()
             except KeyError:
-                raise OSError("CPU not supported, neither is default {:s}".format(default.upper())) from None
+                raise OSError("CPU not supported, neither is default {:s}".format(default.upper()))
         else:
-            raise OSError("CPU type is currently not supported: {:s}".format(get_arch())) from None
+            raise OSError("CPU type is currently not supported: {:s}".format(get_arch()))
     return current_arch
 
 
