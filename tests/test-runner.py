@@ -40,10 +40,9 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_command("canary"))
         res = gdb_start_silent_command("canary", target="tests/binaries/canary.out")
         self.assertNoException(res)
-        self.assertTrue(b"Found AT_RANDOM at" in res)
-        self.assertTrue(b"The canary of process " in res)
+        self.assertIn(b"Found AT_RANDOM at", res)
+        self.assertIn(b"The canary of process ", res)
         return
-
 
     def test_command_capstone_disassemble(self):
         self.assertFailIfInactiveSession(gdb_run_command("capstone-disassemble"))
@@ -51,7 +50,6 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 1)
         return
-
 
     def test_command_checksec(self):
         cmd = "checksec"
@@ -71,31 +69,29 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertTrue("PIE                           : No")
         return
 
-
     def test_command_dereference(self):
         self.assertFailIfInactiveSession(gdb_run_command("dereference"))
 
         res = gdb_start_silent_command("dereference $sp")
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 2)
-        self.assertTrue(b"$rsp" in res)
+        self.assertIn(b"$rsp", res)
 
         res = gdb_start_silent_command("dereference 0")
         self.assertNoException(res)
-        self.assertTrue(b"Unmapped address" in res)
+        self.assertIn(b"Unmapped address", res)
         return
-
 
     def test_command_edit_flags(self):
         self.assertFailIfInactiveSession(gdb_run_command("edit-flags"))
         # force enable flag
         res = gdb_start_silent_command_last_line("edit-flags +carry")
         self.assertNoException(res)
-        self.assertTrue(b"CARRY " in res)
+        self.assertIn(b"CARRY ", res)
         # force disable flag
         res = gdb_start_silent_command_last_line("edit-flags -carry")
         self.assertNoException(res)
-        self.assertTrue(b"carry " in res)
+        self.assertIn(b"carry ", res)
         # toggle flag
         before = gdb_start_silent_command_last_line("edit-flags")
         self.assertNoException(before)
@@ -105,19 +101,16 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertTrue(s.ratio() > 0.90)
         return
 
-
     def test_command_elf_info(self):
         res = gdb_run_command("elf-info")
         self.assertNoException(res)
-        self.assertTrue(b"7f 45 4c 46" in res)
+        self.assertIn(b"7f 45 4c 46", res)
         return
-
 
     def test_command_entry_break(self):
         res = gdb_run_command("entry-break")
         self.assertNoException(res)
         return
-
 
     def test_command_format_string_helper(self):
         cmd = "format-string-helper"
@@ -127,9 +120,8 @@ class TestGefCommands(GefUnitTestGeneric):
                                      "run",],
                               target=target)
         self.assertNoException(res)
-        self.assertTrue(b"Possible insecure format string:" in res)
+        self.assertIn(b"Possible insecure format string:", res)
         return
-
 
     def test_command_heap_arenas(self):
         cmd = "heap arenas"
@@ -137,9 +129,8 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_command(cmd, target=target))
         res = gdb_start_silent_command(cmd, target=target)
         self.assertNoException(res)
-        self.assertTrue(b"Arena (base=" in res)
+        self.assertIn(b"Arena (base=", res)
         return
-
 
     def test_command_heap_set_arena(self):
         cmd = "heap set-arena main_arena"
@@ -147,9 +138,8 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_command(cmd, target=target))
         res = gdb_run_silent_command(cmd, target=target, after=["heap arenas",])
         self.assertNoException(res)
-        self.assertTrue(b"Arena (base=" in res)
+        self.assertIn(b"Arena (base=", res)
         return
-
 
     def test_command_heap_chunk(self):
         cmd = "heap chunk p1"
@@ -157,7 +147,7 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_command(cmd, target=target))
         res = gdb_run_silent_command(cmd, target=target)
         self.assertNoException(res)
-        self.assertTrue(b"NON_MAIN_ARENA flag: " in res)
+        self.assertIn(b"NON_MAIN_ARENA flag: ", res)
         return
 
     def test_command_heap_chunks(self):
@@ -166,7 +156,8 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_command(cmd, target=target))
         res = gdb_run_silent_command(cmd, target=target)
         self.assertNoException(res)
-        self.assertTrue(b"Chunk(addr=" in res and b"top chunk" in res)
+        self.assertIn(b"Chunk(addr=", res)
+        self.assertIn(b"top chunk", res)
         return
 
     def test_command_heap_bins_fast(self):
@@ -175,9 +166,8 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_command(cmd, target=target))
         res = gdb_run_silent_command(cmd, target=target)
         self.assertNoException(res)
-        self.assertTrue(b"Fastbins[idx=0, size=0x10]" in res)
+        self.assertIn(b"Fastbins[idx=0, size=0x10]", res)
         return
-
 
     def test_command_heap_analysis(self):
         cmd = "heap-analysis-helper"
@@ -185,7 +175,6 @@ class TestGefCommands(GefUnitTestGeneric):
         res = gdb_start_silent_command(cmd)
         self.assertNoException(res)
         return
-
 
     def test_command_hexdump(self):
         self.assertFailIfInactiveSession(gdb_run_command("hexdump $pc"))
@@ -198,7 +187,6 @@ class TestGefCommands(GefUnitTestGeneric):
         res = gdb_start_silent_command("hexdump byte $sp l32")
         self.assertNoException(res)
         return
-
 
     def test_command_keystone_assemble(self):
         valid_cmds = [
@@ -213,7 +201,6 @@ class TestGefCommands(GefUnitTestGeneric):
             self.assertNoException(res)
             self.assertTrue(len(res.splitlines()) > 1)
         return
-
 
     def test_command_patch(self):
         self.assertFailIfInactiveSession(gdb_run_command("patch"))
@@ -254,49 +241,72 @@ class TestGefCommands(GefUnitTestGeneric):
     def test_command_patch_string(self):
         res = gdb_start_silent_command_last_line("patch string $sp \"Gef!Gef!Gef!Gef!\"", after=["grep Gef!Gef!Gef!Gef!",])
         self.assertNoException(res)
-        self.assertTrue(b"Gef!Gef!Gef!Gef!" in res)
+        self.assertIn(b"Gef!Gef!Gef!Gef!", res)
         return
-
 
     def test_command_pattern(self):
         cmd = "pattern create 32"
         target = "tests/binaries/pattern.out"
         res = gdb_run_command(cmd, target=target)
         self.assertNoException(res)
-        self.assertTrue(b"aaaaaaaabaaaaaaacaaaaaaadaaaaaaa" in res)
+        self.assertIn(b"aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
 
         cmd = "pattern search $rbp"
         target = "tests/binaries/pattern.out"
         res = gdb_run_command(cmd, before=["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"], target=target)
         self.assertNoException(res)
-        self.assertTrue(b"Found at offset" in res)
+        self.assertIn(b"Found at offset", res)
         return
 
+    def test_command_print_format(self):
+        self.assertFailIfInactiveSession(gdb_run_command("print-format"))
+        res = gdb_start_silent_command("print-format $rsp")
+        self.assertNoException(res)
+        self.assertTrue(b"buf = [" in res)
+        res = gdb_start_silent_command("print-format -f js $rsp")
+        self.assertNoException(res)
+        self.assertTrue(b"var buf = [" in res)
+        res = gdb_start_silent_command("print-format -f iDontExist $rsp")
+        self.assertNoException(res)
+        self.assertTrue(b"Language must be :" in res)
+        return
 
     def test_command_process_status(self):
         self.assertFailIfInactiveSession(gdb_run_command("process-status"))
         res = gdb_start_silent_command("process-status")
         self.assertNoException(res)
-        self.assertTrue(b"Process Information" in res \
-                        and b"No child process" in res \
-                        and b"No open connections" in res)
+        self.assertIn(b"Process Information", res)
+        self.assertIn(b"No child process", res)
+        self.assertIn(b"No open connections", res)
         return
-
 
     def test_command_registers(self):
         self.assertFailIfInactiveSession(gdb_run_command("registers"))
         res = gdb_start_silent_command("registers")
         self.assertNoException(res)
-        self.assertTrue(b"$rax" in res)
-        self.assertTrue(b"$eflags" in res)
+        self.assertIn(b"$rax", res)
+        self.assertIn(b"$eflags", res)
         return
-
 
     def test_command_reset_cache(self):
         res = gdb_start_silent_command("reset-cache")
         self.assertNoException(res)
         return
 
+    def test_command_retdec(self):
+        cmd = "retdec -s main"
+        target = "tests/binaries/retdec.out"
+        res = gdb_start_silent_command(cmd, target=target)
+        if b"No RetDec API key provided" in res:
+            api_key = os.getenv("GEF_RETDEC_API_KEY")
+            if api_key is None:
+                return
+            before = ["gef config retdec.key {}".format(api_key),]
+            res = gdb_start_silent_command(cmd, before=before, target=target)
+
+        self.assertNoException(res)
+        self.assertIn(b"Saved as", res)
+        return
 
     def test_command_ropper(self):
         cmd = "ropper"
@@ -304,18 +314,16 @@ class TestGefCommands(GefUnitTestGeneric):
         cmd = "ropper --search \"pop %; pop %; ret\""
         res = gdb_run_silent_command(cmd)
         self.assertNoException(res)
-        self.assertFalse(b": error:" in res)
+        self.assertNotIn(b": error:", res)
         self.assertTrue(len(res.splitlines()) > 2)
         return
-
 
     def test_command_search_pattern(self):
         self.assertFailIfInactiveSession(gdb_run_command("grep /bin/sh"))
         res = gdb_start_silent_command("grep /bin/sh")
         self.assertNoException(res)
-        self.assertTrue(b"0x" in res)
+        self.assertIn(b"0x", res)
         return
-
 
     def test_command_set_permission(self):
         self.assertFailIfInactiveSession(gdb_run_command("set-permission"))
@@ -335,26 +343,24 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertTrue(b"Unmapped address")
         return
 
-
     def test_command_shellcode(self):
         res = gdb_start_silent_command("shellcode")
         self.assertNoException(res)
-        self.assertTrue(b"Missing sub-command <search|get>" in res)
+        self.assertIn(b"Missing sub-command <search|get>", res)
         return
 
     def test_command_shellcode_search(self):
         cmd = "shellcode search execve /bin/sh"
         res = gdb_start_silent_command(cmd)
         self.assertNoException(res)
-        self.assertTrue(b"setuid(0) + execve(/bin/sh) 49 bytes" in res)
+        self.assertIn(b"setuid(0) + execve(/bin/sh) 49 bytes", res)
         return
 
     def test_command_shellcode_get(self):
         res = gdb_start_silent_command("shellcode get 77")
         self.assertNoException(res)
-        self.assertTrue(b"Shellcode written to " in res)
+        self.assertIn(b"Shellcode written to ", res)
         return
-
 
     def test_command_stub(self):
         cmd = "stub printf"
@@ -362,7 +368,6 @@ class TestGefCommands(GefUnitTestGeneric):
         res = gdb_start_silent_command(cmd)
         self.assertNoException(res)
         return
-
 
     def test_command_theme(self):
         res = gdb_run_command("theme")
@@ -390,7 +395,6 @@ class TestGefCommands(GefUnitTestGeneric):
             self.assertNoException(res)
         return
 
-
     def test_command_trace_run(self):
         cmd = "trace-run"
         res = gdb_run_command(cmd)
@@ -400,9 +404,8 @@ class TestGefCommands(GefUnitTestGeneric):
         res = gdb_start_silent_command(cmd,
                                        before=["gef config trace-run.tracefile_prefix /tmp/gef-trace-"])
         self.assertNoException(res)
-        self.assertTrue(b"Tracing from" in res)
+        self.assertIn(b"Tracing from", res)
         return
-
 
     def test_command_unicorn_emulate(self):
         cmd = "emu -n 1"
@@ -411,9 +414,8 @@ class TestGefCommands(GefUnitTestGeneric):
 
         res = gdb_start_silent_command(cmd)
         self.assertNoException(res)
-        self.assertTrue(b"Final registers" in res)
+        self.assertIn(b"Final registers", res)
         return
-
 
     def test_command_vmmap(self):
         self.assertFailIfInactiveSession(gdb_run_command("vmmap"))
@@ -426,7 +428,6 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertTrue(len(res.splitlines()) > 1)
         return
 
-
     def test_command_xfiles(self):
         self.assertFailIfInactiveSession(gdb_run_command("xfiles"))
         res = gdb_start_silent_command("xfiles")
@@ -434,25 +435,23 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertTrue(len(res.splitlines()) >= 3)
         return
 
-
     def test_command_xinfo(self):
         self.assertFailIfInactiveSession(gdb_run_command("xinfo $sp"))
         res = gdb_start_silent_command("xinfo")
-        self.assertTrue(b"At least one valid address must be specified" in res)
+        self.assertIn(b"At least one valid address must be specified", res)
 
         res = gdb_start_silent_command("xinfo $sp")
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) >= 7)
         return
 
-
     def test_command_xor_memory(self):
         cmd = "xor-memory display $sp 0x10 0x41"
         self.assertFailIfInactiveSession(gdb_run_command(cmd))
         res = gdb_start_silent_command(cmd)
         self.assertNoException(res)
-        self.assertTrue(b"Original block" in res)
-        self.assertTrue(b"XOR-ed block" in res)
+        self.assertIn(b"Original block", res)
+        self.assertIn(b"XOR-ed block", res)
 
         cmd = "xor-memory patch $sp 0x10 0x41"
         res = gdb_start_silent_command(cmd)
@@ -460,32 +459,27 @@ class TestGefCommands(GefUnitTestGeneric):
         self.assertTrue(b"Patching XOR-ing ")
         return
 
-
 class TestGefFunctions(GefUnitTestGeneric):
     """Tests GEF internal functions."""
 
-
     def test_function_get_memory_alignment(self):
         res = gdb_test_python_method("get_memory_alignment(in_bits=False)")
-        self.assertTrue(res.splitlines()[-1] in (b"4", b"8"))
+        self.assertIn(res.splitlines()[-1], (b"4", b"8"))
         return
-
 
     def test_function_set_arch(self):
         res = gdb_test_python_method("current_arch.arch, current_arch.mode", before="set_arch()")
         res = (res.splitlines()[-1])
-        self.assertTrue(b"X86" in res)
+        self.assertIn(b"X86", res)
         return
-
 
     def test_function_which(self):
         res = gdb_test_python_method("which('gdb')")
         lines = res.splitlines()
-        self.assertTrue(b"/gdb" in lines[-1])
+        self.assertIn(b"/gdb", lines[-1])
         res = gdb_test_python_method("which('__IDontExist__')")
-        self.assertTrue(b"Missing file `__IDontExist__`" in res)
+        self.assertIn(b"Missing file `__IDontExist__`", res)
         return
-
 
     def test_function_get_filepath(self):
         res = gdb_test_python_method("get_filepath()", target="/bin/ls")
@@ -496,13 +490,11 @@ class TestGefFunctions(GefUnitTestGeneric):
         subprocess.call(["rm", "/tmp/foo bar"])
         return
 
-
     def test_function_get_pid(self):
         res = gdb_test_python_method("get_pid()", target="/bin/ls")
         self.assertNoException(res)
         self.assertTrue(int(res.splitlines()[-1]))
         return
-
 
 
 def setup():

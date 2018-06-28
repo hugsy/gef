@@ -30,7 +30,7 @@ distros start pushing `gdb` compiled with Python3 support).
   * Suited for real-life apps debugging, exploit development, just as much as
     CTF (unlike _PEDA_ or _PwnDBG_)
 
-Check out the [Screenshot page](screenshots/) for more.
+Check out the [Screenshot page](docs/screenshots.md) for more.
 
 
 ## Setup ##
@@ -140,8 +140,11 @@ repository where anyone can freely submit their own commands to extend GDB via
 GEF's API.
 
 To benefit from it:
-
 ```bash
+# via the install script
+$ wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef-extras.sh | sh
+
+# manually
 # clone the repo
 $ https://github.com/hugsy/gef-extras.git
 # specify gef to load this directory

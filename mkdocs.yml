@@ -35,8 +35,9 @@ pages:
 - Command pattern: commands/pattern.md
 - Command pcustom: commands/pcustom.md
 - Command pie: commands/pie.md
-- Command process-status: commands/process-status.md
+- Command print-format: commands/print-format.md
 - Command process-search: commands/process-search.md
+- Command process-status: commands/process-status.md
 - Command registers: commands/registers.md
 - Command reset-cache: commands/reset-cache.md
 - Command ropper: commands/ropper.md
