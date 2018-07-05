@@ -2823,13 +2823,22 @@ def format_address(addr):
     return "0x{:016x}".format(addr & 0xFFFFFFFFFFFFFFFF)
 
 
+def format_address_spaces(addr, left=True):
+    """Format the address according to its size, but with spaces instead of zeroes."""
+    width = get_memory_alignment() * 2 + 2
+
+    if not left:
+        return "0x{:x}".format(addr & 0xFFFFFFFF).rjust(width)
+
+    return "0x{:x}".format(addr & 0xFFFFFFFF).ljust(width)
+
+
 def align_address(address):
     """Align the provided address to the process's native length."""
     if get_memory_alignment(in_bits=True) == 32:
-        ret = address & 0xFFFFFFFF
-    else:
-        ret = address & 0xFFFFFFFFFFFFFFFF
-    return ret
+        return address & 0xFFFFFFFF
+
+    return address & 0xFFFFFFFFFFFFFFFF
 
 
 def align_address_to_page(address):
@@ -6092,9 +6101,9 @@ class DetailRegistersCommand(GenericCommand):
             old_value = ContextCommand.old_registers.get(regname, 0)
             new_value = align_address(long(reg))
             if new_value == old_value:
-                line += format_address(new_value)
+                line += format_address_spaces(new_value)
             else:
-                line += Color.colorify(format_address(new_value), attrs=changed_register_value_color)
+                line += Color.colorify(format_address_spaces(new_value), attrs=changed_register_value_color)
             addrs = DereferenceCommand.dereference_from(new_value)
 
             if len(addrs) > 1:
@@ -6790,9 +6799,9 @@ class ContextCommand(GenericCommand):
                 new_value = align_address(new_value)
                 old_value = align_address(old_value)
                 if new_value == old_value:
-                    line += "{:s} ".format(format_address(new_value))
+                    line += "{:s} ".format(format_address_spaces(new_value))
                 else:
-                    line += "{:s} ".format(Color.colorify(format_address(new_value), attrs=color))
+                    line += "{:s} ".format(Color.colorify(format_address_spaces(new_value), attrs=color))
 
             if i % nb == 0 :
                 gef_print(line)
