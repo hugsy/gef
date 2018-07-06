@@ -2817,20 +2817,23 @@ def clear_screen(tty=""):
 def format_address(addr):
     """Format the address according to its size."""
     memalign_size = get_memory_alignment()
-    if memalign_size == 4:
-        return "0x{:08x}".format(addr & 0xFFFFFFFF)
+    addr = align_address(addr)
 
-    return "0x{:016x}".format(addr & 0xFFFFFFFFFFFFFFFF)
+    if memalign_size == 4:
+        return "0x{:08x}".format(addr)
+
+    return "0x{:016x}".format(addr)
 
 
 def format_address_spaces(addr, left=True):
     """Format the address according to its size, but with spaces instead of zeroes."""
     width = get_memory_alignment() * 2 + 2
+    addr = align_address(addr)
 
     if not left:
-        return "0x{:x}".format(addr & 0xFFFFFFFF).rjust(width)
+        return "0x{:x}".format(addr).rjust(width)
 
-    return "0x{:x}".format(addr & 0xFFFFFFFF).ljust(width)
+    return "0x{:x}".format(addr).ljust(width)
 
 
 def align_address(address):
