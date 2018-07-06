@@ -8375,7 +8375,7 @@ class SyscallArgsCommand(GenericCommand):
         if reg_value not in syscall_table:
             warn("There is no system call for %#x" % reg_value)
             return
-        syscall_entry = syscall_table[get_register(current_arch.syscall_register)]
+        syscall_entry = syscall_table[reg_value]
 
         values = []
         for param in syscall_entry.params:
