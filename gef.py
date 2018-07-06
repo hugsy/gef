@@ -2157,10 +2157,7 @@ def use_golang_type():
 
 def to_unsigned_long(v):
     """Cast a gdb.Value to unsigned long."""
-    unsigned_long_t = cached_lookup_type(use_stdtype()) \
-                      or cached_lookup_type(use_default_type()) \
-                      or cached_lookup_type(use_golang_type())
-    return long(v.cast(unsigned_long_t))
+    return long(str(v), 16)
 
 
 def get_register(regname):
