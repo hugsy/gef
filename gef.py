@@ -6608,7 +6608,7 @@ class EntryPointBreakCommand(GenericCommand):
             return
 
         self.set_init_tbreak(elf.e_entry)
-        gdb.execute("run")
+        gdb.execute("run {}".format(" ".join(argv)))
         return
 
     def set_init_tbreak(self, addr):
@@ -6620,7 +6620,7 @@ class EntryPointBreakCommand(GenericCommand):
         warn("PIC binary detected, retrieving text base address")
         gdb.execute("set stop-on-solib-events 1")
         disable_context()
-        gdb.execute("run")
+        gdb.execute("run {}".format(" ".join(argv)))
         enable_context()
         gdb.execute("set stop-on-solib-events 0")
         vmmap = get_process_maps()
