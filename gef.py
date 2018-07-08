@@ -6603,7 +6603,7 @@ class EntryPointBreakCommand(GenericCommand):
             return
 
         if self.is_pie(fpath):
-            self.set_init_tbreak_pie(elf.e_entry)
+            self.set_init_tbreak_pie(elf.e_entry, argv)
             gdb.execute("continue")
             return
 
@@ -6616,7 +6616,7 @@ class EntryPointBreakCommand(GenericCommand):
         bp = EntryBreakBreakpoint("*{:#x}".format(addr))
         return bp
 
-    def set_init_tbreak_pie(self, addr):
+    def set_init_tbreak_pie(self, addr, argv):
         warn("PIC binary detected, retrieving text base address")
         gdb.execute("set stop-on-solib-events 1")
         disable_context()
