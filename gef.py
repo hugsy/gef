@@ -4472,13 +4472,13 @@ class ChangeFdCommand(GenericCommand):
 
             res = self.get_fd_from_result(res)
             if res == -1:
-                err("Failed to connect to {}".format(addr))
+                err("Failed to connect to {}:{}".format(address, port))
                 return
 
             info("Connected to {}".format(new_output))
         else:
             res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
-            new_fd = int(res.split()[2], 0)
+            new_fd = self.get_fd_from_result(res)
 
         info("Opened '{:s}' as fd=#{:d}".format(new_output, new_fd))
         gdb.execute("""call dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
