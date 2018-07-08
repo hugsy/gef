@@ -2157,10 +2157,7 @@ def use_golang_type():
 
 def to_unsigned_long(v):
     """Cast a gdb.Value to unsigned long."""
-    unsigned_long_t = cached_lookup_type(use_stdtype()) \
-                      or cached_lookup_type(use_default_type()) \
-                      or cached_lookup_type(use_golang_type())
-    return long(v.cast(unsigned_long_t))
+    return long(str(v), 16)
 
 
 def get_register(regname):
@@ -8372,9 +8369,13 @@ class SyscallArgsCommand(GenericCommand):
             return
 
         arch = current_arch.__class__.__name__
-
         syscall_table = self.get_syscall_table(arch)
-        syscall_entry = syscall_table[get_register(current_arch.syscall_register)]
+
+        reg_value = get_register(current_arch.syscall_register)
+        if reg_value not in syscall_table:
+            warn("There is no system call for %#x" % reg_value)
+            return
+        syscall_entry = syscall_table[reg_value]
 
         values = []
         for param in syscall_entry.params:
