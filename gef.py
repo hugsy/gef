@@ -2813,19 +2813,31 @@ def clear_screen(tty=""):
 def format_address(addr):
     """Format the address according to its size."""
     memalign_size = get_memory_alignment()
-    if memalign_size == 4:
-        return "0x{:08x}".format(addr & 0xFFFFFFFF)
+    addr = align_address(addr)
 
-    return "0x{:016x}".format(addr & 0xFFFFFFFFFFFFFFFF)
+    if memalign_size == 4:
+        return "0x{:08x}".format(addr)
+
+    return "0x{:016x}".format(addr)
+
+
+def format_address_spaces(addr, left=True):
+    """Format the address according to its size, but with spaces instead of zeroes."""
+    width = get_memory_alignment() * 2 + 2
+    addr = align_address(addr)
+
+    if not left:
+        return "0x{:x}".format(addr).rjust(width)
+
+    return "0x{:x}".format(addr).ljust(width)
 
 
 def align_address(address):
     """Align the provided address to the process's native length."""
     if get_memory_alignment(in_bits=True) == 32:
-        ret = address & 0xFFFFFFFF
-    else:
-        ret = address & 0xFFFFFFFFFFFFFFFF
-    return ret
+        return address & 0xFFFFFFFF
+
+    return address & 0xFFFFFFFFFFFFFFFF
 
 
 def align_address_to_page(address):
@@ -4417,9 +4429,56 @@ class ChangeFdCommand(GenericCommand):
         new_output = argv[1]
 
         disable_context()
-        res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
-        # Output example: $1 = 3
-        new_fd = int(res.split()[2], 0)
+
+        if ':' in new_output:
+            address = socket.gethostbyname(new_output.split(":")[0])
+            port = int(new_output.split(":")[1])
+
+            # socket(int domain, int type, int protocol)
+            # AF_INET = 2, SOCK_STREAM = 1
+            res = gdb.execute("""call socket(2, 1, 0)""", to_string=True)
+            new_fd = self.get_fd_from_result(res)
+
+            # fill in memory with sockaddr_in struct contents
+            # we will do this in the stack, since connect() wants a pointer to a struct
+            vmmap = get_process_maps()
+            stack_addr = [entry.page_start for entry in vmmap if entry.path == "[stack]"][0]
+            original_contents = read_memory(stack_addr, 8)
+
+            '''
+            struct sockaddr_in {
+                short            sin_family;   // e.g. AF_INET
+                unsigned short   sin_port;     // e.g. htons(3490)
+                struct in_addr   sin_addr;     // see struct in_addr, below
+                char             sin_zero[8];  // just padding
+            };
+
+            struct in_addr {
+                unsigned long s_addr;  // load with inet_aton()
+            };
+
+            '''
+            write_memory(stack_addr, "\x02\x00", 2)
+            write_memory(stack_addr + 0x2, struct.pack("<H", socket.htons(port)), 2)
+            write_memory(stack_addr + 0x4, socket.inet_aton(address), 4)
+
+            info("Trying to connect to {}".format(new_output))
+            # connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+            res = gdb.execute("""call connect({}, {}, {})""".format(new_fd, stack_addr, 16), to_string=True)
+
+            # recover stack state
+            write_memory(stack_addr, original_contents, 8)
+
+            res = self.get_fd_from_result(res)
+            if res == -1:
+                err("Failed to connect to {}".format(addr))
+                return
+
+            info("Connected to {}".format(new_output))
+        else:
+            res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
+            new_fd = int(res.split()[2], 0)
+        
         info("Opened '{:s}' as fd=#{:d}".format(new_output, new_fd))
         gdb.execute("""call dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
         info("Duplicated FD #{:d} {:s} #{:d}".format(old_fd, RIGHT_ARROW, new_fd))
@@ -4427,6 +4486,10 @@ class ChangeFdCommand(GenericCommand):
         ok("Success")
         enable_context()
         return
+
+    def get_fd_from_result(self, res):
+        # Output example: $1 = 3
+        return int(res.split()[2], 0)
 
 
 @register_command
@@ -6037,9 +6100,9 @@ class DetailRegistersCommand(GenericCommand):
             old_value = ContextCommand.old_registers.get(regname, 0)
             new_value = align_address(long(reg))
             if new_value == old_value:
-                line += format_address(new_value)
+                line += format_address_spaces(new_value)
             else:
-                line += Color.colorify(format_address(new_value), attrs=changed_register_value_color)
+                line += Color.colorify(format_address_spaces(new_value), attrs=changed_register_value_color)
             addrs = DereferenceCommand.dereference_from(new_value)
 
             if len(addrs) > 1:
@@ -6736,9 +6799,9 @@ class ContextCommand(GenericCommand):
                 new_value = align_address(new_value)
                 old_value = align_address(old_value)
                 if new_value == old_value:
-                    line += "{:s} ".format(format_address(new_value))
+                    line += "{:s} ".format(format_address_spaces(new_value))
                 else:
-                    line += "{:s} ".format(Color.colorify(format_address(new_value), attrs=color))
+                    line += "{:s} ".format(Color.colorify(format_address_spaces(new_value), attrs=color))
 
             if i % nb == 0 :
                 gef_print(line)
