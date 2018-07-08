@@ -222,7 +222,7 @@ if PYTHON_MAJOR==3:
     lru_cache = functools.lru_cache
 else:
     def lru_cache(maxsize = 128):
-        """Portage of the Python3 LRU cache mechanism provided by itertools."""
+        """Port of the Python3 LRU cache mechanism provided by itertools."""
         class GefLruCache(object):
             """Local LRU cache for Python2"""
             def __init__(self, input_func, max_size):
@@ -303,7 +303,7 @@ def gef_print(x="", *args, **kwargs):
 
 
 def bufferize(f):
-    """Store in memory the content to be printed for a function, and flush it on function exit."""
+    """Store the content to be printed for a function in memory, and flush it on function exit."""
 
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
@@ -323,7 +323,7 @@ def bufferize(f):
 
 
 class Color:
-    """Colorify class."""
+    """Used to colorify terminal output."""
     colors = {
         "normal"         : "\033[0m",
         "gray"           : "\033[1;38;5;240m",
@@ -364,7 +364,7 @@ class Color:
 
     @staticmethod
     def colorify(text, attrs):
-        """Color a text following the given attributes."""
+        """Color text according to the given attributes."""
         if get_gef_setting("gef.disable_color")==True: return text
 
         colors = Color.colors
@@ -568,8 +568,9 @@ class Elf:
 
 
     def __init__(self, elf="", minimalist=False):
-        """Instanciates an Elf object. The default behavior is to create the object by parsing the ELF file on FS.
-        But on some cases (QEMU-stub), we may just want a simply minimal object with default values."""
+        """
+        Instantiate an ELF object. The default behavior is to create the object by parsing the ELF file.
+        But in some cases (QEMU-stub), we may just want a simple minimal object with default values."""
         if minimalist:
             return
 
@@ -604,9 +605,8 @@ class Elf:
         return
 
 
-
 class Instruction:
-    """GEF representation of instruction."""
+    """GEF representation of a CPU instruction."""
     def __init__(self, address, location, mnemo, operands):
         self.address, self.location, self.mnemonic, self.operands = address, location, mnemo, operands
         return
@@ -619,7 +619,6 @@ class Instruction:
 
     def is_valid(self):
         return "(bad)" not in self.mnemonic
-
 
 
 class GlibcArena:
@@ -940,7 +939,7 @@ def gef_pybytes(x):
 
 @lru_cache()
 def which(program):
-    """Locate a command on FS."""
+    """Locate a command on the filesystem."""
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -992,7 +991,7 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
 
 
 def is_debug():
-    """Checks if debug mode is enabled."""
+    """Check if debug mode is enabled."""
     return get_gef_setting("gef.debug") == True
 
 def disable_context(): set_gef_setting("context.enable", False)
@@ -1015,8 +1014,9 @@ def disable_redirect_output():
 
 
 def get_gef_setting(name):
-    """Read global gef settings. Return None if not found. A valid config setting can never return None,
-    but False, 0 or "". So using None as a retval on error is fine."""
+    """Read global gef settings.
+    Return None if not found. A valid config setting can never return None,
+    but False, 0 or ""."""
     global __config__
     setting = __config__.get(name, None)
     if not setting:
@@ -1025,7 +1025,8 @@ def get_gef_setting(name):
 
 
 def set_gef_setting(name, value, _type=None, _desc=None):
-    """Set global gef settings. Raise ValueError if `name` doesn't exist and `type` and `desc`
+    """Set global gef settings.
+    Raise ValueError if `name` doesn't exist and `type` and `desc`
     are not provided."""
     global __config__
 
@@ -1060,7 +1061,7 @@ def gef_makedirs(path, mode=0o755):
 
 @lru_cache()
 def gdb_lookup_symbol(sym):
-    """Fetch the proper symbol or none is not defined."""
+    """Fetch the proper symbol or None if not defined."""
     try:
         return gdb.decode_line(sym)[1]
     except gdb.error:
@@ -1230,13 +1231,13 @@ def capstone_disassemble(location, nb_insn, **kwargs):
 
 
 def gef_execute_external(command, as_list=False, *args, **kwargs):
-    """Executes an external command and retrieves the result."""
+    """Execute an external command and return the result."""
     res = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=kwargs.get("shell", False))
     return [gef_pystring(_) for _ in res.splitlines()] if as_list else gef_pystring(res)
 
 
 def gef_execute_gdb_script(commands):
-    """Executes the parameter `source` as GDB command. This is done by writing `commands` to
+    """Execute the parameter `source` as GDB command. This is done by writing `commands` to
     a temporary file, which is then executed via GDB `source` command. The tempfile is then deleted."""
     fd, fname = tempfile.mkstemp(suffix=".gdb", prefix="gef_")
     with os.fdopen(fd, "w") as f:
@@ -1952,7 +1953,6 @@ class SPARC64(SPARC):
     syscall_instructions = ["t 0x6d"]
 
 
-
 class MIPS(Architecture):
     arch = "MIPS"
     mode = "MIPS32"
@@ -2049,7 +2049,7 @@ def read_memory(addr, length=0x10):
 
 
 def read_int_from_memory(addr):
-    """Return an integer from memory."""
+    """Return an integer read from memory."""
     sz = get_memory_alignment()
     mem = read_memory(addr, sz)
     fmt = "{}{}".format(endian_str(), "I" if sz==4 else "Q")
@@ -2057,7 +2057,7 @@ def read_int_from_memory(addr):
 
 
 def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding=None):
-    """Return a C-string from memory."""
+    """Return a C-string read from memory."""
     if not encoding:
         encoding = "unicode_escape" if PYTHON_MAJOR==3 else "ascii"
 
@@ -2073,9 +2073,9 @@ def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding
 
 
 def is_readable_string(address):
-    """Tries to determine if the content pointed by `address` is
+    """Try to determine if the content pointed by `address` is
     a readable string by checking if:
-    * the last element is 0x00 (i.e. it is a C-string)
+    * it ends with a null byte (i.e. it is a C-string)
     * each byte is printable"""
     try:
         cstr = read_cstring_from_memory(address)
@@ -2186,7 +2186,7 @@ def get_os():
 
 @lru_cache()
 def get_pid():
-    """Return the currently debugged PID."""
+    """Return the PID of the debuggee process."""
     return gdb.selected_inferior().pid
 
 
@@ -2322,7 +2322,7 @@ def get_process_maps():
 
 @lru_cache()
 def get_info_sections():
-    """Retrieves the debuggee sections."""
+    """Retrieve the debuggee sections."""
     stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
 
     for line in stream:
@@ -2354,7 +2354,7 @@ def get_info_sections():
 
 @lru_cache()
 def get_info_files():
-    """Retrieves all the files loaded by debuggee."""
+    """Retrieve all the files loaded by debuggee."""
     lines = gdb.execute("info files", to_string=True).splitlines()
 
     if len(lines) < len(__infos_files__):
@@ -2432,7 +2432,7 @@ def file_lookup_address(address):
 
 
 def lookup_address(address):
-    """Tries to find the address in the process address space.
+    """Try to find the address in the process address space.
     Return an Address object, with validity flag set based on success."""
     sect = process_lookup_address(address)
     info = file_lookup_address(address)
@@ -4479,7 +4479,7 @@ class ChangeFdCommand(GenericCommand):
         else:
             res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
             new_fd = int(res.split()[2], 0)
-        
+
         info("Opened '{:s}' as fd=#{:d}".format(new_output, new_fd))
         gdb.execute("""call dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
         info("Duplicated FD #{:d} {:s} #{:d}".format(old_fd, RIGHT_ARROW, new_fd))
@@ -9028,11 +9028,11 @@ def __gef_prompt__(current_prompt):
     return GEF_PROMPT_OFF
 
 
-
 if __name__  == "__main__":
 
     if GDB_VERSION < GDB_MIN_VERSION:
-        err("You're using an old version of GDB. GEF cannot work correctly. Consider updating to GDB {}.{} or higher.".format(*GDB_MIN_VERSION))
+        err("You're using an old version of GDB. GEF will not work correctly. "
+            "Consider updating to GDB {} or higher.".format(".".join(GDB_MIN_VERSION)))
 
     else:
         # setup prompt
