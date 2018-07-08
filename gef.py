@@ -733,13 +733,13 @@ class GlibcChunk:
     bk = bck # for compat
     # endif free-ed functions
 
-    def has_P_bit(self):
+    def has_p_bit(self):
         return read_int_from_memory(self.size_addr) & 0x01
 
-    def has_M_bit(self):
+    def has_m_bit(self):
         return read_int_from_memory(self.size_addr) & 0x02
 
-    def has_N_bit(self):
+    def has_n_bit(self):
         return read_int_from_memory(self.size_addr) & 0x04
 
     def is_used(self):
@@ -3477,8 +3477,7 @@ class GenericCommand(gdb.Command):
     def invoke(self, args, from_tty):
         try:
             argv = gdb.string_to_argv(args)
-            #bufferize(self.do_invoke(argv))
-            self.do_invoke(argv)
+            bufferize(self.do_invoke(argv))
         except Exception as e:
             # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
             # catching generic Exception, but rather specific ones. This is allows a much cleaner use.
@@ -3499,7 +3498,7 @@ class GenericCommand(gdb.Command):
     def _syntax_(self): pass
 
     @abc.abstractproperty
-    def _example_(cls): return ""
+    def _example_(self): return ""
 
     @abc.abstractmethod
     def do_invoke(self, argv): pass
@@ -3602,7 +3601,7 @@ class PrintFormatCommand(GenericCommand):
 
         p.stdin.write(data)
         p.stdin.close()
-        retcode = p.wait()
+        p.wait()
         return True
 
     @only_if_gdb_running
@@ -3656,7 +3655,7 @@ class PrintFormatCommand(GenericCommand):
             out =  'unsigned {0} buf[{1}] = {{{2}}};'.format(self.c_type[bitlen], length, sdata)
 
         elif lang == 'js':
-            out =  'var buf = [{}]'.format(s_data)
+            out =  'var buf = [{}]'.format(sdata)
 
         elif lang == 'asm':
             out += 'buf {0} {1}'.format(self.asm_type[bitlen], sdata)
@@ -4445,19 +4444,6 @@ class ChangeFdCommand(GenericCommand):
             stack_addr = [entry.page_start for entry in vmmap if entry.path == "[stack]"][0]
             original_contents = read_memory(stack_addr, 8)
 
-            '''
-            struct sockaddr_in {
-                short            sin_family;   // e.g. AF_INET
-                unsigned short   sin_port;     // e.g. htons(3490)
-                struct in_addr   sin_addr;     // see struct in_addr, below
-                char             sin_zero[8];  // just padding
-            };
-
-            struct in_addr {
-                unsigned long s_addr;  // load with inet_aton()
-            };
-
-            '''
             write_memory(stack_addr, "\x02\x00", 2)
             write_memory(stack_addr + 0x2, struct.pack("<H", socket.htons(port)), 2)
             write_memory(stack_addr + 0x4, socket.inet_aton(address), 4)
@@ -4471,14 +4457,14 @@ class ChangeFdCommand(GenericCommand):
 
             res = self.get_fd_from_result(res)
             if res == -1:
-                err("Failed to connect to {}".format(addr))
+                err("Failed to connect to {}".format(address))
                 return
 
             info("Connected to {}".format(new_output))
         else:
             res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
             new_fd = int(res.split()[2], 0)
-        
+
         info("Opened '{:s}' as fd=#{:d}".format(new_output, new_fd))
         gdb.execute("""call dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
         info("Duplicated FD #{:d} {:s} #{:d}".format(old_fd, RIGHT_ARROW, new_fd))
@@ -8380,10 +8366,10 @@ class SyscallArgsCommand(GenericCommand):
         registers = [s.reg for s in syscall_entry.params]
 
         info("Detected syscall {}".format(Color.colorify(syscall_entry.name, attrs=color)))
-        gef_print("    {}({})".format(syscall_entry.name, ', '.join(parameters)));
+        gef_print("    {}({})".format(syscall_entry.name, ', '.join(parameters)))
 
         headers = [Color.colorify(x, attrs=color) for x in ["Parameter", "Register", "Value"]]
-        param_names = [re.split(' |\*', p)[-1] for p in parameters]
+        param_names = [re.split(r' |\*', p)[-1] for p in parameters]
         info("{:<28} {:<28} {}".format(*headers))
         for name, register, value in zip(param_names, registers, values):
             line = "    {:<15} {:<15} 0x{:x}".format(name, register, value)
@@ -8802,7 +8788,7 @@ class GefRestoreCommand(gdb.Command):
                     else:
                         new_value = _type(new_value)
                     __config__[key][0] = new_value
-                except Exception as e:
+                except Exception:
                     pass
 
         if not quiet:
