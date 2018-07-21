@@ -994,8 +994,13 @@ def is_debug():
     """Check if debug mode is enabled."""
     return get_gef_setting("gef.debug") == True
 
-def disable_context(): set_gef_setting("context.enable", False)
-def enable_context(): set_gef_setting("context.enable", True)
+context_hidden = False
+def hide_context():
+    global context_hidden
+    context_hidden = True
+def unhide_context():
+    global context_hidden
+    context_hidden = False
 
 def enable_redirect_output(to_file="/dev/null"):
     """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
@@ -3806,9 +3811,9 @@ class PieRunCommand(GenericCommand):
 
         # get base address
         gdb.execute("set stop-on-solib-events 1")
-        disable_context()
+        hide_context()
         gdb.execute("run {}".format(" ".join(argv)))
-        enable_context()
+        unhide_context()
         gdb.execute("set stop-on-solib-events 0")
         vmmap = get_process_maps()
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
@@ -4429,8 +4434,6 @@ class ChangeFdCommand(GenericCommand):
         old_fd = int(argv[0])
         new_output = argv[1]
 
-        disable_context()
-
         if ':' in new_output:
             address = socket.gethostbyname(new_output.split(":")[0])
             port = int(new_output.split(":")[1])
@@ -4485,7 +4488,6 @@ class ChangeFdCommand(GenericCommand):
         info("Duplicated FD #{:d} {:s} #{:d}".format(old_fd, RIGHT_ARROW, new_fd))
         gdb.execute("""call close({:d})""".format(new_fd), to_string=True)
         ok("Success")
-        enable_context()
         return
 
     def get_fd_from_result(self, res):
@@ -5304,9 +5306,9 @@ class RemoteCommand(GenericCommand):
         # if extended-remote, need to attach
         if is_extended_remote:
             ok("Attaching to {:d}".format(rpid))
-            disable_context()
+            hide_context()
             gdb.execute("attach {:d}".format(rpid))
-            enable_context()
+            unhide_context()
         else:
             rpid = get_pid()
             ok("Targeting PID={:d}".format(rpid))
@@ -5389,7 +5391,7 @@ class RemoteCommand(GenericCommand):
     def connect_target(self, target, is_extended_remote):
         """Connect to remote target and get symbols. To prevent `gef` from requesting information
         not fetched just yet, we disable the context disable when connection was successful."""
-        disable_context()
+        hide_context()
         try:
             cmd = "target {} {}".format("extended-remote" if is_extended_remote else "remote", target)
             gdb.execute(cmd)
@@ -5398,7 +5400,7 @@ class RemoteCommand(GenericCommand):
         except Exception as e:
             err("Failed to connect to {:s}: {:s}".format(target, str(e)))
             ret = False
-        enable_context()
+        unhide_context()
         return ret
 
 
@@ -6616,9 +6618,9 @@ class EntryPointBreakCommand(GenericCommand):
     def set_init_tbreak_pie(self, addr, argv):
         warn("PIC binary detected, retrieving text base address")
         gdb.execute("set stop-on-solib-events 1")
-        disable_context()
+        hide_context()
         gdb.execute("run {}".format(" ".join(argv)))
-        enable_context()
+        unhide_context()
         gdb.execute("set stop-on-solib-events 0")
         vmmap = get_process_maps()
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
@@ -6698,7 +6700,7 @@ class ContextCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if not self.get_setting("enable"):
+        if not self.get_setting("enable") or context_hidden:
             return
 
         current_layout = self.get_setting("layout").strip().split()
@@ -7983,9 +7985,9 @@ class TraceRunCommand(GenericCommand):
         info("Tracing from {:#x} to {:#x} (max depth={:d})".format(loc_start, loc_end,depth))
         logfile = "{:s}{:#x}-{:#x}.txt".format(self.get_setting("tracefile_prefix"), loc_start, loc_end)
         enable_redirect_output(to_file=logfile)
-        disable_context()
+        hide_context()
         self.start_tracing(loc_start, loc_end, depth)
-        enable_context()
+        unhide_context()
         disable_redirect_output()
         ok("Done, logfile stored as '{:s}'".format(logfile))
         info("Hint: import logfile with `ida_color_gdb_trace.py` script in IDA to visualize path")
