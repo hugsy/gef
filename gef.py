@@ -4483,10 +4483,11 @@ class ChangeFdCommand(GenericCommand):
             res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
             new_fd = self.get_fd_from_result(res)
 
-        info("Opened '{:s}' as fd=#{:d}".format(new_output, new_fd))
+        info("Opened '{:s}' as fd #{:d}".format(new_output, new_fd))
         gdb.execute("""call dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
-        info("Duplicated FD #{:d} {:s} #{:d}".format(old_fd, RIGHT_ARROW, new_fd))
+        info("Duplicated fd #{:d}{:s}#{:d}".format(new_fd, RIGHT_ARROW, old_fd))
         gdb.execute("""call close({:d})""".format(new_fd), to_string=True)
+        info("Closed extra fd #{:d}".format(new_fd))
         ok("Success")
         return
 
