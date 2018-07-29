@@ -90,7 +90,7 @@ if PYTHON_MAJOR == 2:
     from HTMLParser import HTMLParser #pylint: disable=import-error
     from cStringIO import StringIO #pylint: disable=import-error
     from urllib import urlopen #pylint: disable=no-name-in-module
-    import ConfigParser as configparser
+    import ConfigParser as configparser #pylint: disable=import-error
     import xmlrpclib #pylint: disable=import-error
 
     # Compat Py2/3 hacks
@@ -127,8 +127,8 @@ elif PYTHON_MAJOR == 3:
     import xmlrpc.client as xmlrpclib
 
     # Compat Py2/3 hack
-    long = int #pylint: disable=invalid-name
-    unicode = str #pylint: disable=invalid-name
+    long = int
+    unicode = str
 
     LEFT_ARROW = " \u2190 "
     RIGHT_ARROW = " \u2192 "
