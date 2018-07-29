@@ -28,7 +28,6 @@ before_script:
 
 script:
   - gdb -q -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
-  - sudo make test
   - make lint
 
 
