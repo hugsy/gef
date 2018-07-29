@@ -3630,7 +3630,7 @@ class PrintFormatCommand(GenericCommand):
                 self.usage()
                 return
 
-        if len(args) < 1:
+        if not args:
             err("No address specified")
             return
 
@@ -3657,13 +3657,10 @@ class PrintFormatCommand(GenericCommand):
 
         if lang == 'py':
             out = 'buf = [{}]'.format(sdata)
-
         elif lang == 'c':
             out =  'unsigned {0} buf[{1}] = {{{2}}};'.format(self.c_type[bitlen], length, sdata)
-
         elif lang == 'js':
-            out =  'var buf = [{}]'.format(s_data)
-
+            out =  'var buf = [{}]'.format(sdata)
         elif lang == 'asm':
             out += 'buf {0} {1}'.format(self.asm_type[bitlen], sdata)
 
