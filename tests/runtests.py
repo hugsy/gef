@@ -5,7 +5,6 @@
 
 from __future__ import print_function
 
-import difflib
 import subprocess
 import sys
 import unittest
@@ -96,8 +95,7 @@ class TestGefCommands(GefUnitTestGeneric):  # pylint: disable=too-many-public-me
         self.assertNoException(before)
         after = gdb_silent_cmd_last_line("edit-flags ~carry")
         self.assertNoException(after)
-        s = difflib.SequenceMatcher(None, before, after)
-        self.assertTrue(s.ratio() > 0.90)
+        self.assertNotEqual(before, after)
         return
 
     def test_cmd_elf_info(self):
@@ -206,35 +204,35 @@ class TestGefCommands(GefUnitTestGeneric):  # pylint: disable=too-many-public-me
         return
 
     def test_cmd_patch_byte(self):
-        before = gdb_silent_cmd_last_line("display/8bx $pc")
-        after = gdb_silent_cmd_last_line("patch byte $pc 0x42", after=["display/8bx $pc",])
+        before = gdb_silent_cmd_last_line("display/bx $pc")
+        after = gdb_silent_cmd_last_line("patch byte $pc 0x42", after=["display/bx $pc",])
         self.assertNoException(after)
-        r = difflib.SequenceMatcher(None, before, after).ratio()
-        self.assertTrue( 0.90 < r < 1.0 )
+        self.assertIn(b"0x42", after)
+        self.assertNotEqual(before, after)
         return
 
     def test_cmd_patch_word(self):
-        before = gdb_silent_cmd_last_line("display/8bx $pc")
-        after = gdb_silent_cmd_last_line("patch word $pc 0x4242", after=["display/8bx $pc",])
+        before = gdb_silent_cmd_last_line("display/hx $pc")
+        after = gdb_silent_cmd_last_line("patch word $pc 0x4242", after=["display/hx $pc",])
         self.assertNoException(after)
-        r = difflib.SequenceMatcher(None, before, after).ratio()
-        self.assertTrue( 0.90 < r < 1.0 )
+        self.assertIn(b"0x4242", after)
+        self.assertNotEqual(before, after)
         return
 
     def test_cmd_patch_dword(self):
-        before = gdb_silent_cmd_last_line("display/8bx $pc")
-        after = gdb_silent_cmd_last_line("patch dword $pc 0x42424242", after=["display/8bx $pc",])
+        before = gdb_silent_cmd_last_line("display/wx $pc")
+        after = gdb_silent_cmd_last_line("patch dword $pc 0x42424242", after=["display/wx $pc",])
         self.assertNoException(after)
-        r = difflib.SequenceMatcher(None, before, after).ratio()
-        self.assertTrue( 0.80 < r < 0.90 )
+        self.assertIn(b"0x42424242", after)
+        self.assertNotEqual(before, after)
         return
 
     def test_cmd_patch_qword(self):
-        before = gdb_silent_cmd_last_line("display/8bx $pc")
-        after = gdb_silent_cmd_last_line("patch qword $pc 0x4242424242424242", after=["display/8bx $pc",])
+        before = gdb_silent_cmd_last_line("display/gx $pc")
+        after = gdb_silent_cmd_last_line("patch qword $pc 0x4242424242424242", after=["display/gx $pc",])
         self.assertNoException(after)
-        r = difflib.SequenceMatcher(None, before, after).ratio()
-        self.assertTrue( r > 0.50 )
+        self.assertIn(b"0x4242424242424242", after)
+        self.assertNotEqual(before, after)
         return
 
     def test_cmd_patch_string(self):
