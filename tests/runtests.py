@@ -290,21 +290,6 @@ class TestGefCommands(GefUnitTestGeneric):  # pylint: disable=too-many-public-me
         self.assertNoException(res)
         return
 
-    def test_cmd_retdec(self):
-        cmd = "retdec -s main"
-        target = "tests/binaries/retdec.out"
-        res = gdb_silent_command(cmd, target=target)
-        if b"No RetDec API key provided" in res:
-            api_key = os.getenv("GEF_RETDEC_API_KEY")
-            if api_key is None:
-                return
-            before = ["gef config retdec.key {}".format(api_key),]
-            res = gdb_silent_command(cmd, before=before, target=target)
-
-        self.assertNoException(res)
-        self.assertIn(b"Saved as", res)
-        return
-
     def test_cmd_ropper(self):
         cmd = "ropper"
         self.assertFailIfInactiveSession(gdb_run_command(cmd))
