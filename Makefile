@@ -2,5 +2,5 @@ test:
 	python tests/runtests.py
 
 lint:
-	pylint tests/*.py
+	pylint --rcfile ./.pylintrc tests/*.py
 	pylint -E gef.py
