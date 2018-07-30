@@ -49,21 +49,31 @@ class TestGefCommands(GefUnitTestGeneric):  # pylint: disable=too-many-public-me
         self.assertTrue(len(res.splitlines()) > 1)
         return
 
-    def test_cmd_checksec(self):
-        cmd = "checksec"
-        res = gdb_run_command(cmd)
-        self.assertNoException(res)
+    def test_cmd_checksec_canary(self):
+        target = "tests/binaries/default.out"
+        res = gdb_run_command("checksec", target=target)
+        self.assertIn(b"Canary                        : Yes", res)
 
         target = "tests/binaries/checksec-no-canary.out"
-        res = gdb_run_command(cmd, target=target)
+        res = gdb_run_command("checksec", target=target)
         self.assertIn(b"Canary                        : No", res)
 
+    def test_cmd_checksec_nx(self):
+        target = "tests/binaries/default.out"
+        res = gdb_run_command("checksec", target=target)
+        self.assertIn(b"NX                            : Yes", res)
+
         target = "tests/binaries/checksec-no-nx.out"
-        res = gdb_run_command(cmd, target=target)
+        res = gdb_run_command("checksec", target=target)
         self.assertIn(b"NX                            : No", res)
 
+    def test_cmd_checksec_pie(self):
+        target = "tests/binaries/default.out"
+        res = gdb_run_command("checksec", target=target)
+        self.assertIn(b"PIE                           : Yes", res)
+
         target = "tests/binaries/checksec-no-pie.out"
-        res = gdb_run_command(cmd, target=target)
+        res = gdb_run_command("checksec", target=target)
         self.assertIn(b"PIE                           : No", res)
         return
 
