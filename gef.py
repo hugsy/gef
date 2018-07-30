@@ -365,7 +365,7 @@ class Color:
     @staticmethod
     def colorify(text, attrs):
         """Color text according to the given attributes."""
-        if get_gef_setting("gef.disable_color")==True: return text
+        if get_gef_setting("gef.disable_color") is True: return text
 
         colors = Color.colors
         msg = [colors[attr] for attr in attrs.split() if attr in colors]
@@ -918,7 +918,7 @@ def show_last_exception():
                                                        sys.version_info.micro, sys.version_info.releaselevel))
     gef_print("* OS: {:s} - {:s} ({:s}) on {:s}".format(platform.system(), platform.release(),
                                                         platform.architecture()[0],
-                                                        " ".join(platform.dist())))
+                                                        " ".join(platform.dist()))) #pylint: disable=deprecated-method
     gef_print(HORIZONTAL_LINE*80)
     gef_print("")
     return
@@ -992,7 +992,7 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
 
 def is_debug():
     """Check if debug mode is enabled."""
-    return get_gef_setting("gef.debug") == True
+    return get_gef_setting("gef.debug") is True
 
 context_hidden = False
 def hide_context():
@@ -1461,9 +1461,15 @@ class ARM(Architecture):
         if mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
         elif mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
         elif mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
-        elif mnemo.endswith("le"): taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
-        elif mnemo.endswith("gt"): taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
-        elif mnemo.endswith("ge"): taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+        elif mnemo.endswith("le"):
+            taken = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"])
+            reason = "Z || N!=O"
+        elif mnemo.endswith("gt"):
+            taken = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"])
+            reason = "!Z && N==O"
+        elif mnemo.endswith("ge"):
+            taken = val&(1<<flags["negative"]) == val&(1<<flags["overflow"])
+            reason = "N==O"
         elif mnemo.endswith("bvs"): taken, reason = val&(1<<flags["overflow"]), "O"
         elif mnemo.endswith("bvc"): taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
         return taken, reason
@@ -1574,10 +1580,14 @@ class AARCH64(ARM):
 
         elif mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
         elif mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
-        elif mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
-        elif mnemo.endswith("le"): taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
-        elif mnemo.endswith("gt"): taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
-        elif mnemo.endswith("ge"): taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+        elif mnemo.endswith("lt"):
+            taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+        elif mnemo.endswith("le"):
+            taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+        elif mnemo.endswith("gt"):
+            taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
+        elif mnemo.endswith("ge"):
+            taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
         return taken, reason
 
 
@@ -2494,7 +2504,7 @@ def exit_handler(event):
 
     reset_all_caches()
     __gef_qemu_mode__ = False
-    if __gef_remote__ and get_gef_setting("gef-remote.clean_on_exit") == True:
+    if __gef_remote__ and get_gef_setting("gef-remote.clean_on_exit") is True:
         shutil.rmtree("/tmp/gef/{:d}".format(__gef_remote__))
         __gef_remote__ = None
     return
@@ -3412,11 +3422,14 @@ class UafWatchpoint(gdb.Breakpoint):
             # ignore when the watchpoint is raised by malloc() - due to reuse
             return False
 
-        pc = gdb_get_nth_previous_instruction_address(current_arch.pc, 2) # software watchpoints stop after the next statement (see https://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html)
+        # software watchpoints stop after the next statement (see
+        # https://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html)
+        pc = gdb_get_nth_previous_instruction_address(current_arch.pc, 2)
         insn = gef_current_instruction(pc)
         msg = []
         msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
-        msg.append("Possible Use-after-Free in '{:s}': pointer {:#x} was freed, but is attempted to be used at {:#x}".format(get_filepath(), self.address, pc))
+        msg.append("Possible Use-after-Free in '{:s}': pointer {:#x} was freed, but is attempted to be used at {:#x}"
+                   .format(get_filepath(), self.address, pc))
         msg.append("{:#x}   {:s} {:s}".format(insn.address, insn.mnemonic, Color.yellowify(", ".join(insn.operands))))
         push_context_message("warn", "\n".join(msg))
         return True
@@ -3778,9 +3791,8 @@ class PieDeleteCommand(GenericCommand):
         global __pie_breakpoints__
         for bp in breakpoints:
             # delete current real breakpoints if exists
-            gdb.execute(
-                "delete {}".format(bp.bp_num)
-            ) if bp.bp_num else 0
+            if bp.bp_num:
+                gdb.execute("delete {}".format(bp.bp_num))
             # delete virtual breakpoints
             del __pie_breakpoints__[bp.vbp_num]
 
@@ -4350,13 +4362,12 @@ class PCustomCommand(GenericCommand):
             if name != item: continue
             if callable(values):
                 return values(value)
-            else:
-                try:
-                    for val, desc in values:
-                        if value == val: return desc
-                        if val is None: default = desc
-                except:
-                    err("Error while trying to obtain values from _values_[\"{}\"]".format(name))
+            try:
+                for val, desc in values:
+                    if value == val: return desc
+                    if val is None: default = desc
+            except:
+                err("Error while trying to obtain values from _values_[\"{}\"]".format(name))
 
         return default
 
@@ -4612,7 +4623,7 @@ class IdaInteractCommand(GenericCommand):
                 else:
                     gef_print(res)
 
-            if self.get_setting("sync_cursor")==True:
+            if self.get_setting("sync_cursor") is True:
                 jump = getattr(self.sock, "Jump")
                 jump(hex(current_arch.pc-main_base_address),)
 
@@ -5298,7 +5309,7 @@ class RemoteCommand(GenericCommand):
 
         target = args[0]
 
-        if self.connect_target(target, is_extended_remote) == False:
+        if self.connect_target(target, is_extended_remote) is False:
             return
 
         # if extended-remote, need to attach
@@ -5318,7 +5329,7 @@ class RemoteCommand(GenericCommand):
             err("Failed to establish remote target environment.")
             return
 
-        if self.download_all_libs == True:
+        if self.download_all_libs is True:
             vmmap = get_process_maps()
             success = 0
             for sect in vmmap:
@@ -5680,7 +5691,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
     def do_invoke(self, argv):
         global __gef_default_main_arena__
 
-        if len(argv) < 1:
+        if not argv:
             ok("Current main_arena set to: '{}'".format(__gef_default_main_arena__))
             return
 
@@ -5736,7 +5747,7 @@ class GlibcHeapChunkCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if len(argv) < 1:
+        if not argv:
             err("Missing chunk address")
             self.usage()
             return
@@ -5830,7 +5841,7 @@ class GlibcHeapBinsCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if len(argv) == 0:
+        if not argv:
             for bin_t in GlibcHeapBinsCommand._bin_types_:
                 gdb.execute("heap bins {:s}".format(bin_t))
             return
@@ -6755,7 +6766,7 @@ class ContextCommand(GenericCommand):
         self.context_title("registers")
         ignored_registers = set(self.get_setting("ignore_registers").split())
 
-        if self.get_setting("show_registers_raw") == False:
+        if self.get_setting("show_registers_raw") is False:
             regs = set([x.strip() for x in current_arch.all_registers])
             printable_registers = " ".join(list(regs - ignored_registers))
             gdb.execute("registers {}".format(printable_registers))
@@ -6822,7 +6833,7 @@ class ContextCommand(GenericCommand):
 
         try:
             sp = current_arch.sp
-            if show_raw == True:
+            if show_raw is True:
                 mem = read_memory(sp, 0x10 * nb_lines)
                 gef_print(hexdump(mem, base=sp))
             else:
@@ -6873,9 +6884,9 @@ class ContextCommand(GenericCommand):
                         else:
                             reason = "[Reason: !({:s})]".format(reason) if reason else ""
                             line += Color.colorify("\tNOT taken {:s}".format(reason), attrs="bold red")
-                    elif current_arch.is_call(insn) and self.get_setting("peek_calls") == True:
+                    elif current_arch.is_call(insn) and self.get_setting("peek_calls") is True:
                         target = insn.operands[-1].split()[0]
-                    elif current_arch.is_ret(insn) and self.get_setting("peek_ret") == True:
+                    elif current_arch.is_ret(insn) and self.get_setting("peek_ret") is True:
                         target = current_arch.get_ra(insn, frame)
 
                 else:
@@ -6995,7 +7006,7 @@ class ContextCommand(GenericCommand):
         function_parameters = current_arch.function_parameters
 
         for insn in instruction_iterator(block_start, pc-block_start):
-            if len(insn.operands) < 1:
+            if not insn.operands:
                 continue
 
             if is_x86_32():
@@ -7148,7 +7159,7 @@ class ContextCommand(GenericCommand):
                 items.append(Color.redify("{} {}".format(insn.mnemonic, ', '.join(insn.operands))))
 
             gef_print("[{:s}] {:s}".format(Color.colorify("#{:d}".format(i), "bold pink"),
-                                       RIGHT_ARROW.join(items)))
+                                           RIGHT_ARROW.join(items)))
             current_frame = current_frame.older()
             i += 1
             nb_backtrace -= 1
@@ -7189,7 +7200,7 @@ class ContextCommand(GenericCommand):
         if idx==0:
             return
 
-        if len(threads) < 1:
+        if not threads:
             err("No thread selected")
             return
 
@@ -7307,7 +7318,7 @@ class MemoryUnwatchCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         global __watches__
-        if len(argv) < 1:
+        if not argv:
             self.usage()
             return
 
@@ -7584,7 +7595,7 @@ class DereferenceCommand(GenericCommand):
             err("Unmapped address")
             return
 
-        if get_gef_setting("context.grow_stack_down") == True:
+        if get_gef_setting("context.grow_stack_down") is True:
             from_insnum = nb-1
             to_insnum = -1
             insnum_step = -1
@@ -7849,8 +7860,8 @@ class XAddressInfoCommand(GenericCommand):
 
         if info:
             gef_print("Segment: {:s} ({:s}-{:s})".format(info.name,
-                                                     format_address(info.zone_start),
-                                                     format_address(info.zone_end)))
+                                                         format_address(info.zone_start),
+                                                         format_address(info.zone_end)))
 
         sym = gdb_get_location_from_symbol(address)
         if sym:
@@ -8551,19 +8562,22 @@ class GefCommand(gdb.Command):
         self.loaded_commands = sorted(self.loaded_commands, key=lambda x: x[1]._cmdline_)
 
         if initial:
-            gef_print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure".format(Color.greenify("GEF"), get_os(),
-                                                                                            Color.colorify("gef",attrs="underline yellow"),
-                                                                                            Color.colorify("gef config", attrs="underline pink")))
+            gef_print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure"
+                      .format(Color.greenify("GEF"), get_os(),
+                              Color.colorify("gef",attrs="underline yellow"),
+                              Color.colorify("gef config", attrs="underline pink")))
 
             ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
             nb_cmds = len(self.loaded_commands)
-            gef_print("{:s} commands loaded for GDB {:s} using Python engine {:s}".format(Color.colorify(str(nb_cmds), attrs="bold green"),
-                                                                                      Color.colorify(gdb.VERSION, attrs="bold yellow"),
-                                                                                      Color.colorify(ver, attrs="bold red")))
+            gef_print("{:s} commands loaded for GDB {:s} using Python engine {:s}"
+                      .format(Color.colorify(str(nb_cmds), attrs="bold green"),
+                              Color.colorify(gdb.VERSION, attrs="bold yellow"),
+                              Color.colorify(ver, attrs="bold red")))
 
             if nb_missing:
-                warn("{:s} commands could not be loaded, run `{:s}` to know why.".format(Color.colorify(str(nb_missing), attrs="bold red"),
-                                                                                         Color.colorify("gef missing", attrs="underline pink")))
+                warn("{:s} commands could not be loaded, run `{:s}` to know why."
+                          .format(Color.colorify(str(nb_missing), attrs="bold red"),
+                                  Color.colorify("gef missing", attrs="underline pink")))
         return
 
 
@@ -9022,8 +9036,8 @@ class GefTmuxSetup(gdb.Command):
 
 def __gef_prompt__(current_prompt):
     """GEF custom prompt function."""
-    if get_gef_setting("gef.readline_compat")==True: return GEF_PROMPT
-    if get_gef_setting("gef.disable_color")==True: return GEF_PROMPT
+    if get_gef_setting("gef.readline_compat") is True: return GEF_PROMPT
+    if get_gef_setting("gef.disable_color") is True: return GEF_PROMPT
     if is_alive(): return GEF_PROMPT_ON
     return GEF_PROMPT_OFF
 
