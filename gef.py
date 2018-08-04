@@ -90,7 +90,7 @@ if PYTHON_MAJOR == 2:
     from HTMLParser import HTMLParser #pylint: disable=import-error
     from cStringIO import StringIO #pylint: disable=import-error
     from urllib import urlopen #pylint: disable=no-name-in-module
-    import ConfigParser as configparser
+    import ConfigParser as configparser #pylint: disable=import-error
     import xmlrpclib #pylint: disable=import-error
 
     # Compat Py2/3 hacks
@@ -127,8 +127,8 @@ elif PYTHON_MAJOR == 3:
     import xmlrpc.client as xmlrpclib
 
     # Compat Py2/3 hack
-    long = int #pylint: disable=invalid-name
-    unicode = str #pylint: disable=invalid-name
+    long = int
+    unicode = str
 
     LEFT_ARROW = " \u2190 "
     RIGHT_ARROW = " \u2192 "
@@ -222,7 +222,7 @@ if PYTHON_MAJOR==3:
     lru_cache = functools.lru_cache
 else:
     def lru_cache(maxsize = 128):
-        """Portage of the Python3 LRU cache mechanism provided by itertools."""
+        """Port of the Python3 LRU cache mechanism provided by itertools."""
         class GefLruCache(object):
             """Local LRU cache for Python2"""
             def __init__(self, input_func, max_size):
@@ -303,7 +303,7 @@ def gef_print(x="", *args, **kwargs):
 
 
 def bufferize(f):
-    """Store in memory the content to be printed for a function, and flush it on function exit."""
+    """Store the content to be printed for a function in memory, and flush it on function exit."""
 
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
@@ -323,7 +323,7 @@ def bufferize(f):
 
 
 class Color:
-    """Colorify class."""
+    """Used to colorify terminal output."""
     colors = {
         "normal"         : "\033[0m",
         "gray"           : "\033[1;38;5;240m",
@@ -364,8 +364,8 @@ class Color:
 
     @staticmethod
     def colorify(text, attrs):
-        """Color a text following the given attributes."""
-        if get_gef_setting("gef.disable_color")==True: return text
+        """Color text according to the given attributes."""
+        if get_gef_setting("gef.disable_color") is True: return text
 
         colors = Color.colors
         msg = [colors[attr] for attr in attrs.split() if attr in colors]
@@ -568,8 +568,9 @@ class Elf:
 
 
     def __init__(self, elf="", minimalist=False):
-        """Instanciates an Elf object. The default behavior is to create the object by parsing the ELF file on FS.
-        But on some cases (QEMU-stub), we may just want a simply minimal object with default values."""
+        """
+        Instantiate an ELF object. The default behavior is to create the object by parsing the ELF file.
+        But in some cases (QEMU-stub), we may just want a simple minimal object with default values."""
         if minimalist:
             return
 
@@ -604,9 +605,8 @@ class Elf:
         return
 
 
-
 class Instruction:
-    """GEF representation of instruction."""
+    """GEF representation of a CPU instruction."""
     def __init__(self, address, location, mnemo, operands):
         self.address, self.location, self.mnemonic, self.operands = address, location, mnemo, operands
         return
@@ -619,7 +619,6 @@ class Instruction:
 
     def is_valid(self):
         return "(bad)" not in self.mnemonic
-
 
 
 class GlibcArena:
@@ -915,7 +914,7 @@ def show_last_exception():
                                                        sys.version_info.micro, sys.version_info.releaselevel))
     gef_print("* OS: {:s} - {:s} ({:s}) on {:s}".format(platform.system(), platform.release(),
                                                         platform.architecture()[0],
-                                                        " ".join(platform.dist())))
+                                                        " ".join(platform.dist()))) #pylint: disable=deprecated-method
     gef_print(HORIZONTAL_LINE*80)
     gef_print("")
     return
@@ -936,7 +935,7 @@ def gef_pybytes(x):
 
 @lru_cache()
 def which(program):
-    """Locate a command on FS."""
+    """Locate a command on the filesystem."""
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -988,11 +987,16 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
 
 
 def is_debug():
-    """Checks if debug mode is enabled."""
-    return get_gef_setting("gef.debug") == True
+    """Check if debug mode is enabled."""
+    return get_gef_setting("gef.debug") is True
 
-def disable_context(): set_gef_setting("context.enable", False)
-def enable_context(): set_gef_setting("context.enable", True)
+context_hidden = False
+def hide_context():
+    global context_hidden
+    context_hidden = True
+def unhide_context():
+    global context_hidden
+    context_hidden = False
 
 def enable_redirect_output(to_file="/dev/null"):
     """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
@@ -1011,8 +1015,9 @@ def disable_redirect_output():
 
 
 def get_gef_setting(name):
-    """Read global gef settings. Return None if not found. A valid config setting can never return None,
-    but False, 0 or "". So using None as a retval on error is fine."""
+    """Read global gef settings.
+    Return None if not found. A valid config setting can never return None,
+    but False, 0 or ""."""
     global __config__
     setting = __config__.get(name, None)
     if not setting:
@@ -1021,7 +1026,8 @@ def get_gef_setting(name):
 
 
 def set_gef_setting(name, value, _type=None, _desc=None):
-    """Set global gef settings. Raise ValueError if `name` doesn't exist and `type` and `desc`
+    """Set global gef settings.
+    Raise ValueError if `name` doesn't exist and `type` and `desc`
     are not provided."""
     global __config__
 
@@ -1056,7 +1062,7 @@ def gef_makedirs(path, mode=0o755):
 
 @lru_cache()
 def gdb_lookup_symbol(sym):
-    """Fetch the proper symbol or none is not defined."""
+    """Fetch the proper symbol or None if not defined."""
     try:
         return gdb.decode_line(sym)[1]
     except gdb.error:
@@ -1226,13 +1232,13 @@ def capstone_disassemble(location, nb_insn, **kwargs):
 
 
 def gef_execute_external(command, as_list=False, *args, **kwargs):
-    """Executes an external command and retrieves the result."""
+    """Execute an external command and return the result."""
     res = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=kwargs.get("shell", False))
     return [gef_pystring(_) for _ in res.splitlines()] if as_list else gef_pystring(res)
 
 
 def gef_execute_gdb_script(commands):
-    """Executes the parameter `source` as GDB command. This is done by writing `commands` to
+    """Execute the parameter `source` as GDB command. This is done by writing `commands` to
     a temporary file, which is then executed via GDB `source` command. The tempfile is then deleted."""
     fd, fname = tempfile.mkstemp(suffix=".gdb", prefix="gef_")
     with os.fdopen(fd, "w") as f:
@@ -1451,9 +1457,15 @@ class ARM(Architecture):
         if mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
         elif mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
         elif mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
-        elif mnemo.endswith("le"): taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
-        elif mnemo.endswith("gt"): taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
-        elif mnemo.endswith("ge"): taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+        elif mnemo.endswith("le"):
+            taken = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"])
+            reason = "Z || N!=O"
+        elif mnemo.endswith("gt"):
+            taken = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"])
+            reason = "!Z && N==O"
+        elif mnemo.endswith("ge"):
+            taken = val&(1<<flags["negative"]) == val&(1<<flags["overflow"])
+            reason = "N==O"
         elif mnemo.endswith("bvs"): taken, reason = val&(1<<flags["overflow"]), "O"
         elif mnemo.endswith("bvc"): taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
         return taken, reason
@@ -1564,10 +1576,14 @@ class AARCH64(ARM):
 
         elif mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
         elif mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
-        elif mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
-        elif mnemo.endswith("le"): taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
-        elif mnemo.endswith("gt"): taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
-        elif mnemo.endswith("ge"): taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+        elif mnemo.endswith("lt"):
+            taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+        elif mnemo.endswith("le"):
+            taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+        elif mnemo.endswith("gt"):
+            taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
+        elif mnemo.endswith("ge"):
+            taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
         return taken, reason
 
 
@@ -1948,7 +1964,6 @@ class SPARC64(SPARC):
     syscall_instructions = ["t 0x6d"]
 
 
-
 class MIPS(Architecture):
     arch = "MIPS"
     mode = "MIPS32"
@@ -2045,7 +2060,7 @@ def read_memory(addr, length=0x10):
 
 
 def read_int_from_memory(addr):
-    """Return an integer from memory."""
+    """Return an integer read from memory."""
     sz = get_memory_alignment()
     mem = read_memory(addr, sz)
     fmt = "{}{}".format(endian_str(), "I" if sz==4 else "Q")
@@ -2053,7 +2068,7 @@ def read_int_from_memory(addr):
 
 
 def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding=None):
-    """Return a C-string from memory."""
+    """Return a C-string read from memory."""
     if not encoding:
         encoding = "unicode_escape" if PYTHON_MAJOR==3 else "ascii"
 
@@ -2069,9 +2084,9 @@ def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding
 
 
 def is_readable_string(address):
-    """Tries to determine if the content pointed by `address` is
+    """Try to determine if the content pointed by `address` is
     a readable string by checking if:
-    * the last element is 0x00 (i.e. it is a C-string)
+    * it ends with a null byte (i.e. it is a C-string)
     * each byte is printable"""
     try:
         cstr = read_cstring_from_memory(address)
@@ -2153,10 +2168,7 @@ def use_golang_type():
 
 def to_unsigned_long(v):
     """Cast a gdb.Value to unsigned long."""
-    unsigned_long_t = cached_lookup_type(use_stdtype()) \
-                      or cached_lookup_type(use_default_type()) \
-                      or cached_lookup_type(use_golang_type())
-    return long(v.cast(unsigned_long_t))
+    return long(str(v), 16)
 
 
 def get_register(regname):
@@ -2185,7 +2197,7 @@ def get_os():
 
 @lru_cache()
 def get_pid():
-    """Return the currently debugged PID."""
+    """Return the PID of the debuggee process."""
     return gdb.selected_inferior().pid
 
 
@@ -2321,7 +2333,7 @@ def get_process_maps():
 
 @lru_cache()
 def get_info_sections():
-    """Retrieves the debuggee sections."""
+    """Retrieve the debuggee sections."""
     stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
 
     for line in stream:
@@ -2353,7 +2365,7 @@ def get_info_sections():
 
 @lru_cache()
 def get_info_files():
-    """Retrieves all the files loaded by debuggee."""
+    """Retrieve all the files loaded by debuggee."""
     lines = gdb.execute("info files", to_string=True).splitlines()
 
     if len(lines) < len(__infos_files__):
@@ -2431,7 +2443,7 @@ def file_lookup_address(address):
 
 
 def lookup_address(address):
-    """Tries to find the address in the process address space.
+    """Try to find the address in the process address space.
     Return an Address object, with validity flag set based on success."""
     sect = process_lookup_address(address)
     info = file_lookup_address(address)
@@ -2488,7 +2500,7 @@ def exit_handler(event):
 
     reset_all_caches()
     __gef_qemu_mode__ = False
-    if __gef_remote__ and get_gef_setting("gef-remote.clean_on_exit") == True:
+    if __gef_remote__ and get_gef_setting("gef-remote.clean_on_exit") is True:
         shutil.rmtree("/tmp/gef/{:d}".format(__gef_remote__))
         __gef_remote__ = None
     return
@@ -3406,11 +3418,14 @@ class UafWatchpoint(gdb.Breakpoint):
             # ignore when the watchpoint is raised by malloc() - due to reuse
             return False
 
-        pc = gdb_get_nth_previous_instruction_address(current_arch.pc, 2) # software watchpoints stop after the next statement (see https://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html)
+        # software watchpoints stop after the next statement (see
+        # https://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html)
+        pc = gdb_get_nth_previous_instruction_address(current_arch.pc, 2)
         insn = gef_current_instruction(pc)
         msg = []
         msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
-        msg.append("Possible Use-after-Free in '{:s}': pointer {:#x} was freed, but is attempted to be used at {:#x}".format(get_filepath(), self.address, pc))
+        msg.append("Possible Use-after-Free in '{:s}': pointer {:#x} was freed, but is attempted to be used at {:#x}"
+                   .format(get_filepath(), self.address, pc))
         msg.append("{:#x}   {:s} {:s}".format(insn.address, insn.mnemonic, Color.yellowify(", ".join(insn.operands))))
         push_context_message("warn", "\n".join(msg))
         return True
@@ -3623,7 +3638,7 @@ class PrintFormatCommand(GenericCommand):
                 self.usage()
                 return
 
-        if len(args) < 1:
+        if not args:
             err("No address specified")
             return
 
@@ -3650,13 +3665,10 @@ class PrintFormatCommand(GenericCommand):
 
         if lang == 'py':
             out = 'buf = [{}]'.format(sdata)
-
         elif lang == 'c':
             out =  'unsigned {0} buf[{1}] = {{{2}}};'.format(self.c_type[bitlen], length, sdata)
-
         elif lang == 'js':
             out =  'var buf = [{}]'.format(sdata)
-
         elif lang == 'asm':
             out += 'buf {0} {1}'.format(self.asm_type[bitlen], sdata)
 
@@ -3774,9 +3786,8 @@ class PieDeleteCommand(GenericCommand):
         global __pie_breakpoints__
         for bp in breakpoints:
             # delete current real breakpoints if exists
-            gdb.execute(
-                "delete {}".format(bp.bp_num)
-            ) if bp.bp_num else 0
+            if bp.bp_num:
+                gdb.execute("delete {}".format(bp.bp_num))
             # delete virtual breakpoints
             del __pie_breakpoints__[bp.vbp_num]
 
@@ -3804,9 +3815,9 @@ class PieRunCommand(GenericCommand):
 
         # get base address
         gdb.execute("set stop-on-solib-events 1")
-        disable_context()
+        hide_context()
         gdb.execute("run {}".format(" ".join(argv)))
-        enable_context()
+        unhide_context()
         gdb.execute("set stop-on-solib-events 0")
         vmmap = get_process_maps()
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
@@ -4346,13 +4357,12 @@ class PCustomCommand(GenericCommand):
             if name != item: continue
             if callable(values):
                 return values(value)
-            else:
-                try:
-                    for val, desc in values:
-                        if value == val: return desc
-                        if val is None: default = desc
-                except:
-                    err("Error while trying to obtain values from _values_[\"{}\"]".format(name))
+            try:
+                for val, desc in values:
+                    if value == val: return desc
+                    if val is None: default = desc
+            except:
+                err("Error while trying to obtain values from _values_[\"{}\"]".format(name))
 
         return default
 
@@ -4427,8 +4437,6 @@ class ChangeFdCommand(GenericCommand):
         old_fd = int(argv[0])
         new_output = argv[1]
 
-        disable_context()
-
         if ':' in new_output:
             address = socket.gethostbyname(new_output.split(":")[0])
             port = int(new_output.split(":")[1])
@@ -4457,20 +4465,20 @@ class ChangeFdCommand(GenericCommand):
 
             res = self.get_fd_from_result(res)
             if res == -1:
-                err("Failed to connect to {}".format(address))
+                err("Failed to connect to {}:{}".format(address, port))
                 return
 
             info("Connected to {}".format(new_output))
         else:
             res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
-            new_fd = int(res.split()[2], 0)
+            new_fd = self.get_fd_from_result(res)
 
-        info("Opened '{:s}' as fd=#{:d}".format(new_output, new_fd))
+        info("Opened '{:s}' as fd #{:d}".format(new_output, new_fd))
         gdb.execute("""call dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
-        info("Duplicated FD #{:d} {:s} #{:d}".format(old_fd, RIGHT_ARROW, new_fd))
+        info("Duplicated fd #{:d}{:s}#{:d}".format(new_fd, RIGHT_ARROW, old_fd))
         gdb.execute("""call close({:d})""".format(new_fd), to_string=True)
+        info("Closed extra fd #{:d}".format(new_fd))
         ok("Success")
-        enable_context()
         return
 
     def get_fd_from_result(self, res):
@@ -4597,7 +4605,7 @@ class IdaInteractCommand(GenericCommand):
                 else:
                     gef_print(res)
 
-            if self.get_setting("sync_cursor")==True:
+            if self.get_setting("sync_cursor") is True:
                 jump = getattr(self.sock, "Jump")
                 jump(hex(current_arch.pc-main_base_address),)
 
@@ -5283,15 +5291,15 @@ class RemoteCommand(GenericCommand):
 
         target = args[0]
 
-        if self.connect_target(target, is_extended_remote) == False:
+        if self.connect_target(target, is_extended_remote) is False:
             return
 
         # if extended-remote, need to attach
         if is_extended_remote:
             ok("Attaching to {:d}".format(rpid))
-            disable_context()
+            hide_context()
             gdb.execute("attach {:d}".format(rpid))
-            enable_context()
+            unhide_context()
         else:
             rpid = get_pid()
             ok("Targeting PID={:d}".format(rpid))
@@ -5303,7 +5311,7 @@ class RemoteCommand(GenericCommand):
             err("Failed to establish remote target environment.")
             return
 
-        if self.download_all_libs == True:
+        if self.download_all_libs is True:
             vmmap = get_process_maps()
             success = 0
             for sect in vmmap:
@@ -5374,7 +5382,7 @@ class RemoteCommand(GenericCommand):
     def connect_target(self, target, is_extended_remote):
         """Connect to remote target and get symbols. To prevent `gef` from requesting information
         not fetched just yet, we disable the context disable when connection was successful."""
-        disable_context()
+        hide_context()
         try:
             cmd = "target {} {}".format("extended-remote" if is_extended_remote else "remote", target)
             gdb.execute(cmd)
@@ -5383,7 +5391,7 @@ class RemoteCommand(GenericCommand):
         except Exception as e:
             err("Failed to connect to {:s}: {:s}".format(target, str(e)))
             ret = False
-        enable_context()
+        unhide_context()
         return ret
 
 
@@ -5665,7 +5673,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
     def do_invoke(self, argv):
         global __gef_default_main_arena__
 
-        if len(argv) < 1:
+        if not argv:
             ok("Current main_arena set to: '{}'".format(__gef_default_main_arena__))
             return
 
@@ -5721,7 +5729,7 @@ class GlibcHeapChunkCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if len(argv) < 1:
+        if not argv:
             err("Missing chunk address")
             self.usage()
             return
@@ -5815,7 +5823,7 @@ class GlibcHeapBinsCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if len(argv) == 0:
+        if not argv:
             for bin_t in GlibcHeapBinsCommand._bin_types_:
                 gdb.execute("heap bins {:s}".format(bin_t))
             return
@@ -6585,12 +6593,12 @@ class EntryPointBreakCommand(GenericCommand):
             return
 
         if self.is_pie(fpath):
-            self.set_init_tbreak_pie(elf.e_entry)
+            self.set_init_tbreak_pie(elf.e_entry, argv)
             gdb.execute("continue")
             return
 
         self.set_init_tbreak(elf.e_entry)
-        gdb.execute("run")
+        gdb.execute("run {}".format(" ".join(argv)))
         return
 
     def set_init_tbreak(self, addr):
@@ -6598,12 +6606,12 @@ class EntryPointBreakCommand(GenericCommand):
         bp = EntryBreakBreakpoint("*{:#x}".format(addr))
         return bp
 
-    def set_init_tbreak_pie(self, addr):
+    def set_init_tbreak_pie(self, addr, argv):
         warn("PIC binary detected, retrieving text base address")
         gdb.execute("set stop-on-solib-events 1")
-        disable_context()
-        gdb.execute("run")
-        enable_context()
+        hide_context()
+        gdb.execute("run {}".format(" ".join(argv)))
+        unhide_context()
         gdb.execute("set stop-on-solib-events 0")
         vmmap = get_process_maps()
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
@@ -6684,7 +6692,7 @@ class ContextCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if not self.get_setting("enable"):
+        if not self.get_setting("enable") or context_hidden:
             return
 
         current_layout = self.get_setting("layout").strip().split()
@@ -6741,7 +6749,7 @@ class ContextCommand(GenericCommand):
         self.context_title("registers")
         ignored_registers = set(self.get_setting("ignore_registers").split())
 
-        if self.get_setting("show_registers_raw") == False:
+        if self.get_setting("show_registers_raw") is False:
             regs = set([x.strip() for x in current_arch.all_registers])
             printable_registers = " ".join(list(regs - ignored_registers))
             gdb.execute("registers {}".format(printable_registers))
@@ -6808,7 +6816,7 @@ class ContextCommand(GenericCommand):
 
         try:
             sp = current_arch.sp
-            if show_raw == True:
+            if show_raw is True:
                 mem = read_memory(sp, 0x10 * nb_lines)
                 gef_print(hexdump(mem, base=sp))
             else:
@@ -6859,9 +6867,9 @@ class ContextCommand(GenericCommand):
                         else:
                             reason = "[Reason: !({:s})]".format(reason) if reason else ""
                             line += Color.colorify("\tNOT taken {:s}".format(reason), attrs="bold red")
-                    elif current_arch.is_call(insn) and self.get_setting("peek_calls") == True:
+                    elif current_arch.is_call(insn) and self.get_setting("peek_calls") is True:
                         target = insn.operands[-1].split()[0]
-                    elif current_arch.is_ret(insn) and self.get_setting("peek_ret") == True:
+                    elif current_arch.is_ret(insn) and self.get_setting("peek_ret") is True:
                         target = current_arch.get_ra(insn, frame)
 
                 else:
@@ -6981,7 +6989,7 @@ class ContextCommand(GenericCommand):
         function_parameters = current_arch.function_parameters
 
         for insn in instruction_iterator(block_start, pc-block_start):
-            if len(insn.operands) < 1:
+            if not insn.operands:
                 continue
 
             if is_x86_32():
@@ -7175,7 +7183,7 @@ class ContextCommand(GenericCommand):
         if idx==0:
             return
 
-        if len(threads) < 1:
+        if not threads:
             err("No thread selected")
             return
 
@@ -7292,7 +7300,7 @@ class MemoryUnwatchCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         global __watches__
-        if len(argv) < 1:
+        if not argv:
             self.usage()
             return
 
@@ -7569,7 +7577,7 @@ class DereferenceCommand(GenericCommand):
             err("Unmapped address")
             return
 
-        if get_gef_setting("context.grow_stack_down") == True:
+        if get_gef_setting("context.grow_stack_down") is True:
             from_insnum = nb-1
             to_insnum = -1
             insnum_step = -1
@@ -7834,8 +7842,8 @@ class XAddressInfoCommand(GenericCommand):
 
         if info:
             gef_print("Segment: {:s} ({:s}-{:s})".format(info.name,
-                                                     format_address(info.zone_start),
-                                                     format_address(info.zone_end)))
+                                                         format_address(info.zone_start),
+                                                         format_address(info.zone_end)))
 
         sym = gdb_get_location_from_symbol(address)
         if sym:
@@ -7968,9 +7976,9 @@ class TraceRunCommand(GenericCommand):
         info("Tracing from {:#x} to {:#x} (max depth={:d})".format(loc_start, loc_end,depth))
         logfile = "{:s}{:#x}-{:#x}.txt".format(self.get_setting("tracefile_prefix"), loc_start, loc_end)
         enable_redirect_output(to_file=logfile)
-        disable_context()
+        hide_context()
         self.start_tracing(loc_start, loc_end, depth)
-        enable_context()
+        unhide_context()
         disable_redirect_output()
         ok("Done, logfile stored as '{:s}'".format(logfile))
         info("Hint: import logfile with `ida_color_gdb_trace.py` script in IDA to visualize path")
@@ -8354,9 +8362,13 @@ class SyscallArgsCommand(GenericCommand):
             return
 
         arch = current_arch.__class__.__name__
-
         syscall_table = self.get_syscall_table(arch)
-        syscall_entry = syscall_table[get_register(current_arch.syscall_register)]
+
+        reg_value = get_register(current_arch.syscall_register)
+        if reg_value not in syscall_table:
+            warn("There is no system call for %#x" % reg_value)
+            return
+        syscall_entry = syscall_table[reg_value]
 
         values = []
         for param in syscall_entry.params:
@@ -8532,19 +8544,22 @@ class GefCommand(gdb.Command):
         self.loaded_commands = sorted(self.loaded_commands, key=lambda x: x[1]._cmdline_)
 
         if initial:
-            gef_print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure".format(Color.greenify("GEF"), get_os(),
-                                                                                            Color.colorify("gef",attrs="underline yellow"),
-                                                                                            Color.colorify("gef config", attrs="underline pink")))
+            gef_print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure"
+                      .format(Color.greenify("GEF"), get_os(),
+                              Color.colorify("gef",attrs="underline yellow"),
+                              Color.colorify("gef config", attrs="underline pink")))
 
             ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
             nb_cmds = len(self.loaded_commands)
-            gef_print("{:s} commands loaded for GDB {:s} using Python engine {:s}".format(Color.colorify(str(nb_cmds), attrs="bold green"),
-                                                                                      Color.colorify(gdb.VERSION, attrs="bold yellow"),
-                                                                                      Color.colorify(ver, attrs="bold red")))
+            gef_print("{:s} commands loaded for GDB {:s} using Python engine {:s}"
+                      .format(Color.colorify(str(nb_cmds), attrs="bold green"),
+                              Color.colorify(gdb.VERSION, attrs="bold yellow"),
+                              Color.colorify(ver, attrs="bold red")))
 
             if nb_missing:
-                warn("{:s} commands could not be loaded, run `{:s}` to know why.".format(Color.colorify(str(nb_missing), attrs="bold red"),
-                                                                                         Color.colorify("gef missing", attrs="underline pink")))
+                warn("{:s} commands could not be loaded, run `{:s}` to know why."
+                          .format(Color.colorify(str(nb_missing), attrs="bold red"),
+                                  Color.colorify("gef missing", attrs="underline pink")))
         return
 
 
@@ -9003,17 +9018,17 @@ class GefTmuxSetup(gdb.Command):
 
 def __gef_prompt__(current_prompt):
     """GEF custom prompt function."""
-    if get_gef_setting("gef.readline_compat")==True: return GEF_PROMPT
-    if get_gef_setting("gef.disable_color")==True: return GEF_PROMPT
+    if get_gef_setting("gef.readline_compat") is True: return GEF_PROMPT
+    if get_gef_setting("gef.disable_color") is True: return GEF_PROMPT
     if is_alive(): return GEF_PROMPT_ON
     return GEF_PROMPT_OFF
-
 
 
 if __name__  == "__main__":
 
     if GDB_VERSION < GDB_MIN_VERSION:
-        err("You're using an old version of GDB. GEF cannot work correctly. Consider updating to GDB {}.{} or higher.".format(*GDB_MIN_VERSION))
+        err("You're using an old version of GDB. GEF will not work correctly. "
+            "Consider updating to GDB {} or higher.".format(".".join(GDB_MIN_VERSION)))
 
     else:
         # setup prompt

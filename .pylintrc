@@ -61,7 +61,7 @@ confidence=
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
 # disable=next-method-called,no-absolute-import,raising-string,old-octal-literal,suppressed-message,backtick,cmp-method,delslice-method,using-cmp-argument,parameter-unpacking,coerce-builtin,cmp-builtin,useless-suppression,unpacking-in-except,input-builtin,map-builtin-not-iterating,basestring-builtin,unicode-builtin,coerce-method,apply-builtin,buffer-builtin,old-division,execfile-builtin,metaclass-assignment,zip-builtin-not-iterating,import-star-module-level,nonzero-method,hex-method,long-builtin,raw_input-builtin,intern-builtin,old-ne-operator,indexing-exception,range-builtin-not-iterating,old-raise-syntax,file-builtin,dict-view-method,oct-method,reload-builtin,unichr-builtin,setslice-method,xrange-builtin,reduce-builtin,long-suffix,print-statement,getslice-method,standarderror-builtin,filter-builtin-not-iterating,round-builtin,dict-iter-method
-disable=bad-whitespace,global-statement,missing-docstring,multiple-statements,too-few-public-methods,unused-argument,too-many-lines
+disable=bad-whitespace,global-statement,missing-docstring,multiple-statements,too-few-public-methods,unused-argument,too-many-lines,useless-return,no-else-return
 
 [REPORTS]
 
