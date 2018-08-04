@@ -28,7 +28,7 @@ def gdb_run_command(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY)
 
 
 def gdb_run_silent_command(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
-    """Disable the output and run the `target` binary."""
+    """Disable the output and run entirely the `target` binary."""
     if not before:
         before = []
 
@@ -38,9 +38,14 @@ def gdb_run_silent_command(cmd, before=None, after=None, target=PATH_TO_DEFAULT_
     return gdb_run_command(cmd, before, after, target)
 
 
-def gdb_silent_command(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
+def gdb_run_command_last_line(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
+    """Execute a command in GDB, and return only the last line of its output."""
+    return gdb_run_command(cmd, before, after, target).splitlines()[-1]
+
+
+def gdb_start_silent_command(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
     """Execute a command in GDB by starting an execution context. This command disables the `context`
-    and sets a tbreak at the most convenient entry point."""
+    and set a tbreak at the most convenient entry point."""
     if not before:
         before = []
 
@@ -50,17 +55,17 @@ def gdb_silent_command(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINA
     return gdb_run_command(cmd, before, after, target)
 
 
-def gdb_silent_cmd_last_line(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
-    """Execute `gdb_silent_command()` and return only the last line of its output."""
+def gdb_start_silent_command_last_line(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
+    """Execute `gdb_start_silent_command()` and return only the last line of its output."""
     if not before:
         before = []
 
     before += ["gef config context.clear_screen False",
                "gef config context.layout '-code -stack'",
                "entry-break"]
-    return gdb_silent_command(cmd, before, after, target).splitlines()[-1]
+    return gdb_start_silent_command(cmd, before, after, target).splitlines()[-1]
 
 
 def gdb_test_python_method(meth, before="", after="", target=PATH_TO_DEFAULT_BINARY):
-    cmd = "pi {}print({});{}".format(before+";" if before else "", meth, after)
-    return gdb_silent_command(cmd, target=target)
+    cmd = "pi {}print({});{}".format(before+";" if len(before)>0 else "", meth, after)
+    return gdb_start_silent_command(cmd, target=target)
