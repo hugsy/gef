@@ -3713,19 +3713,18 @@ class PieBreakpointCommand(GenericCommand):
             return
         bp_expr = " ".join(argv)
         tmp_bp_expr = bp_expr
-        bp_expr = bp_expr[1:].replace(" ", "")
+
         try:
-            addr = int(bp_expr, 0)
-            self.set_pie_breakpoint(lambda base: "b *{}".format(base + addr), addr)
-        except ValueError:
-            bp_expr = tmp_bp_expr
-            self.set_pie_breakpoint(lambda base: "b {}".format(bp_expr), bp_expr)
+            addr = long(gdb.parse_and_eval(bp_expr))
+        except:
+            addr = long(gdb.parse_and_eval("&{}".format(bp_expr))) # get address of symbol or function name
+
+        self.set_pie_breakpoint(lambda base: "b *{}".format(base + addr), addr)
 
         # When the process is already on, set real breakpoints immediately
         if is_alive():
             vmmap = get_process_maps()
             base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
-
             for bp_ins in __pie_breakpoints__.values():
                 bp_ins.instantiate(base_address)
 
