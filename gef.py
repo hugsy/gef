@@ -2300,7 +2300,7 @@ def get_process_maps_linux(proc_map_file):
             pathname = ""
         else:
             inode = rest[0]
-            pathname = rest[1].replace(" ", "")
+            pathname = rest[1].lstrip()
 
         addr_start, addr_end = list(map(lambda x: long(x, 16), addr.split("-")))
         off = long(off, 16)
