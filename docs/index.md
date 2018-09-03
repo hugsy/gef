@@ -164,9 +164,9 @@ There, you're now fully equipped epic pwnage with **all** GEF's goodness!!
 ## Bugs & Feedbacks ##
 
 To discuss `gef`, `gdb`, exploitation or other topics, feel free to join the
-`##gef` channel on the Freenode IRC network. You can also to me (`hugsy`) via the
+`##gef` channel on the Freenode IRC network. You can also talk to me (`hugsy`) on the
 channel. For those who do not have an IRC client (like `weechat` or `irssi`),
-simply [click here](https://webchat.freenode.net/?channels=##gef).
+simply [click here](https://webchat.freenode.net/?channels=##gef). 
 
 For bugs or feature requests, just
 go [here](https://github.com/hugsy/gef/issues) and provide a thorough description
