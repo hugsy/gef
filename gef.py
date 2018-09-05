@@ -3714,9 +3714,9 @@ class PieBreakpointCommand(GenericCommand):
         bp_expr = " ".join(argv)
         tmp_bp_expr = bp_expr
 
-        try:
-            addr = long(gdb.parse_and_eval(bp_expr))
-        except:
+        if bp_expr[0] == '*':
+            addr = long(gdb.parse_and_eval(bp_expr[1:]))
+        else:
             addr = long(gdb.parse_and_eval("&{}".format(bp_expr))) # get address of symbol or function name
 
         self.set_pie_breakpoint(lambda base: "b *{}".format(base + addr), addr)
