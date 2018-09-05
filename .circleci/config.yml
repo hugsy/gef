@@ -1,0 +1,30 @@
+version: 2
+jobs:
+    build:
+        docker: # See https://docs.docker.com/get-started/#docker-concepts if you are new to Docker.
+          - image: circleci/python:3.4
+            environment:
+              PYTHONPATH: /usr/local/lib/python3.4/site-packages/
+        working_directory: ~/repo
+        steps:
+          - checkout
+          - run:
+              command: |
+                  sudo apt-get update
+                  sudo apt-get install gdb git cmake gcc g++ pkg-config libglib2.0-dev
+          # TODO: Cache gdb install
+          #- restore_cache:
+              #keys:
+                  #- pydeps-{{ .Branch }}-{{ checksum ".circleci/config.yml" }}
+          - run:
+              command: |
+                  sudo pip3 install pylint ropper
+          - run:
+              command: |
+                  curl https://gist.githubusercontent.com/Grazfather/91e1ea3c3b51be844552263ce0f0d538/raw/c5607a51047b4dc01bf1f3fd443e8cd6318056c6/install-trinity.sh | bash
+          #- save_cache:
+              #key: pydeps-{{ .Branch }}-{{ checksum ".circleci/config.yml" }}
+              #paths:
+                  #- /usr/local/lib/python3.4/site-packages
+          - run: make test
+
