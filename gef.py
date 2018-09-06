@@ -538,6 +538,7 @@ class Elf:
     SPARC             = 0x02
     SPARC64           = 0x2b
     AARCH64           = 0xb7
+    RISCV             = 0xf3
 
     ET_EXEC           = 2
     ET_DYN            = 3
@@ -1384,6 +1385,112 @@ class Architecture(object):
     @property
     def all_registers_stripped(self):
         return [x.strip() for x in self.all_registers]
+
+
+class RISCV(Architecture):
+    arch = "RISCV"
+    mode = "RISCV"
+
+    all_registers = ["$zero ", "$ra   ", "$sp   ", "$gp   ", "$x4   ", "$t0   ", "$t1   ",
+                     "$t2   ", "$fp   ", "$s1   ", "$a1   ", "$a2   ", "$a3   ", "$a4   ",
+                     "$a5   ", "$a6   ", "$a7   ", "$s2   ", "$s3   ", "$s4   ", "$s5   ",
+                     "$s6   ", "$s7   ", "$s8   ", "$s9   ", "$s10  ", "$s11  ", "$t3   ",
+                     "$t4   ", "$t5   ", "$t6   ",]
+    return_register = "$a0"
+    function_parameters = ["$a0", "$a1", "$a2", "$a3", "$a4", "$a5", "$a6", "$a7"]
+    syscall_register = "$a7"
+    syscall_register = "ecall"
+    nop_insn = b"\x00\x00\x00\x13"
+    # RISC-V has no flags registers
+    flag_register = None
+    flag_register_to_human = None
+    flags_table = None
+
+    @property
+    def instruction_length(self):
+        return 4
+
+    def is_call(self, insn):
+        return insn.mnemonic == "call"
+
+    def is_ret(self, insn):
+        mnemo = insn.mnemonic
+        if mnemo == "ret":
+            return True
+        elif (mnemo == "jalr" and insn.operands[0] == "zero" and
+              insn.operands[1] == "ra" and insn.operands[2] == 0):
+            return True
+        elif (mnemo == "c.jalr" and insn.operands[0] == "ra"):
+            return True
+        return False
+
+    @classmethod
+    def mprotect_asm(cls, addr, size, perm):
+        raise OSError("Architecture {:s} not supported yet".format(cls.arch))
+
+    def is_conditional_branch(self, insn):
+        return insn.mnemonic.startswith("b")
+
+    def is_branch_taken(self, insn):
+        def convert_to_signed(x):
+            """Convert a python long value to its two's compliment"""
+            if is_elf32():
+                if (x & 0x80000000) != 0:
+                    return x - 0x100000000
+            elif is_elf64():
+                if (x & 0x8000000000000000) != 0:
+                    return x - 0x10000000000000000
+            else:
+                raise OSError("RISC-V: ELF file is not ELF32 or ELF64. This is not currently supported")
+            return x
+
+        mnemo = insn.mnemonic
+        condition = mnemo[1:]
+
+        if condition.endswith("z"):
+            # r2 is the zero register if we are comparing to 0
+            rs1 = get_register(insn.operands[0])
+            rs2 = get_register("$zero")
+            condition = condition[:-1]
+        elif len(insn.operands) > 2:
+            # r2 is populated with the second operand
+            rs1 = get_register(insn.operands[0])
+            rs2 = get_register(insn.operands[1])
+        else:
+            raise OSError("RISC-V: Failed to get rs1 and rs2 for instruction: `{}`".format(insn))
+
+        # If the conditional operation is not unsigned, convert the python long into
+        # its two's compliment
+        if not condition.endswith("u"):
+            rs2 = convert_to_signed(rs2)
+            rs1 = convert_to_signed(rs1)
+        else:
+            condition = condition[:-1]
+
+        if condition == "eq":
+            if rs1 == rs2: taken, reason = True, "{}={}".format(rs1, rs2)
+            else: taken, reason = False, "{}!={}".format(rs1, rs2)
+        elif condition == "ne":
+            if rs1 != rs2: taken, reason = True, "{}!={}".format(rs1, rs2)
+            else: taken, reason = False, "{}={}".format(rs1, rs2)
+        elif condition == "lt":
+            if rs1 < rs2: taken, reason = True, "{}<{}".format(rs1, rs2)
+            else: taken, reason = False, "{}>={}".format(rs1, rs2)
+        elif condition == "ge":
+            if rs1 < rs2: taken, reason = True, "{}>={}".format(rs1, rs2)
+            else: taken, reason = False, "{}<{}".format(rs1, rs2)
+        else:
+            raise OSError("RISC-V: Conditional instruction `{:s}` not supported yet".format(insn))
+
+        return taken, reason
+
+    def get_ra(self, insn, frame):
+        ra = None
+        if self.is_ret(insn):
+            ra = get_register("$ra")
+        elif frame.older():
+            ra = frame.older().pc()
+        return ra
 
 
 class ARM(Architecture):
@@ -2738,6 +2845,13 @@ def is_aarch64():
     return elf.e_machine == Elf.AARCH64
 
 
+@lru_cache()
+def is_riscv():
+    """Checks if `filename` is a AARCH64 ELF."""
+    elf = current_elf or get_elf_headers()
+    return elf.e_machine == Elf.RISCV
+
+
 def set_arch(arch=None, default=None):
     """Sets the current architecture.
     If an arch is explicitly specified, use that one, otherwise try to parse it
@@ -2752,6 +2866,7 @@ def set_arch(arch=None, default=None):
         "X86_64": X86_64, Elf.X86_64: X86_64,
         "PowerPC": PowerPC, "PPC": PowerPC, Elf.POWERPC: PowerPC,
         "PowerPC64": PowerPC64, "PPC64": PowerPC64, Elf.POWERPC64: PowerPC64,
+        "RISCV": RISCV, Elf.RISCV: RISCV,
         "SPARC": SPARC, Elf.SPARC: SPARC,
         "SPARC64": SPARC64, Elf.SPARC64: SPARC64,
         "MIPS": MIPS, Elf.MIPS: MIPS,
