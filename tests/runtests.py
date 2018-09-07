@@ -25,12 +25,16 @@ class GefUnitTestGeneric(unittest.TestCase):
     """Generic class for command testing, that defines all helpers"""
 
     def assertNoException(self, buf):
-        return b"Python Exception <" not in buf \
-            or b"'gdb.error'" in buf \
-            or b"failed to execute properly, reason:" in buf
+        if not (b"Python Exception <" not in buf
+                and b"Traceback" not in buf
+                and b"'gdb.error'" not in buf
+                and b"Exception raised" not in buf
+                and b"failed to execute properly, reason:" not in buf):
+            raise AssertionError("Detected error in gdb output")
 
     def assertFailIfInactiveSession(self, buf):
-        return b"No debugging session active" in buf
+        if b"No debugging session active" not in buf:
+            raise AssertionError("No debugging session inactive warning")
 
 
 class TestGefCommands(GefUnitTestGeneric):
@@ -83,7 +87,6 @@ class TestGefCommands(GefUnitTestGeneric):
         return
 
     def test_command_edit_flags(self):
-        self.assertFailIfInactiveSession(gdb_run_command("edit-flags"))
         # force enable flag
         res = gdb_start_silent_command_last_line("edit-flags +carry")
         self.assertNoException(res)
