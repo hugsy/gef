@@ -35,8 +35,8 @@ format-string-helper.out: EXTRA_FLAGS := -Wno-format-security
 
 checksec-no-canary.out: EXTRA_FLAGS := -fno-stack-protector
 
-# NOTE: If compiling with a newer GCC (newer than 4.8.4 maybe?) then use `-no-pie`
-checksec-no-pie.out: EXTRA_FLAGS := -fno-pie
+# NOTE: If compiling with a older GCC (older than 4.8.4 maybe?) then use `-fno-pie`
+checksec-no-pie.out: EXTRA_FLAGS := -no-pie
 
 checksec-no-nx.out: EXTRA_FLAGS := -z execstack
 
