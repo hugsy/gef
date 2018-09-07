@@ -26,5 +26,6 @@ jobs:
               #key: pydeps-{{ .Branch }}-{{ checksum ".circleci/config.yml" }}
               #paths:
                   #- /usr/local/lib/python3.4/site-packages
+          - run: make lint
           - run: make test
 
