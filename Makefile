@@ -1,6 +1,6 @@
 test: testbins /tmp/gef.py
 	python3 tests/runtests.py
-	rm /tmp/gef.py
+	rm -f /tmp/gef.py
 	@make -C tests/binaries clean
 	rm -f /tmp/gef-*
 

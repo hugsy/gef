@@ -486,24 +486,6 @@ class TestGefFunctions(GefUnitTestGeneric):
         return
 
 
-def setup():
-    shutil.copy2("./gef.py", "/tmp/gef.py")
-    return
-
-
-def cleanup():
-    os.unlink("/tmp/gef.py")
-    for p in os.listdir("/tmp"):
-        fpath = "/tmp/{:s}".format(p)
-        if not os.path.isfile(fpath):
-            continue
-        if p.startswith("gef-ls-") and p.endswith(".raw"):
-            os.unlink(fpath)
-        if p.startswith("gef-trace-") and p.endswith(".txt"):
-            os.unlink(fpath)
-    return
-
-
 def run_tests():
     test_instances = [
         TestGefCommands,
@@ -521,7 +503,5 @@ def run_tests():
 
 
 if __name__ == "__main__":
-    setup()
     errnum = run_tests()
-    cleanup()
     sys.exit(errnum)
