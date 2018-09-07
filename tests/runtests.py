@@ -484,14 +484,12 @@ class TestGefFunctions(GefUnitTestGeneric):
 
 
 def setup():
-    subprocess.call(["make","-C", "tests/binaries", "all"])
     shutil.copy2("./gef.py", "/tmp/gef.py")
     return
 
 
 def cleanup():
     os.unlink("/tmp/gef.py")
-    subprocess.call(["make","-C", "tests/binaries", "clean"])
     for p in os.listdir("/tmp"):
         fpath = "/tmp/{:s}".format(p)
         if not os.path.isfile(fpath):
