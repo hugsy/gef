@@ -2516,7 +2516,7 @@ def process_lookup_address(address):
         err("Process is not running")
         return None
 
-    if is_x86_64() or is_x86_32() :
+    if is_x86() :
         if is_in_x86_kernel(address):
             return None
 
@@ -2800,6 +2800,10 @@ def is_x86_32(filename=None):
     """Checks if `filename` is an x86-32 ELF."""
     elf = current_elf or get_elf_headers(filename)
     return elf.e_machine == Elf.X86_32
+
+@lru_cache()
+def is_x86(filename=None):
+    return is_x86_32(filename) or is_x86_64(filename)
 
 
 @lru_cache()
@@ -5159,7 +5163,7 @@ class UnicornEmulateCommand(GenericCommand):
         else:
             tmp_fd, tmp_filename = tempfile.mkstemp(suffix=".py", prefix="gef-uc-")
 
-        if is_x86_32() or is_x86_64():
+        if is_x86():
             # need to handle segmentation (and pagination) via MSR
             emulate_segmentation_block = """
 # from https://github.com/unicorn-engine/unicorn/blob/master/tests/regress/x86_64_msr.py
@@ -5253,9 +5257,9 @@ def reset():
        current_arch.syscall_register,
        cs_arch, cs_mode,
        16 if is_elf64() else 8,
-       emulate_segmentation_block if (is_x86_32() or is_x86_64() ) else "",
+       emulate_segmentation_block if is_x86() else "",
        arch, mode,
-       context_segmentation_block if (is_x86_32() or is_x86_64() ) else "",
+       context_segmentation_block if is_x86() else "",
       )
 
         if verbose:
@@ -6184,7 +6188,7 @@ class DetailRegistersCommand(GenericCommand):
             if reg.type.code == gdb.TYPE_CODE_VOID:
                 continue
 
-            if (is_x86_64() or is_x86_32()) and regname in current_arch.msr_registers:
+            if is_x86() and regname in current_arch.msr_registers:
                 msr = set(current_arch.msr_registers)
                 for r in set(regs) & msr:
                     line = "{}: ".format(Color.colorify(r.strip(), attrs=regname_color))
