@@ -1433,17 +1433,17 @@ class RISCV(Architecture):
         return insn.mnemonic.startswith("b")
 
     def is_branch_taken(self, insn):
-        def convert_to_signed(x):
-            """Convert a python long value to its two's compliment"""
+        def long_to_twos_complement(v):
+            """Convert a python long value to its two's complement"""
             if is_elf32():
-                if (x & 0x80000000) != 0:
-                    return x - 0x100000000
+                if v & 0x80000000:
+                    return v - 0x100000000
             elif is_elf64():
-                if (x & 0x8000000000000000) != 0:
-                    return x - 0x10000000000000000
+                if v & 0x8000000000000000:
+                    return v - 0x10000000000000000
             else:
                 raise OSError("RISC-V: ELF file is not ELF32 or ELF64. This is not currently supported")
-            return x
+            return v
 
         mnemo = insn.mnemonic
         condition = mnemo[1:]
@@ -1461,10 +1461,10 @@ class RISCV(Architecture):
             raise OSError("RISC-V: Failed to get rs1 and rs2 for instruction: `{}`".format(insn))
 
         # If the conditional operation is not unsigned, convert the python long into
-        # its two's compliment
+        # its two's complement
         if not condition.endswith("u"):
-            rs2 = convert_to_signed(rs2)
-            rs1 = convert_to_signed(rs1)
+            rs2 = long_to_twos_complement(rs2)
+            rs1 = long_to_twos_complement(rs1)
         else:
             condition = condition[:-1]
 
@@ -2858,7 +2858,7 @@ def is_aarch64():
 
 @lru_cache()
 def is_riscv():
-    """Checks if `filename` is a AARCH64 ELF."""
+    """Checks if `filename` is a RISCV ELF."""
     elf = current_elf or get_elf_headers()
     return elf.e_machine == Elf.RISCV
 
