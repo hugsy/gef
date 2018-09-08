@@ -183,7 +183,7 @@ try:
 except ImportError:
     # if out of gdb, the only action allowed is to update gef.py
     if len(sys.argv)==2 and sys.argv[1]=="--update":
-        sys.exit( update_gef(sys.argv) )
+        sys.exit(update_gef(sys.argv))
     gef_print("[-] gef cannot run as standalone")
     sys.exit(0)
 
@@ -886,7 +886,7 @@ def show_last_exception():
     """Display the last Python exception."""
 
     def _show_code_line(fname, idx):
-        fname = os.path.expanduser( os.path.expandvars(fname) )
+        fname = os.path.expanduser(os.path.expandvars(fname))
         __data = open(fname, "r").read().splitlines()
         return __data[idx-1] if idx < len(__data) else ""
 
@@ -2852,7 +2852,7 @@ def is_sparc64():
 
 @lru_cache()
 def is_aarch64():
-    """Checks if `filename` is a AARCH64 ELF."""
+    """Checks if `filename` is an AARCH64 ELF."""
     elf = current_elf or get_elf_headers()
     return elf.e_machine == Elf.AARCH64
 
@@ -2962,7 +2962,7 @@ def format_address_spaces(addr, left=True):
 
 def align_address(address):
     """Align the provided address to the process's native length."""
-    if get_memory_alignment(in_bits=True) == 32:
+    if get_memory_alignment() == 4:
         return address & 0xFFFFFFFF
 
     return address & 0xFFFFFFFFFFFFFFFF
@@ -3293,7 +3293,7 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
     def stop(self):
         if is_x86_32():
             # if intel x32, the malloc size is in the stack, so we need to dereference $sp
-            size = to_unsigned_long(dereference( current_arch.sp+4 ))
+            size = to_unsigned_long(dereference(current_arch.sp+4))
         else:
             size = get_register(current_arch.function_parameters[0])
         self.retbp = TraceMallocRetBreakpoint(size)
@@ -3382,8 +3382,8 @@ class TraceReallocBreakpoint(gdb.Breakpoint):
 
     def stop(self):
         if is_x86_32():
-            ptr = to_unsigned_long(dereference( current_arch.sp+4 ))
-            size = to_unsigned_long(dereference( current_arch.sp+8 ))
+            ptr = to_unsigned_long(dereference(current_arch.sp+4))
+            size = to_unsigned_long(dereference(current_arch.sp+8))
         else:
             ptr = get_register(current_arch.function_parameters[0])
             size = get_register(current_arch.function_parameters[1])
@@ -3446,7 +3446,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
     def stop(self):
         if is_x86_32():
             # if intel x32, the free address is in the stack, so we need to dereference $sp
-            addr = to_unsigned_long(dereference( current_arch.sp+4 ))
+            addr = to_unsigned_long(dereference(current_arch.sp+4))
         else:
             addr = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
         msg = []
@@ -6184,17 +6184,17 @@ class DetailRegistersCommand(GenericCommand):
             if reg.type.code == gdb.TYPE_CODE_VOID:
                 continue
 
-            if ( is_x86_64() or is_x86_32() ) and regname in current_arch.msr_registers:
+            if (is_x86_64() or is_x86_32()) and regname in current_arch.msr_registers:
                 msr = set(current_arch.msr_registers)
                 for r in set(regs) & msr:
-                    line = "{}: ".format( Color.colorify(r.strip(), attrs=regname_color) )
+                    line = "{}: ".format(Color.colorify(r.strip(), attrs=regname_color))
                     line+= "0x{:04x}".format(get_register(r))
                     gef_print(line, end="  ")
                     regs.remove(r)
                 gef_print()
                 continue
 
-            line = "{}: ".format( Color.colorify(regname, attrs=regname_color) )
+            line = "{}: ".format(Color.colorify(regname, attrs=regname_color))
 
             if str(reg) == "<unavailable>":
                 line += Color.colorify("no value", attrs="yellow underline")
@@ -6225,7 +6225,7 @@ class DetailRegistersCommand(GenericCommand):
                 last_addr = int(addrs[-1],16)
                 val = gef_pystring(struct.pack(fmt, last_addr))
                 if all([_ in charset for _ in val]):
-                    line += ' ("{:s}"?)'.format( Color.colorify(val, attrs=string_color) )
+                    line += ' ("{:s}"?)'.format(Color.colorify(val, attrs=string_color))
             except ValueError:
                 pass
 
@@ -6370,7 +6370,7 @@ class RopperCommand(GenericCommand):
         ropper = sys.modules["ropper"]
         if "--file" not in argv:
             path = get_filepath()
-            sect = next( filter(lambda x: x.path == path, get_process_maps()) )
+            sect = next(filter(lambda x: x.path == path, get_process_maps()))
             argv.append("--file")
             argv.append(path)
             argv.append("-I")
@@ -6422,7 +6422,7 @@ class AssembleCommand(GenericCommand):
         # for updates, see https://github.com/keystone-engine/keystone/blob/master/include/keystone/keystone.h
         for arch in self.valid_arch_modes:
             gef_print(" - {} ".format(arch))
-            gef_print("  * {}".format( " / ".join(self.valid_arch_modes[arch]) ))
+            gef_print("  * {}".format(" / ".join(self.valid_arch_modes[arch])))
         return
 
     def do_invoke(self, argv):
@@ -6797,11 +6797,11 @@ class ContextCommand(GenericCommand):
             heap_addr_color = get_gef_setting("theme.address_heap")
             changed_register_color = get_gef_setting("theme.registers_value_changed")
 
-            gef_print("[ Legend: {} | {} | {} | {} | {} ]".format( Color.colorify("Modified register", attrs=changed_register_color),
-                                                                   Color.colorify("Code", attrs=code_addr_color),
-                                                                   Color.colorify("Heap", attrs=heap_addr_color),
-                                                                   Color.colorify("Stack", attrs=stack_addr_color),
-                                                                   Color.colorify("String", attrs=str_color)
+            gef_print("[ Legend: {} | {} | {} | {} | {} ]".format(Color.colorify("Modified register", attrs=changed_register_color),
+                                                                  Color.colorify("Code", attrs=code_addr_color),
+                                                                  Color.colorify("Heap", attrs=heap_addr_color),
+                                                                  Color.colorify("Stack", attrs=stack_addr_color),
+                                                                  Color.colorify("String", attrs=str_color)
             ))
         return
 
@@ -8176,7 +8176,7 @@ class PatternCreateCommand(GenericCommand):
         info("Generating a pattern of {:d} bytes".format(size))
         pattern_str = gef_pystring(generate_cyclic_pattern(size))
         gef_print(pattern_str)
-        ok("Saved as '{:s}'".format( gef_convenience(pattern_str) ))
+        ok("Saved as '{:s}'".format(gef_convenience(pattern_str)))
         return
 
 @register_command
