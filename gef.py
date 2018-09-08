@@ -2275,7 +2275,8 @@ def use_golang_type():
 
 def to_unsigned_long(v):
     """Cast a gdb.Value to unsigned long."""
-    return long(v)
+    mask = (1 << 64) - 1
+    return int(v.cast(gdb.Value(mask).type)) & mask
 
 
 def get_register(regname):
