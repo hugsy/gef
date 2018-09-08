@@ -208,5 +208,3 @@ I do also accept beers if you think that the tool is cool! :wink:
 Cheers :beers:
 
 # Happy Hacking #
-
-![make-gdb-great-again](https://i.imgur.com/jlkM0P6.jpg)
