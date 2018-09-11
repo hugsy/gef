@@ -1626,7 +1626,7 @@ class AARCH64(ARM):
         7: "interrupt",
         6: "fast"
     }
-    function_parameters = ["$x0", "$x1", "$x2", "$x3"]
+    function_parameters = ["$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7"]
     syscall_register = "$x8"
     syscall_instructions = ["svc $x0"]
 
