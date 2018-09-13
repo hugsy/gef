@@ -1383,20 +1383,16 @@ class Architecture(object):
     def ptrsize(self):
         return get_memory_alignment()
 
-    @property
-    def all_registers_stripped(self):
-        return [x.strip() for x in self.all_registers]
-
 
 class RISCV(Architecture):
     arch = "RISCV"
     mode = "RISCV"
 
-    all_registers = ["$zero ", "$ra   ", "$sp   ", "$gp   ", "$x4   ", "$t0   ", "$t1   ",
-                     "$t2   ", "$fp   ", "$s1   ", "$a1   ", "$a2   ", "$a3   ", "$a4   ",
-                     "$a5   ", "$a6   ", "$a7   ", "$s2   ", "$s3   ", "$s4   ", "$s5   ",
-                     "$s6   ", "$s7   ", "$s8   ", "$s9   ", "$s10  ", "$s11  ", "$t3   ",
-                     "$t4   ", "$t5   ", "$t6   ",]
+    all_registers = ["$zero", "$ra", "$sp", "$gp", "$x4", "$t0", "$t1",
+                     "$t2", "$fp", "$s1", "$a1", "$a2", "$a3", "$a4",
+                     "$a5", "$a6", "$a7", "$s2", "$s3", "$s4", "$s5",
+                     "$s6", "$s7", "$s8", "$s9", "$s10", "$s11", "$t3",
+                     "$t4", "$t5", "$t6",]
     return_register = "$a0"
     function_parameters = ["$a0", "$a1", "$a2", "$a3", "$a4", "$a5", "$a6", "$a7"]
     syscall_register = "$a7"
@@ -1498,9 +1494,9 @@ class ARM(Architecture):
     arch = "ARM"
     mode = "ARM"
 
-    all_registers = ["$r0   ", "$r1   ", "$r2   ", "$r3   ", "$r4   ", "$r5   ", "$r6   ",
-                     "$r7   ", "$r8   ", "$r9   ", "$r10  ", "$r11  ", "$r12  ", "$sp   ",
-                     "$lr   ", "$pc   ", "$cpsr ",]
+    all_registers = ["$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6",
+                     "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$sp",
+                     "$lr", "$pc", "$cpsr",]
 
     # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
     # return b"\x00\x00\xa0\xe1" # mov r0,r0
@@ -1700,12 +1696,8 @@ class X86(Architecture):
 
     nop_insn = b"\x90"
     flag_register = "$eflags"
-    msr_registers = [
-        "$cs    ", "$ss    ", "$ds    ", "$es    ", "$fs    ", "$gs    ",
-    ]
-    gpr_registers = [
-        "$eax   ", "$ebx   ", "$ecx   ", "$edx   ", "$esp   ", "$ebp   ", "$esi   ",
-        "$edi   ", "$eip   ", ]
+    msr_registers = ["$cs", "$ss", "$ds", "$es", "$fs", "$gs", ]
+    gpr_registers = ["$eax", "$ebx", "$ecx", "$edx", "$esp", "$ebp", "$esi", "$edi", "$eip", ]
     all_registers = gpr_registers + [ flag_register, ] + msr_registers
     instruction_length = None
     return_register = "$eax"
@@ -1851,11 +1843,11 @@ class PowerPC(Architecture):
     mode = "PPC32"
 
     all_registers = [
-        "$r0  ", "$r1  ", "$r2  ", "$r3  ", "$r4  ", "$r5  ", "$r6  ", "$r7  ",
-        "$r8  ", "$r9  ", "$r10 ", "$r11 ", "$r12 ", "$r13 ", "$r14 ", "$r15 ",
-        "$r16 ", "$r17 ", "$r18 ", "$r19 ", "$r20 ", "$r21 ", "$r22 ", "$r23 ",
-        "$r24 ", "$r25 ", "$r26 ", "$r27 ", "$r28 ", "$r29 ", "$r30 ", "$r31 ",
-        "$pc  ", "$msr ", "$cr  ", "$lr  ", "$ctr ", "$xer ", "$trap",]
+        "$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6", "$r7",
+        "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15",
+        "$r16", "$r17", "$r18", "$r19", "$r20", "$r21", "$r22", "$r23",
+        "$r24", "$r25", "$r26", "$r27", "$r28", "$r29", "$r30", "$r31",
+        "$pc", "$msr", "$cr", "$lr", "$ctr", "$xer", "$trap",]
     instruction_length = 4
     nop_insn = b"\x60\x00\x00\x00" # http://www.ibm.com/developerworks/library/l-ppc/index.html
     return_register = "$r0"
@@ -1948,11 +1940,11 @@ class SPARC(Architecture):
     mode = ""
 
     all_registers = [
-        "$g0 ", "$g1 ", "$g2 ", "$g3 ", "$g4 ", "$g5 ", "$g6 ", "$g7 ",
-        "$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",
-        "$l0 ", "$l1 ", "$l2 ", "$l3 ", "$l4 ", "$l5 ", "$l6 ", "$l7 ",
-        "$i0 ", "$i1 ", "$i2 ", "$i3 ", "$i4 ", "$i5 ", "$i7 ",
-        "$pc ", "$npc", "$sp ", "$fp ", "$psr",]
+        "$g0", "$g1", "$g2", "$g3", "$g4", "$g5", "$g6", "$g7",
+        "$o0", "$o1", "$o2", "$o3", "$o4", "$o5", "$o7",
+        "$l0", "$l1", "$l2", "$l3", "$l4", "$l5", "$l6", "$l7",
+        "$i0", "$i1", "$i2", "$i3", "$i4", "$i5", "$i7",
+        "$pc", "$npc","$sp ","$fp ","$psr",]
     instruction_length = 4
     nop_insn = b"\x00\x00\x00\x00"  # sethi 0, %g0
     return_register = "$i0"
@@ -2077,11 +2069,11 @@ class MIPS(Architecture):
 
     # http://vhouten.home.xs4all.nl/mipsel/r3000-isa.html
     all_registers = [
-        "$zero     ", "$at       ", "$v0       ", "$v1       ", "$a0       ", "$a1       ", "$a2       ", "$a3       ",
-        "$t0       ", "$t1       ", "$t2       ", "$t3       ", "$t4       ", "$t5       ", "$t6       ", "$t7       ",
-        "$s0       ", "$s1       ", "$s2       ", "$s3       ", "$s4       ", "$s5       ", "$s6       ", "$s7       ",
-        "$t8       ", "$t9       ", "$k0       ", "$k1       ", "$s8       ", "$pc       ", "$sp       ", "$hi       ",
-        "$lo       ", "$fir      ", "$ra       ", "$gp       ", ]
+        "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3",
+        "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",
+        "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
+        "$t8", "$t9", "$k0", "$k1", "$s8", "$pc", "$sp", "$hi",
+        "$lo", "$fir", "$ra", "$gp", ]
     instruction_length = 4
     nop_insn = b"\x00\x00\x00\x00" # sll $0,$0,0
     return_register = "$v0"
@@ -6188,6 +6180,8 @@ class DetailRegistersCommand(GenericCommand):
             if reg.type.code == gdb.TYPE_CODE_VOID:
                 continue
 
+            widest = max(map(len, current_arch.all_registers))
+            padreg = regname.ljust(widest, " ")
             if is_x86() and regname in current_arch.msr_registers:
                 msr = set(current_arch.msr_registers)
                 for r in set(regs) & msr:
@@ -6198,14 +6192,14 @@ class DetailRegistersCommand(GenericCommand):
                 gef_print()
                 continue
 
-            line = "{}: ".format(Color.colorify(regname, attrs=regname_color))
+            line = "{}: ".format(Color.colorify(padreg, attrs=regname_color))
 
             if str(reg) == "<unavailable>":
                 line += Color.colorify("no value", attrs="yellow underline")
                 gef_print(line)
                 continue
 
-            if regname.strip() == current_arch.flag_register:
+            if regname == current_arch.flag_register:
                 line += current_arch.flag_register_to_human()
                 gef_print(line)
                 continue
@@ -6874,16 +6868,17 @@ class ContextCommand(GenericCommand):
             gdb.execute("registers {}".format(printable_registers))
             return
 
-        l = max(map(len, current_arch.all_registers))
+        widest = l = max(map(len, current_arch.all_registers))
         l += 5
         l += 16 if is_elf64() else 8
         nb = get_terminal_size()[1]//l
         i = 1
         line = ""
         color = get_gef_setting("theme.registers_value_changed")
+        regname_color = get_gef_setting("theme.registers_register_name")
 
         for reg in current_arch.all_registers:
-            if reg.strip() in ignored_registers:
+            if reg in ignored_registers:
                 continue
 
             try:
@@ -6905,7 +6900,8 @@ class ContextCommand(GenericCommand):
 
             old_value = self.old_registers.get(reg, 0)
 
-            line += "{:s}  ".format(Color.greenify(reg))
+            padreg = reg.ljust(widest, " ")
+            line += "{}: ".format(Color.colorify(padreg, attrs=regname_color))
             if new_value_type_flag:
                 line += "{:s} ".format(str(new_value))
             else:
@@ -7027,7 +7023,7 @@ class ContextCommand(GenericCommand):
 
         if insn.operands[-1].startswith(self.size2type[current_arch.ptrsize]+" PTR"):
             target = "*" + insn.operands[-1].split()[-1]
-        elif '$'+insn.operands[0] in current_arch.all_registers_stripped:
+        elif '$'+insn.operands[0] in current_arch.all_registers:
             target = "*{:#x}".format(get_register('$'+insn.operands[0]))
         else:
             # is there a symbol?
