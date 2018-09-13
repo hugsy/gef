@@ -2273,7 +2273,6 @@ def to_unsigned_long(v):
 
 def get_register(regname):
     """Return a register's value."""
-    regname = regname.strip()
     try:
         value = gdb.parse_and_eval(regname)
         return to_unsigned_long(value) if value.type.code == gdb.TYPE_CODE_INT else long(value)
@@ -2472,7 +2471,7 @@ def get_info_files():
         return __infos_files__
 
     for line in lines:
-        line = line.strip().rstrip()
+        line = line.strip()
 
         if not line:
             break
@@ -2719,7 +2718,7 @@ def get_unicorn_registers(to_string=False):
 
     const = getattr(unicorn, "{}_const".format(arch))
     for reg in current_arch.all_registers:
-        regname = "UC_{:s}_REG_{:s}".format(arch.upper(), reg.strip()[1:].upper())
+        regname = "UC_{:s}_REG_{:s}".format(arch.upper(), reg[1:].upper())
         if to_string:
             regs[reg] = "{:s}.{:s}".format(const.__name__, regname)
         else:
@@ -6167,7 +6166,7 @@ class DetailRegistersCommand(GenericCommand):
         string_color = get_gef_setting("theme.dereference_string")
 
         if argv:
-            regs = [reg for reg in current_arch.all_registers if reg.strip() in argv]
+            regs = [reg for reg in current_arch.all_registers if reg in argv]
         else:
             regs = current_arch.all_registers
 
@@ -6181,17 +6180,17 @@ class DetailRegistersCommand(GenericCommand):
                 continue
 
             widest = max(map(len, current_arch.all_registers))
-            padreg = regname.ljust(widest, " ")
             if is_x86() and regname in current_arch.msr_registers:
                 msr = set(current_arch.msr_registers)
                 for r in set(regs) & msr:
-                    line = "{}: ".format(Color.colorify(r.strip(), attrs=regname_color))
+                    line = "{}: ".format(Color.colorify(r, attrs=regname_color))
                     line+= "0x{:04x}".format(get_register(r))
                     gef_print(line, end="  ")
                     regs.remove(r)
                 gef_print()
                 continue
 
+            padreg = regname.ljust(widest, " ")
             line = "{}: ".format(Color.colorify(padreg, attrs=regname_color))
 
             if str(reg) == "<unavailable>":
@@ -6863,7 +6862,7 @@ class ContextCommand(GenericCommand):
         ignored_registers = set(self.get_setting("ignore_registers").split())
 
         if self.get_setting("show_registers_raw") is False:
-            regs = set([x.strip() for x in current_arch.all_registers])
+            regs = set(current_arch.all_registers)
             printable_registers = " ".join(list(regs - ignored_registers))
             gdb.execute("registers {}".format(printable_registers))
             return
@@ -7640,7 +7639,7 @@ class DereferenceCommand(GenericCommand):
         base_address_color = get_gef_setting("theme.dereference_base_address")
         registers_color = get_gef_setting("theme.dereference_register_value")
 
-        regs = [(k.strip(), get_register(k)) for k in current_arch.all_registers]
+        regs = [(k, get_register(k)) for k in current_arch.all_registers]
 
         sep = " {:s} ".format(RIGHT_ARROW)
         memalign = current_arch.ptrsize
