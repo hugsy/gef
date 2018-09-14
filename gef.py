@@ -7029,7 +7029,7 @@ class ContextCommand(GenericCommand):
             ops = " ".join(insn.operands)
             if "<" in ops and ">" in ops:
                 # extract it
-                target = re.sub(r".*<([^\(>]*).*", r"\1", ops)
+                target = re.sub(r".*<([^\(> ]*).*", r"\1", ops)
             else:
                 # it's an address, just use as is
                 target = re.sub(r".*(0x[a-fA-F0-9]*).*", r"\1", ops)
