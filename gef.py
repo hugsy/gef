@@ -1687,6 +1687,10 @@ class AARCH64(ARM):
             taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
         elif mnemo.endswith("ge"):
             taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+        elif mnemo.endswith("hi"):
+            taken, reason = val&(1<<flags["carry"]) and not val&(1<<flags["zero"]), "C && Z==O"
+        elif mnemo.endswith("ls"):
+            taken, reason = not val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C==O || Z"
         return taken, reason
 
 
