@@ -6,8 +6,10 @@
 from __future__ import print_function
 
 import difflib
+import os
 import subprocess
 import sys
+import tempfile
 import unittest
 
 from helpers import gdb_run_cmd, \
@@ -485,10 +487,22 @@ class TestGefFunctions(GefUnitTestGeneric):
         return
 
 
+class TestGefMisc(GefUnitTestGeneric):
+    """Tests external functionality."""
+
+    def test_update(self):
+        tempdir = tempfile.mkdtemp()
+        update_gef = os.path.join(tempdir, "gef.py")
+        subprocess.call(["cp", "/tmp/gef.py", update_gef])
+        status = subprocess.call(["python3", update_gef, "--update"])
+        self.assertEqual(status, 0)
+
+
 def run_tests():
     test_instances = [
         TestGefCommands,
         TestGefFunctions,
+        TestGefMisc,
     ]
 
     runner = unittest.TextTestRunner(verbosity=3)
