@@ -1,11 +1,9 @@
-test: testbins /tmp/gef.py
+test: testbins
+	cp gef.py /tmp/gef.py
 	python3 tests/runtests.py
 	rm -f /tmp/gef.py
 	@make -C tests/binaries clean
 	rm -f /tmp/gef-*
-
-/tmp/gef.py:
-	cp gef.py /tmp/gef.py
 
 testbins: tests/binaries/*.c
 	@make -C tests/binaries all
