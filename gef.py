@@ -165,16 +165,16 @@ def update_gef(argv):
     gef_remote = "https://raw.githubusercontent.com/hugsy/gef/master/gef.py"
     gef_remote_data = http_get(gef_remote)
     if gef_remote_data is None:
-        gef_print("[-] Failed to get remote gef")
+        print("[-] Failed to get remote gef")
         return 1
 
     hash_gef_remote = hashlib.sha512(gef_remote_data).digest()
     if hash_gef_local == hash_gef_remote:
-        gef_print("[-] No update")
+        print("[-] No update")
     else:
         with open(gef_local, "wb") as f:
             f.write(gef_remote_data)
-        gef_print("[+] Updated")
+        print("[+] Updated")
     return 0
 
 
@@ -184,7 +184,7 @@ except ImportError:
     # if out of gdb, the only action allowed is to update gef.py
     if len(sys.argv)==2 and sys.argv[1]=="--update":
         sys.exit(update_gef(sys.argv))
-    gef_print("[-] gef cannot run as standalone")
+    print("[-] gef cannot run as standalone")
     sys.exit(0)
 
 __gef__                                = None
