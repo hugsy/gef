@@ -1607,11 +1607,11 @@ class AARCH64(ARM):
     mode = "ARM"
 
     all_registers = [
-        "$x0       ", "$x1       ", "$x2       ", "$x3       ", "$x4       ", "$x5       ", "$x6       ", "$x7       ",
-        "$x8       ", "$x9       ", "$x10      ", "$x11      ", "$x12      ", "$x13      ", "$x14      ", "$x15      ",
-        "$x16      ", "$x17      ", "$x18      ", "$x19      ", "$x20      ", "$x21      ", "$x22      ", "$x23      ",
-        "$x24      ", "$x25      ", "$x26      ", "$x27      ", "$x28      ", "$x29      ", "$x30      ", "$sp       ",
-        "$pc       ", "$cpsr     ", "$fpsr     ", "$fpcr     ",]
+        "$x0",  "$x1",  "$x2",  "$x3",  "$x4",  "$x5",  "$x6",  "$x7",
+        "$x8",  "$x9",  "$x10", "$x11", "$x12", "$x13", "$x14", "$x15",
+        "$x16", "$x17", "$x18", "$x19", "$x20", "$x21", "$x22", "$x23",
+        "$x24", "$x25", "$x26", "$x27", "$x28", "$x29", "$x30", "$sp",
+        "$pc", "$cpsr", "$fpsr", "$fpcr",]
     return_register = "$x0"
     flag_register = "$cpsr"
     flags_table = {
@@ -1816,9 +1816,8 @@ class X86_64(X86):
     mode = "64"
 
     gpr_registers = [
-        "$rax   ", "$rbx   ", "$rcx   ", "$rdx   ", "$rsp   ", "$rbp   ", "$rsi   ",
-        "$rdi   ", "$rip   ", "$r8    ", "$r9    ", "$r10   ", "$r11   ", "$r12   ",
-        "$r13   ", "$r14   ", "$r15   ", ]
+        "$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip",
+        "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", ]
     all_registers = gpr_registers + [ X86.flag_register, ] + X86.msr_registers
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
@@ -2046,11 +2045,11 @@ class SPARC64(SPARC):
     mode = "V9"
 
     all_registers = [
-        "$g0   ", "$g1   ", "$g2   ", "$g3   ", "$g4   ", "$g5   ", "$g6   ", "$g7   ",
-        "$o0   ", "$o1   ", "$o2   ", "$o3   ", "$o4   ", "$o5   ", "$o7   ",
-        "$l0   ", "$l1   ", "$l2   ", "$l3   ", "$l4   ", "$l5   ", "$l6   ", "$l7   ",
-        "$i0   ", "$i1   ", "$i2   ", "$i3   ", "$i4   ", "$i5   ", "$i7   ",
-        "$pc   ", "$npc  ", "$sp   ", "$fp   ", "$state", ]
+        "$g0", "$g1", "$g2", "$g3", "$g4", "$g5", "$g6", "$g7",
+        "$o0", "$o1", "$o2", "$o3", "$o4", "$o5", "$o7",
+        "$l0", "$l1", "$l2", "$l3", "$l4", "$l5", "$l6", "$l7",
+        "$i0", "$i1", "$i2", "$i3", "$i4", "$i5", "$i7",
+        "$pc", "$npc", "$sp", "$fp", "$state", ]
 
     flag_register = "$state" # sparcv9.pdf, 5.1.5.1 (ccr)
     flags_table = {
