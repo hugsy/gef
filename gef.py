@@ -4835,6 +4835,59 @@ class IdaInteractCommand(GenericCommand):
 
 
 @register_command
+class ScanSectionCommand(GenericCommand):
+    """Search for addresses belonging to one mapping that are located in another."""
+
+    _cmdline_ = "scan"
+    _syntax_  = "{:s} BELONG LOCATION".format(_cmdline_)
+    _aliases_ = ["lookup",]
+    _example_ = "\n{0:s} stack libc".format(_cmdline_)
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+        if len(argv) != 2:
+            self.usage()
+            return
+
+        belong = argv[0]
+        location = argv[1]
+
+        info("Searching for addresses in '{:s}' that point to '{:s}'"
+             .format(Color.yellowify(belong), Color.yellowify(location)))
+
+        if belong == "binary":
+            belong = get_filepath()
+
+        if location == "binary":
+            location = get_filepath()
+
+        belong_sections = []
+        location_sections = []
+
+        for sect in get_process_maps():
+            if belong in sect.path:
+                belong_sections += [(sect.page_start, sect.page_end)]
+            if location in sect.path:
+                location_sections += [(sect.page_start, sect.page_end)]
+
+        step = current_arch.ptrsize
+        fmt = "{}{}".format(endian_str(), "I" if step==4 else "Q")
+
+        for (bstart, bend) in belong_sections:
+            try:
+                mem = read_memory(bstart, bend - bstart)
+            except gdb.MemoryError:
+                continue
+
+            for i in range(0, len(mem), step):
+                target = struct.unpack(fmt, mem[i:i+step])[0]
+                for (lstart, lend) in location_sections:
+                    if target >= lstart and target < lend:
+                        gef_print(DereferenceCommand.pprint_dereferenced(bstart + i, 0))
+
+        return
+
+@register_command
 class SearchPatternCommand(GenericCommand):
     """SearchPatternCommand: search a pattern in memory. If given an hex value (starting with 0x)
     the command will also try to look for upwards cross-references to this address."""
