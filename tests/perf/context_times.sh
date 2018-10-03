@@ -62,4 +62,6 @@ run_on_git_revisions() {
 if [ $# == "2" ]; then
     clear_stats
     run_on_git_revisions $1 $2 "time_gef_context"
+else
+    echo "usage: $0 first_commit last_commit"
 fi
