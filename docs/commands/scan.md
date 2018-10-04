@@ -1,7 +1,7 @@
 ## Command scan ##
 
-`scan` Search for addresses belonging to one mapping (the needle) that are
-located in another (the haystack).
+`scan` Search for addresses that are located in a memory mapping (haystack) that
+belonging to another (needle).
 
 ![scan-example](https://i.imgur.com/4ScRvVc.png)
 
