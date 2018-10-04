@@ -8670,8 +8670,9 @@ class GefCommand(gdb.Command):
                               Color.colorify(ver, attrs="bold red")))
 
             if nb_missing:
-                warn("{:s} commands could not be loaded, run `{:s}` to know why."
+                warn("{:s} command{} could not be loaded, run `{:s}` to know why."
                           .format(Color.colorify(str(nb_missing), attrs="bold red"),
+                                  "s" if nb_missing > 1 else "",
                                   Color.colorify("gef missing", attrs="underline pink")))
         return
 
