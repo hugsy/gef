@@ -17,6 +17,12 @@ jobs:
               #keys:
                   #- pydeps-{{ .Branch }}-{{ checksum ".circleci/config.yml" }}
           - run:
+              # For some reason we need to pip install keystone/capstone/unicorn
+              # even though we are installing it manually. If we don't, then gdb
+              # won't be able to import it.
+              command: |
+                  sudo pip3 install keystone-engine capstone unicorn
+          - run:
               command: |
                   sudo pip3 install pylint ropper
           - run:
