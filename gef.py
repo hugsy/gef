@@ -7050,7 +7050,7 @@ class ContextCommand(GenericCommand):
         if is_x86_32():
             sp = current_arch.sp
             sz =  current_arch.ptrsize
-            loc = sp + (i * sz) + sz
+            loc = sp + (i * sz)
             val = read_int_from_memory(loc)
             key = "[sp + {:#x}]".format(i * sz)
         else:
