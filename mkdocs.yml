@@ -41,6 +41,7 @@ pages:
 - Command registers: commands/registers.md
 - Command reset-cache: commands/reset-cache.md
 - Command ropper: commands/ropper.md
+- Command scan: commands/scan.md
 - Command search-pattern: commands/search-pattern.md
 - Command set-permission: commands/set-permission.md
 - Command shellcode: commands/shellcode.md
