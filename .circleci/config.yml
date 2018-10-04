@@ -21,7 +21,7 @@ jobs:
                   sudo pip3 install pylint ropper
           - run:
               command: |
-                  curl https://gist.githubusercontent.com/Grazfather/91e1ea3c3b51be844552263ce0f0d538/raw/c5607a51047b4dc01bf1f3fd443e8cd6318056c6/install-trinity.sh | bash
+                  curl https://gist.githubusercontent.com/Grazfather/91e1ea3c3b51be844552263ce0f0d538/raw/76ff432159654e83db7159df7027ca4b11a2bdd4/install-trinity.sh | bash
           #- save_cache:
               #key: pydeps-{{ .Branch }}-{{ checksum ".circleci/config.yml" }}
               #paths:
