@@ -5148,7 +5148,7 @@ class UnicornEmulateCommand(GenericCommand):
 
         if to_file:
             tmp_filename = to_file
-            to_file = open(to_file, "wb")
+            to_file = open(to_file, "w")
             tmp_fd = to_file.fileno()
         else:
             tmp_fd, tmp_filename = tempfile.mkstemp(suffix=".py", prefix="gef-uc-")
@@ -5205,7 +5205,7 @@ syscall_register = "%s"
 
 def disassemble(code, addr):
     cs = capstone.Cs(%s, %s)
-    for i in cs.disasm(str(code),addr):
+    for i in cs.disasm(code,addr):
         return i
 
 def hook_code(emu, address, size, user_data):
@@ -5333,7 +5333,8 @@ emulate(uc, %#x, %#x)
 
         ok("Starting emulation: %#x %s %#x" % (start_insn_addr, RIGHT_ARROW, end_insn_addr))
 
-        res = gef_execute_external(["python", tmp_filename], as_list=True)
+        pythonbin = "python{}".format(PYTHON_MAJOR)
+        res = gef_execute_external([pythonbin, tmp_filename], as_list=True)
         gef_print("\n".join(res))
 
         if not kwargs.get("to_file", None):
