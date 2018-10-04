@@ -4866,14 +4866,14 @@ class ScanSectionCommand(GenericCommand):
 
         for sect in get_process_maps():
             if belong in sect.path:
-                belong_sections += [(sect.page_start, sect.page_end)]
+                belong_sections.append((sect.page_start, sect.page_end))
             if location in sect.path:
-                location_sections += [(sect.page_start, sect.page_end)]
+                location_sections.append((sect.page_start, sect.page_end))
 
         step = current_arch.ptrsize
         fmt = "{}{}".format(endian_str(), "I" if step==4 else "Q")
 
-        for (bstart, bend) in belong_sections:
+        for bstart, bend in belong_sections:
             try:
                 mem = read_memory(bstart, bend - bstart)
             except gdb.MemoryError:
@@ -4881,7 +4881,7 @@ class ScanSectionCommand(GenericCommand):
 
             for i in range(0, len(mem), step):
                 target = struct.unpack(fmt, mem[i:i+step])[0]
-                for (lstart, lend) in location_sections:
+                for lstart, lend in location_sections:
                     if target >= lstart and target < lend:
                         gef_print(DereferenceCommand.pprint_dereferenced(bstart + i, 0))
 
