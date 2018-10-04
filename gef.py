@@ -4836,10 +4836,10 @@ class IdaInteractCommand(GenericCommand):
 
 @register_command
 class ScanSectionCommand(GenericCommand):
-    """Search for addresses belonging to one mapping that are located in another."""
+    """Search for addresses belonging to one mapping (neeedle) that are located in another (haystack)."""
 
     _cmdline_ = "scan"
-    _syntax_  = "{:s} BELONG LOCATION".format(_cmdline_)
+    _syntax_  = "{:s} NEEDLE HAYSTACK".format(_cmdline_)
     _aliases_ = ["lookup",]
     _example_ = "\n{0:s} stack libc".format(_cmdline_)
 
@@ -4849,41 +4849,41 @@ class ScanSectionCommand(GenericCommand):
             self.usage()
             return
 
-        belong = argv[0]
-        location = argv[1]
+        needle = argv[0]
+        haystack = argv[1]
 
         info("Searching for addresses in '{:s}' that point to '{:s}'"
-             .format(Color.yellowify(belong), Color.yellowify(location)))
+             .format(Color.yellowify(needle), Color.yellowify(haystack)))
 
-        if belong == "binary":
-            belong = get_filepath()
+        if needle == "binary":
+            needle = get_filepath()
 
-        if location == "binary":
-            location = get_filepath()
+        if haystack == "binary":
+            haystack = get_filepath()
 
-        belong_sections = []
-        location_sections = []
+        needle_sections = []
+        haystack_sections = []
 
         for sect in get_process_maps():
-            if belong in sect.path:
-                belong_sections.append((sect.page_start, sect.page_end))
-            if location in sect.path:
-                location_sections.append((sect.page_start, sect.page_end))
+            if needle in sect.path:
+                needle_sections.append((sect.page_start, sect.page_end))
+            if haystack in sect.path:
+                haystack_sections.append((sect.page_start, sect.page_end))
 
         step = current_arch.ptrsize
         fmt = "{}{}".format(endian_str(), "I" if step==4 else "Q")
 
-        for bstart, bend in belong_sections:
+        for nstart, nend in needle_sections:
             try:
-                mem = read_memory(bstart, bend - bstart)
+                mem = read_memory(nstart, nend - nstart)
             except gdb.MemoryError:
                 continue
 
             for i in range(0, len(mem), step):
                 target = struct.unpack(fmt, mem[i:i+step])[0]
-                for lstart, lend in location_sections:
-                    if target >= lstart and target < lend:
-                        gef_print(DereferenceCommand.pprint_dereferenced(bstart + i, 0))
+                for hstart, hend in haystack_sections:
+                    if target >= hstart and target < hend:
+                        gef_print(DereferenceCommand.pprint_dereferenced(nstart + i, 0))
 
         return
 
