@@ -310,18 +310,16 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
 
     def test_cmd_scan(self):
         cmd = "scan libc stack"
-        target = "tests/binaries/heap.out"
-
+        target = "tests/binaries/checksec-no-pie.out"
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertTrue(len(res.splitlines()) > 1)
         self.assertIn(target.encode(), res)
 
-        res = gdb_start_silent_cmd("scan libc binary", target=target)
+        target = "tests/binaries/default.out"
+        res = gdb_start_silent_cmd("scan binary libc", target=target)
         self.assertNoException(res)
-        self.assertTrue(len(res.splitlines()) > 1)
-        self.assertIn(b"0x0000000000400000", res)
+        self.assertIn(b"__libc_start_main", res)
 
         return
 
