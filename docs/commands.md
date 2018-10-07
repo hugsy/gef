@@ -40,6 +40,7 @@ improve it.
 |registers                 | Display full details on one, many or all registers value from current architecture.|
 |reset-cache               | Reset cache of all stored data.|
 |ropper                    | Ropper (http://scoding.de/ropper) plugin|
+|scan                      | Search for addresses that are located in a memory mapping (haystack) that belonging to another (needle). (alias: lookup)|
 |search-pattern            | SearchPatternCommand: search a pattern in memory. (alias: grep)|
 |set-permission            | Change a page permission. By default, it will change it to RWX. (alias: mprotect)|
 |shellcode                 | ShellcodeCommand uses @JonathanSalwan simple-yet-awesome shellcode API to download shellcodes.|
