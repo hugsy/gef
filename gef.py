@@ -3592,6 +3592,8 @@ class GenericCommand(gdb.Command):
         syntax = Color.yellowify("\nSyntax: ") + self._syntax_
         example = Color.yellowify("\nExample: ") + self._example_ if self._example_ else ""
         self.__doc__ = self.__doc__.replace(" "*4, "") + syntax + example
+        self.repeat = False
+        self._last_command = None
         command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
         complete_type = kwargs.setdefault("complete", gdb.COMPLETE_NONE)
         prefix = kwargs.setdefault("prefix", False)
@@ -3602,6 +3604,7 @@ class GenericCommand(gdb.Command):
     def invoke(self, args, from_tty):
         try:
             argv = gdb.string_to_argv(args)
+            self.repeat = self.__is_repeat_command(argv, from_tty)
             bufferize(self.do_invoke(argv))
         except Exception as e:
             # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
@@ -3665,6 +3668,16 @@ class GenericCommand(gdb.Command):
         key = self.__get_setting_name(name)
         del __config__[key]
         return
+
+    def __is_repeat_command(self, args, from_tty):
+        if not from_tty:
+            return False
+
+        command = gdb.execute("show commands", to_string=True).strip().split("\n")[-1]
+        repeated = self._last_command == command
+        self._last_command = command
+
+        return repeated
 
 
 # Copy/paste this template for new command
