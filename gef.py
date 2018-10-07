@@ -7655,6 +7655,7 @@ class DereferenceCommand(GenericCommand):
     def __init__(self):
         super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         self.add_setting("max_recursion", 7, "Maximum level of pointer recursion")
+        self.repeat_count = 0
         return
 
     @staticmethod
@@ -7714,13 +7715,18 @@ class DereferenceCommand(GenericCommand):
             err("Unmapped address")
             return
 
+        if self.repeat:
+            self.repeat_count += 1
+        else:
+            self.repeat_count = 0
+
         if get_gef_setting("context.grow_stack_down") is True:
-            from_insnum = nb-1
-            to_insnum = -1
+            from_insnum = nb * (self.repeat_count + 1) - 1
+            to_insnum = self.repeat_count * nb - 1
             insnum_step = -1
         else:
-            from_insnum = 0
-            to_insnum = nb
+            from_insnum = 0 + self.repeat_count * nb
+            to_insnum = nb * (self.repeat_count + 1)
             insnum_step = 1
 
         start_address = align_address(addr)
