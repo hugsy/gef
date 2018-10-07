@@ -7607,7 +7607,7 @@ class HexdumpCommand(GenericCommand):
         }
 
         r, l = formats[arrange_as]
-        fmt_str = "{{base}}{v}+{{offset:#04x}} {{sym}} {v} {{val:#0{prec}x}}".format(v=VERTICAL_LINE, prec=l*2+2)
+        fmt_str = "{{base}}{v}+{{offset:#06x}} {{sym}} {v} {{val:#0{prec}x}}".format(v=VERTICAL_LINE, prec=l*2+2)
         fmt_pack = endianness + r
         lines = []
 
@@ -7725,7 +7725,7 @@ class DereferenceCommand(GenericCommand):
         addrs = DereferenceCommand.dereference_from(current_address)
         l  = ""
         addr_l = format_address(long(addrs[0], 16))
-        l += "{:s}{:s}+{:#04x}: {:{ma}s}".format(Color.colorify(addr_l, attrs=base_address_color),
+        l += "{:s}{:s}+{:#06x}: {:{ma}s}".format(Color.colorify(addr_l, attrs=base_address_color),
                                                  VERTICAL_LINE, offset,
                                                  sep.join(addrs[1:]), ma=(memalign*2 + 2))
 
