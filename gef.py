@@ -3592,6 +3592,9 @@ class GenericCommand(gdb.Command):
         syntax = Color.yellowify("\nSyntax: ") + self._syntax_
         example = Color.yellowify("\nExample: ") + self._example_ if self._example_ else ""
         self.__doc__ = self.__doc__.replace(" "*4, "") + syntax + example
+        self.repeat = False
+        self.repeat_count = 0
+        self.__last_command = None
         command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
         complete_type = kwargs.setdefault("complete", gdb.COMPLETE_NONE)
         prefix = kwargs.setdefault("prefix", False)
@@ -3602,6 +3605,7 @@ class GenericCommand(gdb.Command):
     def invoke(self, args, from_tty):
         try:
             argv = gdb.string_to_argv(args)
+            self.__set_repeat_count(from_tty)
             bufferize(self.do_invoke(argv))
         except Exception as e:
             # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
@@ -3665,6 +3669,18 @@ class GenericCommand(gdb.Command):
         key = self.__get_setting_name(name)
         del __config__[key]
         return
+
+    def __set_repeat_count(self, from_tty):
+        if not from_tty:
+            self.repeat = False
+            self.repeat_count = 0
+            return
+
+        command = gdb.execute("show commands", to_string=True).strip().split("\n")[-1]
+        self.repeat = self.__last_command == command
+        self.repeat_count = self.repeat_count + 1 if self.repeat else 0
+
+        self.__last_command = command
 
 
 # Copy/paste this template for new command
@@ -7563,10 +7579,11 @@ class HexdumpCommand(GenericCommand):
                     continue
 
         if fmt == "byte":
+            read_from += self.repeat_count * read_len
             mem = read_memory(read_from, read_len)
             lines = hexdump(mem, base=read_from).splitlines()
         else:
-            lines = self._hexdump(read_from, read_len, fmt)
+            lines = self._hexdump(read_from, read_len, fmt, self.repeat_count * read_len)
 
         if not up_to_down:
             lines.reverse()
@@ -7575,7 +7592,7 @@ class HexdumpCommand(GenericCommand):
         return
 
 
-    def _hexdump(self, start_addr, length, arrange_as):
+    def _hexdump(self, start_addr, length, arrange_as, offset=0):
         elf = get_elf_headers()
         if elf is None:
             return
@@ -7594,12 +7611,12 @@ class HexdumpCommand(GenericCommand):
 
         i = 0
         while i < length:
-            cur_addr = start_addr + i * l
+            cur_addr = start_addr + (i + offset) * l
             sym = gdb_get_location_from_symbol(cur_addr)
             sym = "<{:s}+{:04x}>".format(*sym) if sym else ''
             mem = read_memory(cur_addr, l)
             val = struct.unpack(fmt_pack, mem)[0]
-            lines.append(fmt_str % (cur_addr, i * l,  sym, val))
+            lines.append(fmt_str % (cur_addr, (i + offset) * l,  sym, val))
             i += 1
 
         return lines
@@ -7748,12 +7765,12 @@ class DereferenceCommand(GenericCommand):
             return
 
         if get_gef_setting("context.grow_stack_down") is True:
-            from_insnum = nb-1
-            to_insnum = -1
+            from_insnum = nb * (self.repeat_count + 1) - 1
+            to_insnum = self.repeat_count * nb - 1
             insnum_step = -1
         else:
-            from_insnum = 0
-            to_insnum = nb
+            from_insnum = 0 + self.repeat_count * nb
+            to_insnum = nb * (self.repeat_count + 1)
             insnum_step = 1
 
         start_address = align_address(addr)
