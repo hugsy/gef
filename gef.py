@@ -6308,7 +6308,7 @@ class ShellcodeCommand(GenericCommand):
     download shellcodes."""
 
     _cmdline_ = "shellcode"
-    _syntax_  = "{:s} <search|get>".format(_cmdline_)
+    _syntax_  = "{:s} (search|get)".format(_cmdline_)
 
     def __init__(self):
         super(ShellcodeCommand, self).__init__(prefix=True)
@@ -6325,7 +6325,7 @@ class ShellcodeSearchCommand(GenericCommand):
     """Search pattern in shell-storm's shellcode database."""
 
     _cmdline_ = "shellcode search"
-    _syntax_  = "{:s} <pattern1> <pattern2>".format(_cmdline_)
+    _syntax_  = "{:s} PATTERN1 PATTERN2".format(_cmdline_)
     _aliases_ = ["sc-search",]
 
     api_base = "http://shell-storm.org"
@@ -6375,7 +6375,7 @@ class ShellcodeGetCommand(GenericCommand):
     """Download shellcode from shell-storm's shellcode database."""
 
     _cmdline_ = "shellcode get"
-    _syntax_  = "{:s} <shellcode_id>".format(_cmdline_)
+    _syntax_  = "{:s} SHELLCODE_ID".format(_cmdline_)
     _aliases_ = ["sc-get",]
 
     api_base = "http://shell-storm.org"
@@ -7430,7 +7430,7 @@ class ContextCommand(GenericCommand):
 class MemoryCommand(GenericCommand):
     """Add or remove address ranges to the memory view."""
     _cmdline_ = "memory"
-    _syntax_  = "{:s}".format(_cmdline_)
+    _syntax_  = "{:s} (watch|unwatch|reset|list)".format(_cmdline_)
 
     def __init__(self):
         super(MemoryCommand, self).__init__(prefix=True)
@@ -7628,7 +7628,7 @@ class PatchCommand(GenericCommand):
 
     _cmdline_ = "patch"
     _syntax_  = ("{0:s} <qword|dword|word|byte> <location> <values>\n"
-                 "{0:s} string <location> \"double-escaped string\"".format(_cmdline_))
+                 "{0:s} string LOCATION \"double-escaped string\"".format(_cmdline_))
     SUPPORTED_SIZES = {
         "qword": (8, "Q"),
         "dword": (4, "L"),
