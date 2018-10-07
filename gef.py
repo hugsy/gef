@@ -7501,7 +7501,6 @@ class HexdumpCommand(GenericCommand):
 
         start_addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
         read_from = align_address(start_addr)
-
         read_len = 0x40 if fmt=="byte" else 0x10
         up_to_down = True
 
