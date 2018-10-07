@@ -3593,7 +3593,7 @@ class GenericCommand(gdb.Command):
         example = Color.yellowify("\nExample: ") + self._example_ if self._example_ else ""
         self.__doc__ = self.__doc__.replace(" "*4, "") + syntax + example
         self.repeat = False
-        self._last_command = None
+        self.__last_command = None
         command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
         complete_type = kwargs.setdefault("complete", gdb.COMPLETE_NONE)
         prefix = kwargs.setdefault("prefix", False)
@@ -3674,8 +3674,8 @@ class GenericCommand(gdb.Command):
             return False
 
         command = gdb.execute("show commands", to_string=True).strip().split("\n")[-1]
-        repeated = self._last_command == command
-        self._last_command = command
+        repeated = self.__last_command == command
+        self.__last_command = command
 
         return repeated
 
