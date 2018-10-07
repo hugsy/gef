@@ -7482,6 +7482,7 @@ class HexdumpCommand(GenericCommand):
 
     def __init__(self):
         super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.repeat_count = 0
         return
 
     @only_if_gdb_running
@@ -7498,6 +7499,12 @@ class HexdumpCommand(GenericCommand):
 
         start_addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
         read_from = align_address(start_addr)
+
+        if self.repeat:
+            self.repeat_count += 1
+        else:
+            self.repeat_count = 0
+
         read_len = 0x40 if fmt=="byte" else 0x10
         up_to_down = True
 
@@ -7520,6 +7527,7 @@ class HexdumpCommand(GenericCommand):
                     continue
 
         if fmt == "byte":
+            read_from += self.repeat_count * read_len
             mem = read_memory(read_from, read_len)
             lines = hexdump(mem, base=read_from).splitlines()
         else:
@@ -7549,8 +7557,10 @@ class HexdumpCommand(GenericCommand):
         fmt_pack = endianness + r
         lines = []
 
-        i = 0
-        while i < length:
+        i = 0 + self.repeat_count * length
+        end = length * (self.repeat_count + 1)
+
+        while i < end:
             cur_addr = start_addr + i * l
             sym = gdb_get_location_from_symbol(cur_addr)
             sym = "<{:s}+{:04x}>".format(*sym) if sym else ''
