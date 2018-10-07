@@ -7598,6 +7598,8 @@ class HexdumpCommand(GenericCommand):
             return
         endianness = endian_str()
 
+        base_address_color = get_gef_setting("theme.dereference_base_address")
+
         formats = {
             "qword": ("Q", 8),
             "dword": ("I", 4),
@@ -7605,7 +7607,7 @@ class HexdumpCommand(GenericCommand):
         }
 
         r, l = formats[arrange_as]
-        fmt_str = "%#x+%.4x %s  {:s} %#.{:s}x".format(VERTICAL_LINE, str(l * 2))
+        fmt_str = "{{base}}{v}+{{offset:#04x}} {{sym}} {v} {{val:#0{prec}x}}".format(v=VERTICAL_LINE, prec=l*2+2)
         fmt_pack = endianness + r
         lines = []
 
@@ -7616,7 +7618,8 @@ class HexdumpCommand(GenericCommand):
             sym = "<{:s}+{:04x}>".format(*sym) if sym else ''
             mem = read_memory(cur_addr, l)
             val = struct.unpack(fmt_pack, mem)[0]
-            lines.append(fmt_str % (cur_addr, (i + offset) * l,  sym, val))
+            lines.append(fmt_str.format(base=Color.colorify("{:#x}".format(cur_addr), attrs=base_address_color),
+                                        offset=(i + offset) * l, sym=sym, val=val))
             i += 1
 
         return lines
