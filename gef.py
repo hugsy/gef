@@ -3605,7 +3605,7 @@ class GenericCommand(gdb.Command):
     def invoke(self, args, from_tty):
         try:
             argv = gdb.string_to_argv(args)
-            self.__set_repeat_count(argv, from_tty)
+            self.__set_repeat_count(from_tty)
             bufferize(self.do_invoke(argv))
         except Exception as e:
             # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
@@ -3670,7 +3670,7 @@ class GenericCommand(gdb.Command):
         del __config__[key]
         return
 
-    def __set_repeat_count(self, args, from_tty):
+    def __set_repeat_count(self, from_tty):
         if not from_tty:
             self.repeat = False
             self.repeat_count = 0
