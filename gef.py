@@ -3593,6 +3593,7 @@ class GenericCommand(gdb.Command):
         example = Color.yellowify("\nExample: ") + self._example_ if self._example_ else ""
         self.__doc__ = self.__doc__.replace(" "*4, "") + syntax + example
         self.repeat = False
+        self.repeat_count = 0
         self.__last_command = None
         command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
         complete_type = kwargs.setdefault("complete", gdb.COMPLETE_NONE)
@@ -3604,7 +3605,7 @@ class GenericCommand(gdb.Command):
     def invoke(self, args, from_tty):
         try:
             argv = gdb.string_to_argv(args)
-            self.repeat = self.__is_repeat_command(argv, from_tty)
+            self.__set_repeat_count(argv, from_tty)
             bufferize(self.do_invoke(argv))
         except Exception as e:
             # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
@@ -3669,15 +3670,17 @@ class GenericCommand(gdb.Command):
         del __config__[key]
         return
 
-    def __is_repeat_command(self, args, from_tty):
+    def __set_repeat_count(self, args, from_tty):
         if not from_tty:
-            return False
+            self.repeat = False
+            self.repeat_count = 0
+            return
 
         command = gdb.execute("show commands", to_string=True).strip().split("\n")[-1]
-        repeated = self.__last_command == command
-        self.__last_command = command
+        self.repeat = self.__last_command == command
+        self.repeat_count = self.repeat_count + 1 if self.repeat else 0
 
-        return repeated
+        self.__last_command = command
 
 
 # Copy/paste this template for new command
@@ -7482,7 +7485,6 @@ class HexdumpCommand(GenericCommand):
 
     def __init__(self):
         super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
-        self.repeat_count = 0
         return
 
     @only_if_gdb_running
@@ -7499,11 +7501,6 @@ class HexdumpCommand(GenericCommand):
 
         start_addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
         read_from = align_address(start_addr)
-
-        if self.repeat:
-            self.repeat_count += 1
-        else:
-            self.repeat_count = 0
 
         read_len = 0x40 if fmt=="byte" else 0x10
         up_to_down = True
@@ -7655,7 +7652,6 @@ class DereferenceCommand(GenericCommand):
     def __init__(self):
         super(DereferenceCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         self.add_setting("max_recursion", 7, "Maximum level of pointer recursion")
-        self.repeat_count = 0
         return
 
     @staticmethod
@@ -7714,11 +7710,6 @@ class DereferenceCommand(GenericCommand):
         if process_lookup_address(addr) is None:
             err("Unmapped address")
             return
-
-        if self.repeat:
-            self.repeat_count += 1
-        else:
-            self.repeat_count = 0
 
         if get_gef_setting("context.grow_stack_down") is True:
             from_insnum = nb * (self.repeat_count + 1) - 1
