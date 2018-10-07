@@ -7527,7 +7527,7 @@ class HexdumpCommand(GenericCommand):
             mem = read_memory(read_from, read_len)
             lines = hexdump(mem, base=read_from).splitlines()
         else:
-            lines = self._hexdump(read_from, read_len, fmt)
+            lines = self._hexdump(read_from, read_len, fmt, self.repeat_count * read_len)
 
         if not up_to_down:
             lines.reverse()
@@ -7536,7 +7536,7 @@ class HexdumpCommand(GenericCommand):
         return
 
 
-    def _hexdump(self, start_addr, length, arrange_as):
+    def _hexdump(self, start_addr, length, arrange_as, offset=0):
         elf = get_elf_headers()
         if elf is None:
             return
@@ -7553,16 +7553,14 @@ class HexdumpCommand(GenericCommand):
         fmt_pack = endianness + r
         lines = []
 
-        i = 0 + self.repeat_count * length
-        end = length * (self.repeat_count + 1)
-
-        while i < end:
-            cur_addr = start_addr + i * l
+        i = 0
+        while i < length:
+            cur_addr = start_addr + (i + offset) * l
             sym = gdb_get_location_from_symbol(cur_addr)
             sym = "<{:s}+{:04x}>".format(*sym) if sym else ''
             mem = read_memory(cur_addr, l)
             val = struct.unpack(fmt_pack, mem)[0]
-            lines.append(fmt_str % (cur_addr, i * l,  sym, val))
+            lines.append(fmt_str % (cur_addr, (i + offset) * l,  sym, val))
             i += 1
 
         return lines
