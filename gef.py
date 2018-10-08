@@ -954,6 +954,29 @@ def which(program):
     raise FileNotFoundError("Missing file `{:s}`".format(program))
 
 
+def style_byte(b, color=True):
+    style = {
+        'nonprintable': "yellow",
+        'printable': "white",
+        '00': "gray",
+        '0a': "blue",
+        'ff': "green",
+    }
+    sbyte = "{:02x}".format(b)
+    if not color:
+        return sbyte
+
+    if sbyte in style:
+        st = style[sbyte]
+    elif chr(b) in (string.ascii_letters + string.digits + string.punctuation + ' '):
+        st = style.get('printable')
+    else:
+        st = style.get('nonprintable')
+    if st:
+        sbyte = Color.colorify(sbyte, attrs=st)
+    return sbyte
+
+
 def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
     """Return the hexdump of `src` argument.
     @param source *MUST* be of type bytes or bytearray
@@ -961,14 +984,14 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
     @param separator is the default character to use if one byte is not printable
     @param show_raw if True, do not add the line nor the text translation
     @param base is the start address of the block being hexdump
-    @param func is the function to use to parse bytes (int for Py3, chr for Py2)
     @return a string with the hexdump """
     result = []
     align = get_memory_alignment()*2+2 if is_alive() else 18
 
     for i in range(0, len(source), length):
         chunk = bytearray(source[i:i + length])
-        hexa = " ".join(["{:02x}".format(b) for b in chunk])
+        hexa = " ".join([style_byte(b, color=not show_raw) for b in chunk])
+
 
         if show_raw:
             result.append(hexa)
