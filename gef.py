@@ -8626,6 +8626,9 @@ class GenericOffsetFunction(gdb.Function):
     def _zone_(self): pass
     @abc.abstractproperty
     def _function_(self): pass
+    @property
+    def _syntax_(self):
+        return "${}([OFFSET])".format(self._function_)
 
     def __init__ (self):
         super(GenericOffsetFunction, self).__init__(self._function_)
@@ -8704,13 +8707,14 @@ class GefCommand(gdb.Command):
         set_gef_setting("gef.extra_plugins_dir", "", str, "Autoload additional GEF commands from external directory")
         set_gef_setting("gef.disable_color", False, bool, "Disable all colors in GEF")
         self.loaded_commands = []
+        self.loaded_functions = []
         self.missing_commands = {}
         return
 
     def setup(self):
         self.load(initial=True)
         # loading GEF sub-commands
-        self.doc = GefHelpCommand(self.loaded_commands)
+        self.doc = GefHelpCommand(self.loaded_commands, self.loaded_functions)
         self.cfg = GefConfigCommand(self.loaded_command_names)
         GefSaveCommand()
         GefRestoreCommand()
@@ -8815,7 +8819,7 @@ class GefCommand(gdb.Command):
 
         # load all of the functions
         for function_class_name in __functions__:
-            function_class_name()
+            self.loaded_functions.append(function_class_name())
 
         if initial:
             gef_print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure"
@@ -8843,13 +8847,13 @@ class GefHelpCommand(gdb.Command):
     _cmdline_ = "gef help"
     _syntax_  = _cmdline_
 
-    def __init__(self, commands, *args, **kwargs):
+    def __init__(self, commands, functions, *args, **kwargs):
         super(GefHelpCommand, self).__init__(GefHelpCommand._cmdline_,
                                              gdb.COMMAND_SUPPORT,
                                              gdb.COMPLETE_NONE,
                                              False)
         self.docs = []
-        self.generate_help(commands)
+        self.generate_help(commands, functions)
         self.refresh()
         return
 
@@ -8859,10 +8863,12 @@ class GefHelpCommand(gdb.Command):
         gef_print(self.__doc__)
         return
 
-    def generate_help(self, commands):
-        """Generate builtin commands documentation."""
+    def generate_help(self, commands, functions):
+        """Generate builtin commands and function documentation."""
         for command in commands:
             self.add_command_to_doc(command)
+        for function in functions:
+            self.add_function_to_doc(function)
         return
 
     def add_command_to_doc(self, command):
@@ -8876,6 +8882,17 @@ class GefHelpCommand(gdb.Command):
         aliases = "(alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
         w = max(1, get_terminal_size()[1] - 29 - len(aliases))  # use max() to avoid zero or negative numbers
         msg = "{cmd:<25s} -- {help:{w}s} {aliases:s}".format(cmd=cmd, help=Color.greenify(doc), w=w, aliases=aliases)
+        self.docs.append(msg)
+        return
+
+    def add_function_to_doc(self, function):
+        """Add function to GEF documentation."""
+        doc = getattr(function, "__doc__", "").lstrip()
+        doc = "\n                         ".join(doc.split("\n"))
+        syntax = getattr(function, "_syntax_", "").lstrip()
+        note = "(convenience function)"
+        w = max(1, get_terminal_size()[1] - 29 - len(note))  # use max() to avoid zero or negative numbers
+        msg = "{syntax:<25s} -- {help:{w}s} {note:s}".format(syntax=syntax, help=Color.greenify(doc), w=w, note=note)
         self.docs.append(msg)
         return
 
