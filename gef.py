@@ -7590,8 +7590,15 @@ class HexdumpCommand(GenericCommand):
             self.usage()
             return
 
-        fmt, argv = argv[0], argv[1:]
-        if fmt not in {"qword", "dword", "word", "byte"}:
+        fmt, argv = argv[0].lower(), argv[1:]
+        fmt_map = {
+            "qword": "qword", "q": "qword",
+            "dword": "dword", "d": "dword",
+            "word": "word", "w": "word",
+            "byte": "byte", "b": "byte",
+        }
+        fmt = fmt_map.get(fmt)
+        if not fmt:
             self.usage()
             return
 
@@ -7611,10 +7618,10 @@ class HexdumpCommand(GenericCommand):
                 except ValueError:
                     pass
 
-                if arg == "up":
+                if arg in {"up", "u"}:
                     up_to_down = True
                     continue
-                elif arg == "down":
+                elif arg in {"down", "d"}:
                     up_to_down = False
                     continue
 
