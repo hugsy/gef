@@ -1216,6 +1216,7 @@ def capstone_disassemble(location, nb_insn, **kwargs):
     offset      = location - page_start
     pc          = current_arch.pc
 
+    skip       = int(kwargs.get("skip", 0))
     nb_prev    = int(kwargs.get("nb_prev", 0))
     if nb_prev > 0:
         location = gdb_get_nth_previous_instruction_address(pc, nb_prev)
@@ -1225,6 +1226,9 @@ def capstone_disassemble(location, nb_insn, **kwargs):
     code = bytes(code)
 
     for insn in cs.disasm(code, location):
+        if skip:
+            skip -= 1
+            continue
         nb_insn -= 1
         yield cs_insn_to_gef_insn(insn)
         if nb_insn==0:
@@ -5784,7 +5788,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         location = location or current_arch.pc
         length = int(kwargs.get("length", get_gef_setting("context.nb_lines_code")))
 
-        for insn in capstone_disassemble(location, length, **kwargs):
+        for insn in capstone_disassemble(location, length, skip=length*self.repeat_count, **kwargs):
             text_insn = str(insn)
             msg = ""
 
