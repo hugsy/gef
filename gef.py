@@ -189,6 +189,7 @@ except ImportError:
 
 __gef__                                = None
 __commands__                           = []
+__functions__                          = []
 __aliases__                            = []
 __config__                             = {}
 __watches__                            = {}
@@ -3582,6 +3583,11 @@ def register_priority_command(cls):
     __commands__.insert(0, cls)
     return cls
 
+def register_function(cls):
+    """Decorator for registering new GEF (sub-)command to GDB."""
+    global __functions__
+    __functions__.append(cls)
+    return cls
 
 class GenericCommand(gdb.Command):
     """This is an abstract class for invoking commands, should not be instantiated."""
@@ -8603,6 +8609,48 @@ class SyscallArgsCommand(GenericCommand):
         return path if os.path.isdir(path) else None
 
 
+class GenericOffsetFunction(gdb.Function):
+    """This is an abstract class for invoking offset functions, should not be instantiated."""
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractproperty
+    def _section_(self): pass
+    @abc.abstractproperty
+    def _function_(self): pass
+
+    def __init__ (self):
+        super(GenericOffsetFunction, self).__init__(self._function_)
+
+    def invoke(self, offset=0):
+        section = process_lookup_path(self._section_)
+        if not section:
+            raise gdb.GdbError("No {} section".format(self._section_))
+
+        return long(section.page_start + offset)
+
+@register_function
+class StackOffsetFunction(GenericOffsetFunction):
+    """Returns the current stack base address plus the given offset"""
+
+    _function_ = '_stack'
+    _section_ = "[stack]"
+
+@register_function
+class HeapBaseFunction(GenericOffsetFunction):
+    """Returns the current heap base address plus the given offset"""
+
+    _function_ = '_heap'
+    _section_ = "[heap]"
+
+@register_function
+class PieBaseFunction(GenericOffsetFunction):
+    """Returns the current pie base address plus the given offset"""
+
+    _function_ = '_pie'
+    @property
+    def _section_(self):
+        return get_filepath()
+
 class GefCommand(gdb.Command):
     """GEF main command: view all new commands by typing `gef`"""
 
@@ -8729,6 +8777,10 @@ class GefCommand(gdb.Command):
 
         # sort by command name
         self.loaded_commands = sorted(self.loaded_commands, key=lambda x: x[1]._cmdline_)
+
+        # load all of the functions
+        for function_class_name in __functions__:
+            function_class_name()
 
         if initial:
             gef_print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure"
