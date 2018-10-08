@@ -8652,21 +8652,21 @@ class GenericOffsetFunction(gdb.Function):
 @register_function
 class StackOffsetFunction(GenericOffsetFunction):
     """Return the current stack base address plus the given offset."""
-    _function_ = '_stack'
+    _function_ = "_stack"
     _section_ = "[stack]"
     _zone_ = None
 
 @register_function
 class HeapBaseFunction(GenericOffsetFunction):
     """Return the current heap base address plus the given offset."""
-    _function_ = '_heap'
+    _function_ = "_heap"
     _section_ = "[heap]"
     _zone_ = None
 
 @register_function
 class PieBaseFunction(GenericOffsetFunction):
     """Return the current pie base address plus the given offset."""
-    _function_ = '_pie'
+    _function_ = "_pie"
     _zone_ = None
     @property
     def _section_(self):
@@ -8675,14 +8675,14 @@ class PieBaseFunction(GenericOffsetFunction):
 @register_function
 class BssBaseFunction(GenericOffsetFunction):
     """Return the current bss base address plus the given offset."""
-    _function_ = '_bss'
+    _function_ = "_bss"
     _zone_ = ".bss"
     _section_ = None
 
 @register_function
 class GotBaseFunction(GenericOffsetFunction):
     """Return the current bss base address plus the given offset."""
-    _function_ = '_got'
+    _function_ = "_got"
     _zone_ = ".got"
     _section_ = None
 
