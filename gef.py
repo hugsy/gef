@@ -120,11 +120,11 @@ if PYTHON_MAJOR == 2:
     GEF_PROMPT_OFF = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
 
 elif PYTHON_MAJOR == 3:
-    from html.parser import HTMLParser
+    from html.parser import HTMLParser #pylint: disable=import-error
     from io import StringIO
-    from urllib.request import urlopen
+    from urllib.request import urlopen #pylint: disable=import-error,no-name-in-module
     import configparser
-    import xmlrpc.client as xmlrpclib
+    import xmlrpc.client as xmlrpclib #pylint: disable=import-error
 
     # Compat Py2/3 hack
     long = int
@@ -219,7 +219,7 @@ current_elf  = None
 current_arch = None
 
 if PYTHON_MAJOR==3:
-    lru_cache = functools.lru_cache
+    lru_cache = functools.lru_cache #pylint: disable=no-member
 else:
     def lru_cache(maxsize = 128):
         """Port of the Python3 LRU cache mechanism provided by itertools."""
@@ -1052,7 +1052,7 @@ def gef_makedirs(path, mode=0o755):
         return abspath
 
     if PYTHON_MAJOR == 3:
-        os.makedirs(path, mode=mode, exist_ok=True)
+        os.makedirs(path, mode=mode, exist_ok=True) #pylint: disable=unexpected-keyword-arg
     else:
         try:
             os.makedirs(path, mode=mode)
