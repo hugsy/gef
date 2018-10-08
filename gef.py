@@ -2532,7 +2532,7 @@ def process_lookup_path(name, perm=Permission.ALL):
     return None
 
 def file_lookup_name_path(name, path):
-    """Look up for a file by its name and path.
+    """Look up a file by name and path.
     Return a Zone object if found, None otherwise."""
     for xfile in get_info_files():
         if path == xfile.filename and name == xfile.name:
@@ -3591,7 +3591,7 @@ def register_priority_command(cls):
     return cls
 
 def register_function(cls):
-    """Decorator for registering new GEF (sub-)command to GDB."""
+    """Decorator for registering a new convenience function to GDB."""
     global __functions__
     __functions__.append(cls)
     return cls
@@ -8651,24 +8651,21 @@ class GenericOffsetFunction(gdb.Function):
 
 @register_function
 class StackOffsetFunction(GenericOffsetFunction):
-    """Returns the current stack base address plus the given offset"""
-
+    """Return the current stack base address plus the given offset."""
     _function_ = '_stack'
     _section_ = "[stack]"
     _zone_ = None
 
 @register_function
 class HeapBaseFunction(GenericOffsetFunction):
-    """Returns the current heap base address plus the given offset"""
-
+    """Return the current heap base address plus the given offset."""
     _function_ = '_heap'
     _section_ = "[heap]"
     _zone_ = None
 
 @register_function
 class PieBaseFunction(GenericOffsetFunction):
-    """Returns the current pie base address plus the given offset"""
-
+    """Return the current pie base address plus the given offset."""
     _function_ = '_pie'
     _zone_ = None
     @property
@@ -8677,16 +8674,14 @@ class PieBaseFunction(GenericOffsetFunction):
 
 @register_function
 class BssBaseFunction(GenericOffsetFunction):
-    """Returns the current bss base address plus the given offset"""
-
+    """Return the current bss base address plus the given offset."""
     _function_ = '_bss'
     _zone_ = ".bss"
     _section_ = None
 
 @register_function
 class GotBaseFunction(GenericOffsetFunction):
-    """Returns the current bss base address plus the given offset"""
-
+    """Return the current bss base address plus the given offset."""
     _function_ = '_got'
     _zone_ = ".got"
     _section_ = None
@@ -8792,7 +8787,7 @@ class GefCommand(gdb.Command):
 
 
     def load(self, initial=False):
-        """Load all the commands defined by GEF into GDB."""
+        """Load all the commands and functions defined by GEF into GDB."""
         nb_missing = 0
         self.commands = [(x._cmdline_, x) for x in __commands__]
 
