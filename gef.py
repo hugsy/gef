@@ -8621,12 +8621,14 @@ class GenericOffsetFunction(gdb.Function):
     def __init__ (self):
         super(GenericOffsetFunction, self).__init__(self._function_)
 
-    def invoke(self, offset=0):
+    def invoke(self, offset=gdb.Value(0)):
         section = process_lookup_path(self._section_)
+
         if not section:
             raise gdb.GdbError("No {} section".format(self._section_))
 
-        return long(section.page_start + offset)
+        addr = long(offset) if offset.address is None else long(offset.address)
+        return long(section.page_start + addr)
 
 @register_function
 class StackOffsetFunction(GenericOffsetFunction):
