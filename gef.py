@@ -2531,6 +2531,13 @@ def process_lookup_path(name, perm=Permission.ALL):
 
     return None
 
+def file_lookup_name_path(name, path):
+    """Look up for a file by its name and path.
+    Return a Zone object if found, None otherwise."""
+    for xfile in get_info_files():
+        if path == xfile.filename and name == xfile.name:
+            return xfile
+    return None
 
 def file_lookup_address(address):
     """Look up for a file by its address.
@@ -8616,19 +8623,31 @@ class GenericOffsetFunction(gdb.Function):
     @abc.abstractproperty
     def _section_(self): pass
     @abc.abstractproperty
+    def _zone_(self): pass
+    @abc.abstractproperty
     def _function_(self): pass
 
     def __init__ (self):
         super(GenericOffsetFunction, self).__init__(self._function_)
 
     def invoke(self, offset=gdb.Value(0)):
-        section = process_lookup_path(self._section_)
-
-        if not section:
-            raise gdb.GdbError("No {} section".format(self._section_))
+        base_address = self.get_base_address()
+        if not base_address:
+            raise gdb.GdbError("No {} section".format(self._section_ or self._zone_))
 
         addr = long(offset) if offset.address is None else long(offset.address)
-        return long(section.page_start + addr)
+        return long(base_address + addr)
+
+    def get_base_address(self):
+        if self._section_:
+            section = process_lookup_path(self._section_)
+            if section:
+                return section.page_start
+        elif self._zone_:
+            zone = file_lookup_name_path(self._zone_, get_filepath())
+            if zone:
+                return zone.zone_start
+        return None
 
 @register_function
 class StackOffsetFunction(GenericOffsetFunction):
@@ -8636,6 +8655,7 @@ class StackOffsetFunction(GenericOffsetFunction):
 
     _function_ = '_stack'
     _section_ = "[stack]"
+    _zone_ = None
 
 @register_function
 class HeapBaseFunction(GenericOffsetFunction):
@@ -8643,15 +8663,33 @@ class HeapBaseFunction(GenericOffsetFunction):
 
     _function_ = '_heap'
     _section_ = "[heap]"
+    _zone_ = None
 
 @register_function
 class PieBaseFunction(GenericOffsetFunction):
     """Returns the current pie base address plus the given offset"""
 
     _function_ = '_pie'
+    _zone_ = None
     @property
     def _section_(self):
         return get_filepath()
+
+@register_function
+class BssBaseFunction(GenericOffsetFunction):
+    """Returns the current bss base address plus the given offset"""
+
+    _function_ = '_bss'
+    _zone_ = ".bss"
+    _section_ = None
+
+@register_function
+class GotBaseFunction(GenericOffsetFunction):
+    """Returns the current bss base address plus the given offset"""
+
+    _function_ = '_got'
+    _zone_ = ".got"
+    _section_ = None
 
 class GefCommand(gdb.Command):
     """GEF main command: view all new commands by typing `gef`"""
