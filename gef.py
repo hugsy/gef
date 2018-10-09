@@ -8723,7 +8723,8 @@ class GefFunctionsCommand(GenericCommand):
     def do_invoke(self, argv):
         self.dont_repeat()
         gef_print(titlify("GEF - Convenience Functions"))
-        gef_print("These functions can be used as arguments to other commands to dynamically calculate values, eg: {:s}\n"
+        gef_print("These functions can be used as arguments to other "
+                  "commands to dynamically calculate values, eg: {:s}\n"
                   .format(Color.colorify("deref $_heap(0x20)", attrs="yellow")))
         gef_print(self.__doc__)
         return
