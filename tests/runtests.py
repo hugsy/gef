@@ -127,6 +127,13 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn(b"Possible insecure format string:", res)
         return
 
+    def test_cmd_functions(self):
+        cmd = "functions"
+        res = gdb_run_cmd(cmd)
+        self.assertNoException(res)
+        self.assertIn(b"$_heap", res)
+        return
+
     def test_cmd_heap_arenas(self):
         cmd = "heap arenas"
         target = "tests/binaries/heap.out"
@@ -501,6 +508,61 @@ class TestGefFunctions(GefUnitTestGeneric):
         self.assertTrue(int(res.splitlines()[-1]))
         return
 
+class TestGdbFunctions(GefUnitTestGeneric):
+    """Tests gdb convenience functions added by GEF."""
+
+    def test_func_pie(self):
+        cmd = "x/s $_pie()"
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
+        res = gdb_start_silent_cmd(cmd)
+        self.assertNoException(res)
+        self.assertIn(b"\\177ELF", res)
+
+        cmd = "x/s $_pie(1)"
+        res = gdb_start_silent_cmd(cmd)
+        self.assertNoException(res)
+        self.assertNotIn(b"\\177ELF", res)
+        self.assertIn(b"ELF", res)
+        return
+
+    def test_func_heap(self):
+        cmd = "deref $_heap()"
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target="tests/binaries/heap.out"))
+        res = gdb_run_silent_cmd(cmd, target="tests/binaries/heap.out")
+        self.assertNoException(res)
+        self.assertIn(b"0x0000000000000021", res)
+        self.assertIn(b"0x0000000000020fe1", res)
+
+        cmd = "deref $_heap(0x10+0x10)"
+        res = gdb_run_silent_cmd(cmd, target="tests/binaries/heap.out")
+        self.assertNoException(res)
+        self.assertNotIn(b"0x0000000000000021", res)
+        self.assertIn(b"0x0000000000020fe1", res)
+        return
+
+    def test_func_got(self):
+        cmd = "deref $_got()"
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target="tests/binaries/heap.out"))
+        res = gdb_run_silent_cmd(cmd, target="tests/binaries/heap.out")
+        self.assertNoException(res)
+        self.assertIn(b"malloc", res)
+        return
+
+    def test_func_bss(self):
+        cmd = "deref $_bss()"
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target="tests/binaries/bss.out"))
+        res = gdb_run_silent_cmd(cmd, target="tests/binaries/bss.out")
+        self.assertNoException(res)
+        self.assertIn(b"Hello world!", res)
+        return
+
+    def test_func_stack(self):
+        cmd = "deref $_stack()"
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
+        res = gdb_start_silent_cmd(cmd)
+        self.assertNoException(res)
+        self.assertIn(b"+0x20: 0x0000000000000000", res)
+        return
 
 class TestGefMisc(GefUnitTestGeneric):
     """Tests external functionality."""
@@ -517,6 +579,7 @@ def run_tests():
     test_instances = [
         TestGefCommands,
         TestGefFunctions,
+        TestGdbFunctions,
         TestGefMisc,
     ]
 

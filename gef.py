@@ -189,6 +189,7 @@ except ImportError:
 
 __gef__                                = None
 __commands__                           = []
+__functions__                          = []
 __aliases__                            = []
 __config__                             = {}
 __watches__                            = {}
@@ -2557,6 +2558,13 @@ def process_lookup_path(name, perm=Permission.ALL):
 
     return None
 
+def file_lookup_name_path(name, path):
+    """Look up a file by name and path.
+    Return a Zone object if found, None otherwise."""
+    for xfile in get_info_files():
+        if path == xfile.filename and name == xfile.name:
+            return xfile
+    return None
 
 def file_lookup_address(address):
     """Look up for a file by its address.
@@ -3609,6 +3617,11 @@ def register_priority_command(cls):
     __commands__.insert(0, cls)
     return cls
 
+def register_function(cls):
+    """Decorator for registering a new convenience function to GDB."""
+    global __functions__
+    __functions__.append(cls)
+    return cls
 
 class GenericCommand(gdb.Command):
     """This is an abstract class for invoking commands, should not be instantiated."""
@@ -8633,6 +8646,119 @@ class SyscallArgsCommand(GenericCommand):
         return path if os.path.isdir(path) else None
 
 
+class GenericOffsetFunction(gdb.Function):
+    """This is an abstract class for invoking offset functions, should not be instantiated."""
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractproperty
+    def _section_(self): pass
+    @abc.abstractproperty
+    def _zone_(self): pass
+    @abc.abstractproperty
+    def _function_(self): pass
+    @property
+    def _syntax_(self):
+        return "${}([offset])".format(self._function_)
+
+    def __init__ (self):
+        super(GenericOffsetFunction, self).__init__(self._function_)
+
+    def invoke(self, offset=gdb.Value(0)):
+        if not is_alive():
+            raise gdb.GdbError("No debugging session active")
+
+        base_address = self.get_base_address()
+        if not base_address:
+            raise gdb.GdbError("No {} section".format(self._section_ or self._zone_))
+
+        addr = long(offset) if offset.address is None else long(offset.address)
+        return long(base_address + addr)
+
+    def get_base_address(self):
+        if self._section_:
+            section = process_lookup_path(self._section_)
+            if section:
+                return section.page_start
+        elif self._zone_:
+            zone = file_lookup_name_path(self._zone_, get_filepath())
+            if zone:
+                return zone.zone_start
+        return None
+
+@register_function
+class StackOffsetFunction(GenericOffsetFunction):
+    """Return the current stack base address plus an optional offset."""
+    _function_ = "_stack"
+    _section_ = "[stack]"
+    _zone_ = None
+
+@register_function
+class HeapBaseFunction(GenericOffsetFunction):
+    """Return the current heap base address plus an optional offset."""
+    _function_ = "_heap"
+    _section_ = "[heap]"
+    _zone_ = None
+
+@register_function
+class PieBaseFunction(GenericOffsetFunction):
+    """Return the current pie base address plus an optional offset."""
+    _function_ = "_pie"
+    _zone_ = None
+    @property
+    def _section_(self):
+        return get_filepath()
+
+@register_function
+class BssBaseFunction(GenericOffsetFunction):
+    """Return the current bss base address plus the given offset."""
+    _function_ = "_bss"
+    _zone_ = ".bss"
+    _section_ = None
+
+@register_function
+class GotBaseFunction(GenericOffsetFunction):
+    """Return the current bss base address plus the given offset."""
+    _function_ = "_got"
+    _zone_ = ".got"
+    _section_ = None
+
+@register_command
+class GefFunctionsCommand(GenericCommand):
+    """List the convenience functions provided by GEF."""
+    _cmdline_ = "functions"
+    _syntax_ = _cmdline_
+
+    def __init__(self):
+        super(GefFunctionsCommand, self).__init__()
+        self.docs = []
+        self.setup()
+        return
+
+    def setup(self):
+        global __gef__
+        for function in __gef__.loaded_functions:
+            self.add_function_to_doc(function)
+        self.__doc__ = "\n".join(sorted(self.docs))
+
+    def add_function_to_doc(self, function):
+        """Add function to documentation."""
+        doc = getattr(function, "__doc__", "").lstrip()
+        doc = "\n                         ".join(doc.split("\n"))
+        syntax = getattr(function, "_syntax_", "").lstrip()
+        w = max(1, get_terminal_size()[1] - 29)  # use max() to avoid zero or negative numbers
+        msg = "{syntax:<25s} -- {help:{w}s}".format(syntax=syntax, help=Color.greenify(doc), w=w)
+        self.docs.append(msg)
+        return
+
+    def do_invoke(self, argv):
+        self.dont_repeat()
+        gef_print(titlify("GEF - Convenience Functions"))
+        gef_print("These functions can be used as arguments to other "
+                  "commands to dynamically calculate values, eg: {:s}\n"
+                  .format(Color.colorify("deref $_heap(0x20)", attrs="yellow")))
+        gef_print(self.__doc__)
+        return
+
 class GefCommand(gdb.Command):
     """GEF main command: view all new commands by typing `gef`"""
 
@@ -8651,6 +8777,7 @@ class GefCommand(gdb.Command):
         set_gef_setting("gef.extra_plugins_dir", "", str, "Autoload additional GEF commands from external directory")
         set_gef_setting("gef.disable_color", False, bool, "Disable all colors in GEF")
         self.loaded_commands = []
+        self.loaded_functions = []
         self.missing_commands = {}
         return
 
@@ -8734,9 +8861,13 @@ class GefCommand(gdb.Command):
 
 
     def load(self, initial=False):
-        """Load all the commands defined by GEF into GDB."""
+        """Load all the commands and functions defined by GEF into GDB."""
         nb_missing = 0
         self.commands = [(x._cmdline_, x) for x in __commands__]
+
+        # load all of the functions
+        for function_class_name in __functions__:
+            self.loaded_functions.append(function_class_name())
 
         def is_loaded(x):
             return any(filter(lambda u: x == u[0], self.loaded_commands))

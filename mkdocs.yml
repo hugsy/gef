@@ -21,6 +21,7 @@ pages:
 - Command entry-break: commands/entry-break.md
 - Command eval: commands/eval.md
 - Command format-string-helper: commands/format-string-helper.md
+- Command functions: commands/functions.md
 - Command gef-remote: commands/gef-remote.md
 - Command heap: commands/heap.md
 - Command heap-analysis-helper: commands/heap-analysis-helper.md
