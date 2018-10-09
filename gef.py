@@ -8634,6 +8634,9 @@ class GenericOffsetFunction(gdb.Function):
         super(GenericOffsetFunction, self).__init__(self._function_)
 
     def invoke(self, offset=gdb.Value(0)):
+        if not is_alive():
+            raise gdb.GdbError("No debugging session active")
+
         base_address = self.get_base_address()
         if not base_address:
             raise gdb.GdbError("No {} section".format(self._section_ or self._zone_))
