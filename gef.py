@@ -8695,7 +8695,7 @@ class GotBaseFunction(GenericOffsetFunction):
 @register_command
 class GefFunctionsCommand(GenericCommand):
     """List the convenience functions provided by GEF."""
-    _cmdline_ = 'functions'
+    _cmdline_ = "functions"
     _syntax_ = _cmdline_
 
     def __init__(self):
