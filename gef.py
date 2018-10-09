@@ -7590,14 +7590,13 @@ class HexdumpCommand(GenericCommand):
             self.usage()
             return
 
-        fmt, argv = argv[0].lower(), argv[1:]
-        fmt_map = {
-            "qword": "qword", "q": "qword",
-            "dword": "dword", "d": "dword",
-            "word": "word", "w": "word",
-            "byte": "byte", "b": "byte",
-        }
-        fmt = fmt_map.get(fmt)
+        arg0, argv = argv[0].lower(), argv[1:]
+        valid_formats = ["byte", "word", "dword", "qword"]
+        fmt = None
+        for valid_format in valid_formats:
+            if valid_format.startswith(arg0):
+                fmt = valid_format
+                break
         if not fmt:
             self.usage()
             return
