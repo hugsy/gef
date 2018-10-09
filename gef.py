@@ -7625,6 +7625,8 @@ class HexdumpCommand(GenericCommand):
             return
         endianness = endian_str()
 
+        base_address_color = get_gef_setting("theme.dereference_base_address")
+
         formats = {
             "qword": ("Q", 8),
             "dword": ("I", 4),
@@ -7632,7 +7634,7 @@ class HexdumpCommand(GenericCommand):
         }
 
         r, l = formats[arrange_as]
-        fmt_str = "%#x+%.4x %s  {:s} %#.{:s}x".format(VERTICAL_LINE, str(l * 2))
+        fmt_str = "{{base}}{v}+{{offset:#06x}} {{sym}}{{val:#0{prec}x}}".format(v=VERTICAL_LINE, prec=l*2+2)
         fmt_pack = endianness + r
         lines = []
 
@@ -7640,10 +7642,11 @@ class HexdumpCommand(GenericCommand):
         while i < length:
             cur_addr = start_addr + (i + offset) * l
             sym = gdb_get_location_from_symbol(cur_addr)
-            sym = "<{:s}+{:04x}>".format(*sym) if sym else ''
+            sym = "<{:s}+{:04x}> ".format(*sym) if sym else ''
             mem = read_memory(cur_addr, l)
             val = struct.unpack(fmt_pack, mem)[0]
-            lines.append(fmt_str % (cur_addr, (i + offset) * l,  sym, val))
+            lines.append(fmt_str.format(base=Color.colorify(format_address(cur_addr), attrs=base_address_color),
+                                        offset=(i + offset) * l, sym=sym, val=val))
             i += 1
 
         return lines
@@ -7749,7 +7752,7 @@ class DereferenceCommand(GenericCommand):
         addrs = DereferenceCommand.dereference_from(current_address)
         l  = ""
         addr_l = format_address(long(addrs[0], 16))
-        l += "{:s}{:s}+{:#04x}: {:{ma}s}".format(Color.colorify(addr_l, attrs=base_address_color),
+        l += "{:s}{:s}+{:#06x}: {:{ma}s}".format(Color.colorify(addr_l, attrs=base_address_color),
                                                  VERTICAL_LINE, offset,
                                                  sep.join(addrs[1:]), ma=(memalign*2 + 2))
 
