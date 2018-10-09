@@ -7590,8 +7590,14 @@ class HexdumpCommand(GenericCommand):
             self.usage()
             return
 
-        fmt, argv = argv[0], argv[1:]
-        if fmt not in {"qword", "dword", "word", "byte"}:
+        arg0, argv = argv[0].lower(), argv[1:]
+        valid_formats = ["byte", "word", "dword", "qword"]
+        fmt = None
+        for valid_format in valid_formats:
+            if valid_format.startswith(arg0):
+                fmt = valid_format
+                break
+        if not fmt:
             self.usage()
             return
 
@@ -7611,10 +7617,10 @@ class HexdumpCommand(GenericCommand):
                 except ValueError:
                     pass
 
-                if arg == "up":
+                if arg in {"up", "u"}:
                     up_to_down = True
                     continue
-                elif arg == "down":
+                elif arg in {"down", "d"}:
                     up_to_down = False
                     continue
 

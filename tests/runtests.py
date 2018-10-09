@@ -561,7 +561,7 @@ class TestGdbFunctions(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertIn(b"+0x20: 0x0000000000000000", res)
+        self.assertRegex(res.decode(), r"\+0x0*20: *0x0000000000000000\n")
         return
 
 class TestGefMisc(GefUnitTestGeneric):
