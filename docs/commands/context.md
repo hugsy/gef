@@ -144,9 +144,9 @@ gef➤ gef config context.enable 0
 gef➤ gef config context.clear_screen 1
 ```
 
-* Automatically dereference the registers in the `regs` section:
+* Don't dereference the registers in the `regs` section (more compact):
 ```
-gef➤ gef config context.show_registers_raw 0
+gef➤ gef config context.show_registers_raw 1
 ```
 
 * Don't 'peek' into the start of functions that are called.

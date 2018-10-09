@@ -17,6 +17,7 @@
 | MIPS         | :heavy_multiplication_x: |                        |
 | POWERPC      | :heavy_multiplication_x: |                        |
 | SPARC        | :heavy_multiplication_x: |                        |
+| `make tests` | :heavy_multiplication_x: |                        |
 
 ### Checklist ###
 
@@ -24,4 +25,5 @@
 <!--- Put an `x` in all the boxes that apply. -->
 - [ ] My code follows the code style of this project.
 - [ ] My change includes a change to the documentation, if required.
+- [ ] My change adds tests as approriate.
 - [ ] I have read and agree to the **CONTRIBUTING** document.
