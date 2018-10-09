@@ -8628,7 +8628,7 @@ class GenericOffsetFunction(gdb.Function):
     def _function_(self): pass
     @property
     def _syntax_(self):
-        return "${}([OFFSET])".format(self._function_)
+        return "${}([offset])".format(self._function_)
 
     def __init__ (self):
         super(GenericOffsetFunction, self).__init__(self._function_)
@@ -8654,21 +8654,21 @@ class GenericOffsetFunction(gdb.Function):
 
 @register_function
 class StackOffsetFunction(GenericOffsetFunction):
-    """Return the current stack base address plus the given offset."""
+    """Return the current stack base address plus an optional offset."""
     _function_ = "_stack"
     _section_ = "[stack]"
     _zone_ = None
 
 @register_function
 class HeapBaseFunction(GenericOffsetFunction):
-    """Return the current heap base address plus the given offset."""
+    """Return the current heap base address plus an optional offset."""
     _function_ = "_heap"
     _section_ = "[heap]"
     _zone_ = None
 
 @register_function
 class PieBaseFunction(GenericOffsetFunction):
-    """Return the current pie base address plus the given offset."""
+    """Return the current pie base address plus an optional offset."""
     _function_ = "_pie"
     _zone_ = None
     @property
@@ -8688,6 +8688,42 @@ class GotBaseFunction(GenericOffsetFunction):
     _function_ = "_got"
     _zone_ = ".got"
     _section_ = None
+
+@register_command
+class GefFunctionsCommand(GenericCommand):
+    """List the convenience functions provided by GEF."""
+    _cmdline_ = 'functions'
+    _syntax_ = _cmdline_
+
+    def __init__(self):
+        super(GefFunctionsCommand, self).__init__()
+        self.docs = []
+        self.setup()
+        return
+
+    def setup(self):
+        global __gef__
+        for function in __gef__.loaded_functions:
+            self.add_function_to_doc(function)
+        self.__doc__ = "\n".join(sorted(self.docs))
+
+    def add_function_to_doc(self, function):
+        """Add function to documentation."""
+        doc = getattr(function, "__doc__", "").lstrip()
+        doc = "\n                         ".join(doc.split("\n"))
+        syntax = getattr(function, "_syntax_", "").lstrip()
+        w = max(1, get_terminal_size()[1] - 29)  # use max() to avoid zero or negative numbers
+        msg = "{syntax:<25s} -- {help:{w}s}".format(syntax=syntax, help=Color.greenify(doc), w=w)
+        self.docs.append(msg)
+        return
+
+    def do_invoke(self, argv):
+        self.dont_repeat()
+        gef_print(titlify("GEF - Convenience Functions"))
+        gef_print("These functions can be used as arguments to other commands to dynamically calculate values, eg: {:s}\n"
+                  .format(Color.colorify("deref $_heap(0x20)", attrs="yellow")))
+        gef_print(self.__doc__)
+        return
 
 class GefCommand(gdb.Command):
     """GEF main command: view all new commands by typing `gef`"""
@@ -8714,7 +8750,7 @@ class GefCommand(gdb.Command):
     def setup(self):
         self.load(initial=True)
         # loading GEF sub-commands
-        self.doc = GefHelpCommand(self.loaded_commands, self.loaded_functions)
+        self.doc = GefHelpCommand(self.loaded_commands)
         self.cfg = GefConfigCommand(self.loaded_command_names)
         GefSaveCommand()
         GefRestoreCommand()
@@ -8795,6 +8831,10 @@ class GefCommand(gdb.Command):
         nb_missing = 0
         self.commands = [(x._cmdline_, x) for x in __commands__]
 
+        # load all of the functions
+        for function_class_name in __functions__:
+            self.loaded_functions.append(function_class_name())
+
         def is_loaded(x):
             return any(filter(lambda u: x == u[0], self.loaded_commands))
 
@@ -8816,10 +8856,6 @@ class GefCommand(gdb.Command):
 
         # sort by command name
         self.loaded_commands = sorted(self.loaded_commands, key=lambda x: x[1]._cmdline_)
-
-        # load all of the functions
-        for function_class_name in __functions__:
-            self.loaded_functions.append(function_class_name())
 
         if initial:
             gef_print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure"
@@ -8847,13 +8883,13 @@ class GefHelpCommand(gdb.Command):
     _cmdline_ = "gef help"
     _syntax_  = _cmdline_
 
-    def __init__(self, commands, functions, *args, **kwargs):
+    def __init__(self, commands, *args, **kwargs):
         super(GefHelpCommand, self).__init__(GefHelpCommand._cmdline_,
                                              gdb.COMMAND_SUPPORT,
                                              gdb.COMPLETE_NONE,
                                              False)
         self.docs = []
-        self.generate_help(commands, functions)
+        self.generate_help(commands)
         self.refresh()
         return
 
@@ -8863,12 +8899,10 @@ class GefHelpCommand(gdb.Command):
         gef_print(self.__doc__)
         return
 
-    def generate_help(self, commands, functions):
-        """Generate builtin commands and function documentation."""
+    def generate_help(self, commands):
+        """Generate builtin commands documentation."""
         for command in commands:
             self.add_command_to_doc(command)
-        for function in functions:
-            self.add_function_to_doc(function)
         return
 
     def add_command_to_doc(self, command):
@@ -8882,17 +8916,6 @@ class GefHelpCommand(gdb.Command):
         aliases = "(alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
         w = max(1, get_terminal_size()[1] - 29 - len(aliases))  # use max() to avoid zero or negative numbers
         msg = "{cmd:<25s} -- {help:{w}s} {aliases:s}".format(cmd=cmd, help=Color.greenify(doc), w=w, aliases=aliases)
-        self.docs.append(msg)
-        return
-
-    def add_function_to_doc(self, function):
-        """Add function to GEF documentation."""
-        doc = getattr(function, "__doc__", "").lstrip()
-        doc = "\n                         ".join(doc.split("\n"))
-        syntax = getattr(function, "_syntax_", "").lstrip()
-        note = "(convenience function)"
-        w = max(1, get_terminal_size()[1] - 29 - len(note))  # use max() to avoid zero or negative numbers
-        msg = "{syntax:<25s} -- {help:{w}s} {note:s}".format(syntax=syntax, help=Color.greenify(doc), w=w, note=note)
         self.docs.append(msg)
         return
 
