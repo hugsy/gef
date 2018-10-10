@@ -10,7 +10,7 @@ API to assist during the process of dynamic analysis and exploit development.
 It has full support for both Python2 and Python3 indifferently (as more and more
 distros start pushing `gdb` compiled with Python3 support).
 
-![gef-context](https://i.imgur.com/i0Hkw2C.png)
+![gef-context](https://i.imgur.com/E3EuQPs.png)
 
 
 *Some* of `GEF` features include:

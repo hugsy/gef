@@ -6277,9 +6277,8 @@ class DetailRegistersCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        regs = []
-        regname_color = get_gef_setting("theme.registers_register_name")
-        changed_register_value_color = get_gef_setting("theme.registers_value_changed")
+        unchanged_color = get_gef_setting("theme.registers_register_name")
+        changed_color = get_gef_setting("theme.registers_value_changed")
         string_color = get_gef_setting("theme.dereference_string")
 
         if argv:
@@ -6290,43 +6289,51 @@ class DetailRegistersCommand(GenericCommand):
         memsize = current_arch.ptrsize
         endian = endian_str()
         charset = string.printable
+        widest = max(map(len, current_arch.all_registers))
 
         for regname in regs:
             reg = gdb.parse_and_eval(regname)
             if reg.type.code == gdb.TYPE_CODE_VOID:
                 continue
 
-            widest = max(map(len, current_arch.all_registers))
+            padreg = regname.ljust(widest, " ")
+
+            if str(reg) == "<unavailable>":
+                line = "{}: ".format(Color.colorify(padreg, unchanged_color))
+                line += Color.colorify("no value", "yellow underline")
+                gef_print(line)
+                continue
+
+            value = align_address(long(reg))
+            old_value = ContextCommand.old_registers.get(regname, 0)
+            if value == old_value:
+                color = unchanged_color
+            else:
+                color = changed_color
+
             if is_x86() and regname in current_arch.msr_registers:
                 msr = set(current_arch.msr_registers)
                 for r in set(regs) & msr:
-                    line = "{}: ".format(Color.colorify(r, regname_color))
+                    line = "{}: ".format(Color.colorify(r, color))
                     line+= "0x{:04x}".format(get_register(r))
                     gef_print(line, end="  ")
                     regs.remove(r)
                 gef_print()
                 continue
 
-            padreg = regname.ljust(widest, " ")
-            line = "{}: ".format(Color.colorify(padreg, regname_color))
-
-            if str(reg) == "<unavailable>":
-                line += Color.colorify("no value", "yellow underline")
-                gef_print(line)
-                continue
+            line = "{}: ".format(Color.colorify(padreg, color))
 
             if regname == current_arch.flag_register:
                 line += current_arch.flag_register_to_human()
                 gef_print(line)
                 continue
 
-            old_value = ContextCommand.old_registers.get(regname, 0)
-            new_value = align_address(long(reg))
-            if new_value == old_value:
-                line += format_address_spaces(new_value)
+            addr = lookup_address(align_address(long(value)))
+            if addr.valid:
+                line += str(addr)
             else:
-                line += Color.colorify(format_address_spaces(new_value), changed_register_value_color)
-            addrs = DereferenceCommand.dereference_from(new_value)
+                line += format_address_spaces(value)
+            addrs = DereferenceCommand.dereference_from(value)
 
             if len(addrs) > 1:
                 sep = " {:s} ".format(RIGHT_ARROW)
@@ -6990,7 +6997,7 @@ class ContextCommand(GenericCommand):
         nb = get_terminal_size()[1]//l
         i = 1
         line = ""
-        color = get_gef_setting("theme.registers_value_changed")
+        changed_color = get_gef_setting("theme.registers_value_changed")
         regname_color = get_gef_setting("theme.registers_register_name")
 
         for reg in current_arch.all_registers:
@@ -7017,16 +7024,20 @@ class ContextCommand(GenericCommand):
             old_value = self.old_registers.get(reg, 0)
 
             padreg = reg.ljust(widest, " ")
-            line += "{}: ".format(Color.colorify(padreg, regname_color))
-            if new_value_type_flag:
-                line += "{:s} ".format(str(new_value))
+            value = align_address(new_value)
+            old_value = align_address(old_value)
+            if value == old_value:
+                line += "{}: ".format(Color.colorify(padreg, regname_color))
             else:
-                new_value = align_address(new_value)
-                old_value = align_address(old_value)
-                if new_value == old_value:
-                    line += "{:s} ".format(format_address_spaces(new_value))
+                line += "{}: ".format(Color.colorify(padreg, changed_color))
+            if new_value_type_flag:
+                line += "{:s} ".format(str(value))
+            else:
+                addr = lookup_address(align_address(long(value)))
+                if addr.valid:
+                    line += "{:s} ".format(str(addr))
                 else:
-                    line += "{:s} ".format(Color.colorify(format_address_spaces(new_value), color))
+                    line += "{:s} ".format(format_address_spaces(value))
 
             if i % nb == 0 :
                 gef_print(line)
