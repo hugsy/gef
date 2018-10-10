@@ -6760,7 +6760,7 @@ class ElfInfoCommand(GenericCommand):
         ]
 
         for title, content in data:
-            gef_print("{:<30}: {}".format(Color.boldify(title), content))
+            gef_print("{}: {}".format(Color.boldify("{:<22}".format(title)), content))
         return
 
 
@@ -7970,11 +7970,9 @@ class VMMapCommand(GenericCommand):
             return
 
         color = get_gef_setting("theme.xinfo_title_message")
-        headers = [Color.colorify(x, color) for x in ["Start", "End", "Offset", "Perm", "Path"]]
-        if is_elf64():
-            gef_print("{:<31s} {:<31s} {:<31s} {:<4s} {:s}".format(*headers))
-        else:
-            gef_print("{:<23s} {:<23s} {:<23s} {:<4s} {:s}".format(*headers))
+
+        headers = ["Start", "End", "Offset", "Perm", "Path"]
+        gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<{w}s}{:<4s} {:s}".format(*headers, w=get_memory_alignment()*2+3), color))
 
         for entry in vmmap:
             if argv and not argv[0] in entry.path:
@@ -8008,11 +8006,8 @@ class XFilesCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         color = get_gef_setting("theme.xinfo_title_message")
-        headers = [Color.colorify(x, color) for x in ["Start", "End", "Name", "File",]]
-        if is_elf64():
-            gef_print("{:<31s} {:<31s} {:<34s} {:s}".format(*headers))
-        else:
-            gef_print("{:<23s} {:<23s} {:<23s} {:s}".format(*headers))
+        headers = ["Start", "End", "Name", "File"]
+        gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<21s} {:s}".format(*headers, w=get_memory_alignment()*2+3), color))
 
         filter_by_file = argv[0] if argv and argv[0] else None
         filter_by_name = argv[1] if len(argv) > 1 and argv[1] else None
@@ -8621,9 +8616,9 @@ class SyscallArgsCommand(GenericCommand):
         info("Detected syscall {}".format(Color.colorify(syscall_entry.name, color)))
         gef_print("    {}({})".format(syscall_entry.name, ', '.join(parameters)))
 
-        headers = [Color.colorify(x, color) for x in ["Parameter", "Register", "Value"]]
+        headers = ["Parameter", "Register", "Value"]
         param_names = [re.split(r' |\*', p)[-1] for p in parameters]
-        info("{:<28} {:<28} {}".format(*headers))
+        info(Color.colorify("{:<28} {:<28} {}".format(*headers), color))
         for name, register, value in zip(param_names, registers, values):
             line = "    {:<15} {:<15} 0x{:x}".format(name, register, value)
 
@@ -8756,8 +8751,7 @@ class GefFunctionsCommand(GenericCommand):
         doc = getattr(function, "__doc__", "").lstrip()
         doc = "\n                         ".join(doc.split("\n"))
         syntax = getattr(function, "_syntax_", "").lstrip()
-        w = max(1, get_terminal_size()[1] - 29)  # use max() to avoid zero or negative numbers
-        msg = "{syntax:<25s} -- {help:{w}s}".format(syntax=syntax, help=Color.greenify(doc), w=w)
+        msg = "{syntax:<25s} -- {help:s}".format(syntax=syntax, help=Color.greenify(doc))
         self.docs.append(msg)
         return
 
@@ -8958,9 +8952,8 @@ class GefHelpCommand(gdb.Command):
             return
         doc = getattr(class_name, "__doc__", "").lstrip()
         doc = "\n                         ".join(doc.split("\n"))
-        aliases = "(alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
-        w = max(1, get_terminal_size()[1] - 29 - len(aliases))  # use max() to avoid zero or negative numbers
-        msg = "{cmd:<25s} -- {help:{w}s} {aliases:s}".format(cmd=cmd, help=Color.greenify(doc), w=w, aliases=aliases)
+        aliases = " (alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
+        msg = "{cmd:<25s} -- {help:s}{aliases:s}".format(cmd=cmd, help=Color.greenify(doc), aliases=aliases)
         self.docs.append(msg)
         return
 
