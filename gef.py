@@ -6785,7 +6785,7 @@ class EntryPointBreakCommand(GenericCommand):
             warn("The file '{}' is not executable.".format(fpath))
             return
 
-        if is_alive():
+        if is_alive() and not __gef_qemu_mode__:
             warn("gdb is already running")
             return
 
