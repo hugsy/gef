@@ -5041,7 +5041,7 @@ class SearchPatternCommand(GenericCommand):
 
 @register_command
 class FlagsCommand(GenericCommand):
-    """Edit flags in a human friendly way"""
+    """Edit flags in a human friendly way."""
 
     _cmdline_ = "edit-flags"
     _syntax_  = "{:s} [(+|-|~)FLAGNAME ...]".format(_cmdline_)
@@ -6359,7 +6359,7 @@ class ShellcodeCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
-        err("Missing sub-command <search|get>")
+        err("Missing sub-command (search|get)")
         self.usage()
         return
 
@@ -7681,7 +7681,7 @@ class PatchCommand(GenericCommand):
     """Write specified values to the specified address."""
 
     _cmdline_ = "patch"
-    _syntax_  = ("{0:s} <qword|dword|word|byte> <location> <values>\n"
+    _syntax_  = ("{0:s} (qword|dword|word|byte) LOCATION VALUES\n"
                  "{0:s} string LOCATION \"double-escaped string\"".format(_cmdline_))
     SUPPORTED_SIZES = {
         "qword": (8, "Q"),
@@ -8098,7 +8098,7 @@ class XorMemoryCommand(GenericCommand):
     runtime at runtime."""
 
     _cmdline_ = "xor-memory"
-    _syntax_  = "{:s} <display|patch> ADDRESS SIZE KEY".format(_cmdline_)
+    _syntax_  = "{:s} (display|patch) ADDRESS SIZE KEY".format(_cmdline_)
 
     def __init__(self):
         super(XorMemoryCommand, self).__init__(prefix=True)
@@ -8262,7 +8262,7 @@ class PatternCommand(GenericCommand):
     used by pwntools, and can therefore be used in conjunction."""
 
     _cmdline_ = "pattern"
-    _syntax_  = "{:s} (create|search) <args>".format(_cmdline_)
+    _syntax_  = "{:s} (create|search) ARGS".format(_cmdline_)
 
     def __init__(self, *args, **kwargs):
         super(PatternCommand, self).__init__(prefix=True)

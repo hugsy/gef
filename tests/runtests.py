@@ -358,7 +358,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
     def test_cmd_shellcode(self):
         res = gdb_start_silent_cmd("shellcode")
         self.assertNoException(res)
-        self.assertIn(b"Missing sub-command <search|get>", res)
+        self.assertIn(b"Missing sub-command (search|get)", res)
         return
 
     def test_cmd_shellcode_search(self):
