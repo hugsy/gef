@@ -1520,7 +1520,6 @@ class RISCV(Architecture):
 
 class ARM(Architecture):
     arch = "ARM"
-    mode = "ARM"
 
     all_registers = ["$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6",
                      "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$sp",
@@ -1543,6 +1542,10 @@ class ARM(Architecture):
     function_parameters = ["$r0", "$r1", "$r2", "$r3"]
     syscall_register = "$r7"
     syscall_instructions = ["swi 0x0", "swi NR"]
+
+    @property
+    def mode(self):
+        return "THUMB" if is_arm_thumb() else "ARM"
 
     @property
     def instruction_length(self):
