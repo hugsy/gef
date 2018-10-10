@@ -18,7 +18,7 @@ to release the code written by you under the said license.
     * Comment your code
     * If you add a new feature/GDB command, also write the adequate
       documentation (in [`docs/`](https://github.com/hugsy/gef/docs))
-1. Submit a pull request.
+1. Submit a pull request, **make sure it is made against the `dev` branch (not `master`, which only contains tested and stable features)**
 1. The contributors will review your patch. If it is approved, the change will
    be merged via the GitHub, and you will be seen as contributors. If it needs
    additional work, the repo owner will respond with useful comments.
