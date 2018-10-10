@@ -7217,6 +7217,7 @@ class ContextCommand(GenericCommand):
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
         instruction_iterator = capstone_disassemble if use_capstone else gef_disassemble
         function_parameters = current_arch.function_parameters
+        arg_key_color = get_gef_setting("theme.registers_register_name")
 
         for insn in instruction_iterator(block_start, pc-block_start):
             if not insn.operands:
@@ -7252,7 +7253,7 @@ class ContextCommand(GenericCommand):
         for i in range(nb_argument):
             _key, _value = self.get_ith_parameter(i)
             _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
-            args.append("{} = {}".format(_key, _value))
+            args.append("{} = {}".format(Color.colorify(_key, attrs=arg_key_color), _value))
 
         self.context_title("arguments (guessed)")
         gef_print("{} (".format(function_name))
