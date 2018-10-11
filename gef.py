@@ -333,6 +333,7 @@ class Color:
         "yellow"         : "\033[33m",
         "blue"           : "\033[34m",
         "pink"           : "\033[35m",
+        "cyan"           : "\033[36m",
         "bold"           : "\033[1m",
         "underline"      : "\033[4m",
         "underline_off"  : "\033[24m",
@@ -343,25 +344,25 @@ class Color:
     }
 
     @staticmethod
-    def redify(msg):       return Color.colorify(msg, attrs="red")
+    def redify(msg):       return Color.colorify(msg, "red")
     @staticmethod
-    def greenify(msg):     return Color.colorify(msg, attrs="green")
+    def greenify(msg):     return Color.colorify(msg, "green")
     @staticmethod
-    def blueify(msg):      return Color.colorify(msg, attrs="blue")
+    def blueify(msg):      return Color.colorify(msg, "blue")
     @staticmethod
-    def yellowify(msg):    return Color.colorify(msg, attrs="yellow")
+    def yellowify(msg):    return Color.colorify(msg, "yellow")
     @staticmethod
-    def grayify(msg):      return Color.colorify(msg, attrs="gray")
+    def grayify(msg):      return Color.colorify(msg, "gray")
     @staticmethod
-    def pinkify(msg):      return Color.colorify(msg, attrs="pink")
+    def pinkify(msg):      return Color.colorify(msg, "pink")
     @staticmethod
-    def boldify(msg):      return Color.colorify(msg, attrs="bold")
+    def boldify(msg):      return Color.colorify(msg, "bold")
     @staticmethod
-    def underlinify(msg):  return Color.colorify(msg, attrs="underline")
+    def underlinify(msg):  return Color.colorify(msg, "underline")
     @staticmethod
-    def highlightify(msg): return Color.colorify(msg, attrs="highlight")
+    def highlightify(msg): return Color.colorify(msg, "highlight")
     @staticmethod
-    def blinkify(msg):     return Color.colorify(msg, attrs="blink")
+    def blinkify(msg):     return Color.colorify(msg, "blink")
 
     @staticmethod
     def colorify(text, attrs):
@@ -393,11 +394,11 @@ class Address:
         stack_color = get_gef_setting("theme.address_stack")
         heap_color = get_gef_setting("theme.address_heap")
         if self.is_in_text_segment():
-            return Color.colorify(value, attrs=code_color)
+            return Color.colorify(value, code_color)
         if self.is_in_heap_segment():
-            return Color.colorify(value, attrs=heap_color)
+            return Color.colorify(value, heap_color)
         if self.is_in_stack_segment():
-            return Color.colorify(value, attrs=stack_color)
+            return Color.colorify(value, stack_color)
         return value
 
     def is_in_text_segment(self):
@@ -808,15 +809,15 @@ class GlibcChunk:
     def flags_as_string(self):
         flags = []
         if self.has_p_bit():
-            flags.append(Color.colorify("PREV_INUSE", attrs="red bold"))
+            flags.append(Color.colorify("PREV_INUSE", "red bold"))
         if self.has_m_bit():
-            flags.append(Color.colorify("IS_MMAPPED", attrs="red bold"))
+            flags.append(Color.colorify("IS_MMAPPED", "red bold"))
         if self.has_n_bit():
-            flags.append(Color.colorify("NON_MAIN_ARENA", attrs="red bold"))
+            flags.append(Color.colorify("NON_MAIN_ARENA", "red bold"))
         return "|".join(flags)
 
     def __str__(self):
-        msg = "{:s}(addr={:#x}, size={:#x}, flags={:s})".format(Color.colorify("Chunk", attrs="yellow bold underline"),
+        msg = "{:s}(addr={:#x}, size={:#x}, flags={:s})".format(Color.colorify("Chunk", "yellow bold underline"),
                                                                 long(self.address),self.get_chunk_size(), self.flags_as_string())
         return msg
 
@@ -852,9 +853,9 @@ def titlify(text, color=None, msg_color=None):
         msg_color = __config__.get("theme.default_title_message")[0]
 
     msg = []
-    msg.append(Color.colorify(HORIZONTAL_LINE * nb + '[ ', attrs=color))
-    msg.append(Color.colorify(text, attrs=msg_color))
-    msg.append(Color.colorify(' ]' + HORIZONTAL_LINE * nb, attrs=color))
+    msg.append(Color.colorify(HORIZONTAL_LINE * nb + '[ ', color))
+    msg.append(Color.colorify(text, msg_color))
+    msg.append(Color.colorify(' ]' + HORIZONTAL_LINE * nb, color))
     return "".join(msg)
 
 
@@ -867,10 +868,10 @@ def _xlog(text, stream, cr=True):
     return 0
 
 
-def err(msg, cr=True):   return _xlog("{} {}".format(Color.colorify("[!]", attrs="bold red"), msg), gdb.STDERR, cr)
-def warn(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[*]", attrs="bold yellow"), msg), gdb.STDLOG, cr)
-def ok(msg, cr=True):    return _xlog("{} {}".format(Color.colorify("[+]", attrs="bold green"), msg), gdb.STDLOG, cr)
-def info(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[+]", attrs="bold blue"), msg), gdb.STDLOG, cr)
+def err(msg, cr=True):   return _xlog("{} {}".format(Color.colorify("[!]", "bold red"), msg), gdb.STDERR, cr)
+def warn(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[*]", "bold yellow"), msg), gdb.STDLOG, cr)
+def ok(msg, cr=True):    return _xlog("{} {}".format(Color.colorify("[+]", "bold green"), msg), gdb.STDLOG, cr)
+def info(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[+]", "bold blue"), msg), gdb.STDLOG, cr)
 
 
 def push_context_message(level, message):
@@ -895,7 +896,7 @@ def show_last_exception():
     exc_type, exc_value, exc_traceback = sys.exc_info()
 
     gef_print(" Exception raised ".center(80, HORIZONTAL_LINE))
-    gef_print("{}: {}".format(Color.colorify(exc_type.__name__, attrs="bold underline red"), exc_value))
+    gef_print("{}: {}".format(Color.colorify(exc_type.__name__, "bold underline red"), exc_value))
     gef_print(" Detailed stacktrace ".center(80, HORIZONTAL_LINE))
 
     for fs in traceback.extract_tb(exc_traceback)[::-1]:
@@ -974,7 +975,7 @@ def style_byte(b, color=True):
     else:
         st = style.get('nonprintable')
     if st:
-        sbyte = Color.colorify(sbyte, attrs=st)
+        sbyte = Color.colorify(sbyte, st)
     return sbyte
 
 
@@ -2114,7 +2115,7 @@ class MIPS(Architecture):
     syscall_instructions = ["syscall"]
 
     def flag_register_to_human(self, val=None):
-        return Color.colorify("No flag register", attrs="yellow underline")
+        return Color.colorify("No flag register", "yellow underline")
 
     def is_call(self, insn):
         return False
@@ -3264,7 +3265,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         if addr.section.permission.value & Permission.WRITE:
             content = read_cstring_from_memory(addr.value)
             name = addr.info.name if addr.info else addr.section.path
-            msg.append(Color.colorify("Format string helper", attrs="yellow bold"))
+            msg.append(Color.colorify("Format string helper", "yellow bold"))
             msg.append("Possible insecure format string: {:s}('{:s}' {:s} {:#x}: '{:s}')".format(self.location, ptr, RIGHT_ARROW, addr.value, content))
             msg.append("Reason: Call to '{:s}()' with format string argument in position "
                        "#{:d} is in page {:#x} ({:s}) that has write permission".format(self.location, self.num_args, addr.section.page_start, name))
@@ -3352,7 +3353,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
             loc = to_unsigned_long(gdb.parse_and_eval(current_arch.return_register))
 
         size = self.size
-        ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), size, loc))
+        ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", "yellow bold"), size, loc))
         check_heap_overlap = get_gef_setting("heap-analysis-helper.check_heap_overlap")
 
         # pop from free-ed list if it was in it
@@ -3390,7 +3391,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
                     offset = loc - chunk_addr - 2*align
                     if offset < 0: continue # false positive, discard
 
-                    msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+                    msg.append(Color.colorify("Heap-Analysis", "yellow bold"))
                     msg.append("Possible heap overlap detected")
                     msg.append("Reason {} new allocated chunk {:#x} (of size {:d}) overlaps in-used chunk {:#x} (of size {:#x})".format(RIGHT_ARROW, loc, size, chunk_addr, current_chunk_size))
                     msg.append("Writing {0:d} bytes from {1:#x} will reach chunk {2:#x}".format(offset, chunk_addr, loc))
@@ -3442,13 +3443,13 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
             newloc = to_unsigned_long(gdb.parse_and_eval(current_arch.return_register))
 
         if newloc != self:
-            ok("{} - realloc({:#x}, {})={}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),
+            ok("{} - realloc({:#x}, {})={}".format(Color.colorify("Heap-Analysis", "yellow bold"),
                                                    self.ptr, self.size,
-                                                   Color.colorify("{:#x}".format(newloc), attrs="green"),))
+                                                   Color.colorify("{:#x}".format(newloc), "green"),))
         else:
-            ok("{} - realloc({:#x}, {})={}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),
+            ok("{} - realloc({:#x}, {})={}".format(Color.colorify("Heap-Analysis", "yellow bold"),
                                                    self.ptr, self.size,
-                                                   Color.colorify("{:#x}".format(newloc), attrs="red"),))
+                                                   Color.colorify("{:#x}".format(newloc), "red"),))
 
         item = (newloc, self.size)
 
@@ -3487,10 +3488,10 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
         check_weird_free = get_gef_setting("heap-analysis-helper.check_weird_free")
         check_uaf = get_gef_setting("heap-analysis-helper.check_uaf")
 
-        ok("{} - free({:#x})".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), addr))
+        ok("{} - free({:#x})".format(Color.colorify("Heap-Analysis", "yellow bold"), addr))
         if addr==0:
             if check_free_null:
-                msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+                msg.append(Color.colorify("Heap-Analysis", "yellow bold"))
                 msg.append("Attempting to free(NULL) at {:#x}".format(current_arch.pc))
                 msg.append("Reason: if NULL page is allocatable, this can lead to code execution.")
                 push_context_message("warn", "\n".join(msg))
@@ -3500,7 +3501,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
 
         if addr in [x for (x,y) in __heap_freed_list__]:
             if check_double_free:
-                msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+                msg.append(Color.colorify("Heap-Analysis", "yellow bold"))
                 msg.append("Double-free detected {} free({:#x}) is called at {:#x} but is already in the free-ed list".format(RIGHT_ARROW, addr, current_arch.pc))
                 msg.append("Execution will likely crash...")
                 push_context_message("warn", "\n".join(msg))
@@ -3516,7 +3517,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
 
         except ValueError:
             if check_weird_free:
-                msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+                msg.append(Color.colorify("Heap-Analysis", "yellow bold"))
                 msg.append("Heap inconsistency detected:")
                 msg.append("Attempting to free an unknown value: {:#x}".format(addr))
                 push_context_message("warn", "\n".join(msg))
@@ -3545,7 +3546,7 @@ class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):
     def stop(self):
         wp = UafWatchpoint(self.addr)
         __heap_uaf_watchpoints__.append(wp)
-        ok("{} - watching {:#x}".format(Color.colorify("Heap-Analysis", attrs="yellow bold"), self.addr))
+        ok("{} - watching {:#x}".format(Color.colorify("Heap-Analysis", "yellow bold"), self.addr))
         return False
 
 
@@ -3571,7 +3572,7 @@ class UafWatchpoint(gdb.Breakpoint):
         pc = gdb_get_nth_previous_instruction_address(current_arch.pc, 2)
         insn = gef_current_instruction(pc)
         msg = []
-        msg.append(Color.colorify("Heap-Analysis", attrs="yellow bold"))
+        msg.append(Color.colorify("Heap-Analysis", "yellow bold"))
         msg.append("Possible Use-after-Free in '{:s}': pointer {:#x} was freed, but is attempted to be used at {:#x}"
                    .format(get_filepath(), self.address, pc))
         msg.append("{:#x}   {:s} {:s}".format(insn.address, insn.mnemonic, Color.yellowify(", ".join(insn.operands))))
@@ -4331,7 +4332,7 @@ class GefThemeCommand(GenericCommand):
         if argc==0:
             for setting in sorted(self.settings):
                 value = self.get_setting(setting)
-                value = Color.colorify(value, attrs=value)
+                value = Color.colorify(value, value)
                 gef_print("{:40s}: {:s}".format(setting, value))
             return
 
@@ -4342,7 +4343,7 @@ class GefThemeCommand(GenericCommand):
 
         if argc==1:
             value = self.get_setting(setting)
-            value = Color.colorify(value, attrs=value)
+            value = Color.colorify(value, value)
             gef_print("{:40s}: {:s}".format(setting, value))
             return
 
@@ -4944,7 +4945,7 @@ class ScanSectionCommand(GenericCommand):
                 for nstart, nend in needle_sections:
                     if target >= nstart and target < nend:
                         deref = DereferenceCommand.pprint_dereferenced(hstart, long(i / step))
-                        name = Color.colorify(hname, attrs="yellow")
+                        name = Color.colorify(hname, "yellow")
                         gef_print("{:s}: {:s}".format(name, deref))
 
         return
@@ -5040,7 +5041,7 @@ class SearchPatternCommand(GenericCommand):
 
 @register_command
 class FlagsCommand(GenericCommand):
-    """Edit flags in a human friendly way"""
+    """Edit flags in a human friendly way."""
 
     _cmdline_ = "edit-flags"
     _syntax_  = "{:s} [(+|-|~)FLAGNAME ...]".format(_cmdline_)
@@ -5832,7 +5833,7 @@ class CapstoneDisassembleCommand(GenericCommand):
             msg = ""
 
             if insn.address == current_arch.pc:
-                msg = Color.colorify("{}   {}".format(RIGHT_ARROW, text_insn), attrs="bold red")
+                msg = Color.colorify("{}   {}".format(RIGHT_ARROW, text_insn), "bold red")
                 reason = self.capstone_analyze_pc(insn, length)[0]
                 if reason:
                     gef_print(msg)
@@ -5849,10 +5850,10 @@ class CapstoneDisassembleCommand(GenericCommand):
             is_taken, reason = current_arch.is_branch_taken(insn)
             if is_taken:
                 reason = "[Reason: {:s}]".format(reason) if reason else ""
-                msg = Color.colorify("\tTAKEN {:s}".format(reason), attrs="bold green")
+                msg = Color.colorify("\tTAKEN {:s}".format(reason), "bold green")
             else:
                 reason = "[Reason: !({:s})]".format(reason) if reason else ""
-                msg = Color.colorify("\tNOT taken {:s}".format(reason), attrs="bold red")
+                msg = Color.colorify("\tNOT taken {:s}".format(reason), "bold red")
             return (is_taken, msg)
 
         if current_arch.is_call(insn):
@@ -6298,7 +6299,7 @@ class DetailRegistersCommand(GenericCommand):
             if is_x86() and regname in current_arch.msr_registers:
                 msr = set(current_arch.msr_registers)
                 for r in set(regs) & msr:
-                    line = "{}: ".format(Color.colorify(r, attrs=regname_color))
+                    line = "{}: ".format(Color.colorify(r, regname_color))
                     line+= "0x{:04x}".format(get_register(r))
                     gef_print(line, end="  ")
                     regs.remove(r)
@@ -6306,10 +6307,10 @@ class DetailRegistersCommand(GenericCommand):
                 continue
 
             padreg = regname.ljust(widest, " ")
-            line = "{}: ".format(Color.colorify(padreg, attrs=regname_color))
+            line = "{}: ".format(Color.colorify(padreg, regname_color))
 
             if str(reg) == "<unavailable>":
-                line += Color.colorify("no value", attrs="yellow underline")
+                line += Color.colorify("no value", "yellow underline")
                 gef_print(line)
                 continue
 
@@ -6323,7 +6324,7 @@ class DetailRegistersCommand(GenericCommand):
             if new_value == old_value:
                 line += format_address_spaces(new_value)
             else:
-                line += Color.colorify(format_address_spaces(new_value), attrs=changed_register_value_color)
+                line += Color.colorify(format_address_spaces(new_value), changed_register_value_color)
             addrs = DereferenceCommand.dereference_from(new_value)
 
             if len(addrs) > 1:
@@ -6337,7 +6338,7 @@ class DetailRegistersCommand(GenericCommand):
                 last_addr = int(addrs[-1],16)
                 val = gef_pystring(struct.pack(fmt, last_addr))
                 if all([_ in charset for _ in val]):
-                    line += ' ("{:s}"?)'.format(Color.colorify(val, attrs=string_color))
+                    line += ' ("{:s}"?)'.format(Color.colorify(val, string_color))
             except ValueError:
                 pass
 
@@ -6358,7 +6359,7 @@ class ShellcodeCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
-        err("Missing sub-command <search|get>")
+        err("Missing sub-command (search|get)")
         self.usage()
         return
 
@@ -6759,7 +6760,7 @@ class ElfInfoCommand(GenericCommand):
         ]
 
         for title, content in data:
-            gef_print("{:<30}: {}".format(Color.boldify(title), content))
+            gef_print("{}: {}".format(Color.boldify("{:<22}".format(title)), content))
         return
 
 
@@ -6909,11 +6910,11 @@ class ContextCommand(GenericCommand):
             heap_addr_color = get_gef_setting("theme.address_heap")
             changed_register_color = get_gef_setting("theme.registers_value_changed")
 
-            gef_print("[ Legend: {} | {} | {} | {} | {} ]".format(Color.colorify("Modified register", attrs=changed_register_color),
-                                                                  Color.colorify("Code", attrs=code_addr_color),
-                                                                  Color.colorify("Heap", attrs=heap_addr_color),
-                                                                  Color.colorify("Stack", attrs=stack_addr_color),
-                                                                  Color.colorify("String", attrs=str_color)
+            gef_print("[ Legend: {} | {} | {} | {} | {} ]".format(Color.colorify("Modified register", changed_register_color),
+                                                                  Color.colorify("Code", code_addr_color),
+                                                                  Color.colorify("Heap", heap_addr_color),
+                                                                  Color.colorify("Stack", stack_addr_color),
+                                                                  Color.colorify("String", str_color)
             ))
         return
 
@@ -6965,10 +6966,10 @@ class ContextCommand(GenericCommand):
         title += Color.colorify("{:{padd}<{width}}[ ".format("",
                                                              width=self.tty_columns - trail_len,
                                                              padd=HORIZONTAL_LINE),
-                                attrs=line_color)
+                                line_color)
         title += Color.colorify(m, msg_color)
         title += Color.colorify(" ]{:{padd}<4}".format("", padd=HORIZONTAL_LINE),
-                                attrs=line_color)
+                                line_color)
         gef_print(title)
         return
 
@@ -7015,7 +7016,7 @@ class ContextCommand(GenericCommand):
             old_value = self.old_registers.get(reg, 0)
 
             padreg = reg.ljust(widest, " ")
-            line += "{}: ".format(Color.colorify(padreg, attrs=regname_color))
+            line += "{}: ".format(Color.colorify(padreg, regname_color))
             if new_value_type_flag:
                 line += "{:s} ".format(str(new_value))
             else:
@@ -7024,7 +7025,7 @@ class ContextCommand(GenericCommand):
                 if new_value == old_value:
                     line += "{:s} ".format(format_address_spaces(new_value))
                 else:
-                    line += "{:s} ".format(Color.colorify(format_address_spaces(new_value), attrs=color))
+                    line += "{:s} ".format(Color.colorify(format_address_spaces(new_value), color))
 
             if i % nb == 0 :
                 gef_print(line)
@@ -7085,17 +7086,17 @@ class ContextCommand(GenericCommand):
                     line += Color.grayify("   {}".format(text))
 
                 elif insn.address == pc:
-                    line += Color.colorify("{:s}{:s}".format(RIGHT_ARROW, text), attrs=cur_insn_color)
+                    line += Color.colorify("{:s}{:s}".format(RIGHT_ARROW, text), cur_insn_color)
 
                     if current_arch.is_conditional_branch(insn):
                         is_taken, reason = current_arch.is_branch_taken(insn)
                         if is_taken:
                             target = insn.operands[-1].split()[0]
                             reason = "[Reason: {:s}]".format(reason) if reason else ""
-                            line += Color.colorify("\tTAKEN {:s}".format(reason), attrs="bold green")
+                            line += Color.colorify("\tTAKEN {:s}".format(reason), "bold green")
                         else:
                             reason = "[Reason: !({:s})]".format(reason) if reason else ""
-                            line += Color.colorify("\tNOT taken {:s}".format(reason), attrs="bold red")
+                            line += Color.colorify("\tNOT taken {:s}".format(reason), "bold red")
                     elif current_arch.is_call(insn) and self.get_setting("peek_calls") is True:
                         target = insn.operands[-1].split()[0]
                     elif current_arch.is_ret(insn) and self.get_setting("peek_ret") is True:
@@ -7216,6 +7217,7 @@ class ContextCommand(GenericCommand):
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
         instruction_iterator = capstone_disassemble if use_capstone else gef_disassemble
         function_parameters = current_arch.function_parameters
+        arg_key_color = get_gef_setting("theme.registers_register_name")
 
         for insn in instruction_iterator(block_start, pc-block_start):
             if not insn.operands:
@@ -7251,7 +7253,7 @@ class ContextCommand(GenericCommand):
         for i in range(nb_argument):
             _key, _value = self.get_ith_parameter(i)
             _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
-            args.append("{} = {}".format(_key, _value))
+            args.append("{} = {}".format(Color.colorify(_key, arg_key_color), _value))
 
         self.context_title("arguments (guessed)")
         gef_print("{} (".format(function_name))
@@ -7293,7 +7295,7 @@ class ContextCommand(GenericCommand):
                 extra_info = self.get_pc_context_info(pc, lines[i])
                 if extra_info:
                     gef_print(extra_info)
-                gef_print(Color.colorify("{}{:4d}\t {:s}".format(RIGHT_ARROW, i + 1, lines[i]), attrs=cur_line_color))
+                gef_print(Color.colorify("{}{:4d}\t {:s}".format(RIGHT_ARROW, i + 1, lines[i]), cur_line_color))
 
             if i > line_num:
                 try:
@@ -7417,15 +7419,15 @@ class ContextCommand(GenericCommand):
             return
 
         for i, thread in enumerate(threads):
-            line = """[{:s}] Id {:d}, Name: "{:s}", """.format(Color.colorify("#{:d}".format(i), attrs="bold pink"),
+            line = """[{:s}] Id {:d}, Name: "{:s}", """.format(Color.colorify("#{:d}".format(i), "bold pink"),
                                                                thread.num, thread.name or "")
             if thread.is_running():
-                line += Color.colorify("running", attrs="bold green")
+                line += Color.colorify("running", "bold green")
             elif thread.is_stopped():
-                line += Color.colorify("stopped", attrs="bold red")
-                line += ", reason: {}".format(Color.colorify(reason(), attrs="bold pink"))
+                line += Color.colorify("stopped", "bold red")
+                line += ", reason: {}".format(Color.colorify(reason(), "bold pink"))
             elif thread.is_exited():
-                line += Color.colorify("exited", attrs="bold yellow")
+                line += Color.colorify("exited", "bold yellow")
             gef_print(line)
             i += 1
         return
@@ -7667,7 +7669,7 @@ class HexdumpCommand(GenericCommand):
             sym = "<{:s}+{:04x}> ".format(*sym) if sym else ''
             mem = read_memory(cur_addr, l)
             val = struct.unpack(fmt_pack, mem)[0]
-            lines.append(fmt_str.format(base=Color.colorify(format_address(cur_addr), attrs=base_address_color),
+            lines.append(fmt_str.format(base=Color.colorify(format_address(cur_addr), base_address_color),
                                         offset=(i + offset) * l, sym=sym, val=val))
             i += 1
 
@@ -7679,7 +7681,7 @@ class PatchCommand(GenericCommand):
     """Write specified values to the specified address."""
 
     _cmdline_ = "patch"
-    _syntax_  = ("{0:s} <qword|dword|word|byte> <location> <values>\n"
+    _syntax_  = ("{0:s} (qword|dword|word|byte) LOCATION VALUES\n"
                  "{0:s} string LOCATION \"double-escaped string\"".format(_cmdline_))
     SUPPORTED_SIZES = {
         "qword": (8, "Q"),
@@ -7774,7 +7776,7 @@ class DereferenceCommand(GenericCommand):
         addrs = DereferenceCommand.dereference_from(current_address)
         l  = ""
         addr_l = format_address(long(addrs[0], 16))
-        l += "{:s}{:s}+{:#06x}: {:{ma}s}".format(Color.colorify(addr_l, attrs=base_address_color),
+        l += "{:s}{:s}+{:#06x}: {:{ma}s}".format(Color.colorify(addr_l, base_address_color),
                                                  VERTICAL_LINE, offset,
                                                  sep.join(addrs[1:]), ma=(memalign*2 + 2))
 
@@ -7786,7 +7788,7 @@ class DereferenceCommand(GenericCommand):
 
         if register_hints:
             m = "\t{:s}{:s}".format(LEFT_ARROW, ", ".join(list(register_hints)))
-            l += Color.colorify(m, attrs=registers_color)
+            l += Color.colorify(m, registers_color)
 
         offset += memalign
         return l
@@ -7872,18 +7874,18 @@ class DereferenceCommand(GenericCommand):
                 if addr.section.is_executable() and addr.is_in_text_segment() and not is_readable_string(addr.value):
                     insn = gef_current_instruction(addr.value)
                     insn_str = "{} {} {}".format(insn.location, insn.mnemonic, ", ".join(insn.operands))
-                    msg.append(Color.colorify(insn_str, attrs=code_color))
+                    msg.append(Color.colorify(insn_str, code_color))
                     break
 
                 elif addr.section.permission.value & Permission.READ:
                     if is_readable_string(addr.value):
                         s = read_cstring_from_memory(addr.value)
                         if len(s) < get_memory_alignment():
-                            txt = '{:s} ("{:s}"?)'.format(format_address(deref), Color.colorify(s, attrs=string_color))
+                            txt = '{:s} ("{:s}"?)'.format(format_address(deref), Color.colorify(s, string_color))
                         elif len(s) >= 50:
-                            txt = Color.colorify('"{:s}[...]"'.format(s[:50]), attrs=string_color)
+                            txt = Color.colorify('"{:s}[...]"'.format(s[:50]), string_color)
                         else:
-                            txt = Color.colorify('"{:s}"'.format(s), attrs=string_color)
+                            txt = Color.colorify('"{:s}"'.format(s), string_color)
 
                         msg.append(txt)
                         break
@@ -7968,11 +7970,9 @@ class VMMapCommand(GenericCommand):
             return
 
         color = get_gef_setting("theme.xinfo_title_message")
-        headers = [Color.colorify(x, attrs=color) for x in ["Start", "End", "Offset", "Perm", "Path"]]
-        if is_elf64():
-            gef_print("{:<31s} {:<31s} {:<31s} {:<4s} {:s}".format(*headers))
-        else:
-            gef_print("{:<23s} {:<23s} {:<23s} {:<4s} {:s}".format(*headers))
+
+        headers = ["Start", "End", "Offset", "Perm", "Path"]
+        gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<{w}s}{:<4s} {:s}".format(*headers, w=get_memory_alignment()*2+3), color))
 
         for entry in vmmap:
             if argv and not argv[0] in entry.path:
@@ -7983,7 +7983,7 @@ class VMMapCommand(GenericCommand):
             l.append(format_address(entry.offset))
 
             if entry.permission.value == (Permission.READ|Permission.WRITE|Permission.EXECUTE) :
-                l.append(Color.colorify(str(entry.permission), attrs="bold red"))
+                l.append(Color.colorify(str(entry.permission), "bold red"))
             else:
                 l.append(str(entry.permission))
 
@@ -8006,11 +8006,8 @@ class XFilesCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         color = get_gef_setting("theme.xinfo_title_message")
-        headers = [Color.colorify(x, attrs=color) for x in ["Start", "End", "Name", "File",]]
-        if is_elf64():
-            gef_print("{:<31s} {:<31s} {:<34s} {:s}".format(*headers))
-        else:
-            gef_print("{:<23s} {:<23s} {:<23s} {:s}".format(*headers))
+        headers = ["Start", "End", "Name", "File"]
+        gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<21s} {:s}".format(*headers, w=get_memory_alignment()*2+3), color))
 
         filter_by_file = argv[0] if argv and argv[0] else None
         filter_by_name = argv[1] if len(argv) > 1 and argv[1] else None
@@ -8101,7 +8098,7 @@ class XorMemoryCommand(GenericCommand):
     runtime at runtime."""
 
     _cmdline_ = "xor-memory"
-    _syntax_  = "{:s} <display|patch> ADDRESS SIZE KEY".format(_cmdline_)
+    _syntax_  = "{:s} (display|patch) ADDRESS SIZE KEY".format(_cmdline_)
 
     def __init__(self):
         super(XorMemoryCommand, self).__init__(prefix=True)
@@ -8265,7 +8262,7 @@ class PatternCommand(GenericCommand):
     used by pwntools, and can therefore be used in conjunction."""
 
     _cmdline_ = "pattern"
-    _syntax_  = "{:s} (create|search) <args>".format(_cmdline_)
+    _syntax_  = "{:s} (create|search) ARGS".format(_cmdline_)
 
     def __init__(self, *args, **kwargs):
         super(PatternCommand, self).__init__(prefix=True)
@@ -8362,12 +8359,12 @@ class PatternSearchCommand(GenericCommand):
         found = False
         off = cyclic_pattern.find(pattern_le)
         if off >= 0:
-            ok("Found at offset {:d} (little-endian search) {:s}".format(off, Color.colorify("likely", attrs="bold red") if is_little_endian() else ""))
+            ok("Found at offset {:d} (little-endian search) {:s}".format(off, Color.colorify("likely", "bold red") if is_little_endian() else ""))
             found = True
 
         off = cyclic_pattern.find(pattern_be)
         if off >= 0:
-            ok("Found at offset {:d} (big-endian search) {:s}".format(off, Color.colorify("likely", attrs="bold green") if is_big_endian() else ""))
+            ok("Found at offset {:d} (big-endian search) {:s}".format(off, Color.colorify("likely", "bold green") if is_big_endian() else ""))
             found = True
 
         if not found:
@@ -8516,7 +8513,7 @@ class HeapAnalysisCommand(GenericCommand):
         gdb.execute("set can-use-hw-watchpoints 0")
 
         info("Dynamic breakpoints correctly setup, GEF will break execution if a possible vulnerabity is found.")
-        warn("{}: The heap analysis slows down noticeably the execution. ".format(Color.colorify("Note", attrs="bold underline yellow")))
+        warn("{}: The heap analysis slows down noticeably the execution. ".format(Color.colorify("Note", "bold underline yellow")))
 
         # when inferior quits, we need to clean everything for a next execution
         gef_on_exit_hook(self.clean)
@@ -8541,7 +8538,7 @@ class HeapAnalysisCommand(GenericCommand):
     def clean(self, event):
         global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
 
-        ok("{} - Cleaning up".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),))
+        ok("{} - Cleaning up".format(Color.colorify("Heap-Analysis", "yellow bold"),))
         for bp in [self.bp_malloc, self.bp_calloc, self.bp_free, self.bp_realloc]:
             if hasattr(bp, "retbp") and bp.retbp:
                 bp.retbp.delete()
@@ -8554,7 +8551,7 @@ class HeapAnalysisCommand(GenericCommand):
         __heap_freed_list__ = []
         __heap_uaf_watchpoints__ = []
 
-        ok("{} - Re-enabling hardware watchpoints".format(Color.colorify("Heap-Analysis", attrs="yellow bold"),))
+        ok("{} - Re-enabling hardware watchpoints".format(Color.colorify("Heap-Analysis", "yellow bold"),))
         gdb.execute("set can-use-hw-watchpoints 1")
 
         gef_on_exit_unhook(self.clean)
@@ -8616,12 +8613,12 @@ class SyscallArgsCommand(GenericCommand):
         parameters = [s.param for s in syscall_entry.params]
         registers = [s.reg for s in syscall_entry.params]
 
-        info("Detected syscall {}".format(Color.colorify(syscall_entry.name, attrs=color)))
+        info("Detected syscall {}".format(Color.colorify(syscall_entry.name, color)))
         gef_print("    {}({})".format(syscall_entry.name, ', '.join(parameters)))
 
-        headers = [Color.colorify(x, attrs=color) for x in ["Parameter", "Register", "Value"]]
+        headers = ["Parameter", "Register", "Value"]
         param_names = [re.split(r' |\*', p)[-1] for p in parameters]
-        info("{:<28} {:<28} {}".format(*headers))
+        info(Color.colorify("{:<28} {:<28} {}".format(*headers), color))
         for name, register, value in zip(param_names, registers, values):
             line = "    {:<15} {:<15} 0x{:x}".format(name, register, value)
 
@@ -8754,8 +8751,7 @@ class GefFunctionsCommand(GenericCommand):
         doc = getattr(function, "__doc__", "").lstrip()
         doc = "\n                         ".join(doc.split("\n"))
         syntax = getattr(function, "_syntax_", "").lstrip()
-        w = max(1, get_terminal_size()[1] - 29)  # use max() to avoid zero or negative numbers
-        msg = "{syntax:<25s} -- {help:{w}s}".format(syntax=syntax, help=Color.greenify(doc), w=w)
+        msg = "{syntax:<25s} -- {help:s}".format(syntax=syntax, help=Color.greenify(doc))
         self.docs.append(msg)
         return
 
@@ -8764,7 +8760,7 @@ class GefFunctionsCommand(GenericCommand):
         gef_print(titlify("GEF - Convenience Functions"))
         gef_print("These functions can be used as arguments to other "
                   "commands to dynamically calculate values, eg: {:s}\n"
-                  .format(Color.colorify("deref $_heap(0x20)", attrs="yellow")))
+                  .format(Color.colorify("deref $_heap(0x20)", "yellow")))
         gef_print(self.__doc__)
         return
 
@@ -8851,8 +8847,8 @@ class GefCommand(gdb.Command):
                                 gdb.execute("source {:s}".format(fpath))
             nb_added = len(self.loaded_commands) - nb_inital
             if nb_added > 0:
-                ok("{:s} extra commands added from '{:s}'".format(Color.colorify(str(nb_added), attrs="bold green"),
-                                                                  Color.colorify(directory, attrs="bold blue")))
+                ok("{:s} extra commands added from '{:s}'".format(Color.colorify(str(nb_added), "bold green"),
+                                                                  Color.colorify(directory, "bold blue")))
         except gdb.error as e:
             err("failed: {}".format(str(e)))
         return nb_added
@@ -8903,21 +8899,21 @@ class GefCommand(gdb.Command):
         if initial:
             gef_print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure"
                       .format(Color.greenify("GEF"), get_os(),
-                              Color.colorify("gef",attrs="underline yellow"),
-                              Color.colorify("gef config", attrs="underline pink")))
+                              Color.colorify("gef","underline yellow"),
+                              Color.colorify("gef config", "underline pink")))
 
             ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
             nb_cmds = len(self.loaded_commands)
             gef_print("{:s} commands loaded for GDB {:s} using Python engine {:s}"
-                      .format(Color.colorify(str(nb_cmds), attrs="bold green"),
-                              Color.colorify(gdb.VERSION, attrs="bold yellow"),
-                              Color.colorify(ver, attrs="bold red")))
+                      .format(Color.colorify(str(nb_cmds), "bold green"),
+                              Color.colorify(gdb.VERSION, "bold yellow"),
+                              Color.colorify(ver, "bold red")))
 
             if nb_missing:
                 warn("{:s} command{} could not be loaded, run `{:s}` to know why."
-                          .format(Color.colorify(str(nb_missing), attrs="bold red"),
+                          .format(Color.colorify(str(nb_missing), "bold red"),
                                   "s" if nb_missing > 1 else "",
-                                  Color.colorify("gef missing", attrs="underline pink")))
+                                  Color.colorify("gef missing", "underline pink")))
         return
 
 
@@ -8956,9 +8952,8 @@ class GefHelpCommand(gdb.Command):
             return
         doc = getattr(class_name, "__doc__", "").lstrip()
         doc = "\n                         ".join(doc.split("\n"))
-        aliases = "(alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
-        w = max(1, get_terminal_size()[1] - 29 - len(aliases))  # use max() to avoid zero or negative numbers
-        msg = "{cmd:<25s} -- {help:{w}s} {aliases:s}".format(cmd=cmd, help=Color.greenify(doc), w=w, aliases=aliases)
+        aliases = " (alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
+        msg = "{cmd:<25s} -- {help:s}{aliases:s}".format(cmd=cmd, help=Color.greenify(doc), aliases=aliases)
         self.docs.append(msg)
         return
 
@@ -9020,14 +9015,14 @@ class GefConfigCommand(gdb.Command):
             return
 
         _value, _type, _desc = res
-        _setting = Color.colorify(plugin_name, attrs="pink bold underline")
+        _setting = Color.colorify(plugin_name, "pink bold underline")
         _type = _type.__name__
-        _value = Color.colorify(str(_value), attrs="yellow") if _type!='str' else '"{:s}"'.format(Color.colorify(str(_value), attrs=string_color))
+        _value = Color.colorify(str(_value), "yellow") if _type!='str' else '"{:s}"'.format(Color.colorify(str(_value), string_color))
         gef_print("{:s} ({:s}) = {:s}".format(_setting, _type, _value))
 
         if show_description:
             gef_print("")
-            gef_print(Color.colorify("Description:", attrs="bold underline"))
+            gef_print(Color.colorify("Description:", "bold underline"))
             gef_print("\t{:s}".format(_desc))
         return
 
@@ -9165,7 +9160,7 @@ class GefRestoreCommand(gdb.Command):
                     pass
 
         if not quiet:
-            ok("Configuration from '{:s}' restored".format(Color.colorify(GEF_RC, attrs="bold blue")))
+            ok("Configuration from '{:s}' restored".format(Color.colorify(GEF_RC, "bold blue")))
         return
 
 
