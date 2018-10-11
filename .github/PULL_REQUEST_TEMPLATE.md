@@ -22,8 +22,8 @@
 ### Checklist ###
 
 <!-- N.B.: Your patch won't be reviewed unless fulfilling the following base requirements: -->
-<!--- Put an `x` in all the boxes that apply. -->
+<!--- Put an `x` in all the boxes that are complete, or that don't apply -->
 - [ ] My code follows the code style of this project.
 - [ ] My change includes a change to the documentation, if required.
-- [ ] My change adds tests as approriate.
+- [ ] My change adds tests as appropriate.
 - [ ] I have read and agree to the **CONTRIBUTING** document.
