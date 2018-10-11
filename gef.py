@@ -846,16 +846,16 @@ def get_main_arena():
 def titlify(text, color=None, msg_color=None):
     """Print a title."""
     cols = get_terminal_size()[1]
-    nb = (cols - len(text) - 4)//2
+    nb = (cols - len(text) - 2)//2
     if color is None:
         color = __config__.get("theme.default_title_line")[0]
     if msg_color is None:
         msg_color = __config__.get("theme.default_title_message")[0]
 
     msg = []
-    msg.append(Color.colorify(HORIZONTAL_LINE * nb + '[ ', color))
+    msg.append(Color.colorify(HORIZONTAL_LINE * nb + ' ', color))
     msg.append(Color.colorify(text, msg_color))
-    msg.append(Color.colorify(' ]' + HORIZONTAL_LINE * nb, color))
+    msg.append(Color.colorify(' ' + HORIZONTAL_LINE * nb, color))
     return "".join(msg)
 
 
@@ -4307,22 +4307,23 @@ class GefThemeCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super(GefThemeCommand, self).__init__(GefThemeCommand._cmdline_)
-        self.add_setting("context_title_line", "green bold", "Color of the borders in context window")
-        self.add_setting("context_title_message", "red bold", "Color of the title in context window")
-        self.add_setting("default_title_line", "green bold", "Default color of borders")
-        self.add_setting("default_title_message", "red bold", "Default color of title")
-        self.add_setting("xinfo_title_message", "blue bold", "Color of the title in xinfo window")
-        self.add_setting("disassemble_current_instruction", "bold red", "Color to use to highlight the current $pc when disassembling")
-        self.add_setting("dereference_string", "green", "Color of dereferenced string")
-        self.add_setting("dereference_code", "red", "Color of dereferenced code")
-        self.add_setting("dereference_base_address", "bold green", "Color of dereferenced address")
-        self.add_setting("dereference_register_value", "bold green" , "Color of dereferenced register")
-        self.add_setting("registers_register_name", "bold red", "Color of the register name in the register window")
+        self.add_setting("context_title_line", "gray", "Color of the borders in context window")
+        self.add_setting("context_title_message", "cyan", "Color of the title in context window")
+        self.add_setting("default_title_line", "gray", "Default color of borders")
+        self.add_setting("default_title_message", "cyan", "Default color of title")
+        self.add_setting("table_heading", "blue", "Color of the column headings to tables (e.g. vmmap)")
+        self.add_setting("disassemble_current_instruction", "green", "Color to use to highlight the current $pc when disassembling")
+        self.add_setting("dereference_string", "yellow", "Color of dereferenced string")
+        self.add_setting("dereference_code", "gray", "Color of dereferenced code")
+        self.add_setting("dereference_base_address", "cyan", "Color of dereferenced address")
+        self.add_setting("dereference_register_value", "bold blue" , "Color of dereferenced register")
+        self.add_setting("registers_register_name", "blue", "Color of the register name in the register window")
         self.add_setting("registers_value_changed", "bold red", "Color of the changed register in the register window")
         self.add_setting("address_stack", "pink", "Color to use when a stack address is found")
-        self.add_setting("address_heap", "yellow", "Color to use when a heap address is found")
+        self.add_setting("address_heap", "green", "Color to use when a heap address is found")
         self.add_setting("address_code", "red", "Color to use when a code address is found")
-        self.add_setting("source_current_line", "bold red", "Color to use for the current code line in the source window")
+        self.add_setting("source_current_line", "green", "Color to use for the current code line in the source window")
+        self.add_setting("xinfo_title_message", "blue bold", "Unused")
         return
 
     def do_invoke(self, args):
@@ -6961,14 +6962,14 @@ class ContextCommand(GenericCommand):
             gef_print(Color.colorify(HORIZONTAL_LINE * self.tty_columns, line_color))
             return
 
-        trail_len = len(m) + 8
+        trail_len = len(m) + 6
         title = ""
-        title += Color.colorify("{:{padd}<{width}}[ ".format("",
-                                                             width=self.tty_columns - trail_len,
-                                                             padd=HORIZONTAL_LINE),
+        title += Color.colorify("{:{padd}<{width}} ".format("",
+                                                            width=self.tty_columns - trail_len,
+                                                            padd=HORIZONTAL_LINE),
                                 line_color)
         title += Color.colorify(m, msg_color)
-        title += Color.colorify(" ]{:{padd}<4}".format("", padd=HORIZONTAL_LINE),
+        title += Color.colorify(" {:{padd}<4}".format("", padd=HORIZONTAL_LINE),
                                 line_color)
         gef_print(title)
         return
@@ -7969,7 +7970,7 @@ class VMMapCommand(GenericCommand):
             err("No address mapping information found")
             return
 
-        color = get_gef_setting("theme.xinfo_title_message")
+        color = get_gef_setting("theme.table_heading")
 
         headers = ["Start", "End", "Offset", "Perm", "Path"]
         gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<{w}s}{:<4s} {:s}".format(*headers, w=get_memory_alignment()*2+3), color))
@@ -8005,7 +8006,7 @@ class XFilesCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        color = get_gef_setting("theme.xinfo_title_message")
+        color = get_gef_setting("theme.table_heading")
         headers = ["Start", "End", "Name", "File"]
         gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<21s} {:s}".format(*headers, w=get_memory_alignment()*2+3), color))
 
@@ -8589,7 +8590,7 @@ class SyscallArgsCommand(GenericCommand):
         return
 
     def do_invoke(self, argv):
-        color = get_gef_setting("theme.xinfo_title_message")
+        color = get_gef_setting("theme.table_heading")
 
         path = self.get_settings_path()
         if path is None:
