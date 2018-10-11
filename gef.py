@@ -311,14 +311,14 @@ def bufferize(f):
         global __gef_int_stream_buffer__
 
         if __gef_int_stream_buffer__:
-            f(*args, **kwargs)
-            return
+            return f(*args, **kwargs)
 
         __gef_int_stream_buffer__ = StringIO()
-        f(*args, **kwargs)
+        rv = f(*args, **kwargs)
         sys.stdout.write(__gef_int_stream_buffer__.getvalue())
         sys.stdout.flush()
         __gef_int_stream_buffer__ = None
+        return rv
 
     return wrapper
 
@@ -3654,7 +3654,7 @@ class GenericCommand(gdb.Command):
         try:
             argv = gdb.string_to_argv(args)
             self.__set_repeat_count(from_tty)
-            bufferize(self.do_invoke(argv))
+            bufferize(self.do_invoke)(argv)
         except Exception as e:
             # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
             # catching generic Exception, but rather specific ones. This is allows a much cleaner use.
