@@ -3650,7 +3650,7 @@ class GenericCommand(gdb.Command):
         try:
             argv = gdb.string_to_argv(args)
             self.__set_repeat_count(from_tty)
-            bufferize(self.do_invoke(argv))
+            bufferize(self.do_invoke)(argv)
         except Exception as e:
             # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
             # catching generic Exception, but rather specific ones. This is allows a much cleaner use.
