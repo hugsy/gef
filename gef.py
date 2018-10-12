@@ -356,6 +356,8 @@ class Color:
     @staticmethod
     def pinkify(msg):      return Color.colorify(msg, "pink")
     @staticmethod
+    def cyanify(msg):      return Color.colorify(msg, "cyan")
+    @staticmethod
     def boldify(msg):      return Color.colorify(msg, "bold")
     @staticmethod
     def underlinify(msg):  return Color.colorify(msg, "underline")
@@ -844,7 +846,7 @@ def get_main_arena():
 
 
 def titlify(text, color=None, msg_color=None):
-    """Print a title."""
+    """Print a centered title."""
     cols = get_terminal_size()[1]
     nb = (cols - len(text) - 2)//2
     if color is None:
