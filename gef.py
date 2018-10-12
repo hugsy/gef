@@ -4327,7 +4327,6 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("address_heap", "green", "Color to use when a heap address is found")
         self.add_setting("address_code", "red", "Color to use when a code address is found")
         self.add_setting("source_current_line", "green", "Color to use for the current code line in the source window")
-        self.add_setting("xinfo_title_message", "blue bold", "Unused")
         return
 
     def do_invoke(self, args):
