@@ -1548,14 +1548,26 @@ class ARM(Architecture):
     syscall_register = "$r7"
     syscall_instructions = ["swi 0x0", "swi NR"]
 
+    @lru_cache()
+    def is_thumb(self):
+        """Determine if the machine is currently in THUMB mode."""
+        return is_alive() and get_register("$cpsr") & (1<<5)
+
+    @property
+    def pc(self):
+        pc = get_register("$pc")
+        if self.is_thumb():
+            pc += 1
+        return pc
+
     @property
     def mode(self):
-        return "THUMB" if is_arm_thumb() else "ARM"
+        return "THUMB" if self.is_thumb() else "ARM"
 
     @property
     def instruction_length(self):
         # Thumb instructions have variable-length (2 or 4-byte)
-        return None if is_arm_thumb() else 4
+        return None if self.is_thumb() else 4
 
     def is_call(self, insn):
         mnemo = insn.mnemonic
@@ -2853,12 +2865,6 @@ def is_arm(filename=None):
     """Checks if `filename` is an ARM ELF."""
     elf = current_elf or get_elf_headers(filename)
     return elf.e_machine == Elf.ARM
-
-
-@lru_cache()
-def is_arm_thumb():
-    """Checks if `filename` is an ARM (THUMB mode) ELF."""
-    return is_arm() and is_alive() and get_register("$cpsr") & (1<<5)
 
 
 @lru_cache()
@@ -7101,10 +7107,7 @@ class ContextCommand(GenericCommand):
 
         frame = gdb.selected_frame()
         arch = frame.architecture()
-        arch_name = arch.name().lower()
-        if is_arm_thumb():
-            arch_name += ":thumb"
-            pc   += 1
+        arch_name = "{}:{}".format(current_arch.arch.lower(), current_arch.mode)
 
         self.context_title("code:{}".format(arch_name))
 
