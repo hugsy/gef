@@ -2176,9 +2176,9 @@ def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding
         res = gdb.Value(address).cast(char_ptr).string(encoding=encoding).strip()
     except gdb.error:
         length = min(address|(DEFAULT_PAGE_SIZE-1), max_length+1)
-        mem = bytes(read_memory(address, length)).decode('utf-8')
-        res = mem.split('\x00', 1)[0]
-    res2 = res.replace('\n','\\n').replace('\r','\\r').replace('\t','\\t')
+        mem = bytes(read_memory(address, length)).decode("utf-8")
+        res = mem.split("\x00", 1)[0]
+    res2 = res.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
 
     if max_length and len(res) > max_length:
         return "{}[...]".format(res2[:max_length])
@@ -2916,7 +2916,7 @@ def cached_lookup_type(_type):
 def get_memory_alignment(in_bits=False):
     """Return sizeof(size_t). If `in_bits` is set to True, the result is
     returned in bits, otherwise in bytes."""
-    res = cached_lookup_type('size_t')
+    res = cached_lookup_type("size_t")
     if res is not None:
         return res.sizeof if not in_bits else res.sizeof * 8
     if is_elf32():
