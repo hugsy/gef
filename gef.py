@@ -2960,16 +2960,27 @@ def cached_lookup_type(_type):
         return None
 
 
+@lru_cache()
 def get_memory_alignment(in_bits=False):
-    """Return sizeof(size_t). If `in_bits` is set to True, the result is
-    returned in bits, otherwise in bytes."""
-    res = cached_lookup_type("size_t")
-    if res is not None:
-        return res.sizeof if not in_bits else res.sizeof * 8
+    """Try to determine the size of a pointer on this system.
+    First, try to parse it out of the ELF header.
+    Next, use the size of `size_t`.
+    Finally, try the size of $pc.
+    If `in_bits` is set to True, the result is returned in bits, otherwise in
+    bytes."""
     if is_elf32():
         return 4 if not in_bits else 32
     elif is_elf64():
         return 8 if not in_bits else 64
+
+    res = cached_lookup_type("size_t")
+    if res is not None:
+        return res.sizeof if not in_bits else res.sizeof * 8
+
+    try:
+        return gdb.parse_and_eval('$pc').type.sizeof
+    except:
+        pass
     raise EnvironmentError("GEF is running under an unsupported mode")
 
 
@@ -5375,7 +5386,7 @@ def reset():
        "True" if verbose else "False",
        current_arch.syscall_register,
        cs_arch, cs_mode,
-       16 if is_elf64() else 8,
+       current_arch.ptrsize,
        emulate_segmentation_block if is_x86() else "",
        arch, mode,
        context_segmentation_block if is_x86() else "",
@@ -7005,7 +7016,7 @@ class ContextCommand(GenericCommand):
 
         widest = l = max(map(len, current_arch.all_registers))
         l += 5
-        l += 16 if is_elf64() else 8
+        l += current_arch.ptrsize
         nb = get_terminal_size()[1]//l
         i = 1
         line = ""
