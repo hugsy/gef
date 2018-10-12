@@ -72,6 +72,7 @@ import os
 import platform
 import re
 import shutil
+import site
 import socket
 import string
 import struct
@@ -9146,12 +9147,10 @@ if __name__  == "__main__":
             "Consider updating to GDB {} or higher.".format(".".join(GDB_MIN_VERSION)))
 
     else:
-        import commands
-        import site
-        if commands.getstatusoutput('pyenv root'):
-            PYENV_ROOT = commands.getoutput('pyenv root')
-            PYENV_VERSION = commands.getoutput('pyenv version-name')
-            site_packages_dir = os.path.join(PYENV_ROOT, 'versions', PYENV_VERSION, 'lib', 'python{}'.format(PYENV_VERSION[:3]), 'site-packages')
+        PYENV_ROOT = subprocess.check_output(["pyenv", "root"]).strip()
+        if PYENV_ROOT:
+            PYENV_VERSION = subprocess.check_output(["pyenv" "version-name"]).strip()
+            site_packages_dir = os.path.join(PYENV_ROOT, "versions", PYENV_VERSION, "lib", "python{}".format(PYENV_VERSION[:3]), "site-packages")
             site.addsitedir(site_packages_dir)
 
         # setup prompt
