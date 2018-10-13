@@ -25,16 +25,16 @@ class GefUnitTestGeneric(unittest.TestCase):
 
     @staticmethod
     def assertNoException(buf): #pylint: disable=invalid-name
-        if not (b"Python Exception <" not in buf
-                and b"Traceback" not in buf
-                and b"'gdb.error'" not in buf
-                and b"Exception raised" not in buf
-                and b"failed to execute properly, reason:" not in buf):
+        if not ("Python Exception <" not in buf
+                and "Traceback" not in buf
+                and "'gdb.error'" not in buf
+                and "Exception raised" not in buf
+                and "failed to execute properly, reason:" not in buf):
             raise AssertionError("Detected error in gdb output")
 
     @staticmethod
     def assertFailIfInactiveSession(buf): #pylint: disable=invalid-name
-        if b"No debugging session active" not in buf:
+        if "No debugging session active" not in buf:
             raise AssertionError("No debugging session inactive warning")
 
 
@@ -45,8 +45,8 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(gdb_run_cmd("canary"))
         res = gdb_start_silent_cmd("canary", target="tests/binaries/canary.out")
         self.assertNoException(res)
-        self.assertIn(b"Found AT_RANDOM at", res)
-        self.assertIn(b"The canary of process ", res)
+        self.assertIn("Found AT_RANDOM at", res)
+        self.assertIn("The canary of process ", res)
         return
 
     def test_cmd_capstone_disassemble(self):
@@ -63,15 +63,15 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
 
         target = "tests/binaries/checksec-no-canary.out"
         res = gdb_run_cmd(cmd, target=target)
-        self.assertIn(b"Canary                        : No", res)
+        self.assertIn("Canary                        : No", res)
 
         target = "tests/binaries/checksec-no-nx.out"
         res = gdb_run_cmd(cmd, target=target)
-        self.assertIn(b"NX                            : No", res)
+        self.assertIn("NX                            : No", res)
 
         target = "tests/binaries/checksec-no-pie.out"
         res = gdb_run_cmd(cmd, target=target)
-        self.assertIn(b"PIE                           : No", res)
+        self.assertIn("PIE                           : No", res)
         return
 
     def test_cmd_dereference(self):
@@ -80,22 +80,22 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         res = gdb_start_silent_cmd("dereference $sp")
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 2)
-        self.assertIn(b"$rsp", res)
+        self.assertIn("$rsp", res)
 
         res = gdb_start_silent_cmd("dereference 0")
         self.assertNoException(res)
-        self.assertIn(b"Unmapped address", res)
+        self.assertIn("Unmapped address", res)
         return
 
     def test_cmd_edit_flags(self):
         # force enable flag
         res = gdb_start_silent_cmd_last_line("edit-flags +carry")
         self.assertNoException(res)
-        self.assertIn(b"CARRY ", res)
+        self.assertIn("CARRY ", res)
         # force disable flag
         res = gdb_start_silent_cmd_last_line("edit-flags -carry")
         self.assertNoException(res)
-        self.assertIn(b"carry ", res)
+        self.assertIn("carry ", res)
         # toggle flag
         before = gdb_start_silent_cmd_last_line("edit-flags")
         self.assertNoException(before)
@@ -108,7 +108,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
     def test_cmd_elf_info(self):
         res = gdb_run_cmd("elf-info")
         self.assertNoException(res)
-        self.assertIn(b"7f 45 4c 46", res)
+        self.assertIn("7f 45 4c 46", res)
         return
 
     def test_cmd_entry_break(self):
@@ -124,14 +124,14 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
                                  "run",],
                           target=target)
         self.assertNoException(res)
-        self.assertIn(b"Possible insecure format string:", res)
+        self.assertIn("Possible insecure format string:", res)
         return
 
     def test_cmd_functions(self):
         cmd = "functions"
         res = gdb_run_cmd(cmd)
         self.assertNoException(res)
-        self.assertIn(b"$_heap", res)
+        self.assertIn("$_heap", res)
         return
 
     def test_cmd_heap_arenas(self):
@@ -140,7 +140,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_start_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn(b"Arena (base=", res)
+        self.assertIn("Arena (base=", res)
         return
 
     def test_cmd_heap_set_arena(self):
@@ -149,7 +149,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target, after=["heap arenas",])
         self.assertNoException(res)
-        self.assertIn(b"Arena (base=", res)
+        self.assertIn("Arena (base=", res)
         return
 
     def test_cmd_heap_chunk(self):
@@ -158,7 +158,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn(b"NON_MAIN_ARENA flag: ", res)
+        self.assertIn("NON_MAIN_ARENA flag: ", res)
         return
 
     def test_cmd_heap_chunks(self):
@@ -167,8 +167,8 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn(b"Chunk(addr=", res)
-        self.assertIn(b"top chunk", res)
+        self.assertIn("Chunk(addr=", res)
+        self.assertIn("top chunk", res)
         return
 
     def test_cmd_heap_bins_fast(self):
@@ -177,7 +177,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn(b"Fastbins[idx=0, size=0x10]", res)
+        self.assertIn("Fastbins[idx=0, size=0x10]", res)
         return
 
     def test_cmd_heap_analysis(self):
@@ -253,7 +253,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
     def test_cmd_patch_string(self):
         res = gdb_start_silent_cmd_last_line("patch string $sp \"Gef!Gef!Gef!Gef!\"", after=["grep Gef!Gef!Gef!Gef!",])
         self.assertNoException(res)
-        self.assertIn(b"Gef!Gef!Gef!Gef!", res)
+        self.assertIn("Gef!Gef!Gef!Gef!", res)
         return
 
     def test_cmd_pattern(self):
@@ -261,43 +261,43 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         target = "tests/binaries/pattern.out"
         res = gdb_run_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn(b"aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
+        self.assertIn("aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
 
         cmd = "pattern search $rbp"
         target = "tests/binaries/pattern.out"
         res = gdb_run_cmd(cmd, before=["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"], target=target)
         self.assertNoException(res)
-        self.assertIn(b"Found at offset", res)
+        self.assertIn("Found at offset", res)
         return
 
     def test_cmd_print_format(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("print-format"))
         res = gdb_start_silent_cmd("print-format $rsp")
         self.assertNoException(res)
-        self.assertTrue(b"buf = [" in res)
+        self.assertTrue("buf = [" in res)
         res = gdb_start_silent_cmd("print-format -f js $rsp")
         self.assertNoException(res)
-        self.assertTrue(b"var buf = [" in res)
+        self.assertTrue("var buf = [" in res)
         res = gdb_start_silent_cmd("print-format -f iDontExist $rsp")
         self.assertNoException(res)
-        self.assertTrue(b"Language must be :" in res)
+        self.assertTrue("Language must be :" in res)
         return
 
     def test_cmd_process_status(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("process-status"))
         res = gdb_start_silent_cmd("process-status")
         self.assertNoException(res)
-        self.assertIn(b"Process Information", res)
-        self.assertIn(b"No child process", res)
-        self.assertIn(b"No open connections", res)
+        self.assertIn("Process Information", res)
+        self.assertIn("No child process", res)
+        self.assertIn("No open connections", res)
         return
 
     def test_cmd_registers(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("registers"))
         res = gdb_start_silent_cmd("registers")
         self.assertNoException(res)
-        self.assertIn(b"$rax", res)
-        self.assertIn(b"$eflags", res)
+        self.assertIn("$rax", res)
+        self.assertIn("$eflags", res)
         return
 
     def test_cmd_reset_cache(self):
@@ -311,7 +311,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         cmd = "ropper --search \"pop %; pop %; ret\""
         res = gdb_run_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertNotIn(b": error:", res)
+        self.assertNotIn(": error:", res)
         self.assertTrue(len(res.splitlines()) > 2)
         return
 
@@ -321,12 +321,12 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn(target.encode(), res)
+        self.assertIn(target, res)
 
         target = "tests/binaries/default.out"
         res = gdb_start_silent_cmd("scan binary libc", target=target)
         self.assertNoException(res)
-        self.assertIn(b"__libc_start_main", res)
+        self.assertIn("__libc_start_main", res)
 
         return
 
@@ -334,7 +334,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(gdb_run_cmd("grep /bin/sh"))
         res = gdb_start_silent_cmd("grep /bin/sh")
         self.assertNoException(res)
-        self.assertIn(b"0x", res)
+        self.assertIn("0x", res)
         return
 
     def test_cmd_set_permission(self):
@@ -343,35 +343,35 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
 
         res = gdb_run_silent_cmd("set-permission 0x1337000", after=["vmmap",], target=target)
         self.assertNoException(res)
-        line = [ l for l in res.splitlines() if b"0x0000000001337000" in l ][0]
+        line = [ l for l in res.splitlines() if "0x0000000001337000" in l ][0]
         line = line.split()
-        self.assertEqual(line[0], b"0x0000000001337000")
-        self.assertEqual(line[1], b"0x0000000001338000")
-        self.assertEqual(line[2], b"0x0000000000000000")
-        self.assertEqual(line[3], b"rwx")
+        self.assertEqual(line[0], "0x0000000001337000")
+        self.assertEqual(line[1], "0x0000000001338000")
+        self.assertEqual(line[2], "0x0000000000000000")
+        self.assertEqual(line[3], "rwx")
 
         res = gdb_run_silent_cmd("set-permission 0x1338000", target=target)
         self.assertNoException(res)
-        self.assertIn(b"Unmapped address", res)
+        self.assertIn("Unmapped address", res)
         return
 
     def test_cmd_shellcode(self):
         res = gdb_start_silent_cmd("shellcode")
         self.assertNoException(res)
-        self.assertIn(b"Missing sub-command (search|get)", res)
+        self.assertIn("Missing sub-command (search|get)", res)
         return
 
     def test_cmd_shellcode_search(self):
         cmd = "shellcode search execve /bin/sh"
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertIn(b"setuid(0) + execve(/bin/sh) 49 bytes", res)
+        self.assertIn("setuid(0) + execve(/bin/sh) 49 bytes", res)
         return
 
     def test_cmd_shellcode_get(self):
         res = gdb_start_silent_cmd("shellcode get 77")
         self.assertNoException(res)
-        self.assertIn(b"Shellcode written to ", res)
+        self.assertIn("Shellcode written to ", res)
         return
 
     def test_cmd_stub(self):
@@ -416,7 +416,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         res = gdb_start_silent_cmd(cmd,
                                    before=["gef config trace-run.tracefile_prefix /tmp/gef-trace-"])
         self.assertNoException(res)
-        self.assertIn(b"Tracing from", res)
+        self.assertIn("Tracing from", res)
         return
 
     def test_cmd_unicorn_emulate(self):
@@ -426,7 +426,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
 
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertIn(b"Final registers", res)
+        self.assertIn("Final registers", res)
         return
 
     def test_cmd_vmmap(self):
@@ -450,7 +450,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
     def test_cmd_xinfo(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("xinfo $sp"))
         res = gdb_start_silent_cmd("xinfo")
-        self.assertIn(b"At least one valid address must be specified", res)
+        self.assertIn("At least one valid address must be specified", res)
 
         res = gdb_start_silent_cmd("xinfo $sp")
         self.assertNoException(res)
@@ -462,13 +462,13 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertIn(b"Original block", res)
-        self.assertIn(b"XOR-ed block", res)
+        self.assertIn("Original block", res)
+        self.assertIn("XOR-ed block", res)
 
         cmd = "xor-memory patch $sp 0x10 0x41"
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertIn(b"Patching XOR-ing ", res)
+        self.assertIn("Patching XOR-ing ", res)
         return
 
 class TestGefFunctions(GefUnitTestGeneric):
@@ -476,21 +476,21 @@ class TestGefFunctions(GefUnitTestGeneric):
 
     def test_func_get_memory_alignment(self):
         res = gdb_test_python_method("get_memory_alignment(in_bits=False)")
-        self.assertIn(res.splitlines()[-1], (b"4", b"8"))
+        self.assertIn(res.splitlines()[-1], ("4", "8"))
         return
 
     def test_func_set_arch(self):
         res = gdb_test_python_method("current_arch.arch, current_arch.mode", before="set_arch()")
         res = (res.splitlines()[-1])
-        self.assertIn(b"X86", res)
+        self.assertIn("X86", res)
         return
 
     def test_func_which(self):
         res = gdb_test_python_method("which('gdb')")
         lines = res.splitlines()
-        self.assertIn(b"/gdb", lines[-1])
+        self.assertIn("/gdb", lines[-1])
         res = gdb_test_python_method("which('__IDontExist__')")
-        self.assertIn(b"Missing file `__IDontExist__`", res)
+        self.assertIn("Missing file `__IDontExist__`", res)
         return
 
     def test_func_get_filepath(self):
@@ -516,13 +516,13 @@ class TestGdbFunctions(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertIn(b"\\177ELF", res)
+        self.assertIn("\\177ELF", res)
 
         cmd = "x/s $_pie(1)"
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertNotIn(b"\\177ELF", res)
-        self.assertIn(b"ELF", res)
+        self.assertNotIn("\\177ELF", res)
+        self.assertIn("ELF", res)
         return
 
     def test_func_heap(self):
@@ -530,14 +530,14 @@ class TestGdbFunctions(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target="tests/binaries/heap.out"))
         res = gdb_run_silent_cmd(cmd, target="tests/binaries/heap.out")
         self.assertNoException(res)
-        self.assertIn(b"0x0000000000000021", res)
-        self.assertIn(b"0x0000000000020fe1", res)
+        self.assertIn("0x0000000000000021", res)
+        self.assertIn("0x0000000000020fe1", res)
 
         cmd = "deref $_heap(0x10+0x10)"
         res = gdb_run_silent_cmd(cmd, target="tests/binaries/heap.out")
         self.assertNoException(res)
-        self.assertNotIn(b"0x0000000000000021", res)
-        self.assertIn(b"0x0000000000020fe1", res)
+        self.assertNotIn("0x0000000000000021", res)
+        self.assertIn("0x0000000000020fe1", res)
         return
 
     def test_func_got(self):
@@ -545,7 +545,7 @@ class TestGdbFunctions(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target="tests/binaries/heap.out"))
         res = gdb_run_silent_cmd(cmd, target="tests/binaries/heap.out")
         self.assertNoException(res)
-        self.assertIn(b"malloc", res)
+        self.assertIn("malloc", res)
         return
 
     def test_func_bss(self):
@@ -553,7 +553,7 @@ class TestGdbFunctions(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target="tests/binaries/bss.out"))
         res = gdb_run_silent_cmd(cmd, target="tests/binaries/bss.out")
         self.assertNoException(res)
-        self.assertIn(b"Hello world!", res)
+        self.assertIn("Hello world!", res)
         return
 
     def test_func_stack(self):
@@ -561,7 +561,7 @@ class TestGdbFunctions(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertRegex(res.decode(), r"\+0x0*20: *0x0000000000000000\n")
+        self.assertRegex(res, r"\+0x0*20: *0x0000000000000000\n")
         return
 
 class TestGefMisc(GefUnitTestGeneric):

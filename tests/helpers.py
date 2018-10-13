@@ -5,8 +5,8 @@ PATH_TO_DEFAULT_BINARY = "./tests/binaries/default.out"
 
 
 def ansi_clean(s):
-    ansi_escape = re.compile(b"(\x9B|\x1B\\[)[0-?]*[ -/]*[@-~]")
-    return ansi_escape.sub(b"", s)
+    ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
+    return ansi_escape.sub("", s)
 
 
 def gdb_run_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
@@ -29,7 +29,7 @@ def gdb_run_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
     command += ["-ex", "quit", "--", target]
 
     lines = subprocess.check_output(command, stderr=subprocess.STDOUT).strip().splitlines()
-    return ansi_clean(b"\n".join(lines))
+    return ansi_clean(b"\n".join(lines).decode("utf-8"))
 
 
 def gdb_run_silent_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
