@@ -2214,7 +2214,7 @@ def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding
         length = min(address|(DEFAULT_PAGE_SIZE-1), max_length+1)
         mem = bytes(read_memory(address, length)).decode("utf-8")
         res = mem.split("\x00", 1)[0]
-    res2 = res.encode("unicode_escape")
+    res2 = res.replace('\n','\\n').replace('\r','\\r').replace('\t','\\t')
 
     if max_length and len(res) > max_length:
         return "{}[...]".format(res2[:max_length])
