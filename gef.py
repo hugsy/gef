@@ -2072,7 +2072,6 @@ class SPARC(Architecture):
         hi = (addr & 0xffff0000) >> 16
         lo = (addr & 0x0000ffff)
         _NR_mprotect = 125
-        syscall = "t 0x6d" if is_sparc64() else "t 0x10"
         insns = ["add %sp, -16, %sp",
                  "st %g1, [ %sp ]", "st %o0, [ %sp + 4 ]",
                  "st %o1, [ %sp + 8 ]", "st %o2, [ %sp + 12 ]",
@@ -2081,7 +2080,7 @@ class SPARC(Architecture):
                  "clr  %o1",
                  "clr  %o2",
                  "mov  {}, %g1".format(_NR_mprotect),
-                 syscall,
+                 "t 0x10",
                  "ld [ %sp ], %g1", "ld [ %sp + 4 ], %o0",
                  "ld [ %sp + 8 ], %o1", "ld [ %sp + 12 ], %o2",
                  "add %sp, 16, %sp",]
@@ -2112,6 +2111,25 @@ class SPARC64(SPARC):
     }
 
     syscall_instructions = ["t 0x6d"]
+
+    @classmethod
+    def mprotect_asm(cls, addr, size, perm):
+        hi = (addr & 0xffff0000) >> 16
+        lo = (addr & 0x0000ffff)
+        _NR_mprotect = 125
+        insns = ["add %sp, -16, %sp",
+                 "st %g1, [ %sp ]", "st %o0, [ %sp + 4 ]",
+                 "st %o1, [ %sp + 8 ]", "st %o2, [ %sp + 12 ]",
+                 "sethi  %hi({}), %o0".format(hi),
+                 "or  %o0, {}, %o0".format(lo),
+                 "clr  %o1",
+                 "clr  %o2",
+                 "mov  {}, %g1".format(_NR_mprotect),
+                 "t 0x6d",
+                 "ld [ %sp ], %g1", "ld [ %sp + 4 ], %o0",
+                 "ld [ %sp + 8 ], %o1", "ld [ %sp + 12 ], %o2",
+                 "add %sp, 16, %sp",]
+        return "; ".join(insns)
 
 
 class MIPS(Architecture):
@@ -2740,9 +2758,10 @@ def get_capstone_arch(arch=None, mode=None, endian=None, to_string=False):
 
     # hacky patch to unify capstone/ppc syntax with keystone & unicorn:
     # CS_MODE_PPC32 does not exist (but UC_MODE_32 & KS_MODE_32 do)
-    if is_alive() and (is_powerpc() or is_ppc64()):
-        if is_ppc64():
-            raise OSError("Capstone not supported for PPC64 yet.")
+    if is_arch(Elf.POWERPC64):
+        raise OSError("Capstone not supported for PPC64 yet.")
+
+    if is_alive() and is_arch(Elf.POWERPC):
 
         arch = "PPC"
         mode = "32"
@@ -2861,59 +2880,9 @@ def is_x86(filename=None):
 
 
 @lru_cache()
-def is_arm(filename=None):
-    """Checks if `filename` is an ARM ELF."""
-    elf = current_elf or get_elf_headers(filename)
-    return elf.e_machine == Elf.ARM
-
-
-@lru_cache()
-def is_mips():
-    """Checks if `filename` is a MIPS ELF."""
+def is_arch(arch):
     elf = current_elf or get_elf_headers()
-    return elf.e_machine == Elf.MIPS
-
-
-@lru_cache()
-def is_powerpc():
-    """Checks if `filename` is a PowerPC ELF."""
-    elf = current_elf or get_elf_headers()
-    return elf.e_machine == Elf.POWERPC
-
-
-@lru_cache()
-def is_ppc64():
-    """Checks if `filename` is a PowerPC64 ELF."""
-    elf = current_elf or get_elf_headers()
-    return elf.e_machine == Elf.POWERPC64
-
-
-@lru_cache()
-def is_sparc():
-    """Checks if `filename` is a SPARC ELF."""
-    elf = current_elf or get_elf_headers()
-    return elf.e_machine == Elf.SPARC
-
-
-@lru_cache()
-def is_sparc64():
-    """Checks if `filename` is a SPARC64 ELF."""
-    elf = current_elf or get_elf_headers()
-    return elf.e_machine == Elf.SPARC64
-
-
-@lru_cache()
-def is_aarch64():
-    """Checks if `filename` is an AARCH64 ELF."""
-    elf = current_elf or get_elf_headers()
-    return elf.e_machine == Elf.AARCH64
-
-
-@lru_cache()
-def is_riscv():
-    """Checks if `filename` is a RISCV ELF."""
-    elf = current_elf or get_elf_headers()
-    return elf.e_machine == Elf.RISCV
+    return elf.e_machine == arch
 
 
 def set_arch(arch=None, default=None):
