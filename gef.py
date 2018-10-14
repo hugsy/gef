@@ -9017,18 +9017,19 @@ class GefConfigCommand(gdb.Command):
 
     def print_setting(self, plugin_name, show_description=False):
         res = __config__.get(plugin_name)
-        string_color = __config__.get("theme.dereference_string")[0]
+        string_color = get_gef_setting("theme.dereference_string")
+        misc_color = get_gef_setting("theme.dereference_base_address")
 
         if not res:
             return
 
         _value, _type, _desc = res
-        _setting = Color.colorify(plugin_name, "pink bold underline")
+        _setting = Color.colorify(plugin_name, "green")
         _type = _type.__name__
         if _type == "str":
             _value = '"{:s}"'.format(Color.colorify(_value, string_color))
         else:
-            _value = Color.colorify(_value, "yellow")
+            _value = Color.colorify(_value, misc_color)
 
         gef_print("{:s} ({:s}) = {:s}".format(_setting, _type, _value))
 
