@@ -7340,7 +7340,7 @@ class ContextCommand(GenericCommand):
                 current_block = current_block.superblock
 
             if m:
-                return "\t\t// " + ", ".join(["{:s}={:s}".format(Color.yellowify(a),b) for a, b in m.items()])
+                return "\t\t// " + ", ".join(["{}={}".format(Color.yellowify(a), b) for a, b in m.items()])
         except Exception:
             pass
         return ""
@@ -7370,8 +7370,9 @@ class ContextCommand(GenericCommand):
             items.append("{:#x}".format(pc))
             if name:
                 frame_args = gdb.FrameDecorator.FrameDecorator(current_frame).frame_args() or []
-                m = "Name: {:s}({:s})".format(Color.greenify(name),
-                                              ", ".join(["{!s}={!s}".format(x.sym, x.sym.value(current_frame)) for x in frame_args]))
+                m = "{}({})".format(Color.greenify(name),
+                                    ", ".join(["{}={!s}".format(Color.yellowify(x.sym),
+                                                                x.sym.value(current_frame)) for x in frame_args]))
                 items.append(m)
             else:
                 try:
@@ -7380,8 +7381,8 @@ class ContextCommand(GenericCommand):
                     break
                 items.append(Color.redify("{} {}".format(insn.mnemonic, ', '.join(insn.operands))))
 
-            gef_print("[{:s}] {:s}".format(Color.colorify("#{:d}".format(i), "bold pink"),
-                                           RIGHT_ARROW.join(items)))
+            gef_print("[{}] {}".format(Color.colorify("#{}".format(i), "bold pink"),
+                                       RIGHT_ARROW.join(items)))
             current_frame = current_frame.older()
             i += 1
             nb_backtrace -= 1
@@ -7891,7 +7892,7 @@ class DereferenceCommand(GenericCommand):
                         s = read_cstring_from_memory(addr.value)
                         if len(s) < get_memory_alignment():
                             txt = '{:s} ("{:s}"?)'.format(format_address(deref), Color.colorify(s, string_color))
-                        elif len(s) >= 50:
+                        elif len(s) > 50:
                             txt = Color.colorify('"{:s}[...]"'.format(s[:50]), string_color)
                         else:
                             txt = Color.colorify('"{:s}"'.format(s), string_color)
@@ -9007,7 +9008,7 @@ class GefConfigCommand(gdb.Command):
             if names:
                 if len(names)==1:
                     gef_print(titlify("GEF configuration setting: {:s}".format(names[0])))
-                    self.print_setting(names[0], show_description=True)
+                    self.print_setting(names[0], verbose=True)
                 else:
                     gef_print(titlify("GEF configuration settings matching '{:s}'".format(argv[0])))
                     for name in names: self.print_setting(name)
@@ -9016,7 +9017,7 @@ class GefConfigCommand(gdb.Command):
         self.set_setting(argc, argv)
         return
 
-    def print_setting(self, plugin_name, show_description=False):
+    def print_setting(self, plugin_name, verbose=False):
         res = __config__.get(plugin_name)
         string_color = get_gef_setting("theme.dereference_string")
         misc_color = get_gef_setting("theme.dereference_base_address")
@@ -9034,9 +9035,8 @@ class GefConfigCommand(gdb.Command):
 
         gef_print("{:s} ({:s}) = {:s}".format(_setting, _type, _value))
 
-        if show_description:
-            gef_print("")
-            gef_print(Color.colorify("Description:", "bold underline"))
+        if verbose:
+            gef_print(Color.colorify("\nDescription:", "bold underline"))
             gef_print("\t{:s}".format(_desc))
         return
 
