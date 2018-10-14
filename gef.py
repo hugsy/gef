@@ -1044,6 +1044,7 @@ def disable_redirect_output():
     return
 
 
+@lru_cache()
 def get_gef_setting(name):
     """Read global gef settings.
     Return None if not found. A valid config setting can never return None,
@@ -9071,6 +9072,7 @@ class GefConfigCommand(gdb.Command):
             err("{} expects type '{}'".format(argv[0], _type.__name__))
             return
 
+        reset_all_caches()
         __config__[argv[0]][0] = _newval
         return
 
