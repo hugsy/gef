@@ -225,7 +225,7 @@ else:
     def lru_cache(maxsize = 128):
         """Port of the Python3 LRU cache mechanism provided by itertools."""
         class GefLruCache(object):
-            """Local LRU cache for Python2"""
+            """Local LRU cache for Python2."""
             def __init__(self, input_func, max_size):
                 self._input_func        = input_func
                 self._max_size          = max_size
@@ -516,7 +516,7 @@ Zone = collections.namedtuple("Zone", ["name", "zone_start", "zone_end", "filena
 
 
 class Elf:
-    """ Basic ELF parsing.
+    """Basic ELF parsing.
     Ref:
     - http://www.skyfree.org/linux/references/ELF_Format.pdf
     - http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
@@ -672,7 +672,7 @@ class GlibcArena:
 
 class GlibcChunk:
     """Glibc chunk class.
-    Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/"""
+    Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/."""
 
     def __init__(self, addr, from_base=False):
         self.ptrsize = current_arch.ptrsize
@@ -974,7 +974,7 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
     @param separator is the default character to use if one byte is not printable
     @param show_raw if True, do not add the line nor the text translation
     @param base is the start address of the block being hexdump
-    @return a string with the hexdump """
+    @return a string with the hexdump"""
     result = []
     align = get_memory_alignment()*2+2 if is_alive() else 18
 
@@ -1448,7 +1448,7 @@ class RISCV(Architecture):
 
     def is_branch_taken(self, insn):
         def long_to_twos_complement(v):
-            """Convert a python long value to its two's complement"""
+            """Convert a python long value to its two's complement."""
             if is_elf32():
                 if v & 0x80000000:
                     return v - 0x100000000
@@ -1945,7 +1945,7 @@ class PowerPC(Architecture):
 
     @classmethod
     def mprotect_asm(cls, addr, size, perm):
-        """Ref: http://www.ibm.com/developerworks/library/l-ppc/index.html"""
+        # Ref: http://www.ibm.com/developerworks/library/l-ppc/index.html
         _NR_mprotect = 125
         insns = ["addi 1, 1, -16",                 # 1 = r1 = sp
                  "stw 0, 0(1)", "stw 3, 4(1)",     # r0 = syscall_code | r3, r4, r5 = args
@@ -2435,7 +2435,7 @@ def download_file(target, use_cache=False, local_name=None):
 
 def open_file(path, use_cache=False):
     """Attempt to open the given file, if remote debugging is active, download
-    it first to the mirror in /tmp/"""
+    it first to the mirror in /tmp/."""
     if is_remote_debug():
         lpath = download_file(path, use_cache)
         if not lpath:
@@ -3224,7 +3224,7 @@ class PieVirtualBreakpoint(object):
 #
 
 class FormatStringBreakpoint(gdb.Breakpoint):
-    """Inspect stack for format string"""
+    """Inspect stack for format string."""
     def __init__(self, spec, num_args):
         super(FormatStringBreakpoint, self).__init__(spec, type=gdb.BP_BREAKPOINT, internal=False)
         self.num_args = num_args
@@ -3262,7 +3262,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
 
 
 class StubBreakpoint(gdb.Breakpoint):
-    """Create a breakpoint to permanently disable a call (fork/alarm/signal/etc.)"""
+    """Create a breakpoint to permanently disable a call (fork/alarm/signal/etc.)."""
 
     def __init__(self, func, retval):
         super(StubBreakpoint, self).__init__(func, gdb.BP_BREAKPOINT, internal=False)
@@ -3302,7 +3302,7 @@ class ChangePermissionBreakpoint(gdb.Breakpoint):
 
 
 class TraceMallocBreakpoint(gdb.Breakpoint):
-    """Track allocations done with malloc() or calloc."""
+    """Track allocations done with malloc() or calloc()."""
 
     def __init__(self, name):
         super(TraceMallocBreakpoint, self).__init__(name, gdb.BP_BREAKPOINT, internal=True)
@@ -3521,7 +3521,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
 
 
 class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):
-    """Internal temporary breakpoint to track free-ed values."""
+    """Internal temporary breakpoint to track free()d values."""
 
     def __init__(self, addr):
         super(TraceFreeRetBreakpoint, self).__init__(gdb.newest_frame(), internal=True)
@@ -3537,7 +3537,7 @@ class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):
 
 
 class UafWatchpoint(gdb.Breakpoint):
-    """Custom watchpoints set TraceFreeBreakpoint() to monitor free-ed pointers being used."""
+    """Custom watchpoints set TraceFreeBreakpoint() to monitor free()d pointers being used."""
 
     def __init__(self, addr):
         super(UafWatchpoint, self).__init__("*{:#x}".format(addr), gdb.BP_WATCHPOINT, internal=True)
@@ -3728,7 +3728,7 @@ class GenericCommand(gdb.Command):
 
 @register_command
 class PrintFormatCommand(GenericCommand):
-    """Print bytes format in high level languages"""
+    """Print bytes format in high level languages."""
 
     _cmdline_ = "print-format"
     _syntax_  = "{:s} [-f FORMAT] [-b BITSIZE] [-l LENGTH] [-c] [-h] LOCATION".format(_cmdline_)
@@ -3777,7 +3777,7 @@ class PrintFormatCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        """Default value for print-format command"""
+        """Default value for print-format command."""
         lang = 'py'
         length = 256
         bitlen = 8
@@ -4770,7 +4770,7 @@ class IdaInteractCommand(GenericCommand):
 
 
     def synchronize(self):
-        """Submit all active breakpoint addresses to IDA/BN"""
+        """Submit all active breakpoint addresses to IDA/BN."""
         pc = current_arch.pc
         vmmap = get_process_maps()
         base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
@@ -4883,7 +4883,7 @@ class IdaInteractCommand(GenericCommand):
 @register_command
 class ScanSectionCommand(GenericCommand):
     """Search for addresses that are located in a memory mapping (haystack) that belonging
-    to another (needle)"""
+    to another (needle)."""
 
     _cmdline_ = "scan"
     _syntax_  = "{:s} HAYSTACK NEEDLE".format(_cmdline_)
@@ -4992,7 +4992,6 @@ class SearchPatternCommand(GenericCommand):
 
             for loc in self.search_pattern_by_address(pattern, start, end):
                 addr_loc_start = lookup_address(loc[0])
-                section = ""
                 if addr_loc_start and addr_loc_start.section:
                     if old_section != addr_loc_start.section:
                         title = "In "
@@ -5552,7 +5551,7 @@ class RemoteCommand(GenericCommand):
         return
 
     def new_objfile_handler(self, event):
-        """Hook that handles new_objfile events, will update remote environment accordingly"""
+        """Hook that handles new_objfile events, will update remote environment accordingly."""
         if not is_remote_debug():
             return
 
@@ -5608,7 +5607,7 @@ class RemoteCommand(GenericCommand):
 
 
     def load_from_remote_proc(self, pid, info):
-        """Download one item from /proc/pid"""
+        """Download one item from /proc/pid."""
         remote_name = "/proc/{:d}/{:s}".format(pid, info)
         return download_file(remote_name, use_cache=False)
 
@@ -5930,7 +5929,7 @@ class GlibcHeapArenaCommand(GenericCommand):
 @register_command
 class GlibcHeapChunkCommand(GenericCommand):
     """Display information on a heap chunk.
-    See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
+    See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
 
     _cmdline_ = "heap chunk"
     _syntax_  = "{:s} LOCATION".format(_cmdline_)
@@ -6023,7 +6022,7 @@ class GlibcHeapChunksCommand(GenericCommand):
 @register_command
 class GlibcHeapBinsCommand(GenericCommand):
     """Display information on the bins on an arena (default: main_arena).
-    See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
+    See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
 
     _bin_types_ = ["fast", "unsorted", "small", "large"]
     _cmdline_ = "heap bins"
@@ -6077,7 +6076,7 @@ class GlibcHeapBinsCommand(GenericCommand):
 @register_command
 class GlibcHeapFastbinsYCommand(GenericCommand):
     """Display information on the fastbinsY on an arena (default: main_arena).
-    See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123"""
+    See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
 
     _cmdline_ = "heap bins fast"
     _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)
@@ -6137,7 +6136,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 @register_command
 class GlibcHeapUnsortedBinsCommand(GenericCommand):
     """Display information on the Unsorted Bins of an arena (default: main_arena).
-    See: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1689"""
+    See: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1689."""
 
     _cmdline_ = "heap bins unsorted"
     _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)
@@ -6453,7 +6452,7 @@ class ShellcodeGetCommand(GenericCommand):
 
 @register_command
 class RopperCommand(GenericCommand):
-    """Ropper (http://scoding.de/ropper) plugin"""
+    """Ropper (http://scoding.de/ropper) plugin."""
 
     _cmdline_ = "ropper"
     _syntax_  = "{:s} [ROPPER_OPTIONS]".format(_cmdline_)
@@ -8760,7 +8759,7 @@ class GefFunctionsCommand(GenericCommand):
         return
 
 class GefCommand(gdb.Command):
-    """GEF main command: view all new commands by typing `gef`"""
+    """GEF main command: view all new commands by typing `gef`."""
 
     _cmdline_ = "gef"
     _syntax_  = "{:s} (missing|config|save|restore|set|run)".format(_cmdline_)
@@ -9077,8 +9076,8 @@ class GefConfigCommand(gdb.Command):
 
 
 class GefSaveCommand(gdb.Command):
-    """GEF save sub-command
-    Saves the current configuration of GEF to disk (by default in file '~/.gef.rc')"""
+    """GEF save sub-command.
+    Saves the current configuration of GEF to disk (by default in file '~/.gef.rc')."""
     _cmdline_ = "gef save"
     _syntax_  = _cmdline_
 
@@ -9117,8 +9116,8 @@ class GefSaveCommand(gdb.Command):
 
 
 class GefRestoreCommand(gdb.Command):
-    """GEF restore sub-command
-    Loads settings from file '~/.gef.rc' and apply them to the configuration of GEF"""
+    """GEF restore sub-command.
+    Loads settings from file '~/.gef.rc' and apply them to the configuration of GEF."""
     _cmdline_ = "gef restore"
     _syntax_  = _cmdline_
 
