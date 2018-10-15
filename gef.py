@@ -314,10 +314,12 @@ def bufferize(f):
             return f(*args, **kwargs)
 
         __gef_int_stream_buffer__ = StringIO()
-        rv = f(*args, **kwargs)
-        sys.stdout.write(__gef_int_stream_buffer__.getvalue())
-        sys.stdout.flush()
-        __gef_int_stream_buffer__ = None
+        try:
+            rv = f(*args, **kwargs)
+        finally:
+            sys.stdout.write(__gef_int_stream_buffer__.getvalue())
+            sys.stdout.flush()
+            __gef_int_stream_buffer__ = None
         return rv
 
     return wrapper
