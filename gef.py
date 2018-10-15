@@ -863,19 +863,10 @@ def titlify(text, color=None, msg_color=None):
     return "".join(msg)
 
 
-def _xlog(text, stream, cr=True):
-    """Logging core function."""
-    text += "\n" if cr else ""
-    gdb.write(text, stream)
-    if cr:
-        gdb.flush()
-    return 0
-
-
-def err(msg, cr=True):   return _xlog("{} {}".format(Color.colorify("[!]", "bold red"), msg), gdb.STDERR, cr)
-def warn(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[*]", "bold yellow"), msg), gdb.STDLOG, cr)
-def ok(msg, cr=True):    return _xlog("{} {}".format(Color.colorify("[+]", "bold green"), msg), gdb.STDLOG, cr)
-def info(msg, cr=True):  return _xlog("{} {}".format(Color.colorify("[+]", "bold blue"), msg), gdb.STDLOG, cr)
+def err(msg):   return gef_print("{} {}".format(Color.colorify("[!]", "bold red"), msg))
+def warn(msg):  return gef_print("{} {}".format(Color.colorify("[*]", "bold yellow"), msg))
+def ok(msg):    return gef_print("{} {}".format(Color.colorify("[+]", "bold green"), msg))
+def info(msg):  return gef_print("{} {}".format(Color.colorify("[+]", "bold blue"), msg))
 
 
 def push_context_message(level, message):
@@ -7448,11 +7439,10 @@ class ContextCommand(GenericCommand):
 
         self.context_title("extra")
         for level, text in __context_messages__:
-            if level=="error": prefix = "[!] {}"
-            elif level=="warn":  prefix = "[*] {}"
-            elif level=="success":  prefix = "[+] {}"
-            else: prefix = "{}"
-            gef_print( prefix.format(text) )
+            if   level=="error": err(text)
+            elif level=="warn": warn(text)
+            elif level=="success": ok(text)
+            else: info(text)
         return
 
     def context_memory(self):
