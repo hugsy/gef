@@ -7461,10 +7461,11 @@ class ContextCommand(GenericCommand):
 
         self.context_title("extra")
         for level, text in __context_messages__:
-            if   level=="error": err(text)
-            elif level=="warn": warn(text)
-            elif level=="success": ok(text)
-            else: info(text)
+            if level=="error": prefix = "[!] {}"
+            elif level=="warn":  prefix = "[*] {}"
+            elif level=="success":  prefix = "[+] {}"
+            else: prefix = "{}"
+            gef_print( prefix.format(text) )
         return
 
     def context_memory(self):
