@@ -481,17 +481,14 @@ class Permission:
 
 class Section:
     """GEF representation of process memory sections."""
-    page_start      = None
-    page_end        = None
-    offset          = None
-    permission      = None
-    inode           = None
-    path            = None
 
     def __init__(self, *args, **kwargs):
-        for attr in ["page_start", "page_end", "offset", "permission", "inode", "path", ]:
-            value = kwargs.get(attr)
-            setattr(self, attr, value)
+        self.page_start = kwargs.get("page_start")
+        self.page_end = kwargs.get("page_end")
+        self.offset = kwargs.get("offset")
+        self.permission = kwargs.get("permission")
+        self.inode = kwargs.get("inode")
+        self.path = kwargs.get("path")
         return
 
     def is_readable(self):
@@ -515,11 +512,7 @@ class Section:
         return self.path if __gef_remote__ is None else "/tmp/gef/{:d}/{:s}".format(__gef_remote__, self.path)
 
 
-class Zone:
-    name              = None
-    zone_start        = None
-    zone_end          = None
-    filename          = None
+Zone = collections.namedtuple("Zone", ["name", "zone_start", "zone_end", "filename"])
 
 
 class Elf:
@@ -2561,11 +2554,7 @@ def get_info_files():
         else:
             filename = get_filepath()
 
-        info = Zone()
-        info.name = section_name
-        info.zone_start = addr_start
-        info.zone_end = addr_end
-        info.filename = filename
+        info = Zone(section_name, addr_start, addr_end, filename)
 
         __infos_files__.append(info)
 
