@@ -815,10 +815,12 @@ class GlibcChunk:
 
     def __str__(self):
         msg = "{:s}(addr={:#x}, size={:#x}, flags={:s})".format(Color.colorify("Chunk", "yellow bold underline"),
-                                                                long(self.address),self.get_chunk_size(), self.flags_as_string())
+                                                                long(self.address),
+                                                                self.get_chunk_size(),
+                                                                self.flags_as_string())
         return msg
 
-    def pprint(self):
+    def psprint(self):
         msg = []
         msg.append(str(self))
         if self.is_used():
@@ -826,9 +828,7 @@ class GlibcChunk:
         else:
             msg.append(self.str_as_freed())
 
-        gdb.write("\n".join(msg) + "\n")
-        gdb.flush()
-        return
+        return "\n".join(msg) + "\n"
 
 
 @lru_cache()
@@ -5951,7 +5951,7 @@ class GlibcHeapChunkCommand(GenericCommand):
 
         addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
         chunk = GlibcChunk(addr)
-        chunk.pprint()
+        gef_print(chunk.psprint())
         return
 
 @register_command
