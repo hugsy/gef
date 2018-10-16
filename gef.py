@@ -850,9 +850,9 @@ def titlify(text, color=None, msg_color=None):
         msg_color = __config__.get("theme.default_title_message")[0]
 
     msg = []
-    msg.append(Color.colorify(HORIZONTAL_LINE * nb + ' ', color))
+    msg.append(Color.colorify("{} ".format(HORIZONTAL_LINE * nb), color))
     msg.append(Color.colorify(text, msg_color))
-    msg.append(Color.colorify(' ' + HORIZONTAL_LINE * nb, color))
+    msg.append(Color.colorify(" {}".format(HORIZONTAL_LINE * nb), color))
     return "".join(msg)
 
 
