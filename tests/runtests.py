@@ -530,14 +530,12 @@ class TestGdbFunctions(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target="tests/binaries/heap.out"))
         res = gdb_run_silent_cmd(cmd, target="tests/binaries/heap.out")
         self.assertNoException(res)
-        self.assertIn("0x0000000000000021", res)
-        self.assertIn("0x0000000000020fe1", res)
+        self.assertIn("+0x0048:", res)
 
         cmd = "deref $_heap(0x10+0x10)"
         res = gdb_run_silent_cmd(cmd, target="tests/binaries/heap.out")
         self.assertNoException(res)
-        self.assertNotIn("0x0000000000000021", res)
-        self.assertIn("0x0000000000020fe1", res)
+        self.assertIn("+0x0048:", res)
         return
 
     def test_func_got(self):

@@ -2221,7 +2221,7 @@ def read_memory(addr, length=0x10):
 
 def read_int_from_memory(addr):
     """Return an integer read from memory."""
-    sz = get_memory_alignment()
+    sz = current_arch.ptrsize
     mem = read_memory(addr, sz)
     fmt = "{}{}".format(endian_str(), "I" if sz==4 else "Q")
     return struct.unpack(fmt, mem)[0]
@@ -2229,34 +2229,40 @@ def read_int_from_memory(addr):
 
 def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding=None):
     """Return a C-string read from memory."""
+
     if not encoding:
         encoding = "unicode_escape" if PYTHON_MAJOR==3 else "ascii"
 
-    char_t = cached_lookup_type("char")
-    char_ptr = char_t.pointer()
+    char_ptr = cached_lookup_type("char").pointer()
+
     try:
         res = gdb.Value(address).cast(char_ptr).string(encoding=encoding).strip()
     except gdb.error:
         length = min(address|(DEFAULT_PAGE_SIZE-1), max_length+1)
         mem = bytes(read_memory(address, length)).decode("utf-8")
         res = mem.split("\x00", 1)[0]
-    res2 = res.replace('\n','\\n').replace('\r','\\r').replace('\t','\\t')
+
+    ustr = res.replace('\n','\\n').replace('\r','\\r').replace('\t','\\t')
 
     if max_length and len(res) > max_length:
-        return "{}[...]".format(res2[:max_length])
+        return "{}[...]".format(ustr[:max_length])
 
-    return res2
+    return ustr
 
 
-def is_readable_string(address):
-    """Try to determine if the content pointed by `address` is
-    a readable string by checking if:
-    * it ends with a null byte (i.e. it is a C-string)
-    * each byte is printable"""
+def read_ascii_string(address):
+    """Read an ASCII string from memory"""
+    cstr = read_cstring_from_memory(address)
+    if isinstance(cstr, unicode) and cstr and all([x in string.printable for x in cstr]):
+        return cstr
+    return None
+
+
+def is_ascii_string(address):
+    """Helper function to determine if the buffer pointed by `address` is an ASCII string (in GDB)"""
     try:
-        cstr = read_cstring_from_memory(address)
-        return isinstance(cstr, unicode) and cstr and all([x in string.printable for x in cstr])
-    except UnicodeDecodeError:
+        return read_ascii_string(address) is not None
+    except Exception:
         return False
 
 
@@ -2264,7 +2270,7 @@ def is_alive():
     """Check if GDB is running."""
     try:
         return gdb.selected_inferior().pid > 0
-    except:
+    except Exception:
         return False
     return False
 
@@ -4967,13 +4973,13 @@ class SearchPatternCommand(GenericCommand):
 
             for match in re.finditer(pattern, mem):
                 start = chunk_addr + match.start()
-                try:
-                    string = read_cstring_from_memory(start)
-                    end   = start + len(string)
-                except UnicodeError:
-                    string = gef_pystring(pattern)+"[...]"
-                    end    = start + len(pattern)
-                locations.append((start, end, string))
+                if is_ascii_string(start):
+                    ustr = read_ascii_string(start)
+                    end = start + len(ustr)
+                else :
+                    ustr = gef_pystring(pattern)+"[...]"
+                    end = start + len(pattern)
+                locations.append((start, end, ustr))
 
             del mem
 
@@ -7871,14 +7877,14 @@ class DereferenceCommand(GenericCommand):
 
             # -- Otherwise try to parse the value
             if addr.section:
-                if addr.section.is_executable() and addr.is_in_text_segment() and not is_readable_string(addr.value):
+                if addr.section.is_executable() and addr.is_in_text_segment() and not is_ascii_string(addr.value):
                     insn = gef_current_instruction(addr.value)
                     insn_str = "{} {} {}".format(insn.location, insn.mnemonic, ", ".join(insn.operands))
                     msg.append(Color.colorify(insn_str, code_color))
                     break
 
                 elif addr.section.permission.value & Permission.READ:
-                    if is_readable_string(addr.value):
+                    if is_ascii_string(addr.value):
                         s = read_cstring_from_memory(addr.value)
                         if len(s) < get_memory_alignment():
                             txt = '{:s} ("{:s}"?)'.format(format_address(deref), Color.colorify(s, string_color))

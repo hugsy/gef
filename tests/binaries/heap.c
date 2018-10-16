@@ -16,7 +16,7 @@
 
 int main(int argc, char** argv, char** envp)
 {
-        void* p1 = malloc(0x10);
+        void* p1 = malloc(0x20);
         __asm__ volatile("int3;" : : : );
         (void)p1;
         return EXIT_SUCCESS;
