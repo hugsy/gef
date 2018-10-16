@@ -4531,7 +4531,7 @@ class PCustomCommand(GenericCommand):
         fullname = self.pcustom_filepath(mod_name)
         if not self.is_valid_struct(mod_name):
             info("Creating '{:s}' from template".format(fullname))
-            with open(fullname, "wb") as f:
+            with open(fullname, "w") as f:
                 f.write(self.get_template(struct_name))
                 f.flush()
         else:
@@ -4545,13 +4545,11 @@ class PCustomCommand(GenericCommand):
 
     def get_template(self, structname):
         d = [
-            b"from ctypes import *\n\n",
-            b"class ",
-            gef_pybytes(structname),
-            b"(Structure):\n",
-            b"    _fields_ = []\n"
+            "from ctypes import *\n\n",
+            "class ", structname, "(Structure):\n",
+            "    _fields_ = []\n"
         ]
-        return b"".join(d)
+        return "".join(d)
 
 
     def list_custom_structures(self):
@@ -4859,22 +4857,22 @@ class IdaInteractCommand(GenericCommand):
 
         for struct_name in structs:
             fullpath = os.path.join(path, "{}.py".format(struct_name))
-            with open(fullpath, "wb") as f:
-                f.write(b"from ctypes import *\n\n")
-                f.write(b"class ")
-                f.write(bytes(str(struct_name), encoding="utf-8"))
-                f.write(b"(Structure):\n")
-                f.write(b"    _fields_ = [\n")
+            with open(fullpath, "w") as f:
+                f.write("from ctypes import *\n\n")
+                f.write("class ")
+                f.write(struct_name)
+                f.write("(Structure):\n")
+                f.write("    _fields_ = [\n")
                 for _, name, size in structs[struct_name]:
                     name = bytes(name, encoding="utf-8")
-                    if   size == 1: csize = b"c_uint8"
-                    elif size == 2: csize = b"c_uint16"
-                    elif size == 4: csize = b"c_uint32"
-                    elif size == 8: csize = b"c_uint64"
-                    else:           csize = b"c_byte * " + bytes(str(size), encoding="utf-8")
-                    m = [b'        ("', name, b'", ', csize, b'),\n']
-                    f.write(b"".join(m))
-                f.write(b"]\n")
+                    if   size == 1: csize = "c_uint8"
+                    elif size == 2: csize = "c_uint16"
+                    elif size == 4: csize = "c_uint32"
+                    elif size == 8: csize = "c_uint64"
+                    else:           csize = "c_byte * {}".format(size)
+                    m = "        (\"{}\", {}),\n".format(name, csize)
+                    f.write(m)
+                f.write("]\n")
         ok("Success, {:d} structure{:s} imported".format(len(structs),
                                                          "s" if len(structs)>1 else ""))
         return
