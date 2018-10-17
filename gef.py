@@ -1401,6 +1401,13 @@ class Architecture(object):
     def ptrsize(self):
         return get_memory_alignment()
 
+    def get_ith_parameter(self, i):
+        """Retrieves the correct parameter used for the current function call."""
+        reg = current_arch.function_parameters[i]
+        val = get_register(reg)
+        key = reg
+        return key, val
+
 
 class RISCV(Architecture):
     arch = "RISCV"
@@ -1847,6 +1854,14 @@ class X86(Architecture):
             "popad",]
         return "; ".join(insns)
 
+    def get_ith_parameter(self, i):
+        sp = current_arch.sp
+        sz =  current_arch.ptrsize
+        loc = sp + (i * sz)
+        val = read_int_from_memory(loc)
+        key = "[sp + {:#x}]".format(i * sz)
+        return key, val
+
 
 class X86_64(X86):
     arch = "X86"
@@ -1860,6 +1875,8 @@ class X86_64(X86):
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
     syscall_register = "$rax"
     syscall_instructions = ["syscall"]
+    # We don't want to inherit x86's stack based param getter
+    get_ith_parameter = Architecture.get_ith_parameter
 
     @classmethod
     def mprotect_asm(cls, addr, size, perm):
@@ -3232,17 +3249,8 @@ class FormatStringBreakpoint(gdb.Breakpoint):
 
     def stop(self):
         msg = []
-        if is_x86_32():
-            sp = current_arch.sp
-            sz =  get_memory_alignment()
-            val = sp + (self.num_args * sz) + sz
-            ptr = read_int_from_memory(val)
-            addr = lookup_address(ptr)
-            ptr = hex(ptr)
-        else:
-            regs = current_arch.function_parameters
-            ptr = regs[self.num_args]
-            addr = lookup_address(get_register(ptr))
+        ptr, addr = current_arch.get_ith_parameter(self.num_args)
+        addr = lookup_address(addr)
 
         if not addr.valid:
             return False
@@ -3309,11 +3317,7 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
-        if is_x86_32():
-            # if intel x32, the malloc size is in the stack, so we need to dereference $sp
-            size = to_unsigned_long(dereference(current_arch.sp+4))
-        else:
-            size = get_register(current_arch.function_parameters[0])
+        _, size = current_arch.get_ith_parameter(0)
         self.retbp = TraceMallocRetBreakpoint(size)
         return False
 
@@ -3399,12 +3403,8 @@ class TraceReallocBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
-        if is_x86_32():
-            ptr = to_unsigned_long(dereference(current_arch.sp+4))
-            size = to_unsigned_long(dereference(current_arch.sp+8))
-        else:
-            ptr = get_register(current_arch.function_parameters[0])
-            size = get_register(current_arch.function_parameters[1])
+        _, ptr = current_arch.get_ith_parameter(0)
+        _, size = current_arch.get_ith_parameter(1)
         self.retbp = TraceReallocRetBreakpoint(ptr, size)
         return False
 
@@ -3462,11 +3462,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
-        if is_x86_32():
-            # if intel x32, the free address is in the stack, so we need to dereference $sp
-            addr = to_unsigned_long(dereference(current_arch.sp+4))
-        else:
-            addr = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
+        _, addr = current_arch.get_ith_parameter(0)
         msg = []
         check_free_null = get_gef_setting("heap-analysis-helper.check_free_null")
         check_double_free = get_gef_setting("heap-analysis-helper.check_double_free")
@@ -7152,26 +7148,12 @@ class ContextCommand(GenericCommand):
         self.print_arguments_from_symbol(target, sym)
         return
 
-    def get_ith_parameter(self, i):
-        """Retrieves the correct parameter used for the current function call."""
-        if is_x86_32():
-            sp = current_arch.sp
-            sz =  current_arch.ptrsize
-            loc = sp + (i * sz)
-            val = read_int_from_memory(loc)
-            key = "[sp + {:#x}]".format(i * sz)
-        else:
-            reg = current_arch.function_parameters[i]
-            val = get_register(reg)
-            key = reg
-        return (key, val)
-
     def print_arguments_from_symbol(self, function_name, symbol):
         """If symbols were found, parse them and print the argument adequately."""
         args = []
 
         for i, f in enumerate(symbol.type.fields()):
-            _value = self.get_ith_parameter(i)[1]
+            _value = current_arch.get_ith_parameter(i)[1]
             _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
             _name = f.name or "var_{}".format(i)
             _type = f.type.name or self.size2type[f.type.sizeof]
@@ -7241,7 +7223,7 @@ class ContextCommand(GenericCommand):
 
         args = []
         for i in range(nb_argument):
-            _key, _value = self.get_ith_parameter(i)
+            _key, _value = current_arch.get_ith_parameter(i)
             _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
             args.append("{} = {}".format(Color.colorify(_key, arg_key_color), _value))
 
