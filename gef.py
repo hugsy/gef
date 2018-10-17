@@ -1199,9 +1199,9 @@ def gef_disassemble(addr, nb_insn, nb_prev=0):
     Return an iterator of Instruction objects."""
     count = nb_insn + 1 if nb_insn & 1 else nb_insn
 
-    if nb_prev > 0:
+    if nb_prev:
         start_addr = gdb_get_nth_previous_instruction_address(addr, nb_prev)
-        if start_addr > 0:
+        if start_addr:
             for insn in gdb_disassemble(start_addr, count=nb_prev):
                 if insn.address == addr: break
                 yield insn
@@ -2637,7 +2637,7 @@ def is_hex(pattern):
 
 
 def ida_synchronize_handler(event):
-    gdb.execute("ida-interact Sync", from_tty=True, to_string=True)
+    gdb.execute("ida-interact sync", from_tty=True)
     return
 
 
@@ -4726,7 +4726,7 @@ class IdaInteractCommand(GenericCommand):
             self.usage(method_name)
             return
 
-        method_name = argv[0]
+        method_name = argv[0].lower()
         if method_name == "version":
             self.version = self.sock.version()
             info("Enhancing {:s} with {:s} (v.{:s})".format(Color.greenify("gef"),
@@ -4742,7 +4742,7 @@ class IdaInteractCommand(GenericCommand):
             main_end_address = max([x.page_end for x in vmmap if x.realpath == get_filepath()])
 
         try:
-            if method_name == "Sync":
+            if method_name == "sync":
                 self.synchronize()
             else:
                 method = getattr(self.sock, method_name)
