@@ -1588,9 +1588,8 @@ class ARM(Architecture):
         return flags_to_human(val, self.flags_table)
 
     def is_conditional_branch(self, insn):
-        branch_mnemos = {"beq", "bne", "bleq", "blt", "bgt", "bgez", "bvs", "bvc",
-                         "jeq", "jne", "jleq", "jlt", "jgt", "jgez", "jvs", "jvc"}
-        return insn.mnemonic in branch_mnemos
+        conditions = {"eq", "ne", "lt", "le", "gt", "ge", "vs", "vc", "mi", "pl", "hi", "ls"}
+        return insn.mnemonic[-2:] in conditions
 
     def is_branch_taken(self, insn):
         mnemo = insn.mnemonic
@@ -1599,20 +1598,28 @@ class ARM(Architecture):
         val = get_register(self.flag_register)
         taken, reason = False, ""
 
-        if mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
-        elif mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
-        elif mnemo.endswith("lt"): taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+        if mnemo.endswith("eq"): taken, reason = bool(val&(1<<flags["zero"])), "Z"
+        elif mnemo.endswith("ne"): taken, reason = not val&(1<<flags["zero"]), "!Z"
+        elif mnemo.endswith("lt"):
+            taken, reason = bool(val&(1<<flags["negative"])) != bool(val&(1<<flags["overflow"])), "N!=V"
         elif mnemo.endswith("le"):
-            taken = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"])
-            reason = "Z || N!=O"
+            taken, reason = val&(1<<flags["zero"]) or \
+                bool(val&(1<<flags["negative"])) != bool(val&(1<<flags["overflow"])), "Z || N!=V"
         elif mnemo.endswith("gt"):
-            taken = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"])
-            reason = "!Z && N==O"
+            taken, reason = val&(1<<flags["zero"]) == 0 and \
+                bool(val&(1<<flags["negative"])) == bool(val&(1<<flags["overflow"])), "!Z && N==V"
         elif mnemo.endswith("ge"):
-            taken = val&(1<<flags["negative"]) == val&(1<<flags["overflow"])
-            reason = "N==O"
-        elif mnemo.endswith("bvs"): taken, reason = val&(1<<flags["overflow"]), "O"
-        elif mnemo.endswith("bvc"): taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
+            taken, reason = bool(val&(1<<flags["negative"])) == bool(val&(1<<flags["overflow"])), "N==V"
+        elif mnemo.endswith("vs"): taken, reason = bool(val&(1<<flags["overflow"])), "V"
+        elif mnemo.endswith("vc"): taken, reason = not val&(1<<flags["overflow"]), "!V"
+        elif mnemo.endswith("mi"):
+            taken, reason = bool(val&(1<<flags["negative"])), "N"
+        elif mnemo.endswith("pl"):
+            taken, reason = not val&(1<<flags["negative"]), "N==0"
+        elif mnemo.endswith("hi"):
+            taken, reason = val&(1<<flags["carry"]) and not val&(1<<flags["zero"]), "C && !Z"
+        elif mnemo.endswith("ls"):
+            taken, reason = not val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "!C || Z"
         return taken, reason
 
     def get_ra(self, insn, frame):
@@ -1719,20 +1726,28 @@ class AARCH64(ARM):
                 if (op & 1<<i) == 0: taken, reason = True, "{}&1<<{}==0".format(reg,i)
                 else: taken, reason = False, "{}&1<<{}!=0".format(reg,i)
 
-        elif mnemo.endswith("eq"): taken, reason = val&(1<<flags["zero"]), "Z"
-        elif mnemo.endswith("ne"): taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
+        elif mnemo.endswith("eq"): taken, reason = bool(val&(1<<flags["zero"])), "Z"
+        elif mnemo.endswith("ne"): taken, reason = not val&(1<<flags["zero"]), "!Z"
         elif mnemo.endswith("lt"):
-            taken, reason = val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "N!=O"
+            taken, reason = bool(val&(1<<flags["negative"])) != bool(val&(1<<flags["overflow"])), "N!=V"
         elif mnemo.endswith("le"):
-            taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["negative"])!=val&(1<<flags["overflow"]), "Z || N!=O"
+            taken, reason = val&(1<<flags["zero"]) or \
+                bool(val&(1<<flags["negative"])) != bool(val&(1<<flags["overflow"])), "Z || N!=V"
         elif mnemo.endswith("gt"):
-            taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "!Z && N==O"
+            taken, reason = val&(1<<flags["zero"]) == 0 and \
+                bool(val&(1<<flags["negative"])) == bool(val&(1<<flags["overflow"])), "!Z && N==V"
         elif mnemo.endswith("ge"):
-            taken, reason = val&(1<<flags["negative"]) == val&(1<<flags["overflow"]), "N==O"
+            taken, reason = bool(val&(1<<flags["negative"])) == bool(val&(1<<flags["overflow"])), "N==V"
+        elif mnemo.endswith("vs"): taken, reason = bool(val&(1<<flags["overflow"])), "V"
+        elif mnemo.endswith("vc"): taken, reason = not val&(1<<flags["overflow"]), "!V"
+        elif mnemo.endswith("mi"):
+            taken, reason = bool(val&(1<<flags["negative"])), "N"
+        elif mnemo.endswith("pl"):
+            taken, reason = not val&(1<<flags["negative"]), "N==0"
         elif mnemo.endswith("hi"):
-            taken, reason = val&(1<<flags["carry"]) and not val&(1<<flags["zero"]), "C && Z==O"
+            taken, reason = val&(1<<flags["carry"]) and not val&(1<<flags["zero"]), "C && !Z"
         elif mnemo.endswith("ls"):
-            taken, reason = not val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C==O || Z"
+            taken, reason = not val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "!C || Z"
         return taken, reason
 
 
@@ -1794,44 +1809,44 @@ class X86(Architecture):
         # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = get_register(self.flag_register)
-        cx = get_register("$rcx") if self.mode == 64 else get_register("$ecx")
 
         taken, reason = False, ""
 
         if mnemo in ("ja", "jnbe"):
-            taken, reason = val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
+            taken, reason = not val&(1<<flags["carry"]) and not val&(1<<flags["zero"]), "!C && !Z"
         elif mnemo in ("jae", "jnb", "jnc"):
-            taken, reason = val&(1<<flags["carry"]) == 0, "!C"
+            taken, reason = not val&(1<<flags["carry"]), "!C"
         elif mnemo in ("jb", "jc", "jnae"):
             taken, reason = val&(1<<flags["carry"]), "C"
         elif mnemo in ("jbe", "jna"):
             taken, reason = val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
         elif mnemo in ("jcxz", "jecxz", "jrcxz"):
+            cx = get_register("$rcx") if self.mode == 64 else get_register("$ecx")
             taken, reason = cx == 0, "!$CX"
         elif mnemo in ("je", "jz"):
             taken, reason = val&(1<<flags["zero"]), "Z"
-        elif mnemo in ("jg", "jnle"):
-            taken, reason = val&(1<<flags["zero"]) == 0 and val&(1<<flags["overflow"]) == val&(1<<flags["sign"]), "!Z && O==S"
-        elif mnemo in ("jge", "jnl"):
-            taken, reason = val&(1<<flags["sign"]) == val&(1<<flags["overflow"]), "S==O"
-        elif mnemo in ("jl", "jnge"):
-            taken, reason = val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "S!=O"
-        elif mnemo in ("jle", "jng"):
-            taken, reason = val&(1<<flags["zero"]) or val&(1<<flags["overflow"])!=val&(1<<flags["sign"]), "Z || S!=0"
         elif mnemo in ("jne", "jnz"):
-            taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
-        elif mnemo in ("jno",):
-            taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
-        elif mnemo in ("jnp", "jpo"):
-            taken, reason = val&(1<<flags["parity"]) == 0, "!P"
-        elif mnemo in ("jns",):
-            taken, reason = val&(1<<flags["sign"]) == 0, "!S"
+            taken, reason = not val&(1<<flags["zero"]), "!Z"
+        elif mnemo in ("jg", "jnle"):
+            taken, reason = not val&(1<<flags["zero"]) and bool(val&(1<<flags["overflow"])) == bool(val&(1<<flags["sign"])), "!Z && S==O"
+        elif mnemo in ("jge", "jnl"):
+            taken, reason = bool(val&(1<<flags["sign"])) == bool(val&(1<<flags["overflow"])), "S==O"
+        elif mnemo in ("jl", "jnge"):
+            taken, reason = val&(1<<flags["overflow"]) != val&(1<<flags["sign"]), "S!=O"
+        elif mnemo in ("jle", "jng"):
+            taken, reason = val&(1<<flags["zero"]) or bool(val&(1<<flags["overflow"])) != bool(val&(1<<flags["sign"])), "Z || S!=O"
         elif mnemo in ("jo",):
             taken, reason = val&(1<<flags["overflow"]), "O"
+        elif mnemo in ("jno",):
+            taken, reason = not val&(1<<flags["overflow"]), "!O"
         elif mnemo in ("jpe", "jp"):
             taken, reason = val&(1<<flags["parity"]), "P"
+        elif mnemo in ("jnp", "jpo"):
+            taken, reason = not val&(1<<flags["parity"]), "!P"
         elif mnemo in ("js",):
             taken, reason = val&(1<<flags["sign"]), "S"
+        elif mnemo in ("jns",):
+            taken, reason = not val&(1<<flags["sign"]), "!S"
         return taken, reason
 
     def get_ra(self, insn, frame):
