@@ -1386,6 +1386,10 @@ class Architecture(object):
     def get_ra(self, insn, frame):                 pass
 
     @property
+    def special_registers(self):
+        return []
+
+    @property
     def pc(self):
         return get_register("$pc")
 
@@ -1740,9 +1744,9 @@ class X86(Architecture):
 
     nop_insn = b"\x90"
     flag_register = "$eflags"
-    msr_registers = ["$cs", "$ss", "$ds", "$es", "$fs", "$gs", ]
+    special_registers = ["$cs", "$ss", "$ds", "$es", "$fs", "$gs", ]
     gpr_registers = ["$eax", "$ebx", "$ecx", "$edx", "$esp", "$ebp", "$esi", "$edi", "$eip", ]
-    all_registers = gpr_registers + [ flag_register, ] + msr_registers
+    all_registers = gpr_registers + [ flag_register, ] + special_registers
     instruction_length = None
     return_register = "$eax"
     function_parameters = ["$esp", ]
@@ -1870,7 +1874,7 @@ class X86_64(X86):
     gpr_registers = [
         "$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip",
         "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", ]
-    all_registers = gpr_registers + [ X86.flag_register, ] + X86.msr_registers
+    all_registers = gpr_registers + [ X86.flag_register, ] + X86.special_registers
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
     syscall_register = "$rax"
@@ -6260,13 +6264,17 @@ class DetailRegistersCommand(GenericCommand):
 
         if argv:
             regs = [reg for reg in current_arch.all_registers if reg in argv]
+            if not regs:
+                warn("No matching registers found")
         else:
             regs = current_arch.all_registers
+
 
         memsize = current_arch.ptrsize
         endian = endian_str()
         charset = string.printable
         widest = max(map(len, current_arch.all_registers))
+        special_line = ""
 
         for regname in regs:
             reg = gdb.parse_and_eval(regname)
@@ -6288,14 +6296,10 @@ class DetailRegistersCommand(GenericCommand):
             else:
                 color = changed_color
 
-            if is_x86() and regname in current_arch.msr_registers:
-                msr = set(current_arch.msr_registers)
-                for r in set(regs) & msr:
-                    line = "{}: ".format(Color.colorify(r, color))
-                    line+= "0x{:04x}".format(get_register(r))
-                    gef_print(line, end="  ")
-                    regs.remove(r)
-                gef_print()
+            # Special (e.g. segment) registers go on their own line
+            if regname in current_arch.special_registers:
+                special_line += "{}: ".format(Color.colorify(regname, color))
+                special_line += "0x{:04x} ".format(get_register(regname))
                 continue
 
             line = "{}: ".format(Color.colorify(padreg, color))
@@ -6328,6 +6332,9 @@ class DetailRegistersCommand(GenericCommand):
                 pass
 
             gef_print(line)
+
+        if special_line:
+            gef_print(special_line)
         return
 
 
