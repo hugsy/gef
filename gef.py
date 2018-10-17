@@ -1385,9 +1385,7 @@ class Architecture(object):
     @abc.abstractmethod
     def get_ra(self, insn, frame):                 pass
 
-    @property
-    def special_registers(self):
-        return []
+    special_registers = []
 
     @property
     def pc(self):
