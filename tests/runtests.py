@@ -182,9 +182,17 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
 
     def test_cmd_heap_analysis(self):
         cmd = "heap-analysis-helper"
+        target = "tests/binaries/heap-analysis.out"
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
-        res = gdb_start_silent_cmd(cmd)
+        res = gdb_start_silent_cmd(cmd, after=["continue"], target=target)
         self.assertNoException(res)
+        self.assertIn("Tracking", res)
+        self.assertIn("correctly setup", res)
+        self.assertIn("malloc(16)=", res)
+        self.assertIn("malloc(32)=", res) # Actually calloc
+        addr = int(res.split("malloc(32)=")[1].split("\n")[0], 0)
+        self.assertRegex(res, r"realloc\(.+, 48")
+        self.assertIn("free({:#x}".format(addr), res)
         return
 
     def test_cmd_hexdump(self):

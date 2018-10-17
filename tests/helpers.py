@@ -50,7 +50,7 @@ def gdb_run_cmd_last_line(cmd, before=None, after=None, target=PATH_TO_DEFAULT_B
 
 def gdb_start_silent_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
     """Execute a command in GDB by starting an execution context. This command disables the `context`
-    and set a tbreak at the most convenient entry point."""
+    and sets a tbreak at the most convenient entry point."""
     if not before:
         before = []
 

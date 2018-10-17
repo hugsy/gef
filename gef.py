@@ -8504,7 +8504,9 @@ class HeapAnalysisCommand(GenericCommand):
         gdb.execute("set can-use-hw-watchpoints 0")
 
         info("Dynamic breakpoints correctly setup, GEF will break execution if a possible vulnerabity is found.")
-        warn("{}: The heap analysis slows down noticeably the execution. ".format(Color.colorify("Note", "bold underline yellow")))
+        warn("{}: The heap analysis slows down the execution noticeably.".format(
+            Color.colorify("Note", "bold underline yellow")))
+
 
         # when inferior quits, we need to clean everything for a next execution
         gef_on_exit_hook(self.clean)
