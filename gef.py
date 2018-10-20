@@ -1726,28 +1726,8 @@ class AARCH64(ARM):
                 if (op & 1<<i) == 0: taken, reason = True, "{}&1<<{}==0".format(reg,i)
                 else: taken, reason = False, "{}&1<<{}!=0".format(reg,i)
 
-        elif mnemo.endswith("eq"): taken, reason = bool(val&(1<<flags["zero"])), "Z"
-        elif mnemo.endswith("ne"): taken, reason = not val&(1<<flags["zero"]), "!Z"
-        elif mnemo.endswith("lt"):
-            taken, reason = bool(val&(1<<flags["negative"])) != bool(val&(1<<flags["overflow"])), "N!=V"
-        elif mnemo.endswith("le"):
-            taken, reason = val&(1<<flags["zero"]) or \
-                bool(val&(1<<flags["negative"])) != bool(val&(1<<flags["overflow"])), "Z || N!=V"
-        elif mnemo.endswith("gt"):
-            taken, reason = val&(1<<flags["zero"]) == 0 and \
-                bool(val&(1<<flags["negative"])) == bool(val&(1<<flags["overflow"])), "!Z && N==V"
-        elif mnemo.endswith("ge"):
-            taken, reason = bool(val&(1<<flags["negative"])) == bool(val&(1<<flags["overflow"])), "N==V"
-        elif mnemo.endswith("vs"): taken, reason = bool(val&(1<<flags["overflow"])), "V"
-        elif mnemo.endswith("vc"): taken, reason = not val&(1<<flags["overflow"]), "!V"
-        elif mnemo.endswith("mi"):
-            taken, reason = bool(val&(1<<flags["negative"])), "N"
-        elif mnemo.endswith("pl"):
-            taken, reason = not val&(1<<flags["negative"]), "N==0"
-        elif mnemo.endswith("hi"):
-            taken, reason = val&(1<<flags["carry"]) and not val&(1<<flags["zero"]), "C && !Z"
-        elif mnemo.endswith("ls"):
-            taken, reason = not val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "!C || Z"
+        if not reason:
+            taken, reason = super(AARCH64, self).is_branch_taken(insn)
         return taken, reason
 
 
