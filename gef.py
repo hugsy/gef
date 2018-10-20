@@ -306,6 +306,7 @@ def gef_print(x="", *args, **kwargs):
 def bufferize(f):
     """Store the content to be printed for a function in memory, and flush it on function exit."""
 
+    return f # DELETEME
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         global __gef_int_stream_buffer__
@@ -640,6 +641,15 @@ class GlibcArena:
 
     def __int__(self):
         return self.__addr
+
+    def tcachebin(self, i):
+        # Address of entry i
+        x = int(gdb.execute("p/x $_heap()", to_string=True).split(" = ")[-1], 0) + 0x10 + 0x40 + i*8
+        # addr = dereference_as_long(x) # This doesn't work. wtf. it returns the address itself
+        addr = struct.unpack("<Q", read_memory(x, 8))[0]
+        if addr == 0:
+            return None
+        return GlibcChunk(addr)
 
     def fastbin(self, i):
         addr = dereference_as_long(self.fastbinsY[i])
@@ -6014,7 +6024,7 @@ class GlibcHeapBinsCommand(GenericCommand):
     """Display information on the bins on an arena (default: main_arena).
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
 
-    _bin_types_ = ["fast", "unsorted", "small", "large"]
+    _bin_types_ = ["tcache", "fast", "unsorted", "small", "large"]
     _cmdline_ = "heap bins"
     _syntax_ = "{:s} [{:s}]".format(_cmdline_, "|".join(_bin_types_))
 
@@ -6060,8 +6070,102 @@ class GlibcHeapBinsCommand(GenericCommand):
             fw = chunk.fwd
             nb_chunk += 1
 
-        gef_print("  ".join(m))
+        if m:
+            gef_print("  ".join(m))
         return nb_chunk
+
+
+@register_command
+class GlibcHeapTcachebinsCommand(GenericCommand):
+    """Display information on the Tcachebins on an arena (default: main_arena).
+    See https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=d5c3fafc4307c9b7a4c7d5cb381fcdbfad340bcc."""
+
+    _cmdline_ = "heap bins tcache"
+    _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)
+
+    def __init__(self):
+        super(GlibcHeapTcachebinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+        """
+        /* We overlay this structure on the user-data portion of a chunk when
+           the chunk is stored in the per-thread cache.  */
+        typedef struct tcache_entry
+        {
+          struct tcache_entry *next;
+        } tcache_entry;
+
+        /* There is one of these for each thread, which contains the
+           per-thread cache (hence "tcache_perthread_struct").  Keeping
+           overall size low is mildly important.  Note that COUNTS and ENTRIES
+           are redundant (we could have just counted the linked list each
+           time), this is for performance reasons.  */
+        typedef struct tcache_perthread_struct
+        {
+          char counts[TCACHE_MAX_BINS];
+          tcache_entry *entries[TCACHE_MAX_BINS];
+        }
+        """
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+
+        # Determine if we are using libc with tcache built in (2.26+)
+        libc = gdb.execute("vmmap libc", to_string=True)
+        try:
+            libc_version = tuple(int(_) for _ in re.search(r"libc-(\d+)\.(\d+)\.so", libc).groups())
+        except AttributeError:
+            libc_version = 0, 0
+        if libc_version < (2, 26):
+            gef_print("No Tcache in this version of libc")
+            return
+
+        TCACHE_MAX_BINS = 64
+        SIZE_SZ = current_arch.ptrsize
+
+        arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_main_arena()
+
+        if arena is None:
+            err("Invalid Glibc arena")
+            return
+
+        # Get tcache_perthread_struct for this arena
+        # TODO: How?
+        addr = int(gdb.execute("p/x $_heap()", to_string=True).split(" = ")[-1], 0) + 0x10
+
+        gef_print(titlify("Tcachebins for arena {:#x}".format(int(arena))))
+        for i in range(TCACHE_MAX_BINS):
+            count = ord(read_memory(addr + i, 1))
+            chunk = arena.tcachebin(i)
+            chunks = []
+            m = []
+
+            # Only print the entry if there are valid chunks. Don't trust count
+            while True:
+                if chunk is None:
+                    break
+
+                try:
+                    m.append("{:s} {:s} ".format(LEFT_ARROW, str(chunk)))
+                    if chunk.address in chunks:
+                        m.append("{:s} [loop detected]".format(RIGHT_ARROW), end="")
+                        break
+
+                    chunks.append(chunk.address)
+
+                    next_chunk = chunk.get_fwd_ptr()
+                    if next_chunk == 0:
+                        break
+
+                    chunk = GlibcChunk(next_chunk, from_base=True)
+                except gdb.MemoryError:
+                    m.append("{:s} [Corrupted chunk at {:#x}]".format(LEFT_ARROW, chunk.address), end="")
+                    break
+            if m:
+                gef_print("Tcachebins[idx={:d}, size={:#x}] count={:d} ".format(i, (i+1)*SIZE_SZ*2, count), end="")
+                gef_print("".join(m))
+        return
+
+
 
 @register_command
 class GlibcHeapFastbinsYCommand(GenericCommand):
