@@ -644,9 +644,11 @@ class GlibcArena:
 
     def tcachebin(self, i):
         # Address of entry i
-        x = int(gdb.execute("p/x $_heap()", to_string=True).split(" = ")[-1], 0) + 0x10 + 0x40 + i*8
+        # x = heap base + i * 8 + 0x10 + 0x40
         # addr = dereference_as_long(x) # This doesn't work. wtf. it returns the address itself
-        addr = struct.unpack("<Q", read_memory(x, 8))[0]
+        # TODO: use current_arch.ptrsize to support 32 bit
+        # TODO: 0x40 is TCACHE_MAX_BINS, i*8 assumes 64 bit
+        addr = int(gdb.execute("x/gx $_heap({})".format(0x10 + 0x40 + i *8), to_string=True).split()[-1], 0)
         if addr == 0:
             return None
         return GlibcChunk(addr)
@@ -6129,14 +6131,36 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             return
 
         # Get tcache_perthread_struct for this arena
-        # TODO: How?
+        # TODO: Try &mp_.sbrk_base
         addr = int(gdb.execute("p/x $_heap()", to_string=True).split(" = ")[-1], 0) + 0x10
+
+        """
+        gef➤  p mp_
+        $197 = {
+            trim_threshold = 0x20000,
+            top_pad = 0x20000,
+            mmap_threshold = 0x20000,
+            arena_test = 0x8,
+            arena_max = 0x0,
+            n_mmaps = 0x0,
+            n_mmaps_max = 0x10000,
+            max_n_mmaps = 0x0,
+            no_dyn_threshold = 0x0,
+            mmapped_mem = 0x0,
+            max_mmapped_mem = 0x0,
+            sbrk_base = 0x555555756000 "",
+            tcache_bins = 0x40,
+            tcache_max_bytes = 0x408,
+            tcache_count = 0x7,
+            tcache_unsorted_limit = 0x0
+        }
+                """
 
         gef_print(titlify("Tcachebins for arena {:#x}".format(int(arena))))
         for i in range(TCACHE_MAX_BINS):
             count = ord(read_memory(addr + i, 1))
             chunk = arena.tcachebin(i)
-            chunks = []
+            chunks = set()
             m = []
 
             # Only print the entry if there are valid chunks. Don't trust count
@@ -6147,18 +6171,18 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                 try:
                     m.append("{:s} {:s} ".format(LEFT_ARROW, str(chunk)))
                     if chunk.address in chunks:
-                        m.append("{:s} [loop detected]".format(RIGHT_ARROW), end="")
+                        m.append("{:s} [loop detected]".format(RIGHT_ARROW))
                         break
 
-                    chunks.append(chunk.address)
+                    chunks.add(chunk.address)
 
                     next_chunk = chunk.get_fwd_ptr()
                     if next_chunk == 0:
                         break
 
-                    chunk = GlibcChunk(next_chunk, from_base=True)
+                    chunk = GlibcChunk(next_chunk)
                 except gdb.MemoryError:
-                    m.append("{:s} [Corrupted chunk at {:#x}]".format(LEFT_ARROW, chunk.address), end="")
+                    m.append("{:s} [Corrupted chunk at {:#x}]".format(LEFT_ARROW, chunk.address))
                     break
             if m:
                 gef_print("Tcachebins[idx={:d}, size={:#x}] count={:d} ".format(i, (i+1)*SIZE_SZ*2, count), end="")
@@ -6198,7 +6222,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         for i in range(NFASTBINS):
             gef_print("Fastbins[idx={:d}, size={:#x}] ".format(i, (i+1)*SIZE_SZ*2), end="")
             chunk = arena.fastbin(i)
-            chunks = []
+            chunks = set()
 
             while True:
                 if chunk is None:
@@ -6214,7 +6238,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
                     if fastbin_index(chunk.get_chunk_size()) != i:
                         gef_print("[incorrect fastbin_index] ", end="")
 
-                    chunks.append(chunk.address)
+                    chunks.add(chunk.address)
 
                     next_chunk = chunk.get_fwd_ptr()
                     if next_chunk == 0:
@@ -6303,7 +6327,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         bins = {}
         for i in range(63, 126):
             nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, i, "large_")
-            if nb_chunk < 0:
+            if nb_chunk <= 0:
                 break
             if nb_chunk > 0:
                 bins[i] = nb_chunk
