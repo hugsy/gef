@@ -60,6 +60,7 @@ import abc
 import binascii
 import codecs
 import collections
+import contextlib
 import ctypes
 import fcntl
 import functools
@@ -301,6 +302,21 @@ def gef_print(x="", *args, **kwargs):
     if __gef_int_stream_buffer__ and not is_debug():
         return __gef_int_stream_buffer__.write(x + kwargs.get("end", "\n"))
     return print(x, *args, **kwargs)
+
+
+@contextlib.contextmanager
+def dont_buffer():
+    global __gef_int_stream_buffer__
+    old_buffer = __gef_int_stream_buffer__
+    __gef_int_stream_buffer__ = None
+    try:
+        yield
+    finally:
+        __gef_int_stream_buffer__ = old_buffer
+
+def get_cmd_output(cmd):
+    with dont_buffer():
+        return gdb.execute(cmd, to_string=True)
 
 
 def bufferize(f):
