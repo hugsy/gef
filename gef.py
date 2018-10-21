@@ -625,6 +625,8 @@ class Instruction:
 class GlibcArena:
     """Glibc arena class
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671 """
+    TCACHE_MAX_BINS = 0x40
+
     def __init__(self, addr, name=__gef_default_main_arena__):
         arena = gdb.parse_and_eval(addr)
         malloc_state_t = cached_lookup_type("struct malloc_state")
@@ -646,12 +648,11 @@ class GlibcArena:
         # Address of entry i
         # x = heap base + i * 8 + 0x10 + 0x40
         # addr = dereference_as_long(x) # This doesn't work. wtf. it returns the address itself
-        # TODO: use current_arch.ptrsize to support 32 bit
-        # TODO: 0x40 is TCACHE_MAX_BINS, i*8 assumes 64 bit
-        addr = int(gdb.execute("x/gx $_heap({})".format(0x10 + 0x40 + i *8), to_string=True).split()[-1], 0)
-        if addr == 0:
+        heap_base = int(gdb.execute("p/x $_heap()", to_string=True).split()[-1], 0)
+        addr = dereference(heap_base + 2*current_arch.ptrsize + self.TCACHE_MAX_BINS + i*current_arch.ptrsize)
+        if not addr:
             return None
-        return GlibcChunk(addr)
+        return GlibcChunk(long(addr))
 
     def fastbin(self, i):
         addr = dereference_as_long(self.fastbinsY[i])
@@ -6118,10 +6119,9 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         except AttributeError:
             libc_version = 0, 0
         if libc_version < (2, 26):
-            gef_print("No Tcache in this version of libc")
+            info("No Tcache in this version of libc")
             return
 
-        TCACHE_MAX_BINS = 64
         SIZE_SZ = current_arch.ptrsize
 
         arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_main_arena()
@@ -6157,7 +6157,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                 """
 
         gef_print(titlify("Tcachebins for arena {:#x}".format(int(arena))))
-        for i in range(TCACHE_MAX_BINS):
+        for i in range(GlibcArena.TCACHE_MAX_BINS):
             count = ord(read_memory(addr + i, 1))
             chunk = arena.tcachebin(i)
             chunks = set()
