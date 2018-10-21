@@ -6089,25 +6089,6 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
     def __init__(self):
         super(GlibcHeapTcachebinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
         return
-        """
-        /* We overlay this structure on the user-data portion of a chunk when
-           the chunk is stored in the per-thread cache.  */
-        typedef struct tcache_entry
-        {
-          struct tcache_entry *next;
-        } tcache_entry;
-
-        /* There is one of these for each thread, which contains the
-           per-thread cache (hence "tcache_perthread_struct").  Keeping
-           overall size low is mildly important.  Note that COUNTS and ENTRIES
-           are redundant (we could have just counted the linked list each
-           time), this is for performance reasons.  */
-        typedef struct tcache_perthread_struct
-        {
-          char counts[TCACHE_MAX_BINS];
-          tcache_entry *entries[TCACHE_MAX_BINS];
-        }
-        """
 
     @only_if_gdb_running
     def do_invoke(self, argv):
@@ -6131,30 +6112,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             return
 
         # Get tcache_perthread_struct for this arena
-        # TODO: Try &mp_.sbrk_base
         addr = int(gdb.execute("p/x $_heap()", to_string=True).split(" = ")[-1], 0) + 0x10
-
-        """
-        gef➤  p mp_
-        $197 = {
-            trim_threshold = 0x20000,
-            top_pad = 0x20000,
-            mmap_threshold = 0x20000,
-            arena_test = 0x8,
-            arena_max = 0x0,
-            n_mmaps = 0x0,
-            n_mmaps_max = 0x10000,
-            max_n_mmaps = 0x0,
-            no_dyn_threshold = 0x0,
-            mmapped_mem = 0x0,
-            max_mmapped_mem = 0x0,
-            sbrk_base = 0x555555756000 "",
-            tcache_bins = 0x40,
-            tcache_max_bytes = 0x408,
-            tcache_count = 0x7,
-            tcache_unsorted_limit = 0x0
-        }
-                """
 
         gef_print(titlify("Tcachebins for arena {:#x}".format(int(arena))))
         for i in range(GlibcArena.TCACHE_MAX_BINS):
