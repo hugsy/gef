@@ -8692,12 +8692,10 @@ class HeapBaseFunction(GenericFunction):
 
     @staticmethod
     def heap_base():
-        base = safe_parse_and_eval("mp_->sbrk_base")
-        if base:
-            return long(base)
-
+      try:
+        return long(gdb.parse_and_eval("mp_->sbrk_base"))
+      except gdb.error:
         return get_section_base_address("[heap]")
-
 
 @register_function
 class PieBaseFunction(GenericFunction):
