@@ -645,9 +645,7 @@ class GlibcArena:
         return self.__addr
 
     def tcachebin(self, i):
-        # Address of entry i
-        # x = heap base + i * 8 + 0x10 + 0x40
-        # addr = dereference_as_long(x) # This doesn't work. wtf. it returns the address itself
+        """Return head chunk in tcache[i]."""
         heap_base = int(gdb.execute("p/x $_heap()", to_string=True).split()[-1], 0)
         addr = dereference(heap_base + 2*current_arch.ptrsize + self.TCACHE_MAX_BINS + i*current_arch.ptrsize)
         if not addr:
@@ -655,6 +653,7 @@ class GlibcArena:
         return GlibcChunk(long(addr))
 
     def fastbin(self, i):
+        """Return head chunk in fastbinsY[i]."""
         addr = dereference_as_long(self.fastbinsY[i])
         if addr == 0:
             return None
@@ -6092,7 +6091,6 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-
         # Determine if we are using libc with tcache built in (2.26+)
         libc = gdb.execute("vmmap libc", to_string=True)
         try:
@@ -6102,8 +6100,6 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         if libc_version < (2, 26):
             info("No Tcache in this version of libc")
             return
-
-        SIZE_SZ = current_arch.ptrsize
 
         arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_main_arena()
 
@@ -6143,7 +6139,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                     m.append("{:s} [Corrupted chunk at {:#x}]".format(LEFT_ARROW, chunk.address))
                     break
             if m:
-                gef_print("Tcachebins[idx={:d}, size={:#x}] count={:d} ".format(i, (i+1)*SIZE_SZ*2, count), end="")
+                gef_print("Tcachebins[idx={:d}, size={:#x}] count={:d} ".format(i, (i+1)*(current_arch.ptrsize)*2, count), end="")
                 gef_print("".join(m))
         return
 
