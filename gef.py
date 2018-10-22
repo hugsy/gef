@@ -8661,15 +8661,20 @@ class GenericFunction(gdb.Function):
     def __init__ (self):
         super(GenericFunction, self).__init__(self._function_)
 
-    def invoke(self, arg=gdb.Value(0)):
+    def invoke(self, *args):
         if not is_alive():
             raise gdb.GdbError("No debugging session active")
+        return long(self.do_invoke(args))
 
-        addr = long(arg) if arg.address is None else long(arg.address)
-        return long(self.do_invoke(addr))
+    def arg_to_long(self, args, index, default=0):
+        try:
+            addr = args[index]
+            return long(addr) if addr.address is None else long(addr.address)
+        except IndexError:
+            return default
 
     @abc.abstractmethod
-    def do_invoke(self, addr): pass
+    def do_invoke(self, args): pass
 
 
 @register_function
@@ -8677,16 +8682,16 @@ class StackOffsetFunction(GenericFunction):
     """Return the current stack base address plus an optional offset."""
     _function_ = "_stack"
 
-    def do_invoke(self, addr):
-        return addr + get_section_base_address("[stack]")
+    def do_invoke(self, args):
+        return self.arg_to_long(args, 0) + get_section_base_address("[stack]")
 
 @register_function
 class HeapBaseFunction(GenericFunction):
     """Return the current heap base address plus an optional offset."""
     _function_ = "_heap"
 
-    def do_invoke(self, addr):
-        return addr + HeapBaseFunction.heap_base()
+    def do_invoke(self, args):
+        return self.arg_to_long(args, 0) + HeapBaseFunction.heap_base()
 
     @staticmethod
     def heap_base():
@@ -8700,24 +8705,24 @@ class PieBaseFunction(GenericFunction):
     """Return the current pie base address plus an optional offset."""
     _function_ = "_pie"
 
-    def do_invoke(self, addr):
-        return addr + get_section_base_address(get_filepath())
+    def do_invoke(self, args):
+        return self.arg_to_long(args, 0) + get_section_base_address(get_filepath())
 
 @register_function
 class BssBaseFunction(GenericFunction):
     """Return the current bss base address plus the given offset."""
     _function_ = "_bss"
 
-    def do_invoke(self, addr):
-        return addr + get_zone_base_address(".bss")
+    def do_invoke(self, args):
+        return self.arg_to_long(args, 0) + get_zone_base_address(".bss")
 
 @register_function
 class GotBaseFunction(GenericFunction):
     """Return the current bss base address plus the given offset."""
     _function_ = "_got"
 
-    def do_invoke(self, addr):
-        return addr + get_zone_base_address(".got")
+    def do_invoke(self, args):
+        return self.arg_to_long(args, 0) + get_zone_base_address(".got")
 
 @register_command
 class GefFunctionsCommand(GenericCommand):
