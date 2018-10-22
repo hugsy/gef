@@ -8632,14 +8632,26 @@ class SyscallArgsCommand(GenericCommand):
         return path if os.path.isdir(path) else None
 
 
-class GenericOffsetFunction(gdb.Function):
+@lru_cache()
+def get_section_base_address(name):
+    section = process_lookup_path(name)
+    if section:
+        return section.page_start
+
+    return None
+
+@lru_cache()
+def get_zone_base_address(name):
+    zone = file_lookup_name_path(name, get_filepath())
+    if zone:
+        return zone.zone_start
+
+    return None
+
+class GenericFunction(gdb.Function):
     """This is an abstract class for invoking offset functions, should not be instantiated."""
     __metaclass__ = abc.ABCMeta
 
-    @abc.abstractproperty
-    def _section_(self): pass
-    @abc.abstractproperty
-    def _zone_(self): pass
     @abc.abstractproperty
     def _function_(self): pass
     @property
@@ -8647,66 +8659,69 @@ class GenericOffsetFunction(gdb.Function):
         return "${}([offset])".format(self._function_)
 
     def __init__ (self):
-        super(GenericOffsetFunction, self).__init__(self._function_)
+        super(GenericFunction, self).__init__(self._function_)
 
     def invoke(self, offset=gdb.Value(0)):
         if not is_alive():
             raise gdb.GdbError("No debugging session active")
 
         base_address = self.get_base_address()
-        if not base_address:
-            raise gdb.GdbError("No {} section".format(self._section_ or self._zone_))
-
         addr = long(offset) if offset.address is None else long(offset.address)
+
         return long(base_address + addr)
 
-    def get_base_address(self):
-        if self._section_:
-            section = process_lookup_path(self._section_)
-            if section:
-                return section.page_start
-        elif self._zone_:
-            zone = file_lookup_name_path(self._zone_, get_filepath())
-            if zone:
-                return zone.zone_start
-        return None
+    @abc.abstractmethod
+    def get_base_address(self): pass
+
 
 @register_function
-class StackOffsetFunction(GenericOffsetFunction):
+class StackOffsetFunction(GenericFunction):
     """Return the current stack base address plus an optional offset."""
     _function_ = "_stack"
-    _section_ = "[stack]"
-    _zone_ = None
+
+    def get_base_address(self):
+        return get_section_base_address("[stack]")
 
 @register_function
-class HeapBaseFunction(GenericOffsetFunction):
+class HeapBaseFunction(GenericFunction):
     """Return the current heap base address plus an optional offset."""
     _function_ = "_heap"
-    _section_ = "[heap]"
-    _zone_ = None
+
+    def get_base_address(self):
+        return HeapBaseFunction.heap_base()
+
+    @staticmethod
+    def heap_base():
+        base = safe_parse_and_eval("mp_->sbrk_base")
+        if base:
+            return long(base)
+
+        return get_section_base_address("[heap]")
+
 
 @register_function
-class PieBaseFunction(GenericOffsetFunction):
+class PieBaseFunction(GenericFunction):
     """Return the current pie base address plus an optional offset."""
     _function_ = "_pie"
-    _zone_ = None
-    @property
-    def _section_(self):
-        return get_filepath()
+
+    def get_base_address(self):
+        return get_section_base_address(get_filepath())
 
 @register_function
-class BssBaseFunction(GenericOffsetFunction):
+class BssBaseFunction(GenericFunction):
     """Return the current bss base address plus the given offset."""
     _function_ = "_bss"
-    _zone_ = ".bss"
-    _section_ = None
+
+    def get_base_address(self):
+        return get_zone_base_address(".bss")
 
 @register_function
-class GotBaseFunction(GenericOffsetFunction):
+class GotBaseFunction(GenericFunction):
     """Return the current bss base address plus the given offset."""
     _function_ = "_got"
-    _zone_ = ".got"
-    _section_ = None
+
+    def get_base_address(self):
+        return get_zone_base_address(".got")
 
 @register_command
 class GefFunctionsCommand(GenericCommand):
