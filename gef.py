@@ -646,7 +646,7 @@ class GlibcArena:
 
     def tcachebin(self, i):
         """Return head chunk in tcache[i]."""
-        heap_base = int(gdb.execute("p/x $_heap()", to_string=True).split()[-1], 0)
+        heap_base = HeapBaseFunction.heap_base()
         addr = dereference(heap_base + 2*current_arch.ptrsize + self.TCACHE_MAX_BINS + i*current_arch.ptrsize)
         if not addr:
             return None
@@ -6108,7 +6108,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             return
 
         # Get tcache_perthread_struct for this arena
-        addr = int(gdb.execute("p/x $_heap()", to_string=True).split(" = ")[-1], 0) + 0x10
+        addr = HeapBaseFunction.heap_base() + 0x10
 
         gef_print(titlify("Tcachebins for arena {:#x}".format(int(arena))))
         for i in range(GlibcArena.TCACHE_MAX_BINS):
