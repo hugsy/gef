@@ -306,7 +306,6 @@ def gef_print(x="", *args, **kwargs):
 def bufferize(f):
     """Store the content to be printed for a function in memory, and flush it on function exit."""
 
-    return f # DELETEME
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         global __gef_int_stream_buffer__
