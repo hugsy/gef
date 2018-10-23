@@ -1385,6 +1385,8 @@ class Architecture(object):
     @abc.abstractmethod
     def get_ra(self, insn, frame):                 pass
 
+    special_registers = []
+
     @property
     def pc(self):
         return get_register("$pc")
@@ -1400,6 +1402,13 @@ class Architecture(object):
     @property
     def ptrsize(self):
         return get_memory_alignment()
+
+    def get_ith_parameter(self, i):
+        """Retrieves the correct parameter used for the current function call."""
+        reg = current_arch.function_parameters[i]
+        val = get_register(reg)
+        key = reg
+        return key, val
 
 
 class RISCV(Architecture):
@@ -1733,9 +1742,9 @@ class X86(Architecture):
 
     nop_insn = b"\x90"
     flag_register = "$eflags"
-    msr_registers = ["$cs", "$ss", "$ds", "$es", "$fs", "$gs", ]
+    special_registers = ["$cs", "$ss", "$ds", "$es", "$fs", "$gs", ]
     gpr_registers = ["$eax", "$ebx", "$ecx", "$edx", "$esp", "$ebp", "$esi", "$edi", "$eip", ]
-    all_registers = gpr_registers + [ flag_register, ] + msr_registers
+    all_registers = gpr_registers + [ flag_register, ] + special_registers
     instruction_length = None
     return_register = "$eax"
     function_parameters = ["$esp", ]
@@ -1847,6 +1856,14 @@ class X86(Architecture):
             "popad",]
         return "; ".join(insns)
 
+    def get_ith_parameter(self, i):
+        sp = current_arch.sp
+        sz =  current_arch.ptrsize
+        loc = sp + (i * sz)
+        val = read_int_from_memory(loc)
+        key = "[sp + {:#x}]".format(i * sz)
+        return key, val
+
 
 class X86_64(X86):
     arch = "X86"
@@ -1855,11 +1872,13 @@ class X86_64(X86):
     gpr_registers = [
         "$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip",
         "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", ]
-    all_registers = gpr_registers + [ X86.flag_register, ] + X86.msr_registers
+    all_registers = gpr_registers + [ X86.flag_register, ] + X86.special_registers
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
     syscall_register = "$rax"
     syscall_instructions = ["syscall"]
+    # We don't want to inherit x86's stack based param getter
+    get_ith_parameter = Architecture.get_ith_parameter
 
     @classmethod
     def mprotect_asm(cls, addr, size, perm):
@@ -3232,17 +3251,8 @@ class FormatStringBreakpoint(gdb.Breakpoint):
 
     def stop(self):
         msg = []
-        if is_x86_32():
-            sp = current_arch.sp
-            sz =  get_memory_alignment()
-            val = sp + (self.num_args * sz) + sz
-            ptr = read_int_from_memory(val)
-            addr = lookup_address(ptr)
-            ptr = hex(ptr)
-        else:
-            regs = current_arch.function_parameters
-            ptr = regs[self.num_args]
-            addr = lookup_address(get_register(ptr))
+        ptr, addr = current_arch.get_ith_parameter(self.num_args)
+        addr = lookup_address(addr)
 
         if not addr.valid:
             return False
@@ -3309,11 +3319,7 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
-        if is_x86_32():
-            # if intel x32, the malloc size is in the stack, so we need to dereference $sp
-            size = to_unsigned_long(dereference(current_arch.sp+4))
-        else:
-            size = get_register(current_arch.function_parameters[0])
+        _, size = current_arch.get_ith_parameter(0)
         self.retbp = TraceMallocRetBreakpoint(size)
         return False
 
@@ -3399,12 +3405,8 @@ class TraceReallocBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
-        if is_x86_32():
-            ptr = to_unsigned_long(dereference(current_arch.sp+4))
-            size = to_unsigned_long(dereference(current_arch.sp+8))
-        else:
-            ptr = get_register(current_arch.function_parameters[0])
-            size = get_register(current_arch.function_parameters[1])
+        _, ptr = current_arch.get_ith_parameter(0)
+        _, size = current_arch.get_ith_parameter(1)
         self.retbp = TraceReallocRetBreakpoint(ptr, size)
         return False
 
@@ -3462,11 +3464,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
-        if is_x86_32():
-            # if intel x32, the free address is in the stack, so we need to dereference $sp
-            addr = to_unsigned_long(dereference(current_arch.sp+4))
-        else:
-            addr = long(gdb.parse_and_eval(current_arch.function_parameters[0]))
+        _, addr = current_arch.get_ith_parameter(0)
         msg = []
         check_free_null = get_gef_setting("heap-analysis-helper.check_free_null")
         check_double_free = get_gef_setting("heap-analysis-helper.check_double_free")
@@ -6264,13 +6262,17 @@ class DetailRegistersCommand(GenericCommand):
 
         if argv:
             regs = [reg for reg in current_arch.all_registers if reg in argv]
+            if not regs:
+                warn("No matching registers found")
         else:
             regs = current_arch.all_registers
+
 
         memsize = current_arch.ptrsize
         endian = endian_str()
         charset = string.printable
         widest = max(map(len, current_arch.all_registers))
+        special_line = ""
 
         for regname in regs:
             reg = gdb.parse_and_eval(regname)
@@ -6292,14 +6294,10 @@ class DetailRegistersCommand(GenericCommand):
             else:
                 color = changed_color
 
-            if is_x86() and regname in current_arch.msr_registers:
-                msr = set(current_arch.msr_registers)
-                for r in set(regs) & msr:
-                    line = "{}: ".format(Color.colorify(r, color))
-                    line+= "0x{:04x}".format(get_register(r))
-                    gef_print(line, end="  ")
-                    regs.remove(r)
-                gef_print()
+            # Special (e.g. segment) registers go on their own line
+            if regname in current_arch.special_registers:
+                special_line += "{}: ".format(Color.colorify(regname, color))
+                special_line += "0x{:04x} ".format(get_register(regname))
                 continue
 
             line = "{}: ".format(Color.colorify(padreg, color))
@@ -6332,6 +6330,9 @@ class DetailRegistersCommand(GenericCommand):
                 pass
 
             gef_print(line)
+
+        if special_line:
+            gef_print(special_line)
         return
 
 
@@ -7152,26 +7153,12 @@ class ContextCommand(GenericCommand):
         self.print_arguments_from_symbol(target, sym)
         return
 
-    def get_ith_parameter(self, i):
-        """Retrieves the correct parameter used for the current function call."""
-        if is_x86_32():
-            sp = current_arch.sp
-            sz =  current_arch.ptrsize
-            loc = sp + (i * sz)
-            val = read_int_from_memory(loc)
-            key = "[sp + {:#x}]".format(i * sz)
-        else:
-            reg = current_arch.function_parameters[i]
-            val = get_register(reg)
-            key = reg
-        return (key, val)
-
     def print_arguments_from_symbol(self, function_name, symbol):
         """If symbols were found, parse them and print the argument adequately."""
         args = []
 
         for i, f in enumerate(symbol.type.fields()):
-            _value = self.get_ith_parameter(i)[1]
+            _value = current_arch.get_ith_parameter(i)[1]
             _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
             _name = f.name or "var_{}".format(i)
             _type = f.type.name or self.size2type[f.type.sizeof]
@@ -7241,7 +7228,7 @@ class ContextCommand(GenericCommand):
 
         args = []
         for i in range(nb_argument):
-            _key, _value = self.get_ith_parameter(i)
+            _key, _value = current_arch.get_ith_parameter(i)
             _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
             args.append("{} = {}".format(Color.colorify(_key, arg_key_color), _value))
 
