@@ -1432,7 +1432,7 @@ class Architecture(object):
 
     def get_ith_parameter(self, i):
         """Retrieves the correct parameter used for the current function call."""
-        reg = current_arch.function_parameters[i]
+        reg = self.function_parameters[i]
         val = get_register(reg)
         key = reg
         return key, val
