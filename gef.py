@@ -6092,9 +6092,15 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         # Determine if we are using libc with tcache built in (2.26+)
-        libc = gdb.execute("vmmap libc", to_string=True)
+        sections = get_process_maps()
         try:
-            libc_version = tuple(int(_) for _ in re.search(r"libc-(\d+)\.(\d+)\.so", libc).groups())
+            for section in sections:
+                if "libc-" in section.path:
+                    libc_version = tuple(int(_) for _ in
+                                         re.search(r"libc-(\d+)\.(\d+)\.so", section.path).groups())
+                    break
+            else:
+                libc_version = 0, 0
         except AttributeError:
             libc_version = 0, 0
         if libc_version < (2, 26):
