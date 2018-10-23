@@ -624,6 +624,8 @@ class Instruction:
 class GlibcArena:
     """Glibc arena class
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671 """
+    TCACHE_MAX_BINS = 0x40
+
     def __init__(self, addr, name=__gef_default_main_arena__):
         arena = gdb.parse_and_eval(addr)
         malloc_state_t = cached_lookup_type("struct malloc_state")
@@ -641,7 +643,16 @@ class GlibcArena:
     def __int__(self):
         return self.__addr
 
+    def tcachebin(self, i):
+        """Return head chunk in tcache[i]."""
+        heap_base = HeapBaseFunction.heap_base()
+        addr = dereference(heap_base + 2*current_arch.ptrsize + self.TCACHE_MAX_BINS + i*current_arch.ptrsize)
+        if not addr:
+            return None
+        return GlibcChunk(long(addr))
+
     def fastbin(self, i):
+        """Return head chunk in fastbinsY[i]."""
         addr = dereference_as_long(self.fastbinsY[i])
         if addr == 0:
             return None
@@ -829,6 +840,22 @@ class GlibcChunk:
             msg.append(self.str_as_freed())
 
         return "\n".join(msg) + "\n"
+
+
+@lru_cache()
+def get_libc_version():
+    sections = get_process_maps()
+    try:
+        for section in sections:
+            if "libc-" in section.path:
+                libc_version = tuple(int(_) for _ in
+                                     re.search(r"libc-(\d+)\.(\d+)\.so", section.path).groups())
+                break
+        else:
+            libc_version = 0, 0
+    except AttributeError:
+        libc_version = 0, 0
+    return libc_version
 
 
 @lru_cache()
@@ -6014,7 +6041,7 @@ class GlibcHeapBinsCommand(GenericCommand):
     """Display information on the bins on an arena (default: main_arena).
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
 
-    _bin_types_ = ["fast", "unsorted", "small", "large"]
+    _bin_types_ = ["tcache", "fast", "unsorted", "small", "large"]
     _cmdline_ = "heap bins"
     _syntax_ = "{:s} [{:s}]".format(_cmdline_, "|".join(_bin_types_))
 
@@ -6060,8 +6087,73 @@ class GlibcHeapBinsCommand(GenericCommand):
             fw = chunk.fwd
             nb_chunk += 1
 
-        gef_print("  ".join(m))
+        if m:
+            gef_print("  ".join(m))
         return nb_chunk
+
+
+@register_command
+class GlibcHeapTcachebinsCommand(GenericCommand):
+    """Display information on the Tcachebins on an arena (default: main_arena).
+    See https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=d5c3fafc4307c9b7a4c7d5cb381fcdbfad340bcc."""
+
+    _cmdline_ = "heap bins tcache"
+    _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)
+
+    def __init__(self):
+        super(GlibcHeapTcachebinsCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+        # Determine if we are using libc with tcache built in (2.26+)
+        if get_libc_version() < (2, 26):
+            info("No Tcache in this version of libc")
+            return
+
+        arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_main_arena()
+
+        if arena is None:
+            err("Invalid Glibc arena")
+            return
+
+        # Get tcache_perthread_struct for this arena
+        addr = HeapBaseFunction.heap_base() + 0x10
+
+        gef_print(titlify("Tcachebins for arena {:#x}".format(int(arena))))
+        for i in range(GlibcArena.TCACHE_MAX_BINS):
+            count = ord(read_memory(addr + i, 1))
+            chunk = arena.tcachebin(i)
+            chunks = set()
+            m = []
+
+            # Only print the entry if there are valid chunks. Don't trust count
+            while True:
+                if chunk is None:
+                    break
+
+                try:
+                    m.append("{:s} {:s} ".format(LEFT_ARROW, str(chunk)))
+                    if chunk.address in chunks:
+                        m.append("{:s} [loop detected]".format(RIGHT_ARROW))
+                        break
+
+                    chunks.add(chunk.address)
+
+                    next_chunk = chunk.get_fwd_ptr()
+                    if next_chunk == 0:
+                        break
+
+                    chunk = GlibcChunk(next_chunk)
+                except gdb.MemoryError:
+                    m.append("{:s} [Corrupted chunk at {:#x}]".format(LEFT_ARROW, chunk.address))
+                    break
+            if m:
+                gef_print("Tcachebins[idx={:d}, size={:#x}] count={:d} ".format(i, (i+1)*(current_arch.ptrsize)*2, count), end="")
+                gef_print("".join(m))
+        return
+
+
 
 @register_command
 class GlibcHeapFastbinsYCommand(GenericCommand):
@@ -6094,7 +6186,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         for i in range(NFASTBINS):
             gef_print("Fastbins[idx={:d}, size={:#x}] ".format(i, (i+1)*SIZE_SZ*2), end="")
             chunk = arena.fastbin(i)
-            chunks = []
+            chunks = set()
 
             while True:
                 if chunk is None:
@@ -6110,7 +6202,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
                     if fastbin_index(chunk.get_chunk_size()) != i:
                         gef_print("[incorrect fastbin_index] ", end="")
 
-                    chunks.append(chunk.address)
+                    chunks.add(chunk.address)
 
                     next_chunk = chunk.get_fwd_ptr()
                     if next_chunk == 0:
@@ -6199,7 +6291,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         bins = {}
         for i in range(63, 126):
             nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, i, "large_")
-            if nb_chunk < 0:
+            if nb_chunk <= 0:
                 break
             if nb_chunk > 0:
                 bins[i] = nb_chunk
