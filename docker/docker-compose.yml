@@ -1,0 +1,6 @@
+version: '3'
+services: 
+  gefdev:
+    image: fibonascii/gefdev:rc1
+    build: .
+      
