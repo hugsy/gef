@@ -7776,7 +7776,7 @@ class PatchCommand(GenericCommand):
 
         d = "<" if is_little_endian() else ">"
         for value in values:
-            value = int(value, 0) & ((1 << size * 8) - 1)
+            value = parse_address(value) & ((1 << size * 8) - 1)
             vstr = struct.pack(d + fcode, value)
             write_memory(addr, vstr, length=size)
             addr += size
