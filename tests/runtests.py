@@ -258,6 +258,16 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertTrue( r > 0.50 )
         return
 
+    def test_cmd_patch_qword_symbol(self):
+        target = "tests/binaries/bss.out"
+        before = gdb_run_silent_cmd("deref $sp 1", target=target)
+        after = gdb_run_silent_cmd("patch qword $sp &msg", after=["deref $sp 1",], target=target)
+        self.assertNoException(before)
+        self.assertNoException(after)
+        self.assertNotIn("Hello world!", before)
+        self.assertIn("Hello world!", after)
+        return
+
     def test_cmd_patch_string(self):
         res = gdb_start_silent_cmd_last_line("patch string $sp \"Gef!Gef!Gef!Gef!\"", after=["grep Gef!Gef!Gef!Gef!",])
         self.assertNoException(res)
