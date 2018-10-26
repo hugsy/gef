@@ -72,6 +72,7 @@ import os
 import platform
 import re
 import shutil
+import site
 import socket
 import string
 import struct
@@ -9472,6 +9473,16 @@ if __name__  == "__main__":
             "Consider updating to GDB {} or higher.".format(".".join(GDB_MIN_VERSION)))
 
     else:
+        try:
+            pyenv = which("pyenv")
+            PYENV_ROOT = subprocess.check_output([pyenv, "root"]).strip()
+            PYENV_VERSION = subprocess.check_output([pyenv, "version-name"]).strip()
+            site_packages_dir = os.path.join(PYENV_ROOT, "versions", PYENV_VERSION, "lib",
+                                             "python{}".format(PYENV_VERSION[:3]), "site-packages")
+            site.addsitedir(site_packages_dir)
+        except FileNotFoundError:
+            pass
+
         # setup prompt
         gdb.prompt_hook = __gef_prompt__
 
