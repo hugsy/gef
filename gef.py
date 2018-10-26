@@ -1186,7 +1186,7 @@ def gdb_get_nth_previous_instruction_address(addr, n):
         if insns[-1].address==cur_insn_addr:
             return insns[0].address
 
-    return -1
+    return None
 
 
 def gdb_get_nth_next_instruction_address(addr, n):
