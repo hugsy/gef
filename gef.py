@@ -621,62 +621,83 @@ class Instruction:
     def is_valid(self):
         return "(bad)" not in self.mnemonic
 
-class MainArenaStruct(object):
+class MallocStateStruct(object):
     def __init__(self, addr):
         self.addr = addr
+        self.num_fastbins = 11 if is_x86_32() else 10
+        self.num_bins = 254
+        self.size_t = cached_lookup_type("size_t")
+        if not self.size_t:
+            ptr_type = "unsigned long" if current_arch.ptrsize == 8 else "unsigned int"
+            self.size_t = cached_lookup_type(ptr_type)
+
+    @property
+    def fastbins_addr(self):
+        return self.addr + 8 + current_arch.ptrsize
+    @property
+    def top_addr(self):
+        return self.fastbins_addr + self.num_fastbins*current_arch.ptrsize
+    @property
+    def last_remainder_addr(self):
+        return self.top_addr + current_arch.ptrsize
+    @property
+    def bins_addr(self):
+        return self.last_remainder_addr + current_arch.ptrsize
+    @property
+    def next_addr(self):
+        return self.bins_addr + self.num_bins*current_arch.ptrsize + 16
+    @property
+    def next_free_addr(self):
+        return self.next_addr + current_arch.ptrsize
+    @property
+    def system_mem_addr(self):
+        return self.next_free_addr + current_arch.ptrsize*2
 
     @property
     def fastbinsY(self):
-        long_array_t = cached_lookup_type("unsigned long").array(10)
-        return dereference(self.addr + 0x10).cast(long_array_t)
-
+        return self.get_size_t_array(self.fastbins_addr, self.num_fastbins)
     @property
     def top(self):
-        long_pointer = cached_lookup_type("unsigned long").pointer()
-        return dereference(self.addr + 0x60).cast(long_pointer)
-
+        return self.get_size_t_pointer(self.top_addr)
     @property
     def last_remainder(self):
-        long_pointer = cached_lookup_type("unsigned long").pointer()
-        return dereference(self.addr + 0x68).cast(long_pointer)
-
+        return self.get_size_t_pointer(self.last_remainder_addr)
     @property
     def bins(self):
-        long_array_t = cached_lookup_type("unsigned long").array(254)
-        return dereference(self.addr + 0x70).cast(long_array_t)
-
+        return self.get_size_t_array(self.bins_addr, self.num_bins)
     @property
     def next(self):
-        long_pointer = cached_lookup_type("unsigned long").pointer()
-        return dereference(self.addr + 0x870).cast(long_pointer)
-
+        return self.get_size_t_pointer(self.next_addr)
     @property
     def next_free(self):
-        long_pointer = cached_lookup_type("unsigned long").pointer()
-        return dereference(self.addr + 0x878).cast(long_pointer)
-
-
+        return self.get_size_t_pointer(self.next_free_addr)
     @property
     def system_mem(self):
-        long_t = cached_lookup_type("unsigned long")
-        return dereference(self.addr + 0x888).cast(long_t)
+        return self.get_size_t(self.system_mem_addr)
+
+    def get_size_t(self, addr):
+        return dereference(addr).cast(self.size_t)
+    def get_size_t_pointer(self, addr):
+        size_t_pointer = self.size_t.pointer()
+        return dereference(addr).cast(size_t_pointer)
+    def get_size_t_array(self, addr, length):
+        size_t_array = self.size_t.array(length)
+        return dereference(addr).cast(size_t_array)
 
     def __getitem__(self, item):
         return getattr(self, item)
 
 @lru_cache()
-def get_main_arena_address(addr):
+def locate_main_arena_address(addr):
     try:
         return to_unsigned_long(gdb.parse_and_eval("&{}".format(addr)))
-    except:
+    except gdb.error:
         pass
 
-    try:
-        return to_unsigned_long(gdb.parse_and_eval("&main_arena"))
-    except:
-        pass
+    malloc_hook_addr = to_unsigned_long(gdb.parse_and_eval("(void *)&__malloc_hook"))
+    unaligned_address = malloc_hook_addr + current_arch.ptrsize
+    return unaligned_address + (0x20 - unaligned_address%0x20)
 
-    return to_unsigned_long(gdb.parse_and_eval("(long)&__malloc_hook+{}".format(get_memory_alignment()*2)))
 
 class GlibcArena:
     """Glibc arena class
@@ -691,8 +712,8 @@ class GlibcArena:
             self.__arena = arena.cast(malloc_state_t)
             self.__addr = long(arena.address)
         except:
-            self.__addr = get_main_arena_address(addr)
-            self.__arena = MainArenaStruct(self.__addr)
+            self.__addr = locate_main_arena_address(addr)
+            self.__arena = MallocStateStruct(self.__addr)
         return
 
     def __getitem__(self, item):
