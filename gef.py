@@ -621,6 +621,62 @@ class Instruction:
     def is_valid(self):
         return "(bad)" not in self.mnemonic
 
+class MainArenaStruct(object):
+    def __init__(self, addr):
+        self.addr = addr
+
+    @property
+    def fastbinsY(self):
+        long_array_t = cached_lookup_type("unsigned long").array(10)
+        return dereference(self.addr + 0x10).cast(long_array_t)
+
+    @property
+    def top(self):
+        long_pointer = cached_lookup_type("unsigned long").pointer()
+        return dereference(self.addr + 0x60).cast(long_pointer)
+
+    @property
+    def last_remainder(self):
+        long_pointer = cached_lookup_type("unsigned long").pointer()
+        return dereference(self.addr + 0x68).cast(long_pointer)
+
+    @property
+    def bins(self):
+        long_array_t = cached_lookup_type("unsigned long").array(254)
+        return dereference(self.addr + 0x70).cast(long_array_t)
+
+    @property
+    def next(self):
+        long_pointer = cached_lookup_type("unsigned long").pointer()
+        return dereference(self.addr + 0x870).cast(long_pointer)
+
+    @property
+    def next_free(self):
+        long_pointer = cached_lookup_type("unsigned long").pointer()
+        return dereference(self.addr + 0x878).cast(long_pointer)
+
+
+    @property
+    def system_mem(self):
+        long_t = cached_lookup_type("unsigned long")
+        return dereference(self.addr + 0x888).cast(long_t)
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+@lru_cache()
+def get_main_arena_address(addr):
+    try:
+        return to_unsigned_long(gdb.parse_and_eval("&{}".format(addr)))
+    except:
+        pass
+
+    try:
+        return to_unsigned_long(gdb.parse_and_eval("&main_arena"))
+    except:
+        pass
+
+    return to_unsigned_long(gdb.parse_and_eval("(long)&__malloc_hook+{}".format(get_memory_alignment()*2)))
 
 class GlibcArena:
     """Glibc arena class
@@ -628,11 +684,15 @@ class GlibcArena:
     TCACHE_MAX_BINS = 0x40
 
     def __init__(self, addr, name=__gef_default_main_arena__):
-        arena = gdb.parse_and_eval(addr)
-        malloc_state_t = cached_lookup_type("struct malloc_state")
         self.__name = name
-        self.__arena = arena.cast(malloc_state_t)
-        self.__addr = long(arena.address)
+        try:
+            arena = gdb.parse_and_eval(addr)
+            malloc_state_t = cached_lookup_type("struct malloc_state")
+            self.__arena = arena.cast(malloc_state_t)
+            self.__addr = long(arena.address)
+        except:
+            self.__addr = get_main_arena_address(addr)
+            self.__arena = MainArenaStruct(self.__addr)
         return
 
     def __getitem__(self, item):
