@@ -8864,9 +8864,12 @@ class HeapBaseFunction(GenericFunction):
 
     @staticmethod
     def heap_base():
-      try:
-        return long(gdb.parse_and_eval("mp_->sbrk_base"))
-      except gdb.error:
+        try:
+            base = long(gdb.parse_and_eval("mp_->sbrk_base"))
+            if base > 0:
+                return base
+        except gdb.error:
+            pass
         return get_section_base_address("[heap]")
 
 @register_function
