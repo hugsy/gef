@@ -636,13 +636,18 @@ class MallocStateStruct(object):
         self.size_t = cached_lookup_type("size_t")
         self.int_size = cached_lookup_type("int").sizeof
 
+        if get_libc_version() > (2, 26):
+            self.fastbin_offset = self.int_size*4
+        else:
+            self.fastbin_offset = self.int_size*2
+
         if not self.size_t:
             ptr_type = "unsigned long" if current_arch.ptrsize == 8 else "unsigned int"
             self.size_t = cached_lookup_type(ptr_type)
 
     @property
     def fastbins_addr(self):
-        return self.addr + self.int_size*2 + current_arch.ptrsize
+        return self.addr + self.fastbin_offset
     @property
     def top_addr(self):
         return self.fastbins_addr + self.num_fastbins*current_arch.ptrsize
@@ -709,6 +714,7 @@ class GlibcArena:
             self.__addr = long(arena.address)
         except:
             self.__arena = MallocStateStruct(addr)
+            self.__addr = self.__arena.addr
         return
 
     def __getitem__(self, item):
