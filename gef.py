@@ -622,6 +622,7 @@ class Instruction:
         return "(bad)" not in self.mnemonic
 
 class MallocStateStruct(object):
+    """GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
     def __init__(self, addr):
         self.addr = addr
         self.num_fastbins = 11 if is_x86_32() else 10
