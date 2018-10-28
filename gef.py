@@ -623,12 +623,19 @@ class Instruction:
 
 class MallocStateStruct(object):
     """GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
-    def __init__(self, addr):
-        self.addr = addr
+    def __init__(self, address):
+        try:
+            self.addr = to_unsigned_long(gdb.parse_and_eval("&{}".format(address)))
+        except gdb.error:
+            malloc_hook_addr = to_unsigned_long(gdb.parse_and_eval("(void *)&__malloc_hook"))
+            unaligned_address = malloc_hook_addr + current_arch.ptrsize
+            self.addr = unaligned_address + (0x20 - unaligned_address%0x20)
+
         self.num_fastbins = 11 if is_x86_32() else 10
         self.num_bins = 254
         self.size_t = cached_lookup_type("size_t")
         self.int_size = cached_lookup_type("int").sizeof
+
         if not self.size_t:
             ptr_type = "unsigned long" if current_arch.ptrsize == 8 else "unsigned int"
             self.size_t = cached_lookup_type(ptr_type)
@@ -687,17 +694,6 @@ class MallocStateStruct(object):
     def __getitem__(self, item):
         return getattr(self, item)
 
-@lru_cache()
-def locate_main_arena_address(addr):
-    try:
-        return to_unsigned_long(gdb.parse_and_eval("&{}".format(addr)))
-    except gdb.error:
-        pass
-
-    malloc_hook_addr = to_unsigned_long(gdb.parse_and_eval("(void *)&__malloc_hook"))
-    unaligned_address = malloc_hook_addr + current_arch.ptrsize
-    return unaligned_address + (0x20 - unaligned_address%0x20)
-
 
 class GlibcArena:
     """Glibc arena class
@@ -712,8 +708,7 @@ class GlibcArena:
             self.__arena = arena.cast(malloc_state_t)
             self.__addr = long(arena.address)
         except:
-            self.__addr = locate_main_arena_address(addr)
-            self.__arena = MallocStateStruct(self.__addr)
+            self.__arena = MallocStateStruct(addr)
         return
 
     def __getitem__(self, item):
