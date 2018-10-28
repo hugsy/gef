@@ -628,13 +628,14 @@ class MallocStateStruct(object):
         self.num_fastbins = 11 if is_x86_32() else 10
         self.num_bins = 254
         self.size_t = cached_lookup_type("size_t")
+        self.int_size = cached_lookup_type("int").sizeof
         if not self.size_t:
             ptr_type = "unsigned long" if current_arch.ptrsize == 8 else "unsigned int"
             self.size_t = cached_lookup_type(ptr_type)
 
     @property
     def fastbins_addr(self):
-        return self.addr + 8 + current_arch.ptrsize
+        return self.addr + self.int_size*2 + current_arch.ptrsize
     @property
     def top_addr(self):
         return self.fastbins_addr + self.num_fastbins*current_arch.ptrsize
@@ -646,14 +647,13 @@ class MallocStateStruct(object):
         return self.last_remainder_addr + current_arch.ptrsize
     @property
     def next_addr(self):
-        return self.bins_addr + self.num_bins*current_arch.ptrsize + 16
+        return self.bins_addr + self.num_bins*current_arch.ptrsize + self.int_size*4
     @property
     def next_free_addr(self):
         return self.next_addr + current_arch.ptrsize
     @property
     def system_mem_addr(self):
         return self.next_free_addr + current_arch.ptrsize*2
-
     @property
     def fastbinsY(self):
         return self.get_size_t_array(self.fastbins_addr, self.num_fastbins)
@@ -675,7 +675,6 @@ class MallocStateStruct(object):
     @property
     def system_mem(self):
         return self.get_size_t(self.system_mem_addr)
-
     def get_size_t(self, addr):
         return dereference(addr).cast(self.size_t)
     def get_size_t_pointer(self, addr):
