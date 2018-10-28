@@ -3338,11 +3338,12 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
     def __init__(self, name):
         super(TraceMallocBreakpoint, self).__init__(name, gdb.BP_BREAKPOINT, internal=True)
         self.silent = True
+        self.name = name
         return
 
     def stop(self):
         _, size = current_arch.get_ith_parameter(0)
-        self.retbp = TraceMallocRetBreakpoint(size)
+        self.retbp = TraceMallocRetBreakpoint(size, self.name)
         return False
 
 
@@ -3350,9 +3351,10 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
 class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
     """Internal temporary breakpoint to retrieve the return value of malloc()."""
 
-    def __init__(self, size):
+    def __init__(self, size, name):
         super(TraceMallocRetBreakpoint, self).__init__(gdb.newest_frame(), internal=True)
         self.size = size
+        self.name = name
         self.silent = True
         return
 
@@ -3366,7 +3368,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
             loc = to_unsigned_long(gdb.parse_and_eval(current_arch.return_register))
 
         size = self.size
-        ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", "yellow bold"), size, loc))
+        ok("{} - {}({})={:#x}".format(Color.colorify("Heap-Analysis", "yellow bold"), self.name, size, loc))
         check_heap_overlap = get_gef_setting("heap-analysis-helper.check_heap_overlap")
 
         # pop from free-ed list if it was in it
