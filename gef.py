@@ -5994,7 +5994,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
             return
 
         if argv[0].startswith("0x"):
-            new_arena = Address(to_unsigned_long(new_arena))
+            new_arena = Address(value=to_unsigned_long(new_arena))
             if new_arena is None or not new_arena.valid:
                 err("Invalid location")
                 return
@@ -6110,7 +6110,7 @@ class GlibcHeapChunksCommand(GenericCommand):
             if next_chunk is None:
                 break
 
-            next_chunk_addr = Address(next_chunk.address)
+            next_chunk_addr = Address(value=next_chunk.address)
             if not next_chunk_addr.valid:
                 # corrupted
                 break
