@@ -621,17 +621,24 @@ class Instruction:
     def is_valid(self):
         return "(bad)" not in self.mnemonic
 
+@lru_cache()
+def search_for_main_arena():
+    if is_x86():
+        malloc_hook_addr = to_unsigned_long(gdb.parse_and_eval("(void *)&__malloc_hook"))
+        unaligned_address = malloc_hook_addr + current_arch.ptrsize
+        return unaligned_address + (0x20 - unaligned_address%0x20)
+
+    raise OSError("Cannot find main_arena for {}".format(current_arch.arch))
+
 class MallocStateStruct(object):
     """GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
-    def __init__(self, address):
+    def __init__(self, addr):
         try:
-            self.addr = to_unsigned_long(gdb.parse_and_eval("&{}".format(address)))
+            self.__addr = to_unsigned_long(gdb.parse_and_eval("&{}".format(addr)))
         except gdb.error:
-            malloc_hook_addr = to_unsigned_long(gdb.parse_and_eval("(void *)&__malloc_hook"))
-            unaligned_address = malloc_hook_addr + current_arch.ptrsize
-            self.addr = unaligned_address + (0x20 - unaligned_address%0x20)
+            self.__addr = search_for_main_arena()
 
-        self.num_fastbins = 11 if is_x86_32() else 10
+        self.num_fastbins = 10 if is_x86_64() else 11
         self.num_bins = 254
         self.size_t = cached_lookup_type("size_t")
         self.int_size = cached_lookup_type("int").sizeof
@@ -646,8 +653,11 @@ class MallocStateStruct(object):
             self.size_t = cached_lookup_type(ptr_type)
 
     @property
+    def addr(self):
+        return self.__addr
+    @property
     def fastbins_addr(self):
-        return self.addr + self.fastbin_offset
+        return self.__addr + self.fastbin_offset
     @property
     def top_addr(self):
         return self.fastbins_addr + self.num_fastbins*current_arch.ptrsize
@@ -666,6 +676,7 @@ class MallocStateStruct(object):
     @property
     def system_mem_addr(self):
         return self.next_free_addr + current_arch.ptrsize*2
+
     @property
     def fastbinsY(self):
         return self.get_size_t_array(self.fastbins_addr, self.num_fastbins)
@@ -687,6 +698,7 @@ class MallocStateStruct(object):
     @property
     def system_mem(self):
         return self.get_size_t(self.system_mem_addr)
+
     def get_size_t(self, addr):
         return dereference(addr).cast(self.size_t)
     def get_size_t_pointer(self, addr):
