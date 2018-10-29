@@ -1,23 +1,19 @@
 /**
+ * default.c
  * -*- mode: c -*-
  * -*- coding: utf-8 -*-
- *
- * heap.c
- *
- * @author: @_hugsy_
- * @licence: WTFPL v.2
  */
 
 #include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
+char msg[0x100];
 
 int main(int argc, char** argv, char** envp)
 {
-        void* p1 = malloc(0x20);
+        strncpy(msg, "Hello world!", sizeof(msg));
         __asm__ volatile("int3;" : : : );
-        (void)p1;
         return EXIT_SUCCESS;
 }

@@ -21,6 +21,7 @@ improve it.
 |elf-info                  | Display ELF header informations.|
 |entry-break               | Tries to find best entry point and sets a temporary breakpoint on it. (alias: start-break)|
 |format-string-helper      | Exploitable format-string helper: this command will set up specific breakpoints at well-known dangerous functions (printf, snprintf, etc.), and check if the pointer holding the format string is writable, and  susceptible to format string attacks if an attacker can control its content. (alias: fmtstr-helper)|
+|functions                 | List the convenience functions provided by GEF.|
 |gef-remote                | gef wrapper for the `target remote` command. This command will automatically download the target binary in the local temporary directory (defaut /tmp) and then source it. Additionally, it will fetch all the /proc/PID/maps and loads all its information.|
 |heap                      | Base command to get information about the Glibc heap structure.|
 |heap-analysis-helper      | Tracks dynamic heap allocation through malloc/free to try to detect heap vulnerabilities.|
@@ -40,6 +41,7 @@ improve it.
 |registers                 | Display full details on one, many or all registers value from current architecture.|
 |reset-cache               | Reset cache of all stored data.|
 |ropper                    | Ropper (http://scoding.de/ropper) plugin|
+|scan                      | Search for addresses that are located in a memory mapping (haystack) that belonging to another (needle). (alias: lookup)|
 |search-pattern            | SearchPatternCommand: search a pattern in memory. (alias: grep)|
 |set-permission            | Change a page permission. By default, it will change it to RWX. (alias: mprotect)|
 |shellcode                 | ShellcodeCommand uses @JonathanSalwan simple-yet-awesome shellcode API to download shellcodes.|

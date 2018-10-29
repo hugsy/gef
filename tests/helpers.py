@@ -1,6 +1,12 @@
+import re
 import subprocess
 
 PATH_TO_DEFAULT_BINARY = "./tests/binaries/default.out"
+
+
+def ansi_clean(s):
+    ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
+    return ansi_escape.sub("", s)
 
 
 def gdb_run_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
@@ -9,7 +15,6 @@ def gdb_run_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
     command = [
         "gdb", "-q", "-nx",
         "-ex", "source /tmp/gef.py",
-        "-ex", "gef config gef.disable_color True",
         "-ex", "gef config gef.debug True"
     ]
 
@@ -24,7 +29,7 @@ def gdb_run_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
     command += ["-ex", "quit", "--", target]
 
     lines = subprocess.check_output(command, stderr=subprocess.STDOUT).strip().splitlines()
-    return b"\n".join(lines)
+    return ansi_clean(b"\n".join(lines).decode("utf-8"))
 
 
 def gdb_run_silent_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
@@ -45,7 +50,7 @@ def gdb_run_cmd_last_line(cmd, before=None, after=None, target=PATH_TO_DEFAULT_B
 
 def gdb_start_silent_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY):
     """Execute a command in GDB by starting an execution context. This command disables the `context`
-    and set a tbreak at the most convenient entry point."""
+    and sets a tbreak at the most convenient entry point."""
     if not before:
         before = []
 

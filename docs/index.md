@@ -2,15 +2,12 @@
 
 [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) [![Python 2 & 3](https://img.shields.io/badge/Python-2%20%26%203-green.svg)](https://github.com/hugsy/gef/) [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) [![CircleCI status](https://circleci.com/gh/hugsy/gef/tree/master.svg?style=shield)](https://circleci.com/gh/hugsy/gef/tree/master)
 
-`GEF` is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to
-make GDB cool again for exploit dev. It is aimed to be used mostly by exploiters
-and reverse-engineers, to provide additional features to GDB using the Python
-API to assist during the process of dynamic analysis and exploit development.
+`GEF` (pronounced ʤɛf - "Jeff") is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to make GDB cool again for exploit dev. It is aimed to be used mostly by exploit developers and reverse-engineers, to provide additional features to GDB using the Python API to assist during the process of dynamic analysis and exploit development.
 
 It has full support for both Python2 and Python3 indifferently (as more and more
 distros start pushing `gdb` compiled with Python3 support).
 
-![gef-context](https://i.imgur.com/i0Hkw2C.png)
+![gef-context](https://i.imgur.com/E3EuQPs.png)
 
 
 *Some* of `GEF` features include:
@@ -166,7 +163,7 @@ There, you're now fully equipped epic pwnage with **all** GEF's goodness!!
 To discuss `gef`, `gdb`, exploitation or other topics, feel free to join the
 `##gef` channel on the Freenode IRC network. You can also talk to me (`hugsy`) on the
 channel. For those who do not have an IRC client (like `weechat` or `irssi`),
-simply [click here](https://webchat.freenode.net/?channels=##gef). 
+simply [click here](https://webchat.freenode.net/?channels=##gef).
 
 For bugs or feature requests, just
 go [here](https://github.com/hugsy/gef/issues) and provide a thorough description

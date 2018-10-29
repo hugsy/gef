@@ -16,6 +16,8 @@ get_context_time() {
 log_this_revision() {
     rev=`git log -1 --pretty="format:%h"`
     printf $rev
+    title=`git log -1 --pretty="format:%s"`
+    printf ",\"$title\""
     rv=`$1`
     echo ,$rv
 }

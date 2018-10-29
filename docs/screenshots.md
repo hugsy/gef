@@ -1,34 +1,81 @@
-# GEF show cases #
+# Screenshots
 
-This shows a few examples of new features available to you when installing
-`GEF`, with the supported architecture.
+<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
 
 
-#### Heap analysis ####
+This page illustrates a few of the possibilities available to you when using `GEF`.
 
-![heap-chunks](https://i.imgur.com/2Ew2fA6.png)
-![uaf](https://i.imgur.com/NfV5Cu9.png)
+## Multi-architecture support
 
-#### Automatic vulnerable string detection ####
+`GEF` was designed to support any architecture supported by GDB via an easily extensible architecture API.
 
-![fmtstr-helper-example](https://i.imgur.com/INU3KGn.png)
+Currently `GEF` supports the following architectures:
 
-#### Code emulation with Unicorn-Engine (x86-64) ####
+ - Intel x86 (32b & 64b)
+ - ARM (v6/v7)
+ - AARCH64
+ - MIPS/MIPS64
+ - PowerPC
+ - SPARC/SPARCv9
 
-![gef-x86](https://i.imgur.com/emhEsol.png)
 
-#### ELF information, memory mapping and code disassembly with Capstone/Keystone integration (ARM v6) ####
+## Features
 
-![gef-arm](http://i.imgur.com/qOL8CnL.png)
+### Embedded hexdump view
 
-#### Automatic dereferencing of registers values and identifying binary protections (PowerPC) ####
+To this day, GDB doesn't come with a hexdump-like view. Well `GEF` fixes that for you via the `hexdump` command:
 
-![gef-ppc](https://i.imgur.com/IN6x6lw.png)
+![hexdump](https://i.imgur.com/mJUq6T2.png)
 
-#### Context display on MIPS ####
 
-![gef-mips](https://i.imgur.com/dBaB9os.png)
+### Dereferencing data or registers
 
-#### Capstone-Engine disassembly on SPARC v9 ####
+No more endless manual pointer dereferencing `x/x` style. Just use `dereference` for that. Or for a comprehensive view of the registers, `registers` might become your best friend:
 
-![gef-sparc](https://i.imgur.com/VD2FpDt.png)
+![mipsel-deref-regs](https://i.imgur.com/f5ZaWDC.png)
+
+
+### Heap analysis
+
+#### Detailed view of Glibc Chunks
+
+![x86-heap-chunks](https://i.imgur.com/zBSTUHb.png)
+
+
+#### Automatic detection of UaF during runtime
+
+![x86-heap-helper-uaf](https://i.imgur.com/NfV5Cu9.png)
+
+
+### Display ELF information
+
+#### ELF structure
+
+![arm-elf-info](https://i.imgur.com/qOL8CnL.png)
+
+
+#### Security settings
+
+![mips-elf-checksec](https://i.imgur.com/aanY2uK.png)
+
+
+### Automatic vulnerable string detection
+
+![aarch64-fmtstr](https://i.imgur.com/iF4l1R5.png)
+
+
+### Code emulation with Unicorn-Engine (x86-64)
+
+![x86-unicorn](https://i.imgur.com/emhEsol.png)
+
+
+
+### Comprehensive address space layout display
+
+![mips-vmmap](https://i.imgur.com/TbC1kNa.png)
+
+
+
+### Defining arbitrary custom structures
+
+![sparc-arb-struct](https://i.imgur.com/dEMUuP7.png)
