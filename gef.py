@@ -623,12 +623,18 @@ class Instruction:
 
 @lru_cache()
 def search_for_main_arena():
-    if is_x86():
-        malloc_hook_addr = to_unsigned_long(gdb.parse_and_eval("(void *)&__malloc_hook"))
-        unaligned_address = malloc_hook_addr + current_arch.ptrsize
-        return unaligned_address + (0x20 - unaligned_address%0x20)
+    global __gef_default_main_arena__
+    malloc_hook_addr = to_unsigned_long(gdb.parse_and_eval("(void *)&__malloc_hook"))
 
-    raise OSError("Cannot find main_arena for {}".format(current_arch.arch))
+    if is_x86():
+        addr = align_address_to_size(malloc_hook_addr + current_arch.ptrsize, 0x20)
+    elif is_arch(Elf.AARCH64) or is_arch(Elf.ARM):
+        addr = malloc_hook_addr - current_arch.ptrsize*2 - MallocStateStruct("*0").struct_size
+    else:
+        raise OSError("Cannot find main_arena for {}".format(current_arch.arch))
+
+    __gef_default_main_arena__ = "*0x{:x}".format(addr)
+    return addr
 
 class MallocStateStruct(object):
     """GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
@@ -638,19 +644,20 @@ class MallocStateStruct(object):
         except gdb.error:
             self.__addr = search_for_main_arena()
 
-        self.num_fastbins = 10 if is_x86_64() else 11
+        self.num_fastbins = 10
         self.num_bins = 254
-        self.size_t = cached_lookup_type("size_t")
+
         self.int_size = cached_lookup_type("int").sizeof
-
-        if get_libc_version() > (2, 26):
-            self.fastbin_offset = self.int_size*4
-        else:
-            self.fastbin_offset = self.int_size*2
-
+        self.size_t = cached_lookup_type("size_t")
         if not self.size_t:
             ptr_type = "unsigned long" if current_arch.ptrsize == 8 else "unsigned int"
             self.size_t = cached_lookup_type(ptr_type)
+
+        if get_libc_version() >= (2, 26):
+            self.fastbin_offset = align_address_to_size(self.int_size*3, 8)
+        else:
+            self.fastbin_offset = self.int_size*2
+
 
     @property
     def addr(self):
@@ -676,6 +683,9 @@ class MallocStateStruct(object):
     @property
     def system_mem_addr(self):
         return self.next_free_addr + current_arch.ptrsize*2
+    @property
+    def struct_size(self):
+        return self.system_mem_addr + current_arch.ptrsize*2 - self.__addr
 
     @property
     def fastbinsY(self):
@@ -3121,6 +3131,9 @@ def align_address(address):
 
     return address & 0xFFFFFFFFFFFFFFFF
 
+def align_address_to_size(address, align):
+    """Align the address to the given size."""
+    return address + ((align - (address % align)) % align)
 
 def align_address_to_page(address):
     """Align the address to a page."""
