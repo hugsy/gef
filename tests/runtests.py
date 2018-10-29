@@ -189,8 +189,8 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("Tracking", res)
         self.assertIn("correctly setup", res)
         self.assertIn("malloc(16)=", res)
-        self.assertIn("malloc(32)=", res) # Actually calloc
-        addr = int(res.split("malloc(32)=")[1].split("\n")[0], 0)
+        self.assertIn("calloc(32)=", res)
+        addr = int(res.split("calloc(32)=")[1].split("\n")[0], 0)
         self.assertRegex(res, r"realloc\(.+, 48")
         self.assertIn("free({:#x}".format(addr), res)
         return
