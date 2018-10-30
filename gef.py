@@ -658,7 +658,6 @@ class MallocStateStruct(object):
         else:
             self.fastbin_offset = self.int_size*2
 
-
     @property
     def addr(self):
         return self.__addr
