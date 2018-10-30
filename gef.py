@@ -8892,7 +8892,7 @@ class HeapBaseFunction(GenericFunction):
     def heap_base():
         try:
             base = long(gdb.parse_and_eval("mp_->sbrk_base"))
-            if base > 0:
+            if base != 0:
                 return base
         except gdb.error:
             pass
