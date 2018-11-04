@@ -657,6 +657,7 @@ class MallocStateStruct(object):
             self.fastbin_offset = align_address_to_size(self.int_size*3, 8)
         else:
             self.fastbin_offset = self.int_size*2
+        return
 
     @property
     def addr(self):
