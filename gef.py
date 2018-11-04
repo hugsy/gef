@@ -621,18 +621,127 @@ class Instruction:
     def is_valid(self):
         return "(bad)" not in self.mnemonic
 
+@lru_cache()
+def search_for_main_arena():
+    global __gef_default_main_arena__
+    malloc_hook_addr = to_unsigned_long(gdb.parse_and_eval("(void *)&__malloc_hook"))
+
+    if is_x86():
+        addr = align_address_to_size(malloc_hook_addr + current_arch.ptrsize, 0x20)
+    elif is_arch(Elf.AARCH64) or is_arch(Elf.ARM):
+        addr = malloc_hook_addr - current_arch.ptrsize*2 - MallocStateStruct("*0").struct_size
+    else:
+        raise OSError("Cannot find main_arena for {}".format(current_arch.arch))
+
+    __gef_default_main_arena__ = "*0x{:x}".format(addr)
+    return addr
+
+class MallocStateStruct(object):
+    """GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
+    def __init__(self, addr):
+        try:
+            self.__addr = to_unsigned_long(gdb.parse_and_eval("&{}".format(addr)))
+        except gdb.error:
+            self.__addr = search_for_main_arena()
+
+        self.num_fastbins = 10
+        self.num_bins = 254
+
+        self.int_size = cached_lookup_type("int").sizeof
+        self.size_t = cached_lookup_type("size_t")
+        if not self.size_t:
+            ptr_type = "unsigned long" if current_arch.ptrsize == 8 else "unsigned int"
+            self.size_t = cached_lookup_type(ptr_type)
+
+        if get_libc_version() >= (2, 26):
+            self.fastbin_offset = align_address_to_size(self.int_size*3, 8)
+        else:
+            self.fastbin_offset = self.int_size*2
+        return
+
+    # struct offsets
+    @property
+    def addr(self):
+        return self.__addr
+    @property
+    def fastbins_addr(self):
+        return self.__addr + self.fastbin_offset
+    @property
+    def top_addr(self):
+        return self.fastbins_addr + self.num_fastbins*current_arch.ptrsize
+    @property
+    def last_remainder_addr(self):
+        return self.top_addr + current_arch.ptrsize
+    @property
+    def bins_addr(self):
+        return self.last_remainder_addr + current_arch.ptrsize
+    @property
+    def next_addr(self):
+        return self.bins_addr + self.num_bins*current_arch.ptrsize + self.int_size*4
+    @property
+    def next_free_addr(self):
+        return self.next_addr + current_arch.ptrsize
+    @property
+    def system_mem_addr(self):
+        return self.next_free_addr + current_arch.ptrsize*2
+    @property
+    def struct_size(self):
+        return self.system_mem_addr + current_arch.ptrsize*2 - self.__addr
+
+    # struct members
+    @property
+    def fastbinsY(self):
+        return self.get_size_t_array(self.fastbins_addr, self.num_fastbins)
+    @property
+    def top(self):
+        return self.get_size_t_pointer(self.top_addr)
+    @property
+    def last_remainder(self):
+        return self.get_size_t_pointer(self.last_remainder_addr)
+    @property
+    def bins(self):
+        return self.get_size_t_array(self.bins_addr, self.num_bins)
+    @property
+    def next(self):
+        return self.get_size_t_pointer(self.next_addr)
+    @property
+    def next_free(self):
+        return self.get_size_t_pointer(self.next_free_addr)
+    @property
+    def system_mem(self):
+        return self.get_size_t(self.system_mem_addr)
+
+    # helper methods
+    def get_size_t(self, addr):
+        return dereference(addr).cast(self.size_t)
+
+    def get_size_t_pointer(self, addr):
+        size_t_pointer = self.size_t.pointer()
+        return dereference(addr).cast(size_t_pointer)
+
+    def get_size_t_array(self, addr, length):
+        size_t_array = self.size_t.array(length)
+        return dereference(addr).cast(size_t_array)
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
 
 class GlibcArena:
     """Glibc arena class
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671 """
     TCACHE_MAX_BINS = 0x40
 
-    def __init__(self, addr, name=__gef_default_main_arena__):
-        arena = gdb.parse_and_eval(addr)
-        malloc_state_t = cached_lookup_type("struct malloc_state")
-        self.__name = name
-        self.__arena = arena.cast(malloc_state_t)
-        self.__addr = long(arena.address)
+    def __init__(self, addr, name=None):
+        self.__name = name or __gef_default_main_arena__
+        try:
+            arena = gdb.parse_and_eval(addr)
+            malloc_state_t = cached_lookup_type("struct malloc_state")
+            self.__arena = arena.cast(malloc_state_t)
+            self.__addr = long(arena.address)
+        except:
+            self.__arena = MallocStateStruct(addr)
+            self.__addr = self.__arena.addr
         return
 
     def __getitem__(self, item):
@@ -3027,6 +3136,9 @@ def align_address(address):
 
     return address & 0xFFFFFFFFFFFFFFFF
 
+def align_address_to_size(address, align):
+    """Align the address to the given size."""
+    return address + ((align - (address % align)) % align)
 
 def align_address_to_page(address):
     """Align the address to a page."""
@@ -5914,7 +6026,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
             return
 
         if argv[0].startswith("0x"):
-            new_arena = Address(to_unsigned_long(new_arena))
+            new_arena = Address(value=to_unsigned_long(new_arena))
             if new_arena is None or not new_arena.valid:
                 err("Invalid location")
                 return
@@ -6030,7 +6142,7 @@ class GlibcHeapChunksCommand(GenericCommand):
             if next_chunk is None:
                 break
 
-            next_chunk_addr = Address(next_chunk.address)
+            next_chunk_addr = Address(value=next_chunk.address)
             if not next_chunk_addr.valid:
                 # corrupted
                 break
@@ -6236,7 +6348,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
+        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_default_main_arena__
         gef_print(titlify("Unsorted Bin for arena '{:s}'".format(arena_addr)))
         nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, 0, "unsorted_")
         if nb_chunk >= 0:
@@ -6260,7 +6372,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
+        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_default_main_arena__
         gef_print(titlify("Small Bins for arena '{:s}'".format(arena_addr)))
         bins = {}
         for i in range(1, 63):
@@ -6289,7 +6401,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
+        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_default_main_arena__
         gef_print(titlify("Large Bins for arena '{:s}'".format(arena_addr)))
         bins = {}
         for i in range(63, 126):
@@ -8785,9 +8897,12 @@ class HeapBaseFunction(GenericFunction):
 
     @staticmethod
     def heap_base():
-      try:
-        return long(gdb.parse_and_eval("mp_->sbrk_base"))
-      except gdb.error:
+        try:
+            base = long(gdb.parse_and_eval("mp_->sbrk_base"))
+            if base != 0:
+                return base
+        except gdb.error:
+            pass
         return get_section_base_address("[heap]")
 
 @register_function
