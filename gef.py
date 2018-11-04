@@ -659,6 +659,7 @@ class MallocStateStruct(object):
             self.fastbin_offset = self.int_size*2
         return
 
+    # struct offsets
     @property
     def addr(self):
         return self.__addr
@@ -687,6 +688,7 @@ class MallocStateStruct(object):
     def struct_size(self):
         return self.system_mem_addr + current_arch.ptrsize*2 - self.__addr
 
+    # struct members
     @property
     def fastbinsY(self):
         return self.get_size_t_array(self.fastbins_addr, self.num_fastbins)
@@ -709,11 +711,14 @@ class MallocStateStruct(object):
     def system_mem(self):
         return self.get_size_t(self.system_mem_addr)
 
+    # helper methods
     def get_size_t(self, addr):
         return dereference(addr).cast(self.size_t)
+
     def get_size_t_pointer(self, addr):
         size_t_pointer = self.size_t.pointer()
         return dereference(addr).cast(size_t_pointer)
+
     def get_size_t_array(self, addr, length):
         size_t_array = self.size_t.array(length)
         return dereference(addr).cast(size_t_array)
