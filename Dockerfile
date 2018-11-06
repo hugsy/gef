@@ -12,6 +12,6 @@ RUN sudo apt-get update -y
 RUN sudo apt-get install gdb git cmake gcc g++ pkg-config libglib2.0-dev -y
 
 # Setup Python3 Dependencies
-RUN sudo pip3 install keystone-engine capstone unicorn
-RUN sudo pip3 install pylint ropper
+COPY requirements.txt /home/circleci/requirements.txt
+RUN sudo pip3 install -r ~/requirements.txt
 RUN curl https://raw.githubusercontent.com/hugsy/stuff/master/update-trinity.sh | bash
