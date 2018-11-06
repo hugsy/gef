@@ -7063,7 +7063,7 @@ class ContextCommand(GenericCommand):
 
         widest = l = max(map(len, current_arch.all_registers))
         l += 5
-        l += current_arch.ptrsize
+        l += current_arch.ptrsize * 2
         nb = get_terminal_size()[1]//l
         i = 1
         line = ""
@@ -7101,7 +7101,7 @@ class ContextCommand(GenericCommand):
             else:
                 line += "{}: ".format(Color.colorify(padreg, changed_color))
             if new_value_type_flag:
-                line += "{:s} ".format(str(value))
+                line += "{:s} ".format(format_address_spaces(value))
             else:
                 addr = lookup_address(align_address(long(value)))
                 if addr.valid:
