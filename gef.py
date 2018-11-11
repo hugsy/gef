@@ -8617,6 +8617,82 @@ class ChecksecCommand(GenericCommand):
 
 
 @register_command
+class GotCommand(GenericCommand):
+    """GotCommand: Display current status of the got inside the process"""
+
+    _cmdline_ = "got"
+    _syntax_ = "{:s} [function names]".format(_cmdline_)
+    _example_ = "got read printf exit"
+
+    def get_jmp_slots(self, readelf, filename):
+        output = []
+        cmd = [readelf, ]
+        cmd += ["--relocs", ]
+        cmd += [filename, ]
+        lines = gef_execute_external(cmd, as_list=True)
+        for line in lines:
+            if "JUMP" in line:
+                output.append(line)
+        return output
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+
+        try:
+            readelf = which("readelf")
+        except IOError:
+            err("Missing `readelf`")
+            return
+
+        func_name_filter = ""
+        if argv:
+            func_name_filter = argv[0]
+
+        checksec_status = checksec(get_filepath())
+        relro_status = "Full RelRO"
+        full_relro = checksec_status["Full RelRO"]
+        pie = checksec_status["PIE"]
+
+        vmmap = get_process_maps()
+        base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
+        end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
+
+        if not full_relro:
+            relro_status = "Partial RelRO"
+            partial_relro = checksec_status["Partial RelRO"]
+
+            if not partial_relro:
+                relro_status = "No RelRO"
+
+        jmpslots = self.get_jmp_slots(readelf, get_filepath())
+
+        gef_print("\nGOT protection: %s | GOT functions: %d\n " % (relro_status, len(jmpslots)))
+
+        for line in jmpslots:
+            address, info, rtype, value, name = line.split()[:5]
+
+            if func_name_filter and func_name_filter not in name:
+                continue
+
+            address_val = int(address, 16)
+
+            if pie:
+                address_val = base_address + address_val
+
+            got_address = read_int_from_memory(address_val)
+
+            if got_address > base_address and got_address < end_address:
+                color = "yellow"  # function hasn't already been resolved
+            else:
+                color = "green"  # function has already been resolved
+
+            line = Color.colorify("[{}] {} -> {}".format(hex(address_val), name, hex(got_address)), color)
+
+            gef_print(line)
+
+        return
+
+@register_command
 class FormatStringSearchCommand(GenericCommand):
     """Exploitable format-string helper: this command will set up specific breakpoints
     at well-known dangerous functions (printf, snprintf, etc.), and check if the pointer
