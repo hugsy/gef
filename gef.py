@@ -8618,17 +8618,15 @@ class ChecksecCommand(GenericCommand):
 
 @register_command
 class GotCommand(GenericCommand):
-    """GotCommand: Display current status of the got inside the process"""
+    """Display current status of the got inside the process."""
 
     _cmdline_ = "got"
-    _syntax_ = "{:s} [function names]".format(_cmdline_)
+    _syntax_ = "{:s} [FUNCTION_NAME ...] ".format(_cmdline_)
     _example_ = "got read printf exit"
 
     def get_jmp_slots(self, readelf, filename):
         output = []
-        cmd = [readelf, ]
-        cmd += ["--relocs", ]
-        cmd += [filename, ]
+        cmd = [readelf, "--relocs", filename]
         lines = gef_execute_external(cmd, as_list=True)
         for line in lines:
             if "JUMP" in line:
@@ -8645,9 +8643,9 @@ class GotCommand(GenericCommand):
             return
 
         # get the filtering parameter.
-        func_name_filter = ""
+        func_names_filter = []
         if argv:
-            func_name_filter = argv[0]
+            func_names_filter = argv
 
         # get the checksec output.
         checksec_status = checksec(get_filepath())
@@ -8677,8 +8675,9 @@ class GotCommand(GenericCommand):
             address, info, rtype, value, name = line.split()[:5]
 
             # if we have a filter let's skip the entries that are not requested.
-            if func_name_filter and func_name_filter not in name:
-                continue
+            if func_names_filter:
+                if not any(map(lambda x: x in name, func_names_filter)):
+                    continue
 
             address_val = int(address, 16)
 
@@ -8695,8 +8694,8 @@ class GotCommand(GenericCommand):
             else:
                 color = "green"  # function has already been resolved
 
-            line = Color.colorify("[{}] {} -> {}".format(hex(address_val), name, hex(got_address)), color)
-
+            line = "[{}] ".format(hex(address_val))
+            line += Color.colorify("{} -> {}".format(name, hex(got_address)), color)
             gef_print(line)
 
         return

@@ -1,18 +1,18 @@
 ## Command got ##
 
-Quickly display the current state of GOT table of the running process.
+Display the current state of GOT table of the running process.
 
-The command `got` takes an optional argument the name of a function and filter
-the output displaying just the entry the user needs.
+The got command optionally takes the name of a function and filters 
+the output displaying only the matching function.
 ```
 gef➤ got
 ```
 
-![gef-got](https://i.imgur.com/GUlaHTs.jpg)
+![gef-got](https://i.imgur.com/miazDPr.png)
 
 
 ```
 gef➤ got printf
 ```
 
-![gef-got](https://imgur.com/X6O4tMv)
+![gef-got-printf](https://i.imgur.com/7pp5ec9.png)
