@@ -9,3 +9,10 @@ gef➤ got
 ```
 
 ![gef-got](https://i.imgur.com/GUlaHTs.jpg)
+
+
+```
+gef➤ got printf
+```
+
+![gef-got](https://imgur.com/X6O4tMv)
