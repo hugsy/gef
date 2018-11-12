@@ -8644,15 +8644,19 @@ class GotCommand(GenericCommand):
             err("Missing `readelf`")
             return
 
+        # get the filtering parameter.
         func_name_filter = ""
         if argv:
             func_name_filter = argv[0]
 
+        # get the checksec output.
         checksec_status = checksec(get_filepath())
         relro_status = "Full RelRO"
         full_relro = checksec_status["Full RelRO"]
-        pie = checksec_status["PIE"]
+        pie = checksec_status["PIE"]  # if pie we will have offset instead of abs address.
 
+        # getting vmmap to understand the boundaries of the main binary
+        # we will use this info to understand if a function has been resolved or not.
         vmmap = get_process_maps()
         base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
         end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
@@ -8664,6 +8668,7 @@ class GotCommand(GenericCommand):
             if not partial_relro:
                 relro_status = "No RelRO"
 
+        # retrieve jump slots using readelf
         jmpslots = self.get_jmp_slots(readelf, get_filepath())
 
         gef_print("\nGOT protection: %s | GOT functions: %d\n " % (relro_status, len(jmpslots)))
@@ -8671,17 +8676,21 @@ class GotCommand(GenericCommand):
         for line in jmpslots:
             address, info, rtype, value, name = line.split()[:5]
 
+            # if we have a filter let's skip the entries that are not requested.
             if func_name_filter and func_name_filter not in name:
                 continue
 
             address_val = int(address, 16)
 
+            # address_val is an offset from the base_address if we have PIE.
             if pie:
                 address_val = base_address + address_val
 
+            # read the address of the function.
             got_address = read_int_from_memory(address_val)
 
-            if got_address > base_address and got_address < end_address:
+            # for the swag: different colors if the function has been resolved or not.
+            if base_address < got_address < end_address:
                 color = "yellow"  # function hasn't already been resolved
             else:
                 color = "green"  # function has already been resolved
