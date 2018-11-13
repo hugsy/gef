@@ -1160,8 +1160,8 @@ def enable_redirect_output(to_file="/dev/null"):
 
 def disable_redirect_output():
     """Disable the output redirection, if any."""
-    gdb.execute("set logging redirect off")
     gdb.execute("set logging off")
+    gdb.execute("set logging redirect off")
     return
 
 
