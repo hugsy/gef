@@ -8647,17 +8647,17 @@ class GotCommand(GenericCommand):
         if argv:
             func_names_filter = argv
 
-        # get the checksec output.
-        checksec_status = checksec(get_filepath())
-        relro_status = "Full RelRO"
-        full_relro = checksec_status["Full RelRO"]
-        pie = checksec_status["PIE"]  # if pie we will have offset instead of abs address.
-
         # getting vmmap to understand the boundaries of the main binary
         # we will use this info to understand if a function has been resolved or not.
         vmmap = get_process_maps()
         base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
         end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
+
+        # get the checksec output.
+        checksec_status = checksec(get_filepath())
+        relro_status = "Full RelRO"
+        full_relro = checksec_status["Full RelRO"]
+        pie = checksec_status["PIE"]  # if pie we will have offset instead of abs address.
 
         if not full_relro:
             relro_status = "Partial RelRO"
