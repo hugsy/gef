@@ -8624,6 +8624,14 @@ class GotCommand(GenericCommand):
     _syntax_ = "{:s} [FUNCTION_NAME ...] ".format(_cmdline_)
     _example_ = "got read printf exit"
 
+    def __init__(self, *args, **kwargs):
+        super(GotCommand, self).__init__()
+        self.add_setting("function_resolved", "green", "Line color of the got command output if the function has "
+                                                       "been resolved")
+        self.add_setting("function_not_resolved", "yellow", "Line color of the got command output if the function has "
+                                                       "not been resolved")
+        return
+
     def get_jmp_slots(self, readelf, filename):
         output = []
         cmd = [readelf, "--relocs", filename]
@@ -8669,10 +8677,10 @@ class GotCommand(GenericCommand):
         # retrieve jump slots using readelf
         jmpslots = self.get_jmp_slots(readelf, get_filepath())
 
-        gef_print("\nGOT protection: %s | GOT functions: %d\n " % (relro_status, len(jmpslots)))
+        gef_print("\nGOT protection: {} | GOT functions: {}\n ".format(relro_status, len(jmpslots)))
 
         for line in jmpslots:
-            address, info, rtype, value, name = line.split()[:5]
+            address, _, _, _, name = line.split()[:5]
 
             # if we have a filter let's skip the entries that are not requested.
             if func_names_filter:
@@ -8690,12 +8698,12 @@ class GotCommand(GenericCommand):
 
             # for the swag: different colors if the function has been resolved or not.
             if base_address < got_address < end_address:
-                color = "yellow"  # function hasn't already been resolved
+                color = self.get_setting("function_not_resolved")  # function hasn't already been resolved
             else:
-                color = "green"  # function has already been resolved
+                color = self.get_setting("function_resolved")      # function has already been resolved
 
             line = "[{}] ".format(hex(address_val))
-            line += Color.colorify("{} -> {}".format(name, hex(got_address)), color)
+            line += Color.colorify("{} {} {}".format(name, RIGHT_ARROW, hex(got_address)), color)
             gef_print(line)
 
         return
