@@ -8617,6 +8617,98 @@ class ChecksecCommand(GenericCommand):
 
 
 @register_command
+class GotCommand(GenericCommand):
+    """Display current status of the got inside the process."""
+
+    _cmdline_ = "got"
+    _syntax_ = "{:s} [FUNCTION_NAME ...] ".format(_cmdline_)
+    _example_ = "got read printf exit"
+
+    def __init__(self, *args, **kwargs):
+        super(GotCommand, self).__init__()
+        self.add_setting("function_resolved", "green", "Line color of the got command output if the function has "
+                                                       "been resolved")
+        self.add_setting("function_not_resolved", "yellow", "Line color of the got command output if the function has "
+                                                       "not been resolved")
+        return
+
+    def get_jmp_slots(self, readelf, filename):
+        output = []
+        cmd = [readelf, "--relocs", filename]
+        lines = gef_execute_external(cmd, as_list=True)
+        for line in lines:
+            if "JUMP" in line:
+                output.append(line)
+        return output
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+
+        try:
+            readelf = which("readelf")
+        except IOError:
+            err("Missing `readelf`")
+            return
+
+        # get the filtering parameter.
+        func_names_filter = []
+        if argv:
+            func_names_filter = argv
+
+        # getting vmmap to understand the boundaries of the main binary
+        # we will use this info to understand if a function has been resolved or not.
+        vmmap = get_process_maps()
+        base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
+        end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
+
+        # get the checksec output.
+        checksec_status = checksec(get_filepath())
+        relro_status = "Full RelRO"
+        full_relro = checksec_status["Full RelRO"]
+        pie = checksec_status["PIE"]  # if pie we will have offset instead of abs address.
+
+        if not full_relro:
+            relro_status = "Partial RelRO"
+            partial_relro = checksec_status["Partial RelRO"]
+
+            if not partial_relro:
+                relro_status = "No RelRO"
+
+        # retrieve jump slots using readelf
+        jmpslots = self.get_jmp_slots(readelf, get_filepath())
+
+        gef_print("\nGOT protection: {} | GOT functions: {}\n ".format(relro_status, len(jmpslots)))
+
+        for line in jmpslots:
+            address, _, _, _, name = line.split()[:5]
+
+            # if we have a filter let's skip the entries that are not requested.
+            if func_names_filter:
+                if not any(map(lambda x: x in name, func_names_filter)):
+                    continue
+
+            address_val = int(address, 16)
+
+            # address_val is an offset from the base_address if we have PIE.
+            if pie:
+                address_val = base_address + address_val
+
+            # read the address of the function.
+            got_address = read_int_from_memory(address_val)
+
+            # for the swag: different colors if the function has been resolved or not.
+            if base_address < got_address < end_address:
+                color = self.get_setting("function_not_resolved")  # function hasn't already been resolved
+            else:
+                color = self.get_setting("function_resolved")      # function has already been resolved
+
+            line = "[{}] ".format(hex(address_val))
+            line += Color.colorify("{} {} {}".format(name, RIGHT_ARROW, hex(got_address)), color)
+            gef_print(line)
+
+        return
+
+@register_command
 class FormatStringSearchCommand(GenericCommand):
     """Exploitable format-string helper: this command will set up specific breakpoints
     at well-known dangerous functions (printf, snprintf, etc.), and check if the pointer

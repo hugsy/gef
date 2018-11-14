@@ -55,3 +55,4 @@ pages:
 - Command xfiles: commands/xfiles.md
 - Command xinfo: commands/xinfo.md
 - Command xor-memory: commands/xor-memory.md
+- Command got: commands/got.md
