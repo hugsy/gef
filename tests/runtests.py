@@ -134,6 +134,19 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("$_heap", res)
         return
 
+    def test_cmd_got(self):
+        cmd = "got"
+        target = "tests/binaries/format-string-helper.out"
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
+        res = gdb_start_silent_cmd(cmd, target=target)
+        self.assertIn("printf", res)
+        self.assertIn("strcpy", res)
+
+        res = gdb_start_silent_cmd("got printf", target=target)
+        self.assertIn("printf", res)
+        self.assertNotIn("strcpy", res)
+        return
+
     def test_cmd_heap_arenas(self):
         cmd = "heap arenas"
         target = "tests/binaries/heap.out"
