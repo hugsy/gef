@@ -7494,6 +7494,11 @@ class ContextCommand(GenericCommand):
                     if not sym.is_function and re.search(r"\W{}\W".format(symbol), line):
                         val = gdb.parse_and_eval(symbol)
                         if val.type.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY):
+                            # This isn't perfect, will break on nested [], for example
+                            ar = re.search(r"{}\[.+?\]".format(symbol), line)
+                            if ar: # If it's an array item access
+                                symbol = ar.group()
+                                val = gdb.parse_and_eval(symbol)
                             addr = long(val.address)
                             addrs = DereferenceCommand.dereference_from(addr)
                             if len(addrs) > 2:
