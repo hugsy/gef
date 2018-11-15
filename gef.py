@@ -809,7 +809,7 @@ class GlibcChunk:
         return
 
     def get_chunk_size(self):
-        return read_int_from_memory(self.size_addr) & (~0x03)
+        return read_int_from_memory(self.size_addr) & (~0x07)
 
     @property
     def size(self):
