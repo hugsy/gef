@@ -193,6 +193,14 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("Fastbins[idx=0, size=0x10]", res)
         return
 
+    def test_cmd_heap_bins_non_main(self):
+        cmd = 'python gdb.execute("heap bins fast {}".format(get_main_arena().next))'
+        target = "tests/binaries/heap-non-main.out"
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertIn("size=0x20, flags=PREV_INUSE|NON_MAIN_ARENA", res)
+        return
+
     def test_cmd_heap_analysis(self):
         cmd = "heap-analysis-helper"
         target = "tests/binaries/heap-analysis.out"

@@ -809,7 +809,7 @@ class GlibcChunk:
         return
 
     def get_chunk_size(self):
-        return read_int_from_memory(self.size_addr) & (~0x03)
+        return read_int_from_memory(self.size_addr) & (~0x07)
 
     @property
     def size(self):
@@ -6189,13 +6189,13 @@ class GlibcHeapBinsCommand(GenericCommand):
             return -1
 
         nb_chunk = 0
-        if bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF)):
+        head = GlibcChunk(bk, from_base=True).fwd
+        if fw == head:
             return nb_chunk
 
         ok("{}bins[{:d}]: fw={:#x}, bk={:#x}".format(_type, index, fw, bk))
 
         m = []
-        head = GlibcChunk(bk, from_base=True).fwd
         while fw != head:
             chunk = GlibcChunk(fw, from_base=True)
             m.append("{:s}  {:s}".format(RIGHT_ARROW, str(chunk)))
