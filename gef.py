@@ -5421,7 +5421,7 @@ def set_fs(uc, addr):    return set_msr(uc, FSMSR, addr)
 
         content = """#!/usr/bin/python -i
 #
-# Emulation script for "%s" from %#x to %#x
+# Emulation script for "{fname}" from {start:#x} to {end:#x}
 #
 # Powered by gef, unicorn-engine, and capstone-engine
 #
@@ -5431,66 +5431,65 @@ from __future__ import print_function
 import collections
 import capstone, unicorn
 
-registers = collections.OrderedDict(sorted({%s}.items(), key=lambda t: t[0]))
+registers = collections.OrderedDict(sorted({{{regs}}}.items(), key=lambda t: t[0]))
 uc = None
-verbose = %s
-syscall_register = "%s"
+verbose = {verbose}
+syscall_register = "{syscall_reg}"
 
 def disassemble(code, addr):
-    cs = capstone.Cs(%s, %s)
-    for i in cs.disasm(code,addr):
+    cs = capstone.Cs({cs_arch}, {cs_mode})
+    for i in cs.disasm(code, addr):
         return i
 
 def hook_code(emu, address, size, user_data):
     code = emu.mem_read(address, size)
     insn = disassemble(code, address)
-    print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
+    print(">>> {{:#x}}: {{:s}} {{:s}}".format(insn.address, insn.mnemonic, insn.op_str))
     return
 
 def code_hook(emu, address, size, user_data):
     code = emu.mem_read(address, size)
     insn = disassemble(code, address)
-    print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
+    print(">>> {{:#x}}: {{:s}} {{:s}}".format(insn.address, insn.mnemonic, insn.op_str))
     return
 
 def intr_hook(emu, intno, data):
-    print(" \\-> interrupt={:d}".format(intno))
+    print(" \\-> interrupt={{:d}}".format(intno))
     return
 
 def syscall_hook(emu, user_data):
     sysno = emu.reg_read(registers[syscall_register])
-    print(" \\-> syscall={:d}".format(sysno))
+    print(" \\-> syscall={{:d}}".format(sysno))
     return
 
 def print_regs(emu, regs):
     for i, r in enumerate(regs):
-        print("{:7s} = 0x{:0%dx}  ".format(r, emu.reg_read(regs[r])), end="")
-        if (i %% 4 == 3) or (i == len(regs)-1): print("")
+        print("{{:7s}} = {{:#0{ptrsize}x}}  ".format(r, emu.reg_read(regs[r])), end="")
+        if (i % 4 == 3) or (i == len(regs)-1): print("")
     return
 
-%s
+{emu_block}
 
 def reset():
-    emu = unicorn.Uc(%s, %s)
+    emu = unicorn.Uc({arch}, {mode})
 
-%s
-""" % (fname, start_insn_addr, end_insn_addr,
-       ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]),
-       "True" if verbose else "False",
-       current_arch.syscall_register,
-       cs_arch, cs_mode,
-       current_arch.ptrsize,
-       emulate_segmentation_block if is_x86() else "",
-       arch, mode,
-       context_segmentation_block if is_x86() else "",
-      )
+{context_block}
+""".format(fname=fname, start=start_insn_addr, end=end_insn_addr,
+           regs=",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]),
+           verbose="True" if verbose else "False",
+           syscall_reg=current_arch.syscall_register,
+           cs_arch=cs_arch, cs_mode=cs_mode,
+           ptrsize=current_arch.ptrsize,
+           emu_block=emulate_segmentation_block if is_x86() else "",
+           arch=arch, mode=mode,
+           context_block=context_segmentation_block if is_x86() else "")
 
         if verbose:
             info("Duplicating registers")
 
         for r in current_arch.all_registers:
             gregval = get_register(r)
-            content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers[r], gregval)
+            content += "    emu.reg_write({}, {:#x})\n".format(unicorn_registers[r], gregval)
 
 
         vmmap = get_process_maps()
@@ -5511,16 +5510,16 @@ def reset():
             size       = sect.size
             perm       = sect.permission
 
-            content += "    # Mapping %s: %#x-%#x\n" % (sect.path, page_start, page_end)
-            content += "    emu.mem_map(%#x, %#x, %s)\n" % (page_start, size, oct(perm.value))
+            content += "    # Mapping {}: {:#x}-{:#x}\n".format(sect.path, page_start, page_end)
+            content += "    emu.mem_map({:#x}, {:#x}, {})\n".format(page_start, size, oct(perm.value))
 
             if perm & Permission.READ:
                 code = read_memory(page_start, size)
-                loc = "/tmp/gef-%s-%#x.raw" % (fname, page_start)
+                loc = "/tmp/gef-{}-{:#x}.raw".format(fname, page_start)
                 with open(loc, "wb") as f:
                     f.write(bytes(code))
 
-                content += "    emu.mem_write(%#x, open('%s', 'rb').read())\n" % (page_start, loc)
+                content += "    emu.mem_write({:#x}, open('{}', 'rb').read())\n".format(page_start, loc)
                 content += "\n"
 
 
@@ -5541,7 +5540,7 @@ def emulate(emu, start_addr, end_addr):
     except Exception as e:
         emu.emu_stop()
         print("========================= Emulation failed =========================")
-        print("[!] Error: {}".format(e))
+        print("[!] Error: {{}}".format(e))
 
     print("========================= Final registers =========================")
     print_regs(emu, registers)
@@ -5549,22 +5548,22 @@ def emulate(emu, start_addr, end_addr):
 
 
 uc = reset()
-emulate(uc, %#x, %#x)
+emulate(uc, {start:#x}, {end:#x})
 
 # unicorn-engine script generated by gef
-""" % (start_insn_addr, end_insn_addr)
+""".format(start=start_insn_addr, end=end_insn_addr)
 
         os.write(tmp_fd, gef_pybytes(content))
         os.close(tmp_fd)
 
         if kwargs.get("to_file", None):
-            info("Unicorn script generated as '%s'" % tmp_filename)
+            info("Unicorn script generated as '{}'".format(tmp_filename))
             os.chmod(tmp_filename, 0o700)
 
         if to_script_only:
             return
 
-        ok("Starting emulation: %#x %s %#x" % (start_insn_addr, RIGHT_ARROW, end_insn_addr))
+        ok("Starting emulation: {:#x} {} {:#x}".format(start_insn_addr, RIGHT_ARROW, end_insn_addr))
 
         pythonbin = "python{}".format(PYTHON_MAJOR)
         res = gef_execute_external([pythonbin, tmp_filename], as_list=True)
@@ -8876,7 +8875,7 @@ class SyscallArgsCommand(GenericCommand):
 
         reg_value = get_register(current_arch.syscall_register)
         if reg_value not in syscall_table:
-            warn("There is no system call for %#x" % reg_value)
+            warn("There is no system call for {:#x}".format(reg_value))
             return
         syscall_entry = syscall_table[reg_value]
 
