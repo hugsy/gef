@@ -7471,9 +7471,11 @@ class ContextCommand(GenericCommand):
 
             if i == line_num:
                 extra_info = self.get_pc_context_info(pc, lines[i])
+                prefix = "{}{:4d}\t ".format(RIGHT_ARROW, i + 1)
+                leading = len(lines[i]) - len(lines[i].lstrip())
                 if extra_info:
-                    gef_print(extra_info)
-                gef_print(Color.colorify("{}{:4d}\t {:s}".format(RIGHT_ARROW, i + 1, lines[i]), cur_line_color))
+                    gef_print("{}{}".format(" "*(len(prefix) + leading), extra_info))
+                gef_print(Color.colorify("{}{:s}".format(prefix, lines[i]), cur_line_color))
 
             if i > line_num:
                 try:
@@ -7510,7 +7512,7 @@ class ContextCommand(GenericCommand):
                 current_block = current_block.superblock
 
             if m:
-                return "\t\t// " + ", ".join(["{}={}".format(Color.yellowify(a), b) for a, b in m.items()])
+                return "// " + ", ".join(["{}={}".format(Color.yellowify(a), b) for a, b in m.items()])
         except Exception:
             pass
         return ""
