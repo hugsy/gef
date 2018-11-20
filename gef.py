@@ -7767,6 +7767,7 @@ class HexdumpCommand(GenericCommand):
 
     def __init__(self):
         super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.add_setting("always_show_ascii", False, "If true, hexdump will always display the ASCII dump")
         return
 
     @only_if_gdb_running
@@ -7831,6 +7832,7 @@ class HexdumpCommand(GenericCommand):
         endianness = endian_str()
 
         base_address_color = get_gef_setting("theme.dereference_base_address")
+        show_ascii = self.get_setting("always_show_ascii")
 
         formats = {
             "qword": ("Q", 8),
@@ -7839,18 +7841,20 @@ class HexdumpCommand(GenericCommand):
         }
 
         r, l = formats[arrange_as]
-        fmt_str = "{{base}}{v}+{{offset:#06x}} {{sym}}{{val:#0{prec}x}} {{text}}".format(v=VERTICAL_LINE, prec=l*2+2)
+        fmt_str = "{{base}}{v}+{{offset:#06x}}   {{sym}}{{val:#0{prec}x}}   {{text}}".format(v=VERTICAL_LINE, prec=l*2+2)
         fmt_pack = endianness + r
         lines = []
 
         i = 0
+        text = ""
         while i < length:
             cur_addr = start_addr + (i + offset) * l
             sym = gdb_get_location_from_symbol(cur_addr)
             sym = "<{:s}+{:04x}> ".format(*sym) if sym else ""
             mem = read_memory(cur_addr, l)
             val = struct.unpack(fmt_pack, mem)[0]
-            text = "".join([chr(b) if 0x20 <= b < 0x7F else "." for b in mem])
+            if show_ascii:
+                text = "".join([chr(b) if 0x20 <= b < 0x7F else "." for b in mem])
             lines.append(fmt_str.format(base=Color.colorify(format_address(cur_addr), base_address_color),
                                         offset=(i + offset) * l, sym=sym, val=val, text=text))
             i += 1
