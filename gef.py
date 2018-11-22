@@ -3769,7 +3769,7 @@ class GenericCommand(gdb.Command):
     def invoke(self, args, from_tty):
         try:
             argv = gdb.string_to_argv(args)
-            self.__set_repeat_count(from_tty)
+            self.__set_repeat_count(argv, from_tty)
             bufferize(self.do_invoke)(argv)
         except Exception as e:
             # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
@@ -3834,17 +3834,17 @@ class GenericCommand(gdb.Command):
         del __config__[key]
         return
 
-    def __set_repeat_count(self, from_tty):
+    def __set_repeat_count(self, argv, from_tty):
         if not from_tty:
             self.repeat = False
             self.repeat_count = 0
             return
 
-        command = gdb.execute("show commands", to_string=True).strip().split("\n")[-1]
+        command = "{} {}".format(self._cmdline_, " ".join(argv))
         self.repeat = self.__last_command == command
         self.repeat_count = self.repeat_count + 1 if self.repeat else 0
-
         self.__last_command = command
+        return
 
 
 # Copy/paste this template for new command
@@ -9044,6 +9044,7 @@ class GefFunctionsCommand(GenericCommand):
         for function in __gef__.loaded_functions:
             self.add_function_to_doc(function)
         self.__doc__ = "\n".join(sorted(self.docs))
+        return
 
     def add_function_to_doc(self, function):
         """Add function to documentation."""
