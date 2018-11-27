@@ -5,7 +5,7 @@ The `functions` command will list all of the [convenience functions](https://sou
 * `$_bss([offset])`    -- Return the current bss base address plus the given offset.
 * `$_got([offset])`    -- Return the current bss base address plus the given offset.
 * `$_heap([offset])`   -- Return the current heap base address plus an optional offset.
-* `$_pie([offset])`    -- Return the current pie base address plus an optional offset.
+* `$_base([offset])`   -- Return the current file's base address plus an optional offset. Useful for PIE binaries.
 * `$_stack([offset])`  -- Return the current stack base address plus an optional offset.
 
 

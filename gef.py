@@ -9268,9 +9268,9 @@ class HeapBaseFunction(GenericFunction):
         return get_section_base_address("[heap]")
 
 @register_function
-class PieBaseFunction(GenericFunction):
-    """Return the current pie base address plus an optional offset."""
-    _function_ = "_pie"
+class FileBaseFunction(GenericFunction):
+    """Return the current file's base address plus an optional offset."""
+    _function_ = "_base"
 
     def do_invoke(self, args):
         return self.arg_to_long(args, 0) + get_section_base_address(get_filepath())
