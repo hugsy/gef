@@ -3840,7 +3840,7 @@ class GenericCommand(gdb.Command):
             self.repeat_count = 0
             return
 
-        command = "{} {}".format(self._cmdline_, " ".join(argv))
+        command = gdb.execute("show commands", to_string=True).strip().split("\n")[-1]
         self.repeat = self.__last_command == command
         self.repeat_count = self.repeat_count + 1 if self.repeat else 0
         self.__last_command = command
