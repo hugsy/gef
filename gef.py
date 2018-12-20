@@ -523,8 +523,8 @@ class Elf:
     - http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
     - http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
     """
-    BIG_ENDIAN        = 0
     LITTLE_ENDIAN     = 1
+    BIG_ENDIAN        = 2
 
     ELF_32_BITS       = 0x01
     ELF_64_BITS       = 0x02
