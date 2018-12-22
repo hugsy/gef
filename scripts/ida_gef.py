@@ -130,7 +130,7 @@ class Gef:
         return 0
 
     @expose
-    def MakeComm(self, address, comment):
+    def makecomm(self, address, comment):
         """ MakeComm(int addr, string comment) => None
         Add a comment to the current IDB at the location `address`.
         Example: ida MakeComm 0x40000 "Important call here!"
@@ -139,7 +139,7 @@ class Gef:
         return idc.MakeComm(addr, comment)
 
     @expose
-    def SetColor(self, address, color="0x005500"):
+    def setcolor(self, address, color="0x005500"):
         """ SetColor(int addr [, int color]) => None
         Set the location pointed by `address` in the IDB colored with `color`.
         Example: ida SetColor 0x40000
@@ -149,7 +149,7 @@ class Gef:
         return idc.SetColor(addr, CIC_ITEM, color)
 
     @expose
-    def MakeName(self, address, name):
+    def makename(self, address, name):
         """ MakeName(int addr, string name]) => None
         Set the location pointed by `address` with the name specified as argument.
         Example: ida MakeName 0x4049de __entry_point
@@ -158,7 +158,7 @@ class Gef:
         return idc.MakeName(addr, name)
 
     @expose
-    def Jump(self, address):
+    def jump(self, address):
         """ Jump(int addr) => None
         Move the IDA EA pointer to the address pointed by `addr`.
         Example: ida Jump 0x4049de
@@ -166,14 +166,14 @@ class Gef:
         addr = long(address, 16) if ishex(address) else long(address)
         return idc.Jump(addr)
 
-    def GetStructByName(self, name):
+    def getstructbyname(self, name):
         for (struct_idx, struct_sid, struct_name) in Structs():
             if struct_name == name:
                 return struct_sid
         return None
 
     @expose
-    def ImportStruct(self, struct_name):
+    def importstruct(self, struct_name):
         """ ImportStruct(string name) => dict
         Import an IDA structure in GDB which can be used with the `pcustom`
         command.
@@ -185,7 +185,7 @@ class Gef:
         return res
 
     @expose
-    def ImportStructs(self):
+    def importstructs(self):
         """ ImportStructs() => dict
         Import all structures from the current IDB into GDB, to be used with the `pcustom`
         command.
@@ -197,7 +197,7 @@ class Gef:
         return res
 
     @expose
-    def Sync(self, offset, added, removed):
+    def sync(self, offset, added, removed):
         """ Sync(offset, added, removed) => None
         Synchronize debug info with gef. This is an internal function. It is
         not recommended using it from the command line.
