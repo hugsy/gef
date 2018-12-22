@@ -119,7 +119,7 @@ class Gef:
         return self._version
 
     @expose
-    def Jump(self, address):
+    def jump(self, address):
         """ Jump(int addr) => None
         Move the EA pointer to the address pointed by `addr`.
         Example: binaryninja Jump 0x4049de
@@ -128,7 +128,7 @@ class Gef:
         return self.view.file.navigate(self.view.file.view, addr)
 
     @expose
-    def MakeComm(self, address, comment):
+    def makecomm(self, address, comment):
         """ MakeComm(int addr, string comment) => None
         Add a comment at the location `address`.
         Example: binaryninja MakeComm 0x40000 "Important call here!"
@@ -139,7 +139,7 @@ class Gef:
         return func.set_comment(addr, comment)
 
     @expose
-    def SetColor(self, address, color='0xff0000'):
+    def setcolor(self, address, color='0xff0000'):
         """ SetColor(int addr [, int color]) => None
         Set the location pointed by `address` with `color`.
         Example: binaryninja SetColor 0x40000 0xff0000
@@ -151,7 +151,7 @@ class Gef:
         return hl(self.view, addr, color)
 
     @expose
-    def Sync(self, off, added, removed):
+    def sync(self, off, added, removed):
         """ Sync(off, added, removed) => None
         Synchronize debug info with gef. This is an internal function. It is
         not recommended using it from the command line.
