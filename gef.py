@@ -4890,7 +4890,7 @@ class IdaInteractCommand(GenericCommand):
                 if method_name in ("ImportStruct", "ImportStructs"):
                     self.import_structures(res)
                 else:
-                    gef_print(res)
+                    gef_print(str(res))
 
             if self.get_setting("sync_cursor") is True:
                 jump = getattr(self.sock, "Jump")
