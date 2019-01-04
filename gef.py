@@ -9686,7 +9686,7 @@ if __name__  == "__main__":
 
     if GDB_VERSION < GDB_MIN_VERSION:
         err("You're using an old version of GDB. GEF will not work correctly. "
-            "Consider updating to GDB {} or higher.".format(".".join(GDB_MIN_VERSION)))
+            "Consider updating to GDB {} or higher.".format(".".join(map(str, GDB_MIN_VERSION))))
 
     else:
         try:
