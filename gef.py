@@ -3712,6 +3712,21 @@ class EntryBreakBreakpoint(gdb.Breakpoint):
         return True
 
 
+class NamedBreakpoint(gdb.Breakpoint):
+    """Breakpoint which shows a specified name, when hit."""
+
+    def __init__(self, location, name):
+        super(NamedBreakpoint, self).__init__(spec=location, type=gdb.BP_BREAKPOINT, internal=False, temporary=False)
+        self.name = name
+        self.loc = location
+
+        return
+
+    def stop(self):
+        push_context_message("info", "Hit breakpoint {} ({})".format(self.loc, Color.colorify(self.name, "red bold")))
+        return True
+
+
 #
 # Commands
 #
@@ -7038,6 +7053,32 @@ class EntryPointBreakCommand(GenericCommand):
 
     def is_pie(self, fpath):
         return checksec(fpath)["PIE"]
+
+
+@register_command
+class NamedBreakpointCommand(GenericCommand):
+    """Sets a breakpoint and assigns a name to it, which will be shown, when it's hit."""
+
+    _cmdline_ = "name-break"
+    _syntax_  = "{:s} NAME [LOCATION]".format(_cmdline_)
+    _aliases_ = ["nb",]
+    _example  = "{:s} main *0x4008a9"
+
+    def __init__(self, *args, **kwargs):
+        super(NamedBreakpointCommand, self).__init__()
+        return
+
+    def do_invoke(self, argv):
+        if not argv:
+            err("Missing name for breakpoint")
+            self.usage()
+            return
+
+        name = argv[0]
+        location = argv[1] if len(argv) > 1 else "*{}".format(hex(current_arch.pc))
+
+        NamedBreakpoint(location, name)
+        return
 
 
 @register_command

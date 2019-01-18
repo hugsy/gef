@@ -31,6 +31,7 @@ pages:
 - Command ida-interact: commands/ida-interact.md
 - Command ksymaddr: commands/ksymaddr.md
 - Command memory: commands/memory.md
+- Command name-break: commands/name-break.md
 - Command nop: commands/nop.md
 - Command patch: commands/patch.md
 - Command pattern: commands/pattern.md
