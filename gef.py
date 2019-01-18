@@ -7078,6 +7078,7 @@ class NamedBreakpointCommand(GenericCommand):
         location = argv[1] if len(argv) > 1 else "*{}".format(hex(current_arch.pc))
 
         NamedBreakpoint(location, name)
+        return
 
 
 @register_command
