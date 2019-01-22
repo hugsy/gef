@@ -9032,7 +9032,11 @@ class HeapBaseFunction(GenericFunction):
     _function_ = "_heap"
 
     def do_invoke(self, args):
-        return self.arg_to_long(args, 0) + HeapBaseFunction.heap_base()
+        base = HeapBaseFunction.heap_base()
+        if not base:
+            err("Heap is not initialized")
+            return 0
+        return self.arg_to_long(args, 0) + base
 
     @staticmethod
     def heap_base():
