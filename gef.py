@@ -5106,9 +5106,21 @@ class SearchPatternCommand(GenericCommand):
     the command will also try to look for upwards cross-references to this address."""
 
     _cmdline_ = "search-pattern"
-    _syntax_  = "{:s} PATTERN [small|big]".format(_cmdline_)
+    _syntax_  = "{:s} PATTERN [section] [small|big]".format(_cmdline_)
     _aliases_ = ["grep", "xref"]
-    _example_ = "\n{0:s} AAAAAAAA\n{0:s} 0x555555554000".format(_cmdline_)
+    _example_ = "\n{0:s} AAAAAAAA\n{0:s} 0x555555554000 stack\n{0:s}AAAA 0x600000-0x601000 \n{0:s} BBBB all little".format(_cmdline_)
+
+    def print_section(self, section):
+        title = "In "
+        if section.path:
+            title += "'{}'".format(Color.blueify(section.path) )
+
+        title += "({:#x}-{:#x})".format(section.page_start, section.page_end)
+        title += ", permission={}".format(section.permission)
+        ok(title)
+
+    def print_loc(self, loc):
+        gef_print("""  {:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], RIGHT_ARROW, Color.pinkify(loc[2]),))
 
     def search_pattern_by_address(self, pattern, start_address, end_address):
         """Search a pattern within a range defined by arguments."""
@@ -5138,17 +5150,12 @@ class SearchPatternCommand(GenericCommand):
 
         return locations
 
-    def search_pattern(self, pattern, endian):
+    def search_pattern(self, pattern, section_name):
         """Search a pattern within the whole userland memory."""
-        if is_hex(pattern):
-            if endian == Elf.BIG_ENDIAN:
-                pattern = "".join(["\\x"+pattern[i:i+2] for i in range(2, len(pattern), 2)])
-            else:
-                pattern = "".join(["\\x"+pattern[i:i+2] for i in range(len(pattern)-2, 0, -2)])
-
         for section in get_process_maps():
             if not section.permission & Permission.READ: continue
             if section.path == "[vvar]": continue
+            if not section_name in section.path: continue
 
             start = section.page_start
             end   = section.page_end - 1
@@ -5158,16 +5165,10 @@ class SearchPatternCommand(GenericCommand):
                 addr_loc_start = lookup_address(loc[0])
                 if addr_loc_start and addr_loc_start.section:
                     if old_section != addr_loc_start.section:
-                        title = "In "
-                        if addr_loc_start.section.path:
-                            title += "'{}'".format(Color.blueify(addr_loc_start.section.path) )
-
-                        title+= "({:#x}-{:#x})".format(addr_loc_start.section.page_start, addr_loc_start.section.page_end)
-                        title+= ", permission={}".format(addr_loc_start.section.permission)
-                        ok(title)
+                        self.print_section(addr_loc_start.section)
                         old_section = addr_loc_start.section
 
-                gef_print("""  {:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], RIGHT_ARROW, Color.pinkify(loc[2]),))
+                self.print_loc(loc)
         return
 
     @only_if_gdb_running
