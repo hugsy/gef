@@ -5058,6 +5058,16 @@ class ScanSectionCommand(GenericCommand):
         needle_sections = []
         haystack_sections = []
 
+        if "0x" in haystack:
+            start = int(haystack.split("-")[0], 16)
+            end = int(haystack.split("-")[1], 16)
+            haystack_sections.append((start, end, ""))
+
+        if "0x" in needle:
+            start = int(needle.split("-")[0], 16)
+            end = int(needle.split("-")[1], 16)
+            needle_sections.append((start, end))
+
         for sect in get_process_maps():
             if haystack in sect.path:
                 haystack_sections.append((sect.page_start, sect.page_end, os.path.basename(sect.path)))
@@ -5078,8 +5088,11 @@ class ScanSectionCommand(GenericCommand):
                 for nstart, nend in needle_sections:
                     if target >= nstart and target < nend:
                         deref = DereferenceCommand.pprint_dereferenced(hstart, long(i / step))
-                        name = Color.colorify(hname, "yellow")
-                        gef_print("{:s}: {:s}".format(name, deref))
+                        if hname != "":
+                            name = Color.colorify(hname, "yellow")
+                            gef_print("{:s}: {:s}".format(name, deref))
+                        else:
+                            gef_print(" {:s}".format(deref))
 
         return
 
