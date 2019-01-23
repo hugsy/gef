@@ -127,6 +127,18 @@ To go back to normal, remove the value:
 gef➤ gef config context.redirect ""
 ```
 
+### Display individual sections ###
+
+You can display a single section by specifying it as an argument:
+```
+gef➤ context regs
+```
+
+Multiple sections can be provided, even if they are not part of the current layout:
+```
+gef➤ context regs stack
+```
+
 ### Examples ###
 
 * Display the code section first, then register, and stack, hiding everything else:
