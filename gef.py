@@ -7173,7 +7173,7 @@ class ContextCommand(GenericCommand):
         if redirect and os.access(redirect, os.W_OK):
             enable_redirect_output(to_file=redirect)
 
-        if self.get_setting("clear_screen"):
+        if self.get_setting("clear_screen") and len(argv) == 0:
             clear_screen(redirect)
 
         for section in current_layout:
