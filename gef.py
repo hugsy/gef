@@ -9032,7 +9032,11 @@ class HeapBaseFunction(GenericFunction):
     _function_ = "_heap"
 
     def do_invoke(self, args):
-        return self.arg_to_long(args, 0) + HeapBaseFunction.heap_base()
+        base = HeapBaseFunction.heap_base()
+        if not base:
+            raise gdb.GdbError("Heap not found")
+
+        return self.arg_to_long(args, 0) + base
 
     @staticmethod
     def heap_base():
