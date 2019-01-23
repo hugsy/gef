@@ -7089,7 +7089,7 @@ class ContextCommand(GenericCommand):
     states, the stack, and the disassembly code around $pc."""
 
     _cmdline_ = "context"
-    _syntax_  = _cmdline_
+    _syntax_  = "{:s} [legend|regs|stack|code|args|memory|source|trace|threads|extra]".format(_cmdline_)
     _aliases_ = ["ctx",]
 
     old_registers = {}
@@ -7155,7 +7155,15 @@ class ContextCommand(GenericCommand):
         if not self.get_setting("enable") or context_hidden:
             return
 
-        current_layout = self.get_setting("layout").strip().split()
+        if not all(_ in self.layout_mapping for _ in argv):
+            self.usage()
+            return
+
+        if len(argv) > 0:
+            current_layout = argv
+        else:
+            current_layout = self.get_setting("layout").strip().split()
+
         if not current_layout:
             return
 
@@ -7165,7 +7173,7 @@ class ContextCommand(GenericCommand):
         if redirect and os.access(redirect, os.W_OK):
             enable_redirect_output(to_file=redirect)
 
-        if self.get_setting("clear_screen"):
+        if self.get_setting("clear_screen") and len(argv) == 0:
             clear_screen(redirect)
 
         for section in current_layout:
