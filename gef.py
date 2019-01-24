@@ -3245,6 +3245,12 @@ def gef_convenience(value):
     return var_name
 
 
+def parse_string_range(s):
+    """Parses an address range (e.g. 0x400000-0x401000)"""
+    addrs = s.split("-")
+    return map(lambda x: int(x, 16), addrs)
+
+
 @lru_cache()
 def gef_get_auxiliary_values():
     """Retrieves the auxiliary values of the current execution. Returns None if not running, or a dict()
@@ -5059,13 +5065,11 @@ class ScanSectionCommand(GenericCommand):
         haystack_sections = []
 
         if "0x" in haystack:
-            start = int(haystack.split("-")[0], 16)
-            end = int(haystack.split("-")[1], 16)
+            start, end = parse_string_range(haystack)
             haystack_sections.append((start, end, ""))
 
         if "0x" in needle:
-            start = int(needle.split("-")[0], 16)
-            end = int(needle.split("-")[1], 16)
+            start, end = parse_string_range(needle)
             needle_sections.append((start, end))
 
         for sect in get_process_maps():
