@@ -5179,12 +5179,38 @@ class SearchPatternCommand(GenericCommand):
 
         pattern = argv[0]
         endian = get_endian()
-        if argc==2:
-            if argv[1]=="big": endian = Elf.BIG_ENDIAN
-            elif argv[1]=="small": endian = Elf.LITTLE_ENDIAN
 
-        info("Searching '{:s}' in memory".format(Color.yellowify(pattern)))
-        self.search_pattern(pattern, endian)
+        if argc==3:
+            if argv[2] == "big": endian = Elf.BIG_ENDIAN
+            elif argv[2] == "small": endian = Elf.LITTLE_ENDIAN
+
+        if is_hex(pattern):
+            if endian == Elf.BIG_ENDIAN:
+                pattern = "".join(["\\x"+pattern[i:i+2] for i in range(2, len(pattern), 2)])
+            else:
+                pattern = "".join(["\\x"+pattern[i:i+2] for i in range(len(pattern) - 2, 0, -2)])
+
+        if argc >= 2:
+            info("Searching '{:s}' in {:s}".format(Color.yellowify(pattern), argv[1]))
+
+            if "0x" in argv[1]:
+                start, end = parse_string_range(argv[1])
+
+                self.print_section(lookup_address(start).section)
+
+                for loc in self.search_pattern_by_address(pattern, start, end):
+                    self.print_loc(loc)
+            else:
+                section_name = argv[1]
+                if section_name == "memory":
+                    section_name = ""
+                if section_name == "binary":
+                    section_name = get_filepath()
+
+                self.search_pattern(pattern, section_name)
+        else:
+            info("Searching '{:s}' in memory".format(Color.yellowify(pattern)))
+            self.search_pattern(pattern, "")
         return
 
 
