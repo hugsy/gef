@@ -7222,7 +7222,7 @@ class ContextCommand(GenericCommand):
         trail_len = len(m) + 6
         title = ""
         title += Color.colorify("{:{padd}<{width}} ".format("",
-                                                            width=self.tty_columns - trail_len,
+                                                            width=max(self.tty_columns - trail_len, 0),
                                                             padd=HORIZONTAL_LINE),
                                 line_color)
         title += Color.colorify(m, msg_color)
@@ -7525,7 +7525,10 @@ class ContextCommand(GenericCommand):
             return
 
         nb_line = self.get_setting("nb_lines_code")
-        title = "source:{0:s}+{1:d}".format(symtab.filename, line_num + 1)
+        fn = symtab.filename
+        if len(fn) > 20:
+            fn = "{}[...]{}".format(fn[:15], os.path.splitext(fn)[1])
+        title = "source:{}+{}".format(fn, line_num + 1)
         cur_line_color = get_gef_setting("theme.source_current_line")
         self.context_title(title)
 
