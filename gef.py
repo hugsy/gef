@@ -1193,6 +1193,7 @@ def set_gef_setting(name, value, _type=None, _desc=None):
     # set existing setting
     func = __config__[name][1]
     __config__[name][0] = func(value)
+    reset_all_caches()
     return
 
 
