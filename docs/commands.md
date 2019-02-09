@@ -26,6 +26,7 @@ improve it.
 |heap                      | Base command to get information about the Glibc heap structure.|
 |heap-analysis-helper      | Tracks dynamic heap allocation through malloc/free to try to detect heap vulnerabilities.|
 |hexdump                   | Display arranged hexdump (according to architecture endianness) of memory range.|
+|highlight                 | Highlight text using custom matches.|
 |hijack-fd                 | ChangeFdCommand: redirect file descriptor during runtime.|
 |ida-interact              | IDA Interact: set of commands to interact with IDA via a XML RPC service deployed via the IDA script `ida_gef.py`. It should be noted that this command can also be used to interact with Binary Ninja (using the script `binja_gef.py`) using the same interface. (alias: binaryninja-interact, bn, binja)|
 |is-syscall                | Tells whether the next instruction to be executed is a system call.|

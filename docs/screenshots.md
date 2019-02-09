@@ -69,13 +69,18 @@ No more endless manual pointer dereferencing `x/x` style. Just use `dereference`
 ![x86-unicorn](https://i.imgur.com/emhEsol.png)
 
 
-
 ### Comprehensive address space layout display
 
 ![mips-vmmap](https://i.imgur.com/TbC1kNa.png)
 
 
-
 ### Defining arbitrary custom structures
 
 ![sparc-arb-struct](https://i.imgur.com/dEMUuP7.png)
+
+
+### Highlight custom strings
+
+![highlight-command](https://i.imgur.com/UwSPXrV.png)
+
+

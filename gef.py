@@ -220,6 +220,9 @@ GDB_VERSION                             = (GDB_VERSION_MAJOR, GDB_VERSION_MINOR)
 current_elf  = None
 current_arch = None
 
+highlight_table = {}
+ANSI_SPLIT_RE = "(\033\[[\d;]*m)"
+
 if PYTHON_MAJOR==3:
     lru_cache = functools.lru_cache #pylint: disable=no-member
 else:
@@ -297,8 +300,42 @@ def reset_all_caches():
     return
 
 
+def highlight_text(text):
+    """
+    Highlight text using highlight_table { match -> color } settings.
+
+    If RegEx is enabled it will create a match group around all items in the
+    highlight_table and wrap the specified color in the highlight_table
+    around those matches.
+
+    If RegEx is disabled, split by ANSI codes and 'colorify' each match found
+    within the specified string.
+    """
+    if not highlight_table:
+        return text
+
+    if get_gef_setting("highlight.regex"):
+        for match, color in highlight_table.items():
+            text = re.sub("(" + match + ")", Color.colorify("\\1", color), text)
+        return text
+
+    ansiSplit = re.split(ANSI_SPLIT_RE, text)
+
+    for match, color in highlight_table.items():
+        for index, val in enumerate(ansiSplit):
+            found = val.find(match)
+            if found > -1:
+                ansiSplit[index] = val.replace(match, Color.colorify(match, color))
+                break
+        text = "".join(ansiSplit)
+        ansiSplit = re.split(ANSI_SPLIT_RE, text)
+
+    return "".join(ansiSplit)
+
+
 def gef_print(x="", *args, **kwargs):
     """Wrapper around print(), using string buffering feature."""
+    x = highlight_text(x)
     if __gef_int_stream_buffer__ and not is_debug():
         return __gef_int_stream_buffer__.write(x + kwargs.get("end", "\n"))
     return print(x, *args, **kwargs)
@@ -1090,7 +1127,7 @@ def style_byte(b, color=True):
         "ff": "green",
     }
     sbyte = "{:02x}".format(b)
-    if not color:
+    if not color or get_gef_setting("highlight.regex"):
         return sbyte
 
     if sbyte in style:
@@ -8783,6 +8820,95 @@ class GotCommand(GenericCommand):
             gef_print(line)
 
         return
+
+
+@register_command
+class HighlightCommand(GenericCommand):
+    """
+    This command highlights user defined text matches which modifies GEF output universally.
+    """
+    _cmdline_ = "highlight"
+    _syntax_ = "{} (add|remove|list|clear)".format(_cmdline_)
+    _aliases_ = ["hl"]
+
+    def __init__(self):
+        super(HighlightCommand, self).__init__(prefix=True)
+        self.add_setting("regex", False, "Enable regex highlighting")
+
+    def do_invoke(self, argv):
+        return self.usage()
+
+
+@register_command
+class HighlightListCommand(GenericCommand):
+    """Show the current highlight table with matches to colors."""
+    _cmdline_ = "highlight list"
+    _aliases_ = ["highlight ls", "hll"]
+    _syntax_ = _cmdline_
+
+    def print_highlight_table(self):
+        if not highlight_table:
+            return err("no matches found")
+
+        left_pad = max(map(len, highlight_table.keys()))
+        for match, color in sorted(highlight_table.items()):
+            print("{} | {}".format(Color.colorify(match.ljust(left_pad), color),
+                                   Color.colorify(color, color)))
+        return
+
+    def do_invoke(self, argv):
+        return self.print_highlight_table()
+
+
+@register_command
+class HighlightClearCommand(GenericCommand):
+    """Clear the highlight table, remove all matches."""
+    _cmdline_ = "highlight clear"
+    _aliases_ = ["hlc"]
+    _syntax_ = _cmdline_
+
+    def do_invoke(self, argv):
+        return highlight_table.clear()
+
+
+@register_command
+class HighlightAddCommand(GenericCommand):
+    """Add a match to the highlight table."""
+    _cmdline_ = "highlight add"
+    _syntax_ = "{} MATCH COLOR".format(_cmdline_)
+    _aliases_ = ["highlight set", "hla"]
+    _example_ = "{} 41414141 yellow".format(_cmdline_)
+
+    def do_invoke(self, argv):
+        if len(argv) < 2:
+            return self.usage()
+
+        match, color = argv
+        highlight_table[match] = color
+        return
+
+
+@register_command
+class HighlightRemoveCommand(GenericCommand):
+    """Remove a match in the highlight table."""
+    _cmdline_ = "highlight remove"
+    _syntax_ = "{} MATCH".format(_cmdline_)
+    _aliases_ = [
+        "highlight delete",
+        "highlight del",
+        "highlight unset",
+        "highlight rm",
+        "hlr"
+    ]
+    _example_ = "{} remove 41414141".format(_cmdline_)
+
+    def do_invoke(self, argv):
+        if not argv:
+            return self.usage()
+
+        highlight_table.pop(argv[0], None)
+        return
+
 
 @register_command
 class FormatStringSearchCommand(GenericCommand):
