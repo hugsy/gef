@@ -510,6 +510,26 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("Patching XOR-ing ", res)
         return
 
+    def test_cmd_highlight(self):
+
+        cmds = [
+            "highlight add 41414141 yellow",
+            "highlight add 42424242 blue",
+            "highlight add 43434343 green",
+            "highlight add 44444444 pink",
+            'set $rsp = "AAAABBBBCCCCDDDD"',
+            "hexdump qword $rsp 2"
+        ]
+
+        res = gdb_start_silent_cmd('', after=cmds, strip_ansi=False)
+
+        self.assertNoException(res)
+        self.assertIn("\033[33m41414141\x1b[0m", res)
+        self.assertIn("\033[34m42424242\x1b[0m", res)
+        self.assertIn("\033[32m43434343\x1b[0m", res)
+        self.assertIn("\033[35m44444444\x1b[0m", res)
+
+
 class TestGefFunctions(GefUnitTestGeneric):
     """Tests GEF internal functions."""
 

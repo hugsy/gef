@@ -27,6 +27,7 @@ pages:
 - Command heap-analysis-helper: commands/heap-analysis-helper.md
 - Command help: commands/help.md
 - Command hexdump: commands/hexdump.md
+- Command highlight: commands/highlight.md
 - Command hijack-fd: commands/hijack-fd.md
 - Command ida-interact: commands/ida-interact.md
 - Command ksymaddr: commands/ksymaddr.md
