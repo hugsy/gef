@@ -32,12 +32,6 @@ to the command `search-pattern`.  Therefore the command above is equivalent to
 Sometimes, you may need to search for a very common pattern. To limit the search space, you can also specify an address range or the section to be checked.
 
 ```
-gef➤  search-pattern 0x4005f6 libc
-gef➤  search-pattern 0x4005f6 0x603100-0x603200
-```
-
-If you want to set endianness, but don't want to limit the search space:
-
-```
-gef➤  search-pattern 0x4005f6 memory big
+gef➤  search-pattern 0x4005f6 little libc
+gef➤  search-pattern 0x4005f6 little 0x603100-0x603200
 ```

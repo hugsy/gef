@@ -5106,9 +5106,9 @@ class SearchPatternCommand(GenericCommand):
     the command will also try to look for upwards cross-references to this address."""
 
     _cmdline_ = "search-pattern"
-    _syntax_  = "{:s} PATTERN [section] [small|big]".format(_cmdline_)
+    _syntax_  = "{:s} PATTERN [small|big] [section]".format(_cmdline_)
     _aliases_ = ["grep", "xref"]
-    _example_ = "\n{0:s} AAAAAAAA\n{0:s} 0x555555554000 stack\n{0:s}AAAA 0x600000-0x601000 \n{0:s} BBBB all little".format(_cmdline_)
+    _example_ = "\n{0:s} AAAAAAAA\n{0:s} 0x555555554000 little stack\n{0:s}AAAA 0x600000-0x601000".format(_cmdline_)
 
     def print_section(self, section):
         title = "In "
@@ -5181,9 +5181,9 @@ class SearchPatternCommand(GenericCommand):
         pattern = argv[0]
         endian = get_endian()
 
-        if argc==3:
-            if argv[2] == "big": endian = Elf.BIG_ENDIAN
-            elif argv[2] == "small": endian = Elf.LITTLE_ENDIAN
+        if argc >= 2:
+            if argv[1] == "big": endian = Elf.BIG_ENDIAN
+            elif argv[1] == "small": endian = Elf.LITTLE_ENDIAN
 
         if is_hex(pattern):
             if endian == Elf.BIG_ENDIAN:
@@ -5191,20 +5191,18 @@ class SearchPatternCommand(GenericCommand):
             else:
                 pattern = "".join(["\\x"+pattern[i:i+2] for i in range(len(pattern) - 2, 0, -2)])
 
-        if argc >= 2:
-            info("Searching '{:s}' in {:s}".format(Color.yellowify(pattern), argv[1]))
+        if argc == 3:
+            info("Searching '{:s}' in {:s}".format(Color.yellowify(pattern), argv[2]))
 
-            if "0x" in argv[1]:
-                start, end = parse_string_range(argv[1])
+            if "0x" in argv[2]:
+                start, end = parse_string_range(argv[2])
 
                 self.print_section(lookup_address(start).section)
 
                 for loc in self.search_pattern_by_address(pattern, start, end):
                     self.print_loc(loc)
             else:
-                section_name = argv[1]
-                if section_name == "memory":
-                    section_name = ""
+                section_name = argv[2]
                 if section_name == "binary":
                     section_name = get_filepath()
 
