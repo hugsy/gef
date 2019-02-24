@@ -220,6 +220,9 @@ GDB_VERSION                             = (GDB_VERSION_MAJOR, GDB_VERSION_MINOR)
 current_elf  = None
 current_arch = None
 
+highlight_table = {}
+ANSI_SPLIT_RE = "(\033\[[\d;]*m)"
+
 if PYTHON_MAJOR==3:
     lru_cache = functools.lru_cache #pylint: disable=no-member
 else:
@@ -297,8 +300,42 @@ def reset_all_caches():
     return
 
 
+def highlight_text(text):
+    """
+    Highlight text using highlight_table { match -> color } settings.
+
+    If RegEx is enabled it will create a match group around all items in the
+    highlight_table and wrap the specified color in the highlight_table
+    around those matches.
+
+    If RegEx is disabled, split by ANSI codes and 'colorify' each match found
+    within the specified string.
+    """
+    if not highlight_table:
+        return text
+
+    if get_gef_setting("highlight.regex"):
+        for match, color in highlight_table.items():
+            text = re.sub("(" + match + ")", Color.colorify("\\1", color), text)
+        return text
+
+    ansiSplit = re.split(ANSI_SPLIT_RE, text)
+
+    for match, color in highlight_table.items():
+        for index, val in enumerate(ansiSplit):
+            found = val.find(match)
+            if found > -1:
+                ansiSplit[index] = val.replace(match, Color.colorify(match, color))
+                break
+        text = "".join(ansiSplit)
+        ansiSplit = re.split(ANSI_SPLIT_RE, text)
+
+    return "".join(ansiSplit)
+
+
 def gef_print(x="", *args, **kwargs):
     """Wrapper around print(), using string buffering feature."""
+    x = highlight_text(x)
     if __gef_int_stream_buffer__ and not is_debug():
         return __gef_int_stream_buffer__.write(x + kwargs.get("end", "\n"))
     return print(x, *args, **kwargs)
@@ -621,18 +658,127 @@ class Instruction:
     def is_valid(self):
         return "(bad)" not in self.mnemonic
 
+@lru_cache()
+def search_for_main_arena():
+    global __gef_default_main_arena__
+    malloc_hook_addr = to_unsigned_long(gdb.parse_and_eval("(void *)&__malloc_hook"))
+
+    if is_x86():
+        addr = align_address_to_size(malloc_hook_addr + current_arch.ptrsize, 0x20)
+    elif is_arch(Elf.AARCH64) or is_arch(Elf.ARM):
+        addr = malloc_hook_addr - current_arch.ptrsize*2 - MallocStateStruct("*0").struct_size
+    else:
+        raise OSError("Cannot find main_arena for {}".format(current_arch.arch))
+
+    __gef_default_main_arena__ = "*0x{:x}".format(addr)
+    return addr
+
+class MallocStateStruct(object):
+    """GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
+    def __init__(self, addr):
+        try:
+            self.__addr = to_unsigned_long(gdb.parse_and_eval("&{}".format(addr)))
+        except gdb.error:
+            self.__addr = search_for_main_arena()
+
+        self.num_fastbins = 10
+        self.num_bins = 254
+
+        self.int_size = cached_lookup_type("int").sizeof
+        self.size_t = cached_lookup_type("size_t")
+        if not self.size_t:
+            ptr_type = "unsigned long" if current_arch.ptrsize == 8 else "unsigned int"
+            self.size_t = cached_lookup_type(ptr_type)
+
+        if get_libc_version() >= (2, 26):
+            self.fastbin_offset = align_address_to_size(self.int_size*3, 8)
+        else:
+            self.fastbin_offset = self.int_size*2
+        return
+
+    # struct offsets
+    @property
+    def addr(self):
+        return self.__addr
+    @property
+    def fastbins_addr(self):
+        return self.__addr + self.fastbin_offset
+    @property
+    def top_addr(self):
+        return self.fastbins_addr + self.num_fastbins*current_arch.ptrsize
+    @property
+    def last_remainder_addr(self):
+        return self.top_addr + current_arch.ptrsize
+    @property
+    def bins_addr(self):
+        return self.last_remainder_addr + current_arch.ptrsize
+    @property
+    def next_addr(self):
+        return self.bins_addr + self.num_bins*current_arch.ptrsize + self.int_size*4
+    @property
+    def next_free_addr(self):
+        return self.next_addr + current_arch.ptrsize
+    @property
+    def system_mem_addr(self):
+        return self.next_free_addr + current_arch.ptrsize*2
+    @property
+    def struct_size(self):
+        return self.system_mem_addr + current_arch.ptrsize*2 - self.__addr
+
+    # struct members
+    @property
+    def fastbinsY(self):
+        return self.get_size_t_array(self.fastbins_addr, self.num_fastbins)
+    @property
+    def top(self):
+        return self.get_size_t_pointer(self.top_addr)
+    @property
+    def last_remainder(self):
+        return self.get_size_t_pointer(self.last_remainder_addr)
+    @property
+    def bins(self):
+        return self.get_size_t_array(self.bins_addr, self.num_bins)
+    @property
+    def next(self):
+        return self.get_size_t_pointer(self.next_addr)
+    @property
+    def next_free(self):
+        return self.get_size_t_pointer(self.next_free_addr)
+    @property
+    def system_mem(self):
+        return self.get_size_t(self.system_mem_addr)
+
+    # helper methods
+    def get_size_t(self, addr):
+        return dereference(addr).cast(self.size_t)
+
+    def get_size_t_pointer(self, addr):
+        size_t_pointer = self.size_t.pointer()
+        return dereference(addr).cast(size_t_pointer)
+
+    def get_size_t_array(self, addr, length):
+        size_t_array = self.size_t.array(length)
+        return dereference(addr).cast(size_t_array)
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
 
 class GlibcArena:
     """Glibc arena class
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671 """
     TCACHE_MAX_BINS = 0x40
 
-    def __init__(self, addr, name=__gef_default_main_arena__):
-        arena = gdb.parse_and_eval(addr)
-        malloc_state_t = cached_lookup_type("struct malloc_state")
-        self.__name = name
-        self.__arena = arena.cast(malloc_state_t)
-        self.__addr = long(arena.address)
+    def __init__(self, addr, name=None):
+        self.__name = name or __gef_default_main_arena__
+        try:
+            arena = gdb.parse_and_eval(addr)
+            malloc_state_t = cached_lookup_type("struct malloc_state")
+            self.__arena = arena.cast(malloc_state_t)
+            self.__addr = long(arena.address)
+        except:
+            self.__arena = MallocStateStruct(addr)
+            self.__addr = self.__arena.addr
         return
 
     def __getitem__(self, item):
@@ -700,7 +846,7 @@ class GlibcChunk:
         return
 
     def get_chunk_size(self):
-        return read_int_from_memory(self.size_addr) & (~0x03)
+        return read_int_from_memory(self.size_addr) & (~0x07)
 
     @property
     def size(self):
@@ -981,7 +1127,7 @@ def style_byte(b, color=True):
         "ff": "green",
     }
     sbyte = "{:02x}".format(b)
-    if not color:
+    if not color or get_gef_setting("highlight.regex"):
         return sbyte
 
     if sbyte in style:
@@ -1051,8 +1197,8 @@ def enable_redirect_output(to_file="/dev/null"):
 
 def disable_redirect_output():
     """Disable the output redirection, if any."""
-    gdb.execute("set logging redirect off")
     gdb.execute("set logging off")
+    gdb.execute("set logging redirect off")
     return
 
 
@@ -1084,6 +1230,7 @@ def set_gef_setting(name, value, _type=None, _desc=None):
     # set existing setting
     func = __config__[name][1]
     __config__[name][0] = func(value)
+    reset_all_caches()
     return
 
 
@@ -3027,6 +3174,9 @@ def align_address(address):
 
     return address & 0xFFFFFFFFFFFFFFFF
 
+def align_address_to_size(address, align):
+    """Align the address to the given size."""
+    return address + ((align - (address % align)) % align)
 
 def align_address_to_page(address):
     """Align the address to a page."""
@@ -3131,6 +3281,12 @@ def gef_convenience(value):
     __gef_convenience_vars_index__ += 1
     gdb.execute("""set {:s} = "{:s}" """.format(var_name, value))
     return var_name
+
+
+def parse_string_range(s):
+    """Parses an address range (e.g. 0x400000-0x401000)"""
+    addrs = s.split("-")
+    return map(lambda x: int(x, 16), addrs)
 
 
 @lru_cache()
@@ -3339,11 +3495,12 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
     def __init__(self, name):
         super(TraceMallocBreakpoint, self).__init__(name, gdb.BP_BREAKPOINT, internal=True)
         self.silent = True
+        self.name = name
         return
 
     def stop(self):
         _, size = current_arch.get_ith_parameter(0)
-        self.retbp = TraceMallocRetBreakpoint(size)
+        self.retbp = TraceMallocRetBreakpoint(size, self.name)
         return False
 
 
@@ -3351,9 +3508,10 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
 class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
     """Internal temporary breakpoint to retrieve the return value of malloc()."""
 
-    def __init__(self, size):
+    def __init__(self, size, name):
         super(TraceMallocRetBreakpoint, self).__init__(gdb.newest_frame(), internal=True)
         self.size = size
+        self.name = name
         self.silent = True
         return
 
@@ -3367,7 +3525,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
             loc = to_unsigned_long(gdb.parse_and_eval(current_arch.return_register))
 
         size = self.size
-        ok("{} - malloc({})={:#x}".format(Color.colorify("Heap-Analysis", "yellow bold"), size, loc))
+        ok("{} - {}({})={:#x}".format(Color.colorify("Heap-Analysis", "yellow bold"), self.name, size, loc))
         check_heap_overlap = get_gef_setting("heap-analysis-helper.check_heap_overlap")
 
         # pop from free-ed list if it was in it
@@ -3598,6 +3756,21 @@ class EntryBreakBreakpoint(gdb.Breakpoint):
         return True
 
 
+class NamedBreakpoint(gdb.Breakpoint):
+    """Breakpoint which shows a specified name, when hit."""
+
+    def __init__(self, location, name):
+        super(NamedBreakpoint, self).__init__(spec=location, type=gdb.BP_BREAKPOINT, internal=False, temporary=False)
+        self.name = name
+        self.loc = location
+
+        return
+
+    def stop(self):
+        push_context_message("info", "Hit breakpoint {} ({})".format(self.loc, Color.colorify(self.name, "red bold")))
+        return True
+
+
 #
 # Commands
 #
@@ -3655,7 +3828,7 @@ class GenericCommand(gdb.Command):
     def invoke(self, args, from_tty):
         try:
             argv = gdb.string_to_argv(args)
-            self.__set_repeat_count(from_tty)
+            self.__set_repeat_count(argv, from_tty)
             bufferize(self.do_invoke)(argv)
         except Exception as e:
             # Note: since we are intercepting cleaning exceptions here, commands preferably should avoid
@@ -3720,7 +3893,7 @@ class GenericCommand(gdb.Command):
         del __config__[key]
         return
 
-    def __set_repeat_count(self, from_tty):
+    def __set_repeat_count(self, argv, from_tty):
         if not from_tty:
             self.repeat = False
             self.repeat_count = 0
@@ -3729,8 +3902,8 @@ class GenericCommand(gdb.Command):
         command = gdb.execute("show commands", to_string=True).strip().split("\n")[-1]
         self.repeat = self.__last_command == command
         self.repeat_count = self.repeat_count + 1 if self.repeat else 0
-
         self.__last_command = command
+        return
 
 
 # Copy/paste this template for new command
@@ -4776,7 +4949,7 @@ class IdaInteractCommand(GenericCommand):
                 if method_name in ("ImportStruct", "ImportStructs"):
                     self.import_structures(res)
                 else:
-                    gef_print(res)
+                    gef_print(str(res))
 
             if self.get_setting("sync_cursor") is True:
                 jump = getattr(self.sock, "Jump")
@@ -4929,6 +5102,14 @@ class ScanSectionCommand(GenericCommand):
         needle_sections = []
         haystack_sections = []
 
+        if "0x" in haystack:
+            start, end = parse_string_range(haystack)
+            haystack_sections.append((start, end, ""))
+
+        if "0x" in needle:
+            start, end = parse_string_range(needle)
+            needle_sections.append((start, end))
+
         for sect in get_process_maps():
             if haystack in sect.path:
                 haystack_sections.append((sect.page_start, sect.page_end, os.path.basename(sect.path)))
@@ -4949,8 +5130,11 @@ class ScanSectionCommand(GenericCommand):
                 for nstart, nend in needle_sections:
                     if target >= nstart and target < nend:
                         deref = DereferenceCommand.pprint_dereferenced(hstart, long(i / step))
-                        name = Color.colorify(hname, "yellow")
-                        gef_print("{:s}: {:s}".format(name, deref))
+                        if hname != "":
+                            name = Color.colorify(hname, "yellow")
+                            gef_print("{:s}: {:s}".format(name, deref))
+                        else:
+                            gef_print(" {:s}".format(deref))
 
         return
 
@@ -5307,7 +5491,7 @@ def set_fs(uc, addr):    return set_msr(uc, FSMSR, addr)
 
         content = """#!/usr/bin/python -i
 #
-# Emulation script for "%s" from %#x to %#x
+# Emulation script for "{fname}" from {start:#x} to {end:#x}
 #
 # Powered by gef, unicorn-engine, and capstone-engine
 #
@@ -5317,66 +5501,65 @@ from __future__ import print_function
 import collections
 import capstone, unicorn
 
-registers = collections.OrderedDict(sorted({%s}.items(), key=lambda t: t[0]))
+registers = collections.OrderedDict(sorted({{{regs}}}.items(), key=lambda t: t[0]))
 uc = None
-verbose = %s
-syscall_register = "%s"
+verbose = {verbose}
+syscall_register = "{syscall_reg}"
 
 def disassemble(code, addr):
-    cs = capstone.Cs(%s, %s)
-    for i in cs.disasm(code,addr):
+    cs = capstone.Cs({cs_arch}, {cs_mode})
+    for i in cs.disasm(code, addr):
         return i
 
 def hook_code(emu, address, size, user_data):
     code = emu.mem_read(address, size)
     insn = disassemble(code, address)
-    print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
+    print(">>> {{:#x}}: {{:s}} {{:s}}".format(insn.address, insn.mnemonic, insn.op_str))
     return
 
 def code_hook(emu, address, size, user_data):
     code = emu.mem_read(address, size)
     insn = disassemble(code, address)
-    print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
+    print(">>> {{:#x}}: {{:s}} {{:s}}".format(insn.address, insn.mnemonic, insn.op_str))
     return
 
 def intr_hook(emu, intno, data):
-    print(" \\-> interrupt={:d}".format(intno))
+    print(" \\-> interrupt={{:d}}".format(intno))
     return
 
 def syscall_hook(emu, user_data):
     sysno = emu.reg_read(registers[syscall_register])
-    print(" \\-> syscall={:d}".format(sysno))
+    print(" \\-> syscall={{:d}}".format(sysno))
     return
 
 def print_regs(emu, regs):
     for i, r in enumerate(regs):
-        print("{:7s} = 0x{:0%dx}  ".format(r, emu.reg_read(regs[r])), end="")
-        if (i %% 4 == 3) or (i == len(regs)-1): print("")
+        print("{{:7s}} = {{:#0{ptrsize}x}}  ".format(r, emu.reg_read(regs[r])), end="")
+        if (i % 4 == 3) or (i == len(regs)-1): print("")
     return
 
-%s
+{emu_block}
 
 def reset():
-    emu = unicorn.Uc(%s, %s)
+    emu = unicorn.Uc({arch}, {mode})
 
-%s
-""" % (fname, start_insn_addr, end_insn_addr,
-       ",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]),
-       "True" if verbose else "False",
-       current_arch.syscall_register,
-       cs_arch, cs_mode,
-       current_arch.ptrsize,
-       emulate_segmentation_block if is_x86() else "",
-       arch, mode,
-       context_segmentation_block if is_x86() else "",
-      )
+{context_block}
+""".format(fname=fname, start=start_insn_addr, end=end_insn_addr,
+           regs=",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]),
+           verbose="True" if verbose else "False",
+           syscall_reg=current_arch.syscall_register,
+           cs_arch=cs_arch, cs_mode=cs_mode,
+           ptrsize=current_arch.ptrsize,
+           emu_block=emulate_segmentation_block if is_x86() else "",
+           arch=arch, mode=mode,
+           context_block=context_segmentation_block if is_x86() else "")
 
         if verbose:
             info("Duplicating registers")
 
         for r in current_arch.all_registers:
             gregval = get_register(r)
-            content += "    emu.reg_write(%s, %#x)\n" % (unicorn_registers[r], gregval)
+            content += "    emu.reg_write({}, {:#x})\n".format(unicorn_registers[r], gregval)
 
 
         vmmap = get_process_maps()
@@ -5397,16 +5580,16 @@ def reset():
             size       = sect.size
             perm       = sect.permission
 
-            content += "    # Mapping %s: %#x-%#x\n" % (sect.path, page_start, page_end)
-            content += "    emu.mem_map(%#x, %#x, %s)\n" % (page_start, size, oct(perm.value))
+            content += "    # Mapping {}: {:#x}-{:#x}\n".format(sect.path, page_start, page_end)
+            content += "    emu.mem_map({:#x}, {:#x}, {})\n".format(page_start, size, oct(perm.value))
 
             if perm & Permission.READ:
                 code = read_memory(page_start, size)
-                loc = "/tmp/gef-%s-%#x.raw" % (fname, page_start)
+                loc = "/tmp/gef-{}-{:#x}.raw".format(fname, page_start)
                 with open(loc, "wb") as f:
                     f.write(bytes(code))
 
-                content += "    emu.mem_write(%#x, open('%s', 'rb').read())\n" % (page_start, loc)
+                content += "    emu.mem_write({:#x}, open('{}', 'rb').read())\n".format(page_start, loc)
                 content += "\n"
 
 
@@ -5427,7 +5610,7 @@ def emulate(emu, start_addr, end_addr):
     except Exception as e:
         emu.emu_stop()
         print("========================= Emulation failed =========================")
-        print("[!] Error: {}".format(e))
+        print("[!] Error: {{}}".format(e))
 
     print("========================= Final registers =========================")
     print_regs(emu, registers)
@@ -5435,22 +5618,22 @@ def emulate(emu, start_addr, end_addr):
 
 
 uc = reset()
-emulate(uc, %#x, %#x)
+emulate(uc, {start:#x}, {end:#x})
 
 # unicorn-engine script generated by gef
-""" % (start_insn_addr, end_insn_addr)
+""".format(start=start_insn_addr, end=end_insn_addr)
 
         os.write(tmp_fd, gef_pybytes(content))
         os.close(tmp_fd)
 
         if kwargs.get("to_file", None):
-            info("Unicorn script generated as '%s'" % tmp_filename)
+            info("Unicorn script generated as '{}'".format(tmp_filename))
             os.chmod(tmp_filename, 0o700)
 
         if to_script_only:
             return
 
-        ok("Starting emulation: %#x %s %#x" % (start_insn_addr, RIGHT_ARROW, end_insn_addr))
+        ok("Starting emulation: {:#x} {} {:#x}".format(start_insn_addr, RIGHT_ARROW, end_insn_addr))
 
         pythonbin = "python{}".format(PYTHON_MAJOR)
         res = gef_execute_external([pythonbin, tmp_filename], as_list=True)
@@ -5912,7 +6095,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
             return
 
         if argv[0].startswith("0x"):
-            new_arena = Address(to_unsigned_long(new_arena))
+            new_arena = Address(value=to_unsigned_long(new_arena))
             if new_arena is None or not new_arena.valid:
                 err("Invalid location")
                 return
@@ -6028,7 +6211,7 @@ class GlibcHeapChunksCommand(GenericCommand):
             if next_chunk is None:
                 break
 
-            next_chunk_addr = Address(next_chunk.address)
+            next_chunk_addr = Address(value=next_chunk.address)
             if not next_chunk_addr.valid:
                 # corrupted
                 break
@@ -6075,13 +6258,13 @@ class GlibcHeapBinsCommand(GenericCommand):
             return -1
 
         nb_chunk = 0
-        if bk == fw and ((int(arena)&~0xFFFF) == (bk&~0xFFFF)):
+        head = GlibcChunk(bk, from_base=True).fwd
+        if fw == head:
             return nb_chunk
 
         ok("{}bins[{:d}]: fw={:#x}, bk={:#x}".format(_type, index, fw, bk))
 
         m = []
-        head = GlibcChunk(bk, from_base=True).fwd
         while fw != head:
             chunk = GlibcChunk(fw, from_base=True)
             m.append("{:s}  {:s}".format(RIGHT_ARROW, str(chunk)))
@@ -6234,7 +6417,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
+        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_default_main_arena__
         gef_print(titlify("Unsorted Bin for arena '{:s}'".format(arena_addr)))
         nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, 0, "unsorted_")
         if nb_chunk >= 0:
@@ -6258,7 +6441,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
+        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_default_main_arena__
         gef_print(titlify("Small Bins for arena '{:s}'".format(arena_addr)))
         bins = {}
         for i in range(1, 63):
@@ -6287,7 +6470,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else "main_arena"
+        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_default_main_arena__
         gef_print(titlify("Large Bins for arena '{:s}'".format(arena_addr)))
         bins = {}
         for i in range(63, 126):
@@ -6928,6 +7111,32 @@ class EntryPointBreakCommand(GenericCommand):
 
 
 @register_command
+class NamedBreakpointCommand(GenericCommand):
+    """Sets a breakpoint and assigns a name to it, which will be shown, when it's hit."""
+
+    _cmdline_ = "name-break"
+    _syntax_  = "{:s} NAME [LOCATION]".format(_cmdline_)
+    _aliases_ = ["nb",]
+    _example  = "{:s} main *0x4008a9"
+
+    def __init__(self, *args, **kwargs):
+        super(NamedBreakpointCommand, self).__init__()
+        return
+
+    def do_invoke(self, argv):
+        if not argv:
+            err("Missing name for breakpoint")
+            self.usage()
+            return
+
+        name = argv[0]
+        location = argv[1] if len(argv) > 1 else "*{}".format(hex(current_arch.pc))
+
+        NamedBreakpoint(location, name)
+        return
+
+
+@register_command
 class ContextCommand(GenericCommand):
     """Displays a comprehensive and modular summary of runtime context. Unless setting `enable` is
     set to False, this command will be spawned automatically every time GDB hits a breakpoint, a
@@ -6935,7 +7144,7 @@ class ContextCommand(GenericCommand):
     states, the stack, and the disassembly code around $pc."""
 
     _cmdline_ = "context"
-    _syntax_  = _cmdline_
+    _syntax_  = "{:s} [legend|regs|stack|code|args|memory|source|trace|threads|extra]".format(_cmdline_)
     _aliases_ = ["ctx",]
 
     old_registers = {}
@@ -7001,7 +7210,15 @@ class ContextCommand(GenericCommand):
         if not self.get_setting("enable") or context_hidden:
             return
 
-        current_layout = self.get_setting("layout").strip().split()
+        if not all(_ in self.layout_mapping for _ in argv):
+            self.usage()
+            return
+
+        if len(argv) > 0:
+            current_layout = argv
+        else:
+            current_layout = self.get_setting("layout").strip().split()
+
         if not current_layout:
             return
 
@@ -7011,7 +7228,7 @@ class ContextCommand(GenericCommand):
         if redirect and os.access(redirect, os.W_OK):
             enable_redirect_output(to_file=redirect)
 
-        if self.get_setting("clear_screen"):
+        if self.get_setting("clear_screen") and len(argv) == 0:
             clear_screen(redirect)
 
         for section in current_layout:
@@ -7042,7 +7259,7 @@ class ContextCommand(GenericCommand):
         trail_len = len(m) + 6
         title = ""
         title += Color.colorify("{:{padd}<{width}} ".format("",
-                                                            width=self.tty_columns - trail_len,
+                                                            width=max(self.tty_columns - trail_len, 0),
                                                             padd=HORIZONTAL_LINE),
                                 line_color)
         title += Color.colorify(m, msg_color)
@@ -7345,7 +7562,10 @@ class ContextCommand(GenericCommand):
             return
 
         nb_line = self.get_setting("nb_lines_code")
-        title = "source:{0:s}+{1:d}".format(symtab.filename, line_num + 1)
+        fn = symtab.filename
+        if len(fn) > 20:
+            fn = "{}[...]{}".format(fn[:15], os.path.splitext(fn)[1])
+        title = "source:{}+{}".format(fn, line_num + 1)
         cur_line_color = get_gef_setting("theme.source_current_line")
         self.context_title(title)
 
@@ -7358,9 +7578,11 @@ class ContextCommand(GenericCommand):
 
             if i == line_num:
                 extra_info = self.get_pc_context_info(pc, lines[i])
+                prefix = "{}{:4d}\t ".format(RIGHT_ARROW, i + 1)
+                leading = len(lines[i]) - len(lines[i].lstrip())
                 if extra_info:
-                    gef_print(extra_info)
-                gef_print(Color.colorify("{}{:4d}\t {:s}".format(RIGHT_ARROW, i + 1, lines[i]), cur_line_color))
+                    gef_print("{}{}".format(" "*(len(prefix) + leading), extra_info))
+                gef_print(Color.colorify("{}{:s}".format(prefix, lines[i]), cur_line_color))
 
             if i > line_num:
                 try:
@@ -7397,7 +7619,7 @@ class ContextCommand(GenericCommand):
                 current_block = current_block.superblock
 
             if m:
-                return "\t\t// " + ", ".join(["{}={}".format(Color.yellowify(a), b) for a, b in m.items()])
+                return "// " + ", ".join(["{}={}".format(Color.yellowify(a), b) for a, b in m.items()])
         except Exception:
             pass
         return ""
@@ -7652,6 +7874,7 @@ class HexdumpCommand(GenericCommand):
 
     def __init__(self):
         super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.add_setting("always_show_ascii", False, "If true, hexdump will always display the ASCII dump")
         return
 
     @only_if_gdb_running
@@ -7716,6 +7939,7 @@ class HexdumpCommand(GenericCommand):
         endianness = endian_str()
 
         base_address_color = get_gef_setting("theme.dereference_base_address")
+        show_ascii = self.get_setting("always_show_ascii")
 
         formats = {
             "qword": ("Q", 8),
@@ -7724,19 +7948,22 @@ class HexdumpCommand(GenericCommand):
         }
 
         r, l = formats[arrange_as]
-        fmt_str = "{{base}}{v}+{{offset:#06x}} {{sym}}{{val:#0{prec}x}}".format(v=VERTICAL_LINE, prec=l*2+2)
+        fmt_str = "{{base}}{v}+{{offset:#06x}}   {{sym}}{{val:#0{prec}x}}   {{text}}".format(v=VERTICAL_LINE, prec=l*2+2)
         fmt_pack = endianness + r
         lines = []
 
         i = 0
+        text = ""
         while i < length:
             cur_addr = start_addr + (i + offset) * l
             sym = gdb_get_location_from_symbol(cur_addr)
             sym = "<{:s}+{:04x}> ".format(*sym) if sym else ""
             mem = read_memory(cur_addr, l)
             val = struct.unpack(fmt_pack, mem)[0]
+            if show_ascii:
+                text = "".join([chr(b) if 0x20 <= b < 0x7F else "." for b in mem])
             lines.append(fmt_str.format(base=Color.colorify(format_address(cur_addr), base_address_color),
-                                        offset=(i + offset) * l, sym=sym, val=val))
+                                        offset=(i + offset) * l, sym=sym, val=val, text=text))
             i += 1
 
         return lines
@@ -8503,6 +8730,187 @@ class ChecksecCommand(GenericCommand):
 
 
 @register_command
+class GotCommand(GenericCommand):
+    """Display current status of the got inside the process."""
+
+    _cmdline_ = "got"
+    _syntax_ = "{:s} [FUNCTION_NAME ...] ".format(_cmdline_)
+    _example_ = "got read printf exit"
+
+    def __init__(self, *args, **kwargs):
+        super(GotCommand, self).__init__()
+        self.add_setting("function_resolved", "green", "Line color of the got command output if the function has "
+                                                       "been resolved")
+        self.add_setting("function_not_resolved", "yellow", "Line color of the got command output if the function has "
+                                                       "not been resolved")
+        return
+
+    def get_jmp_slots(self, readelf, filename):
+        output = []
+        cmd = [readelf, "--relocs", filename]
+        lines = gef_execute_external(cmd, as_list=True)
+        for line in lines:
+            if "JUMP" in line:
+                output.append(line)
+        return output
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+
+        try:
+            readelf = which("readelf")
+        except IOError:
+            err("Missing `readelf`")
+            return
+
+        # get the filtering parameter.
+        func_names_filter = []
+        if argv:
+            func_names_filter = argv
+
+        # getting vmmap to understand the boundaries of the main binary
+        # we will use this info to understand if a function has been resolved or not.
+        vmmap = get_process_maps()
+        base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
+        end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
+
+        # get the checksec output.
+        checksec_status = checksec(get_filepath())
+        relro_status = "Full RelRO"
+        full_relro = checksec_status["Full RelRO"]
+        pie = checksec_status["PIE"]  # if pie we will have offset instead of abs address.
+
+        if not full_relro:
+            relro_status = "Partial RelRO"
+            partial_relro = checksec_status["Partial RelRO"]
+
+            if not partial_relro:
+                relro_status = "No RelRO"
+
+        # retrieve jump slots using readelf
+        jmpslots = self.get_jmp_slots(readelf, get_filepath())
+
+        gef_print("\nGOT protection: {} | GOT functions: {}\n ".format(relro_status, len(jmpslots)))
+
+        for line in jmpslots:
+            address, _, _, _, name = line.split()[:5]
+
+            # if we have a filter let's skip the entries that are not requested.
+            if func_names_filter:
+                if not any(map(lambda x: x in name, func_names_filter)):
+                    continue
+
+            address_val = int(address, 16)
+
+            # address_val is an offset from the base_address if we have PIE.
+            if pie:
+                address_val = base_address + address_val
+
+            # read the address of the function.
+            got_address = read_int_from_memory(address_val)
+
+            # for the swag: different colors if the function has been resolved or not.
+            if base_address < got_address < end_address:
+                color = self.get_setting("function_not_resolved")  # function hasn't already been resolved
+            else:
+                color = self.get_setting("function_resolved")      # function has already been resolved
+
+            line = "[{}] ".format(hex(address_val))
+            line += Color.colorify("{} {} {}".format(name, RIGHT_ARROW, hex(got_address)), color)
+            gef_print(line)
+
+        return
+
+
+@register_command
+class HighlightCommand(GenericCommand):
+    """
+    This command highlights user defined text matches which modifies GEF output universally.
+    """
+    _cmdline_ = "highlight"
+    _syntax_ = "{} (add|remove|list|clear)".format(_cmdline_)
+    _aliases_ = ["hl"]
+
+    def __init__(self):
+        super(HighlightCommand, self).__init__(prefix=True)
+        self.add_setting("regex", False, "Enable regex highlighting")
+
+    def do_invoke(self, argv):
+        return self.usage()
+
+
+@register_command
+class HighlightListCommand(GenericCommand):
+    """Show the current highlight table with matches to colors."""
+    _cmdline_ = "highlight list"
+    _aliases_ = ["highlight ls", "hll"]
+    _syntax_ = _cmdline_
+
+    def print_highlight_table(self):
+        if not highlight_table:
+            return err("no matches found")
+
+        left_pad = max(map(len, highlight_table.keys()))
+        for match, color in sorted(highlight_table.items()):
+            print("{} | {}".format(Color.colorify(match.ljust(left_pad), color),
+                                   Color.colorify(color, color)))
+        return
+
+    def do_invoke(self, argv):
+        return self.print_highlight_table()
+
+
+@register_command
+class HighlightClearCommand(GenericCommand):
+    """Clear the highlight table, remove all matches."""
+    _cmdline_ = "highlight clear"
+    _aliases_ = ["hlc"]
+    _syntax_ = _cmdline_
+
+    def do_invoke(self, argv):
+        return highlight_table.clear()
+
+
+@register_command
+class HighlightAddCommand(GenericCommand):
+    """Add a match to the highlight table."""
+    _cmdline_ = "highlight add"
+    _syntax_ = "{} MATCH COLOR".format(_cmdline_)
+    _aliases_ = ["highlight set", "hla"]
+    _example_ = "{} 41414141 yellow".format(_cmdline_)
+
+    def do_invoke(self, argv):
+        if len(argv) < 2:
+            return self.usage()
+
+        match, color = argv
+        highlight_table[match] = color
+        return
+
+
+@register_command
+class HighlightRemoveCommand(GenericCommand):
+    """Remove a match in the highlight table."""
+    _cmdline_ = "highlight remove"
+    _syntax_ = "{} MATCH".format(_cmdline_)
+    _aliases_ = [
+        "highlight delete",
+        "highlight del",
+        "highlight unset",
+        "highlight rm",
+        "hlr"
+    ]
+    _example_ = "{} remove 41414141".format(_cmdline_)
+
+    def do_invoke(self, argv):
+        if not argv:
+            return self.usage()
+
+        highlight_table.pop(argv[0], None)
+        return
+
+
+@register_command
 class FormatStringSearchCommand(GenericCommand):
     """Exploitable format-string helper: this command will set up specific breakpoints
     at well-known dangerous functions (printf, snprintf, etc.), and check if the pointer
@@ -8670,7 +9078,7 @@ class SyscallArgsCommand(GenericCommand):
 
         reg_value = get_register(current_arch.syscall_register)
         if reg_value not in syscall_table:
-            warn("There is no system call for %#x" % reg_value)
+            warn("There is no system call for {:#x}".format(reg_value))
             return
         syscall_entry = syscall_table[reg_value]
 
@@ -8779,13 +9187,20 @@ class HeapBaseFunction(GenericFunction):
     _function_ = "_heap"
 
     def do_invoke(self, args):
-        return self.arg_to_long(args, 0) + HeapBaseFunction.heap_base()
+        base = HeapBaseFunction.heap_base()
+        if not base:
+            raise gdb.GdbError("Heap not found")
+
+        return self.arg_to_long(args, 0) + base
 
     @staticmethod
     def heap_base():
-      try:
-        return long(gdb.parse_and_eval("mp_->sbrk_base"))
-      except gdb.error:
+        try:
+            base = long(gdb.parse_and_eval("mp_->sbrk_base"))
+            if base != 0:
+                return base
+        except gdb.error:
+            pass
         return get_section_base_address("[heap]")
 
 @register_function
@@ -8829,6 +9244,7 @@ class GefFunctionsCommand(GenericCommand):
         for function in __gef__.loaded_functions:
             self.add_function_to_doc(function)
         self.__doc__ = "\n".join(sorted(self.docs))
+        return
 
     def add_function_to_doc(self, function):
         """Add function to documentation."""
@@ -9470,7 +9886,7 @@ if __name__  == "__main__":
 
     if GDB_VERSION < GDB_MIN_VERSION:
         err("You're using an old version of GDB. GEF will not work correctly. "
-            "Consider updating to GDB {} or higher.".format(".".join(GDB_MIN_VERSION)))
+            "Consider updating to GDB {} or higher.".format(".".join(map(str, GDB_MIN_VERSION))))
 
     else:
         try:

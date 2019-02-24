@@ -27,10 +27,12 @@ pages:
 - Command heap-analysis-helper: commands/heap-analysis-helper.md
 - Command help: commands/help.md
 - Command hexdump: commands/hexdump.md
+- Command highlight: commands/highlight.md
 - Command hijack-fd: commands/hijack-fd.md
 - Command ida-interact: commands/ida-interact.md
 - Command ksymaddr: commands/ksymaddr.md
 - Command memory: commands/memory.md
+- Command name-break: commands/name-break.md
 - Command nop: commands/nop.md
 - Command patch: commands/patch.md
 - Command pattern: commands/pattern.md
@@ -55,3 +57,4 @@ pages:
 - Command xfiles: commands/xfiles.md
 - Command xinfo: commands/xinfo.md
 - Command xor-memory: commands/xor-memory.md
+- Command got: commands/got.md

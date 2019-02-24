@@ -13,3 +13,13 @@ gef➤ cs main
 ```
 
 ![cs-disassemble](https://i.imgur.com/wypt7Fo.png)
+
+Disassemble more instructions
+```
+gef➤ cs length=20
+```
+
+Show instructions before $pc
+```
+gef➤ cs nb_prev=3
+```

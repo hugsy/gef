@@ -134,6 +134,19 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("$_heap", res)
         return
 
+    def test_cmd_got(self):
+        cmd = "got"
+        target = "tests/binaries/format-string-helper.out"
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
+        res = gdb_start_silent_cmd(cmd, target=target)
+        self.assertIn("printf", res)
+        self.assertIn("strcpy", res)
+
+        res = gdb_start_silent_cmd("got printf", target=target)
+        self.assertIn("printf", res)
+        self.assertNotIn("strcpy", res)
+        return
+
     def test_cmd_heap_arenas(self):
         cmd = "heap arenas"
         target = "tests/binaries/heap.out"
@@ -180,6 +193,14 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("Fastbins[idx=0, size=0x10]", res)
         return
 
+    def test_cmd_heap_bins_non_main(self):
+        cmd = 'python gdb.execute("heap bins fast {}".format(get_main_arena().next))'
+        target = "tests/binaries/heap-non-main.out"
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertIn("size=0x20, flags=PREV_INUSE|NON_MAIN_ARENA", res)
+        return
+
     def test_cmd_heap_analysis(self):
         cmd = "heap-analysis-helper"
         target = "tests/binaries/heap-analysis.out"
@@ -189,8 +210,8 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("Tracking", res)
         self.assertIn("correctly setup", res)
         self.assertIn("malloc(16)=", res)
-        self.assertIn("malloc(32)=", res) # Actually calloc
-        addr = int(res.split("malloc(32)=")[1].split("\n")[0], 0)
+        self.assertIn("calloc(32)=", res)
+        addr = int(res.split("calloc(32)=")[1].split("\n")[0], 0)
         self.assertRegex(res, r"realloc\(.+, 48")
         self.assertIn("free({:#x}".format(addr), res)
         return
@@ -488,6 +509,26 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertNoException(res)
         self.assertIn("Patching XOR-ing ", res)
         return
+
+    def test_cmd_highlight(self):
+
+        cmds = [
+            "highlight add 41414141 yellow",
+            "highlight add 42424242 blue",
+            "highlight add 43434343 green",
+            "highlight add 44444444 pink",
+            'set $rsp = "AAAABBBBCCCCDDDD"',
+            "hexdump qword $rsp 2"
+        ]
+
+        res = gdb_start_silent_cmd('', after=cmds, strip_ansi=False)
+
+        self.assertNoException(res)
+        self.assertIn("\033[33m41414141\x1b[0m", res)
+        self.assertIn("\033[34m42424242\x1b[0m", res)
+        self.assertIn("\033[32m43434343\x1b[0m", res)
+        self.assertIn("\033[35m44444444\x1b[0m", res)
+
 
 class TestGefFunctions(GefUnitTestGeneric):
     """Tests GEF internal functions."""
