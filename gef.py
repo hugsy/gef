@@ -6171,6 +6171,11 @@ class GlibcHeapChunksCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
 
+        arena = get_main_arena()
+        if arena is None:
+            err("No valid arena")
+            return
+
         if not argv:
             heap_section = [x for x in get_process_maps() if x.path == "[heap]"]
             if not heap_section:
@@ -6180,12 +6185,18 @@ class GlibcHeapChunksCommand(GenericCommand):
             heap_section = heap_section[0].page_start
         else:
             heap_section = int(argv[0], 0)
-
-
-        arena = get_main_arena()
-        if arena is None:
-            err("No valid arena")
-            return
+            heap_info = gdb.parse_and_eval(argv[0])
+            heap_info_t = cached_lookup_type("struct _heap_info").pointer()
+            heap_info = heap_info.cast(heap_info_t)
+            malloc_state_t = cached_lookup_type("struct malloc_state")
+            ar_ptr = heap_info["ar_ptr"]
+            ar_ptr = ar_ptr.cast(malloc_state_t)
+            arena = GlibcArena("*{:#x} ".format(long(ar_ptr.cast(gdb.lookup_type('long')))))
+            if ar_ptr.cast(gdb.lookup_type('void').pointer()) != heap_info.cast(gdb.lookup_type('void').pointer()) + heap_info.dereference().type.sizeof:
+                heap_section = heap_info.cast(gdb.lookup_type('void').pointer()) + heap_info.dereference().type.sizeof
+            else:
+                heap_section = heap_info.cast(gdb.lookup_type('void').pointer()) + heap_info.dereference().type.sizeof + malloc_state_t.sizeof
+            heap_section = align_address_to_size(long(heap_section), 16)
 
         nb = self.get_setting("peek_nb_byte")
         current_chunk = GlibcChunk(heap_section, from_base=True)
