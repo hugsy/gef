@@ -4946,7 +4946,7 @@ class IdaInteractCommand(GenericCommand):
                 else:
                     res = method()
 
-                if method_name in ("ImportStruct", "ImportStructs"):
+                if method_name == "importstruct":
                     self.import_structures(res)
                 else:
                     gef_print(str(res))
