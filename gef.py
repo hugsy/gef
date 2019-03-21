@@ -8249,10 +8249,10 @@ class ResetCacheCommand(GenericCommand):
 @register_command
 class VMMapCommand(GenericCommand):
     """Display a comprehensive layout of the virtual memory mapping. If a filter argument, GEF will
-    filter out the mapping whose pathname do not match that filter."""
+    filter out the mapping whose pathname or addresses do not match that filter."""
 
     _cmdline_ = "vmmap"
-    _syntax_  = "{:s} [FILTER]".format(_cmdline_)
+    _syntax_  = "{:s} [FILTER|ADDR]".format(_cmdline_)
     _example_ = "{:s} libc".format(_cmdline_)
 
     @only_if_gdb_running
@@ -8267,9 +8267,18 @@ class VMMapCommand(GenericCommand):
         headers = ["Start", "End", "Offset", "Perm", "Path"]
         gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<{w}s}{:<4s} {:s}".format(*headers, w=get_memory_alignment()*2+3), color))
 
+        # Attempt to parse the argument as an integer
+        try:
+            addr_filter = int(argv[0], 0)
+        except (ValueError, IndexError):
+            addr_filter = None
+
         for entry in vmmap:
-            if argv and not argv[0] in entry.path:
+            in_range = addr_filter and entry.page_start <= addr_filter < entry.page_end
+            if argv and not (argv[0] in entry.path or in_range):
                 continue
+
+
             l = []
             l.append(format_address(entry.page_start))
             l.append(format_address(entry.page_end))
