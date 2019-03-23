@@ -1481,7 +1481,7 @@ def checksec(filename):
     results["PIE"] = __check_security_property("-h", filename, r":.*EXEC") is False
     results["Fortify"] = __check_security_property("-s", filename, r"_chk@GLIBC") is True
     results["Partial RelRO"] = __check_security_property("-l", filename, r"GNU_RELRO") is True
-    results["Full RelRO"] = __check_security_property("-d", filename, r"BIND_NOW") is True
+    results["Full RelRO"] = results["Partial RelRO"] and __check_security_property("-d", filename, r"BIND_NOW") is True
     return results
 
 
