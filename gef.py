@@ -5118,9 +5118,11 @@ class SearchPatternCommand(GenericCommand):
         title += "({:#x}-{:#x})".format(section.page_start, section.page_end)
         title += ", permission={}".format(section.permission)
         ok(title)
+        return
 
     def print_loc(self, loc):
         gef_print("""  {:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], RIGHT_ARROW, Color.pinkify(loc[2]),))
+        return
 
     def search_pattern_by_address(self, pattern, start_address, end_address):
         """Search a pattern within a range defined by arguments."""
@@ -5182,8 +5184,8 @@ class SearchPatternCommand(GenericCommand):
         endian = get_endian()
 
         if argc >= 2:
-            if argv[1] == "big": endian = Elf.BIG_ENDIAN
-            elif argv[1] == "small": endian = Elf.LITTLE_ENDIAN
+            if argv[1].lower() == "big": endian = Elf.BIG_ENDIAN
+            elif argv[1].lower() == "small": endian = Elf.LITTLE_ENDIAN
 
         if is_hex(pattern):
             if endian == Elf.BIG_ENDIAN:
@@ -5197,7 +5199,9 @@ class SearchPatternCommand(GenericCommand):
             if "0x" in argv[2]:
                 start, end = parse_string_range(argv[2])
 
-                self.print_section(lookup_address(start).section)
+                loc = lookup_address(start)
+                if loc.valid:
+                    self.print_section(loc.section)
 
                 for loc in self.search_pattern_by_address(pattern, start, end):
                     self.print_loc(loc)
