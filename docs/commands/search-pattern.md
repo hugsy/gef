@@ -27,3 +27,11 @@ The `search-pattern` command can also be used as a way to search for
 cross-references to an address. For this reason, the alias `xref` also points
 to the command `search-pattern`.  Therefore the command above is equivalent to
 `xref 0x4005f6` which makes it more intuitive to use.
+
+### Searching in a specific range ###
+Sometimes, you may need to search for a very common pattern. To limit the search space, you can also specify an address range or the section to be checked.
+
+```
+gef➤  search-pattern 0x4005f6 little libc
+gef➤  search-pattern 0x4005f6 little 0x603100-0x603200
+```
