@@ -4828,7 +4828,10 @@ class ChangeFdCommand(GenericCommand):
 
     def get_fd_from_result(self, res):
         # Output example: $1 = 3
-        return int(res.split()[2], 0)
+        res = int(res.split()[2], 0)
+        res = gdb.execute("""p/d {}""".format(res), to_string=True)
+        res = int(res.split()[2], 0)
+        return res
 
 
 @register_command
