@@ -31,7 +31,7 @@
 #######################################################################################
 #
 # gef is distributed under the MIT License (MIT)
-# Copyright (c) 2013-2018 crazy rabbidz
+# Copyright (c) 2013-2019 crazy rabbidz
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -1481,7 +1481,7 @@ def checksec(filename):
     results["PIE"] = __check_security_property("-h", filename, r":.*EXEC") is False
     results["Fortify"] = __check_security_property("-s", filename, r"_chk@GLIBC") is True
     results["Partial RelRO"] = __check_security_property("-l", filename, r"GNU_RELRO") is True
-    results["Full RelRO"] = __check_security_property("-d", filename, r"BIND_NOW") is True
+    results["Full RelRO"] = results["Partial RelRO"] and __check_security_property("-d", filename, r"BIND_NOW") is True
     return results
 
 
@@ -4787,9 +4787,9 @@ class ChangeFdCommand(GenericCommand):
             address = socket.gethostbyname(new_output.split(":")[0])
             port = int(new_output.split(":")[1])
 
-            # socket(int domain, int type, int protocol)
-            # AF_INET = 2, SOCK_STREAM = 1
-            res = gdb.execute("""call socket(2, 1, 0)""", to_string=True)
+            AF_INET = 2
+            SOCK_STREAM = 1
+            res = gdb.execute("""call (int)socket({}, {}, 0)""".format(AF_INET, SOCK_STREAM), to_string=True)
             new_fd = self.get_fd_from_result(res)
 
             # fill in memory with sockaddr_in struct contents
@@ -4803,8 +4803,7 @@ class ChangeFdCommand(GenericCommand):
             write_memory(stack_addr + 0x4, socket.inet_aton(address), 4)
 
             info("Trying to connect to {}".format(new_output))
-            # connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
-            res = gdb.execute("""call connect({}, {}, {})""".format(new_fd, stack_addr, 16), to_string=True)
+            res = gdb.execute("""call (int)connect({}, {}, {})""".format(new_fd, stack_addr, 16), to_string=True)
 
             # recover stack state
             write_memory(stack_addr, original_contents, 8)
@@ -4816,20 +4815,23 @@ class ChangeFdCommand(GenericCommand):
 
             info("Connected to {}".format(new_output))
         else:
-            res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
+            res = gdb.execute("""call (int)open("{:s}", 66, 0666)""".format(new_output), to_string=True)
             new_fd = self.get_fd_from_result(res)
 
         info("Opened '{:s}' as fd #{:d}".format(new_output, new_fd))
-        gdb.execute("""call dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
+        gdb.execute("""call (int)dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
         info("Duplicated fd #{:d}{:s}#{:d}".format(new_fd, RIGHT_ARROW, old_fd))
-        gdb.execute("""call close({:d})""".format(new_fd), to_string=True)
+        gdb.execute("""call (int)close({:d})""".format(new_fd), to_string=True)
         info("Closed extra fd #{:d}".format(new_fd))
         ok("Success")
         return
 
     def get_fd_from_result(self, res):
         # Output example: $1 = 3
-        return int(res.split()[2], 0)
+        res = int(res.split()[2], 0)
+        res = gdb.execute("""p/d {}""".format(res), to_string=True)
+        res = int(res.split()[2], 0)
+        return res
 
 
 @register_command
@@ -4946,7 +4948,7 @@ class IdaInteractCommand(GenericCommand):
                 else:
                     res = method()
 
-                if method_name in ("ImportStruct", "ImportStructs"):
+                if method_name == "importstruct":
                     self.import_structures(res)
                 else:
                     gef_print(str(res))
@@ -5144,9 +5146,23 @@ class SearchPatternCommand(GenericCommand):
     the command will also try to look for upwards cross-references to this address."""
 
     _cmdline_ = "search-pattern"
-    _syntax_  = "{:s} PATTERN [small|big]".format(_cmdline_)
+    _syntax_  = "{:s} PATTERN [small|big] [section]".format(_cmdline_)
     _aliases_ = ["grep", "xref"]
-    _example_ = "\n{0:s} AAAAAAAA\n{0:s} 0x555555554000".format(_cmdline_)
+    _example_ = "\n{0:s} AAAAAAAA\n{0:s} 0x555555554000 little stack\n{0:s}AAAA 0x600000-0x601000".format(_cmdline_)
+
+    def print_section(self, section):
+        title = "In "
+        if section.path:
+            title += "'{}'".format(Color.blueify(section.path) )
+
+        title += "({:#x}-{:#x})".format(section.page_start, section.page_end)
+        title += ", permission={}".format(section.permission)
+        ok(title)
+        return
+
+    def print_loc(self, loc):
+        gef_print("""  {:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], RIGHT_ARROW, Color.pinkify(loc[2]),))
+        return
 
     def search_pattern_by_address(self, pattern, start_address, end_address):
         """Search a pattern within a range defined by arguments."""
@@ -5176,17 +5192,12 @@ class SearchPatternCommand(GenericCommand):
 
         return locations
 
-    def search_pattern(self, pattern, endian):
+    def search_pattern(self, pattern, section_name):
         """Search a pattern within the whole userland memory."""
-        if is_hex(pattern):
-            if endian == Elf.BIG_ENDIAN:
-                pattern = "".join(["\\x"+pattern[i:i+2] for i in range(2, len(pattern), 2)])
-            else:
-                pattern = "".join(["\\x"+pattern[i:i+2] for i in range(len(pattern)-2, 0, -2)])
-
         for section in get_process_maps():
             if not section.permission & Permission.READ: continue
             if section.path == "[vvar]": continue
+            if not section_name in section.path: continue
 
             start = section.page_start
             end   = section.page_end - 1
@@ -5196,16 +5207,10 @@ class SearchPatternCommand(GenericCommand):
                 addr_loc_start = lookup_address(loc[0])
                 if addr_loc_start and addr_loc_start.section:
                     if old_section != addr_loc_start.section:
-                        title = "In "
-                        if addr_loc_start.section.path:
-                            title += "'{}'".format(Color.blueify(addr_loc_start.section.path) )
-
-                        title+= "({:#x}-{:#x})".format(addr_loc_start.section.page_start, addr_loc_start.section.page_end)
-                        title+= ", permission={}".format(addr_loc_start.section.permission)
-                        ok(title)
+                        self.print_section(addr_loc_start.section)
                         old_section = addr_loc_start.section
 
-                gef_print("""  {:#x} - {:#x} {}  "{}" """.format(loc[0], loc[1], RIGHT_ARROW, Color.pinkify(loc[2]),))
+                self.print_loc(loc)
         return
 
     @only_if_gdb_running
@@ -5217,12 +5222,38 @@ class SearchPatternCommand(GenericCommand):
 
         pattern = argv[0]
         endian = get_endian()
-        if argc==2:
-            if argv[1]=="big": endian = Elf.BIG_ENDIAN
-            elif argv[1]=="small": endian = Elf.LITTLE_ENDIAN
 
-        info("Searching '{:s}' in memory".format(Color.yellowify(pattern)))
-        self.search_pattern(pattern, endian)
+        if argc >= 2:
+            if argv[1].lower() == "big": endian = Elf.BIG_ENDIAN
+            elif argv[1].lower() == "small": endian = Elf.LITTLE_ENDIAN
+
+        if is_hex(pattern):
+            if endian == Elf.BIG_ENDIAN:
+                pattern = "".join(["\\x"+pattern[i:i+2] for i in range(2, len(pattern), 2)])
+            else:
+                pattern = "".join(["\\x"+pattern[i:i+2] for i in range(len(pattern) - 2, 0, -2)])
+
+        if argc == 3:
+            info("Searching '{:s}' in {:s}".format(Color.yellowify(pattern), argv[2]))
+
+            if "0x" in argv[2]:
+                start, end = parse_string_range(argv[2])
+
+                loc = lookup_address(start)
+                if loc.valid:
+                    self.print_section(loc.section)
+
+                for loc in self.search_pattern_by_address(pattern, start, end):
+                    self.print_loc(loc)
+            else:
+                section_name = argv[2]
+                if section_name == "binary":
+                    section_name = get_filepath()
+
+                self.search_pattern(pattern, section_name)
+        else:
+            info("Searching '{:s}' in memory".format(Color.yellowify(pattern)))
+            self.search_pattern(pattern, "")
         return
 
 
