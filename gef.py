@@ -4787,9 +4787,9 @@ class ChangeFdCommand(GenericCommand):
             address = socket.gethostbyname(new_output.split(":")[0])
             port = int(new_output.split(":")[1])
 
-            # socket(int domain, int type, int protocol)
-            # AF_INET = 2, SOCK_STREAM = 1
-            res = gdb.execute("""call socket(2, 1, 0)""", to_string=True)
+            AF_INET = 2
+            SOCK_STREAM = 1
+            res = gdb.execute("""call (int)socket({}, {}, 0)""".format(AF_INET, SOCK_STREAM), to_string=True)
             new_fd = self.get_fd_from_result(res)
 
             # fill in memory with sockaddr_in struct contents
@@ -4803,8 +4803,7 @@ class ChangeFdCommand(GenericCommand):
             write_memory(stack_addr + 0x4, socket.inet_aton(address), 4)
 
             info("Trying to connect to {}".format(new_output))
-            # connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
-            res = gdb.execute("""call connect({}, {}, {})""".format(new_fd, stack_addr, 16), to_string=True)
+            res = gdb.execute("""call (int)connect({}, {}, {})""".format(new_fd, stack_addr, 16), to_string=True)
 
             # recover stack state
             write_memory(stack_addr, original_contents, 8)
@@ -4816,13 +4815,13 @@ class ChangeFdCommand(GenericCommand):
 
             info("Connected to {}".format(new_output))
         else:
-            res = gdb.execute("""call open("{:s}", 66, 0666)""".format(new_output), to_string=True)
+            res = gdb.execute("""call (int)open("{:s}", 66, 0666)""".format(new_output), to_string=True)
             new_fd = self.get_fd_from_result(res)
 
         info("Opened '{:s}' as fd #{:d}".format(new_output, new_fd))
-        gdb.execute("""call dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
+        gdb.execute("""call (int)dup2({:d}, {:d})""".format(new_fd, old_fd), to_string=True)
         info("Duplicated fd #{:d}{:s}#{:d}".format(new_fd, RIGHT_ARROW, old_fd))
-        gdb.execute("""call close({:d})""".format(new_fd), to_string=True)
+        gdb.execute("""call (int)close({:d})""".format(new_fd), to_string=True)
         info("Closed extra fd #{:d}".format(new_fd))
         ok("Success")
         return
