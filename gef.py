@@ -8120,19 +8120,18 @@ class DereferenceCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        argc = len(argv)
-
-        if argc < 1:
-            err("Missing location.")
-            return
-
+        target = "$sp"
         nb = 10
-        if argc==2 and argv[1][0] in ("l", "L") and argv[1][1:].isdigit():
-            nb = int(argv[1][1:])
-        elif argc == 2 and argv[1].isdigit():
-            nb = int(argv[1])
+        
+        for arg in argv:
+            if arg.isdigit():
+                nb = int(arg)
+            elif arg[0] in ("l", "L") and arg[1:].isdigit():
+                nb = int(arg[1:])
+            else:
+                target = arg
 
-        addr = safe_parse_and_eval(argv[0])
+        addr = safe_parse_and_eval(target)
         if addr is None:
             err("Invalid address")
             return
