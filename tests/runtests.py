@@ -222,7 +222,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertNoException(res)
         res = gdb_start_silent_cmd("hexdump dword $pc l1")
         self.assertNoException(res)
-        res = gdb_start_silent_cmd("hexdump word $pc l5 down")
+        res = gdb_start_silent_cmd("hexdump word $pc l5 reverse")
         self.assertNoException(res)
         res = gdb_start_silent_cmd("hexdump byte $sp l32")
         self.assertNoException(res)
