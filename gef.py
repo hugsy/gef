@@ -2417,13 +2417,13 @@ def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding
 
     char_ptr = cached_lookup_type("char").pointer()
 
+    length = min(address|(DEFAULT_PAGE_SIZE-1), max_length+1)
     try:
-        res = gdb.Value(address).cast(char_ptr).string(encoding=encoding).strip()
+        res = gdb.Value(address).cast(char_ptr).string(encoding=encoding, length=length).strip()
     except gdb.error:
-        length = min(address|(DEFAULT_PAGE_SIZE-1), max_length+1)
-        mem = bytes(read_memory(address, length)).decode("utf-8")
-        res = mem.split("\x00", 1)[0]
+        res = bytes(read_memory(address, length)).decode("utf-8")
 
+    res = res.split("\x00", 1)[0]
     ustr = res.replace("\n","\\n").replace("\r","\\r").replace("\t","\\t")
     if max_length and len(res) > max_length:
         return "{}[...]".format(ustr[:max_length])
