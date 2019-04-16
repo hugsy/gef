@@ -7,7 +7,7 @@ This command takes 4 optional arguments:
   - The format for representing the data (by default, byte)
   - A value/address/symbol used as the location to print the hexdump from (by default, $sp)
   - The number of qword/dword/word/bytes to display (by default, 64 if the format is byte, 16 otherwise)
-  - The directionof output lines (by default, from low to high addresses)
+  - The direction of output lines (by default, from low to high addresses)
 
 The command provides WinDBG compatible aliases by default:
 
