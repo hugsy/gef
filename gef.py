@@ -7900,8 +7900,8 @@ class HexdumpCommand(GenericCommand):
     """Display SIZE lines of hexdump from the memory location pointed by ADDRESS. """
 
     _cmdline_ = "hexdump"
-    _syntax_  = "{:s} (qword|dword|word|byte) ADDRESS [[L][SIZE]] [UP|DOWN] [S]".format(_cmdline_)
-    _example_ = "{:s} byte $rsp L16 DOWN".format(_cmdline_)
+    _syntax_  = "{:s} [qword|dword|word|byte] [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
+    _example_ = "{:s} byte $rsp L16 REVERSE".format(_cmdline_)
 
     def __init__(self):
         super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -7910,44 +7910,39 @@ class HexdumpCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        argc = len(argv)
-        if argc < 2:
-            self.usage()
-            return
-
-        arg0, argv = argv[0].lower(), argv[1:]
+        fmt = "byte"
+        target = "$sp"
         valid_formats = ["byte", "word", "dword", "qword"]
-        fmt = None
-        for valid_format in valid_formats:
-            if valid_format.startswith(arg0):
-                fmt = valid_format
-                break
-        if not fmt:
-            self.usage()
-            return
+        read_len = None
+        reverse = False
+        
+        for arg in argv:
+            arg = arg.lower()
+            is_format_given = False
+            for valid_format in valid_formats:
+                if valid_format.startswith(arg):
+                    fmt = valid_format
+                    is_format_given = True
+                    break
+            if is_format_given:
+                continue
+            if arg.startswith("l"):
+                arg = arg[1:]
+            try:
+                read_len = long(arg, 0)
+                continue
+            except ValueError:
+                pass
 
-        start_addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
+            if "reverse".startswith(arg):
+                reverse = True
+                continue
+            target = arg
+            
+        start_addr = to_unsigned_long(gdb.parse_and_eval(target))
         read_from = align_address(start_addr)
-        read_len = 0x40 if fmt=="byte" else 0x10
-        up_to_down = True
-
-        if argc >= 2:
-            for arg in argv[1:]:
-                arg = arg.lower()
-                if arg.startswith("l"):
-                    arg = arg[1:]
-                try:
-                    read_len = long(arg, 0)
-                    continue
-                except ValueError:
-                    pass
-
-                if arg in {"up", "u"}:
-                    up_to_down = True
-                    continue
-                elif arg in {"down", "d"}:
-                    up_to_down = False
-                    continue
+        if not read_len:
+            read_len = 0x40 if fmt=="byte" else 0x10
 
         if fmt == "byte":
             read_from += self.repeat_count * read_len
@@ -7956,7 +7951,7 @@ class HexdumpCommand(GenericCommand):
         else:
             lines = self._hexdump(read_from, read_len, fmt, self.repeat_count * read_len)
 
-        if not up_to_down:
+        if reverse:
             lines.reverse()
 
         gef_print("\n".join(lines))
@@ -8120,19 +8115,18 @@ class DereferenceCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        argc = len(argv)
-
-        if argc < 1:
-            err("Missing location.")
-            return
-
+        target = "$sp"
         nb = 10
-        if argc==2 and argv[1][0] in ("l", "L") and argv[1][1:].isdigit():
-            nb = int(argv[1][1:])
-        elif argc == 2 and argv[1].isdigit():
-            nb = int(argv[1])
+        
+        for arg in argv:
+            if arg.isdigit():
+                nb = int(arg)
+            elif arg[0] in ("l", "L") and arg[1:].isdigit():
+                nb = int(arg[1:])
+            else:
+                target = arg
 
-        addr = safe_parse_and_eval(argv[0])
+        addr = safe_parse_and_eval(target)
         if addr is None:
             err("Invalid address")
             return
