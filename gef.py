@@ -4990,7 +4990,7 @@ class IdaInteractCommand(GenericCommand):
 
         try:
             # it is possible that the server was stopped between now and the last sync
-            rc = self.sock.Sync("{:#x}".format(pc-base_address), list(added), list(removed))
+            rc = self.sock.sync("{:#x}".format(pc-base_address), list(added), list(removed))
         except ConnectionRefusedError:
             self.disconnect()
             return
