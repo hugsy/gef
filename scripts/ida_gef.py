@@ -193,7 +193,7 @@ class Gef:
         """
         res = {}
         for s in Structs():
-            res.update(self.ImportStruct(s[2]))
+            res.update(self.importstruct(s[2]))
         return res
 
     @expose
