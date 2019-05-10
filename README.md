@@ -65,6 +65,7 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 
 To get involved, refer to the [Contribution documentation](https://gef.readthedocs.io/en/master/#contribution) and the [guidelines](https://github.com/hugsy/gef/blob/dev/.github/CONTRIBUTING.md) to start.
 
+And special thanks to [Pedro "TheZakMan" Araujo](https://thezakman.tumblr.com/) for the logo!.
 
 
 ## Happy Hacking ##
