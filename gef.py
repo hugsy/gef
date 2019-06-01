@@ -1578,7 +1578,7 @@ class Architecture(object):
     def ptrsize(self):
         return get_memory_alignment()
 
-    def get_ith_parameter(self, i):
+    def get_ith_parameter(self, i, in_func=True):
         """Retrieves the correct parameter used for the current function call."""
         reg = self.function_parameters[i]
         val = get_register(reg)
@@ -2026,7 +2026,9 @@ class X86(Architecture):
             "popad",]
         return "; ".join(insns)
 
-    def get_ith_parameter(self, i):
+    def get_ith_parameter(self, i, in_func=True):
+        if in_func:
+            i += 1 # Account for RA being at the top of the stack
         sp = current_arch.sp
         sz =  current_arch.ptrsize
         loc = sp + (i * sz)
@@ -7494,7 +7496,7 @@ class ContextCommand(GenericCommand):
         args = []
 
         for i, f in enumerate(symbol.type.fields()):
-            _value = current_arch.get_ith_parameter(i)[1]
+            _value = current_arch.get_ith_parameter(i, in_func=False)[1]
             _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
             _name = f.name or "var_{}".format(i)
             _type = f.type.name or self.size2type[f.type.sizeof]
@@ -7564,7 +7566,7 @@ class ContextCommand(GenericCommand):
 
         args = []
         for i in range(nb_argument):
-            _key, _value = current_arch.get_ith_parameter(i)
+            _key, _value = current_arch.get_ith_parameter(i, in_func=False)
             _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
             args.append("{} = {}".format(Color.colorify(_key, arg_key_color), _value))
 
