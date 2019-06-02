@@ -632,22 +632,10 @@ class TestGefMisc(GefUnitTestGeneric):
         self.assertEqual(status, 0)
 
 
-def run_tests():
-    test_instances = [
-        TestGefCommands,
-        TestGefFunctions,
-        TestGdbFunctions,
-        TestGefMisc,
-    ]
+def run_tests(name=None):
 
     runner = unittest.TextTestRunner(verbosity=3)
-    total_failures = 0
-
-    for test in [unittest.TestLoader().loadTestsFromTestCase(x) for x in test_instances]:
-        res = runner.run(test)
-        total_failures += len(res.errors) + len(res.failures)
-
-    return total_failures
+    unittest.main(testRunner=runner)
 
 
 if __name__ == "__main__":
