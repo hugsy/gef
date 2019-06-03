@@ -4617,13 +4617,11 @@ class PCustomCommand(GenericCommand):
             err("Invalid structure name '{:s}'".format(struct_name))
             return
 
-        _class = self.get_class(mod_name, struct_name)
-        _offset = 0
+        _class, _struct = self.get_structure_class(mod_name, struct_name)
 
-        for _name, _type in _class._fields_:
+        for _name, _type in _struct._fields_:
             _size = ctypes.sizeof(_type)
-            gef_print("+{:04x} {:s} {:s} ({:#x})".format(_offset, _name, _type.__name__, _size))
-            _offset += _size
+            gef_print("+{:04x} {:s} {:s} ({:#x})".format(getattr(_class, _name).offset, _name, _type.__name__, _size))
         return
 
 
@@ -4638,10 +4636,10 @@ class PCustomCommand(GenericCommand):
         return imp.load_source(modname, _fullname)
 
 
-    def get_class(self, modname, classname):
+    def get_structure_class(self, modname, classname):
         _mod = self.get_module(modname)
-        return getattr(_mod, classname)()
-
+        _class = getattr(_mod, classname)
+        return _class, _class()
 
     def list_all_structs(self, modname):
         _mod = self.get_module(modname)
@@ -4658,21 +4656,20 @@ class PCustomCommand(GenericCommand):
             return
 
         try:
-            _class = self.get_class(mod_name, struct_name)
-            data = read_memory(addr, ctypes.sizeof(_class))
+            _class, _struct = self.get_structure_class(mod_name, struct_name)
+            data = read_memory(addr, ctypes.sizeof(_struct))
         except gdb.MemoryError:
             err("{}Cannot reach memory {:#x}".format(" "*depth, addr))
             return
 
-        self.deserialize(_class, data)
+        self.deserialize(_struct, data)
 
         _regsize = get_memory_alignment()
-        _offset = 0
 
-        for field in _class._fields_:
+        for field in _struct._fields_:
             _name, _type = field
-            _size = ctypes.sizeof(_type)
-            _value = getattr(_class, _name)
+            _value = getattr(_struct, _name)
+            _offset = getattr(_class, _name).offset
 
             if    (_regsize == 4 and _type is ctypes.c_uint32) \
                or (_regsize == 8 and _type is ctypes.c_uint64) \
@@ -4684,16 +4681,13 @@ class PCustomCommand(GenericCommand):
             line += "  "*depth
             line += ("{:#x}+0x{:04x} {} : ".format(addr, _offset, _name)).ljust(40)
             line += "{} ({})".format(_value, _type.__name__)
-            parsed_value = self.get_ctypes_value(_class, _name, _value)
+            parsed_value = self.get_ctypes_value(_struct, _name, _value)
             if parsed_value:
                 line += " {} {}".format(RIGHT_ARROW, parsed_value)
             gef_print("".join(line))
 
             if issubclass(_type, ctypes.Structure):
                 self.apply_structure_to_address(mod_name, _type.__name__, addr + _offset, depth + 1)
-                _offset += ctypes.sizeof(_type)
-            else:
-                _offset += _size
         return
 
 
