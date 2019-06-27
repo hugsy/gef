@@ -8299,27 +8299,25 @@ class VMMapCommand(GenericCommand):
         return
 
     def print_entry(self, entry):
-        line_attributes = []
+        line_color = ""
         if entry.path == "[stack]":
-            line_attributes.append(get_gef_setting("theme.address_stack"))
+            line_color = get_gef_setting("theme.address_stack")
         elif entry.path == "[heap]":
-            line_attributes.append(get_gef_setting("theme.address_heap"))
+            line_color = get_gef_setting("theme.address_heap")
         elif entry.permission.value & Permission.READ and entry.permission.value & Permission.EXECUTE:
-            line_attributes.append(get_gef_setting("theme.address_code"))
-
-        line_attributes = " ".join(line_attributes)
+            line_color = get_gef_setting("theme.address_code")
 
         l = []
-        l.append(Color.colorify(format_address(entry.page_start), line_attributes))
-        l.append(Color.colorify(format_address(entry.page_end), line_attributes))
-        l.append(Color.colorify(format_address(entry.offset), line_attributes))
+        l.append(Color.colorify(format_address(entry.page_start), line_color))
+        l.append(Color.colorify(format_address(entry.page_end), line_color))
+        l.append(Color.colorify(format_address(entry.offset), line_color))
 
         if entry.permission.value == (Permission.READ|Permission.WRITE|Permission.EXECUTE):
-            l.append(Color.colorify(str(entry.permission), "underline " + line_attributes))
+            l.append(Color.colorify(str(entry.permission), "underline " + line_color))
         else:
-            l.append(Color.colorify(str(entry.permission), line_attributes))
+            l.append(Color.colorify(str(entry.permission), line_color))
 
-        l.append(Color.colorify(entry.path, line_attributes))
+        l.append(Color.colorify(entry.path, line_color))
         line = " ".join(l)
 
         gef_print(line)
