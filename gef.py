@@ -7911,7 +7911,7 @@ class HexdumpCommand(GenericCommand):
         valid_formats = ["byte", "word", "dword", "qword"]
         read_len = None
         reverse = False
-        
+
         for arg in argv:
             arg = arg.lower()
             is_format_given = False
@@ -7934,7 +7934,7 @@ class HexdumpCommand(GenericCommand):
                 reverse = True
                 continue
             target = arg
-            
+
         start_addr = to_unsigned_long(gdb.parse_and_eval(target))
         read_from = align_address(start_addr)
         if not read_len:
@@ -8113,7 +8113,7 @@ class DereferenceCommand(GenericCommand):
     def do_invoke(self, argv):
         target = "$sp"
         nb = 10
-        
+
         for arg in argv:
             if arg.isdigit():
                 nb = int(arg)
@@ -8283,6 +8283,9 @@ class VMMapCommand(GenericCommand):
             err("No address mapping information found")
             return
 
+        if not get_gef_setting("gef.disable_color"):
+            self.show_legend()
+
         color = get_gef_setting("theme.table_heading")
 
         headers = ["Start", "End", "Offset", "Perm", "Path"]
@@ -8291,18 +8294,44 @@ class VMMapCommand(GenericCommand):
         for entry in vmmap:
             if argv and not argv[0] in entry.path:
                 continue
-            l = []
-            l.append(format_address(entry.page_start))
-            l.append(format_address(entry.page_end))
-            l.append(format_address(entry.offset))
 
-            if entry.permission.value == (Permission.READ|Permission.WRITE|Permission.EXECUTE) :
-                l.append(Color.colorify(str(entry.permission), "bold red"))
-            else:
-                l.append(str(entry.permission))
+            self.print_entry(entry)
+        return
 
-            l.append(entry.path)
-            gef_print(" ".join(l))
+    def print_entry(self, entry):
+        line_color = ""
+        if entry.path == "[stack]":
+            line_color = get_gef_setting("theme.address_stack")
+        elif entry.path == "[heap]":
+            line_color = get_gef_setting("theme.address_heap")
+        elif entry.permission.value & Permission.READ and entry.permission.value & Permission.EXECUTE:
+            line_color = get_gef_setting("theme.address_code")
+
+        l = []
+        l.append(Color.colorify(format_address(entry.page_start), line_color))
+        l.append(Color.colorify(format_address(entry.page_end), line_color))
+        l.append(Color.colorify(format_address(entry.offset), line_color))
+
+        if entry.permission.value == (Permission.READ|Permission.WRITE|Permission.EXECUTE):
+            l.append(Color.colorify(str(entry.permission), "underline " + line_color))
+        else:
+            l.append(Color.colorify(str(entry.permission), line_color))
+
+        l.append(Color.colorify(entry.path, line_color))
+        line = " ".join(l)
+
+        gef_print(line)
+        return
+
+    def show_legend(self):
+        code_addr_color = get_gef_setting("theme.address_code")
+        stack_addr_color = get_gef_setting("theme.address_stack")
+        heap_addr_color = get_gef_setting("theme.address_heap")
+
+        gef_print("[ Legend:  {} | {} | {} ]".format(Color.colorify("Code", code_addr_color),
+                                                     Color.colorify("Heap", heap_addr_color),
+                                                     Color.colorify("Stack", stack_addr_color)
+        ))
         return
 
 
