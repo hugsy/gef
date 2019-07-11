@@ -8423,6 +8423,7 @@ class XAddressInfoCommand(GenericCommand):
             gef_print("Segment: {:s} ({:s}-{:s})".format(info.name,
                                                          format_address(info.zone_start),
                                                          format_address(info.zone_end)))
+            gef_print("Offset (from segment): {:#x}".format(addr.value-info.zone_start))
 
         sym = gdb_get_location_from_symbol(address)
         if sym:
