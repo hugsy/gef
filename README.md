@@ -1,6 +1,6 @@
 # GDB Enhanced Features (a.k.a. GEF) #
 
-`GEF` (pronounced ʤɛf - "Jeff") is a set of commands for x86/64, ARM, MIPS, PowerPC and SPARC to assist exploit developers and reverse-engineers when using old school GDB. It provides additional features to GDB using the Python API to assist during the process of dynamic analysis and exploit development. Application developers will also benefit from it, as GEF lifts a great part of regular GDB obscurity, avoiding repeating traditional commands, or bringing out the relevant information from the debugging runtime.
+`GEF` (pronounced ʤɛf - "Jeff") is a set of commands for x86/64, ARM, MIPS, M68K, PowerPC, and SPARC to assist exploit developers and reverse-engineers when using old school GDB. It provides additional features to GDB using the Python API to assist during the process of dynamic analysis and exploit development. Application developers will also benefit from it, as GEF lifts a great part of regular GDB obscurity, avoiding repeating traditional commands, or bringing out the relevant information from the debugging runtime.
 
 ![gef-context](https://i.imgur.com/E3EuQPs.png)
 
@@ -40,7 +40,7 @@ A few of `GEF` features include:
   * Works consistently on both Python2 and Python3.
   * Built around an architecture abstraction layer, so all commands work in any
     GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS,
-    PowerPC, etc. (unlike [PEDA](https://github.com/longld/peda))
+    M68K, PowerPC, etc. (unlike [PEDA](https://github.com/longld/peda))
   * Suited for real-life apps debugging, exploit development, just as much as
     CTF (unlike _PEDA_ or _PwnDBG_)
 

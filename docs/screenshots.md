@@ -15,6 +15,7 @@ Currently `GEF` supports the following architectures:
  - ARM (v6/v7)
  - AARCH64
  - MIPS/MIPS64
+ - M68K
  - PowerPC
  - SPARC/SPARCv9
 

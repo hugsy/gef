@@ -7,7 +7,7 @@
 # by  @_hugsy_
 #######################################################################################
 #
-# GEF is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to
+# GEF is a kick-ass set of commands for X86, ARM, MIPS, M68K, PowerPC and SPARC to
 # make GDB cool again for exploit dev. It is aimed to be used mostly by exploit
 # devs and reversers, to provides additional features to GDB using the Python
 # API to assist during the process of dynamic analysis.
@@ -5988,15 +5988,15 @@ class RemoteCommand(GenericCommand):
         elif arch.startswith("mips"):
             current_elf.e_machine = Elf.MIPS
             current_arch = MIPS()
+        elif arch.startswith("m68k"):
+            current_elf.e_machine = Elf.M68K
+            current_arch = M68K()
         elif arch.startswith("powerpc"):
             current_elf.e_machine = Elf.POWERPC
             current_arch = PowerPC()
         elif arch.startswith("sparc"):
             current_elf.e_machine = Elf.SPARC
             current_arch = SPARC()
-        elif arch.startswith("m68k"):
-            current_elf.e_machine = Elf.M68K
-            current_arch = M68K()
         else:
             raise RuntimeError("unsupported architecture: {}".format(arch))
 
@@ -6910,11 +6910,11 @@ class AssembleCommand(GenericCommand):
             "ARM" : ["ARM", "THUMB"],
             "ARM64" : ["ARM", "THUMB", "V5", "V8", ],
             "MIPS" : ["MICRO", "MIPS3", "MIPS32", "MIPS32R6", "MIPS64",],
+            "M68K" : [],
             "PPC" : ["PPC32", "PPC64", "QPX",],
             "SPARC" : ["SPARC32", "SPARC64", "V9",],
             "SYSTEMZ" : ["32",],
             "X86" : ["16", "32", "64"],
-            "M68K" : [],
         }
         return
 
@@ -7121,6 +7121,7 @@ class ElfInfoCommand(GenericCommand):
         machines = {
             0x02: "SPARC",
             0x03: "x86",
+            0x04: "M68K",
             0x08: "MIPS",
             0x12: "SPARC64",
             0x14: "PowerPC",
@@ -7129,7 +7130,6 @@ class ElfInfoCommand(GenericCommand):
             0x32: "IA-64",
             0x3E: "x86-64",
             0xB7: "AArch64",
-            0x04: "M68K",
         }
 
         filename = argv[0] if argv else get_filepath()

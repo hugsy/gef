@@ -8,7 +8,7 @@ commands to make the exploitation development process smoother.
 However, PEDA suffers from a major drawbacks, which the code is too
 fundamentally linked to Intel architectures (x86-32 and x86-64). On the other
 hand, GEF not only supports all the architecture supported by GDB (currently
-x86, ARM, AARCH64, MIPS, PowerPC, SPARC) but is designed to integrate new
+x86, ARM, AARCH64, MIPS, M68K, PowerPC, SPARC) but is designed to integrate new
 architectures very easily as well!
 
 Also, PEDA development has been quite idle for a few years now, and many new

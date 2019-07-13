@@ -15,6 +15,7 @@
 | ARM          | :heavy_multiplication_x: |                        |
 | AARCH64      | :heavy_multiplication_x: |                        |
 | MIPS         | :heavy_multiplication_x: |                        |
+| M68K         | :heavy_multiplication_x: |                        |
 | POWERPC      | :heavy_multiplication_x: |                        |
 | SPARC        | :heavy_multiplication_x: |                        |
 | `make tests` | :heavy_multiplication_x: |                        |

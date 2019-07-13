@@ -246,6 +246,7 @@ representation classes, such as:
  * `SPARC`
  * `SPARC64`
  * `MIPS`
+ * `M68K`
 
 
 #### Heap ####

@@ -2,7 +2,7 @@
 
 [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) [![Python 2 & 3](https://img.shields.io/badge/Python-2%20%26%203-green.svg)](https://github.com/hugsy/gef/) [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) [![CircleCI status](https://circleci.com/gh/hugsy/gef/tree/master.svg?style=shield)](https://circleci.com/gh/hugsy/gef/tree/master)
 
-`GEF` (pronounced ʤɛf - "Jeff") is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to make GDB cool again for exploit dev. It is aimed to be used mostly by exploit developers and reverse-engineers, to provide additional features to GDB using the Python API to assist during the process of dynamic analysis and exploit development.
+`GEF` (pronounced ʤɛf - "Jeff") is a kick-ass set of commands for X86, ARM, MIPS, M68K, PowerPC and SPARC to make GDB cool again for exploit dev. It is aimed to be used mostly by exploit developers and reverse-engineers, to provide additional features to GDB using the Python API to assist during the process of dynamic analysis and exploit development.
 
 It has full support for both Python2 and Python3 indifferently (as more and more
 distros start pushing `gdb` compiled with Python3 support).
@@ -23,7 +23,7 @@ distros start pushing `gdb` compiled with Python3 support).
   * Works consistently on both Python2 and Python3.
   * Built around an architecture abstraction layer, so all commands work in any
     GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS,
-    PowerPC, etc. (unlike [PEDA](https://github.com/longld/peda))
+    M68K, PowerPC, etc. (unlike [PEDA](https://github.com/longld/peda))
   * Suited for real-life apps debugging, exploit development, just as much as
     CTF (unlike _PEDA_ or _PwnDBG_)
 
