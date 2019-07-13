@@ -2409,7 +2409,6 @@ class M68K(Architecture):
         4: "extend",
         12: "master",
         13: "supervisor",
-        15: "trace",
     }
     syscall_register = "$d0"
     syscall_instructions = ["trap #0"]
