@@ -46,4 +46,6 @@ canary.out: EXTRA_FLAGS := -fstack-protector-all
 
 heap-non-main.out: EXTRA_FLAGS := -pthread
 
+heap-tcache.out: EXTRA_FLAGS := -Wno-unused-label
+
 default.out: EXTRA_FLAGS := -fstack-protector-all -fpie -pie

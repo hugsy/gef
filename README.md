@@ -1,4 +1,5 @@
-# GDB Enhanced Features (a.k.a. GEF) #
+![GDB Enhanced Features (a.k.a. GEF)](https://i.imgur.com/7kUaMbK.png)
+
 
 `GEF` (pronounced ʤɛf - "Jeff") is a set of commands for x86/64, ARM, MIPS, PowerPC and SPARC to assist exploit developers and reverse-engineers when using old school GDB. It provides additional features to GDB using the Python API to assist during the process of dynamic analysis and exploit development. Application developers will also benefit from it, as GEF lifts a great part of regular GDB obscurity, avoiding repeating traditional commands, or bringing out the relevant information from the debugging runtime.
 
@@ -64,6 +65,7 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 
 To get involved, refer to the [Contribution documentation](https://gef.readthedocs.io/en/master/#contribution) and the [guidelines](https://github.com/hugsy/gef/blob/dev/.github/CONTRIBUTING.md) to start.
 
+And special thanks to [Pedro "TheZakMan" Araujo](https://thezakman.tumblr.com/) for the logo!.
 
 
 ## Happy Hacking ##

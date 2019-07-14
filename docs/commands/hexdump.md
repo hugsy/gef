@@ -2,10 +2,12 @@
 
 Imitation of the WinDBG command.
 
-This command requires at least 2 arguments, the format for representing the
-data, and a value/address/symbol used as the location to print the hexdump
-from. An optional 3rd argument is used to specify the number of
-qword/dword/word/bytes to display.
+This command takes 4 optional arguments:
+
+  - The format for representing the data (by default, byte)
+  - A value/address/symbol used as the location to print the hexdump from (by default, $sp)
+  - The number of qword/dword/word/bytes to display (by default, 64 if the format is byte, 16 otherwise)
+  - The direction of output lines (by default, from low to high addresses)
 
 The command provides WinDBG compatible aliases by default:
 
@@ -20,7 +22,7 @@ is printable (similarly to the `hexdump -C` command on Linux).
 The syntax is as following:
 
 ```
-hexdump (qword|dword|word|byte) LOCATION L[SIZE] [UP|DOWN]
+hexdump [qword|dword|word|byte] [LOCATION] [[L][SIZE]] [REVERSE]
 ```
 
 Examples:
@@ -41,4 +43,17 @@ gef➤  dq $pc l4
 gef➤  db 0x00007fffffffe5e5 l32
 0x00007fffffffe5e5     2f 68 6f 6d 65 2f 68 75 67 73 79 2f 63 6f 64 65     /home/hugsy/code
 0x00007fffffffe5f5     2f 67 65 66 2f 74 65 73 74 73 2f 77 69 6e 00 41     /gef/tests/win.A
+```
+
+  * Display 8 WORD from `$sp` in reverse order:
+```
+gef➤  dw 8 r
+0x00007fffffffe0ee│+0x000e   0x0000   
+0x00007fffffffe0ec│+0x000c   0x7fff   
+0x00007fffffffe0ea│+0x000a   0xffff   
+0x00007fffffffe0e8│+0x0008   0xe3f5   
+0x00007fffffffe0e6│+0x0006   0x0000   
+0x00007fffffffe0e4│+0x0004   0x0000   
+0x00007fffffffe0e2│+0x0002   0x0000   
+0x00007fffffffe0e0│+0x0000   0x0001
 ```

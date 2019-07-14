@@ -1578,7 +1578,7 @@ class Architecture(object):
     def ptrsize(self):
         return get_memory_alignment()
 
-    def get_ith_parameter(self, i):
+    def get_ith_parameter(self, i, in_func=True):
         """Retrieves the correct parameter used for the current function call."""
         reg = self.function_parameters[i]
         val = get_register(reg)
@@ -2026,7 +2026,9 @@ class X86(Architecture):
             "popad",]
         return "; ".join(insns)
 
-    def get_ith_parameter(self, i):
+    def get_ith_parameter(self, i, in_func=True):
+        if in_func:
+            i += 1 # Account for RA being at the top of the stack
         sp = current_arch.sp
         sz =  current_arch.ptrsize
         loc = sp + (i * sz)
@@ -2417,13 +2419,13 @@ def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding
 
     char_ptr = cached_lookup_type("char").pointer()
 
+    length = min(address|(DEFAULT_PAGE_SIZE-1), max_length+1)
     try:
-        res = gdb.Value(address).cast(char_ptr).string(encoding=encoding).strip()
+        res = gdb.Value(address).cast(char_ptr).string(encoding=encoding, length=length).strip()
     except gdb.error:
-        length = min(address|(DEFAULT_PAGE_SIZE-1), max_length+1)
-        mem = bytes(read_memory(address, length)).decode("utf-8")
-        res = mem.split("\x00", 1)[0]
+        res = bytes(read_memory(address, length)).decode("utf-8")
 
+    res = res.split("\x00", 1)[0]
     ustr = res.replace("\n","\\n").replace("\r","\\r").replace("\t","\\t")
     if max_length and len(res) > max_length:
         return "{}[...]".format(ustr[:max_length])
@@ -4617,13 +4619,11 @@ class PCustomCommand(GenericCommand):
             err("Invalid structure name '{:s}'".format(struct_name))
             return
 
-        _class = self.get_class(mod_name, struct_name)
-        _offset = 0
+        _class, _struct = self.get_structure_class(mod_name, struct_name)
 
-        for _name, _type in _class._fields_:
+        for _name, _type in _struct._fields_:
             _size = ctypes.sizeof(_type)
-            gef_print("+{:04x} {:s} {:s} ({:#x})".format(_offset, _name, _type.__name__, _size))
-            _offset += _size
+            gef_print("+{:04x} {:s} {:s} ({:#x})".format(getattr(_class, _name).offset, _name, _type.__name__, _size))
         return
 
 
@@ -4638,10 +4638,10 @@ class PCustomCommand(GenericCommand):
         return imp.load_source(modname, _fullname)
 
 
-    def get_class(self, modname, classname):
+    def get_structure_class(self, modname, classname):
         _mod = self.get_module(modname)
-        return getattr(_mod, classname)()
-
+        _class = getattr(_mod, classname)
+        return _class, _class()
 
     def list_all_structs(self, modname):
         _mod = self.get_module(modname)
@@ -4658,21 +4658,20 @@ class PCustomCommand(GenericCommand):
             return
 
         try:
-            _class = self.get_class(mod_name, struct_name)
-            data = read_memory(addr, ctypes.sizeof(_class))
+            _class, _struct = self.get_structure_class(mod_name, struct_name)
+            data = read_memory(addr, ctypes.sizeof(_struct))
         except gdb.MemoryError:
             err("{}Cannot reach memory {:#x}".format(" "*depth, addr))
             return
 
-        self.deserialize(_class, data)
+        self.deserialize(_struct, data)
 
         _regsize = get_memory_alignment()
-        _offset = 0
 
-        for field in _class._fields_:
+        for field in _struct._fields_:
             _name, _type = field
-            _size = ctypes.sizeof(_type)
-            _value = getattr(_class, _name)
+            _value = getattr(_struct, _name)
+            _offset = getattr(_class, _name).offset
 
             if    (_regsize == 4 and _type is ctypes.c_uint32) \
                or (_regsize == 8 and _type is ctypes.c_uint64) \
@@ -4684,16 +4683,13 @@ class PCustomCommand(GenericCommand):
             line += "  "*depth
             line += ("{:#x}+0x{:04x} {} : ".format(addr, _offset, _name)).ljust(40)
             line += "{} ({})".format(_value, _type.__name__)
-            parsed_value = self.get_ctypes_value(_class, _name, _value)
+            parsed_value = self.get_ctypes_value(_struct, _name, _value)
             if parsed_value:
                 line += " {} {}".format(RIGHT_ARROW, parsed_value)
             gef_print("".join(line))
 
             if issubclass(_type, ctypes.Structure):
                 self.apply_structure_to_address(mod_name, _type.__name__, addr + _offset, depth + 1)
-                _offset += ctypes.sizeof(_type)
-            else:
-                _offset += _size
         return
 
 
@@ -7494,7 +7490,7 @@ class ContextCommand(GenericCommand):
         args = []
 
         for i, f in enumerate(symbol.type.fields()):
-            _value = current_arch.get_ith_parameter(i)[1]
+            _value = current_arch.get_ith_parameter(i, in_func=False)[1]
             _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
             _name = f.name or "var_{}".format(i)
             _type = f.type.name or self.size2type[f.type.sizeof]
@@ -7564,7 +7560,7 @@ class ContextCommand(GenericCommand):
 
         args = []
         for i in range(nb_argument):
-            _key, _value = current_arch.get_ith_parameter(i)
+            _key, _value = current_arch.get_ith_parameter(i, in_func=False)
             _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
             args.append("{} = {}".format(Color.colorify(_key, arg_key_color), _value))
 
@@ -7737,18 +7733,26 @@ class ContextCommand(GenericCommand):
             err("No thread selected")
             return
 
+        selected_thread = gdb.selected_thread()
+
         for i, thread in enumerate(threads):
-            line = """[{:s}] Id {:d}, Name: "{:s}", """.format(Color.colorify("#{:d}".format(i), "bold pink"),
-                                                               thread.num, thread.name or "")
+            line = """[{:s}] Id {:d}, """.format(Color.colorify("#{:d}".format(i), "bold green" if thread==selected_thread  else "bold pink"), thread.num)
+            if thread.name:
+                line += """Name: "{:s}", """.format(thread.name)
             if thread.is_running():
                 line += Color.colorify("running", "bold green")
             elif thread.is_stopped():
                 line += Color.colorify("stopped", "bold red")
+                thread.switch()
+                frame = gdb.selected_frame()
+                line += " {:s} in {:s} ()".format(Color.colorify("{:#x}".format(frame.pc()), "blue"),Color.colorify(frame.name() or "??" ,"bold yellow"))
                 line += ", reason: {}".format(Color.colorify(reason(), "bold pink"))
             elif thread.is_exited():
                 line += Color.colorify("exited", "bold yellow")
             gef_print(line)
             i += 1
+
+        selected_thread.switch()
         return
 
 
@@ -7900,8 +7904,8 @@ class HexdumpCommand(GenericCommand):
     """Display SIZE lines of hexdump from the memory location pointed by ADDRESS. """
 
     _cmdline_ = "hexdump"
-    _syntax_  = "{:s} (qword|dword|word|byte) ADDRESS [[L][SIZE]] [UP|DOWN] [S]".format(_cmdline_)
-    _example_ = "{:s} byte $rsp L16 DOWN".format(_cmdline_)
+    _syntax_  = "{:s} [qword|dword|word|byte] [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
+    _example_ = "{:s} byte $rsp L16 REVERSE".format(_cmdline_)
 
     def __init__(self):
         super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -7910,44 +7914,39 @@ class HexdumpCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        argc = len(argv)
-        if argc < 2:
-            self.usage()
-            return
-
-        arg0, argv = argv[0].lower(), argv[1:]
+        fmt = "byte"
+        target = "$sp"
         valid_formats = ["byte", "word", "dword", "qword"]
-        fmt = None
-        for valid_format in valid_formats:
-            if valid_format.startswith(arg0):
-                fmt = valid_format
-                break
-        if not fmt:
-            self.usage()
-            return
+        read_len = None
+        reverse = False
 
-        start_addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
+        for arg in argv:
+            arg = arg.lower()
+            is_format_given = False
+            for valid_format in valid_formats:
+                if valid_format.startswith(arg):
+                    fmt = valid_format
+                    is_format_given = True
+                    break
+            if is_format_given:
+                continue
+            if arg.startswith("l"):
+                arg = arg[1:]
+            try:
+                read_len = long(arg, 0)
+                continue
+            except ValueError:
+                pass
+
+            if "reverse".startswith(arg):
+                reverse = True
+                continue
+            target = arg
+
+        start_addr = to_unsigned_long(gdb.parse_and_eval(target))
         read_from = align_address(start_addr)
-        read_len = 0x40 if fmt=="byte" else 0x10
-        up_to_down = True
-
-        if argc >= 2:
-            for arg in argv[1:]:
-                arg = arg.lower()
-                if arg.startswith("l"):
-                    arg = arg[1:]
-                try:
-                    read_len = long(arg, 0)
-                    continue
-                except ValueError:
-                    pass
-
-                if arg in {"up", "u"}:
-                    up_to_down = True
-                    continue
-                elif arg in {"down", "d"}:
-                    up_to_down = False
-                    continue
+        if not read_len:
+            read_len = 0x40 if fmt=="byte" else 0x10
 
         if fmt == "byte":
             read_from += self.repeat_count * read_len
@@ -7956,7 +7955,7 @@ class HexdumpCommand(GenericCommand):
         else:
             lines = self._hexdump(read_from, read_len, fmt, self.repeat_count * read_len)
 
-        if not up_to_down:
+        if reverse:
             lines.reverse()
 
         gef_print("\n".join(lines))
@@ -8120,19 +8119,18 @@ class DereferenceCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        argc = len(argv)
-
-        if argc < 1:
-            err("Missing location.")
-            return
-
+        target = "$sp"
         nb = 10
-        if argc==2 and argv[1][0] in ("l", "L") and argv[1][1:].isdigit():
-            nb = int(argv[1][1:])
-        elif argc == 2 and argv[1].isdigit():
-            nb = int(argv[1])
 
-        addr = safe_parse_and_eval(argv[0])
+        for arg in argv:
+            if arg.isdigit():
+                nb = int(arg)
+            elif arg[0] in ("l", "L") and arg[1:].isdigit():
+                nb = int(arg[1:])
+            else:
+                target = arg
+
+        addr = safe_parse_and_eval(target)
         if addr is None:
             err("Invalid address")
             return
@@ -8293,6 +8291,9 @@ class VMMapCommand(GenericCommand):
             err("No address mapping information found")
             return
 
+        if not get_gef_setting("gef.disable_color"):
+            self.show_legend()
+
         color = get_gef_setting("theme.table_heading")
 
         headers = ["Start", "End", "Offset", "Perm", "Path"]
@@ -8301,18 +8302,44 @@ class VMMapCommand(GenericCommand):
         for entry in vmmap:
             if argv and not argv[0] in entry.path:
                 continue
-            l = []
-            l.append(format_address(entry.page_start))
-            l.append(format_address(entry.page_end))
-            l.append(format_address(entry.offset))
 
-            if entry.permission.value == (Permission.READ|Permission.WRITE|Permission.EXECUTE) :
-                l.append(Color.colorify(str(entry.permission), "bold red"))
-            else:
-                l.append(str(entry.permission))
+            self.print_entry(entry)
+        return
 
-            l.append(entry.path)
-            gef_print(" ".join(l))
+    def print_entry(self, entry):
+        line_color = ""
+        if entry.path == "[stack]":
+            line_color = get_gef_setting("theme.address_stack")
+        elif entry.path == "[heap]":
+            line_color = get_gef_setting("theme.address_heap")
+        elif entry.permission.value & Permission.READ and entry.permission.value & Permission.EXECUTE:
+            line_color = get_gef_setting("theme.address_code")
+
+        l = []
+        l.append(Color.colorify(format_address(entry.page_start), line_color))
+        l.append(Color.colorify(format_address(entry.page_end), line_color))
+        l.append(Color.colorify(format_address(entry.offset), line_color))
+
+        if entry.permission.value == (Permission.READ|Permission.WRITE|Permission.EXECUTE):
+            l.append(Color.colorify(str(entry.permission), "underline " + line_color))
+        else:
+            l.append(Color.colorify(str(entry.permission), line_color))
+
+        l.append(Color.colorify(entry.path, line_color))
+        line = " ".join(l)
+
+        gef_print(line)
+        return
+
+    def show_legend(self):
+        code_addr_color = get_gef_setting("theme.address_code")
+        stack_addr_color = get_gef_setting("theme.address_stack")
+        heap_addr_color = get_gef_setting("theme.address_heap")
+
+        gef_print("[ Legend:  {} | {} | {} ]".format(Color.colorify("Code", code_addr_color),
+                                                     Color.colorify("Heap", heap_addr_color),
+                                                     Color.colorify("Stack", stack_addr_color)
+        ))
         return
 
 
@@ -8404,6 +8431,7 @@ class XAddressInfoCommand(GenericCommand):
             gef_print("Segment: {:s} ({:s}-{:s})".format(info.name,
                                                          format_address(info.zone_start),
                                                          format_address(info.zone_end)))
+            gef_print("Offset (from segment): {:#x}".format(addr.value-info.zone_start))
 
         sym = gdb_get_location_from_symbol(address)
         if sym:
