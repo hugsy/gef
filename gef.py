@@ -9942,6 +9942,10 @@ def __gef_prompt__(current_prompt):
 
 if __name__  == "__main__":
 
+    if PYTHON_MAJOR == 2:
+        warn("GEF will stop support for GDB+Python2 when it reaches EOL on 2020/01/01.")
+        warn("See https://github.com/hugsy/gef/projects/4 for updates.")
+
     if GDB_VERSION < GDB_MIN_VERSION:
         err("You're using an old version of GDB. GEF will not work correctly. "
             "Consider updating to GDB {} or higher.".format(".".join(map(str, GDB_MIN_VERSION))))
