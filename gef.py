@@ -61,7 +61,6 @@ import binascii
 import codecs
 import collections
 import ctypes
-import fcntl
 import functools
 import getopt
 import hashlib
@@ -79,7 +78,6 @@ import struct
 import subprocess
 import sys
 import tempfile
-import termios
 import time
 import traceback
 
@@ -2867,14 +2865,34 @@ def get_terminal_size():
     """Return the current terminal size."""
     if is_debug():
         return 600, 100
+    if platform.system() == "Windows":
+        from ctypes import windll, create_string_buffer
+        #stdin handle = -10
+        #stdout handle = -11
+        #stderr handle = -12
+        herr = windll.kernel32.GetStdHandle(-12)
+        csbi = create_string_buffer(22)
+        res = windll.kernel32.GetConsoleScreenBufferInfo(herr, csbi)
+        if res:
+            (bufx, bufy, curx, cury, wattr,
+             left, top, right, bottom,
+             maxx, maxy) = struct.unpack("hhhhHhhhhhh", csbi.raw)
+            tty_columns = right - left + 1
+            tty_rows = bottom - top + 1
+            return tty_rows, tty_columns
+        else:
+            return 600,100
 
-    try:
-        cmd = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, "1234"))
-        tty_rows, tty_columns = int(cmd[0]), int(cmd[1])
-        return tty_rows, tty_columns
+    else:
+        import fcntl
+        import termios
+        try:
+            cmd = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, "1234"))
+            tty_rows, tty_columns = int(cmd[0]), int(cmd[1])
+            return tty_rows, tty_columns
 
-    except OSError:
-        return 600, 100
+        except OSError:
+            return 600, 100
 
 
 def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):
