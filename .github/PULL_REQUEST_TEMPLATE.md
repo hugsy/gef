@@ -8,23 +8,23 @@
 
 ### How Has This Been Tested? ###
 
-| Architecture | Yes/No                   | Comments               |
-|--------------|:------------------------:|------------------------|
+| Architecture |          Yes/No          | Comments                                  |
+| ------------ | :----------------------: | ----------------------------------------- |
 | x86-32       | :heavy_multiplication_x: | Replace with :heavy_check_mark: if tested |
-| x86-64       | :heavy_multiplication_x: |                        |
-| ARM          | :heavy_multiplication_x: |                        |
-| AARCH64      | :heavy_multiplication_x: |                        |
-| MIPS         | :heavy_multiplication_x: |                        |
-| POWERPC      | :heavy_multiplication_x: |                        |
-| SPARC        | :heavy_multiplication_x: |                        |
-| `make tests` | :heavy_multiplication_x: |                        |
+| x86-64       | :heavy_multiplication_x: |                                           |
+| ARM          | :heavy_multiplication_x: |                                           |
+| AARCH64      | :heavy_multiplication_x: |                                           |
+| MIPS         | :heavy_multiplication_x: |                                           |
+| POWERPC      | :heavy_multiplication_x: |                                           |
+| SPARC        | :heavy_multiplication_x: |                                           |
+| `make tests` | :heavy_multiplication_x: |                                           |
 
 ### Checklist ###
 
 <!-- N.B.: Your patch won't be reviewed unless fulfilling the following base requirements: -->
 <!--- Put an `x` in all the boxes that are complete, or that don't apply -->
-- [ ] If my code is a bug fix it targets master, otherwise it targets dev.
-- [ ] My code follows the code style of this project.
-- [ ] My change includes a change to the documentation, if required.
-- [ ] My change adds tests as appropriate.
-- [ ] I have read and agree to the **CONTRIBUTING** document.
+- [] My PR was done against the `dev` branch, not `master`.
+- [] My code follows the code style of this project.
+- [] My change includes a change to the documentation, if required.
+- [] My change adds tests as appropriate.
+- [] I have read and agree to the **CONTRIBUTING** document.

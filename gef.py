@@ -2199,7 +2199,6 @@ class SPARC(Architecture):
         return False
 
     def is_ret(self, insn):
-        # TODO: rett?
         return insn.mnemonic == "ret"
 
     def is_conditional_branch(self, insn):

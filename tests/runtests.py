@@ -504,7 +504,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
             "highlight add 42424242 blue",
             "highlight add 43434343 green",
             "highlight add 44444444 pink",
-            'set $rsp = "AAAABBBBCCCCDDDD"',
+            'patch string $rsp "AAAABBBBCCCCDDDD"',
             "hexdump qword $rsp 2"
         ]
 
