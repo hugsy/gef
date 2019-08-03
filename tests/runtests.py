@@ -62,15 +62,15 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
 
         target = "tests/binaries/checksec-no-canary.out"
         res = gdb_run_cmd(cmd, target=target)
-        self.assertIn("Canary                        : No", res)
+        self.assertIn("Canary                        : ✘", res)
 
         target = "tests/binaries/checksec-no-nx.out"
         res = gdb_run_cmd(cmd, target=target)
-        self.assertIn("NX                            : No", res)
+        self.assertIn("NX                            : ✘", res)
 
         target = "tests/binaries/checksec-no-pie.out"
         res = gdb_run_cmd(cmd, target=target)
-        self.assertIn("PIE                           : No", res)
+        self.assertIn("PIE                           : ✘", res)
         return
 
     def test_cmd_dereference(self):
