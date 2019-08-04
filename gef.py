@@ -2874,9 +2874,9 @@ def get_terminal_size():
         csbi = create_string_buffer(22)
         res = windll.kernel32.GetConsoleScreenBufferInfo(herr, csbi)
         if res:
-            (bufx, bufy, curx, cury, wattr,
+            (_bufx, _bufy, _curx, _cury, _wattr,
              left, top, right, bottom,
-             maxx, maxy) = struct.unpack("hhhhHhhhhhh", csbi.raw)
+             _maxx, _maxy) = struct.unpack("hhhhHhhhhhh", csbi.raw)
             tty_columns = right - left + 1
             tty_rows = bottom - top + 1
             return tty_rows, tty_columns
