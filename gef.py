@@ -2531,7 +2531,13 @@ def get_register(regname):
         value = gdb.parse_and_eval(regname)
         return to_unsigned_long(value) if value.type.code == gdb.TYPE_CODE_INT else long(value)
     except gdb.error:
-        value = gdb.selected_frame().read_register(regname)
+        assert(regname[0] == '$')
+        regname = regname[1:]
+        try:
+            value = gdb.selected_frame().read_register(regname)
+        except ValueError:
+            return None
+
         return long(value)
 
 
