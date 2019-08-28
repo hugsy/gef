@@ -7276,6 +7276,15 @@ class ContextCommand(GenericCommand):
 
         self.context_title("")
 
+        # HACK: Flush the buffer _before_ we disable the redirect
+        global __gef_int_stream_buffer__
+        if __gef_int_stream_buffer__:
+            sys.stdout.write(__gef_int_stream_buffer__.getvalue())
+            sys.stdout.flush()
+            t = __gef_int_stream_buffer__.getvalue()
+            __gef_int_stream_buffer__.close()
+            __gef_int_stream_buffer__ = StringIO()
+
         if redirect and os.access(redirect, os.W_OK):
             disable_redirect_output()
         return
