@@ -9974,7 +9974,6 @@ if __name__  == "__main__":
         gdb.execute("set confirm off")
         gdb.execute("set verbose off")
         gdb.execute("set pagination off")
-        gdb.execute("set step-mode on")
         gdb.execute("set print elements 0")
 
         # gdb history
