@@ -557,18 +557,20 @@ class TestGefFunctions(GefUnitTestGeneric):
 class TestGdbFunctions(GefUnitTestGeneric):
     """Tests gdb convenience functions added by GEF."""
 
-    def test_func_pie(self):
-        cmd = "x/s $_pie()"
+    def test_func_base(self):
+        cmd = "x/s $_base()"
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
         self.assertIn("\\177ELF", res)
+        addr = res.splitlines()[-1].split()[0][:-1]
 
-        cmd = "x/s $_pie(1)"
+        cmd = "x/s $_base(\"libc\")"
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertNotIn("\\177ELF", res)
-        self.assertIn("ELF", res)
+        self.assertIn("\\177ELF", res)
+        addr2 = res.splitlines()[-1].split()[0][:-1]
+        self.assertNotEqual(addr, addr2)
         return
 
     def test_func_heap(self):

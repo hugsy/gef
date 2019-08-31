@@ -2591,7 +2591,7 @@ def get_filepath():
 @lru_cache()
 def get_filename():
     """Return the full filename of the file currently debugged."""
-    return os.path.basename(get_filepath())
+    return os.path.basename(gdb.current_progspace().filename)
 
 
 def download_file(target, use_cache=False, local_name=None):
@@ -9268,12 +9268,25 @@ class HeapBaseFunction(GenericFunction):
         return get_section_base_address("[heap]")
 
 @register_function
-class PieBaseFunction(GenericFunction):
-    """Return the current pie base address plus an optional offset."""
-    _function_ = "_pie"
+class SectionBaseFunction(GenericFunction):
+    """Return the matching section's base address plus an optional offset."""
+    _function_ = "_base"
 
     def do_invoke(self, args):
-        return self.arg_to_long(args, 0) + get_section_base_address(get_filepath())
+        try:
+            name = args[0].string()
+        except IndexError:
+            name = get_filename()
+        except gdb.error:
+            err("Invalid arg: {}".format(args[0]))
+            return 0
+
+        try:
+            addr = int(get_section_base_address(name))
+        except TypeError:
+            err("Cannot find section {}".format(name))
+            return 0
+        return addr
 
 @register_function
 class BssBaseFunction(GenericFunction):
