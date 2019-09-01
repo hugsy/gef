@@ -2869,7 +2869,7 @@ def get_terminal_size():
     if platform.system() == "Windows":
         from ctypes import windll, create_string_buffer
         hStdErr = -12 
-        herr = windll.kernel32.GetStdHandle(hSdErr)
+        herr = windll.kernel32.GetStdHandle(hStdErr)
         csbi = create_string_buffer(22)
         res = windll.kernel32.GetConsoleScreenBufferInfo(herr, csbi)
         if res:
