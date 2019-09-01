@@ -2865,24 +2865,22 @@ def get_terminal_size():
     """Return the current terminal size."""
     if is_debug():
         return 600, 100
+    
     if platform.system() == "Windows":
         from ctypes import windll, create_string_buffer
-        #stdin handle = -10
-        #stdout handle = -11
-        #stderr handle = -12
-        herr = windll.kernel32.GetStdHandle(-12)
+        hStdErr = -12 
+        herr = windll.kernel32.GetStdHandle(hSdErr)
         csbi = create_string_buffer(22)
         res = windll.kernel32.GetConsoleScreenBufferInfo(herr, csbi)
         if res:
-            (_bufx, _bufy, _curx, _cury, _wattr,
+            (_, _, _, _, _,
              left, top, right, bottom,
-             _maxx, _maxy) = struct.unpack("hhhhHhhhhhh", csbi.raw)
+             _, _) = struct.unpack("hhhhHhhhhhh", csbi.raw)
             tty_columns = right - left + 1
             tty_rows = bottom - top + 1
             return tty_rows, tty_columns
         else:
             return 600,100
-
     else:
         import fcntl
         import termios
