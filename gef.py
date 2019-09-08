@@ -61,7 +61,6 @@ import binascii
 import codecs
 import collections
 import ctypes
-import fcntl
 import functools
 import getopt
 import hashlib
@@ -79,7 +78,6 @@ import struct
 import subprocess
 import sys
 import tempfile
-import termios
 import time
 import traceback
 
@@ -2548,7 +2546,13 @@ def get_register(regname):
         value = gdb.parse_and_eval(regname)
         return to_unsigned_long(value) if value.type.code == gdb.TYPE_CODE_INT else long(value)
     except gdb.error:
-        value = gdb.selected_frame().read_register(regname)
+        assert(regname[0] == '$')
+        regname = regname[1:]
+        try:
+            value = gdb.selected_frame().read_register(regname)
+        except ValueError:
+            return None
+
         return long(value)
 
 
@@ -2602,7 +2606,7 @@ def get_filepath():
 @lru_cache()
 def get_filename():
     """Return the full filename of the file currently debugged."""
-    return os.path.basename(get_filepath())
+    return os.path.basename(gdb.current_progspace().filename)
 
 
 def download_file(target, use_cache=False, local_name=None):
@@ -2884,13 +2888,27 @@ def get_terminal_size():
     if is_debug():
         return 600, 100
 
-    try:
-        cmd = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, "1234"))
-        tty_rows, tty_columns = int(cmd[0]), int(cmd[1])
-        return tty_rows, tty_columns
-
-    except OSError:
-        return 600, 100
+    if platform.system() == "Windows":
+        from ctypes import windll, create_string_buffer
+        hStdErr = -12
+        herr = windll.kernel32.GetStdHandle(hStdErr)
+        csbi = create_string_buffer(22)
+        res = windll.kernel32.GetConsoleScreenBufferInfo(herr, csbi)
+        if res:
+            _,_,_,_,_, left, top, right, bottom, _,_ = struct.unpack("hhhhHhhhhhh", csbi.raw)
+            tty_columns = right - left + 1
+            tty_rows = bottom - top + 1
+            return tty_rows, tty_columns
+        else:
+            return 600,100
+    else:
+        import fcntl
+        import termios
+        try:
+            tty_rows, tty_columns = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, "1234"))
+            return tty_rows, tty_columns
+        except OSError:
+            return 600, 100
 
 
 def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):
@@ -9285,12 +9303,25 @@ class HeapBaseFunction(GenericFunction):
         return get_section_base_address("[heap]")
 
 @register_function
-class PieBaseFunction(GenericFunction):
-    """Return the current pie base address plus an optional offset."""
-    _function_ = "_pie"
+class SectionBaseFunction(GenericFunction):
+    """Return the matching section's base address plus an optional offset."""
+    _function_ = "_base"
 
     def do_invoke(self, args):
-        return self.arg_to_long(args, 0) + get_section_base_address(get_filepath())
+        try:
+            name = args[0].string()
+        except IndexError:
+            name = get_filename()
+        except gdb.error:
+            err("Invalid arg: {}".format(args[0]))
+            return 0
+
+        try:
+            addr = int(get_section_base_address(name))
+        except TypeError:
+            err("Cannot find section {}".format(name))
+            return 0
+        return addr
 
 @register_function
 class BssBaseFunction(GenericFunction):
@@ -9991,7 +10022,6 @@ if __name__  == "__main__":
         gdb.execute("set confirm off")
         gdb.execute("set verbose off")
         gdb.execute("set pagination off")
-        gdb.execute("set step-mode on")
         gdb.execute("set print elements 0")
 
         # gdb history
