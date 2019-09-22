@@ -1879,7 +1879,26 @@ class AARCH64(ARM):
 
     @classmethod
     def mprotect_asm(cls, addr, size, perm):
-        raise OSError("Architecture {:s} not supported yet".format(cls.arch))
+        _NR_mprotect = 226
+        insns = [
+            "str x8, [sp, -16]!",
+            "str x0, [sp, -16]!",
+            "str x1, [sp, -16]!",
+            "str x2, [sp, -16]!",
+            "mov x8, {:d}".format(_NR_mprotect),
+            "movz x0, 0x{:x}".format(addr & 0xffff),
+            "movk x0, 0x{:x}, lsl 16".format((addr >> 16) & 0xffff),
+            "movk x0, 0x{:x}, lsl 32".format((addr >> 32) & 0xffff),
+            "movk x0, 0x{:x}, lsl 48".format((addr >> 48) & 0xffff),
+            "movz x1, 0x{:x}".format(size & 0xffff),
+            "movk x1, 0x{:x}, lsl 16".format((size >> 16)& 0xffff),
+            "mov x2, {:d}".format(perm),
+            "svc 0",
+            "ldr x2, [sp], 16",
+            "ldr x1, [sp], 16",
+            "ldr x0, [sp], 16",
+            "ldr x8, [sp], 16",]
+        return "; ".join(insns)
 
     def is_conditional_branch(self, insn):
         # https://www.element14.com/community/servlet/JiveServlet/previewBody/41836-102-1-229511/ARM.Reference_Manual.pdf
@@ -2929,7 +2948,10 @@ def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):
 
     else:
         arch = getattr(module, "{:s}_ARCH_{:s}".format(prefix, arch))
-        if mode:
+        if prefix == "KS" and mode == "ARM":
+            # this workaround is because keystone.KS_MODE_ARM doesn't exist, must use 0
+            mode = 0
+        elif mode:
             mode = getattr(module, "{:s}_MODE_{:s}".format(prefix, mode))
         else:
             mode = 0
