@@ -7,6 +7,5 @@ jobs:
         steps:
             - checkout
             - run: python3 -m pylint -E gef.py
-            - run: PYTHONPATH=/usr/lib/python2.7/site-packages python2 -m pylint -E gef.py
             - run: make lint
             - run: make test
