@@ -186,7 +186,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn("Fastbins[idx=0, size=0x10]", res)
+        self.assertIn("Fastbins[idx=0, size=0x20]", res)
         return
 
     def test_cmd_heap_bins_non_main(self):
