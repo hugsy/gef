@@ -2,11 +2,11 @@
 
 The `functions` command will list all of the [convenience functions](https://sourceware.org/gdb/onlinedocs/gdb/Convenience-Funs.html) provided by GEF.
 
-* `$_base([name])`     -- Return the base address of the matching section (default current file).
-* `$_bss([offset])`    -- Return the current bss base address plus the given offset.
-* `$_got([offset])`    -- Return the current bss base address plus the given offset.
-* `$_heap([offset])`   -- Return the current heap base address plus an optional offset.
-* `$_stack([offset])`  -- Return the current stack base address plus an optional offset.
+* `$_base(name=current_file)`     -- Return the base address of the matching section (default current file).
+* `$_bss(offset=0)`    -- Return the current bss base address plus the given offset.
+* `$_got(offset=0)`    -- Return the current bss base address plus the given offset.
+* `$_heap(offset=0)`   -- Return the current heap base address plus an optional offset.
+* `$_stack(offset=0)`  -- Return the current stack base address plus an optional offset.
 
 
 These functions can be used as arguments to other commands to dynamically calculate values.
