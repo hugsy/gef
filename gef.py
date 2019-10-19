@@ -815,29 +815,29 @@ class GlibcArena:
 
     def fastbin(self, i):
         """Return head chunk in fastbinsY[i]."""
-        addr = dereference_as_long(self.fastbinsY[i])
+        addr = long(self.fastbinsY[i])
         if addr == 0:
             return None
         return GlibcChunk(addr + 2 * current_arch.ptrsize)
 
     def bin(self, i):
         idx = i * 2
-        fd = dereference_as_long(self.bins[idx])
-        bw = dereference_as_long(self.bins[idx + 1])
+        fd = long(self.bins[idx])
+        bw = long(self.bins[idx + 1])
         return fd, bw
 
     def get_next(self):
-        addr_next = dereference_as_long(self.next)
+        addr_next = long(self.next)
         arena_main = GlibcArena(self.__name)
         if addr_next == arena_main.__addr:
             return None
         return GlibcArena("*{:#x} ".format(addr_next))
 
     def __str__(self):
-        top             = dereference_as_long(self.top)
-        last_remainder  = dereference_as_long(self.last_remainder)
-        n               = dereference_as_long(self.next)
-        nfree           = dereference_as_long(self.next_free)
+        top             = long(self.top)
+        last_remainder  = long(self.last_remainder)
+        n               = long(self.next)
+        nfree           = long(self.next_free)
         sysmem          = long(self.system_mem)
         fmt = "Arena (base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
         return fmt.format(self.__addr, top, last_remainder, n, nfree, sysmem)
@@ -3331,11 +3331,6 @@ def dereference(addr):
     except gdb.MemoryError:
         pass
     return None
-
-
-def dereference_as_long(addr):
-    derefed = dereference(addr)
-    return long(derefed.address) if derefed is not None else 0
 
 
 def gef_convenience(value):
