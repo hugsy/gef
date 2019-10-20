@@ -2588,10 +2588,11 @@ def get_register(regname):
         regname = regname[1:]
         try:
             value = gdb.selected_frame().read_register(regname)
+            return long(value)
         except ValueError:
             return None
-
-        return long(value)
+        except gdb.error:
+            return None
 
 
 def get_path_from_info_proc():
