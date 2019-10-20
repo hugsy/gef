@@ -483,6 +483,7 @@ class Elf:
 
     ELF_32_BITS       = 0x01
     ELF_64_BITS       = 0x02
+    ELF_MAGIC         = b"\x7fELF"
 
     X86_64            = 0x3e
     X86_32            = 0x03
@@ -511,7 +512,7 @@ class Elf:
     OSABI_FREEBSD     = 0x09
     OSABI_OPENBSD     = 0x0C
 
-    e_magic           = b"\x7fELF"
+    e_magic           = ELF_MAGIC
     e_class           = ELF_32_BITS
     e_endianness      = LITTLE_ENDIAN
     e_eiversion       = None
@@ -570,6 +571,10 @@ class Elf:
             self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = struct.unpack("{}HHHH".format(endian), fd.read(8))
             self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack("{}HHH".format(endian), fd.read(6))
         return
+
+
+    def is_valid(self):
+        return self.e_magic == Elf.ELF_MAGIC
 
 
 class Instruction:
@@ -3106,6 +3111,7 @@ def set_arch(arch=None, default=None):
         "SPARC": SPARC, Elf.SPARC: SPARC,
         "SPARC64": SPARC64, Elf.SPARC64: SPARC64,
         "MIPS": MIPS, Elf.MIPS: MIPS,
+        "i386:x86-64": X86_64
     }
     global current_arch, current_elf
 
@@ -3116,9 +3122,13 @@ def set_arch(arch=None, default=None):
         except KeyError:
             raise OSError("Specified arch {:s} is not supported".format(arch.upper()))
 
-    current_elf = current_elf or get_elf_headers()
+    if not current_elf:
+        elf = get_elf_headers()
+        current_elf = elf if elf.is_valid() else None
+
+    arch_name = current_elf.e_machine if current_elf else get_arch()
     try:
-        current_arch = arches[current_elf.e_machine]()
+        current_arch = arches[arch_name]()
     except KeyError:
         if default:
             try:
