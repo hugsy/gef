@@ -2606,6 +2606,15 @@ def get_filename():
     return os.path.basename(gdb.current_progspace().filename)
 
 
+@lru_cache()
+def is_macho():
+    """Return True if the current file is a Mach-O binary."""
+    for x in gdb.execute("info file", to_string=True).splitlines():
+        if "file type mach-o" in x:
+            return True
+    return False
+
+
 def download_file(target, use_cache=False, local_name=None):
     """Download filename `target` inside the mirror tree inside the get_gef_setting("gef.tempdir").
     The tree architecture must be get_gef_setting("gef.tempdir")/gef/<local_pid>/<remote_filepath>.
@@ -2686,15 +2695,41 @@ def get_process_maps_linux(proc_map_file):
     return
 
 
+def get_mach_regions():
+    sp = current_arch.sp
+    for line in gdb.execute("info mach-regions", to_string=True).splitlines():
+        line = line.strip()
+        addr, perm, _ = line.split(" ", 2)
+        addr_start, addr_end = list(map(lambda x: long(x, 16), addr.split("-")))
+        perm = Permission.from_process_maps(perm.split("/")[0])
+
+        zone = file_lookup_address(addr_start)
+        if zone:
+            path = zone.filename
+        else:
+            path = "[stack]" if sp >= addr_start and sp < addr_end else ""
+
+        yield Section(page_start=addr_start,
+                      page_end=addr_end,
+                      offset=0,
+                      permission=perm,
+                      inode=None,
+                      path=path)
+    return
+
+
 @lru_cache()
 def get_process_maps():
-    """Parse the `/proc/pid/maps` file."""
+    """Return the mapped memory sections"""
 
     sections = []
     try:
-        pid = get_pid()
-        fpath = "/proc/{:d}/maps".format(pid)
-        sections = get_process_maps_linux(fpath)
+        if is_macho():
+            sections = get_mach_regions()
+        else:
+            pid = get_pid()
+            fpath = "/proc/{:d}/maps".format(pid)
+            sections = get_process_maps_linux(fpath)
         return list(sections)
 
     except FileNotFoundError as e:
