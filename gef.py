@@ -3193,7 +3193,7 @@ def is_arch(arch):
 def set_arch(arch=None, default=None):
     """Sets the current architecture.
     If an arch is explicitly specified, use that one, otherwise try to parse it
-    out of the ELF header. If that fails, and default is specified, select and
+    out of the current target. If that fails, and default is specified, select and
     set that arch.
     Return the selected arch, or raise an OSError.
     """
