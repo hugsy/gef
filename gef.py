@@ -1600,10 +1600,10 @@ class RISCV(Architecture):
     def is_branch_taken(self, insn):
         def long_to_twos_complement(v):
             """Convert a python long value to its two's complement."""
-            if is_elf32():
+            if is_32bit():
                 if v & 0x80000000:
                     return v - 0x100000000
-            elif is_elf64():
+            elif is_64bit():
                 if v & 0x8000000000000000:
                     return v - 0x10000000000000000
             else:
@@ -2517,20 +2517,20 @@ def only_if_gdb_version_higher_than(required_gdb_version):
 
 
 def use_stdtype():
-    if   is_elf32(): return "uint32_t"
-    elif is_elf64(): return "uint64_t"
+    if   is_32bit(): return "uint32_t"
+    elif is_64bit(): return "uint64_t"
     return "uint16_t"
 
 
 def use_default_type():
-    if   is_elf32(): return "unsigned int"
-    elif is_elf64(): return "unsigned long"
+    if   is_32bit(): return "unsigned int"
+    elif is_64bit(): return "unsigned long"
     return "unsigned short"
 
 
 def use_golang_type():
-    if   is_elf32(): return "uint32"
-    elif is_elf64(): return "uint64"
+    if   is_32bit(): return "uint32"
+    elif is_64bit(): return "uint64"
     return "uint16"
 
 
@@ -2652,7 +2652,7 @@ def download_file(target, use_cache=False, local_name=None):
     except gdb.error:
         # gdb-stub compat
         with open(local_name, "w") as f:
-            if is_elf32():
+            if is_32bit():
                 f.write("00000000-ffffffff rwxp 00000000 00:00 0                    {}\n".format(get_filepath()))
             else:
                 f.write("0000000000000000-ffffffffffffffff rwxp 00000000 00:00 0                    {}\n".format(get_filepath()))
@@ -3105,35 +3105,33 @@ def get_elf_headers(filename=None):
 
 
 @lru_cache()
-def is_elf64(filename=None):
-    """Checks if `filename` is an ELF64."""
-    elf = current_elf or get_elf_headers(filename)
-    return elf.e_class == Elf.ELF_64_BITS
+def is_64bit():
+    """Checks if current target is 64bit."""
+    voidptr = cached_lookup_type("void").pointer()
+    return voidptr.sizeof == 8
 
 
 @lru_cache()
-def is_elf32(filename=None):
-    """Checks if `filename` is an ELF32."""
-    elf = current_elf or get_elf_headers(filename)
-    return elf.e_class == Elf.ELF_32_BITS
+def is_32bit():
+    """Checks if current target is 32bit."""
+    voidptr = cached_lookup_type("void").pointer()
+    return voidptr.sizeof == 4
 
 
 @lru_cache()
-def is_x86_64(filename=None):
-    """Checks if `filename` is an x86-64 ELF."""
-    elf = current_elf or get_elf_headers(filename)
-    return elf.e_machine == Elf.X86_64
+def is_x86_64():
+    """Checks if current target is x86-64"""
+    return get_arch() == "i386:x86-64"
 
 
 @lru_cache()
-def is_x86_32(filename=None):
-    """Checks if `filename` is an x86-32 ELF."""
-    elf = current_elf or get_elf_headers(filename)
-    return elf.e_machine == Elf.X86_32
+def is_x86_32():
+    """Checks if current target is an x86-32"""
+    return get_arch() == "i386"
 
 @lru_cache()
-def is_x86(filename=None):
-    return is_x86_32(filename) or is_x86_64(filename)
+def is_x86():
+    return is_x86_32() or is_x86_64()
 
 
 @lru_cache()
@@ -3205,9 +3203,9 @@ def get_memory_alignment(in_bits=False):
     Finally, try the size of $pc.
     If `in_bits` is set to True, the result is returned in bits, otherwise in
     bytes."""
-    if is_elf32():
+    if is_32bit():
         return 4 if not in_bits else 32
-    elif is_elf64():
+    elif is_64bit():
         return 8 if not in_bits else 64
 
     res = cached_lookup_type("size_t")
@@ -8203,9 +8201,6 @@ class HexdumpCommand(GenericCommand):
 
 
     def _hexdump(self, start_addr, length, arrange_as, offset=0):
-        elf = get_elf_headers()
-        if elf is None:
-            return
         endianness = endian_str()
 
         base_address_color = get_gef_setting("theme.dereference_base_address")
