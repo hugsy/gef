@@ -2743,7 +2743,7 @@ def get_process_maps_linux(proc_map_file):
             inode = rest[0]
             pathname = rest[1].lstrip()
 
-        addr_start, addr_end = list(map(lambda x: long(x, 16), addr.split("-")))
+        addr_start, addr_end = [long(x, 16) for x in addr.split("-")]
         off = long(off, 16)
         perm = Permission.from_process_maps(perm)
 
@@ -2761,7 +2761,7 @@ def get_mach_regions():
     for line in gdb.execute("info mach-regions", to_string=True).splitlines():
         line = line.strip()
         addr, perm, _ = line.split(" ", 2)
-        addr_start, addr_end = list(map(lambda x: long(x, 16), addr.split("-")))
+        addr_start, addr_end = [long(x, 16) for x in addr.split("-")]
         perm = Permission.from_process_maps(perm.split("/")[0])
 
         zone = file_lookup_address(addr_start)
