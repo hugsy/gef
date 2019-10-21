@@ -1472,6 +1472,17 @@ def get_endian():
     raise EnvironmentError("Invalid endianess")
 
 
+@lru_cache()
+def get_entry_point():
+    """Return the binary entry point."""
+
+    for line in gdb.execute("info target", to_string=True).split("\n"):
+        if "Entry point:" in line:
+            return long(line.strip().split(" ")[-1], 16)
+
+    return None
+
+
 def is_big_endian():     return get_endian() == Elf.BIG_ENDIAN
 def is_little_endian():  return not is_big_endian()
 
@@ -7310,16 +7321,16 @@ class EntryPointBreakCommand(GenericCommand):
             bp.delete()
 
         # break at entry point
-        elf = get_elf_headers()
-        if elf is None:
+        entry = get_entry_point()
+        if entry is None:
             return
 
         if self.is_pie(fpath):
-            self.set_init_tbreak_pie(elf.e_entry, argv)
+            self.set_init_tbreak_pie(entry, argv)
             gdb.execute("continue")
             return
 
-        self.set_init_tbreak(elf.e_entry)
+        self.set_init_tbreak(entry)
         gdb.execute("run {}".format(" ".join(argv)))
         return
 
