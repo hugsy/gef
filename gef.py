@@ -1462,10 +1462,13 @@ def get_arch():
 @lru_cache()
 def get_endian():
     """Return the binary endianness."""
-    if is_alive():
-        return get_elf_headers().e_endianness
-    if gdb.execute("show endian", to_string=True).strip().split()[7] == "little" :
+
+    endian = gdb.execute("show endian", to_string=True).strip()
+    if "little endian" in endian:
         return Elf.LITTLE_ENDIAN
+    if "big endian" in endian:
+        return Elf.BIG_ENDIAN
+
     raise EnvironmentError("Invalid endianess")
 
 
@@ -3278,8 +3281,7 @@ def is_in_x86_kernel(address):
 
 @lru_cache()
 def endian_str():
-    elf = current_elf or get_elf_headers()
-    return "<" if elf.e_endianness == Elf.LITTLE_ENDIAN else ">"
+    return "<" if is_little_endian() else ">"
 
 
 @lru_cache()
