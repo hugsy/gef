@@ -587,7 +587,7 @@ class Elf:
 
     ELF_32_BITS       = 0x01
     ELF_64_BITS       = 0x02
-    ELF_MAGIC         = b"\x7fELF"
+    ELF_MAGIC         = 0x7f454c46
 
     X86_64            = 0x3e
     X86_32            = 0x03
