@@ -1,0 +1,19 @@
+# .readthedocs.yml
+#
+# Reference: https://docs.readthedocs.io/en/stable/config-file/v2.html
+
+
+version: 2
+
+mkdocs:
+  configuration: mkdocs.yml
+
+formats: all
+
+build:
+  image: latest
+
+python:
+  version: 3.7
+  install:
+    - requirements: ./requirements.txt

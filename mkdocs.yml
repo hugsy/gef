@@ -1,6 +1,6 @@
 site_name: GEF - GDB Enhanced Features documentation
 theme: readthedocs
-pages:
+nav:
 - Home: index.md
 - Configuration: config.md
 - Frequently Asked Questions: faq.md
@@ -23,13 +23,15 @@ pages:
 - Command format-string-helper: commands/format-string-helper.md
 - Command functions: commands/functions.md
 - Command gef-remote: commands/gef-remote.md
-- Command heap: commands/heap.md
+- Command got: commands/got.md
 - Command heap-analysis-helper: commands/heap-analysis-helper.md
+- Command heap: commands/heap.md
 - Command help: commands/help.md
 - Command hexdump: commands/hexdump.md
 - Command highlight: commands/highlight.md
 - Command hijack-fd: commands/hijack-fd.md
 - Command ida-interact: commands/ida-interact.md
+- Command is-syscall: commands/is-syscall.md
 - Command ksymaddr: commands/ksymaddr.md
 - Command memory: commands/memory.md
 - Command name-break: commands/name-break.md
@@ -49,6 +51,7 @@ pages:
 - Command set-permission: commands/set-permission.md
 - Command shellcode: commands/shellcode.md
 - Command stub: commands/stub.md
+- Command syscall-args: commands/syscall-args.md
 - Command theme: commands/theme.md
 - Command tmux-setup: commands/tmux-setup.md
 - Command trace-run: commands/trace-run.md
@@ -57,4 +60,3 @@ pages:
 - Command xfiles: commands/xfiles.md
 - Command xinfo: commands/xinfo.md
 - Command xor-memory: commands/xor-memory.md
-- Command got: commands/got.md

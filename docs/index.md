@@ -27,7 +27,7 @@ distros start pushing `gdb` compiled with Python3 support).
   * Suited for real-life apps debugging, exploit development, just as much as
     CTF (unlike _PEDA_ or _PwnDBG_)
 
-Check out the [Screenshot page](docs/screenshots.md) for more.
+Check out the [Screenshot page](./screenshots.md) for more.
 
 
 ## Setup ##
