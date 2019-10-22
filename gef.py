@@ -1387,6 +1387,7 @@ def gef_next_instruction(addr):
 def gef_disassemble(addr, nb_insn, nb_prev=0):
     """Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`.
     Return an iterator of Instruction objects."""
+    nb_insn = max(1, nb_insn)
     count = nb_insn + 1 if nb_insn & 1 else nb_insn
 
     if nb_prev:
