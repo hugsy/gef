@@ -102,9 +102,9 @@ structure to the specified address:
 
 This means that we can now create very easily new user-defined structures
 
-Watch the demonstration video on Asciinema:
+For a full demo, watch the following tutorial:
 
-[![asciicast](https://asciinema.org/a/bhsguibtf4iqyyuomp3vy8iv2.png)](https://asciinema.org/a/bhsguibtf4iqyyuomp3vy8iv2)
+[![yt-gef-pcustom](https://img.youtube.com/vi/pid2aW7Bt_w/0.jpg)](https://www.youtube.com/watch?v=pid2aW7Bt_w)
 
 Additionally, if you have successfully configured your IDA settings (see command
 `ida-interact`), you can also directly import the structure(s) that was(were)
