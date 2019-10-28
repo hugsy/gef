@@ -194,7 +194,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         target = "tests/binaries/heap-non-main.out"
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn("size=0x20, flags=PREV_INUSE|NON_MAIN_ARENA", res)
+        self.assertIn("size=0x20", res)
         return
 
     def test_cmd_heap_analysis(self):
