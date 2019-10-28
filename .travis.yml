@@ -5,7 +5,7 @@ dist: bionic
 
 arch:
   - amd64
-  - arm64
+#  - arm64
 os: linux
 
 
