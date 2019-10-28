@@ -1,0 +1,32 @@
+name: "IRC Notification"
+on: [push, pull_request, issues]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: irc push
+        uses: rectalogic/notify-irc@v1
+        if: github.event_name == 'push'
+        with:
+          channel: "##gef"
+          nickname: githubot
+          message: |
+            ${{ github.actor }} pushed ${{ github.event.ref }} ${{ github.event.compare }}
+            ${{ join(github.event.commits.*.message) }}
+      - name: irc pull request
+        uses: rectalogic/notify-irc@v1
+        if: github.event_name == 'pull_request'
+        with:
+          channel: "##gef"
+          nickname: githubot
+          message: |
+            ${{ github.actor }} opened PR ${{ github.event.html_url }}
+      - name: irc issue
+        uses: rectalogic/notify-irc@v1
+        if: github.event_name == 'issues'
+        with:
+          channel: "##gef"
+          nickname: githubot
+          message: |
+            ${{ github.actor }} opened issue ${{ github.event.html_url }}
