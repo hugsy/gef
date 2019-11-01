@@ -1009,9 +1009,9 @@ def get_libc_version():
     sections = get_process_maps()
     try:
         for section in sections:
-            if "libc-" in section.path:
+            if "libc" in section.path:
                 libc_version = tuple(int(_) for _ in
-                                     re.search(r"libc-(\d+)\.(\d+)\.so", section.path).groups())
+                                     re.search(r"libc6?[-_](\d+)\.(\d+)\.so", section.path).groups())
                 break
         else:
             libc_version = 0, 0
