@@ -15,8 +15,6 @@ gef➤ hijack-fd 1 /dev/null
 Will modify the current process file descriptors to redirect STDOUT to
 `/dev/null`.
 
-Check this asciicast for visual example:
-[![asciicast](https://asciinema.org/a/2o9bhveyikb1uvplwakjftxlq.png)](https://asciinema.org/a/2o9bhveyikb1uvplwakjftxlq)
 
 This command also supports connecting to an ip:port if it is provided as an argument. For example
 ```
@@ -24,5 +22,8 @@ gef➤ hijack-fd 0 localhost:8888
 ```
 Will redirect STDIN to localhost:8888
 
-There is also an example at:
-[![asciicast](https://asciinema.org/a/0dizAXevliwGYboibPUJmJntO.png)](https://asciinema.org/a/0dizAXevliwGYboibPUJmJntO)
+
+Check out the tutorial on GEF's YouTube channel:
+
+[![yt-tuto-hijack-fd](https://img.youtube.com/vi/Ss_QFeYkEvk/0.jpg)](https://www.youtube.com/watch?v=Ss_QFeYkEvk)
+
