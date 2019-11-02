@@ -37,6 +37,6 @@ of the entire section.
 
 ![mprotect-after](https://i.imgur.com/9MvyQi8.png)
 
-Or for a full demo video on a PowerPC VM:
-[![asciicast](https://asciinema.org/a/54noulja01k3cgctawjeio8xl.png)](https://asciinema.org/a/54noulja01k3cgctawjeio8xl)
+Or for a full demo video on an AARCH64 VM:
 
+[![set-permission-aarch64](https://img.youtube.com/vi/QqmfxIGzbmM/0.jpg)](https://www.youtube.com/watch?v=QqmfxIGzbmM)
