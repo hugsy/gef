@@ -206,10 +206,11 @@ __gef_default_main_arena__             = "main_arena"
 __gef_int_stream_buffer__              = None
 __gef_redirect_output_fd__             = None
 
+HOME_DIR = os.getenv("HOME")
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
-GEF_RC                                 = os.path.join(os.getenv("HOME"), ".gef.rc")
-GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
+GEF_RC                                 = os.path.join(HOME_DIR, ".gef.rc")
+GEF_TEMP_DIR                           = os.path.join(HOME_DIR, ".cache", "gef")
 GEF_MAX_STRING_LENGTH                  = 50
 
 GDB_MIN_VERSION                         = (7, 7)
