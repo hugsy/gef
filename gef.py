@@ -212,9 +212,8 @@ GEF_RC                                 = os.path.join(os.getenv("HOME"), ".gef.r
 GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
 GEF_MAX_STRING_LENGTH                  = 50
 
-GDB_MIN_VERSION                         = (7, 7)
-GDB_VERSION_MAJOR, GDB_VERSION_MINOR    = [int(_) for _ in re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()]
-GDB_VERSION                             = (GDB_VERSION_MAJOR, GDB_VERSION_MINOR)
+GDB_MIN_VERSION                        = (7, 7)
+GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
 
 current_elf  = None
 current_arch = None
