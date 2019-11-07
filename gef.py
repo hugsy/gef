@@ -67,6 +67,7 @@ import hashlib
 import imp
 import inspect
 import itertools
+import operator
 import os
 import platform
 import re
@@ -95,13 +96,18 @@ if PYTHON_MAJOR == 2:
     # Compat Py2/3 hacks
     def range(*args):
         """Replace range() builtin with an iterator version."""
-        if len(args) < 1:
-            raise TypeError()
-        start, end, step = 0, args[0], 1
-        if len(args) == 2: start, end = args
-        if len(args) == 3: start, end, step = args
+        if len(args) == 0:
+            raise TypeError('range expected 1 arguments, got 0')
+        if len(args) >= 4:
+            raise TypeError('range expected at most 3 arguments, got 4')
+        start, stop, step = 0, args[0], 1
+        if len(args) == 2: start, stop = args
+        if len(args) == 3: start, stop, step = args
+        if step == 0:
+            raise ValueError('range arg 3 must not be zero')
+        pred = operator.ge if step > 0 else operator.le
         for n in itertools.count(start=start, step=step):
-            if (step>0 and n >= end) or (step<0 and n<=end): break
+            if pred(n, stop): break
             yield n
 
     FileNotFoundError = IOError #pylint: disable=redefined-builtin
