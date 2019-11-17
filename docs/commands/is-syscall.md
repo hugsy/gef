@@ -14,4 +14,5 @@ gef➤ is-syscall
 ```
 
 Check this asciicast for visual example:
+
 [![asciicast](https://asciinema.org/a/BlrpsfzdLqNdycoxHuGkscYu6.png)](https://asciinema.org/a/BlrpsfzdLqNdycoxHuGkscYu6)
