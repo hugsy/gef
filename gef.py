@@ -9192,6 +9192,7 @@ class SyscallArgsCommand(GenericCommand):
         if path is None:
             err("Cannot open '{0}': check directory and/or `gef config {0}` setting, "
                 "currently: '{1}'".format("syscall-args.path", self.get_setting("path")))
+            info("This setting can be configured by running gef-extras' install script.")
             return
 
         arch = current_arch.__class__.__name__
