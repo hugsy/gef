@@ -9215,9 +9215,9 @@ class SyscallArgsCommand(GenericCommand):
 
         headers = ["Parameter", "Register", "Value"]
         param_names = [re.split(r" |\*", p)[-1] for p in parameters]
-        info(Color.colorify("{:<28} {:<28} {}".format(*headers), color))
+        info(Color.colorify("{:<20} {:<20} {}".format(*headers), color))
         for name, register, value in zip(param_names, registers, values):
-            line = "    {:<15} {:<15} 0x{:x}".format(name, register, value)
+            line = "    {:<20} {:<20} 0x{:x}".format(name, register, value)
 
             addrs = DereferenceCommand.dereference_from(value)
 
