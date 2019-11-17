@@ -43,4 +43,5 @@ gef➤  syscall-args
 ```
 
 Check this asciicast for visual example:
-[![asciicast](https://asciinema.org/a/gNwy6khs3rkQAPyv1CMrFAnlf.png)](https://asciinema.org/a/gNwy6khs3rkQAPyv1CMrFAnlf)
+
+[![asciicast](https://asciinema.org/a/BlrpsfzdLqNdycoxHuGkscYu6.png)](https://asciinema.org/a/BlrpsfzdLqNdycoxHuGkscYu6)
