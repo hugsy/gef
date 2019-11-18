@@ -30,4 +30,4 @@ jobs:
           channel: "##gef"
           nickname: githubot
           message: |
-            ${{ github.actor }} ${{ github.event.action }} issue #number: "${{ github.event.issue.title }}" (${{ github.event.issue.url }})
+            ${{ github.actor }} ${{ github.event.action }} issue #number: "${{ github.event.issue.title }}" (${{ github.event.issue.html_url }})
