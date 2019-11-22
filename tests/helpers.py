@@ -1,7 +1,7 @@
 import re
 import subprocess
 
-PATH_TO_DEFAULT_BINARY = "./tests/binaries/default.out"
+PATH_TO_DEFAULT_BINARY = "/tmp/default.out"
 STRIP_ANSI_DEFAULT = True
 
 def ansi_clean(s):

@@ -2,10 +2,10 @@ CC              =       gcc
 DEBUG           =       1
 CFLAGS          +=      -Wall
 SOURCES         =       $(wildcard *.c)
-COMPILED        =       $(SOURCES:.c=.o)
 LINKED          =       $(SOURCES:.c=.out)
 LDFLAGS         =
-EXTRA_FLAGS	=
+EXTRA_FLAGS     =
+BINDIR          =       /tmp
 
 ifeq ($(TARGET), x86)
 CFLAGS          +=      -m32
@@ -25,11 +25,11 @@ all: $(LINKED)
 
 %.out : %.c
 	@echo "[+] Building '$@'"
-	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -o $@ $? $(LDFLAGS)
+	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -o $(BINDIR)/$@ $? $(LDFLAGS)
 
 clean :
 	@echo "[+] Cleaning stuff"
-	@rm -f $(COMPILED) $(LINKED)
+	@cd $(BINDIR) && rm -f $(LINKED)
 
 format-string-helper.out: EXTRA_FLAGS := -Wno-format-security
 

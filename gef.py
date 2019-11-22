@@ -1250,15 +1250,17 @@ def set_gef_setting(name, value, _type=None, _desc=None):
 
 def gef_makedirs(path, mode=0o755):
     """Recursive mkdir() creation. If successful, return the absolute path of the directory created."""
-    abspath = os.path.realpath(path)
+    abspath = os.path.expanduser(path)
+    abspath = os.path.realpath(abspath)
+
     if os.path.isdir(abspath):
         return abspath
 
     if PYTHON_MAJOR == 3:
-        os.makedirs(path, mode=mode, exist_ok=True) #pylint: disable=unexpected-keyword-arg
+        os.makedirs(abspath, mode=mode, exist_ok=True) #pylint: disable=unexpected-keyword-arg
     else:
         try:
-            os.makedirs(path, mode=mode)
+            os.makedirs(abspath, mode=mode)
         except os.error:
             pass
     return abspath
@@ -2629,12 +2631,12 @@ def get_filename():
 
 
 def download_file(target, use_cache=False, local_name=None):
-    """Download filename `target` inside the mirror tree inside the GEF_TEMP_DIR.
-    The tree architecture must be GEF_TEMP_DIR/gef/<local_pid>/<remote_filepath>.
+    """Download filename `target` inside the mirror tree inside the get_gef_setting("gef.tempdir").
+    The tree architecture must be get_gef_setting("gef.tempdir")/gef/<local_pid>/<remote_filepath>.
     This allow a "chroot-like" tree format."""
 
     try:
-        local_root = os.path.sep.join([GEF_TEMP_DIR, str(get_pid())])
+        local_root = os.path.sep.join([get_gef_setting("gef.tempdir"), str(get_pid())])
         if local_name is None:
             local_path = os.path.sep.join([local_root, os.path.dirname(target)])
             local_name = os.path.sep.join([local_path, os.path.basename(target)])
@@ -4609,7 +4611,7 @@ class PCustomCommand(GenericCommand):
 
     def __init__(self):
         super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL)
-        self.add_setting("struct_path", os.path.join(GEF_TEMP_DIR, "structs"),
+        self.add_setting("struct_path", os.path.join(get_gef_setting("gef.tempdir"), "structs"),
                          "Path to store/load the structure ctypes files")
         return
 
@@ -5873,7 +5875,7 @@ class RemoteCommand(GenericCommand):
             err("Source binary is not readable")
             return
 
-        directory  = os.path.sep.join([GEF_TEMP_DIR, str(get_pid())])
+        directory  = os.path.sep.join([get_gef_setting("gef.tempdir"), str(get_pid())])
         # gdb.execute("file {:s}".format(infos["exe"]))
         self.add_setting("root", directory, "Path to store the remote data")
         ok("Remote information loaded to temporary path '{:s}'".format(directory))
@@ -9181,7 +9183,7 @@ class SyscallArgsCommand(GenericCommand):
 
     def __init__(self):
         super(SyscallArgsCommand, self).__init__()
-        self.add_setting("path", os.path.join(GEF_TEMP_DIR, "syscall-tables"),
+        self.add_setting("path", os.path.join(get_gef_setting("gef.tempdir"), "syscall-tables"),
                          "Path to store/load the syscall tables files")
         return
 
@@ -9416,6 +9418,7 @@ class GefCommand(gdb.Command):
         set_gef_setting("gef.autosave_breakpoints_file", "", str, "Automatically save and restore breakpoints")
         set_gef_setting("gef.extra_plugins_dir", "", str, "Autoload additional GEF commands from external directory")
         set_gef_setting("gef.disable_color", False, bool, "Disable all colors in GEF")
+        set_gef_setting("gef.tempdir", GEF_TEMP_DIR, str, "Directory to use for temporary/cache content")
         self.loaded_commands = []
         self.loaded_functions = []
         self.missing_commands = {}
@@ -9443,7 +9446,6 @@ class GefCommand(gdb.Command):
             # if here, at least one extra plugin was loaded, so we need to restore
             # the settings once more
             gdb.execute("gef restore quiet")
-
         return
 
 
@@ -9799,6 +9801,9 @@ class GefRestoreCommand(gdb.Command):
                 except Exception:
                     pass
 
+        # ensure that the temporary directory always exists
+        gef_makedirs(__config__["gef.tempdir"][0])
+
         if not quiet:
             ok("Configuration from '{:s}' restored".format(Color.colorify(GEF_RC, "bold blue")))
         return
@@ -10067,13 +10072,11 @@ if __name__  == "__main__":
         # SIGALRM will simply display a message, but gdb won't forward the signal to the process
         gdb.execute("handle SIGALRM print nopass")
 
-        # saving GDB indexes in GEF tempdir
-        gef_makedirs(GEF_TEMP_DIR)
-        gdb.execute("save gdb-index {}".format(GEF_TEMP_DIR))
-
         # load GEF
         __gef__ = GefCommand()
         __gef__.setup()
+
+        gdb.execute("save gdb-index {}".format(get_gef_setting("gef.tempdir")))
 
         # gdb events configuration
         gef_on_continue_hook(continue_handler)
