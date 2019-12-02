@@ -40,6 +40,7 @@ https://heapme.f2tc.com/wzqkgs5KNBX0ZZQ3moay
 
 * Interactive two-way communication between `HeapME` and `GEF`
 * Create a standard way of (un)hooking to the different `GEF` heap-analysis-helper functions
+* Create a GEF setting that will allow heap-analysis-helper commands to return an object besides using gef_print
 
 ## Instant Setup ##
 
