@@ -3640,6 +3640,11 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
 
         # add it to alloc-ed list
         __heap_allocated_list__.append(item)
+
+        if get_gef_setting("heapme.enabled"):
+            heapme_events.append({'type': 'malloc', 'data': item})
+            heapme_update()
+
         return False
 
 
@@ -3699,6 +3704,10 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
             # add new item to alloc-ed list
             __heap_allocated_list__.append(item)
 
+        if get_gef_setting("heapme.enabled"):
+            heapme_events.append({'type': 'realloc', 'data': item})
+            heapme_update()
+
         return False
 
 
@@ -3756,6 +3765,10 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
 
         # 2. add it to free-ed list
         __heap_freed_list__.append(item)
+
+        if get_gef_setting("heapme.enabled"):
+            heapme_events.append({'type': 'free', 'data': item})
+            heapme_update()
 
         self.retbp = None
         if check_uaf:
