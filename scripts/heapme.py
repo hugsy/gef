@@ -10,7 +10,7 @@ import time
 import json
 import requests
 
-heapme_events = []
+_heapme_events = []
 
 _hm_lock = threading.Lock()
 _hm_thr_event = threading.Event()
@@ -50,7 +50,7 @@ class HeapMeInit(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        global heapme_events, thr_updater
+        global _heapme_events, thr_updater
 
         if not argv or len(argv) != 2:
             self.usage()
@@ -90,7 +90,7 @@ class HeapMeInit(GenericCommand):
 
         _sec = checksec(get_filepath())
 
-        heapme_events.append({
+        _heapme_events.append({
             'type': 'begin',
             'filepath': get_filepath(),
             'checksec': {
@@ -113,6 +113,24 @@ class HeapMeInit(GenericCommand):
 
         heapme_push()
 
+    @gef_heap_event("__libc_malloc", "__libc_calloc", "__libc_realloc", "__libc_free")
+    def heap_event(**kwargs):
+        global _heapme_events
+
+        if not get_gef_setting("heapme.enabled"):
+            err("HeapME is not enabled, run 'heapme init' first")
+            return
+
+        _heapme_events.append({
+            "type": kwargs["name"],
+            "data": {
+                "address": kwargs["address"],
+                "size": -1 if kwargs["name"] == "__libc_free" else kwargs["size"]
+            }
+        })
+
+        heapme_update()
+
     def confirm(self, msg):
 
         valid = { "y": True, "yes": True, "n": False, "no": False }
@@ -126,11 +144,11 @@ class HeapMeInit(GenericCommand):
                 print("Please respond with 'y' or 'n' (or 'yes' or 'no')")
 
     def clean(self, event):
-        global heapme_events, _hm_stop_running
+        global _heapme_events, _hm_stop_running
 
         print("Hold on, {0} is exiting cleanly".format(Color.colorify("HeapME", "blue")), end="...")
 
-        heapme_events.append({'type': 'done'})
+        _heapme_events.append({'type': 'done'})
         heapme_push()
 
         if get_gef_setting("heapme.push_on_update"):
@@ -208,7 +226,7 @@ def _get_heap_segment():
 
 def heapme_update():
 
-    global heapme_events, _hm_lock
+    global _heapme_events, _hm_lock
 
     #Used to restore previous gef.disable_color setting
     _prev_gef_disable_color = get_gef_setting("gef.disable_color")
@@ -243,7 +261,7 @@ def heapme_update():
     ]
 
     _hm_lock.acquire()
-    heapme_events.extend(_new_event)
+    _heapme_events.extend(_new_event)
     _hm_lock.release()
 
     #Restore previous setting
@@ -253,7 +271,7 @@ def heapme_update():
         _hm_thr_event.set()
 
 def heapme_push():
-    global heapme_events, _hm_lock, _hm_thr_event
+    global _heapme_events, _hm_lock, _hm_thr_event
 
     if not get_gef_setting("heapme.enabled"):
         err("HeapME is not enabled, run 'heapme init' first")
@@ -261,18 +279,18 @@ def heapme_push():
 
     _hm_lock.acquire()
 
-    if not heapme_events:
+    if not _heapme_events:
         _hm_lock.release()
         return
 
-    res = requests.post(get_gef_setting("heapme.url"), json={ 'events': heapme_events })
+    res = requests.post(get_gef_setting("heapme.url"), json={ 'events': _heapme_events })
 
     if res.status_code != 200:
         print("{0:s}: Error uploading event".format(Color.colorify("HeapME", "blue")))
         _hm_lock.release()
         return
 
-    heapme_events = []
+    _heapme_events = []
 
     _hm_lock.release()
     _hm_thr_event.clear()
@@ -292,7 +310,7 @@ class HeapmeLogServerHandler(BaseHTTPRequestHandler):
                 self.send_error(400, "'msg' field not found")
                 return
 
-            heapme_events.append({
+            _heapme_events.append({
                 'type': 'log',
                 'data': obj['msg']
             })

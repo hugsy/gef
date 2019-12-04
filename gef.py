@@ -198,6 +198,7 @@ __context_messages__                   = []
 __heap_allocated_list__                = []
 __heap_freed_list__                    = []
 __heap_uaf_watchpoints__               = []
+__heap_hooks__                         = {}
 __pie_breakpoints__                    = {}
 __pie_counter__                        = 1
 __gef_remote__                         = None
@@ -3436,6 +3437,18 @@ def gef_on_new_hook(func): return gdb.events.new_objfile.connect(func)
 @only_if_events_supported("new_objfile")
 def gef_on_new_unhook(func): return gdb.events.new_objfile.disconnect(func)
 
+def gef_heap_event(*args):
+    def hook(func):
+        global __heap_hooks__
+
+        for arg in args:
+            if arg not in __heap_hooks__:
+                __heap_hooks__[arg] = []
+
+            __heap_hooks__[arg].append(func)
+
+        return func
+    return hook
 
 #
 # Virtual breakpoints
@@ -3641,9 +3654,10 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         # add it to alloc-ed list
         __heap_allocated_list__.append(item)
 
-        if get_gef_setting("heapme.enabled"):
-            heapme_events.append({'type': 'malloc', 'data': item})
-            heapme_update()
+        # Execute functions registered to this event
+        if self.name in __heap_hooks__:
+            for fn in __heap_hooks__[self.name]:
+                fn(name=self.name, address=loc, size=size)
 
         return False
 
@@ -3704,9 +3718,10 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
             # add new item to alloc-ed list
             __heap_allocated_list__.append(item)
 
-        if get_gef_setting("heapme.enabled"):
-            heapme_events.append({'type': 'realloc', 'data': item})
-            heapme_update()
+        # Execute functions registered to this event
+        if "__libc_realloc" in __heap_hooks__:
+            for fn in __heap_hooks__["__libc_realloc"]:
+                fn(name="__libc_realloc", address=newloc, size=self.size)
 
         return False
 
@@ -3766,14 +3781,16 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
         # 2. add it to free-ed list
         __heap_freed_list__.append(item)
 
-        if get_gef_setting("heapme.enabled"):
-            heapme_events.append({'type': 'free', 'data': item})
-            heapme_update()
-
         self.retbp = None
         if check_uaf:
             # 3. (opt.) add a watchpoint on pointer
             self.retbp = TraceFreeRetBreakpoint(addr)
+
+        # Execute functions registered to this event
+        if "__libc_free" in __heap_hooks__:
+            for fn in __heap_hooks__["__libc_free"]:
+                fn(name="__libc_free", address=addr)
+
         return False
 
 
