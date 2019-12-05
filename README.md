@@ -1,39 +1,3 @@
-
-![gef-context](https://heapme.f2tc.com/img/heapme-gdb-console.png)
-
-## About this fork ##
-
-`GEF` script and heap-analysis-helper patches to integrate with `HeapME` _(Heap Made Easy)_: https://heapme.f2tc.com/
-
-* malloc/calloc/realloc/free updates the HeapME events array.
-* One thread is dedicated to uploading events in groups to improve speed and reduce network overhead.
-* Local HTTP Log Server will receive logs sent form your exploit script, and it will add these logs to the event queue to be uploaded in the correct order.
-
-## How to use ##
-1. Register and Login to https://heapme.f2tc.com/
-2. Create a HeapME URL + Key
-3. Load the heapme.py GEF script: \
-`gef➤  source gef/scripts/heapme.py`
-4. Execute `heapme init https://heapme.f2tc.com/<id> <key>` after `heap-analysis-helper`
-5. Access and share the read-only page: `https://heapme.f2tc.com/<id>`
-
-### Sample HeapME URL ###
-
-[shellphish / how2heap / first_fit.c](https://github.com/shellphish/how2heap/blob/master/first_fit.c) demonstrating glibc malloc's first-fit behavior:
-
-https://heapme.f2tc.com/wzqkgs5KNBX0ZZQ3moay
-
-### HeapME Commands ###
-* __heapme init &lt;id&gt; &lt;key&gt;__: Connect to the HeapMe URL and begins tracking dynamic heap allocation.
-* __heapme watch &lt;address&gt;__: Updates the heap layout when this breakpoint is hit.
-* __heapme push__: Uploads all events to the HeapME URL on-demand.
-
-### TODO ###
-
-* Interactive two-way communication between `HeapME` and `GEF`
-* Create a standard way of (un)hooking to the different `GEF` heap-analysis-helper functions
-* Create a GEF setting that will allow heap-analysis-helper commands to return an object besides using gef_print
-
 # GDB Enhanced Features (a.k.a. GEF)
 
 <p align="center">
@@ -41,6 +5,9 @@ https://heapme.f2tc.com/wzqkgs5KNBX0ZZQ3moay
 </p>
 
 `GEF` (pronounced ʤɛf - "Jeff") is a set of commands for x86/64, ARM, MIPS, PowerPC and SPARC to assist exploit developers and reverse-engineers when using old school GDB. It provides additional features to GDB using the Python API to assist during the process of dynamic analysis and exploit development. Application developers will also benefit from it, as GEF lifts a great part of regular GDB obscurity, avoiding repeating traditional commands, or bringing out the relevant information from the debugging runtime.
+
+![gef-context](https://i.imgur.com/E3EuQPs.png)
+
 
 ## Instant Setup ##
 

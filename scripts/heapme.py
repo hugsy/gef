@@ -2,6 +2,15 @@
 Heap Made Easy - Heap Analysis and Collaboration Tool
 https://heapme.f2tc.com/
 
+HeapME is a tool that helps simplify heap analysis and collaboration through an intuitive web interface. 
+
+Features:
+- GEF patches to allow scripts to register functions to malloc, calloc, realloc and free events.
+- One thread is dedicated to uploading events to the HeapME server in groups. This improves debugging speed and reduces network overhead.
+- A local HTTP Log Server will receive logs sent form the exploit code, and it will add these logs to the event queue to be uploaded in the correct order.
+
+Sample URL demonstrating glibc malloc's first-fit behavior using GEF and HeapME: https://heapme.f2tc.com/wzqkgs5KNBX0ZZQ3moay
+
 @htejeda
 """
 from http.server import HTTPServer, BaseHTTPRequestHandler
