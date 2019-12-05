@@ -108,8 +108,11 @@ class HeapMeInit(GenericCommand):
         set_gef_setting("heapme.url", _heapme_url, str, "HeapME URL")
         gef_on_exit_hook(self.clean)
 
-        hm_thr_updater.start()
-        hm_thr_log_srv.start()
+        if not hm_thr_updater.is_alive():
+            hm_thr_updater.start()
+
+        if not hm_thr_log_srv.is_alive():
+            hm_thr_log_srv.start()
 
         heapme_push()
 
