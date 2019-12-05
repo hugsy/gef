@@ -5,11 +5,11 @@
 
 `GEF` script and heap-analysis-helper patches to integrate with `HeapME` _(Heap Made Easy)_: https://heapme.f2tc.com/
 
-* malloc/calloc/realloc/free updates the HeapME events array via non-standard BP function hooks.
+* malloc/calloc/realloc/free updates the HeapME events array.
 * One thread is dedicated to uploading events in groups to improve speed and reduce network overhead.
 * Local HTTP Log Server will receive logs sent form your exploit script, and it will add these logs to the event queue to be uploaded in the correct order.
 
-## How to use: ##
+## How to use ##
 1. Register and Login to https://heapme.f2tc.com/
 2. Create a HeapME URL + Key
 3. Load the heapme.py GEF script: \
@@ -17,18 +17,18 @@
 4. Execute `heapme init https://heapme.f2tc.com/<id> <key>` after `heap-analysis-helper`
 5. Access and share the read-only page: `https://heapme.f2tc.com/<id>`
 
-### Sample HeapME URL: ###
+### Sample HeapME URL ###
 
 [shellphish / how2heap / first_fit.c](https://github.com/shellphish/how2heap/blob/master/first_fit.c) demonstrating glibc malloc's first-fit behavior:
 
 https://heapme.f2tc.com/wzqkgs5KNBX0ZZQ3moay
 
-### HeapME Commands: ###
+### HeapME Commands ###
 * __heapme init &lt;id&gt; &lt;key&gt;__: Connect to the HeapMe URL and begins tracking dynamic heap allocation.
 * __heapme watch &lt;address&gt;__: Updates the heap layout when this breakpoint is hit.
 * __heapme push__: Uploads all events to the HeapME URL on-demand.
 
-### TODO: ###
+### TODO ###
 
 * Interactive two-way communication between `HeapME` and `GEF`
 * Create a standard way of (un)hooking to the different `GEF` heap-analysis-helper functions
