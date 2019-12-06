@@ -7348,7 +7348,8 @@ class EntryPointBreakCommand(GenericCommand):
         return self.set_init_tbreak(base_address + addr)
 
     def is_pie(self, fpath):
-        return checksec(fpath)["PIE"]
+        checksec_status = checksec(fpath)
+        return checksec_status and checksec_status["PIE"]
 
 
 @register_command
@@ -9158,6 +9159,10 @@ class GotCommand(GenericCommand):
                                                        "been resolved")
         self.add_setting("function_not_resolved", "yellow", "Line color of the got command output if the function has "
                                                        "not been resolved")
+        return
+
+    def pre_load(self):
+        which("readelf")
         return
 
     def get_jmp_slots(self, readelf, filename):
