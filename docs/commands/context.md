@@ -49,7 +49,7 @@ section name with `-` or just omit it.
 ```
 gef➤ gef config context.layout "-legend regs stack code args -source -threads -trace extra memory"
 ```
-This configuration will not display the `source`, `threads`, and `trace` sections.
+This configuration will not display the `legend`, `source`, `threads`, and `trace` sections.
 
 The `memory` pane will display the content of all locations specified by the
 `memory` command. For instance,
