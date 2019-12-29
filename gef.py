@@ -1737,7 +1737,7 @@ class ARM(Architecture):
     @lru_cache()
     def is_thumb(self):
         """Determine if the machine is currently in THUMB mode."""
-        return is_alive() and get_register("$cpsr") & (1<<5)
+        return is_alive() and get_register(self.flag_register) & (1<<5)
 
     @property
     def pc(self):
