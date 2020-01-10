@@ -128,6 +128,13 @@ shown when running the `gef missing` command.
 To see the proper stacktrace, simply open a Python interpreter and try importing
 the module. This will show you an error.
 
+This is **not** an error or bug in GEF. As a matter of fact, GEF doesn't need any 
+of those external modules to run. However, the quickest way to solve this issue would 
+be simply to run the [`update-trinity`](https://github.com/hugsy/stuff/blob/master/update-trinity.sh) 
+script, which will download, compile and install the latest versions of `capstone`, 
+`keystone` and `unicorn`, allowing also other modules relying on them (such as `ropper`)
+to run smoothly.
+
 
 ## I want to contribute, where should I head first? ##
 
