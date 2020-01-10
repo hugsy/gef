@@ -1023,12 +1023,14 @@ def get_libc_version():
                 libc_version = tuple(int(_) for _ in
                                      re.search(r"libc6?[-_](\d+)\.(\d+)\.so", section.path).groups())
             except AttributeError:
-                if os.access(section.path, os.R_OK):
+                try:
                     with open(section.path, "rb") as f:
                         data = f.read()
                     for match in re.finditer(pattern_libc_ver, data):
                         libc_version = tuple(int(_) for _ in match.group().split(b" ")[-1].split(b"."))
                         break
+                except OSError:
+                    pass
             break
     return libc_version
 
