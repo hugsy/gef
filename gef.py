@@ -356,12 +356,20 @@ def bufferize(f):
             redirect = get_gef_setting("context.redirect")
             if redirect.startswith("/dev/pts/"):
                 if not __gef_redirect_output_fd__:
+                    # if the FD has never been open, open it
+                    fd = open(redirect, "wt")
+                    __gef_redirect_output_fd__ = fd
+                elif redirect != __gef_redirect_output_fd__.name:
+                    # if the user has changed the redirect setting during runtime, update the state
+                    __gef_redirect_output_fd__.close()
                     fd = open(redirect, "wt")
                     __gef_redirect_output_fd__ = fd
                 else:
+                    # otherwise, keep using it
                     fd = __gef_redirect_output_fd__
             else:
                 fd = sys.stdout
+                __gef_redirect_output_fd__ = None
 
             if __gef_redirect_output_fd__ and fd.closed:
                 # if the tty was closed, revert back to stdout
