@@ -1026,9 +1026,9 @@ def get_libc_version():
                 if os.access(section.path, os.R_OK):
                     with open(section.path, "rb") as f:
                         data = f.read()
-                        for match in re.finditer(pattern_libc_ver, data):
-                            libc_version = tuple(int(_) for _ in match.group().split(b" ")[-1].split(b"."))
-                            break
+                    for match in re.finditer(pattern_libc_ver, data):
+                        libc_version = tuple(int(_) for _ in match.group().split(b" ")[-1].split(b"."))
+                        break
             break
     return libc_version
 
