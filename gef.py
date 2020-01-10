@@ -1011,7 +1011,7 @@ class GlibcChunk:
         return "\n".join(msg) + "\n"
 
 
-pattern_libc_ver = re.compile(b"glibc (\d+)\.(\d+)")
+pattern_libc_ver = re.compile(rb"glibc (\d+)\.(\d+)")
 
 @lru_cache()
 def get_libc_version():
