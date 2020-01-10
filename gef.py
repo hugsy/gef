@@ -1024,6 +1024,7 @@ def get_libc_version():
                                      re.search(r"libc6?[-_](\d+)\.(\d+)\.so", section.path).groups())
             except AttributeError:
                 try:
+                    data = b""
                     with open(section.path, "rb") as f:
                         data = f.read()
                     for match in re.finditer(pattern_libc_ver, data):
