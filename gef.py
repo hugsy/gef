@@ -6583,7 +6583,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         bins = {}
         for i in range(63, 126):
             nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, i, "large_")
-            if nb_chunk <= 0:
+            if nb_chunk < 0:
                 break
             if nb_chunk > 0:
                 bins[i] = nb_chunk
