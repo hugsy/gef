@@ -1011,19 +1011,28 @@ class GlibcChunk:
         return "\n".join(msg) + "\n"
 
 
+pattern_libc_ver = re.compile(rb"glibc (\d+)\.(\d+)")
+
 @lru_cache()
 def get_libc_version():
     sections = get_process_maps()
-    try:
-        for section in sections:
-            if "libc" in section.path:
+    libc_version = 0, 0
+    for section in sections:
+        if "libc" in section.path:
+            try:
                 libc_version = tuple(int(_) for _ in
                                      re.search(r"libc6?[-_](\d+)\.(\d+)\.so", section.path).groups())
-                break
-        else:
-            libc_version = 0, 0
-    except AttributeError:
-        libc_version = 0, 0
+            except AttributeError:
+                try:
+                    data = b""
+                    with open(section.path, "rb") as f:
+                        data = f.read()
+                    for match in re.finditer(pattern_libc_ver, data):
+                        libc_version = tuple(int(_) for _ in match.group().split(b" ")[-1].split(b"."))
+                        break
+                except OSError:
+                    pass
+            break
     return libc_version
 
 
