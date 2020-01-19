@@ -1500,6 +1500,12 @@ def checksec(filename):
         err("Missing `readelf`")
         return
 
+    try:
+        gef_execute_external([readelf, "-h", filename])
+    except Exception:
+        err("`readelf` failed to parse the binary")
+        return
+
     def __check_security_property(opt, filename, pattern):
         cmd   = [readelf,]
         cmd  += opt.split()
