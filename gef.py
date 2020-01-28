@@ -5672,7 +5672,7 @@ def reset():
 
         vmmap = get_process_maps()
         if not vmmap:
-            warn("An error occured when reading memory map.")
+            warn("An error occurred when reading memory map.")
             return
 
         if verbose:
