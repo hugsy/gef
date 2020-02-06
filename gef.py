@@ -16,7 +16,7 @@
 # (such as /proc/<pid>). As a consequence, some of the features might not work
 # on custom or hardened systems such as GrSec.
 #
-# It has full support for both Python2 and Python3 and works on
+# Since January 2020, GEF solely support GDB compiled with Python3 and was tested on
 #   * x86-32 & x86-64
 #   * arm v5,v6,v7
 #   * aarch64 (armv8)
@@ -24,14 +24,15 @@
 #   * powerpc & powerpc64
 #   * sparc & sparc64(v9)
 #
-# Requires GDB 7.x compiled with Python (2.x, or 3.x)
+# For GEF with Python2 (only) support was moved to the GEF-Legacy
+# (https://github.com/hugsy/gef-legacy)
 #
 # To start: in gdb, type `source /path/to/gef.py`
 #
 #######################################################################################
 #
 # gef is distributed under the MIT License (MIT)
-# Copyright (c) 2013-2019 crazy rabbidz
+# Copyright (c) 2013-2020 crazy rabbidz
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -80,68 +81,25 @@ import sys
 import tempfile
 import time
 import traceback
+import configparser
+import xmlrpc.client as xmlrpclib #pylint: disable=import-error
 
+from html.parser import HTMLParser #pylint: disable=import-error
+from io import StringIO
+from urllib.request import urlopen #pylint: disable=import-error,no-name-in-module
 
-PYTHON_MAJOR = sys.version_info[0]
+lru_cache = functools.lru_cache #pylint: disable=no-member
 
-
-if PYTHON_MAJOR == 2:
-    from HTMLParser import HTMLParser #pylint: disable=import-error
-    from cStringIO import StringIO #pylint: disable=import-error
-    from urllib import urlopen #pylint: disable=no-name-in-module
-    import ConfigParser as configparser #pylint: disable=import-error
-    import xmlrpclib #pylint: disable=import-error
-
-    # Compat Py2/3 hacks
-    def range(*args):
-        """Replace range() builtin with an iterator version."""
-        if len(args) < 1:
-            raise TypeError()
-        start, end, step = 0, args[0], 1
-        if len(args) == 2: start, end = args
-        if len(args) == 3: start, end, step = args
-        for n in itertools.count(start=start, step=step):
-            if (step>0 and n >= end) or (step<0 and n<=end): break
-            yield n
-
-    FileNotFoundError = IOError #pylint: disable=redefined-builtin
-    ConnectionRefusedError = socket.error #pylint: disable=redefined-builtin
-
-    LEFT_ARROW = "<-"
-    RIGHT_ARROW = "->"
-    DOWN_ARROW = "\\->"
-    HORIZONTAL_LINE = "-"
-    VERTICAL_LINE = "|"
-    CROSS = "x"
-    TICK = "v"
-    GEF_PROMPT = "gef> "
-    GEF_PROMPT_ON = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
-    GEF_PROMPT_OFF = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
-
-elif PYTHON_MAJOR == 3:
-    from html.parser import HTMLParser #pylint: disable=import-error
-    from io import StringIO
-    from urllib.request import urlopen #pylint: disable=import-error,no-name-in-module
-    import configparser
-    import xmlrpc.client as xmlrpclib #pylint: disable=import-error
-
-    # Compat Py2/3 hack
-    long = int
-    unicode = str
-
-    LEFT_ARROW = " \u2190 "
-    RIGHT_ARROW = " \u2192 "
-    DOWN_ARROW = "\u21b3"
-    HORIZONTAL_LINE = "\u2500"
-    VERTICAL_LINE = "\u2502"
-    CROSS = "\u2718 "
-    TICK = "\u2713 "
-    GEF_PROMPT = "gef\u27a4  "
-    GEF_PROMPT_ON = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
-    GEF_PROMPT_OFF = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
-
-else:
-    raise Exception("WTF is this Python version??")
+LEFT_ARROW = " \u2190 "
+RIGHT_ARROW = " \u2192 "
+DOWN_ARROW = "\u21b3"
+HORIZONTAL_LINE = "\u2500"
+VERTICAL_LINE = "\u2502"
+CROSS = "\u2718 "
+TICK = "\u2713 "
+GEF_PROMPT = "gef\u27a4  "
+GEF_PROMPT_ON = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
+GEF_PROMPT_OFF = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
 
 
 def http_get(url):
@@ -219,72 +177,8 @@ current_elf  = None
 current_arch = None
 
 highlight_table = {}
-ANSI_SPLIT_RE = "(\033\[[\d;]*m)"
+ANSI_SPLIT_RE = r"(\033\[[\d;]*m)"
 
-if PYTHON_MAJOR==3:
-    lru_cache = functools.lru_cache #pylint: disable=no-member
-else:
-    def lru_cache(maxsize = 128):
-        """Port of the Python3 LRU cache mechanism provided by itertools."""
-        class GefLruCache(object):
-            """Local LRU cache for Python2."""
-            def __init__(self, input_func, max_size):
-                self._input_func        = input_func
-                self._max_size          = max_size
-                self._caches_dict       = {}
-                self._caches_info       = {}
-                return
-
-            def cache_info(self, caller=None):
-                """Return a string with statistics of cache usage."""
-                if caller not in self._caches_dict:
-                    return ""
-                hits = self._caches_info[caller]["hits"]
-                missed = self._caches_info[caller]["missed"]
-                cursz = len(self._caches_dict[caller])
-                return "CacheInfo(hits={}, misses={}, maxsize={}, currsize={})".format(hits, missed, self._max_size, cursz)
-
-            def cache_clear(self, caller=None):
-                """Clear a cache."""
-                if caller in self._caches_dict:
-                    self._caches_dict[caller] = collections.OrderedDict()
-                return
-
-            def __get__(self, obj, objtype):
-                """Cache getter."""
-                return_func = functools.partial(self._cache_wrapper, obj)
-                return_func.cache_clear = functools.partial(self.cache_clear, obj)
-                return functools.wraps(self._input_func)(return_func)
-
-            def __call__(self, *args, **kwargs):
-                """Invoking the wrapped function, by attempting to get its value from cache if existing."""
-                return self._cache_wrapper(None, *args, **kwargs)
-
-            __call__.cache_clear = cache_clear
-            __call__.cache_info  = cache_info
-
-            def _cache_wrapper(self, caller, *args, **kwargs):
-                """Defines the caching mechanism."""
-                kwargs_key = "".join(map(lambda x : str(x) + str(type(kwargs[x])) + str(kwargs[x]), sorted(kwargs)))
-                key = "".join(map(lambda x : str(type(x)) + str(x) , args)) + kwargs_key
-                if caller not in self._caches_dict:
-                    self._caches_dict[caller] = collections.OrderedDict()
-                    self._caches_info[caller] = {"hits":0, "missed":0}
-
-                cur_caller_cache_dict = self._caches_dict[caller]
-                if key in cur_caller_cache_dict:
-                    self._caches_info[caller]["hits"] += 1
-                    return cur_caller_cache_dict[key]
-
-                self._caches_info[caller]["missed"] += 1
-                if self._max_size is not None:
-                    if len(cur_caller_cache_dict) >= self._max_size:
-                        cur_caller_cache_dict.popitem(False)
-
-                cur_caller_cache_dict[key] = self._input_func(caller, *args, **kwargs) if caller != None else self._input_func(*args, **kwargs)
-                return cur_caller_cache_dict[key]
-
-        return lambda input_func: functools.wraps(input_func)(GefLruCache(input_func, maxsize))
 
 
 def reset_all_caches():
@@ -476,9 +370,9 @@ class Address:
         return hasattr(self.section, "path") and "[heap]" == self.section.path
 
     def dereference(self):
-        addr = align_address(long(self.value))
+        addr = align_address(int(self.value))
         derefed = dereference(addr)
-        return None if derefed is None else long(derefed)
+        return None if derefed is None else int(derefed)
 
 
 class Permission:
@@ -797,7 +691,7 @@ class GlibcArena:
             arena = gdb.parse_and_eval(addr)
             malloc_state_t = cached_lookup_type("struct malloc_state")
             self.__arena = arena.cast(malloc_state_t)
-            self.__addr = long(arena.address)
+            self.__addr = int(arena.address)
         except:
             self.__arena = MallocStateStruct(addr)
             self.__addr = self.__arena.addr
@@ -818,7 +712,7 @@ class GlibcArena:
         addr = dereference(heap_base + 2*current_arch.ptrsize + self.TCACHE_MAX_BINS + i*current_arch.ptrsize)
         if not addr:
             return None
-        return GlibcChunk(long(addr))
+        return GlibcChunk(int(addr))
 
     def fastbin(self, i):
         """Return head chunk in fastbinsY[i]."""
@@ -845,7 +739,7 @@ class GlibcArena:
         last_remainder  = dereference_as_long(self.last_remainder)
         n               = dereference_as_long(self.next)
         nfree           = dereference_as_long(self.next_free)
-        sysmem          = long(self.system_mem)
+        sysmem          = int(self.system_mem)
         fmt = "Arena (base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
         return fmt.format(self.__addr, top, last_remainder, n, nfree, sysmem)
 
@@ -995,7 +889,7 @@ class GlibcChunk:
 
     def __str__(self):
         msg = "{:s}(addr={:#x}, size={:#x}, flags={:s})".format(Color.colorify("Chunk", "yellow bold underline"),
-                                                                long(self.address),
+                                                                int(self.address),
                                                                 self.get_chunk_size(),
                                                                 self.flags_as_string())
         return msg
@@ -1118,7 +1012,7 @@ def show_last_exception():
 
 def gef_pystring(x):
     """Python 2 & 3 compatibility function for strings handling."""
-    res = str(x, encoding="utf-8") if PYTHON_MAJOR == 3 else x
+    res = str(x, encoding="utf-8")
     substs = [("\n","\\n"), ("\r","\\r"), ("\t","\\t"), ("\v","\\v"), ("\b","\\b"), ]
     for x,y in substs: res = res.replace(x,y)
     return res
@@ -1126,7 +1020,7 @@ def gef_pystring(x):
 
 def gef_pybytes(x):
     """Python 2 & 3 compatibility function for bytes handling."""
-    return bytes(str(x), encoding="utf-8") if PYTHON_MAJOR == 3 else x
+    return bytes(str(x), encoding="utf-8")
 
 
 @lru_cache()
@@ -1273,13 +1167,7 @@ def gef_makedirs(path, mode=0o755):
     if os.path.isdir(abspath):
         return abspath
 
-    if PYTHON_MAJOR == 3:
-        os.makedirs(abspath, mode=mode, exist_ok=True) #pylint: disable=unexpected-keyword-arg
-    else:
-        try:
-            os.makedirs(abspath, mode=mode)
-        except os.error:
-            pass
+    os.makedirs(abspath, mode=mode, exist_ok=True)
     return abspath
 
 
@@ -2443,15 +2331,11 @@ class MIPS(Architecture):
 
 def write_memory(address, buffer, length=0x10):
     """Write `buffer` at address `address`."""
-    if PYTHON_MAJOR == 2: buffer = str(buffer)
     return gdb.selected_inferior().write_memory(address, buffer, length)
 
 
 def read_memory(addr, length=0x10):
     """Return a `length` long byte array with the copy of the process memory at `addr`."""
-    if PYTHON_MAJOR == 2:
-        return gdb.selected_inferior().read_memory(addr, length)
-
     return gdb.selected_inferior().read_memory(addr, length).tobytes()
 
 
@@ -2467,7 +2351,7 @@ def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding
     """Return a C-string read from memory."""
 
     if not encoding:
-        encoding = "unicode_escape" if PYTHON_MAJOR==3 else "ascii"
+        encoding = "unicode_escape"
 
     char_ptr = cached_lookup_type("char").pointer()
 
@@ -2488,7 +2372,7 @@ def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding
 def read_ascii_string(address):
     """Read an ASCII string from memory"""
     cstr = read_cstring_from_memory(address)
-    if isinstance(cstr, unicode) and cstr and all([x in string.printable for x in cstr]):
+    if isinstance(cstr, str) and cstr and all([x in string.printable for x in cstr]):
         return cstr
     return None
 
@@ -2582,7 +2466,7 @@ def get_register(regname):
     """Return a register's value."""
     try:
         value = gdb.parse_and_eval(regname)
-        return to_unsigned_long(value) if value.type.code == gdb.TYPE_CODE_INT else long(value)
+        return to_unsigned_long(value) if value.type.code == gdb.TYPE_CODE_INT else int(value)
     except gdb.error:
         assert(regname[0] == '$')
         regname = regname[1:]
@@ -2591,7 +2475,7 @@ def get_register(regname):
         except ValueError:
             return None
 
-        return long(value)
+        return int(value)
 
 
 def get_path_from_info_proc():
@@ -2714,8 +2598,8 @@ def get_process_maps_linux(proc_map_file):
             inode = rest[0]
             pathname = rest[1].lstrip()
 
-        addr_start, addr_end = list(map(lambda x: long(x, 16), addr.split("-")))
-        off = long(off, 16)
+        addr_start, addr_end = list(map(lambda x: int(x, 16), addr.split("-")))
+        off = int(off, 16)
         perm = Permission.from_process_maps(perm)
 
         yield Section(page_start=addr_start,
@@ -2754,8 +2638,8 @@ def get_info_sections():
 
         try:
             parts = [x.strip() for x in line.split()]
-            addr_start, addr_end = [long(x, 16) for x in parts[1].split("->")]
-            off = long(parts[3][:-1], 16)
+            addr_start, addr_end = [int(x, 16) for x in parts[1].split("->")]
+            off = int(parts[3][:-1], 16)
             path = parts[4]
             inode = ""
             perm = Permission.from_info_sections(parts[5:])
@@ -2793,8 +2677,8 @@ def get_info_files():
             continue
 
         blobs = [x.strip() for x in line.split(" ")]
-        addr_start = long(blobs[0], 16)
-        addr_end = long(blobs[2], 16)
+        addr_start = int(blobs[0], 16)
+        addr_end = int(blobs[2], 16)
         section_name = blobs[4]
 
         if len(blobs) == 7:
@@ -2872,9 +2756,6 @@ def xor(data, key):
     """Return `data` xor-ed with `key`."""
     key = key.lstrip("0x")
     key = binascii.unhexlify(key)
-    if PYTHON_MAJOR == 2:
-        return b"".join([chr(ord(x) ^ ord(y)) for x, y in zip(data, itertools.cycle(key))])
-
     return bytearray([x ^ y for x, y in zip(data, itertools.cycle(key))])
 
 
@@ -3270,7 +3151,7 @@ def align_address_to_page(address):
 def parse_address(address):
     """Parse an address and return it as an Integer."""
     if is_hex(address):
-        return long(address, 16)
+        return int(address, 16)
     return to_unsigned_long(gdb.parse_and_eval(address))
 
 
@@ -3354,7 +3235,7 @@ def dereference(addr):
 
 def dereference_as_long(addr):
     derefed = dereference(addr)
-    return long(derefed.address) if derefed is not None else 0
+    return int(derefed.address) if derefed is not None else 0
 
 
 def gef_convenience(value):
@@ -3603,7 +3484,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         global __heap_uaf_watchpoints__, __heap_freed_list__, __heap_allocated_list__
 
         if self.return_value:
-            loc = long(self.return_value)
+            loc = int(self.return_value)
         else:
             loc = to_unsigned_long(gdb.parse_and_eval(current_arch.return_register))
 
@@ -3689,7 +3570,7 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
         global __heap_uaf_watchpoints__, __heap_freed_list__, __heap_allocated_list__
 
         if self.return_value:
-            newloc = long(self.return_value)
+            newloc = int(self.return_value)
         else:
             newloc = to_unsigned_long(gdb.parse_and_eval(current_arch.return_register))
 
@@ -4063,8 +3944,8 @@ class PrintFormatCommand(GenericCommand):
         opts, args = getopt.getopt(argv, "f:l:b:ch")
         for o,a in opts:
             if   o == "-f": lang = a
-            elif o == "-l": length = long(gdb.parse_and_eval(a))
-            elif o == "-b": bitlen = long(a)
+            elif o == "-l": length = int(gdb.parse_and_eval(a))
+            elif o == "-b": bitlen = int(a)
             elif o == "-c": copy_to_clipboard = True
             elif o == "-h":
                 self.usage()
@@ -4074,7 +3955,7 @@ class PrintFormatCommand(GenericCommand):
             err("No address specified")
             return
 
-        start_addr = long(gdb.parse_and_eval(args[0]))
+        start_addr = int(gdb.parse_and_eval(args[0]))
 
         if bitlen not in [8, 16, 32, 64]:
             err("Size of bit must be in 8, 16, 32, or 64")
@@ -4084,7 +3965,7 @@ class PrintFormatCommand(GenericCommand):
             err("Language must be : {}".format(str(supported_formats)))
             return
 
-        size = long(bitlen / 8)
+        size = int(bitlen / 8)
         end_addr = start_addr+length*size
         bf = self.bitformat[bitlen]
         data = []
@@ -4147,9 +4028,9 @@ class PieBreakpointCommand(GenericCommand):
         tmp_bp_expr = bp_expr
 
         if bp_expr[0] == "*":
-            addr = long(gdb.parse_and_eval(bp_expr[1:]))
+            addr = int(gdb.parse_and_eval(bp_expr[1:]))
         else:
-            addr = long(gdb.parse_and_eval("&{}".format(bp_expr))) # get address of symbol or function name
+            addr = int(gdb.parse_and_eval("&{}".format(bp_expr))) # get address of symbol or function name
 
         self.set_pie_breakpoint(lambda base: "b *{}".format(base + addr), addr)
 
@@ -4657,7 +4538,7 @@ class PCustomCommand(GenericCommand):
             return
 
         try:
-            address = long(gdb.parse_and_eval(argv[1]))
+            address = int(gdb.parse_and_eval(argv[1]))
         except gdb.error:
             err("Failed to parse '{:s}'".format(argv[1]))
             return
@@ -4976,7 +4857,7 @@ class IdaInteractCommand(GenericCommand):
                     argval = gdb.parse_and_eval(arg)
                     argval.fetch_lazy()
                     # check if value is addressable
-                    argval = long(argval) if argval.address is None else long(argval.address)
+                    argval = int(argval) if argval.address is None else int(argval.address)
                     # if the bin is PIE, we need to substract the base address
                     is_pie = checksec(get_filepath())["PIE"]
                     if is_pie and main_base_address <= argval < main_end_address:
@@ -5054,9 +4935,9 @@ class IdaInteractCommand(GenericCommand):
         for bp in breakpoints:
             if bp.enabled and not bp.temporary:
                 if bp.location[0]=="*": # if it's an address i.e. location starts with "*"
-                    addr = long(gdb.parse_and_eval(bp.location[1:]))
+                    addr = int(gdb.parse_and_eval(bp.location[1:]))
                 else: # it is a symbol
-                    addr = long(gdb.parse_and_eval(bp.location).address)
+                    addr = int(gdb.parse_and_eval(bp.location).address)
                 if not (base_address <= addr < end_address):
                     continue
                 gdb_bps.add(addr-base_address)
@@ -5085,9 +4966,9 @@ class IdaInteractCommand(GenericCommand):
         for bp in breakpoints:
             if bp.enabled and not bp.temporary:
                 if bp.location[0]=="*": # if it's an address i.e. location starts with "*"
-                    addr = long(gdb.parse_and_eval(bp.location[1:]))
+                    addr = int(gdb.parse_and_eval(bp.location[1:]))
                 else: # it is a symbol
-                    addr = long(gdb.parse_and_eval(bp.location).address)
+                    addr = int(gdb.parse_and_eval(bp.location).address)
 
                 if not (base_address <= addr < end_address):
                     continue
@@ -5208,7 +5089,7 @@ class ScanSectionCommand(GenericCommand):
                 target = struct.unpack(fmt, mem[i:i+step])[0]
                 for nstart, nend in needle_sections:
                     if target >= nstart and target < nend:
-                        deref = DereferenceCommand.pprint_dereferenced(hstart, long(i / step))
+                        deref = DereferenceCommand.pprint_dereferenced(hstart, int(i / step))
                         if hname != "":
                             name = Color.colorify(hname, "yellow")
                             gef_print("{:s}: {:s}".format(name, deref))
@@ -5395,7 +5276,7 @@ class ChangePermissionCommand(GenericCommand):
         try:
             __import__("keystone")
         except ImportError:
-            msg = "Missing `keystone-engine` package for Python{0}, install with: `pip{0} install keystone-engine`.".format(PYTHON_MAJOR)
+            msg = "Missing `keystone-engine` package, install with: `pip install keystone-engine`."
             raise ImportWarning(msg)
         return
 
@@ -5416,7 +5297,7 @@ class ChangePermissionCommand(GenericCommand):
             err("Invalid address")
             return
 
-        loc = long(loc)
+        loc = int(loc)
         sect = process_lookup_address(loc)
         if sect is None:
             err("Unmapped address")
@@ -5487,13 +5368,13 @@ class UnicornEmulateCommand(GenericCommand):
         try:
             __import__("unicorn")
         except ImportError:
-            msg = "Missing `unicorn` package for Python{0}. Install with `pip{0} install unicorn`.".format(PYTHON_MAJOR)
+            msg = "Missing `unicorn` package for Python. Install with `pip install unicorn`."
             raise ImportWarning(msg)
 
         try:
             __import__("capstone")
         except ImportError:
-            msg = "Missing `capstone` package for Python{0}. Install with `pip{0} install capstone`.".format(PYTHON_MAJOR)
+            msg = "Missing `capstone` package for Python. Install with `pip install capstone`."
             raise ImportWarning(msg)
         return
 
@@ -5743,7 +5624,7 @@ emulate(uc, {start:#x}, {end:#x})
 
         ok("Starting emulation: {:#x} {} {:#x}".format(start_insn_addr, RIGHT_ARROW, end_insn_addr))
 
-        pythonbin = "python{}".format(PYTHON_MAJOR)
+        pythonbin = which("python")
         res = gef_execute_external([pythonbin, tmp_filename], as_list=True)
         gef_print("\n".join(res))
 
@@ -6004,7 +5885,7 @@ class NopCommand(GenericCommand):
         num_bytes = 0
         for o, a in opts:
             if o == "-b":
-                num_bytes = long(a, 0)
+                num_bytes = int(a, 0)
             elif o == "-h":
                 self.help()
                 return
@@ -6075,7 +5956,7 @@ class StubCommand(GenericCommand):
             retval = 0
             for o, a in opts:
                 if o == "-r":
-                    retval = long(a, 0)
+                    retval = int(a, 0)
         except getopt.GetoptError:
             self.usage()
             return
@@ -6098,7 +5979,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         try:
             __import__("capstone")
         except ImportError:
-            msg = "Missing `capstone` package for Python{0}. Install with `pip{0} install capstone`.".format(PYTHON_MAJOR)
+            msg = "Missing `capstone` package for Python. Install with `pip install capstone`."
             raise ImportWarning(msg)
         return
 
@@ -6610,7 +6491,7 @@ class SolveKernelSymbolCommand(GenericCommand):
             for line in f:
                 try:
                     symaddr, symtype, symname = line.strip().split(" ", 3)
-                    symaddr = long(symaddr, 16)
+                    symaddr = int(symaddr, 16)
                     if symname == sym:
                         ok("Found matching symbol for '{:s}' at {:#x} (type={:s})".format(sym, symaddr, symtype))
                         found = True
@@ -6666,7 +6547,7 @@ class DetailRegistersCommand(GenericCommand):
                 gef_print(line)
                 continue
 
-            value = align_address(long(reg))
+            value = align_address(int(reg))
             old_value = ContextCommand.old_registers.get(regname, 0)
             if value == old_value:
                 color = unchanged_color
@@ -6686,7 +6567,7 @@ class DetailRegistersCommand(GenericCommand):
                 gef_print(line)
                 continue
 
-            addr = lookup_address(align_address(long(value)))
+            addr = lookup_address(align_address(int(value)))
             if addr.valid:
                 line += str(addr)
             else:
@@ -6805,7 +6686,7 @@ class ShellcodeGetCommand(GenericCommand):
             self.usage()
             return
 
-        self.get_shellcode(long(argv[0]))
+        self.get_shellcode(int(argv[0]))
         return
 
     def get_shellcode(self, sid):
@@ -6842,7 +6723,7 @@ class RopperCommand(GenericCommand):
         try:
             __import__("ropper")
         except ImportError:
-            msg = "Missing `ropper` package for Python{0}, install with: `pip{0} install ropper`.".format(PYTHON_MAJOR)
+            msg = "Missing `ropper` package for Python, install with: `pip install ropper`."
             raise ImportWarning(msg)
         return
 
@@ -6894,7 +6775,7 @@ class AssembleCommand(GenericCommand):
         try:
             __import__("keystone")
         except ImportError:
-            msg = "Missing `keystone-engine` package for Python{0}, install with: `pip{0} install keystone-engine`.".format(PYTHON_MAJOR)
+            msg = "Missing `keystone-engine` package for Python, install with: `pip install keystone-engine`."
             raise ImportWarning(msg)
         return
 
@@ -6915,7 +6796,7 @@ class AssembleCommand(GenericCommand):
             if o == "-m": mode_s = a.upper()
             if o == "-e": big_endian = True
             if o == "-s": as_shellcode = True
-            if o == "-l": write_to_location = long(gdb.parse_and_eval(a))
+            if o == "-l": write_to_location = int(gdb.parse_and_eval(a))
             if o == "-h":
                 self.usage()
                 return
@@ -7405,7 +7286,7 @@ class ContextCommand(GenericCommand):
                     continue
 
                 new_value_type_flag = (r.type.code == gdb.TYPE_CODE_FLAGS)
-                new_value = long(r)
+                new_value = int(r)
 
             except (gdb.MemoryError, gdb.error):
                 # If this exception is triggered, it means that the current register
@@ -7428,7 +7309,7 @@ class ContextCommand(GenericCommand):
             if new_value_type_flag:
                 line += "{:s} ".format(format_address_spaces(value))
             else:
-                addr = lookup_address(align_address(long(value)))
+                addr = lookup_address(align_address(int(value)))
                 if addr.valid:
                     line += "{:s} ".format(str(addr))
                 else:
@@ -7710,7 +7591,7 @@ class ContextCommand(GenericCommand):
                     if not sym.is_function and re.search(r"\W{}\W".format(symbol), line):
                         val = gdb.parse_and_eval(symbol)
                         if val.type.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY):
-                            addr = long(val.address)
+                            addr = int(val.address)
                             addrs = DereferenceCommand.dereference_from(addr)
                             if len(addrs) > 2:
                                 addrs = [addrs[0], "[...]", addrs[-1]]
@@ -7718,7 +7599,7 @@ class ContextCommand(GenericCommand):
                             f = " {:s} ".format(RIGHT_ARROW)
                             val = f.join(addrs)
                         elif val.type.code == gdb.TYPE_CODE_INT:
-                            val = hex(long(val))
+                            val = hex(int(val))
                         else:
                             continue
 
@@ -8014,7 +7895,7 @@ class HexdumpCommand(GenericCommand):
             if arg.startswith("l"):
                 arg = arg[1:]
             try:
-                read_len = long(arg, 0)
+                read_len = int(arg, 0)
                 continue
             except ValueError:
                 pass
@@ -8110,7 +7991,7 @@ class PatchCommand(GenericCommand):
             self.usage()
             return
 
-        addr = align_address(long(gdb.parse_and_eval(location)))
+        addr = align_address(int(gdb.parse_and_eval(location)))
         size, fcode = self.SUPPORTED_SIZES[fmt]
 
         d = "<" if is_little_endian() else ">"
@@ -8138,7 +8019,7 @@ class PatchStringCommand(GenericCommand):
             return
 
         location, s = argv[0:2]
-        addr = align_address(long(gdb.parse_and_eval(location)))
+        addr = align_address(int(gdb.parse_and_eval(location)))
 
         try:
             s = codecs.escape_decode(s)[0]
@@ -8179,7 +8060,7 @@ class DereferenceCommand(GenericCommand):
         current_address = align_address(addr + offset)
         addrs = DereferenceCommand.dereference_from(current_address)
         l  = ""
-        addr_l = format_address(long(addrs[0], 16))
+        addr_l = format_address(int(addrs[0], 16))
         l += "{:s}{:s}+{:#06x}: {:{ma}s}".format(Color.colorify(addr_l, base_address_color),
                                                  VERTICAL_LINE, offset,
                                                  sep.join(addrs[1:]), ma=(memalign*2 + 2))
@@ -8216,7 +8097,7 @@ class DereferenceCommand(GenericCommand):
             err("Invalid address")
             return
 
-        addr = long(addr)
+        addr = int(addr)
         if process_lookup_address(addr) is None:
             err("Unmapped address")
             return
@@ -8246,7 +8127,7 @@ class DereferenceCommand(GenericCommand):
         code_color = get_gef_setting("theme.dereference_code")
         string_color = get_gef_setting("theme.dereference_string")
         max_recursion = get_gef_setting("dereference.max_recursion") or 10
-        addr = lookup_address(align_address(long(addr)))
+        addr = lookup_address(align_address(int(addr)))
         msg = [format_address(addr.value),]
         seen_addrs = set()
 
@@ -8294,7 +8175,7 @@ class DereferenceCommand(GenericCommand):
                         break
 
             # if not able to parse cleanly, simply display and break
-            val = "{:#0{ma}x}".format(long(deref & 0xFFFFFFFFFFFFFFFF), ma=(current_arch.ptrsize * 2 + 2))
+            val = "{:#0{ma}x}".format(int(deref & 0xFFFFFFFFFFFFFFFF), ma=(current_arch.ptrsize * 2 + 2))
             msg.append(val)
             break
 
@@ -8556,8 +8437,8 @@ class XorMemoryDisplayCommand(GenericCommand):
             self.usage()
             return
 
-        address = long(gdb.parse_and_eval(argv[0]))
-        length = long(argv[1], 0)
+        address = int(gdb.parse_and_eval(argv[0]))
+        length = int(argv[1], 0)
         key = argv[2]
         block = read_memory(address, length)
         info("Displaying XOR-ing {:#x}-{:#x} with {:s}".format(address, address + len(block), repr(key)))
@@ -8585,7 +8466,7 @@ class XorMemoryPatchCommand(GenericCommand):
             return
 
         address = parse_address(argv[0])
-        length = long(argv[1], 0)
+        length = int(argv[1], 0)
         key = argv[2]
         block = read_memory(address, length)
         info("Patching XOR-ing {:#x}-{:#x} with '{:s}'".format(address, address + len(block), key))
@@ -8617,13 +8498,13 @@ class TraceRunCommand(GenericCommand):
             return
 
         if len(argv) == 2 and argv[1].isdigit():
-            depth = long(argv[1])
+            depth = int(argv[1])
         else:
             depth = 1
 
         try:
             loc_start   = current_arch.pc
-            loc_end     = long(gdb.parse_and_eval(argv[0]))
+            loc_end     = int(gdb.parse_and_eval(argv[0]))
         except gdb.error as e:
             err("Invalid location: {:s}".format(e))
             return
@@ -8721,7 +8602,7 @@ class PatternCreateCommand(GenericCommand):
             if not argv[0].isdigit():
                 err("Invalid size")
                 return
-            set_gef_setting("pattern.length", long(argv[0]))
+            set_gef_setting("pattern.length", int(argv[0]))
         elif len(argv) > 1:
             err("Invalid syntax")
             return
@@ -8754,7 +8635,7 @@ class PatternSearchCommand(GenericCommand):
             if not argv[1].isdigit():
                 err("Invalid size")
                 return
-            size = long(argv[1])
+            size = int(argv[1])
         else:
             size = get_gef_setting("pattern.length")
 
@@ -8769,11 +8650,11 @@ class PatternSearchCommand(GenericCommand):
         # 1. check if it's a symbol (like "$sp" or "0x1337")
         symbol = safe_parse_and_eval(pattern)
         if symbol:
-            addr = long(symbol)
+            addr = int(symbol)
             dereferenced_value = dereference(addr)
             # 1-bis. try to dereference
             if dereferenced_value:
-                addr = long(dereferenced_value)
+                addr = int(dereferenced_value)
 
             if current_arch.ptrsize == 4:
                 pattern_be = struct.pack(">I", addr)
@@ -9301,12 +9182,12 @@ class GenericFunction(gdb.Function):
     def invoke(self, *args):
         if not is_alive():
             raise gdb.GdbError("No debugging session active")
-        return long(self.do_invoke(args))
+        return int(self.do_invoke(args))
 
     def arg_to_long(self, args, index, default=0):
         try:
             addr = args[index]
-            return long(addr) if addr.address is None else long(addr.address)
+            return int(addr) if addr.address is None else int(addr.address)
         except IndexError:
             return default
 
@@ -9337,7 +9218,7 @@ class HeapBaseFunction(GenericFunction):
     @staticmethod
     def heap_base():
         try:
-            base = long(gdb.parse_and_eval("mp_->sbrk_base"))
+            base = int(gdb.parse_and_eval("mp_->sbrk_base"))
             if base != 0:
                 return base
         except gdb.error:
@@ -10041,11 +9922,11 @@ def __gef_prompt__(current_prompt):
 
 if __name__  == "__main__":
 
-    if PYTHON_MAJOR == 2:
-        warn("GEF will stop support for GDB+Python2 when it reaches EOL on 2020/01/01.")
-        warn("See https://github.com/hugsy/gef/projects/4 for updates.")
+    if sys.version_info[0] == 2:
+        err("GEF has dropped Python2 support for GDB when it reached EOL on 2020/01/01.")
+        err("If you require GEF for GDB+Python2, use https://github.com/hugsy/gef-legacy.")
 
-    if GDB_VERSION < GDB_MIN_VERSION:
+    elif GDB_VERSION < GDB_MIN_VERSION:
         err("You're using an old version of GDB. GEF will not work correctly. "
             "Consider updating to GDB {} or higher.".format(".".join(map(str, GDB_MIN_VERSION))))
 
