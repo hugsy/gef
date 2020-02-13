@@ -6322,7 +6322,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                     m.append("{:s} [Corrupted chunk at {:#x}]".format(LEFT_ARROW, chunk.address))
                     break
             if m:
-                gef_print("Tcachebins[idx={:d}, size={:#x}] count={:d} ".format(i, (i+1)*(current_arch.ptrsize)*2, count), end="")
+                gef_print("Tcachebins[idx={:d}, size={:#x}] count={:d} ".format(i, (i+2)*(current_arch.ptrsize)*2, count), end="")
                 gef_print("".join(m))
         return
 
