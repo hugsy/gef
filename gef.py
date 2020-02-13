@@ -7476,7 +7476,7 @@ class ContextCommand(GenericCommand):
             pc = current_arch.pc
             try:
                 block_start = gdb.block_for_pc(pc).start
-            except RuntimeError:
+            except Exception:
                 # if stripped, let's roll back 5 instructions
                 block_start = gdb_get_nth_previous_instruction_address(pc, 5)
             return block_start
