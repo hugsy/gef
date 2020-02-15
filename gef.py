@@ -1010,7 +1010,7 @@ def show_last_exception():
 
 
 def gef_pystring(x):
-    """Python 2 & 3 compatibility function for strings handling."""
+    """Returns a sanitized version as string of the bytes list given in input."""
     res = str(x, encoding="utf-8")
     substs = [("\n","\\n"), ("\r","\\r"), ("\t","\\t"), ("\v","\\v"), ("\b","\\b"), ]
     for x,y in substs: res = res.replace(x,y)
@@ -1018,7 +1018,7 @@ def gef_pystring(x):
 
 
 def gef_pybytes(x):
-    """Python 2 & 3 compatibility function for bytes handling."""
+    """Returns an immutable bytes list from the string given as input."""
     return bytes(str(x), encoding="utf-8")
 
 

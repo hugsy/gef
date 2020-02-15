@@ -5,11 +5,17 @@ A simple recent GDB compiled with Python scripting support will do.
 
 
 ### Pre-requisites
-Only [GDB 7.7 and higher](https://www.gnu.org/s/gdb) is required. It must be
-compiled with Python 2 or 3 support.
 
-All recent distributions of Linux now embeds a GDB version compiled with at
-least Python 2 (although more and more are migrating towards Python 3).
+Only [GDB 7.7 and higher](https://www.gnu.org/s/gdb) is required. It must be
+compiled with Python 3 support.
+
+As of January 2020, GEF doesn't officially support Python 2 any longer, due to
+Python 2 becoming officially deprecated.
+
+This version of GEF will then only work for Python 3. If you absolutely require
+GDB + Python 2, please use [GEF-Legacy](https://github.com/hugsy/gef-legacy)
+instead. Note that `gef-legacy` won't provide new features, and only functional
+bugs will be handled.
 
 You can verify it with the following command:
 
@@ -19,27 +25,13 @@ $ gdb -nx -ex 'pi print(sys.version)' -ex quit
 
 This should display your version of Python compiled with `gdb`.
 
-For example, with Python2
 ```bash
 $ gdb -nx -ex 'pi print(sys.version)' -ex quit
-2.7.3 (default, Mar 18 2014, 06:31:17)
-[GCC 4.6.3]
-```
-
-Or Python3
-```bash
-$ gdb -nx -ex 'pi print(sys.version)' -ex quit
-3.4.0 (default, Apr 11 2014, 13:08:40)
-[GCC 4.8.2]
+3.6.9 (default, Nov  7 2019, 10:44:02)
+[GCC 8.3.0]
 ```
 
 If you see an error here, it means that your GDB installation does not support Python.
-
-**Note**: If your GDB is compiled with Python3, `GEF` will assume that your
-environment locales are in UTF-8 (which is the standard). If you use on purpose
-another locales, you may expect `Unicode` exceptions preventing many commands to
-work as expected. Please set up your locales to `UTF-8` to have `GEF` running
-smoothly.
 
 
 ### Setup from repository
