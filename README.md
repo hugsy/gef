@@ -11,7 +11,7 @@
 
 ## Instant Setup ##
 
-Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb) compiled with Python2 or Python3 bindings, then:
+Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb) compiled with Python3 bindings, then:
 
 ```bash
 # via the install script
@@ -28,6 +28,9 @@ Then just start playing:
 $ gdb -q /path/to/my/bin
 gef➤  gef help
 ```
+
+_Note_: As of January 2020, GEF doesn't officially support Python 2 any longer, due to Python 2 becoming officially deprecated.
+If you really need GDB+Python2, use [`gef-legacy`](https://github.com/hugsy/gef-legacy) instead.
 
 
 ## Highlights ##
