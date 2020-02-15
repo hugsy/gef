@@ -1003,8 +1003,7 @@ def show_last_exception():
     gef_print("* Python: {:d}.{:d}.{:d} - {:s}".format(sys.version_info.major, sys.version_info.minor,
                                                        sys.version_info.micro, sys.version_info.releaselevel))
     gef_print("* OS: {:s} - {:s} ({:s}) on {:s}".format(platform.system(), platform.release(),
-                                                        platform.architecture()[0],
-                                                        " ".join(platform.dist()))) #pylint: disable=deprecated-method
+                                                        platform.machine(), " ".join(platform.linux_distribution())))
     gef_print(HORIZONTAL_LINE*80)
     gef_print("")
     return
@@ -7469,11 +7468,8 @@ class ContextCommand(GenericCommand):
 
         def __get_current_block_start_address():
             pc = current_arch.pc
-            try:
-                block_start = gdb.block_for_pc(pc).start
-            except RuntimeError:
-                # if stripped, let's roll back 5 instructions
-                block_start = gdb_get_nth_previous_instruction_address(pc, 5)
+            block = gdb.block_for_pc(pc)
+            block_start = block.start if block else gdb_get_nth_previous_instruction_address(pc, 5)
             return block_start
 
 
@@ -7578,7 +7574,7 @@ class ContextCommand(GenericCommand):
     def get_pc_context_info(self, pc, line):
         try:
             current_block = gdb.block_for_pc(pc)
-            if not current_block.is_valid(): return ""
+            if not current_block or not current_block.is_valid(): return ""
             m = collections.OrderedDict()
             while current_block and not current_block.is_static:
                 for sym in current_block:
