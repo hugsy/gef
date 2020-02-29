@@ -53,6 +53,8 @@ A few of `GEF` features include:
 
 Check out the [Screenshot page](docs/screenshots.md) for more.
 
+Or [try it online](https://demo.gef.blah.cat)
+
 
 ## Documentation ##
 
