@@ -2513,6 +2513,10 @@ def get_filepath():
         elif filename.startswith("target:"):
             fname = filename[len("target:"):]
             return download_file(fname, use_cache=True, local_name=fname)
+        
+        elif filename.startswith(".gnu_debugdata for target:"):
+            fname = filename[len(".gnu_debugdata for target:"):]
+            return download_file(fname, use_cache=True, local_name=fname)
 
         elif __gef_remote__ is not None:
             return "/tmp/gef/{:d}/{:s}".format(__gef_remote__, get_path_from_info_proc())
