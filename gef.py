@@ -7872,7 +7872,7 @@ class HexdumpCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         fmt = "byte"
-        target = "$sp"
+        target = ""
         valid_formats = ["byte", "word", "dword", "qword"]
         read_len = None
         reverse = False
@@ -7887,18 +7887,21 @@ class HexdumpCommand(GenericCommand):
                     break
             if is_format_given:
                 continue
-            if arg.startswith("l"):
-                arg = arg[1:]
-            try:
-                read_len = int(arg, 0)
-                continue
-            except ValueError:
-                pass
-
             if "reverse".startswith(arg):
                 reverse = True
                 continue
+            if arg.startswith("l") or target:
+                if arg.startswith("l"):
+                    arg = arg[1:]
+                if read_len:
+                    self.usage()
+                    return
+                read_len = int(arg, 0)
+                continue
             target = arg
+
+        if not target:
+            target="$sp"
 
         start_addr = to_unsigned_long(gdb.parse_and_eval(target))
         read_from = align_address(start_addr)
