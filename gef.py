@@ -1023,7 +1023,7 @@ def gef_pybytes(x):
     """Returns an immutable bytes list from the string given as input."""
     return bytes(str(x), encoding="utf-8")
 
-new_objfile_handler
+
 @lru_cache()
 def which(program):
     """Locate a command on the filesystem."""
