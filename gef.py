@@ -2455,6 +2455,12 @@ def use_golang_type():
     return "uint16"
 
 
+def use_rust_type():
+    if   is_elf32(): return "u32"
+    elif is_elf64(): return "u64"
+    return "u16"
+
+
 def to_unsigned_long(v):
     """Cast a gdb.Value to unsigned long."""
     mask = (1 << 64) - 1
@@ -3225,7 +3231,8 @@ def dereference(addr):
     try:
         ulong_t = cached_lookup_type(use_stdtype()) or \
                   cached_lookup_type(use_default_type()) or \
-                  cached_lookup_type(use_golang_type())
+                  cached_lookup_type(use_golang_type()) or \
+                  cached_lookup_type(use_rust_type())
         unsigned_long_type = ulong_t.pointer()
         res = gdb.Value(addr).cast(unsigned_long_type).dereference()
         # GDB does lazy fetch by default so we need to force access to the value
