@@ -53,7 +53,7 @@ A few of `GEF` features include:
 
 Check out the [Screenshot page](docs/screenshots.md) for more.
 
-Or [try it online](https://demo.gef.blah.cat)
+Or [try it online](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 
 
 ## Documentation ##
