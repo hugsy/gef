@@ -15,7 +15,7 @@ Your issue will be closed unless you confirm the following (insert `x` in the br
 
 ### Step 1: Describe your environment
 
-  * Operating System:
+  * Operating System / Distribution: 
   * Architecture:
   * GDB version (including the Python library version - can be found via `$ gdb -ex "pi import sys;print(sys.version)"`): 
 
