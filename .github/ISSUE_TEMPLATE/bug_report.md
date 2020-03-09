@@ -17,7 +17,7 @@ Your issue will be closed unless you confirm the following (insert `x` in the br
 
   * Operating System / Distribution: 
   * Architecture:
-  * GDB version (including the Python library version - can be found via `$ gdb -ex "pi import sys;print(sys.version)"`): 
+  * GDB version (including the Python library version) copy the output of `$ gdb -ex "pi import sys;print(gdb.VERSION);print(sys.version)"`: 
 
 
 ### Step 2: Describe your problem
