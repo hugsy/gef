@@ -1005,7 +1005,7 @@ def show_last_exception():
     gef_print("* OS: {:s} - {:s} ({:s})".format(platform.system(), platform.release(), platform.machine()))
     if which("lsb_release"):
         gef_print("")
-        gdb.execute("lsb_release -a")
+        gdb.execute("!lsb_release -a")
     gef_print(HORIZONTAL_LINE*80)
     gef_print("")
     return
@@ -7481,8 +7481,11 @@ class ContextCommand(GenericCommand):
 
         def __get_current_block_start_address():
             pc = current_arch.pc
-            block = gdb.block_for_pc(pc)
-            block_start = block.start if block else gdb_get_nth_previous_instruction_address(pc, 5)
+            try:
+                block = gdb.block_for_pc(pc)
+                block_start = block.start if block else gdb_get_nth_previous_instruction_address(pc, 5)
+            except RuntimeError:
+                block_start = gdb_get_nth_previous_instruction_address(pc, 5)
             return block_start
 
 
