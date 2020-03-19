@@ -32,6 +32,7 @@ from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer, l
 import threading
 import string
 import inspect
+import random
 
 import idautils, idc, idaapi
 
@@ -63,6 +64,95 @@ def is_exposed(f):
 def ishex(s):
     return s.startswith("0x") or s.startswith("0X")
 
+
+"""
+Wrappers taken from FIRST IDA Plugin
+https://github.com/vrtadmin/FIRST-plugin-ida/blob/dev/first_plugin_ida/first.py
+On IDA > 7.2  some functions are thread-safe and need to be executed on the
+main Thread.
+The function idaapi.execute_sync is called to execute these functions.
+"""
+class IDAWrapper(object):
+    '''
+    Class to wrap functions that are not thread safe.  These functions must
+    be run on the main thread to avoid random crashes (and starting in 7.2,
+    this is enforced by IDA, with an exception being generated if a
+    thread-unsafe function is called from outside of the main thread.)
+    '''
+    mapping = {
+        'get_tform_type' : 'get_widget_type',
+    }
+    def __init__(self):
+        self.version = idaapi.IDA_SDK_VERSION
+
+    def __getattribute__(self, name):
+        default = '[1st] default'
+
+        if (idaapi.IDA_SDK_VERSION >= 700) and (name in IDAWrapper.mapping):
+            name = IDAWrapper.mapping[name]
+
+        val = getattr(idaapi, name, default)
+        if val == default:
+            val = getattr(idautils, name, default)
+
+        if val == default:
+            val = getattr(idc, name, default)
+
+        if val == default:
+            msg = 'Unable to find {}'.format(name)
+            idaapi.execute_ui_requests((FIRSTUI.Requests.Print(msg),))
+            return
+
+        if hasattr(val, '__call__'):
+            def call(*args, **kwargs):
+                holder = [None] # need a holder, because 'global' sucks
+
+                def trampoline():
+                    holder[0] = val(*args, **kwargs)
+                    return 1
+
+                # Execute the request using MFF_WRITE, which should be safe for
+                # any possible request at the expense of speed.  In my testing,
+                # though, it wasn't noticably slower than MFF_FAST.  If this
+                # is observed to impact performance, consider creating a list
+                # that maps API calls to the most appropriate flag.
+                idaapi.execute_sync(trampoline, idaapi.MFF_WRITE)
+                return holder[0]
+            return call
+
+        else:
+            return val
+
+IDAW = IDAWrapper()
+
+# Some of the IDA API functions return generators that invoke thread-unsafe
+# code during iteration.  Thus, making the initial API call via IDAW is not
+# sufficient to have these underlying API calls be executed safely on the
+# main thread.  This generator wraps those and performs the iteration safely.
+def safe_generator(iterator):
+
+    # Make the sentinel value something that isn't likely to be returned
+    # by an API call (and isn't a fixed string that could be inserted into
+    # a program to break FIRST maliciously)
+    sentinel = '[1st] Sentinel %d' % (random.randint(0, 65535))
+
+    holder = [sentinel] # need a holder, because 'global' sucks
+
+    def trampoline():
+        try:
+            holder[0] = next(iterator)
+        except StopIteration:
+            holder[0] = sentinel
+        return 1
+
+    while True:
+        # See notes above regarding why we use MFF_WRITE here
+        idaapi.execute_sync(trampoline, idaapi.MFF_WRITE)
+        if holder[0] == sentinel:
+            return
+        yield holder[0]
+
+# End of FIRST plugin code
 
 class Gef:
     """
@@ -136,7 +226,7 @@ class Gef:
         Example: ida MakeComm 0x40000 "Important call here!"
         """
         addr = long(address, 16) if ishex(address) else long(address)
-        return idc.MakeComm(addr, comment)
+        return IDAW.MakeComm(addr, comment)
 
     @expose
     def setcolor(self, address, color="0x005500"):
@@ -146,7 +236,7 @@ class Gef:
         """
         addr = long(address, 16) if ishex(address) else long(address)
         color = long(color, 16) if ishex(color) else long(color)
-        return idc.SetColor(addr, CIC_ITEM, color)
+        return IDAW.SetColor(addr, CIC_ITEM, color)
 
     @expose
     def makename(self, address, name):
@@ -155,7 +245,7 @@ class Gef:
         Example: ida MakeName 0x4049de __entry_point
         """
         addr = long(address, 16) if ishex(address) else long(address)
-        return idc.MakeName(addr, name)
+        return IDAW.MakeName(addr, name)
 
     @expose
     def jump(self, address):
@@ -164,10 +254,10 @@ class Gef:
         Example: ida Jump 0x4049de
         """
         addr = long(address, 16) if ishex(address) else long(address)
-        return idc.Jump(addr)
+        return IDAW.Jump(addr)
 
     def getstructbyname(self, name):
-        for (struct_idx, struct_sid, struct_name) in Structs():
+        for (struct_idx, struct_sid, struct_name) in safe_generator(IDAW.Structs()):
             if struct_name == name:
                 return struct_sid
         return None
@@ -179,9 +269,9 @@ class Gef:
         command.
         Example: ida ImportStruct struct_1
         """
-        if self.GetStructByName(struct_name) is None:
+        if self.getstructbyname(struct_name) is None:
             return {}
-        res = {struct_name: [x for x in StructMembers(self.GetStructByName(struct_name))]}
+        res = {struct_name: [x for x in safe_generator(IDAW.StructMembers(self.getstructbyname(struct_name)))]}
         return res
 
     @expose
@@ -193,7 +283,7 @@ class Gef:
         """
         res = {}
         for s in Structs():
-            res.update(self.ImportStruct(s[2]))
+            res.update(self.importstruct(s[2]))
         return res
 
     @expose
@@ -205,30 +295,30 @@ class Gef:
         global _breakpoints, _current_instruction, _current_instruction_color
 
         if _current_instruction > 0:
-            idc.SetColor(_current_instruction, CIC_ITEM, _current_instruction_color)
+            IDAW.SetColor(_current_instruction, CIC_ITEM, _current_instruction_color)
 
-        base_addr = idaapi.get_imagebase()
+        base_addr = IDAW.get_imagebase()
         pc = base_addr + int(offset, 16)
         _current_instruction = long(pc)
-        _current_instruction_color = GetColor(_current_instruction, CIC_ITEM)
-        idc.SetColor(_current_instruction, CIC_ITEM, 0x00ff00)
+        _current_instruction_color = IDAW.GetColor(_current_instruction, CIC_ITEM)
+        IDAW.SetColor(_current_instruction, CIC_ITEM, 0x00ff00)
         print("PC @ " + hex(_current_instruction).strip('L'))
         # post it to the ida main thread to prevent race conditions
-        idaapi.execute_sync(lambda: idc.Jump(_current_instruction), idaapi.MFF_WRITE)
+        IDAW.Jump(_current_instruction)
 
-        cur_bps = set([ idc.GetBptEA(n)-base_addr for n in range(idc.GetBptQty()) ])
+        cur_bps = set([ IDAW.GetBptEA(n)-base_addr for n in range(safe_generator(IDAW.GetBptQty())) ])
         ida_added = cur_bps - _breakpoints
         ida_removed = _breakpoints - cur_bps
         _breakpoints = cur_bps
 
         # update bp from gdb
         for bp in added:
-            idc.AddBpt(base_addr+bp)
+            IDAW.AddBpt(base_addr+bp)
             _breakpoints.add(bp)
         for bp in removed:
             if bp in _breakpoints:
                 _breakpoints.remove(bp)
-            idc.DelBpt(base_addr+bp)
+            IDAW.DelBpt(base_addr+bp)
 
         return [list(ida_added), list(ida_removed)]
 
