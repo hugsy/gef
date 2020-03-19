@@ -282,7 +282,7 @@ class Gef:
         Example: ida ImportStructs
         """
         res = {}
-        for s in Structs():
+        for s in safe_generator(IDAW.Structs()):
             res.update(self.importstruct(s[2]))
         return res
 
