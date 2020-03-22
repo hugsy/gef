@@ -65,7 +65,7 @@ import ctypes
 import functools
 import getopt
 import hashlib
-import imp
+import importlib
 import inspect
 import itertools
 import os
@@ -4604,7 +4604,7 @@ class PCustomCommand(GenericCommand):
 
     def get_module(self, modname):
         _fullname = self.pcustom_filepath(modname)
-        return imp.load_source(modname, _fullname)
+        return importlib.machinery.SourceFileLoader(modname, _fullname).load_module()
 
 
     def get_structure_class(self, modname, classname):
@@ -9148,7 +9148,7 @@ class SyscallArgsCommand(GenericCommand):
 
     def get_module(self, modname):
         _fullname = self.get_filepath(modname)
-        return imp.load_source(modname, _fullname)
+        return importlib.machinery.SourceFileLoader(modname, _fullname).load_module()
 
     def get_syscall_table(self, modname):
         _mod = self.get_module(modname)
