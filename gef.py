@@ -139,7 +139,7 @@ try:
     import gdb
 except ImportError:
     # if out of gdb, the only action allowed is to update gef.py
-    if len(sys.argv)==2 and sys.argv[1]=="--update":
+    if len(sys.argv)==2 and sys.argv[1] in ["--update", "--upgrade"]:
         sys.exit(update_gef(sys.argv))
     print("[-] gef cannot run as standalone")
     sys.exit(0)
