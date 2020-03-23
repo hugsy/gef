@@ -4604,7 +4604,7 @@ class PCustomCommand(GenericCommand):
 
     def get_module(self, modname):
         _fullname = self.pcustom_filepath(modname)
-        return importlib.machinery.SourceFileLoader(modname, _fullname).load_module()
+        return importlib.machinery.SourceFileLoader(modname, _fullname).load_module(None)
 
 
     def get_structure_class(self, modname, classname):
@@ -9155,7 +9155,7 @@ class SyscallArgsCommand(GenericCommand):
 
     def get_module(self, modname):
         _fullname = self.get_filepath(modname)
-        return importlib.machinery.SourceFileLoader(modname, _fullname).load_module()
+        return importlib.machinery.SourceFileLoader(modname, _fullname).load_module(None)
 
     def get_syscall_table(self, modname):
         _mod = self.get_module(modname)
