@@ -787,12 +787,17 @@ class GlibcChunk:
         return GlibcChunk(addr)
 
     # if free-ed functions
-    def get_fwd_ptr(self):
-        return read_int_from_memory(self.address)
+    def get_fwd_ptr(self, sll=True):
+        # Not a single-linked-list (sll) or no Safe-Linking support yet
+        if not sll or get_libc_version() < (2, 32):
+            return read_int_from_memory(self.address)
+        # Unmask ("reveal") the Safe-Linking pointer
+        else:
+            return read_int_from_memory(self.address) ^ (self.address >> 12)
 
     @property
     def fwd(self):
-        return self.get_fwd_ptr()
+        return self.get_fwd_ptr(sll=False)
 
     fd = fwd # for compat
 
