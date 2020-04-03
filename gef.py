@@ -5273,7 +5273,7 @@ class ChangePermissionCommand(GenericCommand):
     _cmdline_ = "set-permission"
     _syntax_  = "{:s} LOCATION [PERMISSION]".format(_cmdline_)
     _aliases_ = ["mprotect",]
-    _example_ = "{:s} $sp 7"
+    _example_ = "{:s} $sp 7".format(_cmdline_)
 
     def __init__(self):
         super(ChangePermissionCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
@@ -5950,7 +5950,7 @@ class StubCommand(GenericCommand):
     _syntax_  = """{:s} [-r RETVAL] [-h] [LOCATION]
 \tLOCATION\taddress/symbol to stub out
 \t-r RETVAL\tSet the return value""".format(_cmdline_)
-    _example_ = "{:s} -r 0 fork"
+    _example_ = "{:s} -r 0 fork".format(_cmdline_)
 
     def __init__(self):
         super(StubCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
