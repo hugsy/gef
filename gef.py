@@ -7740,12 +7740,19 @@ class ContextCommand(GenericCommand):
     def context_memory(self):
         global __watches__
         for address, opt in sorted(__watches__.items()):
+            sz, fmt = opt[0:2]
             self.context_title("memory:{:#x}".format(address))
-            gdb.execute("hexdump {fmt:s} {address:d} {size:d}".format(
-                address=address,
-                size=opt[0],
-                fmt=opt[1]
-            ))
+            if fmt == "pointers":
+                gdb.execute("dereference 0x{address:x} L{size:d}".format(
+                    address=address,
+                    size=sz,
+                ))
+            else:
+                gdb.execute("hexdump {fmt:s} 0x{address:x} {size:d}".format(
+                    address=address,
+                    size=sz,
+                    fmt=fmt,
+                ))
 
     @classmethod
     def update_registers(cls, event):
@@ -7782,7 +7789,7 @@ class MemoryCommand(GenericCommand):
 class MemoryWatchCommand(GenericCommand):
     """Adds address ranges to the memory view."""
     _cmdline_ = "memory watch"
-    _syntax_  = "{:s} ADDRESS [SIZE] [(qword|dword|word|byte)]".format(_cmdline_)
+    _syntax_  = "{:s} ADDRESS [SIZE] [(qword|dword|word|byte|pointers)]".format(_cmdline_)
     _example_ = "\n\t{0:s} 0x603000 0x100 byte\n\t{0:s} $sp".format(_cmdline_)
 
     @only_if_gdb_running
@@ -7799,7 +7806,7 @@ class MemoryWatchCommand(GenericCommand):
 
         if len(argv) == 3:
             group = argv[2].lower()
-            if group not in ("qword", "dword", "word", "byte"):
+            if group not in ("qword", "dword", "word", "byte", "pointers"):
                 warn("Unexpected grouping '{}'".format(group))
                 self.usage()
                 return
@@ -7870,7 +7877,7 @@ class MemoryWatchListCommand(GenericCommand):
 
 @register_command
 class HexdumpCommand(GenericCommand):
-    """Display SIZE lines of hexdump from the memory location pointed by ADDRESS. """
+    """Display SIZE lines of hexdump from the memory location pointed by ADDRESS."""
 
     _cmdline_ = "hexdump"
     _syntax_  = "{:s} [qword|dword|word|byte] [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
