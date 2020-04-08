@@ -6298,7 +6298,11 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             return
 
         # Get tcache_perthread_struct for this arena
-        addr = HeapBaseFunction.heap_base() + 0x10
+        heap_base = HeapBaseFunction.heap_base()
+        if heap_base is None:
+            err("No heap section")
+            return
+        addr = heap_base + 0x10
 
         gef_print(titlify("Tcachebins for arena {:#x}".format(int(arena))))
         for i in range(GlibcArena.TCACHE_MAX_BINS):
