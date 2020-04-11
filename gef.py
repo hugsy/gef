@@ -7163,7 +7163,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_code", 6, "Number of instruction after $pc")
         self.add_setting("nb_lines_code_prev", 3, "Number of instruction before $pc")
         self.add_setting("ignore_registers", "", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
-        self.add_setting("clear_screen", False, "Clear the screen before printing the context")
+        self.add_setting("clear_screen", True, "Clear the screen before printing the context")
         self.add_setting("layout", "legend regs stack code args source memory threads trace extra", "Change the order/presence of the context sections")
         self.add_setting("redirect", "", "Redirect the context information to another TTY")
 
