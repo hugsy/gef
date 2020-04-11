@@ -709,7 +709,10 @@ class GlibcArena:
     def tcachebin(self, i):
         """Return head chunk in tcache[i]."""
         heap_base = HeapBaseFunction.heap_base()
-        addr = dereference(heap_base + 2*current_arch.ptrsize + self.TCACHE_MAX_BINS + i*current_arch.ptrsize)
+        if get_libc_version() < (2,30):
+            addr = dereference(heap_base + 2*current_arch.ptrsize + self.TCACHE_MAX_BINS + i*current_arch.ptrsize)
+        else:
+            addr = dereference(heap_base + 2*current_arch.ptrsize + 2*self.TCACHE_MAX_BINS + i*current_arch.ptrsize)
         if not addr:
             return None
         return GlibcChunk(int(addr))
@@ -6306,7 +6309,10 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
         gef_print(titlify("Tcachebins for arena {:#x}".format(int(arena))))
         for i in range(GlibcArena.TCACHE_MAX_BINS):
-            count = ord(read_memory(addr + i, 1))
+            if get_libc_version() < (2, 30):
+                count = ord(read_memory(addr + i, 1))
+            else:
+                count = ord(read_memory(addr + 2 * i, 1))
             chunk = arena.tcachebin(i)
             chunks = set()
             m = []
