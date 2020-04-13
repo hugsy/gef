@@ -5487,8 +5487,9 @@ def set_fs(uc, addr):    return set_msr(uc, FSMSR, addr)
     set_gs(emu, SEGMENT_GS_ADDR)
 """
 
+        pythonbin = which("python")
 
-        content = """#!/usr/bin/python -i
+        content = """#!{pythonbin} -i
 #
 # Emulation script for "{fname}" from {start:#x} to {end:#x}
 #
@@ -5543,7 +5544,7 @@ def reset():
     emu = unicorn.Uc({arch}, {mode})
 
 {context_block}
-""".format(fname=fname, start=start_insn_addr, end=end_insn_addr,
+""".format(pythonbin=pythonbin, fname=fname, start=start_insn_addr, end=end_insn_addr,
            regs=",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]),
            verbose="True" if verbose else "False",
            syscall_reg=current_arch.syscall_register,
@@ -6892,7 +6893,8 @@ class ProcessListingCommand(GenericCommand):
 
     def __init__(self):
         super(ProcessListingCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
-        self.add_setting("ps_command", "/bin/ps auxww", "`ps` command to get process information")
+        ps = which("ps")
+        self.add_setting("ps_command", "{:s} auxww".format(ps), "`ps` command to get process information")
         return
 
     def do_invoke(self, argv):
@@ -9926,7 +9928,7 @@ class GefTmuxSetup(gdb.Command):
             f.write("startup_message off\n")
             f.write("split -v\n")
             f.write("focus right\n")
-            f.write("screen /bin/bash -c 'tty > {}; clear; cat'\n".format(tty_path))
+            f.write("screen bash -c 'tty > {}; clear; cat'\n".format(tty_path))
             f.write("focus left\n")
 
         gdb.execute("""! {} -r {} -m -d -X source {}""".format(screen, sty, script_path))
