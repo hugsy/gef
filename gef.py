@@ -8626,10 +8626,12 @@ class PatternCreateCommand(GenericCommand):
 
     def do_invoke(self, argv):
         if len(argv) == 1:
-            if not argv[0].isdigit():
+            try:
+                sz = int(argv[0],0)
+            except ValueError:
                 err("Invalid size")
                 return
-            set_gef_setting("pattern.length", int(argv[0]))
+            set_gef_setting("pattern.length", sz)
         elif len(argv) > 1:
             err("Invalid syntax")
             return
@@ -8659,10 +8661,11 @@ class PatternSearchCommand(GenericCommand):
             return
 
         if argc==2:
-            if not argv[1].isdigit():
+            try:
+                size = int(argv[1],0)
+            except ValueError:
                 err("Invalid size")
                 return
-            size = int(argv[1])
         else:
             size = get_gef_setting("pattern.length")
 
