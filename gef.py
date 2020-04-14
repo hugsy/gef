@@ -7909,28 +7909,27 @@ class HexdumpCommand(GenericCommand):
         reverse = False
 
         for arg in argv:
-            arg_old = arg   # if it were to be assigned to target, we don't want to convert it to lower case
-            arg = arg.lower()
+            arg_lower = arg.lower()
             is_format_given = False
             for valid_format in valid_formats:
-                if valid_format.startswith(arg):
+                if valid_format.startswith(arg_lower):
                     fmt = valid_format
                     is_format_given = True
                     break
             if is_format_given:
                 continue
-            if "reverse".startswith(arg):
+            if "reverse".startswith(arg_lower):
                 reverse = True
                 continue
-            if arg.startswith("l") or target:
-                if arg.startswith("l"):
-                    arg = arg[1:]
+            if arg_lower.startswith("l") or target:
+                if arg_lower.startswith("l"):
+                    arg_lower = arg_lower[1:]
                 if read_len:
                     self.usage()
                     return
-                read_len = int(arg, 0)
+                read_len = int(arg_lower, 0)
                 continue
-            target = arg_old
+            target = arg
 
         if not target:
             target="$sp"
