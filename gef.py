@@ -7909,6 +7909,7 @@ class HexdumpCommand(GenericCommand):
         reverse = False
 
         for arg in argv:
+            arg_old = arg   # if it were to be assigned to target, we don't want to convert it to lower case
             arg = arg.lower()
             is_format_given = False
             for valid_format in valid_formats:
@@ -7929,7 +7930,7 @@ class HexdumpCommand(GenericCommand):
                     return
                 read_len = int(arg, 0)
                 continue
-            target = arg
+            target = arg_old
 
         if not target:
             target="$sp"
