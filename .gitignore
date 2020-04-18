@@ -8,3 +8,5 @@ tests/pylint.txt
 tests/pylint3.html
 .vscode
 _build
+dist
+*.egg-info/

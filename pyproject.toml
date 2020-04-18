@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "gef"
+version = "2020.03-1"
+authors = ['hugsy']
+homepage = "https://gef.readthedocs.io/en/master/"
+documentation = "https://gef.readthedocs.io/en/master/"
+repository = "https://github.com/hugsy/gef"
+description = "GDB Enhanced Features for exploit devs & reversers"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Plugins",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.4",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[tool.poetry.dependencies]
+python = "~2.7 || ^3.4"
+capstone = "^4.0.1"
+Ropper = "^1.13.3"
+keystone-engine = "^0.9.1"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

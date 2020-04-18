@@ -9952,7 +9952,8 @@ def __gef_prompt__(current_prompt):
     return GEF_PROMPT_OFF
 
 
-if __name__  == "__main__":
+def init():
+    global __gef__
 
     if sys.version_info[0] == 2:
         err("GEF has dropped Python2 support for GDB when it reached EOL on 2020/01/01.")
@@ -10021,3 +10022,7 @@ if __name__  == "__main__":
 
         GefAliases()
         GefTmuxSetup()
+
+
+if __name__  == "__main__":
+    init()
