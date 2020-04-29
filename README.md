@@ -71,7 +71,7 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 
 | IRC | Gitter | Slack |
 |--|--|--|
-| [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) | [![Gitter](https://badges.gitter.im/gdb-gef/community.svg)](https://gitter.im/gdb-gef/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) | [![Slack](https://gdb-gef.slack.com)](https://raster.shields.io/badge/Slack-GDB--GEF-blueviolet.png) |
+| [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) | [![Gitter](https://badges.gitter.im/gdb-gef/community.svg)](https://gitter.im/gdb-gef/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) | [![Slack](https://raster.shields.io/badge/Slack-GDB--GEF-blueviolet.png)](https://gdb-gef.slack.com) |
 
 ## Contribute ##
 
