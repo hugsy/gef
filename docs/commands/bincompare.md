@@ -4,7 +4,7 @@ The `bincompare` command will compare a provided binary file with process memory
 
 `bincompare` require options:
 
-   * `-f` (for `file`) requires the full path of binary file to be compared.
+* `-f` (for `file`) - the full path of binary file to be compared.
    * `-a` (for `address`) requires the memory address to be compared with file data
 
 You can use the `bytearray` command to generate the binary file.
