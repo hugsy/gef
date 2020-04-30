@@ -1,6 +1,6 @@
 ## Command bincompare
 
-The `bincompare` command will compare a binary file with memory data in order to find diferences between file and memory data. This command is primary used to check badchars in a exploitation process.
+The `bincompare` command will compare a provided binary file with process memory in order to find differences between the two.
 
 `bincompare` require options:
 
