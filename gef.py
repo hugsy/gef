@@ -9301,6 +9301,156 @@ class BincompareCommand(GenericCommand):
         gef_print(" {:s} |{:s} {:s} {:s} {:s} {:s} {:s} {:s} {:s} {:s} {:s} {:s} {:s} {:s} {:s} {:s} {:s}| {:s}".format(line, l[0], l[1], l[2], l[3], l[4], l[5], l[6], l[7], l[8], l[9], l[10], l[11], l[12], l[13], l[14], l[15], label))
 
 
+class BytearrayCommand(GenericCommand):
+    """BytearrayCommand: Generate a bytearray to be compared with possible badchars.
+Function ported from mona.py"""
+    _cmdline_ = "bytearray"
+    _syntax_  = "{:s} [-b badchars]".format(_cmdline_)
+
+    #def __init__(self):
+    #    super(BytearrayCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+    #    return
+
+
+    def usage(self):
+        h = self._syntax_
+        h += "\n\t-b badchars specifies the excluded badchars.\n"
+        info(h)
+        return
+
+    def do_invoke(self, argv):
+        badchars = ""
+        bytesperline = 32
+        startval = 0
+        endval = 255
+
+        opts, args = getopt.getopt(argv, "b:ch")
+        for o,a in opts:
+            if   o == "-b": badchars = a
+            elif o == "-h":
+                self.usage()
+                return
+
+        badchars = self.cleanHex(badchars)
+
+        # see if we need to expand ..
+        bpos = 0
+        newbadchars = ""
+        while bpos < len(badchars):
+            curchar = badchars[bpos]+badchars[bpos+1]
+            if curchar == "..":
+                pos = bpos
+                if pos > 1 and pos <= len(badchars)-4:
+                    # get byte before and after ..
+                    bytebefore = badchars[pos-2] + badchars[pos-1]
+                    byteafter = badchars[pos+2] + badchars[pos+3]
+                    bbefore = int(bytebefore,16)
+                    bafter = int(byteafter,16)
+                    insertbytes = ""
+                    bbefore += 1
+                    while bbefore < bafter:
+                        insertbytes += "%02x" % bbefore
+                        bbefore += 1
+                    newbadchars += insertbytes
+            else:
+                newbadchars += curchar
+            bpos += 2
+        badchars = newbadchars
+
+        cnt = 0
+        excluded = []
+        while cnt < len(badchars):
+            excluded.append(self.hex2bin(badchars[cnt]+badchars[cnt+1]))
+            cnt=cnt+2
+
+        info("Generating table, excluding %d bad chars..." % len(excluded))
+        arraytable = []
+        binarray = bytearray()
+
+        # handle range() last value
+        if endval > startval:
+            increment = 1
+            endval += 1
+        else:
+            endval += -1
+            increment = -1
+
+        # create bytearray
+        for thisval in range(startval,endval,increment):
+            hexbyte = "{:02x}".format(thisval)
+            binbyte = self.hex2bin(hexbyte)
+            intbyte = self.hex2int(hexbyte)
+            if not binbyte in excluded:
+                arraytable.append(hexbyte)
+                binarray.append(intbyte)
+
+        info("Dumping table to file")
+        output = ""
+        cnt = 0
+        outputline = '"'
+        totalbytes = len(arraytable)
+        tablecnt = 0
+        while tablecnt < totalbytes:
+            if (cnt < bytesperline):
+                outputline += "\\x" + arraytable[tablecnt]
+            else:
+                outputline += '"\n'
+                cnt = 0
+                output += outputline
+                outputline = '"\\x' + arraytable[tablecnt]
+            tablecnt += 1
+            cnt += 1
+        if (cnt-1) < bytesperline:
+            outputline += '"\n'
+        output += outputline
+
+        gef_print(output)
+
+        binfilename = "bytearray.bin"
+        arrayfile = "bytearray.txt"
+        binfile = open(binfilename,"wb")
+        binfile.write(binarray)
+        binfile.close()
+
+        txtfile = open(arrayfile,"w+")
+        txtfile.write(output)
+        txtfile.close()
+
+        info("Done, wrote %d bytes to file %s" % (len(arraytable),arrayfile))
+        info("Binary output saved in %s" % binfilename)
+
+        return
+
+    def hex2bin(self, pattern):
+        """
+        Converts a hex string (\\x??\\x??\\x??\\x??) to real hex bytes
+
+        Arguments:
+        pattern - A string representing the bytes to convert 
+
+        Return:
+        the bytes
+        """
+        pattern = pattern.replace("\\x", "")
+        pattern = pattern.replace("\"", "")
+        pattern = pattern.replace("\'", "")
+        return binascii.unhexlify(pattern)
+        #return ''.join([binascii.unhexlify(i+j) for i,j in zip(pattern[0::2],pattern[1::2])])
+
+    def cleanHex(self, hex):
+
+        return ''.join(filter(self.permited_char, hex))
+        #return hex
+
+    def hex2int(self, hex):
+        return int(hex,16)
+
+    def permited_char(self, s):
+        if bool(re.match("^[A-Fa-f0-9]", s)):
+            return True
+        else:
+            return False
+
 @lru_cache()
 def get_section_base_address(name):
     section = process_lookup_path(name)
