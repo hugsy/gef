@@ -9181,6 +9181,7 @@ class SyscallArgsCommand(GenericCommand):
         path = os.path.realpath(path)
         return path if os.path.isdir(path) else None
 
+
 @register_command
 class BincompareCommand(GenericCommand):
     """BincompareCommand: compare an binary file with the memory position looking for badchars."""
@@ -9363,7 +9364,7 @@ Function ported from mona.py"""
             excluded.append(self.hex2bin(badchars[cnt]+badchars[cnt+1]))
             cnt=cnt+2
 
-        info("Generating table, excluding %d bad chars..." % len(excluded))
+        info("Generating table, excluding {:d} bad chars...".format(len(excluded)))
         arraytable = []
         binarray = bytearray()
 
@@ -9416,8 +9417,10 @@ Function ported from mona.py"""
         txtfile.write(output)
         txtfile.close()
 
-        info("Done, wrote %d bytes to file %s" % (len(arraytable),arrayfile))
-        info("Binary output saved in %s" % binfilename)
+
+
+        info("Done, wrote {:d} bytes to file {:s}".format(len(arraytable),arrayfile))
+        info("Binary output saved in {:s}".format(binfilename))
 
         return
 
@@ -9435,21 +9438,19 @@ Function ported from mona.py"""
         pattern = pattern.replace("\"", "")
         pattern = pattern.replace("\'", "")
         return binascii.unhexlify(pattern)
-        #return ''.join([binascii.unhexlify(i+j) for i,j in zip(pattern[0::2],pattern[1::2])])
 
     def cleanHex(self, hex):
-
-        return ''.join(filter(self.permited_char, hex))
-        #return hex
+        return "".join(filter(self.permitted_char, hex))
 
     def hex2int(self, hex):
         return int(hex,16)
 
-    def permited_char(self, s):
+    def permitted_char(self, s):
         if bool(re.match("^[A-Fa-f0-9]", s)):
             return True
         else:
             return False
+
 
 @lru_cache()
 def get_section_base_address(name):
