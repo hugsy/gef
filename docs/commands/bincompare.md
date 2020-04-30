@@ -11,7 +11,7 @@ You can use the `bytearray` command to generate the binary file.
 
 Example without badchars:
 ```
-gef>  bincompare -f bytearray.bin -a 0x56557008
+gef➤  bincompare -f bytearray.bin -a 0x56557008
 [+] Comparison result:
     +-----------------------------------------------+
  00 |00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f| file
@@ -53,7 +53,7 @@ gef>  bincompare -f bytearray.bin -a 0x56557008
 
 Example with badchars and no truncateed buffer:
 ```
-gef>  bincompare -f bytearray.bin -a 0x56557008
+gef➤  bincompare -f bytearray.bin -a 0x56557008
 [+] Comparison result:
     +-----------------------------------------------+
  00 |00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f| file
@@ -95,7 +95,7 @@ gef>  bincompare -f bytearray.bin -a 0x56557008
 
 Example with badchars and truncated buffer:
 ```
-gef>  bincompare -f bytearray.bin -a 0x56557008
+gef➤  bincompare -f bytearray.bin -a 0x56557008
 [+] Comparison result:
     +-----------------------------------------------+
  00 |00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f| file
