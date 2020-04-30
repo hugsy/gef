@@ -9307,9 +9307,9 @@ Function ported from mona.py"""
     _cmdline_ = "bytearray"
     _syntax_  = "{:s} [-b badchars]".format(_cmdline_)
 
-    #def __init__(self):
-    #    super(BytearrayCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
-    #    return
+    def __init__(self):
+        super(BytearrayCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+        return
 
 
     def usage(self):
