@@ -2,7 +2,7 @@
 
 The `bincompare` command will compare a provided binary file with process memory in order to find differences between the two.
 
-`bincompare` require options:
+`bincompare` requires args:
 
 * `-f` (for `file`) - the full path of binary file to be compared.
 * `-a` (for `address`) - the memory address to be compared with the file data.
