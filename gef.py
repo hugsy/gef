@@ -2350,7 +2350,7 @@ def read_int_from_memory(addr):
     sz = current_arch.ptrsize
     mem = read_memory(addr, sz)
     unpack = u32 if sz==4 else u64
-    return unpack(mem)[0]
+    return unpack(mem)
 
 
 def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding=None):
