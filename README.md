@@ -71,7 +71,7 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 
 ## Community ##
 
-All those channels are bridged together via [MutterBridge](). Even if you don't see people in one specific channel (say Slack), members on other channels (say IRC) will still receive your questions/remarks so feel free to chat! There's always people around!
+All those channels are bridged together via [MatterBridge](https://github.com/42wim/matterbridge). Even if you don't see people in one specific channel (say Slack), members on other channels (say IRC) will still receive your questions/remarks so feel free to chat! There's always people around!
 
 | IRC | Gitter | Slack | Discord |
 |--|--|--|--|
