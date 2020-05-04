@@ -279,6 +279,8 @@ def bufferize(f):
     return wrapper
 
 
+
+
 class Color:
     """Used to colorify terminal output."""
     colors = {
@@ -2347,8 +2349,8 @@ def read_int_from_memory(addr):
     """Return an integer read from memory."""
     sz = current_arch.ptrsize
     mem = read_memory(addr, sz)
-    fmt = "{}{}".format(endian_str(), "I" if sz==4 else "Q")
-    return struct.unpack(fmt, mem)[0]
+    unpack = u32 if sz==4 else u64
+    return unpack(mem)[0]
 
 
 def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding=None):
@@ -2379,6 +2381,40 @@ def read_ascii_string(address):
     if isinstance(cstr, str) and cstr and all([x in string.printable for x in cstr]):
         return cstr
     return None
+
+
+def p8(x: int, s: bool = False) -> bytes:
+    """Pack one byte respecting the current architecture endianness."""
+    return struct.pack("{}B".format(endian_str()),x) if not s else struct.pack("{}b".format(endian_str()),x)
+
+def p16(x: int, s: bool = False) -> bytes:
+    """Pack one word respecting the current architecture endianness."""
+    return struct.pack("{}H".format(endian_str()),x) if not s else struct.pack("{}h".format(endian_str()),x)
+
+def p32(x: int, s: bool = False) -> bytes:
+    """Pack one dword respecting the current architecture endianness."""
+    return struct.pack("{}I".format(endian_str()),x) if not s else struct.pack("{}i".format(endian_str()),x)
+
+def p64(x: int, s: bool = False) -> bytes:
+    """Pack one qword respecting the current architecture endianness."""
+    return struct.pack("{}Q".format(endian_str()),x) if not s else struct.pack("{}q".format(endian_str()),x)
+
+def u8(x: bytes, s: bool = False) -> int:
+    """Unpack one byte respecting the current architecture endianness."""
+    return struct.unpack("{}B".format(endian_str()),x)[0] if not s else struct.unpack("{}b".format(endian_str()),x)[0]
+
+def u16(x: bytes, s: bool = False) -> int:
+    """Unpack one word respecting the current architecture endianness."""
+    return struct.unpack("{}H".format(endian_str()),x)[0] if not s else struct.unpack("{}h".format(endian_str()),x)[0]
+
+def u32(x: bytes, s: bool = False) -> int:
+    """Unpack one dword respecting the current architecture endianness."""
+    return struct.unpack("{}I".format(endian_str()),x)[0] if not s else struct.unpack("{}i".format(endian_str()),x)[0]
+
+def u64(x: bytes, s: bool = False) -> int:
+    """Unpack one qword respecting the current architecture endianness."""
+    return struct.unpack("{}Q".format(endian_str()),x)[0] if not s else struct.unpack("{}q".format(endian_str()),x)[0]
+
 
 
 def is_ascii_string(address):
@@ -3684,7 +3720,6 @@ class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):
     def stop(self):
         wp = UafWatchpoint(self.addr)
         __heap_uaf_watchpoints__.append(wp)
-        ok("{} - watching {:#x}".format(Color.colorify("Heap-Analysis", "yellow bold"), self.addr))
         return False
 
 
@@ -5087,7 +5122,7 @@ class ScanSectionCommand(GenericCommand):
                 needle_sections.append((sect.page_start, sect.page_end))
 
         step = current_arch.ptrsize
-        fmt = "{}{}".format(endian_str(), "I" if step==4 else "Q")
+        unpack = u32 if step==4 else u64
 
         for hstart, hend, hname in haystack_sections:
             try:
@@ -5096,7 +5131,7 @@ class ScanSectionCommand(GenericCommand):
                 continue
 
             for i in range(0, len(mem), step):
-                target = struct.unpack(fmt, mem[i:i+step])[0]
+                target = unpack(mem[i:i+step])
                 for nstart, nend in needle_sections:
                     if target >= nstart and target < nend:
                         deref = DereferenceCommand.pprint_dereferenced(hstart, int(i / step))
