@@ -28,10 +28,11 @@ addons:
       - cmake
       - libglib2.0-dev
       - pylint
- 
+
+install:
+  - pip3 install -r requirements.txt
+
 before_script:
-  - curl https://raw.githubusercontent.com/hugsy/stuff/master/update-trinity.sh | bash
-  - /usr/bin/pip3 install -U pip ropper
   - echo "source `pwd`/gef.py" > ~/.gdbinit
 
 script:
