@@ -792,12 +792,17 @@ class GlibcChunk:
         return GlibcChunk(addr)
 
     # if free-ed functions
-    def get_fwd_ptr(self):
-        return read_int_from_memory(self.address)
+    def get_fwd_ptr(self, sll):
+        # Not a single-linked-list (sll) or no Safe-Linking support yet
+        if not sll or get_libc_version() < (2, 32):
+            return read_int_from_memory(self.address)
+        # Unmask ("reveal") the Safe-Linking pointer
+        else:
+            return read_int_from_memory(self.address) ^ (self.address >> 12)
 
     @property
     def fwd(self):
-        return self.get_fwd_ptr()
+        return self.get_fwd_ptr(False)
 
     fd = fwd # for compat
 
@@ -865,7 +870,7 @@ class GlibcChunk:
 
         msg = []
         try:
-            msg.append("Forward pointer: {0:#x}".format(self.get_fwd_ptr()))
+            msg.append("Forward pointer: {0:#x}".format(self.get_fwd_ptr(False)))
         except gdb.MemoryError:
             msg.append("Forward pointer: {0:#x} (corrupted?)".format(fwd))
 
@@ -6348,7 +6353,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             if get_libc_version() < (2, 30):
                 count = ord(read_memory(addr + i, 1))
             else:
-                count = ord(read_memory(addr + 2 * i, 1))
+                count = u16(read_memory(addr + 2 * i, 2))
             chunk = arena.tcachebin(i)
             chunks = set()
             m = []
@@ -6366,7 +6371,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
                     chunks.add(chunk.address)
 
-                    next_chunk = chunk.get_fwd_ptr()
+                    next_chunk = chunk.get_fwd_ptr(True)
                     if next_chunk == 0:
                         break
 
@@ -6430,7 +6435,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
                     chunks.add(chunk.address)
 
-                    next_chunk = chunk.get_fwd_ptr()
+                    next_chunk = chunk.get_fwd_ptr(True)
                     if next_chunk == 0:
                         break
 
