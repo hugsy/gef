@@ -6348,7 +6348,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             if get_libc_version() < (2, 30):
                 count = ord(read_memory(addr + i, 1))
             else:
-                count = ord(read_memory(addr + 2 * i, 1))
+                count = u16(read_memory(addr + 2 * i, 2))
             chunk = arena.tcachebin(i)
             chunks = set()
             m = []
