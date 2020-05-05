@@ -7609,6 +7609,10 @@ class ContextCommand(GenericCommand):
         except Exception:
             return
 
+        breakpoints = gdb.breakpoints()
+        base_name = os.path.basename(symtab.filename)
+        breakpoints_loc = [b.location for b in breakpoints if base_name in b.location]
+
         nb_line = self.get_setting("nb_lines_code")
         fn = symtab.filename
         if len(fn) > 20:
@@ -7620,13 +7624,17 @@ class ContextCommand(GenericCommand):
         for i in range(line_num - nb_line + 1, line_num + nb_line):
             if i < 0:
                 continue
+            name_and_line = "{}:{}".format(base_name, i)
+            has_breakpoint = any([name_and_line in i for i in breakpoints_loc])
+            bkpt_txt = 'B' if has_breakpoint else ' '
 
             if i < line_num:
-                gef_print(Color.grayify("   {:4d}\t {:s}".format(i + 1, lines[i],)))
+                gef_print(Color.grayify("{}  {:4d}\t {:s}".format(bkpt_txt, i + 1, lines[i],)))
 
             if i == line_num:
                 extra_info = self.get_pc_context_info(pc, lines[i])
                 prefix = "{}{:4d}\t ".format(RIGHT_ARROW, i + 1)
+                prefix = bkpt_txt + prefix[1:]
                 leading = len(lines[i]) - len(lines[i].lstrip())
                 if extra_info:
                     gef_print("{}{}".format(" "*(len(prefix) + leading), extra_info))
@@ -7634,7 +7642,7 @@ class ContextCommand(GenericCommand):
 
             if i > line_num:
                 try:
-                    gef_print("   {:4d}\t {:s}".format(i + 1, lines[i],))
+                    gef_print("{}  {:4d}\t {:s}".format(bkpt_txt, i + 1, lines[i],))
                 except IndexError:
                     break
         return
