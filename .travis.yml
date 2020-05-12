@@ -29,10 +29,9 @@ addons:
       - libglib2.0-dev
       - pylint
 
-install:
-  - pip3 install -r requirements.txt
 
 before_script:
+  - /usr/bin/pip3 install -U -r `pwd`/requirements.txt
   - echo "source `pwd`/gef.py" > ~/.gdbinit
 
 script:
