@@ -6,8 +6,6 @@
 
 `GEF` (pronounced ʤɛf - "Jeff") is a set of commands for x86/64, ARM, MIPS, PowerPC and SPARC to assist exploit developers and reverse-engineers when using old school GDB. It provides additional features to GDB using the Python API to assist during the process of dynamic analysis and exploit development. Application developers will also benefit from it, as GEF lifts a great part of regular GDB obscurity, avoiding repeating traditional commands, or bringing out the relevant information from the debugging runtime.
 
-![gef-context](https://i.imgur.com/E3EuQPs.png)
-
 
 ## Instant Setup ##
 
@@ -32,8 +30,18 @@ gef➤  gef help
 _Note_: As of January 2020, GEF doesn't officially support Python 2 any longer, due to Python 2 becoming officially deprecated.
 If you really need GDB+Python2, use [`gef-legacy`](https://github.com/hugsy/gef-legacy) instead.
 
+## Community ##
+
+All those channels are bridged together via [MatterBridge](https://github.com/42wim/matterbridge). Even if you don't see people in one specific channel (say Slack), members on other channels (say IRC) will still receive your questions/remarks so feel free to chat! There's always people around!
+
+| IRC | Gitter | Slack | Discord |
+|--|--|--|--|
+| [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) | [![Gitter](https://badges.gitter.im/gdb-gef/community.svg)](https://gitter.im/gdb-gef/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) | [![Slack](https://img.shields.io/badge/Slack-GDB--GEF-blueviolet)](https://gdb-gef.slack.com) | [![Slack](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) | 
+
 
 ## Highlights ##
+
+![gef-context](https://i.imgur.com/E3EuQPs.png)
 
 A few of `GEF` features include:
 
@@ -68,14 +76,6 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 |--|--|--|--|
 | [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) |  [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) | [![CircleCI status](https://circleci.com/gh/hugsy/gef/tree/master.svg?style=shield)](https://circleci.com/gh/hugsy/gef/tree/master) [![TravisCI status](https://travis-ci.com/hugsy/gef.svg?branch=master)](https://travis-ci.com/github/hugsy/gef/branches) |
 
-
-## Community ##
-
-All those channels are bridged together via [MatterBridge](https://github.com/42wim/matterbridge). Even if you don't see people in one specific channel (say Slack), members on other channels (say IRC) will still receive your questions/remarks so feel free to chat! There's always people around!
-
-| IRC | Gitter | Slack | Discord |
-|--|--|--|--|
-| [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) | [![Gitter](https://badges.gitter.im/gdb-gef/community.svg)](https://gitter.im/gdb-gef/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) | [![Slack](https://img.shields.io/badge/Slack-GDB--GEF-blueviolet)](https://gdb-gef.slack.com) | [![Slack](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) | 
 
 ## Contribute ##
 
