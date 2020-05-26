@@ -3150,7 +3150,7 @@ def get_memory_alignment(in_bits=False):
 def clear_screen(tty=""):
     """Clear the screen."""
     if not tty:
-        gdb.execute("shell clear")
+        gdb.execute("shell clear -x")
         return
 
     # Since the tty can be closed at any time, a PermissionError exception can
