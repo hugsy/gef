@@ -494,11 +494,22 @@ class Elf:
     SPARC64           = 0x2b
     AARCH64           = 0xb7
     RISCV             = 0xf3
+    IA64              = 0x32
 
+    ET_RELOC          = 1
     ET_EXEC           = 2
     ET_DYN            = 3
     ET_CORE           = 4
 
+    OSABI_SYSTEMV     = 0x00
+    OSABI_HPUX        = 0x01
+    OSABI_NETBSD      = 0x02
+    OSABI_LINUX       = 0x03
+    OSABI_SOLARIS     = 0x06
+    OSABI_AIX         = 0x07
+    OSABI_IRIX        = 0x08
+    OSABI_FREEBSD     = 0x09
+    OSABI_OPENBSD     = 0x0C
 
     e_magic           = b"\x7fELF"
     e_class           = ELF_32_BITS
@@ -7007,40 +7018,47 @@ class ElfInfoCommand(GenericCommand):
 
     def do_invoke(self, argv):
         # http://www.sco.com/developers/gabi/latest/ch4.eheader.html
-        classes = {0x01: "32-bit",
-                   0x02: "64-bit",}
-        endianness = {0x01: "Little-Endian",
-                      0x02: "Big-Endian",}
+        classes = {
+            Elf.ELF_32_BITS     : "32-bit",
+            Elf.ELF_64_BITS     : "64-bit",
+        }
+
+        endianness = {
+            Elf.LITTLE_ENDIAN   : "Little-Endian",
+            Elf.BIG_ENDIAN      : "Big-Endian",
+        }
+
         osabi = {
-            0x00: "System V",
-            0x01: "HP-UX",
-            0x02: "NetBSD",
-            0x03: "Linux",
-            0x06: "Solaris",
-            0x07: "AIX",
-            0x08: "IRIX",
-            0x09: "FreeBSD",
-            0x0C: "OpenBSD",
+            Elf.OSABI_SYSTEMV      : "System V",
+            Elf.OSABI_HPUX         : "HP-UX",
+            Elf.OSABI_NETBSD       : "NetBSD",
+            Elf.OSABI_LINUX        : "Linux",
+            Elf.OSABI_SOLARIS      : "Solaris",
+            Elf.OSABI_AIX          : "AIX",
+            Elf.OSABI_IRIX         : "IRIX",
+            Elf.OSABI_FREEBSD      : "FreeBSD",
+            Elf.OSABI_OPENBSD      : "OpenBSD",
         }
 
         types = {
-            0x01: "Relocatable",
-            0x02: "Executable",
-            0x03: "Shared",
-            0x04: "Core"
+            Elf.ET_RELOC           : "Relocatable",
+            Elf.ET_EXEC            : "Executable",
+            Elf.ET_DYN             : "Shared",
+            Elf.ET_CORE            : "Core"
         }
 
         machines = {
-            0x02: "SPARC",
-            0x03: "x86",
-            0x08: "MIPS",
-            0x14: "PowerPC",
-            0x15: "PowerPC64",
-            0x28: "ARM",
-            0x2b: "SPARC64",
-            0x32: "IA-64",
-            0x3E: "x86-64",
-            0xB7: "AArch64",
+            Elf.X86_64            : "x86-64",
+            Elf.X86_32            : "x86",
+            Elf.ARM               : "ARM",
+            Elf.MIPS              : "MIPS",
+            Elf.POWERPC           : "PowerPC",
+            Elf.POWERPC64         : "PowerPC64",
+            Elf.SPARC             : "SPARC",
+            Elf.SPARC64           : "SPARC64",
+            Elf.AARCH64           : "AArch64",
+            Elf.RISCV             : "RISC-V",
+            Elf.IA64              : "IA-64",
         }
 
         filename = argv[0] if argv else get_filepath()
