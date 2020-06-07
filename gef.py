@@ -4722,6 +4722,9 @@ class PCustomCommand(GenericCommand):
 
             if issubclass(_type, ctypes.Structure):
                 self.apply_structure_to_address(mod_name, _type.__name__, addr + _offset, depth + 1)
+            elif _type.__name__.startswith("LP_"): # hack
+                __sub_type_name = _type.__name__.replace("LP_", "")
+                self.apply_structure_to_address(mod_name, __sub_type_name, addr + _offset, depth + 1)
         return
 
 
