@@ -4574,6 +4574,7 @@ class PCustomCommand(GenericCommand):
                          "Path to store/load the structure ctypes files")
         return
 
+
     def do_invoke(self, argv):
         argc = len(argv)
         if argc == 0:
@@ -4608,21 +4609,32 @@ class PCustomCommand(GenericCommand):
         return
 
 
-    def get_struct_path(self):
+    def get_pcustom_abspath(self):
         path = os.path.expanduser(self.get_setting("struct_path"))
         path = os.path.realpath(path)
-        return path if os.path.isdir(path) else None
+        if not os.path.isdir(path):
+            raise RuntimeError("setting `struct_path` must be set correctly")
+        return path
 
 
-    def pcustom_filepath(self, x):
-        p = self.get_struct_path()
-        if not p: return None
-        return os.path.join(p, "{}.py".format(x))
+    def get_pcustom_filepath_for_structure(self, structure_name):
+        structure_files = self.enumerate_structures()
+        fpath = None
+        for fname in structure_files:
+            if structure_name in structure_files[fname]:
+                fpath = fname
+                break
+        if not fpath:
+            raise FileNotFoundError("no file for structure '{}'".format(structure_name))
+        return fpath
 
 
-    def is_valid_struct(self, x):
-        p = self.pcustom_filepath(x)
-        return os.access(p, os.R_OK) if p else None
+    def is_valid_struct(self, structure_name):
+        structure_files = self.enumerate_structures()
+        all_structures = set()
+        for fname in structure_files:
+            all_structures |=  structure_files[fname]
+        return structure_name in all_structures
 
 
     def dump_structure(self, mod_name, struct_name):
@@ -4656,23 +4668,20 @@ class PCustomCommand(GenericCommand):
         return
 
 
-    def get_module(self, modname):
-        _fullname = self.pcustom_filepath(modname)
+    def load_custom_module(self, modname):
+        print("loading custom module %s" % modname)
+        _fullname = self.get_pcustom_filepath_for_structure(modname)
         return importlib.machinery.SourceFileLoader(modname, _fullname).load_module(None)
 
 
     def get_structure_class(self, modname, classname):
-        _mod = self.get_module(modname)
+        """
+        Returns a tuple of (class, instance) if modname!classname exists
+        """
+        _fpath = self.get_pcustom_filepath_for_structure(modname)
+        _mod = self.load_module(_fpath)
         _class = getattr(_mod, classname)
         return _class, _class()
-
-    def list_all_structs(self, modname):
-        _mod = self.get_module(modname)
-        _invalid = set(["BigEndianStructure", "LittleEndianStructure", "Structure"])
-        _structs = set([x for x in dir(_mod) \
-                         if inspect.isclass(getattr(_mod, x)) \
-                         and issubclass(getattr(_mod, x), ctypes.Structure)])
-        return _structs - _invalid
 
 
     def apply_structure_to_address(self, mod_name, struct_name, addr, depth=0):
@@ -4735,17 +4744,15 @@ class PCustomCommand(GenericCommand):
 
 
     def create_or_edit_structure(self, mod_name, struct_name):
-        path = self.get_struct_path()
+        path = self.get_pcustom_abspath()
         if path is None:
             err("Invalid struct path")
             return
 
-        fullname = self.pcustom_filepath(mod_name)
+        fullname = self.get_pcustom_filepath_for_structure(mod_name)
         if not self.is_valid_struct(mod_name):
             info("Creating '{:s}' from template".format(fullname))
-            with open(fullname, "w") as f:
-                f.write(self.get_template(struct_name))
-                f.flush()
+            self.create_new_structure_template(struct_name)
         else:
             info("Editing '{:s}'".format(fullname))
 
@@ -4755,29 +4762,76 @@ class PCustomCommand(GenericCommand):
         return retcode
 
 
-    def get_template(self, structname):
+    def create_new_structure_template(self, structname):
         d = [
             "from ctypes import *\n\n",
             "class ", structname, "(Structure):\n",
             "    _fields_ = []\n"
         ]
-        return "".join(d)
+        with open(fullname, "w") as f:
+            f.write("".join(d))
+        return
 
 
     def list_custom_structures(self):
-        path = self.get_struct_path()
-        if path is None:
-            err("Cannot open '{0}': check directory and/or `gef config {0}` "
-                "setting, currently: '{1}'".format("pcustom.struct_path", self.get_setting("struct_path")))
-            return
-
+        """
+        Dump the list of all the structures and their respective
+        """
+        path = self.get_pcustom_abspath()
         info("Listing custom structures from '{:s}'".format(path))
-        for filen in os.listdir(path):
+        structures = self.enumerate_structures()
+        for filename in structures:
+            modules = structures[filename]
+            ok("{:s} {:s} ({:s})".format(RIGHT_ARROW, filename, ", ".join(modules)))
+        return
+
+
+    def enumerate_structure_files(self):
+        """
+        Return a list of all the files in the pcustom directory
+        """
+        module_files = []
+        root = self.get_pcustom_abspath()
+        for filen in os.listdir(root):
             name, ext = os.path.splitext(filen)
             if ext != ".py": continue
-            _modz = self.list_all_structs(name)
-            ok("{:s} {:s} ({:s})".format(RIGHT_ARROW, name, ", ".join(_modz)))
-        return
+            if name == "__init__": continue
+            fpath = os.sep.join([root, filen])
+            module_files.append( os.path.realpath(fpath) )
+        return module_files
+
+
+    def enumerate_structures(self):
+        """
+        Return a hash of all the structures, with the key set the to filepath
+        """
+        structures = {}
+        files = self.enumerate_structure_files()
+        for module_path in files:
+            module = self.load_module(module_path)
+            structures[module_path] = self.enumerate_structures_from_module(module)
+        return structures
+
+
+    def load_module(self, file_path):
+        """
+        Load a custom module, and return it
+        """
+        module_name = file_path.split(os.sep)[-1].replace(".py", "")
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+        return module
+
+
+    def enumerate_structures_from_module(self, module):
+        _invalid = set(["BigEndianStructure", "LittleEndianStructure", "Structure"])
+        _structs = set([x for x in dir(module) \
+                         if inspect.isclass(getattr(module, x)) \
+                         and issubclass(getattr(module, x), ctypes.Structure)])
+        return _structs - _invalid
+
 
 
 @register_command
