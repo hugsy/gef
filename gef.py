@@ -4570,8 +4570,9 @@ class PCustomCommand(GenericCommand):
 
     def __init__(self):
         super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL)
-        self.add_setting("struct_path", os.path.join(get_gef_setting("gef.tempdir"), "structs"),
+        self.add_setting("struct_path", os.sep.join([get_gef_setting("gef.tempdir"), "structs"]),
                          "Path to store/load the structure ctypes files")
+        self.add_setting("max_depth", 4, "Maximum level of recursion supported")
         return
 
 
@@ -4687,6 +4688,10 @@ class PCustomCommand(GenericCommand):
     def apply_structure_to_address(self, mod_name, struct_name, addr, depth=0):
         if not self.is_valid_struct(mod_name):
             err("Invalid structure name '{:s}'".format(struct_name))
+            return
+
+        if depth >= self.get_setting("max_depth"):
+            warn("maximum recursion level reached")
             return
 
         try:
