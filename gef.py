@@ -4760,7 +4760,7 @@ class PCustomCommand(GenericCommand):
         fullname = self.get_pcustom_filepath_for_structure(mod_name)
         if not self.is_valid_struct(mod_name):
             info("Creating '{:s}' from template".format(fullname))
-            self.create_new_structure_template(struct_name)
+            self.create_new_structure_template(struct_name, fullname)
         else:
             info("Editing '{:s}'".format(fullname))
 
@@ -4770,7 +4770,7 @@ class PCustomCommand(GenericCommand):
         return retcode
 
 
-    def create_new_structure_template(self, structname):
+    def create_new_structure_template(self, structname, fullname):
         d = [
             "from ctypes import *\n\n",
             "class ", structname, "(Structure):\n",
