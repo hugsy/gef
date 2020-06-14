@@ -9190,7 +9190,12 @@ class HeapAnalysisCommand(GenericCommand):
         ok("{} - Cleaning up".format(Color.colorify("Heap-Analysis", "yellow bold"),))
         for bp in [self.bp_malloc, self.bp_calloc, self.bp_free, self.bp_realloc]:
             if hasattr(bp, "retbp") and bp.retbp:
-                bp.retbp.delete()
+                try:
+                    bp.retbp.delete()
+                except RuntimeError:
+                    # in some cases, gdb was found failing to correctly remove the retbp but they can be safely ignored since the debugging session is over
+                    pass
+
             bp.delete()
 
         for wp in __heap_uaf_watchpoints__:
