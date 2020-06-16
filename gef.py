@@ -8131,7 +8131,7 @@ class HexdumpQwordCommand(HexdumpCommand):
     _example_ = "{:s} qword $rsp L16 REVERSE".format(_cmdline_)
 
     def __init__(self):
-        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
         self.format = "qword"
         return
 
@@ -8145,7 +8145,7 @@ class HexdumpDwordCommand(HexdumpCommand):
     _example_ = "{:s} $esp L16 REVERSE".format(_cmdline_)
 
     def __init__(self):
-        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
         self.format = "dword"
         return
 
@@ -8159,7 +8159,7 @@ class HexdumpWordCommand(HexdumpCommand):
     _example_ = "{:s} $esp L16 REVERSE".format(_cmdline_)
 
     def __init__(self):
-        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
         self.format = "word"
         return
 
@@ -8173,7 +8173,7 @@ class HexdumpByteCommand(HexdumpCommand):
     _example_ = "{:s} $rsp L16".format(_cmdline_)
 
     def __init__(self):
-        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
         self.format = "byte"
         return
 
@@ -8194,7 +8194,7 @@ class PatchCommand(GenericCommand):
     }
 
     def __init__(self):
-        super(PatchCommand, self).__init__(prefix=True)
+        super(PatchCommand, self).__init__(prefix=True, complete=gdb.COMPLETE_LOCATION)
         self.format = None
         return
 
@@ -8236,7 +8236,7 @@ class PatchQwordCommand(PatchCommand):
     _example_ = "{:s} $rip 0x4141414141414141".format(_cmdline_)
 
     def __init__(self):
-        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
         self.format = "qword"
         return
 
@@ -8251,7 +8251,7 @@ class PatchDwordCommand(PatchCommand):
     _example_ = "{:s} $rip 0x41414141".format(_cmdline_)
 
     def __init__(self):
-        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
         self.format = "dword"
         return
 
@@ -8265,13 +8265,13 @@ class PatchWordCommand(PatchCommand):
     _example_ = "{:s} $rip 0x4141".format(_cmdline_)
 
     def __init__(self):
-        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
         self.format = "word"
         return
 
 
 @register_command
-class PatchWordCommand(PatchCommand):
+class PatchByteCommand(PatchCommand):
     """Write specified WORD to the specified address."""
 
     _cmdline_ = "patch byte"
@@ -8279,7 +8279,7 @@ class PatchWordCommand(PatchCommand):
     _example_ = "{:s} $rip 0x41 0x41 0x41 0x41 0x41".format(_cmdline_)
 
     def __init__(self):
-        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
         self.format = "byte"
         return
 
