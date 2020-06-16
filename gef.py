@@ -7924,6 +7924,10 @@ class MemoryWatchCommand(GenericCommand):
     _syntax_  = "{:s} ADDRESS [SIZE] [(qword|dword|word|byte|pointers)]".format(_cmdline_)
     _example_ = "\n\t{0:s} 0x603000 0x100 byte\n\t{0:s} $sp".format(_cmdline_)
 
+    def __init__(self):
+        super(MemoryWatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
     @only_if_gdb_running
     def do_invoke(self, argv):
         global __watches__
@@ -7958,6 +7962,10 @@ class MemoryUnwatchCommand(GenericCommand):
     _cmdline_ = "memory unwatch"
     _syntax_  = "{:s} ADDRESS".format(_cmdline_)
     _example_ = "\n\t{0:s} 0x603000\n\t{0:s} $sp".format(_cmdline_)
+
+    def __init__(self):
+        super(MemoryUnwatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
 
     @only_if_gdb_running
     def do_invoke(self, argv):
@@ -8012,17 +8020,22 @@ class HexdumpCommand(GenericCommand):
     """Display SIZE lines of hexdump from the memory location pointed by ADDRESS."""
 
     _cmdline_ = "hexdump"
-    _syntax_  = "{:s} [qword|dword|word|byte] [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
+    _syntax_  = "{:s} [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
     _example_ = "{:s} byte $rsp L16 REVERSE".format(_cmdline_)
 
     def __init__(self):
-        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=True)
         self.add_setting("always_show_ascii", False, "If true, hexdump will always display the ASCII dump")
+        self.format = None
         return
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        fmt = "byte"
+        if not self.format:
+            err("Incomplete command")
+            return
+
+        fmt = self.format
         target = ""
         valid_formats = ["byte", "word", "dword", "qword"]
         read_len = None
@@ -8080,7 +8093,7 @@ class HexdumpCommand(GenericCommand):
         endianness = endian_str()
 
         base_address_color = get_gef_setting("theme.dereference_base_address")
-        show_ascii = self.get_setting("always_show_ascii")
+        show_ascii = get_gef_setting("hexdump.always_show_ascii")
 
         formats = {
             "qword": ("Q", 8),
@@ -8108,6 +8121,62 @@ class HexdumpCommand(GenericCommand):
             i += 1
 
         return lines
+
+@register_command
+class HexdumpQwordCommand(HexdumpCommand):
+    """Display SIZE lines of hexdump as QWORD from the memory location pointed by ADDRESS."""
+
+    _cmdline_ = "hexdump qword"
+    _syntax_  = "{:s} [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
+    _example_ = "{:s} qword $rsp L16 REVERSE".format(_cmdline_)
+
+    def __init__(self):
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.format = "qword"
+        return
+
+
+@register_command
+class HexdumpDwordCommand(HexdumpCommand):
+    """Display SIZE lines of hexdump as DWORD from the memory location pointed by ADDRESS."""
+
+    _cmdline_ = "hexdump dword"
+    _syntax_  = "{:s} [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
+    _example_ = "{:s} $esp L16 REVERSE".format(_cmdline_)
+
+    def __init__(self):
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.format = "dword"
+        return
+
+
+@register_command
+class HexdumpWordCommand(HexdumpCommand):
+    """Display SIZE lines of hexdump as WORD from the memory location pointed by ADDRESS."""
+
+    _cmdline_ = "hexdump word"
+    _syntax_  = "{:s} [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
+    _example_ = "{:s} $esp L16 REVERSE".format(_cmdline_)
+
+    def __init__(self):
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.format = "word"
+        return
+
+
+@register_command
+class HexdumpByteCommand(HexdumpCommand):
+    """Display SIZE lines of hexdump as BYTE from the memory location pointed by ADDRESS."""
+
+    _cmdline_ = "hexdump byte"
+    _syntax_  = "{:s} [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
+    _example_ = "{:s} $rsp L16".format(_cmdline_)
+
+    def __init__(self):
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.format = "byte"
+        return
+
 
 
 @register_command
