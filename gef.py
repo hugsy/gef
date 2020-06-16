@@ -8194,17 +8194,23 @@ class PatchCommand(GenericCommand):
     }
 
     def __init__(self):
-        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=True)
+        super(PatchCommand, self).__init__(prefix=True)
+        self.format = None
         return
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        argc = len(argv)
-        if argc < 3:
+        if not self.format:
             self.usage()
             return
 
-        fmt, location, values = argv[0].lower(), argv[1], argv[2:]
+        argc = len(argv)
+        if argc < 2:
+            self.usage()
+            return
+
+        location, values = argv[0], argv[1:]
+        fmt = self.format
         if fmt not in self.SUPPORTED_SIZES:
             self.usage()
             return
@@ -8218,8 +8224,65 @@ class PatchCommand(GenericCommand):
             vstr = struct.pack(d + fcode, value)
             write_memory(addr, vstr, length=size)
             addr += size
-
         return
+
+
+@register_command
+class PatchQwordCommand(PatchCommand):
+    """Write specified QWORD to the specified address."""
+
+    _cmdline_ = "patch qword"
+    _syntax_  = "{0:s} LOCATION QWORD1 [QWORD2 [QWORD3..]]".format(_cmdline_)
+    _example_ = "{:s} $rip 0x4141414141414141".format(_cmdline_)
+
+    def __init__(self):
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.format = "qword"
+        return
+
+
+
+@register_command
+class PatchDwordCommand(PatchCommand):
+    """Write specified DWORD to the specified address."""
+
+    _cmdline_ = "patch dword"
+    _syntax_  = "{0:s} LOCATION DWORD1 [DWORD2 [DWORD3..]]".format(_cmdline_)
+    _example_ = "{:s} $rip 0x41414141".format(_cmdline_)
+
+    def __init__(self):
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.format = "dword"
+        return
+
+
+@register_command
+class PatchWordCommand(PatchCommand):
+    """Write specified WORD to the specified address."""
+
+    _cmdline_ = "patch word"
+    _syntax_  = "{0:s} LOCATION WORD1 [WORD2 [WORD3..]]".format(_cmdline_)
+    _example_ = "{:s} $rip 0x4141".format(_cmdline_)
+
+    def __init__(self):
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.format = "word"
+        return
+
+
+@register_command
+class PatchWordCommand(PatchCommand):
+    """Write specified WORD to the specified address."""
+
+    _cmdline_ = "patch byte"
+    _syntax_  = "{0:s} LOCATION BYTE1 [BYTE2 [BYTE3..]]".format(_cmdline_)
+    _example_ = "{:s} $rip 0x41 0x41 0x41 0x41 0x41".format(_cmdline_)
+
+    def __init__(self):
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        self.format = "byte"
+        return
+
 
 @register_command
 class PatchStringCommand(GenericCommand):
