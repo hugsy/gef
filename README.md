@@ -1,5 +1,3 @@
-# GDB Enhanced Features (a.k.a. GEF)
-
 <p align="center">
   <img src="https://i.imgur.com/v3PUqPx.png" alt="logo"/>
 </p>
@@ -11,33 +9,47 @@
 
 Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb) compiled with Python3 bindings, then:
 
+
 ```bash
 # via the install script
-$ wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
+## using curl
+$ sh -c "$(curl -fsSL https://tinyurl.com/gef-install)"
 
-# manually
-$ wget -O ~/.gdbinit-gef.py -q https://github.com/hugsy/gef/raw/master/gef.py
+## using wget
+$ sh -c "$(wget https://tinyurl.com/gef-install -O -)"
+
+# or manually
+$ wget -O ~/.gdbinit-gef.py -q https://tinyurl.com/gef-master
 $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
+
+# or alternatively from inside gdb directly
+$ gdb -q
+(gdb) pi import urllib.request as u, tempfile as t; g=t.NamedTemporaryFile(suffix='-gef.py'); open(g.name, 'wb+').write(u.urlopen('https://tinyurl.com/gef-master').read()); gdb.execute('source %s' % g.name)
 ```
 
-Then just start playing:
+_Note_: to fetch the latest of GEF (i.e. from the `dev` branch), simply replace in the URL to https://tinyurl.com/gef-dev.
+
+You can immediately see that GEF is correctly installed by launching GDB:
 
 ```bash
 $ gdb -q /path/to/my/bin
+GEF for linux ready, type `gef' to start, `gef config' to configure
+80 commands loaded for GDB 9.1 using Python engine 3.8
 gef➤  gef help
 ```
 
 _Note_: As of January 2020, GEF doesn't officially support Python 2 any longer, due to Python 2 becoming officially deprecated.
 If you really need GDB+Python2, use [`gef-legacy`](https://github.com/hugsy/gef-legacy) instead.
 
+
 ## Community ##
 
+
+| IRC                                                                                                                     | Gitter                                                                                                                                                   | Slack                                                                                                                                                                                             | Discord                                                                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) | [![Gitter](https://badges.gitter.im/gdb-gef/community.svg)](https://gitter.im/gdb-gef/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) | [![Slack](https://img.shields.io/badge/Slack-GDB--GEF-blueviolet)](https://gdb-gef.slack.com/) [[invite link](https://join.slack.com/t/gdb-gef/shared_invite/zt-efrrdjj7-BmPZdIzgDzrz8LqDTrL8yg)] | [![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) [[invite link](https://discord.gg/HCS8Hg7)] |
+
 All those channels are bridged together via [MatterBridge](https://github.com/42wim/matterbridge). Even if you don't see people in one specific channel (say Slack), members on other channels (say IRC) will still receive your questions/remarks so feel free to chat! There's always people around!
-
-| IRC | Gitter | Slack | Discord |
-|--|--|--|--|
-| [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) | [![Gitter](https://badges.gitter.im/gdb-gef/community.svg)](https://gitter.im/gdb-gef/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) | [![Slack](https://img.shields.io/badge/Slack-GDB--GEF-blueviolet)](https://gdb-gef.slack.com/) [[invite link](https://join.slack.com/t/gdb-gef/shared_invite/zt-efrrdjj7-BmPZdIzgDzrz8LqDTrL8yg)] | [![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) [[invite link](https://discord.gg/HCS8Hg7)]| 
-
 
 ## Highlights ##
 
@@ -45,19 +57,14 @@ All those channels are bridged together via [MatterBridge](https://github.com/42
 
 A few of `GEF` features include:
 
-  * **One** single GDB script.
-  * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included and is installable in 2 seconds (unlike [PwnDBG](https://github.com/pwndbg/pwndbg)).
-  * **Fast** limiting the number of dependencies and optimizing code to make the
-    commands as fast as possible (unlike _PwnDBG_).
-  * Provides a great variety of commands to drastically change your experience in     GDB.
-  * **Easily** extendable to create other commands by providing more comprehensible
-    layout to GDB Python API.
-  * Works consistently on both Python2 and Python3.
-  * Built around an architecture abstraction layer, so all commands work in any
-    GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS,
-    PowerPC, etc. (unlike [PEDA](https://github.com/longld/peda))
-  * Suited for real-life apps debugging, exploit development, just as much as
-    CTF (unlike _PEDA_ or _PwnDBG_)
+  * **One** single GDB script
+  * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included and [is installable instantly](https://gef.readthedocs.io/en/master/#setup)
+  * **Fast** limiting the number of dependencies and optimizing code to make the commands as fast as possible
+  * Provides [a great variety of commands](https://gef.readthedocs.io/en/master/commands/) to drastically change your experience in GDB.
+  * [**Easily** extensible](https://gef.readthedocs.io/en/master/api/) to create other commands by providing more comprehensible layout to GDB Python API.
+  * Full Python3 support ([Python2 support was dropped](https://github.com/hugsy/gef/releases/tag/2020.03) - see [`gef-legacy`](https://github.com/hugsy/gef-legacy)).
+  * Built around an architecture abstraction layer, so all commands work in any GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS, PowerPC, etc.
+  * Suited for real-life apps debugging, exploit development, just as much as CTF
 
 Check out the [Screenshot page](docs/screenshots.md) for more.
 
@@ -72,9 +79,9 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 ## Current status ##
 
 
-| Documentation | License | Compatibility | Test validation |
-|--|--|--|--|
-| [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) |  [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) | [![CircleCI status](https://circleci.com/gh/hugsy/gef/tree/master.svg?style=shield)](https://circleci.com/gh/hugsy/gef/tree/master) [![TravisCI status](https://travis-ci.com/hugsy/gef.svg?branch=master)](https://travis-ci.com/github/hugsy/gef/branches) |
+| Documentation                                                                                                        | License                                                                                                                                      | Compatibility                                                                                 | Test validation                                                                                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) | [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) | [![CircleCI status](https://circleci.com/gh/hugsy/gef/tree/master.svg?style=shield)](https://circleci.com/gh/hugsy/gef/tree/master) [![TravisCI status](https://travis-ci.com/hugsy/gef.svg?branch=master)](https://travis-ci.com/github/hugsy/gef/branches) |
 
 
 ## Contribute ##
