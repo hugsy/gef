@@ -9157,8 +9157,7 @@ class HighlightListCommand(GenericCommand):
 
         left_pad = max(map(len, highlight_table.keys()))
         for match, color in sorted(highlight_table.items()):
-            print("{} | {}".format(Color.colorify(match.ljust(left_pad), color),
-                                   Color.colorify(color, color)))
+            print("{} {} {}".format(Color.colorify(match.ljust(left_pad), color), VERTICAL_LINE, Color.colorify(color, color)))
         return
 
     def do_invoke(self, argv):
