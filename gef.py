@@ -4567,6 +4567,7 @@ class PCustomCommand(GenericCommand):
 
     _cmdline_ = "pcustom"
     _syntax_  = "{:s} [-l] [StructA [0xADDRESS] [-e]]".format(_cmdline_)
+    _aliases_ = ["dt"]
 
     def __init__(self):
         super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL)
@@ -4619,15 +4620,9 @@ class PCustomCommand(GenericCommand):
 
 
     def get_pcustom_filepath_for_structure(self, structure_name):
-        structure_files = self.enumerate_structures()
-        fpath = None
-        for fname in structure_files:
-            if structure_name in structure_files[fname]:
-                fpath = fname
-                break
-        if not fpath:
-            raise FileNotFoundError("no file for structure '{}'".format(structure_name))
-        return fpath
+        root = self.get_pcustom_abspath()
+        filename = "{:s}.py".format(structure_name)
+        return os.sep.join([root, filename])
 
 
     def is_valid_struct(self, structure_name):
@@ -4667,12 +4662,6 @@ class PCustomCommand(GenericCommand):
         length = min(len(data), ctypes.sizeof(struct))
         ctypes.memmove(ctypes.addressof(struct), data, length)
         return
-
-
-    def load_custom_module(self, modname):
-        print("loading custom module %s" % modname)
-        _fullname = self.get_pcustom_filepath_for_structure(modname)
-        return importlib.machinery.SourceFileLoader(modname, _fullname).load_module(None)
 
 
     def get_structure_class(self, modname, classname):
