@@ -12,7 +12,7 @@
 # devs and reversers, to provides additional features to GDB using the Python
 # API to assist during the process of dynamic analysis.
 #
-# GEF fully relies on GDB API and other Linux-specific sources of information"
+# GEF fully relies on GDB API and other Linux-specific sources of information
 # (such as /proc/<pid>). As a consequence, some of the features might not work
 # on custom or hardened systems such as GrSec.
 #
