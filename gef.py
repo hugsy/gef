@@ -2432,7 +2432,6 @@ def u64(x: bytes, s: bool = False) -> int:
     return struct.unpack("{}Q".format(endian_str()),x)[0] if not s else struct.unpack("{}q".format(endian_str()),x)[0]
 
 
-
 def is_ascii_string(address):
     """Helper function to determine if the buffer pointed by `address` is an ASCII string (in GDB)"""
     try:
@@ -4566,39 +4565,23 @@ class PCustomCommand(GenericCommand):
     configuration setting."""
 
     _cmdline_ = "pcustom"
-    _syntax_  = "{:s} [-l] [StructA [0xADDRESS] [-e]]".format(_cmdline_)
+    _syntax_  = "{:s} [list|edit <StructureName>|show <StructureName>]|<StructureName> 0xADDRESS]".format(_cmdline_)
 
     def __init__(self):
-        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL)
-        self.add_setting("struct_path", os.sep.join([get_gef_setting("gef.tempdir"), "structs"]),
-                         "Path to store/load the structure ctypes files")
+        super(PCustomCommand, self).__init__(prefix=True)
+        self.add_setting("struct_path", os.sep.join([get_gef_setting("gef.tempdir"), "structs"]), "Path to store/load the structure ctypes files")
         self.add_setting("max_depth", 4, "Maximum level of recursion supported")
         return
 
 
+    @only_if_gdb_running
     def do_invoke(self, argv):
         argc = len(argv)
         if argc == 0:
             self.usage()
             return
 
-        if argv[0] == "-l":
-            self.list_custom_structures()
-            return
-
-        modname, structname = argv[0].split(":", 1) if ":" in argv[0] else (argv[0], argv[0])
-        structname = structname.split(".", 1)[0] if "." in structname else structname
-
-        if argc == 1:
-            self.dump_structure(modname, structname)
-            return
-
-        if argv[1] == "-e":
-            self.create_or_edit_structure(modname, structname)
-            return
-
-        if not is_alive():
-            return
+        modname, structname = self.get_modulename_structname_from_arg(argv[0])
 
         try:
             address = int(gdb.parse_and_eval(argv[1]))
@@ -4610,8 +4593,8 @@ class PCustomCommand(GenericCommand):
         return
 
 
-    def get_pcustom_abspath(self):
-        path = os.path.expanduser(self.get_setting("struct_path"))
+    def get_pcustom_absolute_root_path(self):
+        path = os.path.expanduser(get_gef_setting("pcustom.struct_path"))
         path = os.path.realpath(path)
         if not os.path.isdir(path):
             raise RuntimeError("setting `struct_path` must be set correctly")
@@ -4638,41 +4621,16 @@ class PCustomCommand(GenericCommand):
         return structure_name in all_structures
 
 
-    def dump_structure(self, mod_name, struct_name):
-        # If it's a builtin or defined in the ELF use gdb's `ptype`
-        try:
-            gdb.execute("ptype struct {:s}".format(struct_name))
-            return
-        except gdb.error:
-            pass
-
-        self.dump_custom_structure(mod_name, struct_name)
-        return
-
-
-    def dump_custom_structure(self, mod_name, struct_name):
-        if not self.is_valid_struct(mod_name):
-            err("Invalid structure name '{:s}'".format(struct_name))
-            return
-
-        _class, _struct = self.get_structure_class(mod_name, struct_name)
-
-        for _name, _type in _struct._fields_:
-            _size = ctypes.sizeof(_type)
-            gef_print("+{:04x} {:s} {:s} ({:#x})".format(getattr(_class, _name).offset, _name, _type.__name__, _size))
-        return
+    def get_modulename_structname_from_arg(self, arg):
+        modname, structname = arg.split(":", 1) if ":" in arg else (arg, arg)
+        structname = structname.split(".", 1)[0] if "." in structname else structname
+        return (modname, structname)
 
 
     def deserialize(self, struct, data):
         length = min(len(data), ctypes.sizeof(struct))
         ctypes.memmove(ctypes.addressof(struct), data, length)
         return
-
-
-    def load_custom_module(self, modname):
-        print("loading custom module %s" % modname)
-        _fullname = self.get_pcustom_filepath_for_structure(modname)
-        return importlib.machinery.SourceFileLoader(modname, _fullname).load_module(None)
 
 
     def get_structure_class(self, modname, classname):
@@ -4729,7 +4687,8 @@ class PCustomCommand(GenericCommand):
                 self.apply_structure_to_address(mod_name, _type.__name__, addr + _offset, depth + 1)
             elif _type.__name__.startswith("LP_"): # hack
                 __sub_type_name = _type.__name__.replace("LP_", "")
-                self.apply_structure_to_address(mod_name, __sub_type_name, addr + _offset, depth + 1)
+                __deref = u64( read_memory(addr + _offset, 8) )
+                self.apply_structure_to_address(mod_name, __sub_type_name, __deref, depth + 1)
         return
 
 
@@ -4751,55 +4710,12 @@ class PCustomCommand(GenericCommand):
         return default
 
 
-    def create_or_edit_structure(self, mod_name, struct_name):
-        path = self.get_pcustom_abspath()
-        if path is None:
-            err("Invalid struct path")
-            return
-
-        fullname = self.get_pcustom_filepath_for_structure(mod_name)
-        if not self.is_valid_struct(mod_name):
-            info("Creating '{:s}' from template".format(fullname))
-            self.create_new_structure_template(struct_name, fullname)
-        else:
-            info("Editing '{:s}'".format(fullname))
-
-        cmd = (os.getenv("EDITOR") or "nano").split()
-        cmd.append(fullname)
-        retcode = subprocess.call(cmd)
-        return retcode
-
-
-    def create_new_structure_template(self, structname, fullname):
-        d = [
-            "from ctypes import *\n\n",
-            "class ", structname, "(Structure):\n",
-            "    _fields_ = []\n"
-        ]
-        with open(fullname, "w") as f:
-            f.write("".join(d))
-        return
-
-
-    def list_custom_structures(self):
-        """
-        Dump the list of all the structures and their respective
-        """
-        path = self.get_pcustom_abspath()
-        info("Listing custom structures from '{:s}'".format(path))
-        structures = self.enumerate_structures()
-        for filename in structures:
-            modules = structures[filename]
-            ok("{:s} {:s} ({:s})".format(RIGHT_ARROW, filename, ", ".join(modules)))
-        return
-
-
     def enumerate_structure_files(self):
         """
         Return a list of all the files in the pcustom directory
         """
         module_files = []
-        root = self.get_pcustom_abspath()
+        root = self.get_pcustom_absolute_root_path()
         for filen in os.listdir(root):
             name, ext = os.path.splitext(filen)
             if ext != ".py": continue
@@ -4822,9 +4738,7 @@ class PCustomCommand(GenericCommand):
 
 
     def load_module(self, file_path):
-        """
-        Load a custom module, and return it
-        """
+        """Load a custom module, and return it"""
         module_name = file_path.split(os.sep)[-1].replace(".py", "")
         spec = importlib.util.spec_from_file_location(module_name, file_path)
         module = importlib.util.module_from_spec(spec)
@@ -4840,6 +4754,145 @@ class PCustomCommand(GenericCommand):
                          and issubclass(getattr(module, x), ctypes.Structure)])
         return _structs - _invalid
 
+
+
+@register_command
+class PCustomListCommand(PCustomCommand):
+    """PCustom: list available structures"""
+
+    _cmdline_ = "pcustom list"
+    _syntax_  = "{:s}".format(_cmdline_)
+
+    def __init__(self):
+        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL)
+        return
+
+    def do_invoke(self, argv):
+        self.__list_custom_structures()
+        return
+
+    def __list_custom_structures(self):
+        """Dump the list of all the structures and their respective."""
+        path = self.get_pcustom_absolute_root_path()
+        info("Listing custom structures from '{:s}'".format(path))
+        structures = self.enumerate_structures()
+        for filename in structures:
+            __modules = ", ".join([ Color.greenify(x) for x in structures[filename] ])
+            __filename = Color.blueify(filename)
+            gef_print("{:s} {:s} ({:s})".format(RIGHT_ARROW, __filename, __modules))
+        return
+
+
+@register_command
+class PCustomShowCommand(PCustomCommand):
+    """PCustom: show the content of a given structure"""
+
+    _cmdline_ = "pcustom show"
+    _syntax_  = "{:s} StructureName".format(_cmdline_)
+    __aliases__ = ["pcustom create", "pcustom update"]
+
+
+    def __init__(self):
+        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+        return
+
+
+    def do_invoke(self, argv):
+        if len(argv) == 0:
+            self.usage()
+            return
+
+        modname, structname = self.get_modulename_structname_from_arg(argv[0])
+        self.__dump_structure(modname, structname)
+        return
+
+
+    def __dump_structure(self, mod_name, struct_name):
+        # If it's a builtin or defined in the ELF use gdb's `ptype`
+        try:
+            gdb.execute("ptype struct {:s}".format(struct_name))
+            return
+        except gdb.error:
+            pass
+
+        self.__dump_custom_structure(mod_name, struct_name)
+        return
+
+
+    def __dump_custom_structure(self, mod_name, struct_name):
+        if not self.is_valid_struct(mod_name):
+            err("Invalid structure name '{:s}'".format(struct_name))
+            return
+
+        _class, _struct = self.get_structure_class(mod_name, struct_name)
+
+        for _name, _type in _struct._fields_:
+            # todo: use theme to get the colors
+            _size = ctypes.sizeof(_type)
+            __name = Color.blueify(_name)
+            __type = Color.redify(_type.__name__)
+            __size = Color.greenify( hex(_size))
+            __offset = Color.boldify("{:04x}".format(getattr(_class, _name).offset))
+            gef_print("{:s}   {:32s}   {:16s}  /* size={:s} */".format(__offset, __name, __type, __size))
+        return
+
+
+@register_command
+class PCustomEditCommand(PCustomCommand):
+    """PCustom: edit the content of a given structure"""
+
+    _cmdline_ = "pcustom edit"
+    _syntax_  = "{:s} StructureName".format(_cmdline_)
+    __aliases__ = ["pcustom create", "pcustom new", "pcustom update"]
+
+
+    def __init__(self):
+        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+        return
+
+
+    def do_invoke(self, argv):
+        if len(argv) == 0:
+            self.usage()
+            return
+
+        modname, structname = self.get_modulename_structname_from_arg(argv[0])
+        self.__create_or_edit_structure(modname, structname)
+        return
+
+
+    def __create_or_edit_structure(self, mod_name, struct_name):
+        root = self.get_pcustom_absolute_root_path()
+        if root is None:
+            err("Invalid struct path")
+            return
+
+        try:
+            fullname = self.get_pcustom_filepath_for_structure(mod_name)
+            info("Editing '{:s}'".format(fullname))
+        except FileNotFoundError:
+            fullname = os.sep.join([ root, struct_name + ".py" ])
+            ok("Creating '{:s}' from template".format(fullname))
+            self.__create_new_structure_template(struct_name, fullname)
+
+        cmd = (os.getenv("EDITOR") or "nano").split()
+        cmd.append(fullname)
+        return subprocess.call(cmd)
+
+
+    def __create_new_structure_template(self, structname, fullname):
+        template = [
+            "from ctypes import *",
+            "",
+            "class ", structname, "(Structure):",
+            "    _fields_ = []",
+            "",
+            "    _values_ = []",
+            ""
+        ]
+        with open(fullname, "w") as f:
+            f.write(os.sep.join(template))
+        return
 
 
 @register_command
