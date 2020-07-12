@@ -4764,7 +4764,7 @@ class PCustomListCommand(PCustomCommand):
     _syntax_  = "{:s}".format(_cmdline_)
 
     def __init__(self):
-        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL)
+        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL) #pylint: disable=bad-super-call
         return
 
     def do_invoke(self, argv):
@@ -4793,7 +4793,7 @@ class PCustomShowCommand(PCustomCommand):
 
 
     def __init__(self):
-        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_FILENAME) #pylint: disable=bad-super-call
         return
 
 
@@ -4847,7 +4847,7 @@ class PCustomEditCommand(PCustomCommand):
 
 
     def __init__(self):
-        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_FILENAME)
+        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_FILENAME) #pylint: disable=bad-super-call
         return
 
 
