@@ -1027,10 +1027,10 @@ def show_last_exception():
 
     try:
         lsb_release = which("lsb_release")
+        gdb.execute("!{} -a".format(lsb_release,))
     except FileNotFoundError:
-        pass
-    except:
-        gdb.execute("!lsb_release -a")
+        gef_print("lsb_release is missing, cannot collect additional debug information")
+
     gef_print(HORIZONTAL_LINE*80)
     gef_print("")
     return
