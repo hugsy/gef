@@ -1478,7 +1478,7 @@ def get_entry_point():
 
     for line in gdb.execute("info target", to_string=True).split("\n"):
         if "Entry point:" in line:
-            return long(line.strip().split(" ")[-1], 16)
+            return int(line.strip().split(" ")[-1], 16)
 
     return None
 
@@ -2556,7 +2556,7 @@ def get_register(regname):
         regname = regname[1:]
         try:
             value = gdb.selected_frame().read_register(regname)
-            return long(value)
+            return int(value)
         except ValueError:
             return None
         except gdb.error:
@@ -2696,7 +2696,7 @@ def get_process_maps_linux(proc_map_file):
             inode = rest[0]
             pathname = rest[1].lstrip()
 
-        addr_start, addr_end = [long(x, 16) for x in addr.split("-")]
+        addr_start, addr_end = [int(x, 16) for x in addr.split("-")]
         off = int(off, 16)
         perm = Permission.from_process_maps(perm)
 
@@ -2714,7 +2714,7 @@ def get_mach_regions():
     for line in gdb.execute("info mach-regions", to_string=True).splitlines():
         line = line.strip()
         addr, perm, _ = line.split(" ", 2)
-        addr_start, addr_end = [long(x, 16) for x in addr.split("-")]
+        addr_start, addr_end = [int(x, 16) for x in addr.split("-")]
         perm = Permission.from_process_maps(perm.split("/")[0])
 
         zone = file_lookup_address(addr_start)
