@@ -1024,8 +1024,12 @@ def show_last_exception():
     gef_print("* Python: {:d}.{:d}.{:d} - {:s}".format(sys.version_info.major, sys.version_info.minor,
                                                        sys.version_info.micro, sys.version_info.releaselevel))
     gef_print("* OS: {:s} - {:s} ({:s})".format(platform.system(), platform.release(), platform.machine()))
-    if which("lsb_release"):
-        gef_print("")
+
+    try:
+        lsb_release = which("lsb_release")
+    except FileNotFoundError:
+        pass
+    except:
         gdb.execute("!lsb_release -a")
     gef_print(HORIZONTAL_LINE*80)
     gef_print("")
