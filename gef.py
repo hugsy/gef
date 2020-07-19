@@ -279,8 +279,6 @@ def bufferize(f):
     return wrapper
 
 
-
-
 class Color:
     """Used to colorify terminal output."""
     colors = {
@@ -592,6 +590,7 @@ class Instruction:
     def is_valid(self):
         return "(bad)" not in self.mnemonic
 
+
 @lru_cache()
 def search_for_main_arena():
     global __gef_default_main_arena__
@@ -606,6 +605,7 @@ def search_for_main_arena():
 
     __gef_default_main_arena__ = "*0x{:x}".format(addr)
     return addr
+
 
 class MallocStateStruct(object):
     """GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
@@ -932,6 +932,7 @@ class GlibcChunk:
 
 
 pattern_libc_ver = re.compile(rb"glibc (\d+)\.(\d+)")
+
 
 @lru_cache()
 def get_libc_version():
@@ -1408,6 +1409,15 @@ def checksec(filename):
     Return a dict() with the different keys mentioned above, and the boolean
     associated whether the protection was found."""
 
+    if is_macho(filename):
+        return {
+                "Canary": False,
+                "NX": False,
+                "PIE": False,
+                "Fortify": False,
+                "Partial RelRO": False,
+        }
+
     try:
         readelf = which("readelf")
     except IOError:
@@ -1481,6 +1491,10 @@ def get_entry_point():
             return int(line.strip().split(" ")[-1], 16)
 
     return None
+
+
+def is_pie(fpath):
+    return checksec(get_filepath())["PIE"]
 
 
 def is_big_endian():     return get_endian() == Elf.BIG_ENDIAN
@@ -2535,8 +2549,8 @@ def use_golang_type():
 
 
 def use_rust_type():
-    if   is_elf32(): return "u32"
-    elif is_elf64(): return "u64"
+    if   is_32bit(): return "u32"
+    elif is_64bit(): return "u64"
     return "u16"
 
 
@@ -2621,11 +2635,22 @@ def get_filename():
 
 
 @lru_cache()
-def is_macho():
+def inferior_is_macho():
     """Return True if the current file is a Mach-O binary."""
-    for x in gdb.execute("info file", to_string=True).splitlines():
+    for x in gdb.execute("info files", to_string=True).splitlines():
         if "file type mach-o" in x:
             return True
+    return False
+
+
+@lru_cache()
+def is_macho(filename):
+    """Return True if the specified file is a Mach-O binary."""
+    file_bin = which("file")
+    cmd = [file_bin, filename]
+    out = gef_execute_external(cmd)
+    if "Mach-O" in out:
+        return True
     return False
 
 
@@ -2738,7 +2763,7 @@ def get_process_maps():
 
     sections = []
     try:
-        if is_macho():
+        if inferior_is_macho():
             sections = get_mach_regions()
         else:
             pid = get_pid()
@@ -5095,8 +5120,7 @@ class IdaInteractCommand(GenericCommand):
                     # check if value is addressable
                     argval = int(argval) if argval.address is None else int(argval.address)
                     # if the bin is PIE, we need to substract the base address
-                    is_pie = checksec(get_filepath())["PIE"]
-                    if is_pie and main_base_address <= argval < main_end_address:
+                    if is_pie(get_filepath()) and main_base_address <= argval < main_end_address:
                         argval -= main_base_address
                     args.append("{:#x}".format(argval,))
                 except Exception:
@@ -7322,7 +7346,7 @@ class EntryPointBreakCommand(GenericCommand):
         if entry is None:
             return
 
-        if self.is_pie(fpath):
+        if is_pie(fpath):
             self.set_init_tbreak_pie(entry, argv)
             gdb.execute("continue")
             return
@@ -7346,10 +7370,6 @@ class EntryPointBreakCommand(GenericCommand):
         vmmap = get_process_maps()
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
         return self.set_init_tbreak(base_address + addr)
-
-    def is_pie(self, fpath):
-        checksec_status = checksec(fpath)
-        return checksec_status and checksec_status["PIE"]
 
 
 @register_command
