@@ -211,7 +211,7 @@ class Gef:
     def makecomm(self, address, comment):
         """ makecomm(int addr, string comment) => None
         Add a comment to the current IDB at the location `address`.
-        Example: ida MakeComm 0x40000 "Important call here!"
+        Example: ida makecomm 0x40000 "Important call here!"
         """
         addr = long(address, 16) if ishex(address) else long(address)
         return api.MakeComm(addr, comment)
@@ -220,7 +220,7 @@ class Gef:
     def setcolor(self, address, color="0x005500"):
         """ setcolor(int addr [, int color]) => None
         Set the location pointed by `address` in the IDB colored with `color`.
-        Example: ida SetColor 0x40000
+        Example: ida setcolor 0x40000
         """
         addr = long(address, 16) if ishex(address) else long(address)
         color = long(color, 16) if ishex(color) else long(color)
@@ -230,7 +230,7 @@ class Gef:
     def makename(self, address, name):
         """ makename(int addr, string name]) => None
         Set the location pointed by `address` with the name specified as argument.
-        Example: ida MakeName 0x4049de __entry_point
+        Example: ida makename 0x4049de __entry_point
         """
         addr = long(address, 16) if ishex(address) else long(address)
         return api.MakeName(addr, name)
@@ -239,7 +239,7 @@ class Gef:
     def jump(self, address):
         """ jump(int addr) => None
         Move the IDA EA pointer to the address pointed by `addr`.
-        Example: ida Jump 0x4049de
+        Example: ida jump 0x4049de
         """
         addr = long(address, 16) if ishex(address) else long(address)
         return api.Jump(addr)
@@ -255,7 +255,7 @@ class Gef:
         """ importstruct(string name) => dict
         Import an IDA structure in GDB which can be used with the `pcustom`
         command.
-        Example: ida ImportStruct struct_1
+        Example: ida importstruct struct_1
         """
         struct = self.get_struct(name)
         if struct is None:
@@ -269,7 +269,7 @@ class Gef:
         """ importstructs() => dict
         Import all structures from the current IDB into GDB, to be used with the `pcustom`
         command.
-        Example: ida ImportStructs
+        Example: ida importstructs
         """
         structs = {}
         for _, _, name in api.Structs():
@@ -317,7 +317,7 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
 
 def start_xmlrpc_server():
     """
-    Initialize the XMLRPC thread
+    Initialize the XMLRPC thread.
     """
     print("[+] Starting XMLRPC server: {}:{}".format(HOST, PORT))
     server = SimpleXMLRPCServer((HOST, PORT),
