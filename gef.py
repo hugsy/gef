@@ -5063,7 +5063,7 @@ class IdaInteractCommand(GenericCommand):
         method_name = argv[0].lower()
         if method_name == "version":
             self.version = self.sock.version()
-            info("Enhancing {:s} with {:s} (v.{:s})".format(Color.greenify("gef"),
+            info("Enhancing {:s} with {:s} (SDK {:s})".format(Color.greenify("gef"),
                                                             Color.redify(self.version[0]),
                                                             Color.yellowify(self.version[1])))
             return
