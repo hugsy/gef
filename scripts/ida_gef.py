@@ -29,9 +29,10 @@ from __future__ import print_function
 
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer, list_public_methods
 
-import threading
-import string
 import inspect
+import string
+import threading
+import types
 
 import idautils, idc, idaapi
 
@@ -62,6 +63,83 @@ def is_exposed(f):
 
 def ishex(s):
     return s.startswith("0x") or s.startswith("0X")
+
+
+class IDAWrapper(object):
+    """Class to wrap the various IDA modules. Makes them thread safe by
+    enforcing they run in the main thread (which is required by IDA >= 7.2).
+    Generators returned from the function are automatically wrapped with a
+    thread-safe generator.
+    This also provides a mapping from <=6.95 to the newer API.
+    Modified from
+    https://github.com/vrtadmin/FIRST-plugin-ida/blob/3a4287c4faa83127f8792bf2737be99edcb070e1/first_plugin_ida/first.py
+    """
+    api_map = {
+        "AddBpt": idc.add_bpt,
+        "GetBptEA": idc.get_bpt_ea,
+        "GetBptQty": idc.get_bpt_qty,
+        "GetColor": idc.get_color,
+        "Jump": idc.jumpto,
+        "MakeComm": lambda ea, comm: idc.set_cmt(ea, comm, 0),
+        "MakeName": idc.set_name,
+        "SetColor": idc.set_color,
+    }
+
+    def __getattribute__(self, name):
+        bad = "dummy not found"
+        v = bad
+        if idaapi.IDA_SDK_VERSION >= 700 and name in IDAWrapper.api_map:
+            v = IDAWrapper.api_map[name]
+
+        if v is bad:
+            v = getattr(idaapi, name, bad)
+        if v is bad:
+            v = getattr(idautils, name, bad)
+        if v is bad:
+            v = getattr(idc, name, bad)
+        if v is bad:
+            print("[!] Error: Cannot find API method {}".format(name))
+            return None
+
+        # Wrap callables
+        if callable(v):
+            def call_wrap(*args, **kwargs):
+                # Need a mutable value to store result
+                rv = [None]
+                # Wrapper that binds the args
+                def c():
+                    rv[0] = v(*args, **kwargs)
+                idaapi.execute_sync(c, idaapi.MFF_WRITE)
+                if isinstance(rv[0], types.GeneratorType):
+                    return IDAWrapper.gen_wrap(rv[0])
+                return rv[0]
+            return call_wrap
+
+        return v
+
+    @classmethod
+    def gen_wrap(cls, generator):
+        """Wrap the provided generator with a getter that executes `next`
+        in the main thread.
+        """
+
+        # Need a mutable value to store result
+        v = [None]
+
+        def c():
+            try:
+                v[0] = next(generator)
+            except StopIteration:
+                v[0] = StopIteration
+
+        while True:
+            idaapi.execute_sync(c, idaapi.MFF_WRITE)
+            if v[0] is StopIteration:
+                return
+            yield v[0]
+
+
+api = IDAWrapper()
 
 
 class Gef:
@@ -131,106 +209,106 @@ class Gef:
 
     @expose
     def makecomm(self, address, comment):
-        """ MakeComm(int addr, string comment) => None
+        """ makecomm(int addr, string comment) => None
         Add a comment to the current IDB at the location `address`.
-        Example: ida MakeComm 0x40000 "Important call here!"
+        Example: ida makecomm 0x40000 "Important call here!"
         """
         addr = long(address, 16) if ishex(address) else long(address)
-        return idc.MakeComm(addr, comment)
+        return api.MakeComm(addr, comment)
 
     @expose
     def setcolor(self, address, color="0x005500"):
-        """ SetColor(int addr [, int color]) => None
+        """ setcolor(int addr [, int color]) => None
         Set the location pointed by `address` in the IDB colored with `color`.
-        Example: ida SetColor 0x40000
+        Example: ida setcolor 0x40000
         """
         addr = long(address, 16) if ishex(address) else long(address)
         color = long(color, 16) if ishex(color) else long(color)
-        return idc.SetColor(addr, CIC_ITEM, color)
+        return api.SetColor(addr, CIC_ITEM, color)
 
     @expose
     def makename(self, address, name):
-        """ MakeName(int addr, string name]) => None
+        """ makename(int addr, string name]) => None
         Set the location pointed by `address` with the name specified as argument.
-        Example: ida MakeName 0x4049de __entry_point
+        Example: ida makename 0x4049de __entry_point
         """
         addr = long(address, 16) if ishex(address) else long(address)
-        return idc.MakeName(addr, name)
+        return api.MakeName(addr, name)
 
     @expose
     def jump(self, address):
-        """ Jump(int addr) => None
+        """ jump(int addr) => None
         Move the IDA EA pointer to the address pointed by `addr`.
-        Example: ida Jump 0x4049de
+        Example: ida jump 0x4049de
         """
         addr = long(address, 16) if ishex(address) else long(address)
-        return idc.Jump(addr)
+        return api.Jump(addr)
 
-    def getstructbyname(self, name):
-        for (struct_idx, struct_sid, struct_name) in Structs():
-            if struct_name == name:
-                return struct_sid
+    def get_struct(self, name):
+        for idx, sid, sname in api.Structs():
+            if sname == name:
+                return sid
         return None
 
     @expose
-    def importstruct(self, struct_name):
-        """ ImportStruct(string name) => dict
+    def importstruct(self, name):
+        """ importstruct(string name) => dict
         Import an IDA structure in GDB which can be used with the `pcustom`
         command.
-        Example: ida ImportStruct struct_1
+        Example: ida importstruct struct_1
         """
-        if self.GetStructByName(struct_name) is None:
+        struct = self.get_struct(name)
+        if struct is None:
             return {}
-        res = {struct_name: [x for x in StructMembers(self.GetStructByName(struct_name))]}
-        return res
+        return {
+            name: [x for x in api.StructMembers(struct)]
+        }
 
     @expose
     def importstructs(self):
-        """ ImportStructs() => dict
+        """ importstructs() => dict
         Import all structures from the current IDB into GDB, to be used with the `pcustom`
         command.
-        Example: ida ImportStructs
+        Example: ida importstructs
         """
-        res = {}
-        for s in Structs():
-            res.update(self.ImportStruct(s[2]))
-        return res
+        structs = {}
+        for _, _, name in api.Structs():
+            structs.update(self.importstruct(name))
+        return structs
 
     @expose
     def sync(self, offset, added, removed):
-        """ Sync(offset, added, removed) => None
+        """ sync(offset, added, removed) => None
         Synchronize debug info with gef. This is an internal function. It is
         not recommended using it from the command line.
         """
         global _breakpoints, _current_instruction, _current_instruction_color
 
         if _current_instruction > 0:
-            idc.SetColor(_current_instruction, CIC_ITEM, _current_instruction_color)
+            api.SetColor(_current_instruction, CIC_ITEM, _current_instruction_color)
 
-        base_addr = idaapi.get_imagebase()
+        base_addr = api.get_imagebase()
         pc = base_addr + int(offset, 16)
         _current_instruction = long(pc)
-        _current_instruction_color = GetColor(_current_instruction, CIC_ITEM)
-        idc.SetColor(_current_instruction, CIC_ITEM, 0x00ff00)
-        print("PC @ " + hex(_current_instruction).strip('L'))
-        # post it to the ida main thread to prevent race conditions
-        idaapi.execute_sync(lambda: idc.Jump(_current_instruction), idaapi.MFF_WRITE)
+        _current_instruction_color = api.GetColor(_current_instruction, CIC_ITEM)
+        api.SetColor(_current_instruction, CIC_ITEM, 0x00ff00)
+        api.Jump(_current_instruction)
 
-        cur_bps = set([ idc.GetBptEA(n)-base_addr for n in range(idc.GetBptQty()) ])
+        cur_bps = {api.GetBptEA(n)-base_addr for n in range(api.GetBptQty())}
         ida_added = cur_bps - _breakpoints
         ida_removed = _breakpoints - cur_bps
         _breakpoints = cur_bps
 
-        # update bp from gdb
+        # update bps from gdb
         for bp in added:
-            idc.AddBpt(base_addr+bp)
+            api.AddBpt(base_addr+bp)
             _breakpoints.add(bp)
         for bp in removed:
             if bp in _breakpoints:
                 _breakpoints.remove(bp)
-            idc.DelBpt(base_addr+bp)
+            api.DelBpt(base_addr+bp)
 
-        return [list(ida_added), list(ida_removed)]
+        return [tuple(ida_added), tuple(ida_removed)]
 
 
 class RequestHandler(SimpleXMLRPCRequestHandler):
@@ -239,7 +317,7 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
 
 def start_xmlrpc_server():
     """
-    Initialize the XMLRPC thread
+    Initialize the XMLRPC thread.
     """
     print("[+] Starting XMLRPC server: {}:{}".format(HOST, PORT))
     server = SimpleXMLRPCServer((HOST, PORT),

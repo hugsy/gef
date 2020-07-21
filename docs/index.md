@@ -1,6 +1,6 @@
 # GEF - GDB Enhanced Features #
 
-[![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) [![Python 2 & 3](https://img.shields.io/badge/Python-2%20%26%203-green.svg)](https://github.com/hugsy/gef/) [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) [![CircleCI status](https://circleci.com/gh/hugsy/gef/tree/master.svg?style=shield)](https://circleci.com/gh/hugsy/gef/tree/master)
+[![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) [![CircleCI status](https://circleci.com/gh/hugsy/gef/tree/master.svg?style=shield)](https://circleci.com/gh/hugsy/gef/tree/master)
 
 `GEF` (pronounced ʤɛf - "Jeff") is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to make GDB cool again for exploit dev. It is aimed to be used mostly by exploit developers and reverse-engineers, to provide additional features to GDB using the Python API to assist during the process of dynamic analysis and exploit development.
 
@@ -9,25 +9,20 @@ distros start pushing `gdb` compiled with Python3 support).
 
 ![gef-context](https://i.imgur.com/E3EuQPs.png)
 
+A few of `GEF` features include:
 
-*Some* of `GEF` features include:
+  * **One** single GDB script
+  * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included and [is installable instantly](https://gef.readthedocs.io/en/master/#setup)
+  * **Fast** limiting the number of dependencies and optimizing code to make the commands as fast as possible
+  * Provides [a great variety of commands](https://gef.readthedocs.io/en/master/commands/) to drastically change your experience in GDB.
+  * [**Easily** extensible](https://gef.readthedocs.io/en/master/api/) to create other commands by providing more comprehensible layout to GDB Python API.
+  * Full Python3 support ([Python2 support was dropped](https://github.com/hugsy/gef/releases/tag/2020.03) - see [`gef-legacy`](https://github.com/hugsy/gef-legacy)).
+  * Built around an architecture abstraction layer, so all commands work in any GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS, PowerPC, etc.
+  * Suited for real-life apps debugging, exploit development, just as much as CTF
 
-  * **One** single GDB script.
-  * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included and is installable in 2 seconds (unlike [PwnDBG](https://github.com/pwndbg/pwndbg)).
-  * **Fast** limiting the number of dependencies and optimizing code to make the
-    commands as fast as possible (unlike _PwnDBG_).
-  * Provides more than **50** commands to drastically change your experience in
-    GDB.
-  * **Easily** extendable to create other commands by providing more comprehensible
-    layout to GDB Python API.
-  * Works consistently on both Python2 and Python3.
-  * Built around an architecture abstraction layer, so all commands work in any
-    GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS,
-    PowerPC, etc. (unlike [PEDA](https://github.com/longld/peda))
-  * Suited for real-life apps debugging, exploit development, just as much as
-    CTF (unlike _PEDA_ or _PwnDBG_)
+Check out the [Screenshot page](docs/screenshots.md) for more.
 
-Check out the [Screenshot page](./screenshots.md) for more.
+Or [try it online](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 
 
 ## Setup ##
@@ -43,6 +38,18 @@ $ wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
 # manually
 $ wget -O ~/.gdbinit-gef.py -q https://github.com/hugsy/gef/raw/master/gef.py
 $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
+```
+
+
+Alternatively from inside `gdb` directly:
+
+```bash
+$ gdb -q
+(gdb) pi \
+import urllib.request as u, tempfile as t; \
+g=t.NamedTemporaryFile(suffix='-gef.py'); \
+open(g.name, 'wb+').write( u.urlopen('https://github.com/hugsy/gef/raw/master/gef.py').read() ); \
+gdb.execute('source %s' % g.name)
 ```
 
 ### Run ###
@@ -67,6 +74,8 @@ And:
 local:~ $ gdb -q
 gef➤  gef-remote -t your.ip.address:1234 -p 666
 ```
+
+
 
 ### Update ###
 
@@ -160,36 +169,31 @@ There, you're now fully equipped epic pwnage with **all** GEF's goodness!!
 
 ## Bugs & Feedbacks ##
 
-To discuss `gef`, `gdb`, exploitation or other topics, feel free to join the
-`##gef` channel on the Freenode IRC network. You can also talk to me (`hugsy`) on the
-channel. For those who do not have an IRC client (like `weechat` or `irssi`),
-simply [click here](https://webchat.freenode.net/?channels=##gef).
+To discuss `gef`, `gdb`, exploitation or other topics, feel free to join the `##gef` channel on the Freenode IRC network. You can also talk to me (`hugsy`) on the channel. For those who do not have an IRC client (like `weechat` or `irssi`), simply [click here](https://webchat.freenode.net/?channels=##gef).
 
-For bugs or feature requests, just
-go [here](https://github.com/hugsy/gef/issues) and provide a thorough description
-if you want help.
+For bugs or feature requests, just go [here](https://github.com/hugsy/gef/issues) and provide a thorough description if you want help.
 
-_Side Note_: `GEF` fully relies on the GDB API and other Linux-specific sources
-of information (such as `/proc/<pid>`). As a consequence, some of the features
-might not work on custom or hardened systems such as GrSec.
+_Side Note_: `GEF` fully relies on the GDB API and other Linux-specific sources of information (such as `/proc/<pid>`). As a consequence, some of the features might not work on custom or hardened systems such as GrSec.
 
 ## Contribution ##
 
-`gef` was created and maintained by myself,
-[`@_hugsy_`](https://twitter.com/_hugsy_), but kept fresh thanks to [all
-the contributors](https://github.com/hugsy/gef/graphs/contributors).
+`gef` was created and maintained by myself, [`@_hugsy_`](https://twitter.com/_hugsy_), but kept fresh thanks to [all the contributors](https://github.com/hugsy/gef/graphs/contributors).
 
-Or if you just like the tool, feel free to drop a simple *"thanks"* on IRC,
-Twitter or other, it is **always** very appreciated.
+Or if you just like the tool, feel free to drop a simple *"thanks"* on IRC, Twitter or other, it is **always** very appreciated.
+
+## Community ##
+
+| IRC                                                                                                                     | Gitter                                                                                                                                                   | Slack                                                                                                                                                                                             | Discord                                                                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) | [![Gitter](https://badges.gitter.im/gdb-gef/community.svg)](https://gitter.im/gdb-gef/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) | [![Slack](https://img.shields.io/badge/Slack-GDB--GEF-blueviolet)](https://gdb-gef.slack.com/) [[invite link](https://join.slack.com/t/gdb-gef/shared_invite/zt-efrrdjj7-BmPZdIzgDzrz8LqDTrL8yg)] | [![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) [[invite link](https://discord.gg/HCS8Hg7)] |
+
+All those channels are bridged together via [MatterBridge](https://github.com/42wim/matterbridge). Even if you don't see people in one specific channel (say Slack), members on other channels (say IRC) will still receive your questions/remarks so feel free to chat! There's always people around!
+
 
 
 ## Open-Source Rewards ##
 
-I love Open-Source, and just like
-my [other projects](https://proxenet.readthedocs.io/en/latest/#contributing)
-I've decided to offer a :beer: 4 :bug: (a.k.a *beer4bugs*) bounty for
-`GEF`, to thank everybody who helps keeping the project living and always
-better.
+I love Open-Source, and just like my [other projects](https://proxenet.readthedocs.io/en/latest/#contributing) I've decided to offer a :beer: 4 :bug: (a.k.a *beer4bugs*) bounty for `GEF`, to thank everybody who helps keeping the project living and always better.
 
 The rule is simple, provide a (substantial) contribution to `GEF`, such as:
 
@@ -204,4 +208,4 @@ I do also accept beers if you think that the tool is cool! :wink:
 
 Cheers :beers:
 
-# Happy Hacking #
+### Happy hacking ###

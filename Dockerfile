@@ -1,6 +1,6 @@
-FROM circleci/python:3.4
+FROM circleci/python:3.6
 
-ENV PYTHONPATH /usr/local/lib/python3.4/site-packages
+ENV PYTHONPATH /usr/local/lib/python3.6/site-packages
 
 # Setup Development Tools
 RUN sudo apt-get update -y

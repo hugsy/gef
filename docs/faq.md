@@ -1,42 +1,25 @@
 # Frequently Asked Questions #
 
+
 ## Why use GEF over PEDA? ##
 
-[PEDA](https://github.com/longld/peda) is a fantastic tool that provides similar
-commands to make the exploitation development process smoother.
+[PEDA](https://github.com/longld/peda) is a fantastic tool that provides similar commands to make the exploitation development process smoother.
 
-However, PEDA suffers from a major drawbacks, which the code is too
-fundamentally linked to Intel architectures (x86-32 and x86-64). On the other
-hand, GEF not only supports all the architecture supported by GDB (currently
-x86, ARM, AARCH64, MIPS, PowerPC, SPARC) but is designed to integrate new
-architectures very easily as well!
+However, PEDA suffers from a major drawbacks, which the code is too fundamentally linked to Intel architectures (x86-32 and x86-64). On the other hand, GEF not only supports all the architecture supported by GDB (currently x86, ARM, AARCH64, MIPS, PowerPC, SPARC) but is designed to integrate new architectures very easily as well!
 
-Also, PEDA development has been quite idle for a few years now, and many new
-interesting features a debugger can provide simply do not exist.
+Also, PEDA development has been quite idle for a few years now, and many new interesting features a debugger can provide simply do not exist.
 
 ## What if my GDB is < 7.7 ? ##
 
-GDB was introduced with its Python support early 2011 with the release of
-GDB 7. A (very) long way has gone since and the Python API has been massively
-improved, and GEF is taking advantage of them to provide the coolest features
-with as little performance impact as possible.
+GDB was introduced with its Python support early 2011 with the release of GDB 7. A (very) long way has gone since and the Python API has been massively improved, and GEF is taking advantage of them to provide the coolest features with as little performance impact as possible.
 
-Therefore, it is highly recommended to run GEF with the latest version of
-GDB. However, all functions should work on a GDB 7.7 and up. If not, send
-a [bug report](https://github.com/hugsy/gef/issues) and provide as much details
-as possible.
+Therefore, it is highly recommended to run GEF with the latest version of GDB. However, all functions should work on a GDB 7.7 and up. If not, send a [bug report](https://github.com/hugsy/gef/issues) and provide as much details as possible.
 
-If you are running an obsolete version, GEF will show a error and message and
-exit. You can still use GDB the normal way.
+If you are running an obsolete version, GEF will show a error and message and exit. You can still use GDB the normal way.
 
-Some pre-compiled static binaries for both recent GDB and GDBServer can be
-downloaded from the [`gdb-static`](https://github.com/hugsy/gdb-static) repository.
+Some pre-compiled static binaries for both recent GDB and GDBServer can be downloaded from the [`gdb-static`](https://github.com/hugsy/gdb-static) repository.
 
-_Note_: although some Ubuntu versions are marked as version 7.7 they are
-actually compiled with some missing features that will make `GEF` complain of an
-error. Before lodging a bug report, make sure to update your GDB (via APT is
-fine), or better install `gdb-multiarch` (the package `gdb64` will work as well,
-but is considered obsolete).
+_Note_: although some Ubuntu versions are marked as version 7.7 they are actually compiled with some missing features that will make `GEF` complain of an error. Before lodging a bug report, make sure to update your GDB (via APT is fine), or better install `gdb-multiarch` (the package `gdb64` will work as well, but is considered obsolete).
 
 ## I cannot get GEF setup!! ##
 
@@ -88,15 +71,14 @@ old `readline` library.
 
 ## Does GEF prevent the use of other GDB plugins? ##
 
-Definitely not! You can use any other GDB plugin on top of it for an even better
-debugging experience.
+Definitely not! You can use any other GDB plugin on top of it for an even better debugging experience.
 
 Some interesting plugins highly recommended too:
 
 - [!exploitable](https://github.com/jfoote/exploitable/)
 - [Voltron](https://github.com/snare/voltron)
 
-![voltron](https://pbs.twimg.com/media/CsSkk0EUkAAJVPJ.jpg:large)
+![voltron](https://i.imgur.com/bfTIjNi.jpg)
 Src: [@rick2600: terminator + gdb + gef + voltron cc: @snare @_hugsy_](https://twitter.com/rick2600/status/775926070566490113)
 
 
@@ -128,10 +110,10 @@ shown when running the `gef missing` command.
 To see the proper stacktrace, simply open a Python interpreter and try importing
 the module. This will show you an error.
 
-This is **not** an error or bug in GEF. As a matter of fact, GEF doesn't need any 
-of those external modules to run. However, the quickest way to solve this issue would 
-be simply to run the [`update-trinity`](https://github.com/hugsy/stuff/blob/master/update-trinity.sh) 
-script, which will download, compile and install the latest versions of `capstone`, 
+This is **not** an error or bug in GEF. As a matter of fact, GEF doesn't need any
+of those external modules to run. However, the quickest way to solve this issue would
+be simply to run the [`update-trinity`](https://github.com/hugsy/stuff/blob/master/update-trinity.sh)
+script, which will download, compile and install the latest versions of `capstone`,
 `keystone` and `unicorn`, allowing also other modules relying on them (such as `ropper`)
 to run smoothly.
 
@@ -223,3 +205,15 @@ correct solution as mentioned above is to recompile your GDB with a newer
 
 The whole topic was already internally discussed, so please refer to
 the [issue #206](https://github.com/hugsy/gef/issues/206) for the whole story.
+
+## I still don't have my answer... Where can I go?
+
+A unified platform for chatting around GEF (development, new feature, issues, or just simple chat) has been built around [MatterBridge](https://github.com/42wim/matterbridge). Currently, you can chat using any of IRC, Gitter, Slack, or Discord!.
+
+If you cannot find the answer to your issue in here, [the FAQ](docs/faq.md), the [Issues](https://github.com/hugsy/issues) then feel free to drop by and ask away!
+Even if you don't see people in one specific channel (say Slack), members on other channels (say IRC) will still receive your questions/remarks so feel free to chat! There's always people around!
+
+| IRC                                                                                                                     | Gitter                                                                                                                                                   | Slack                                                                                                                                                                                             | Discord                                                                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) | [![Gitter](https://badges.gitter.im/gdb-gef/community.svg)](https://gitter.im/gdb-gef/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) | [![Slack](https://img.shields.io/badge/Slack-GDB--GEF-blueviolet)](https://gdb-gef.slack.com/) [[invite link](https://join.slack.com/t/gdb-gef/shared_invite/zt-efrrdjj7-BmPZdIzgDzrz8LqDTrL8yg)] | [![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) [[invite link](https://discord.gg/HCS8Hg7)] |
+

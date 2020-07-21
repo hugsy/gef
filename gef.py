@@ -494,11 +494,22 @@ class Elf:
     SPARC64           = 0x2b
     AARCH64           = 0xb7
     RISCV             = 0xf3
+    IA64              = 0x32
 
+    ET_RELOC          = 1
     ET_EXEC           = 2
     ET_DYN            = 3
     ET_CORE           = 4
 
+    OSABI_SYSTEMV     = 0x00
+    OSABI_HPUX        = 0x01
+    OSABI_NETBSD      = 0x02
+    OSABI_LINUX       = 0x03
+    OSABI_SOLARIS     = 0x06
+    OSABI_AIX         = 0x07
+    OSABI_IRIX        = 0x08
+    OSABI_FREEBSD     = 0x09
+    OSABI_OPENBSD     = 0x0C
 
     e_magic           = b"\x7fELF"
     e_class           = ELF_32_BITS
@@ -1013,9 +1024,13 @@ def show_last_exception():
     gef_print("* Python: {:d}.{:d}.{:d} - {:s}".format(sys.version_info.major, sys.version_info.minor,
                                                        sys.version_info.micro, sys.version_info.releaselevel))
     gef_print("* OS: {:s} - {:s} ({:s})".format(platform.system(), platform.release(), platform.machine()))
-    if which("lsb_release"):
-        gef_print("")
-        gdb.execute("!lsb_release -a")
+
+    try:
+        lsb_release = which("lsb_release")
+        gdb.execute("!{} -a".format(lsb_release,))
+    except FileNotFoundError:
+        gef_print("lsb_release is missing, cannot collect additional debug information")
+
     gef_print(HORIZONTAL_LINE*80)
     gef_print("")
     return
@@ -2421,7 +2436,6 @@ def u64(x: bytes, s: bool = False) -> int:
     return struct.unpack("{}Q".format(endian_str()),x)[0] if not s else struct.unpack("{}q".format(endian_str()),x)[0]
 
 
-
 def is_ascii_string(address):
     """Helper function to determine if the buffer pointed by `address` is an ASCII string (in GDB)"""
     try:
@@ -3150,7 +3164,7 @@ def get_memory_alignment(in_bits=False):
 def clear_screen(tty=""):
     """Clear the screen."""
     if not tty:
-        gdb.execute("shell clear")
+        gdb.execute("shell clear -x")
         return
 
     # Since the tty can be closed at any time, a PermissionError exception can
@@ -4555,37 +4569,23 @@ class PCustomCommand(GenericCommand):
     configuration setting."""
 
     _cmdline_ = "pcustom"
-    _syntax_  = "{:s} [-l] [StructA [0xADDRESS] [-e]]".format(_cmdline_)
+    _syntax_  = "{:s} [list|edit <StructureName>|show <StructureName>]|<StructureName> 0xADDRESS]".format(_cmdline_)
 
     def __init__(self):
-        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL)
-        self.add_setting("struct_path", os.path.join(get_gef_setting("gef.tempdir"), "structs"),
-                         "Path to store/load the structure ctypes files")
+        super(PCustomCommand, self).__init__(prefix=True)
+        self.add_setting("struct_path", os.sep.join([get_gef_setting("gef.tempdir"), "structs"]), "Path to store/load the structure ctypes files")
+        self.add_setting("max_depth", 4, "Maximum level of recursion supported")
         return
 
+
+    @only_if_gdb_running
     def do_invoke(self, argv):
         argc = len(argv)
         if argc == 0:
             self.usage()
             return
 
-        if argv[0] == "-l":
-            self.list_custom_structures()
-            return
-
-        modname, structname = argv[0].split(":", 1) if ":" in argv[0] else (argv[0], argv[0])
-        structname = structname.split(".", 1)[0] if "." in structname else structname
-
-        if argc == 1:
-            self.dump_structure(modname, structname)
-            return
-
-        if argv[1] == "-e":
-            self.create_or_edit_structure(modname, structname)
-            return
-
-        if not is_alive():
-            return
+        modname, structname = self.get_modulename_structname_from_arg(argv[0])
 
         try:
             address = int(gdb.parse_and_eval(argv[1]))
@@ -4597,46 +4597,38 @@ class PCustomCommand(GenericCommand):
         return
 
 
-    def get_struct_path(self):
-        path = os.path.expanduser(self.get_setting("struct_path"))
+    def get_pcustom_absolute_root_path(self):
+        path = os.path.expanduser(get_gef_setting("pcustom.struct_path"))
         path = os.path.realpath(path)
-        return path if os.path.isdir(path) else None
+        if not os.path.isdir(path):
+            raise RuntimeError("setting `struct_path` must be set correctly")
+        return path
 
 
-    def pcustom_filepath(self, x):
-        p = self.get_struct_path()
-        if not p: return None
-        return os.path.join(p, "{}.py".format(x))
+    def get_pcustom_filepath_for_structure(self, structure_name):
+        structure_files = self.enumerate_structures()
+        fpath = None
+        for fname in structure_files:
+            if structure_name in structure_files[fname]:
+                fpath = fname
+                break
+        if not fpath:
+            raise FileNotFoundError("no file for structure '{}'".format(structure_name))
+        return fpath
 
 
-    def is_valid_struct(self, x):
-        p = self.pcustom_filepath(x)
-        return os.access(p, os.R_OK) if p else None
+    def is_valid_struct(self, structure_name):
+        structure_files = self.enumerate_structures()
+        all_structures = set()
+        for fname in structure_files:
+            all_structures |=  structure_files[fname]
+        return structure_name in all_structures
 
 
-    def dump_structure(self, mod_name, struct_name):
-        # If it's a builtin or defined in the ELF use gdb's `ptype`
-        try:
-            gdb.execute("ptype struct {:s}".format(struct_name))
-            return
-        except gdb.error:
-            pass
-
-        self.dump_custom_structure(mod_name, struct_name)
-        return
-
-
-    def dump_custom_structure(self, mod_name, struct_name):
-        if not self.is_valid_struct(mod_name):
-            err("Invalid structure name '{:s}'".format(struct_name))
-            return
-
-        _class, _struct = self.get_structure_class(mod_name, struct_name)
-
-        for _name, _type in _struct._fields_:
-            _size = ctypes.sizeof(_type)
-            gef_print("+{:04x} {:s} {:s} ({:#x})".format(getattr(_class, _name).offset, _name, _type.__name__, _size))
-        return
+    def get_modulename_structname_from_arg(self, arg):
+        modname, structname = arg.split(":", 1) if ":" in arg else (arg, arg)
+        structname = structname.split(".", 1)[0] if "." in structname else structname
+        return (modname, structname)
 
 
     def deserialize(self, struct, data):
@@ -4645,28 +4637,23 @@ class PCustomCommand(GenericCommand):
         return
 
 
-    def get_module(self, modname):
-        _fullname = self.pcustom_filepath(modname)
-        return importlib.machinery.SourceFileLoader(modname, _fullname).load_module(None)
-
-
     def get_structure_class(self, modname, classname):
-        _mod = self.get_module(modname)
+        """
+        Returns a tuple of (class, instance) if modname!classname exists
+        """
+        _fpath = self.get_pcustom_filepath_for_structure(modname)
+        _mod = self.load_module(_fpath)
         _class = getattr(_mod, classname)
         return _class, _class()
-
-    def list_all_structs(self, modname):
-        _mod = self.get_module(modname)
-        _invalid = set(["BigEndianStructure", "LittleEndianStructure", "Structure"])
-        _structs = set([x for x in dir(_mod) \
-                         if inspect.isclass(getattr(_mod, x)) \
-                         and issubclass(getattr(_mod, x), ctypes.Structure)])
-        return _structs - _invalid
 
 
     def apply_structure_to_address(self, mod_name, struct_name, addr, depth=0):
         if not self.is_valid_struct(mod_name):
             err("Invalid structure name '{:s}'".format(struct_name))
+            return
+
+        if depth >= self.get_setting("max_depth"):
+            warn("maximum recursion level reached")
             return
 
         try:
@@ -4702,6 +4689,10 @@ class PCustomCommand(GenericCommand):
 
             if issubclass(_type, ctypes.Structure):
                 self.apply_structure_to_address(mod_name, _type.__name__, addr + _offset, depth + 1)
+            elif _type.__name__.startswith("LP_"): # hack
+                __sub_type_name = _type.__name__.replace("LP_", "")
+                __deref = u64( read_memory(addr + _offset, 8) )
+                self.apply_structure_to_address(mod_name, __sub_type_name, __deref, depth + 1)
         return
 
 
@@ -4723,49 +4714,188 @@ class PCustomCommand(GenericCommand):
         return default
 
 
-    def create_or_edit_structure(self, mod_name, struct_name):
-        path = self.get_struct_path()
-        if path is None:
+    def enumerate_structure_files(self):
+        """
+        Return a list of all the files in the pcustom directory
+        """
+        module_files = []
+        root = self.get_pcustom_absolute_root_path()
+        for filen in os.listdir(root):
+            name, ext = os.path.splitext(filen)
+            if ext != ".py": continue
+            if name == "__init__": continue
+            fpath = os.sep.join([root, filen])
+            module_files.append( os.path.realpath(fpath) )
+        return module_files
+
+
+    def enumerate_structures(self):
+        """
+        Return a hash of all the structures, with the key set the to filepath
+        """
+        structures = {}
+        files = self.enumerate_structure_files()
+        for module_path in files:
+            module = self.load_module(module_path)
+            structures[module_path] = self.enumerate_structures_from_module(module)
+        return structures
+
+
+    def load_module(self, file_path):
+        """Load a custom module, and return it"""
+        module_name = file_path.split(os.sep)[-1].replace(".py", "")
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+        return module
+
+
+    def enumerate_structures_from_module(self, module):
+        _invalid = set(["BigEndianStructure", "LittleEndianStructure", "Structure"])
+        _structs = set([x for x in dir(module) \
+                         if inspect.isclass(getattr(module, x)) \
+                         and issubclass(getattr(module, x), ctypes.Structure)])
+        return _structs - _invalid
+
+
+
+@register_command
+class PCustomListCommand(PCustomCommand):
+    """PCustom: list available structures"""
+
+    _cmdline_ = "pcustom list"
+    _syntax_  = "{:s}".format(_cmdline_)
+
+    def __init__(self):
+        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_SYMBOL) #pylint: disable=bad-super-call
+        return
+
+    def do_invoke(self, argv):
+        self.__list_custom_structures()
+        return
+
+    def __list_custom_structures(self):
+        """Dump the list of all the structures and their respective."""
+        path = self.get_pcustom_absolute_root_path()
+        info("Listing custom structures from '{:s}'".format(path))
+        structures = self.enumerate_structures()
+        for filename in structures:
+            __modules = ", ".join([ Color.greenify(x) for x in structures[filename] ])
+            __filename = Color.blueify(filename)
+            gef_print("{:s} {:s} ({:s})".format(RIGHT_ARROW, __filename, __modules))
+        return
+
+
+@register_command
+class PCustomShowCommand(PCustomCommand):
+    """PCustom: show the content of a given structure"""
+
+    _cmdline_ = "pcustom show"
+    _syntax_  = "{:s} StructureName".format(_cmdline_)
+    __aliases__ = ["pcustom create", "pcustom update"]
+
+
+    def __init__(self):
+        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_FILENAME) #pylint: disable=bad-super-call
+        return
+
+
+    def do_invoke(self, argv):
+        if len(argv) == 0:
+            self.usage()
+            return
+
+        modname, structname = self.get_modulename_structname_from_arg(argv[0])
+        self.__dump_structure(modname, structname)
+        return
+
+
+    def __dump_structure(self, mod_name, struct_name):
+        # If it's a builtin or defined in the ELF use gdb's `ptype`
+        try:
+            gdb.execute("ptype struct {:s}".format(struct_name))
+            return
+        except gdb.error:
+            pass
+
+        self.__dump_custom_structure(mod_name, struct_name)
+        return
+
+
+    def __dump_custom_structure(self, mod_name, struct_name):
+        if not self.is_valid_struct(mod_name):
+            err("Invalid structure name '{:s}'".format(struct_name))
+            return
+
+        _class, _struct = self.get_structure_class(mod_name, struct_name)
+
+        for _name, _type in _struct._fields_:
+            # todo: use theme to get the colors
+            _size = ctypes.sizeof(_type)
+            __name = Color.blueify(_name)
+            __type = Color.redify(_type.__name__)
+            __size = Color.greenify( hex(_size))
+            __offset = Color.boldify("{:04x}".format(getattr(_class, _name).offset))
+            gef_print("{:s}   {:32s}   {:16s}  /* size={:s} */".format(__offset, __name, __type, __size))
+        return
+
+
+@register_command
+class PCustomEditCommand(PCustomCommand):
+    """PCustom: edit the content of a given structure"""
+
+    _cmdline_ = "pcustom edit"
+    _syntax_  = "{:s} StructureName".format(_cmdline_)
+    __aliases__ = ["pcustom create", "pcustom new", "pcustom update"]
+
+
+    def __init__(self):
+        super(PCustomCommand, self).__init__(complete=gdb.COMPLETE_FILENAME) #pylint: disable=bad-super-call
+        return
+
+
+    def do_invoke(self, argv):
+        if len(argv) == 0:
+            self.usage()
+            return
+
+        modname, structname = self.get_modulename_structname_from_arg(argv[0])
+        self.__create_or_edit_structure(modname, structname)
+        return
+
+
+    def __create_or_edit_structure(self, mod_name, struct_name):
+        root = self.get_pcustom_absolute_root_path()
+        if root is None:
             err("Invalid struct path")
             return
 
-        fullname = self.pcustom_filepath(mod_name)
-        if not self.is_valid_struct(mod_name):
-            info("Creating '{:s}' from template".format(fullname))
-            with open(fullname, "w") as f:
-                f.write(self.get_template(struct_name))
-                f.flush()
-        else:
+        try:
+            fullname = self.get_pcustom_filepath_for_structure(mod_name)
             info("Editing '{:s}'".format(fullname))
+        except FileNotFoundError:
+            fullname = os.sep.join([ root, struct_name + ".py" ])
+            ok("Creating '{:s}' from template".format(fullname))
+            self.__create_new_structure_template(struct_name, fullname)
 
         cmd = (os.getenv("EDITOR") or "nano").split()
         cmd.append(fullname)
-        retcode = subprocess.call(cmd)
-        return retcode
+        return subprocess.call(cmd)
 
 
-    def get_template(self, structname):
-        d = [
-            "from ctypes import *\n\n",
-            "class ", structname, "(Structure):\n",
-            "    _fields_ = []\n"
+    def __create_new_structure_template(self, structname, fullname):
+        template = [
+            "from ctypes import *",
+            "",
+            "class ", structname, "(Structure):",
+            "    _fields_ = []",
+            "",
+            "    _values_ = []",
+            ""
         ]
-        return "".join(d)
-
-
-    def list_custom_structures(self):
-        path = self.get_struct_path()
-        if path is None:
-            err("Cannot open '{0}': check directory and/or `gef config {0}` "
-                "setting, currently: '{1}'".format("pcustom.struct_path", self.get_setting("struct_path")))
-            return
-
-        info("Listing custom structures from '{:s}'".format(path))
-        for filen in os.listdir(path):
-            name, ext = os.path.splitext(filen)
-            if ext != ".py": continue
-            _modz = self.list_all_structs(name)
-            ok("{:s} {:s} ({:s})".format(RIGHT_ARROW, name, ", ".join(_modz)))
+        with open(fullname, "w") as f:
+            f.write(os.sep.join(template))
         return
 
 
@@ -4933,7 +5063,7 @@ class IdaInteractCommand(GenericCommand):
         method_name = argv[0].lower()
         if method_name == "version":
             self.version = self.sock.version()
-            info("Enhancing {:s} with {:s} (v.{:s})".format(Color.greenify("gef"),
+            info("Enhancing {:s} with {:s} (SDK {:s})".format(Color.greenify("gef"),
                                                             Color.redify(self.version[0]),
                                                             Color.yellowify(self.version[1])))
             return
@@ -4962,7 +5092,7 @@ class IdaInteractCommand(GenericCommand):
                     gef_print(str(res))
 
             if self.get_setting("sync_cursor") is True:
-                jump = getattr(self.sock, "Jump")
+                jump = getattr(self.sock, "jump")
                 jump(hex(current_arch.pc-main_base_address),)
 
         except socket.error:
@@ -4998,7 +5128,7 @@ class IdaInteractCommand(GenericCommand):
 
         try:
             # it is possible that the server was stopped between now and the last sync
-            rc = self.sock.Sync("{:#x}".format(pc-base_address), list(added), list(removed))
+            rc = self.sock.sync("{:#x}".format(pc-base_address), list(added), list(removed))
         except ConnectionRefusedError:
             self.disconnect()
             return
@@ -7007,40 +7137,47 @@ class ElfInfoCommand(GenericCommand):
 
     def do_invoke(self, argv):
         # http://www.sco.com/developers/gabi/latest/ch4.eheader.html
-        classes = {0x01: "32-bit",
-                   0x02: "64-bit",}
-        endianness = {0x01: "Little-Endian",
-                      0x02: "Big-Endian",}
+        classes = {
+            Elf.ELF_32_BITS     : "32-bit",
+            Elf.ELF_64_BITS     : "64-bit",
+        }
+
+        endianness = {
+            Elf.LITTLE_ENDIAN   : "Little-Endian",
+            Elf.BIG_ENDIAN      : "Big-Endian",
+        }
+
         osabi = {
-            0x00: "System V",
-            0x01: "HP-UX",
-            0x02: "NetBSD",
-            0x03: "Linux",
-            0x06: "Solaris",
-            0x07: "AIX",
-            0x08: "IRIX",
-            0x09: "FreeBSD",
-            0x0C: "OpenBSD",
+            Elf.OSABI_SYSTEMV      : "System V",
+            Elf.OSABI_HPUX         : "HP-UX",
+            Elf.OSABI_NETBSD       : "NetBSD",
+            Elf.OSABI_LINUX        : "Linux",
+            Elf.OSABI_SOLARIS      : "Solaris",
+            Elf.OSABI_AIX          : "AIX",
+            Elf.OSABI_IRIX         : "IRIX",
+            Elf.OSABI_FREEBSD      : "FreeBSD",
+            Elf.OSABI_OPENBSD      : "OpenBSD",
         }
 
         types = {
-            0x01: "Relocatable",
-            0x02: "Executable",
-            0x03: "Shared",
-            0x04: "Core"
+            Elf.ET_RELOC           : "Relocatable",
+            Elf.ET_EXEC            : "Executable",
+            Elf.ET_DYN             : "Shared",
+            Elf.ET_CORE            : "Core"
         }
 
         machines = {
-            0x02: "SPARC",
-            0x03: "x86",
-            0x08: "MIPS",
-            0x12: "SPARC64",
-            0x14: "PowerPC",
-            0x15: "PowerPC64",
-            0x28: "ARM",
-            0x32: "IA-64",
-            0x3E: "x86-64",
-            0xB7: "AArch64",
+            Elf.X86_64            : "x86-64",
+            Elf.X86_32            : "x86",
+            Elf.ARM               : "ARM",
+            Elf.MIPS              : "MIPS",
+            Elf.POWERPC           : "PowerPC",
+            Elf.POWERPC64         : "PowerPC64",
+            Elf.SPARC             : "SPARC",
+            Elf.SPARC64           : "SPARC64",
+            Elf.AARCH64           : "AArch64",
+            Elf.RISCV             : "RISC-V",
+            Elf.IA64              : "IA-64",
         }
 
         filename = argv[0] if argv else get_filepath()
@@ -7852,6 +7989,10 @@ class MemoryWatchCommand(GenericCommand):
     _syntax_  = "{:s} ADDRESS [SIZE] [(qword|dword|word|byte|pointers)]".format(_cmdline_)
     _example_ = "\n\t{0:s} 0x603000 0x100 byte\n\t{0:s} $sp".format(_cmdline_)
 
+    def __init__(self):
+        super(MemoryWatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
     @only_if_gdb_running
     def do_invoke(self, argv):
         global __watches__
@@ -7886,6 +8027,10 @@ class MemoryUnwatchCommand(GenericCommand):
     _cmdline_ = "memory unwatch"
     _syntax_  = "{:s} ADDRESS".format(_cmdline_)
     _example_ = "\n\t{0:s} 0x603000\n\t{0:s} $sp".format(_cmdline_)
+
+    def __init__(self):
+        super(MemoryUnwatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
 
     @only_if_gdb_running
     def do_invoke(self, argv):
@@ -7940,17 +8085,22 @@ class HexdumpCommand(GenericCommand):
     """Display SIZE lines of hexdump from the memory location pointed by ADDRESS."""
 
     _cmdline_ = "hexdump"
-    _syntax_  = "{:s} [qword|dword|word|byte] [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
+    _syntax_  = "{:s} [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
     _example_ = "{:s} byte $rsp L16 REVERSE".format(_cmdline_)
 
     def __init__(self):
-        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=True)
         self.add_setting("always_show_ascii", False, "If true, hexdump will always display the ASCII dump")
+        self.format = None
         return
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        fmt = "byte"
+        if not self.format:
+            err("Incomplete command")
+            return
+
+        fmt = self.format
         target = ""
         valid_formats = ["byte", "word", "dword", "qword"]
         read_len = None
@@ -8008,7 +8158,7 @@ class HexdumpCommand(GenericCommand):
         endianness = endian_str()
 
         base_address_color = get_gef_setting("theme.dereference_base_address")
-        show_ascii = self.get_setting("always_show_ascii")
+        show_ascii = get_gef_setting("hexdump.always_show_ascii")
 
         formats = {
             "qword": ("Q", 8),
@@ -8037,6 +8187,62 @@ class HexdumpCommand(GenericCommand):
 
         return lines
 
+@register_command
+class HexdumpQwordCommand(HexdumpCommand):
+    """Display SIZE lines of hexdump as QWORD from the memory location pointed by ADDRESS."""
+
+    _cmdline_ = "hexdump qword"
+    _syntax_  = "{:s} [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
+    _example_ = "{:s} qword $rsp L16 REVERSE".format(_cmdline_)
+
+    def __init__(self):
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
+        self.format = "qword"
+        return
+
+
+@register_command
+class HexdumpDwordCommand(HexdumpCommand):
+    """Display SIZE lines of hexdump as DWORD from the memory location pointed by ADDRESS."""
+
+    _cmdline_ = "hexdump dword"
+    _syntax_  = "{:s} [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
+    _example_ = "{:s} $esp L16 REVERSE".format(_cmdline_)
+
+    def __init__(self):
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
+        self.format = "dword"
+        return
+
+
+@register_command
+class HexdumpWordCommand(HexdumpCommand):
+    """Display SIZE lines of hexdump as WORD from the memory location pointed by ADDRESS."""
+
+    _cmdline_ = "hexdump word"
+    _syntax_  = "{:s} [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
+    _example_ = "{:s} $esp L16 REVERSE".format(_cmdline_)
+
+    def __init__(self):
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
+        self.format = "word"
+        return
+
+
+@register_command
+class HexdumpByteCommand(HexdumpCommand):
+    """Display SIZE lines of hexdump as BYTE from the memory location pointed by ADDRESS."""
+
+    _cmdline_ = "hexdump byte"
+    _syntax_  = "{:s} [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
+    _example_ = "{:s} $rsp L16".format(_cmdline_)
+
+    def __init__(self):
+        super(HexdumpCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
+        self.format = "byte"
+        return
+
+
 
 @register_command
 class PatchCommand(GenericCommand):
@@ -8053,17 +8259,23 @@ class PatchCommand(GenericCommand):
     }
 
     def __init__(self):
-        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION, prefix=True)
+        super(PatchCommand, self).__init__(prefix=True, complete=gdb.COMPLETE_LOCATION)
+        self.format = None
         return
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        argc = len(argv)
-        if argc < 3:
+        if not self.format:
             self.usage()
             return
 
-        fmt, location, values = argv[0].lower(), argv[1], argv[2:]
+        argc = len(argv)
+        if argc < 2:
+            self.usage()
+            return
+
+        location, values = argv[0], argv[1:]
+        fmt = self.format
         if fmt not in self.SUPPORTED_SIZES:
             self.usage()
             return
@@ -8077,8 +8289,65 @@ class PatchCommand(GenericCommand):
             vstr = struct.pack(d + fcode, value)
             write_memory(addr, vstr, length=size)
             addr += size
-
         return
+
+
+@register_command
+class PatchQwordCommand(PatchCommand):
+    """Write specified QWORD to the specified address."""
+
+    _cmdline_ = "patch qword"
+    _syntax_  = "{0:s} LOCATION QWORD1 [QWORD2 [QWORD3..]]".format(_cmdline_)
+    _example_ = "{:s} $rip 0x4141414141414141".format(_cmdline_)
+
+    def __init__(self):
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
+        self.format = "qword"
+        return
+
+
+
+@register_command
+class PatchDwordCommand(PatchCommand):
+    """Write specified DWORD to the specified address."""
+
+    _cmdline_ = "patch dword"
+    _syntax_  = "{0:s} LOCATION DWORD1 [DWORD2 [DWORD3..]]".format(_cmdline_)
+    _example_ = "{:s} $rip 0x41414141".format(_cmdline_)
+
+    def __init__(self):
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
+        self.format = "dword"
+        return
+
+
+@register_command
+class PatchWordCommand(PatchCommand):
+    """Write specified WORD to the specified address."""
+
+    _cmdline_ = "patch word"
+    _syntax_  = "{0:s} LOCATION WORD1 [WORD2 [WORD3..]]".format(_cmdline_)
+    _example_ = "{:s} $rip 0x4141".format(_cmdline_)
+
+    def __init__(self):
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
+        self.format = "word"
+        return
+
+
+@register_command
+class PatchByteCommand(PatchCommand):
+    """Write specified WORD to the specified address."""
+
+    _cmdline_ = "patch byte"
+    _syntax_  = "{0:s} LOCATION BYTE1 [BYTE2 [BYTE3..]]".format(_cmdline_)
+    _example_ = "{:s} $rip 0x41 0x41 0x41 0x41 0x41".format(_cmdline_)
+
+    def __init__(self):
+        super(PatchCommand, self).__init__(complete=gdb.COMPLETE_LOCATION) #pylint: disable=bad-super-call
+        self.format = "byte"
+        return
+
 
 @register_command
 class PatchStringCommand(GenericCommand):
@@ -8953,8 +9222,7 @@ class HighlightListCommand(GenericCommand):
 
         left_pad = max(map(len, highlight_table.keys()))
         for match, color in sorted(highlight_table.items()):
-            print("{} | {}".format(Color.colorify(match.ljust(left_pad), color),
-                                   Color.colorify(color, color)))
+            print("{} {} {}".format(Color.colorify(match.ljust(left_pad), color), VERTICAL_LINE, Color.colorify(color, color)))
         return
 
     def do_invoke(self, argv):
@@ -9118,7 +9386,12 @@ class HeapAnalysisCommand(GenericCommand):
         ok("{} - Cleaning up".format(Color.colorify("Heap-Analysis", "yellow bold"),))
         for bp in [self.bp_malloc, self.bp_calloc, self.bp_free, self.bp_realloc]:
             if hasattr(bp, "retbp") and bp.retbp:
-                bp.retbp.delete()
+                try:
+                    bp.retbp.delete()
+                except RuntimeError:
+                    # in some cases, gdb was found failing to correctly remove the retbp but they can be safely ignored since the debugging session is over
+                    pass
+
             bp.delete()
 
         for wp in __heap_uaf_watchpoints__:
