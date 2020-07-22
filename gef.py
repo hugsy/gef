@@ -1494,7 +1494,7 @@ def get_entry_point():
 
 
 def is_pie(fpath):
-    return checksec(get_filepath())["PIE"]
+    return checksec(fpath)["PIE"]
 
 
 def is_big_endian():     return get_endian() == Elf.BIG_ENDIAN
@@ -2761,16 +2761,13 @@ def get_mach_regions():
 def get_process_maps():
     """Return the mapped memory sections"""
 
-    sections = []
-    try:
-        if inferior_is_macho():
-            sections = get_mach_regions()
-        else:
-            pid = get_pid()
-            fpath = "/proc/{:d}/maps".format(pid)
-            sections = get_process_maps_linux(fpath)
-        return list(sections)
+    if inferior_is_macho():
+        return list(get_mach_regions())
 
+    try:
+        pid = get_pid()
+        fpath = "/proc/{:d}/maps".format(pid)
+        return list(get_process_maps_linux(fpath))
     except FileNotFoundError as e:
         warn("Failed to read /proc/<PID>/maps, using GDB sections info: {}".format(e))
         return list(get_info_sections())
