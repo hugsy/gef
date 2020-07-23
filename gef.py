@@ -174,10 +174,12 @@ GDB_MIN_VERSION                        = (7, 7)
 GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
 
 current_elf  = None
+current_pe   = None
 current_arch = None
 
 highlight_table = {}
 ANSI_SPLIT_RE = r"(\033\[[\d;]*m)"
+DEREFERENCING_STACK = False
 
 
 
@@ -549,6 +551,9 @@ class Elf:
         with open(elf, "rb") as fd:
             # off 0x0
             self.e_magic, self.e_class, self.e_endianness, self.e_eiversion = struct.unpack(">IBBB", fd.read(7))
+            if struct.pack(">I", self.e_magic) != Elf.e_magic:
+                self.e_class = self.e_machine = None
+                return
 
             # adjust endianness in bin reading
             endian = "<" if self.e_endianness == Elf.LITTLE_ENDIAN else ">"
@@ -570,6 +575,129 @@ class Elf:
             self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = struct.unpack("{}HHHH".format(endian), fd.read(8))
             self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack("{}HHH".format(endian), fd.read(6))
         return
+
+    def get_machine_name(self):
+        return {
+            0x02: "SPARC",
+            0x03: "X86",
+            0x08: "MIPS",
+            0x14: "PowerPC",
+            0x15: "PowerPC64",
+            0x28: "ARM",
+            0x2b: "SPARC64",
+            0x3e: "X86_64",
+            0xb7: "AARCH64",
+            0xf3: "RISCV",
+            None: None
+        }[self.e_machine]
+
+
+class PE:
+    """Basic PE parsing.
+    Ref:
+    - https://hshrzd.wordpress.com/pe-bear/
+    - https://blog.kowalczyk.info/articles/pefileformat.html
+    """
+    X86_64              = 0x8664
+    X86_32              = 0x14c
+    ARM                 = 0x1c0
+    ARM64               = 0xaa64
+    ARMNT               = 0x1c4
+    AM33                = 0x1d3
+    IA64                = 0x200
+    EFI                 = 0xebc
+    MIPS                = 0x166
+    MIPS16              = 0x266
+    MIPSFPU             = 0x366
+    MIPSFPU16           = 0x466
+    WCEMIPSV2           = 0x169
+    POWERPC             = 0x1f0
+    POWERPCFP           = 0x1f1
+    SH3                 = 0x1a2
+    SH3DSP              = 0x1a3
+    SH4                 = 0x1a6
+    SH5                 = 0x1a8
+    THUMP               = 0x1c2
+    RISCV32             = 0x5032
+    RISCV64             = 0x5064
+    RISCV128            = 0x5128
+    M32R                = 0x9041
+
+    dos_magic           = b'MZ'
+    ptr_to_pe_header    = None
+    pe_magic            = b'PE'
+    machine             = X86_32
+    num_of_sections     = None
+    size_of_opt_header  = None
+    dll_charac          = None
+    opt_magic           = b'\x02\x0b'
+    entry_point         = None
+    base_of_code        = None
+    image_base          = None
+
+
+    def __init__(self, pe=""):
+        if not os.access(pe, os.R_OK):
+            err("'{0}' not found/readable".format(pe))
+            err("Failed to get file debug information, most of gef features will not work")
+            return
+
+        with open(pe, "rb") as fd:
+            # off 0x0
+            self.dos_magic = fd.read(2)
+            if self.dos_magic != PE.dos_magic:
+                self.machine = None
+                return
+
+            # off 0x3c
+            fd.seek(0x3c)
+            self.ptr_to_pe_header, = struct.unpack("<I", fd.read(4))
+            # off_pe + 0x0
+            fd.seek(self.ptr_to_pe_header)
+            self.pe_magic = fd.read(2)
+            # off_pe + 0x4
+            fd.seek(self.ptr_to_pe_header + 0x4)
+            self.machine, self.num_of_sections = struct.unpack("<HH", fd.read(4))
+            # off_pe + 0x14
+            fd.seek(self.ptr_to_pe_header + 0x14)
+            self.size_of_opt_header, self.dll_charac = struct.unpack("<HH", fd.read(4))
+            # off_pe + 0x18
+            self.opt_magic = fd.read(2)
+            # off_pe + 0x28
+            fd.seek(self.ptr_to_pe_header + 0x28)
+            self.entry_point, self.base_of_code = struct.unpack("<II", fd.read(8))
+            # off_pe + 0x30
+            self.image_base, = struct.unpack("<I", fd.read(4))
+        return
+
+    def get_machine_name(self):
+        return {
+            0x14c: "X86",
+            0x166: "MIPS",
+            0x169: "WCEMIPSV2",
+            0x1a2: "SH3",
+            0x1a3: "SH3DSP",
+            0x1a6: "SH4",
+            0x1a8: "SH5",
+            0x1c0: "ARM",
+            0x1c2: "THUMP",
+            0x1c4: "ARMNT",
+            0x1d3: "AM33",
+            0x1f0: "PowerPC",
+            0x1f1: "PowerPCFP",
+            0x200: "IA64",
+            0x266: "MIPS16",
+            0x366: "MIPSFPU",
+            0x466: "MIPSFPU16",
+            0xebc: "EFI",
+            0x5032: "RISCV32",
+            0x5064: "RISCV64",
+            0x5128: "RISCV128",
+            0x8664: "X86_64",
+            0x9041: "M32R",
+            0xaa64: "ARM64",
+            None: None
+        }[self.machine]
 
 
 class Instruction:
@@ -2498,26 +2626,26 @@ def only_if_gdb_version_higher_than(required_gdb_version):
 
 
 def use_stdtype():
-    if   is_elf32(): return "uint32_t"
-    elif is_elf64(): return "uint64_t"
+    if   is_elf32() or is_pe32(): return "uint32_t"
+    elif is_elf64() or is_pe64(): return "uint64_t"
     return "uint16_t"
 
 
 def use_default_type():
-    if   is_elf32(): return "unsigned int"
-    elif is_elf64(): return "unsigned long"
+    if   is_elf32() or is_pe32(): return "unsigned int"
+    elif is_elf64() or is_pe64(): return "unsigned long"
     return "unsigned short"
 
 
 def use_golang_type():
-    if   is_elf32(): return "uint32"
-    elif is_elf64(): return "uint64"
+    if   is_elf32() or is_pe32(): return "uint32"
+    elif is_elf64() or is_pe64(): return "uint64"
     return "uint16"
 
 
 def use_rust_type():
-    if   is_elf32(): return "u32"
-    elif is_elf64(): return "u64"
+    if   is_elf32() or is_pe32(): return "u32"
+    elif is_elf64() or is_pe64(): return "u64"
     return "u16"
 
 
@@ -3050,6 +3178,20 @@ def get_elf_headers(filename=None):
 
 
 @lru_cache()
+def get_pe_headers(filename=None):
+    """Return an PE object with info from `filename`. If not provided, will return
+    the currently debugged file."""
+    if filename is None:
+        filename = get_filepath()
+
+    if filename.startswith("target:"):
+        warn("Your file is remote, you should try using `gef-remote` instead")
+        return
+
+    return PE(filename)
+
+
+@lru_cache()
 def is_elf64(filename=None):
     """Checks if `filename` is an ELF64."""
     elf = current_elf or get_elf_headers(filename)
@@ -3064,17 +3206,39 @@ def is_elf32(filename=None):
 
 
 @lru_cache()
+def is_pe64(filename=None):
+    """Checks if `filename` is an PE64."""
+    pe = current_pe or get_pe_headers(filename)
+    return pe.machine == PE.X86_64
+
+
+@lru_cache()
+def is_pe32(filename=None):
+    """Checks if `filename` is an PE32."""
+    pe = current_pe or get_pe_headers(filename)
+    return pe.machine == PE.X86_32
+
+
+@lru_cache()
 def is_x86_64(filename=None):
-    """Checks if `filename` is an x86-64 ELF."""
+    """Checks if `filename` is an x86-64 ELF/PE."""
     elf = current_elf or get_elf_headers(filename)
-    return elf.e_machine == Elf.X86_64
+    pe = current_pe or get_pe_headers(filename)
+    if elf.e_machine:
+        return elf.e_machine == Elf.X86_64
+    else:
+        return pe.machine == PE.X86_64
 
 
 @lru_cache()
 def is_x86_32(filename=None):
-    """Checks if `filename` is an x86-32 ELF."""
+    """Checks if `filename` is an x86-32 ELF/PE."""
     elf = current_elf or get_elf_headers(filename)
-    return elf.e_machine == Elf.X86_32
+    pe = current_pe or get_pe_headers(filename)
+    if elf.e_machine:
+        return elf.e_machine == Elf.X86_32
+    else:
+        return pe.machine == PE.X86_32
 
 @lru_cache()
 def is_x86(filename=None):
@@ -3090,23 +3254,23 @@ def is_arch(arch):
 def set_arch(arch=None, default=None):
     """Sets the current architecture.
     If an arch is explicitly specified, use that one, otherwise try to parse it
-    out of the ELF header. If that fails, and default is specified, select and
+    out of the ELF/PE header. If that fails, and default is specified, select and
     set that arch.
     Return the selected arch, or raise an OSError.
     """
     arches = {
-        "ARM": ARM, Elf.ARM: ARM,
-        "AARCH64": AARCH64, "ARM64": AARCH64, Elf.AARCH64: AARCH64,
-        "X86": X86, Elf.X86_32: X86,
-        "X86_64": X86_64, Elf.X86_64: X86_64,
-        "PowerPC": PowerPC, "PPC": PowerPC, Elf.POWERPC: PowerPC,
-        "PowerPC64": PowerPC64, "PPC64": PowerPC64, Elf.POWERPC64: PowerPC64,
-        "RISCV": RISCV, Elf.RISCV: RISCV,
-        "SPARC": SPARC, Elf.SPARC: SPARC,
-        "SPARC64": SPARC64, Elf.SPARC64: SPARC64,
-        "MIPS": MIPS, Elf.MIPS: MIPS,
+        "ARM": ARM,
+        "AARCH64": AARCH64, "ARM64": AARCH64,
+        "X86": X86,
+        "X86_64": X86_64,
+        "PowerPC": PowerPC, "PPC": PowerPC, "PowerPCFP": PowerPC,
+        "PowerPC64": PowerPC64, "PPC64": PowerPC64,
+        "RISCV": RISCV, "RISCV32": RISCV, "RISCV64": RISCV,
+        "SPARC": SPARC,
+        "SPARC64": SPARC64,
+        "MIPS": MIPS, "MIPSFPU": MIPS,
     }
-    global current_arch, current_elf
+    global current_arch, current_elf, current_pe
 
     if arch:
         try:
@@ -3116,8 +3280,10 @@ def set_arch(arch=None, default=None):
             raise OSError("Specified arch {:s} is not supported".format(arch.upper()))
 
     current_elf = current_elf or get_elf_headers()
+    current_pe = current_pe or get_pe_headers()
     try:
-        current_arch = arches[current_elf.e_machine]()
+        name = current_elf.get_machine_name() or current_pe.get_machine_name()
+        current_arch = arches[name]()
     except KeyError:
         if default:
             try:
@@ -7523,6 +7689,7 @@ class ContextCommand(GenericCommand):
         return
 
     def context_stack(self):
+        global DEREFERENCING_STACK
         self.context_title("stack")
 
         show_raw = self.get_setting("show_stack_raw")
@@ -7534,7 +7701,9 @@ class ContextCommand(GenericCommand):
                 mem = read_memory(sp, 0x10 * nb_lines)
                 gef_print(hexdump(mem, base=sp))
             else:
+                DEREFERENCING_STACK = True
                 gdb.execute("dereference {:#x} l{:d}".format(sp, nb_lines))
+                DEREFERENCING_STACK = False
 
         except gdb.MemoryError:
             err("Cannot read memory from $SP (corrupted stack pointer?)")
@@ -8436,7 +8605,7 @@ class DereferenceCommand(GenericCommand):
             return
 
         addr = int(addr)
-        if process_lookup_address(addr) is None:
+        if process_lookup_address(addr) is None and not DEREFERENCING_STACK:
             err("Unmapped address")
             return
 
@@ -8466,6 +8635,13 @@ class DereferenceCommand(GenericCommand):
         string_color = get_gef_setting("theme.dereference_string")
         max_recursion = get_gef_setting("dereference.max_recursion") or 10
         addr = lookup_address(align_address(int(addr)))
+        if DEREFERENCING_STACK:  # when calling context_stack, force this to be Section
+            addr.section = Section(page_start=0x0,
+                                   page_end=0x7fffffffffff,
+                                   offset=0,
+                                   permission=Permission.from_process_maps('rw-'),
+                                   inode='',
+                                   path='')
         msg = [format_address(addr.value),]
         seen_addrs = set()
 
