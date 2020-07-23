@@ -97,7 +97,7 @@ HORIZONTAL_LINE = "\u2500"
 VERTICAL_LINE = "\u2502"
 CROSS = "\u2718 "
 TICK = "\u2713 "
-BP_GLYPH = "\u2022"
+BP_GLYPH = "\u25cf"
 GEF_PROMPT = "gef\u27a4  "
 GEF_PROMPT_ON = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
 GEF_PROMPT_OFF = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
@@ -7567,13 +7567,13 @@ class ContextCommand(GenericCommand):
                 is_taken  = False
                 target    = None
                 text = str(insn)
-                bp_prefix = BP_GLYPH if self.addr_has_breakpoint(insn.address, bp_locations) else " "
+                bp_prefix = Color.redify(BP_GLYPH) if self.addr_has_breakpoint(insn.address, bp_locations) else " "
 
                 if insn.address < pc:
-                    line += Color.grayify("{}  {}".format(bp_prefix, text))
+                    line += "{}  {}".format(bp_prefix, Color.grayify(text))
 
                 elif insn.address == pc:
-                    line += Color.colorify("{}{:s}{:s}".format(bp_prefix, RIGHT_ARROW[1:], text), cur_insn_color)
+                    line += "{}{}".format(bp_prefix, Color.colorify("{:s}{:s}".format(RIGHT_ARROW[1:], text), cur_insn_color))
 
                     if current_arch.is_conditional_branch(insn):
                         is_taken, reason = current_arch.is_branch_taken(insn)
@@ -7770,10 +7770,10 @@ class ContextCommand(GenericCommand):
             if i < 0:
                 continue
 
-            bp_prefix = BP_GLYPH if self.line_has_breakpoint(file_base_name, i + 1, bp_locations) else " "
+            bp_prefix = Color.redify(BP_GLYPH) if self.line_has_breakpoint(file_base_name, i + 1, bp_locations) else " "
 
             if i < line_num:
-                gef_print(Color.grayify("{}  {:4d}\t {:s}".format(bp_prefix, i + 1, lines[i],)))
+                gef_print("{}{}".format(bp_prefix, Color.grayify("  {:4d}\t {:s}".format(i + 1, lines[i],))))
 
             if i == line_num:
                 extra_info = self.get_pc_context_info(pc, lines[i])
