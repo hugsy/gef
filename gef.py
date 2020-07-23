@@ -97,6 +97,7 @@ HORIZONTAL_LINE = "\u2500"
 VERTICAL_LINE = "\u2502"
 CROSS = "\u2718 "
 TICK = "\u2713 "
+BP_GLYPH = "\u25cf"
 GEF_PROMPT = "gef\u27a4  "
 GEF_PROMPT_ON = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
 GEF_PROMPT_OFF = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
@@ -7615,12 +7616,16 @@ class ContextCommand(GenericCommand):
 
         return
 
+    def addr_has_breakpoint(self, address, bp_locations):
+        return any(hex(address) in b for b in bp_locations)
+
     def context_code(self):
         nb_insn = self.get_setting("nb_lines_code")
         nb_insn_prev = self.get_setting("nb_lines_code_prev")
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
         cur_insn_color = get_gef_setting("theme.disassemble_current_instruction")
         pc = current_arch.pc
+        bp_locations = [b.location for b in gdb.breakpoints() if b.location.startswith("*")]
 
         frame = gdb.selected_frame()
         arch = frame.architecture()
@@ -7636,12 +7641,13 @@ class ContextCommand(GenericCommand):
                 is_taken  = False
                 target    = None
                 text = str(insn)
+                bp_prefix = Color.redify(BP_GLYPH) if self.addr_has_breakpoint(insn.address, bp_locations) else " "
 
                 if insn.address < pc:
-                    line += Color.grayify("   {}".format(text))
+                    line += "{}  {}".format(bp_prefix, Color.grayify(text))
 
                 elif insn.address == pc:
-                    line += Color.colorify("{:s}{:s}".format(RIGHT_ARROW, text), cur_insn_color)
+                    line += "{}{}".format(bp_prefix, Color.colorify("{:s}{:s}".format(RIGHT_ARROW[1:], text), cur_insn_color))
 
                     if current_arch.is_conditional_branch(insn):
                         is_taken, reason = current_arch.is_branch_taken(insn)
@@ -7658,7 +7664,7 @@ class ContextCommand(GenericCommand):
                         target = current_arch.get_ra(insn, frame)
 
                 else:
-                    line += "   {}".format(text)
+                    line += "{}  {}".format(bp_prefix, text)
 
                 gef_print("".join(line))
 
@@ -7803,6 +7809,9 @@ class ContextCommand(GenericCommand):
         gef_print(")")
         return
 
+    def line_has_breakpoint(self, file_name, line_number, bp_locations):
+        filename_line = "{}:{}".format(file_name, line_number)
+        return any(filename_line in loc for loc in bp_locations)
 
     def context_source(self):
         try:
@@ -7820,6 +7829,9 @@ class ContextCommand(GenericCommand):
         except Exception:
             return
 
+        file_base_name = os.path.basename(symtab.filename)
+        bp_locations = [b.location for b in gdb.breakpoints() if file_base_name in b.location]
+
         nb_line = self.get_setting("nb_lines_code")
         fn = symtab.filename
         if len(fn) > 20:
@@ -7832,12 +7844,14 @@ class ContextCommand(GenericCommand):
             if i < 0:
                 continue
 
+            bp_prefix = Color.redify(BP_GLYPH) if self.line_has_breakpoint(file_base_name, i + 1, bp_locations) else " "
+
             if i < line_num:
-                gef_print(Color.grayify("   {:4d}\t {:s}".format(i + 1, lines[i],)))
+                gef_print("{}{}".format(bp_prefix, Color.grayify("  {:4d}\t {:s}".format(i + 1, lines[i],))))
 
             if i == line_num:
                 extra_info = self.get_pc_context_info(pc, lines[i])
-                prefix = "{}{:4d}\t ".format(RIGHT_ARROW, i + 1)
+                prefix = "{}{}{:4d}\t ".format(bp_prefix, RIGHT_ARROW[1:], i + 1)
                 leading = len(lines[i]) - len(lines[i].lstrip())
                 if extra_info:
                     gef_print("{}{}".format(" "*(len(prefix) + leading), extra_info))
@@ -7845,7 +7859,7 @@ class ContextCommand(GenericCommand):
 
             if i > line_num:
                 try:
-                    gef_print("   {:4d}\t {:s}".format(i + 1, lines[i],))
+                    gef_print("{}  {:4d}\t {:s}".format(bp_prefix, i + 1, lines[i],))
                 except IndexError:
                     break
         return
