@@ -279,8 +279,6 @@ def bufferize(f):
     return wrapper
 
 
-
-
 class Color:
     """Used to colorify terminal output."""
     colors = {
@@ -483,6 +481,7 @@ class Elf:
 
     ELF_32_BITS       = 0x01
     ELF_64_BITS       = 0x02
+    ELF_MAGIC         = 0x7f454c46
 
     X86_64            = 0x3e
     X86_32            = 0x03
@@ -511,7 +510,7 @@ class Elf:
     OSABI_FREEBSD     = 0x09
     OSABI_OPENBSD     = 0x0C
 
-    e_magic           = b"\x7fELF"
+    e_magic           = ELF_MAGIC
     e_class           = ELF_32_BITS
     e_endianness      = LITTLE_ENDIAN
     e_eiversion       = None
@@ -572,6 +571,10 @@ class Elf:
         return
 
 
+    def is_valid(self):
+        return self.e_magic == Elf.ELF_MAGIC
+
+
 class Instruction:
     """GEF representation of a CPU instruction."""
     def __init__(self, address, location, mnemo, operands):
@@ -587,6 +590,7 @@ class Instruction:
     def is_valid(self):
         return "(bad)" not in self.mnemonic
 
+
 @lru_cache()
 def search_for_main_arena():
     global __gef_default_main_arena__
@@ -601,6 +605,7 @@ def search_for_main_arena():
 
     __gef_default_main_arena__ = "*0x{:x}".format(addr)
     return addr
+
 
 class MallocStateStruct(object):
     """GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
@@ -927,6 +932,7 @@ class GlibcChunk:
 
 
 pattern_libc_ver = re.compile(rb"glibc (\d+)\.(\d+)")
+
 
 @lru_cache()
 def get_libc_version():
@@ -1403,6 +1409,15 @@ def checksec(filename):
     Return a dict() with the different keys mentioned above, and the boolean
     associated whether the protection was found."""
 
+    if is_macho(filename):
+        return {
+                "Canary": False,
+                "NX": False,
+                "PIE": False,
+                "Fortify": False,
+                "Partial RelRO": False,
+        }
+
     try:
         readelf = which("readelf")
     except IOError:
@@ -1457,11 +1472,29 @@ def get_arch():
 @lru_cache()
 def get_endian():
     """Return the binary endianness."""
-    if is_alive():
-        return get_elf_headers().e_endianness
-    if gdb.execute("show endian", to_string=True).strip().split()[7] == "little" :
+
+    endian = gdb.execute("show endian", to_string=True).strip()
+    if "little endian" in endian:
         return Elf.LITTLE_ENDIAN
+    if "big endian" in endian:
+        return Elf.BIG_ENDIAN
+
     raise EnvironmentError("Invalid endianess")
+
+
+@lru_cache()
+def get_entry_point():
+    """Return the binary entry point."""
+
+    for line in gdb.execute("info target", to_string=True).split("\n"):
+        if "Entry point:" in line:
+            return int(line.strip().split(" ")[-1], 16)
+
+    return None
+
+
+def is_pie(fpath):
+    return checksec(fpath)["PIE"]
 
 
 def is_big_endian():     return get_endian() == Elf.BIG_ENDIAN
@@ -1581,10 +1614,10 @@ class RISCV(Architecture):
     def is_branch_taken(self, insn):
         def long_to_twos_complement(v):
             """Convert a python long value to its two's complement."""
-            if is_elf32():
+            if is_32bit():
                 if v & 0x80000000:
                     return v - 0x100000000
-            elif is_elf64():
+            elif is_64bit():
                 if v & 0x8000000000000000:
                     return v - 0x10000000000000000
             else:
@@ -2498,26 +2531,26 @@ def only_if_gdb_version_higher_than(required_gdb_version):
 
 
 def use_stdtype():
-    if   is_elf32(): return "uint32_t"
-    elif is_elf64(): return "uint64_t"
+    if   is_32bit(): return "uint32_t"
+    elif is_64bit(): return "uint64_t"
     return "uint16_t"
 
 
 def use_default_type():
-    if   is_elf32(): return "unsigned int"
-    elif is_elf64(): return "unsigned long"
+    if   is_32bit(): return "unsigned int"
+    elif is_64bit(): return "unsigned long"
     return "unsigned short"
 
 
 def use_golang_type():
-    if   is_elf32(): return "uint32"
-    elif is_elf64(): return "uint64"
+    if   is_32bit(): return "uint32"
+    elif is_64bit(): return "uint64"
     return "uint16"
 
 
 def use_rust_type():
-    if   is_elf32(): return "u32"
-    elif is_elf64(): return "u64"
+    if   is_32bit(): return "u32"
+    elif is_64bit(): return "u64"
     return "u16"
 
 
@@ -2537,10 +2570,11 @@ def get_register(regname):
         regname = regname[1:]
         try:
             value = gdb.selected_frame().read_register(regname)
+            return int(value)
         except ValueError:
             return None
-
-        return int(value)
+        except gdb.error:
+            return None
 
 
 def get_path_from_info_proc():
@@ -2600,6 +2634,26 @@ def get_filename():
     return os.path.basename(gdb.current_progspace().filename)
 
 
+@lru_cache()
+def inferior_is_macho():
+    """Return True if the current file is a Mach-O binary."""
+    for x in gdb.execute("info files", to_string=True).splitlines():
+        if "file type mach-o" in x:
+            return True
+    return False
+
+
+@lru_cache()
+def is_macho(filename):
+    """Return True if the specified file is a Mach-O binary."""
+    file_bin = which("file")
+    cmd = [file_bin, filename]
+    out = gef_execute_external(cmd)
+    if "Mach-O" in out:
+        return True
+    return False
+
+
 def download_file(target, use_cache=False, local_name=None):
     """Download filename `target` inside the mirror tree inside the get_gef_setting("gef.tempdir").
     The tree architecture must be get_gef_setting("gef.tempdir")/gef/<local_pid>/<remote_filepath>.
@@ -2623,7 +2677,7 @@ def download_file(target, use_cache=False, local_name=None):
     except gdb.error:
         # gdb-stub compat
         with open(local_name, "w") as f:
-            if is_elf32():
+            if is_32bit():
                 f.write("00000000-ffffffff rwxp 00000000 00:00 0                    {}\n".format(get_filepath()))
             else:
                 f.write("0000000000000000-ffffffffffffffff rwxp 00000000 00:00 0                    {}\n".format(get_filepath()))
@@ -2667,7 +2721,7 @@ def get_process_maps_linux(proc_map_file):
             inode = rest[0]
             pathname = rest[1].lstrip()
 
-        addr_start, addr_end = list(map(lambda x: int(x, 16), addr.split("-")))
+        addr_start, addr_end = [int(x, 16) for x in addr.split("-")]
         off = int(off, 16)
         perm = Permission.from_process_maps(perm)
 
@@ -2680,17 +2734,40 @@ def get_process_maps_linux(proc_map_file):
     return
 
 
+def get_mach_regions():
+    sp = current_arch.sp
+    for line in gdb.execute("info mach-regions", to_string=True).splitlines():
+        line = line.strip()
+        addr, perm, _ = line.split(" ", 2)
+        addr_start, addr_end = [int(x, 16) for x in addr.split("-")]
+        perm = Permission.from_process_maps(perm.split("/")[0])
+
+        zone = file_lookup_address(addr_start)
+        if zone:
+            path = zone.filename
+        else:
+            path = "[stack]" if sp >= addr_start and sp < addr_end else ""
+
+        yield Section(page_start=addr_start,
+                      page_end=addr_end,
+                      offset=0,
+                      permission=perm,
+                      inode=None,
+                      path=path)
+    return
+
+
 @lru_cache()
 def get_process_maps():
-    """Parse the `/proc/pid/maps` file."""
+    """Return the mapped memory sections"""
 
-    sections = []
+    if inferior_is_macho():
+        return list(get_mach_regions())
+
     try:
         pid = get_pid()
         fpath = "/proc/{:d}/maps".format(pid)
-        sections = get_process_maps_linux(fpath)
-        return list(sections)
-
+        return list(get_process_maps_linux(fpath))
     except FileNotFoundError as e:
         warn("Failed to read /proc/<PID>/maps, using GDB sections info: {}".format(e))
         return list(get_info_sections())
@@ -3050,35 +3127,33 @@ def get_elf_headers(filename=None):
 
 
 @lru_cache()
-def is_elf64(filename=None):
-    """Checks if `filename` is an ELF64."""
-    elf = current_elf or get_elf_headers(filename)
-    return elf.e_class == Elf.ELF_64_BITS
+def is_64bit():
+    """Checks if current target is 64bit."""
+    voidptr = cached_lookup_type("void").pointer()
+    return voidptr.sizeof == 8
 
 
 @lru_cache()
-def is_elf32(filename=None):
-    """Checks if `filename` is an ELF32."""
-    elf = current_elf or get_elf_headers(filename)
-    return elf.e_class == Elf.ELF_32_BITS
+def is_32bit():
+    """Checks if current target is 32bit."""
+    voidptr = cached_lookup_type("void").pointer()
+    return voidptr.sizeof == 4
 
 
 @lru_cache()
-def is_x86_64(filename=None):
-    """Checks if `filename` is an x86-64 ELF."""
-    elf = current_elf or get_elf_headers(filename)
-    return elf.e_machine == Elf.X86_64
+def is_x86_64():
+    """Checks if current target is x86-64"""
+    return get_arch() == "i386:x86-64"
 
 
 @lru_cache()
-def is_x86_32(filename=None):
-    """Checks if `filename` is an x86-32 ELF."""
-    elf = current_elf or get_elf_headers(filename)
-    return elf.e_machine == Elf.X86_32
+def is_x86_32():
+    """Checks if current target is an x86-32"""
+    return get_arch() == "i386"
 
 @lru_cache()
-def is_x86(filename=None):
-    return is_x86_32(filename) or is_x86_64(filename)
+def is_x86():
+    return is_x86_32() or is_x86_64()
 
 
 @lru_cache()
@@ -3090,7 +3165,7 @@ def is_arch(arch):
 def set_arch(arch=None, default=None):
     """Sets the current architecture.
     If an arch is explicitly specified, use that one, otherwise try to parse it
-    out of the ELF header. If that fails, and default is specified, select and
+    out of the current target. If that fails, and default is specified, select and
     set that arch.
     Return the selected arch, or raise an OSError.
     """
@@ -3098,7 +3173,7 @@ def set_arch(arch=None, default=None):
         "ARM": ARM, Elf.ARM: ARM,
         "AARCH64": AARCH64, "ARM64": AARCH64, Elf.AARCH64: AARCH64,
         "X86": X86, Elf.X86_32: X86,
-        "X86_64": X86_64, Elf.X86_64: X86_64,
+        "X86_64": X86_64, Elf.X86_64: X86_64, "i386:x86-64": X86_64,
         "PowerPC": PowerPC, "PPC": PowerPC, Elf.POWERPC: PowerPC,
         "PowerPC64": PowerPC64, "PPC64": PowerPC64, Elf.POWERPC64: PowerPC64,
         "RISCV": RISCV, Elf.RISCV: RISCV,
@@ -3115,9 +3190,13 @@ def set_arch(arch=None, default=None):
         except KeyError:
             raise OSError("Specified arch {:s} is not supported".format(arch.upper()))
 
-    current_elf = current_elf or get_elf_headers()
+    if not current_elf:
+        elf = get_elf_headers()
+        current_elf = elf if elf.is_valid() else None
+
+    arch_name = current_elf.e_machine if current_elf else get_arch()
     try:
-        current_arch = arches[current_elf.e_machine]()
+        current_arch = arches[arch_name]()
     except KeyError:
         if default:
             try:
@@ -3145,9 +3224,9 @@ def get_memory_alignment(in_bits=False):
     Finally, try the size of $pc.
     If `in_bits` is set to True, the result is returned in bits, otherwise in
     bytes."""
-    if is_elf32():
+    if is_32bit():
         return 4 if not in_bits else 32
-    elif is_elf64():
+    elif is_64bit():
         return 8 if not in_bits else 64
 
     res = cached_lookup_type("size_t")
@@ -3232,8 +3311,7 @@ def is_in_x86_kernel(address):
 
 @lru_cache()
 def endian_str():
-    elf = current_elf or get_elf_headers()
-    return "<" if elf.e_endianness == Elf.LITTLE_ENDIAN else ">"
+    return "<" if is_little_endian() else ">"
 
 
 @lru_cache()
@@ -5039,8 +5117,7 @@ class IdaInteractCommand(GenericCommand):
                     # check if value is addressable
                     argval = int(argval) if argval.address is None else int(argval.address)
                     # if the bin is PIE, we need to substract the base address
-                    is_pie = checksec(get_filepath())["PIE"]
-                    if is_pie and main_base_address <= argval < main_end_address:
+                    if is_pie(get_filepath()) and main_base_address <= argval < main_end_address:
                         argval -= main_base_address
                     args.append("{:#x}".format(argval,))
                 except Exception:
@@ -7262,16 +7339,16 @@ class EntryPointBreakCommand(GenericCommand):
             bp.delete()
 
         # break at entry point
-        elf = get_elf_headers()
-        if elf is None:
+        entry = get_entry_point()
+        if entry is None:
             return
 
-        if self.is_pie(fpath):
-            self.set_init_tbreak_pie(elf.e_entry, argv)
+        if is_pie(fpath):
+            self.set_init_tbreak_pie(entry, argv)
             gdb.execute("continue")
             return
 
-        self.set_init_tbreak(elf.e_entry)
+        self.set_init_tbreak(entry)
         gdb.execute("run {}".format(" ".join(argv)))
         return
 
@@ -7290,9 +7367,6 @@ class EntryPointBreakCommand(GenericCommand):
         vmmap = get_process_maps()
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
         return self.set_init_tbreak(base_address + addr)
-
-    def is_pie(self, fpath):
-        return checksec(fpath)["PIE"]
 
 
 @register_command
@@ -8144,9 +8218,6 @@ class HexdumpCommand(GenericCommand):
 
 
     def _hexdump(self, start_addr, length, arrange_as, offset=0):
-        elf = get_elf_headers()
-        if elf is None:
-            return
         endianness = endian_str()
 
         base_address_color = get_gef_setting("theme.dereference_base_address")
@@ -9105,6 +9176,10 @@ class GotCommand(GenericCommand):
                                                        "been resolved")
         self.add_setting("function_not_resolved", "yellow", "Line color of the got command output if the function has "
                                                        "not been resolved")
+        return
+
+    def pre_load(self):
+        which("readelf")
         return
 
     def get_jmp_slots(self, readelf, filename):
