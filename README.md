@@ -13,10 +13,10 @@ Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb) compile
 ```bash
 # via the install script
 ## using curl
-$ sh -c "$(curl -fsSL https://tinyurl.com/gef-install)"
+$ sh -c "$(curl -fsSL https://tinyurl.com/gef-installer)"
 
 ## using wget
-$ sh -c "$(wget https://tinyurl.com/gef-install -O -)"
+$ sh -c "$(wget https://tinyurl.com/gef-installer -O -)"
 
 # or manually
 $ wget -O ~/.gdbinit-gef.py -q https://tinyurl.com/gef-master
