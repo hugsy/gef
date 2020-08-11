@@ -5206,8 +5206,7 @@ class IdaInteractCommand(GenericCommand):
                     m = '        (\"{}\", {}),\n'.format(name, csize)
                     f.write(m)
                 f.write("]\n")
-        ok("Success, {:d} structure{:s} imported".format(len(structs),
-                                                         "s" if len(structs)>1 else ""))
+        ok("Success, {:d} structure{:s} imported".format(len(structs),"s" if len(structs)>1 else ""))
         return
 
 
@@ -10027,7 +10026,10 @@ class GefRestoreCommand(gdb.Command):
             if section == "aliases":
                 # load the aliases
                 for key in cfg.options(section):
-                    GefAlias(key, cfg.get(section, key))
+                    try:
+                        GefAlias(key, cfg.get(section, key))
+                    except:
+                        pass
                 continue
 
             # load the other options
