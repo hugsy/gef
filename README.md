@@ -13,13 +13,13 @@ Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb) compile
 ```bash
 # via the install script
 ## using curl
-$ sh -c "$(curl -fsSL https://tinyurl.com/gef-install)"
+$ sh -c "$(curl -fsSL http://gef.blah.cat/sh)"
 
 ## using wget
-$ sh -c "$(wget https://tinyurl.com/gef-install -O -)"
+$ sh -c "$(wget http://gef.blah.cat/sh -O -)"
 
 # or manually
-$ wget -O ~/.gdbinit-gef.py -q https://tinyurl.com/gef-master
+$ wget -O ~/.gdbinit-gef.py -q http://gef.blah.cat/py
 $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 
 # or alternatively from inside gdb directly
@@ -27,7 +27,7 @@ $ gdb -q
 (gdb) pi import urllib.request as u, tempfile as t; g=t.NamedTemporaryFile(suffix='-gef.py'); open(g.name, 'wb+').write(u.urlopen('https://tinyurl.com/gef-master').read()); gdb.execute('source %s' % g.name)
 ```
 
-_Note_: to fetch the latest of GEF (i.e. from the `dev` branch), simply replace in the URL to https://tinyurl.com/gef-dev.
+_Note_: to fetch the latest of GEF (i.e. from the `dev` branch), simply replace in the URL to http://gef.blah.cat/dev.
 
 You can immediately see that GEF is correctly installed by launching GDB:
 
