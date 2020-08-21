@@ -7411,6 +7411,7 @@ class ContextCommand(GenericCommand):
     def __init__(self):
         super(ContextCommand, self).__init__()
         self.add_setting("enable", True, "Enable/disable printing the context when breaking")
+        self.add_setting("show_source_code_variable_values", True, "Show extra PC context info in the source code")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", False, "Show the registers pane with raw values (no dereference)")
         self.add_setting("peek_calls", True, "Peek into calls")
@@ -7838,6 +7839,7 @@ class ContextCommand(GenericCommand):
         title = "source:{}+{}".format(fn, line_num + 1)
         cur_line_color = get_gef_setting("theme.source_current_line")
         self.context_title(title)
+        show_extra_info = self.get_setting("show_source_code_variable_values")
 
         for i in range(line_num - nb_line + 1, line_num + nb_line):
             if i < 0:
@@ -7849,11 +7851,12 @@ class ContextCommand(GenericCommand):
                 gef_print("{}{}".format(bp_prefix, Color.grayify("  {:4d}\t {:s}".format(i + 1, lines[i],))))
 
             if i == line_num:
-                extra_info = self.get_pc_context_info(pc, lines[i])
                 prefix = "{}{}{:4d}\t ".format(bp_prefix, RIGHT_ARROW[1:], i + 1)
                 leading = len(lines[i]) - len(lines[i].lstrip())
-                if extra_info:
-                    gef_print("{}{}".format(" "*(len(prefix) + leading), extra_info))
+                if show_extra_info:
+                    extra_info = self.get_pc_context_info(pc, lines[i])
+                    if extra_info:
+                        gef_print("{}{}".format(" "*(len(prefix) + leading), extra_info))
                 gef_print(Color.colorify("{}{:s}".format(prefix, lines[i]), cur_line_color))
 
             if i > line_num:
