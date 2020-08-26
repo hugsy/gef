@@ -170,3 +170,8 @@ gef➤  gef config context.peek_calls False
 ```
 gef➤  gef config context.ignore_registers "$cs $ds $gs"
 ```
+
+* Hide the extra pc context info from the source code view.
+```
+gef➤  gef config context.show_source_code_variable_values 0
+```
