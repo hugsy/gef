@@ -185,11 +185,14 @@ ANSI_SPLIT_RE = r"(\033\[[\d;]*m)"
 def reset_all_caches():
     """Free all caches. If an object is cached, it will have a callable attribute `cache_clear`
     which will be invoked to purge the function cache."""
+    global __gef_default_main_arena__
 
     for mod in dir(sys.modules["__main__"]):
         obj = getattr(sys.modules["__main__"], mod)
         if hasattr(obj, "cache_clear"):
             obj.cache_clear()
+
+    __gef_default_main_arena__ = "main_arena"
     return
 
 

@@ -8,3 +8,4 @@ tests/pylint.txt
 tests/pylint3.html
 .vscode
 _build
+debug.log
