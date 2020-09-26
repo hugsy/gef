@@ -229,12 +229,29 @@ def highlight_text(text):
     return "".join(ansiSplit)
 
 
+delay_print = False 
+delay_print_buffer = []
+
+# If val is True, printing will go to a buffer
+# If False, the current buffer will be printed and cleared
+def gef_delay_print(val):
+    delay_print = val
+    if not delay_print:
+        for line in delay_print_buffer:
+            gef_print(line)
+        delay_print_buffer.clear()                   
+
+
 def gef_print(x="", *args, **kwargs):
     """Wrapper around print(), using string buffering feature."""
     x = highlight_text(x)
     if __gef_int_stream_buffer__ and not is_debug():
         return __gef_int_stream_buffer__.write(x + kwargs.get("end", "\n"))
-    return print(x, *args, **kwargs)
+
+    if not delay_print:
+        return print(x, *args, **kwargs)
+    else:
+        delay_print_buffer.append(x)
 
 
 def bufferize(f):
@@ -7491,8 +7508,8 @@ class ContextCommand(GenericCommand):
         if redirect and os.access(redirect, os.W_OK):
             enable_redirect_output(to_file=redirect)
 
-        if self.get_setting("clear_screen") and len(argv) == 0:
-            clear_screen(redirect)
+
+        gef_delay_print(True)
 
         for section in current_layout:
             if section[0] == "-":
@@ -7504,6 +7521,10 @@ class ContextCommand(GenericCommand):
                 # a MemoryError will happen when $pc is corrupted (invalid address)
                 err(str(e))
 
+        if self.get_setting("clear_screen") and len(argv) == 0:
+            clear_screen(redirect)
+
+        gef_delay_print(False)
 
         self.context_title("")
 
