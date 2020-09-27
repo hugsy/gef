@@ -3244,12 +3244,12 @@ def get_memory_alignment(in_bits=False):
     raise EnvironmentError("GEF is running under an unsupported mode")
 
 
-def clear_screen(tty=""):
-    """Clear the screen."""
+def clear_screen(tty=None):
+    """Clear the screen. This might not be immediate as it can get buffered."""
     # Since the tty can be closed at any time, a PermissionError exception can
     # occur when `clear_screen` is called. We handle this scenario properly
     try:
-        gef_print("\x1b[H\x1b[J", file=tty) # If tty is null, print will go to stdout
+        gef_print("\x1b[H\x1b[J", file=tty) # If tty is None, print will go to stdout
     except PermissionError:
         __gef_redirect_output_fd__ = None
         set_gef_setting("context.redirect", "")
