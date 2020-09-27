@@ -229,29 +229,12 @@ def highlight_text(text):
     return "".join(ansiSplit)
 
 
-delay_print = False 
-delay_print_buffer = []
-
-# If val is True, printing will go to a buffer
-# If False, the current buffer will be printed and cleared
-def gef_delay_print(val):
-    delay_print = val
-    if not delay_print:
-        for line in delay_print_buffer:
-            gef_print(line)
-        delay_print_buffer.clear()                   
-
-
 def gef_print(x="", *args, **kwargs):
     """Wrapper around print(), using string buffering feature."""
     x = highlight_text(x)
     if __gef_int_stream_buffer__ and not is_debug():
         return __gef_int_stream_buffer__.write(x + kwargs.get("end", "\n"))
-
-    if not delay_print:
-        return print(x, *args, **kwargs)
-    else:
-        delay_print_buffer.append(x)
+    return print(x, *args, **kwargs)
 
 
 def bufferize(f):
@@ -3263,15 +3246,10 @@ def get_memory_alignment(in_bits=False):
 
 def clear_screen(tty=""):
     """Clear the screen."""
-    if not tty:
-        gdb.execute("shell clear -x")
-        return
-
     # Since the tty can be closed at any time, a PermissionError exception can
     # occur when `clear_screen` is called. We handle this scenario properly
     try:
-        with open(tty, "wt") as f:
-            f.write("\x1b[H\x1b[J")
+        gef_print("\x1b[H\x1b[J", file=tty) # If tty is null, print will go to stdout
     except PermissionError:
         __gef_redirect_output_fd__ = None
         set_gef_setting("context.redirect", "")
@@ -7508,8 +7486,8 @@ class ContextCommand(GenericCommand):
         if redirect and os.access(redirect, os.W_OK):
             enable_redirect_output(to_file=redirect)
 
-
-        gef_delay_print(True)
+        if self.get_setting("clear_screen") and len(argv) == 0:
+            clear_screen(redirect)
 
         for section in current_layout:
             if section[0] == "-":
@@ -7521,10 +7499,6 @@ class ContextCommand(GenericCommand):
                 # a MemoryError will happen when $pc is corrupted (invalid address)
                 err(str(e))
 
-        if self.get_setting("clear_screen") and len(argv) == 0:
-            clear_screen(redirect)
-
-        gef_delay_print(False)
 
         self.context_title("")
 
