@@ -3246,15 +3246,24 @@ def get_memory_alignment(in_bits=False):
 
 def clear_screen(tty=None):
     """Clear the screen. This might not be immediate as it can get buffered."""
+
+    if tty == '':
+        tty = None
+
     # Since the tty can be closed at any time, a PermissionError exception can
     # occur when `clear_screen` is called. We handle this scenario properly
     try:
-        gef_print("\x1b[H\x1b[J", file=tty) # If tty is None, print will go to stdout
+        if isinstance(tty, str):
+            with open(tty, "wt") as f:
+                gef_print("\x1b[H\x1b[J", file=f) 
+        else:
+            # If tty is None, print will go to stdout
+            gef_print("\x1b[H\x1b[J", file=tty) 
     except PermissionError:
         __gef_redirect_output_fd__ = None
         set_gef_setting("context.redirect", "")
     return
-
+    
 
 def format_address(addr):
     """Format the address according to its size."""
