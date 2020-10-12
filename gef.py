@@ -8690,10 +8690,15 @@ class VMMapCommand(GenericCommand):
         gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<{w}s}{:<4s} {:s}".format(*headers, w=get_memory_alignment()*2+3), color))
 
         for entry in vmmap:
-            if argv and not argv[0] in entry.path:
+            if not argv:
+                self.print_entry(entry)
                 continue
-
-            self.print_entry(entry)
+            if argv[0] in entry.path:
+                self.print_entry(entry)
+            elif self.is_integer(argv[0]):
+                addr = int(argv[0],0)
+                if addr >= entry.page_start and addr < entry.page_end:
+                    self.print_entry(entry)
         return
 
     def print_entry(self, entry):
@@ -8731,6 +8736,14 @@ class VMMapCommand(GenericCommand):
                                                      Color.colorify("Stack", stack_addr_color)
         ))
         return
+
+    def is_integer(self, n):
+        try:
+            int(n,0)
+        except ValueError:
+            return False
+        else:
+            return True
 
 
 @register_command
