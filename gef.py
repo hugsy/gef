@@ -8742,8 +8742,7 @@ class VMMapCommand(GenericCommand):
             int(n,0)
         except ValueError:
             return False
-        else:
-            return True
+        return True
 
 
 @register_command
