@@ -10383,7 +10383,7 @@ if __name__  == "__main__":
         except FileNotFoundError:
             pass
         
-        # when Python virtual enviromrnt is used GDB still loads system Python
+        # When using a Python virtual environment, GDB still loads the system Python
         # so GEF doesn't load site-packages dir from environment
         pythonbin = which("python3")
         PREFIX = gef_pystring(subprocess.check_output([pythonbin, '-c', 'import os,sys;print((sys.prefix))'])).strip("\\n")
