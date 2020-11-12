@@ -10385,6 +10385,9 @@ if __name__  == "__main__":
         
         # When using a Python virtual environment, GDB still loads the system Python
         # so GEF doesn't load site-packages dir from environment
+        # In order to fix it, from the shell with venv activated we run the python binary, 
+        # take and parse it's path, add path to the current python process using sys.path.extend
+        
         pythonbin = which("python3")
         PREFIX = gef_pystring(subprocess.check_output([pythonbin, '-c', 'import os,sys;print((sys.prefix))'])).strip("\\n")
         if PREFIX != sys.base_prefix:
