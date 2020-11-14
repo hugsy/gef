@@ -2964,6 +2964,7 @@ def load_libc_args():
     path = get_gef_setting("context.libc_args_path")
     if path is None:
         warn("Config context.libc_args_path not set but context.libc_args is True. Make sure you have gef-extras installed")
+        return
     elif not os.path.isdir(path):
         warn("Config context.libc_args_path_path set but it's not a directory")
         return
