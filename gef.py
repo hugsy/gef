@@ -2963,28 +2963,30 @@ def load_libc_args():
 
     path = get_gef_setting("context.libc_args_path")
     if path is None:
-        err("Settings context.libc_args_path not set but context.libc_args is True. Make sure you have gef-extras installed")
+        warn("Config context.libc_args_path not set but context.libc_args is True. Make sure you have gef-extras installed")
+    elif not os.path.isdir(path):
+        warn("Config context.libc_args_path_path set but it's not a directory")
         return
 
-    _arch_mode = current_arch.arch.lower() + '_' + current_arch.mode
+    _arch_mode = "{}_{}".format(current_arch.arch.lower(), current_arch.mode)
     _libc_args_file = "{}/{}.json".format(path, _arch_mode)
 
     global libc_args_definitions
 
     # current arch and mode already loaded
-    if _arch_mode in libc_args_definitions and len(libc_args_definitions[_arch_mode]):
+    if _arch_mode in libc_args_definitions:
         return
 
     libc_args_definitions[_arch_mode] = {}
     try:
         with open(_libc_args_file) as _libc_args:
             libc_args_definitions[_arch_mode] = json.load(_libc_args)
-
     except FileNotFoundError:
-        warn("context.libc_args is set but definition cannot be loaded: file {} not found".format(_libc_args_file))
-
-    except json.decoder.JSONDecodeError as _e:
-        warn("context.libc_args is set but definition cannot be loaded from file {}: {}".format(_libc_args_file,_e))
+        del(libc_args_definitions[_arch_mode])
+        warn("Config context.libc_args is set but definition cannot be loaded: file {} not found".format(_libc_args_file))
+    except json.decoder.JSONDecodeError as e:
+        del(libc_args_definitions[_arch_mode])
+        warn("Config context.libc_args is set but definition cannot be loaded from file {}: {}".format(_libc_args_file, e))
     return
 
 def get_terminal_size():
@@ -7830,7 +7832,7 @@ class ContextCommand(GenericCommand):
                             parameter_set.add(exreg)
 
         nb_argument = None
-        _arch_mode = current_arch.arch.lower() + '_' + current_arch.mode
+        _arch_mode = "{}_{}".format(current_arch.arch.lower(), current_arch.mode)
         if function_name.endswith('@plt'):
             _function_name = function_name.split('@')[0]
             try:
