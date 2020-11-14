@@ -27,10 +27,22 @@ gef➤ heap chunks <LOCATION>
 
 ![heap-chunks](https://i.imgur.com/2Ew2fA6.png)
 
+### `heap chunkrange` command ###
+
+Unlike 'heap chunks' this command tries (untill could read) to give information of all 
+Glibc chunks started from arbitrary location and less than another location. Increment is done only via heap size field.
+It might be convenient in cases when [heap] memory region is absent
+and tries to gather information from all adjanced chunks to a given corrupted one for some cores.
+
+```
+gef➤ heap chunkrange <LOCATION_FROM> <LOCATION_TO>
+```
+
+![heap-chunkrange](TO_ADD)
 
 ### `heap chunk` command ###
 
-This command gives visual information of a Glibc malloc-ed chunked. Simply
+This command gives visual information of a Glibc malloc-ed chunk. Simply
 provide the address to the user memory pointer of the chunk to show the
 information related to a specific chunk:
 

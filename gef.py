@@ -6307,7 +6307,7 @@ class GlibcHeapCommand(GenericCommand):
     """Base command to get information about the Glibc heap structure."""
 
     _cmdline_ = "heap"
-    _syntax_  = "{:s} (chunk|chunks|bins|arenas)".format(_cmdline_)
+    _syntax_  = "{:s} (chunk|chunkrange|chunks|bins|arenas)".format(_cmdline_)
 
     def __init__(self):
         super(GlibcHeapCommand, self).__init__(prefix=True)
@@ -6321,7 +6321,7 @@ class GlibcHeapCommand(GenericCommand):
 
 @register_command
 class GlibcHeapSetArenaCommand(GenericCommand):
-    """Display information on a heap chunk."""
+    """Display information on a heap set-arena."""
 
     _cmdline_ = "heap set-arena"
     _syntax_  = "{:s} LOCATION".format(_cmdline_)
@@ -6357,7 +6357,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
 
 @register_command
 class GlibcHeapArenaCommand(GenericCommand):
-    """Display information on a heap chunk."""
+    """Display information on a heap arenas."""
 
     _cmdline_ = "heap arenas"
     _syntax_  = _cmdline_
@@ -6402,6 +6402,46 @@ class GlibcHeapChunkCommand(GenericCommand):
         addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
         chunk = GlibcChunk(addr)
         gef_print(chunk.psprint())
+        return
+
+@register_command
+class GlibcHeapChunkRangeCommand(GenericCommand):
+    """Display information on all heap chunks within memory region {from, to}.
+    First address should be valid chunk address while the last one could be arbitrary > first.
+    See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
+
+    _cmdline_ = "heap chunkrange"
+    _syntax_  = "{:s} LOCATION_FROM LOCATION_TO".format(_cmdline_)
+    _example_ = "\n{0:s}\n{0:s} 0x4000aa00 0x4000da00".format(_cmdline_)
+
+    def __init__(self):
+        super(GlibcHeapChunkRangeCommand, self).__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+        if len(argv) != 2:
+            err("Missing range addresses")
+            self.usage()
+            return
+        
+        AddrFrom = to_unsigned_long(gdb.parse_and_eval(argv[0]))
+        AddrTo = to_unsigned_long(gdb.parse_and_eval(argv[1]))
+
+        if (AddrTo <= AddrFrom):
+            err("LOCATION_TO <= LOCATION_FROM")
+            self.usage()
+            return
+
+        if get_main_arena() is None:
+            return
+
+        addr = AddrFrom
+        while (addr < AddrTo):
+            chunk = GlibcChunk(addr, from_base=True)
+            gef_print(chunk.psprint())
+            addr += chunk.get_chunk_size()
+        gef_print("last address = {:#x}".format(addr))
         return
 
 @register_command
