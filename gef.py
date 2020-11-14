@@ -7461,7 +7461,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("layout", "legend regs stack code args source memory threads trace extra", "Change the order/presence of the context sections")
         self.add_setting("redirect", "", "Redirect the context information to another TTY")
         self.add_setting("libc_args", False, "Show libc function call args description")
-        self.add_setting("libc_args_path", "", "TEMP because i don't know where to place this settings. please hint :)")
+        self.add_setting("libc_args_path", "", "Path to libc function call args json file, provided via gef-extras")
 
         if "capstone" in list(sys.modules.keys()):
             self.add_setting("use_capstone", False, "Use capstone as disassembler in the code pane (instead of GDB)")
