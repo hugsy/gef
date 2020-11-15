@@ -68,6 +68,7 @@ import hashlib
 import importlib
 import inspect
 import itertools
+import json
 import os
 import platform
 import re
@@ -87,6 +88,7 @@ import xmlrpc.client as xmlrpclib #pylint: disable=import-error
 from html.parser import HTMLParser #pylint: disable=import-error
 from io import StringIO
 from urllib.request import urlopen #pylint: disable=import-error,no-name-in-module
+
 
 lru_cache = functools.lru_cache #pylint: disable=no-member
 
@@ -176,6 +178,8 @@ GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(
 
 current_elf  = None
 current_arch = None
+
+libc_args_definitions = {}
 
 highlight_table = {}
 ANSI_SPLIT_RE = r"(\033\[[\d;]*m)"
@@ -2937,6 +2941,7 @@ def new_objfile_handler(event):
     """GDB event handler for new object file cases."""
     reset_all_caches()
     set_arch()
+    load_libc_args()
     return
 
 
@@ -2951,6 +2956,39 @@ def exit_handler(event):
         __gef_remote__ = None
     return
 
+def load_libc_args():
+    # load libc function arguments' definitions
+    if not get_gef_setting("context.libc_args"):
+        return
+
+    path = get_gef_setting("context.libc_args_path")
+    if path is None:
+        warn("Config context.libc_args_path not set but context.libc_args is True. Make sure you have gef-extras installed")
+        return
+    elif not os.path.isdir(path):
+        warn("Config context.libc_args_path_path set but it's not a directory")
+        return
+
+    _arch_mode = "{}_{}".format(current_arch.arch.lower(), current_arch.mode)
+    _libc_args_file = "{}/{}.json".format(path, _arch_mode)
+
+    global libc_args_definitions
+
+    # current arch and mode already loaded
+    if _arch_mode in libc_args_definitions:
+        return
+
+    libc_args_definitions[_arch_mode] = {}
+    try:
+        with open(_libc_args_file) as _libc_args:
+            libc_args_definitions[_arch_mode] = json.load(_libc_args)
+    except FileNotFoundError:
+        del(libc_args_definitions[_arch_mode])
+        warn("Config context.libc_args is set but definition cannot be loaded: file {} not found".format(_libc_args_file))
+    except json.decoder.JSONDecodeError as e:
+        del(libc_args_definitions[_arch_mode])
+        warn("Config context.libc_args is set but definition cannot be loaded from file {}: {}".format(_libc_args_file, e))
+    return
 
 def get_terminal_size():
     """Return the current terminal size."""
@@ -7429,6 +7467,8 @@ class ContextCommand(GenericCommand):
         self.add_setting("clear_screen", True, "Clear the screen before printing the context")
         self.add_setting("layout", "legend regs stack code args source memory threads trace extra", "Change the order/presence of the context sections")
         self.add_setting("redirect", "", "Redirect the context information to another TTY")
+        self.add_setting("libc_args", False, "Show libc function call args description")
+        self.add_setting("libc_args_path", "", "Path to libc function call args json files, provided via gef-extras")
 
         if "capstone" in list(sys.modules.keys()):
             self.add_setting("use_capstone", False, "Use capstone as disassembler in the code pane (instead of GDB)")
@@ -7792,18 +7832,32 @@ class ContextCommand(GenericCommand):
                         if op in extended_registers[exreg]:
                             parameter_set.add(exreg)
 
-        if is_x86_32():
-            nb_argument = len(parameter_set)
-        else:
-            nb_argument = 0
-            for p in parameter_set:
-                nb_argument = max(nb_argument, function_parameters.index(p)+1)
+        nb_argument = None
+        _arch_mode = "{}_{}".format(current_arch.arch.lower(), current_arch.mode)
+        if function_name.endswith('@plt'):
+            _function_name = function_name.split('@')[0]
+            try:
+                nb_argument = len(libc_args_definitions[_arch_mode][_function_name])
+            except KeyError:
+                pass
+
+        if not nb_argument:
+            if is_x86_32():
+                nb_argument = len(parameter_set)
+            else:
+                nb_argument = max(function_parameters.index(p)+1 for p in parameter_set)
 
         args = []
         for i in range(nb_argument):
-            _key, _value = current_arch.get_ith_parameter(i, in_func=False)
-            _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
-            args.append("{} = {}".format(Color.colorify(_key, arg_key_color), _value))
+            _key, _values = current_arch.get_ith_parameter(i, in_func=False)
+            _values = DereferenceCommand.dereference_from(_values)
+
+            _values = RIGHT_ARROW.join(_values)
+            try:
+                args.append("{} = {} (def: {})".format(Color.colorify(_key, arg_key_color), _values,
+                                                       libc_args_definitions[_arch_mode][_function_name][_key]))
+            except:
+                args.append("{} = {}".format(Color.colorify(_key, arg_key_color), _values))
 
         self.context_title("arguments (guessed)")
         gef_print("{} (".format(function_name))

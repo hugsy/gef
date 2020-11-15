@@ -175,3 +175,9 @@ gef➤  gef config context.ignore_registers "$cs $ds $gs"
 ```
 gef➤  gef config context.show_source_code_variable_values 0
 ```
+
+* Show better definitions for call to libc functions.
+```
+gef➤  gef config context.libc_args True
+gef➤  gef config context.libc_args_path /path/to/gef-extras/libc_args
+```
