@@ -2699,7 +2699,7 @@ def download_file(target, use_cache=False, local_name=None):
 def open_file(path, use_cache=False):
     """Attempt to open the given file, if remote debugging is active, download
     it first to the mirror in /tmp/."""
-    if is_remote_debug():
+    if is_remote_debug() and not __gef_qemu_mode__:
         lpath = download_file(path, use_cache)
         if not lpath:
             raise IOError("cannot open remote path {:s}".format(path))
@@ -2730,6 +2730,10 @@ def get_process_maps_linux(proc_map_file):
             pathname = rest[1].lstrip()
 
         addr_start, addr_end = [int(x, 16) for x in addr.split("-")]
+
+        if __gef_qemu_mode__ and addr_start > 0x5000000000:
+            break
+
         off = int(off, 16)
         perm = Permission.from_process_maps(perm)
 
@@ -2768,17 +2772,28 @@ def get_mach_regions():
 @lru_cache()
 def get_process_maps():
     """Return the mapped memory sections"""
+    global __gef_qemu_mode__
 
     if inferior_is_macho():
         return list(get_mach_regions())
 
     try:
         pid = get_pid()
+        # It is possible to detect if we are in qemu by sending a packet. If ENABLE= is included we are in qemu
+        if not __gef_qemu_mode__ and pid == 1 and "ENABLE=" in gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False):
+            __gef_qemu_mode__ = True
+        
+        if __gef_qemu_mode__:
+            pid = gdb.selected_thread().ptid[1] # qemu sens incorrect pid, we can get the real pid by thread id.
+        
         fpath = "/proc/{:d}/maps".format(pid)
-        return list(get_process_maps_linux(fpath))
+        sections = get_process_maps_linux(fpath)
+
+        return list(sections)
     except FileNotFoundError as e:
         warn("Failed to read /proc/<PID>/maps, using GDB sections info: {}".format(e))
         return list(get_info_sections())
+
 
 
 @lru_cache()
