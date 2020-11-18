@@ -1,7 +1,8 @@
 ## Command config ##
 
-In addition to reading its config from _~/.gef.rc~, `gef` can also be
-configured at runtime with the `gef config` command.
+`gef` reads its config from a file which is by default located at `~/.gef.rc`, but which
+can also be specified via the `GEF_RC` environment variable. In addition, `gef` can also
+be configured at runtime with the `gef config` command.
 
 To view all settings for all commands loaded:
 ```
@@ -27,8 +28,8 @@ gef➤  gef save
 [+] Configuration saved to '/home/vagrant/.gef.rc'
 ```
 
-Upon startup, if `gef` finds a file `${HOME}/.gef.rc`, it will automatically
-loads its values.
+Upon startup, if `$GEF_RC` points to an existing file, or otherwise if
+`${HOME}/.gef.rc` exists, `gef` will automatically load its values.
 
 To reload the settings during the session, just run:
 ```

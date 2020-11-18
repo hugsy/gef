@@ -25,8 +25,8 @@ ps                              →  process-search
 alias that GDB provides through the built-in command `alias`.
 
 Users can create/modify/delete aliases by editing the `GEF` configuration file,
-located at `~/.gef.rc`. The aliases must be in the "`aliases`" section of the
-configuration file.
+by default located at `~/.gef.rc`. The aliases must be in the `aliases` section
+of the configuration file.
 
 Creating a new alias is as simple as creating a new entry in this section:
 
