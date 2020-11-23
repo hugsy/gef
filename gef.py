@@ -10448,6 +10448,18 @@ if __name__  == "__main__":
             site.addsitedir(site_packages_dir)
         except FileNotFoundError:
             pass
+        
+        # When using a Python virtual environment, GDB still loads the system-installed Python
+        # so GEF doesn't load site-packages dir from environment
+        # In order to fix it, from the shell with venv activated we run the python binary, 
+        # take and parse its path, add the path to the current python process using sys.path.extend
+        
+        pythonbin = which("python3")
+        PREFIX = gef_pystring(subprocess.check_output([pythonbin, '-c', 'import os,sys;print((sys.prefix))'])).strip("\\n")
+        if PREFIX != sys.base_prefix:
+            SITE_PACKAGES_DIRS = subprocess.check_output(
+                [pythonbin, "-c", "import os,sys;print(os.linesep.join(sys.path).strip())"]).decode("utf-8").split()
+            sys.path.extend(SITE_PACKAGES_DIR)
 
         # setup prompt
         gdb.prompt_hook = __gef_prompt__
