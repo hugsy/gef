@@ -10459,7 +10459,7 @@ if __name__  == "__main__":
         if PREFIX != sys.base_prefix:
             SITE_PACKAGES_DIRS = subprocess.check_output(
                 [pythonbin, "-c", "import os,sys;print(os.linesep.join(sys.path).strip())"]).decode("utf-8").split()
-            sys.path.extend(SITE_PACKAGES_DIR)
+            sys.path.extend(SITE_PACKAGES_DIRS)
 
         # setup prompt
         gdb.prompt_hook = __gef_prompt__
