@@ -1360,7 +1360,7 @@ def capstone_disassemble(location, nb_insn, show_opcodes=False, **kwargs):
         sym_info = gdb_get_location_from_symbol(cs_insn.address)
         loc = "<{}+{}>".format(*sym_info) if sym_info else ""
         ops = [] + cs_insn.op_str.split(", ")
-        opcodes = ''.join("{:02x}".format(b) for b in cs_insn.bytes) if show_opcodes else ""
+        opcodes = "".join("{:02x}".format(b) for b in cs_insn.bytes) if show_opcodes else ""
         return Instruction(cs_insn.address, loc, cs_insn.mnemonic, ops, opcodes)
 
     capstone    = sys.modules["capstone"]
