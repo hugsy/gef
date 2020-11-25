@@ -585,15 +585,16 @@ class Elf:
 
 class Instruction:
     """GEF representation of a CPU instruction."""
-    def __init__(self, address, location, mnemo, operands):
-        self.address, self.location, self.mnemonic, self.operands = address, location, mnemo, operands
+    def __init__(self, address, location, mnemo, operands, opcodes):
+        self.address, self.location, self.mnemonic, self.operands, self.opcodes = address, location, mnemo, operands, opcodes
         return
 
     def __str__(self):
-        return "{:#10x} {:16} {:6} {:s}".format(self.address,
-                                                self.location,
-                                                self.mnemonic,
-                                                ", ".join(self.operands))
+        return "{:#10x} {:16} {:16} {:6} {:s}".format(self.address,
+                                                      self.opcodes,
+                                                      self.location,
+                                                      self.mnemonic,
+                                                      ", ".join(self.operands))
 
     def is_valid(self):
         return "(bad)" not in self.mnemonic
@@ -1239,7 +1240,7 @@ def gdb_get_location_from_symbol(address):
     return name, offset
 
 
-def gdb_disassemble(start_pc, **kwargs):
+def gdb_disassemble(start_pc, show_opcodes=False, **kwargs):
     """Disassemble instructions from `start_pc` (Integer). Accepts the following named parameters:
     - `end_pc` (Integer) only instructions whose start address fall in the interval from start_pc to end_pc are returned.
     - `count` (Integer) list at most this many disassembled instructions
@@ -1261,7 +1262,10 @@ def gdb_disassemble(start_pc, **kwargs):
         loc = gdb_get_location_from_symbol(address)
         location = "<{}+{}>".format(*loc) if loc else ""
 
-        yield Instruction(address, location, mnemo, operands)
+        opcodes_raw = read_memory(insn["addr"], insn["length"])
+        opcodes = "".join("{:02x}".format(b) for b in opcodes_raw) if show_opcodes else ""
+
+        yield Instruction(address, location, mnemo, operands, opcodes)
 
 
 def gdb_get_nth_previous_instruction_address(addr, n):
@@ -1330,7 +1334,7 @@ def gef_next_instruction(addr):
     return gef_instruction_n(addr, 1)
 
 
-def gef_disassemble(addr, nb_insn, nb_prev=0):
+def gef_disassemble(addr, nb_insn, show_opcodes=False, nb_prev=0):
     """Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`.
     Return an iterator of Instruction objects."""
     nb_insn = max(1, nb_insn)
@@ -1339,15 +1343,15 @@ def gef_disassemble(addr, nb_insn, nb_prev=0):
     if nb_prev:
         start_addr = gdb_get_nth_previous_instruction_address(addr, nb_prev)
         if start_addr:
-            for insn in gdb_disassemble(start_addr, count=nb_prev):
+            for insn in gdb_disassemble(start_addr, show_opcodes, count=nb_prev):
                 if insn.address == addr: break
                 yield insn
 
-    for insn in gdb_disassemble(addr, count=count):
+    for insn in gdb_disassemble(addr, show_opcodes, count=count):
         yield insn
 
 
-def capstone_disassemble(location, nb_insn, **kwargs):
+def capstone_disassemble(location, nb_insn, show_opcodes, **kwargs):
     """Disassemble `nb_insn` instructions after `addr` and `nb_prev` before
     `addr` using the Capstone-Engine disassembler, if available.
     Return an iterator of Instruction objects."""
@@ -1356,7 +1360,8 @@ def capstone_disassemble(location, nb_insn, **kwargs):
         sym_info = gdb_get_location_from_symbol(cs_insn.address)
         loc = "<{}+{}>".format(*sym_info) if sym_info else ""
         ops = [] + cs_insn.op_str.split(", ")
-        return Instruction(cs_insn.address, loc, cs_insn.mnemonic, ops)
+        opcodes = ''.join("{:02x}".format(b) for b in cs_insn.bytes) if show_opcodes else ""
+        return Instruction(cs_insn.address, loc, cs_insn.mnemonic, ops, opcodes)
 
     capstone    = sys.modules["capstone"]
     arch, mode  = get_capstone_arch(arch=kwargs.get("arch", None), mode=kwargs.get("mode", None), endian=kwargs.get("endian", None))
@@ -5723,7 +5728,7 @@ class UnicornEmulateCommand(GenericCommand):
         return
 
     def get_unicorn_end_addr(self, start_addr, nb):
-        dis = list(gef_disassemble(start_addr, nb+1, True))
+        dis = list(gef_disassemble(start_addr, nb+1))
         last_insn = dis[-1]
         return last_insn.address
 
@@ -6270,7 +6275,7 @@ class CapstoneDisassembleCommand(GenericCommand):
     """Use capstone disassembly framework to disassemble code."""
 
     _cmdline_ = "capstone-disassemble"
-    _syntax_  = "{:s} [LOCATION] [[length=LENGTH] [option=VALUE]] ".format(_cmdline_)
+    _syntax_  = "{:s} [LOCATION] [[length=LENGTH] [OPCODES] [option=VALUE]] ".format(_cmdline_)
     _aliases_ = ["cs-dis",]
     _example_ = "{:s} $pc length=50".format(_cmdline_)
 
@@ -6289,6 +6294,7 @@ class CapstoneDisassembleCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         location = None
+        show_opcodes = False
 
         kwargs = {}
         for arg in argv:
@@ -6296,19 +6302,22 @@ class CapstoneDisassembleCommand(GenericCommand):
                 key, value = arg.split("=", 1)
                 kwargs[key] = value
 
+            elif "opcodes".startswith(arg.lower()):
+                show_opcodes = True
+
             elif location is None:
                 location = parse_address(arg)
 
         location = location or current_arch.pc
         length = int(kwargs.get("length", get_gef_setting("context.nb_lines_code")))
 
-        for insn in capstone_disassemble(location, length, skip=length*self.repeat_count, **kwargs):
+        for insn in capstone_disassemble(location, length, show_opcodes, skip=length*self.repeat_count, **kwargs):
             text_insn = str(insn)
             msg = ""
 
             if insn.address == current_arch.pc:
                 msg = Color.colorify("{}   {}".format(RIGHT_ARROW, text_insn), "bold red")
-                reason = self.capstone_analyze_pc(insn, length)[0]
+                reason = self.capstone_analyze_pc(insn, length, show_opcodes)[0]
                 if reason:
                     gef_print(msg)
                     gef_print(reason)
@@ -6319,7 +6328,7 @@ class CapstoneDisassembleCommand(GenericCommand):
             gef_print(msg)
         return
 
-    def capstone_analyze_pc(self, insn, nb_insn):
+    def capstone_analyze_pc(self, insn, nb_insn, show_opcodes):
         if current_arch.is_conditional_branch(insn):
             is_taken, reason = current_arch.is_branch_taken(insn)
             if is_taken:
@@ -6333,7 +6342,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         if current_arch.is_call(insn):
             target_address = int(insn.operands[-1].split()[0], 16)
             msg = []
-            for i, new_insn in enumerate(capstone_disassemble(target_address, nb_insn)):
+            for i, new_insn in enumerate(capstone_disassemble(target_address, nb_insn, show_opcodes)):
                 msg.append("   {}  {}".format (DOWN_ARROW if i==0 else " ", str(new_insn)))
             return (True, "\n".join(msg))
 
@@ -7455,6 +7464,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("show_source_code_variable_values", True, "Show extra PC context info in the source code")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", False, "Show the registers pane with raw values (no dereference)")
+        self.add_setting("show_opcodes", False, "Show the opcodes next to the disassembly")
         self.add_setting("peek_calls", True, "Peek into calls")
         self.add_setting("peek_ret", True, "Peek at return address")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
@@ -7666,6 +7676,7 @@ class ContextCommand(GenericCommand):
         nb_insn = self.get_setting("nb_lines_code")
         nb_insn_prev = self.get_setting("nb_lines_code_prev")
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
+        show_opcodes = self.has_setting("show_opcodes") and self.get_setting("show_opcodes")
         cur_insn_color = get_gef_setting("theme.disassemble_current_instruction")
         pc = current_arch.pc
         bp_locations = [b.location for b in gdb.breakpoints() if b.location.startswith("*")]
@@ -7679,7 +7690,7 @@ class ContextCommand(GenericCommand):
         try:
             instruction_iterator = capstone_disassemble if use_capstone else gef_disassemble
 
-            for insn in instruction_iterator(pc, nb_insn, nb_prev=nb_insn_prev):
+            for insn in instruction_iterator(pc, nb_insn, show_opcodes, nb_prev=nb_insn_prev):
                 line = []
                 is_taken  = False
                 target    = None

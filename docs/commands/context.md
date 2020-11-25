@@ -161,6 +161,11 @@ gef➤ gef config context.clear_screen 1
 gef➤ gef config context.show_registers_raw 1
 ```
 
+* Show opcodes next to the disassembly.
+```
+gef➤ gef config context.show_opcodes 1
+```
+
 * Don't 'peek' into the start of functions that are called.
 ```
 gef➤  gef config context.peek_calls False
