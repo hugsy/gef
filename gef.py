@@ -1351,7 +1351,7 @@ def gef_disassemble(addr, nb_insn, show_opcodes=False, nb_prev=0):
         yield insn
 
 
-def capstone_disassemble(location, nb_insn, show_opcodes, **kwargs):
+def capstone_disassemble(location, nb_insn, show_opcodes=False, **kwargs):
     """Disassemble `nb_insn` instructions after `addr` and `nb_prev` before
     `addr` using the Capstone-Engine disassembler, if available.
     Return an iterator of Instruction objects."""
