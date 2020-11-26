@@ -596,7 +596,8 @@ class Instruction:
         self.address, self.location, self.mnemonic, self.operands, self.opcodes = address, location, mnemo, operands, opcodes
         return
 
-    # Allow formatting an instruction with {:o} to show opcodes
+    # Allow formatting an instruction with {:o} to show opcodes.
+    # The number of bytes to display can be configured, e.g. {:4o} to only show 4 bytes of the opcodes
     def __format__(self, format_spec):
         if format_spec[-1] != "o":
             return str(self)
