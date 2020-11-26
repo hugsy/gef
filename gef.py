@@ -610,11 +610,12 @@ class Instruction:
         opcodes_text = "".join("{:02x}".format(b) for b in self.opcodes[:opcodes_len])
         if opcodes_len < len(self.opcodes):
             opcodes_text += "..."
-        return "{:#10x} {:16} {:16} {:6} {:s}".format(self.address,
-                                                      opcodes_text,
-                                                      self.location,
-                                                      self.mnemonic,
-                                                      ", ".join(self.operands))
+        return "{:#10x} {:{:d}} {:16} {:6} {:s}".format(self.address,
+                                                        opcodes_text,
+                                                        opcodes_len * 2 + 3,
+                                                        self.location,
+                                                        self.mnemonic,
+                                                        ", ".join(self.operands))
 
     def __str__(self):
         return "{:#10x} {:16} {:6} {:s}".format(self.address,
