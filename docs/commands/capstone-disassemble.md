@@ -24,7 +24,7 @@ Show instructions before $pc
 gef➤ cs nb_prev=3
 ```
 
-Show opcodes next to diassembly
+Show opcodes next to disassembly
 ```
 gef➤ cs op
 ```
