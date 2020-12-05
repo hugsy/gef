@@ -1686,7 +1686,7 @@ class ARM(Architecture):
 
     all_registers = ["$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6",
                      "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$sp",
-                     "$lr", "$pc", "$cpsr",]
+                     "$lr", "$pc", "$cpsr", "$xpsr"]
 
     # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
     # return b"\x00\x00\xa0\xe1" # mov r0,r0
@@ -1709,6 +1709,7 @@ class ARM(Architecture):
     @lru_cache()
     def is_thumb(self):
         """Determine if the machine is currently in THUMB mode."""
+        self.check_cortex()
         return is_alive() and get_register(self.flag_register) & (1<<5)
 
     @property
@@ -1717,6 +1718,13 @@ class ARM(Architecture):
         if self.is_thumb():
             pc += 1
         return pc
+
+    def check_cortex(self):
+        """ Determine if the processor is of the Cortex family """
+        if get_register(self.flag_register) is None:
+            self.flag_register = "$xpsr"
+            if get_register(self.flag_register) is None:
+                raise OSError("None of the flag registers are valid")
 
     @property
     def mode(self):
