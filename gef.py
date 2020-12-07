@@ -1706,7 +1706,6 @@ class ARM(Architecture):
     syscall_register = "$r7"
     syscall_instructions = ["swi 0x0", "swi NR"]
 
-    @lru_cache()
     def is_thumb(self):
         """Determine if the machine is currently in THUMB mode."""
         return is_alive() and get_register(self.flag_register) & (1<<5)
