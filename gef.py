@@ -118,8 +118,8 @@ def http_get(url):
 
 
 def update_gef(argv):
-    """Try to update `gef` to the latest version pushed on GitHub. Return 0 on success,
-    1 on failure. """
+    """Try to update `gef` to the latest version pushed on GitHub master branch.
+    Return 0 on success, 1 on failure. """
     gef_local = os.path.realpath(argv[0])
     hash_gef_local = hashlib.sha512(open(gef_local, "rb").read()).digest()
     gef_remote = "https://raw.githubusercontent.com/hugsy/gef/master/gef.py"
@@ -5538,20 +5538,17 @@ class FlagsCommand(GenericCommand):
                 err("Invalid flag name '{:s}'".format(flag[1:]))
                 continue
 
-            for k in current_arch.flags_table:
-                if current_arch.flags_table[k] == name:
-                    off = k
-                    break
+            for off in current_arch.flags_table:
+                if current_arch.flags_table[off] == name:
+                    old_flag = get_register(current_arch.flag_register)
+                    if action == "+":
+                        new_flags = old_flag | (1 << off)
+                    elif action == "-":
+                        new_flags = old_flag & ~(1 << off)
+                    else:
+                        new_flags = old_flag ^ (1<<off)
 
-            old_flag = get_register(current_arch.flag_register)
-            if action == "+":
-                new_flags = old_flag | (1 << off)
-            elif action == "-":
-                new_flags = old_flag & ~(1 << off)
-            else:
-                new_flags = old_flag ^ (1<<off)
-
-            gdb.execute("set ({:s}) = {:#x}".format(current_arch.flag_register, new_flags))
+                    gdb.execute("set ({:s}) = {:#x}".format(current_arch.flag_register, new_flags))
 
         gef_print(current_arch.flag_register_to_human())
         return
@@ -5735,6 +5732,8 @@ class UnicornEmulateCommand(GenericCommand):
         cs_arch, cs_mode = get_capstone_arch(to_string=True)
         fname = get_filename()
         to_file = kwargs.get("to_file", None)
+        emulate_segmentation_block = ""
+        context_segmentation_block = ""
 
         if to_file:
             tmp_filename = to_file
@@ -7610,6 +7609,7 @@ class ContextCommand(GenericCommand):
 
             except Exception:
                 new_value = 0
+                new_value_type_flag = False
 
             old_value = self.old_registers.get(reg, 0)
 
@@ -7834,6 +7834,7 @@ class ContextCommand(GenericCommand):
 
         nb_argument = None
         _arch_mode = "{}_{}".format(current_arch.arch.lower(), current_arch.mode)
+        _function_name = None
         if function_name.endswith('@plt'):
             _function_name = function_name.split('@')[0]
             try:
@@ -7850,13 +7851,11 @@ class ContextCommand(GenericCommand):
         args = []
         for i in range(nb_argument):
             _key, _values = current_arch.get_ith_parameter(i, in_func=False)
-            _values = DereferenceCommand.dereference_from(_values)
-
-            _values = RIGHT_ARROW.join(_values)
+            _values = RIGHT_ARROW.join( DereferenceCommand.dereference_from(_values) )
             try:
                 args.append("{} = {} (def: {})".format(Color.colorify(_key, arg_key_color), _values,
                                                        libc_args_definitions[_arch_mode][_function_name][_key]))
-            except:
+            except KeyError:
                 args.append("{} = {}".format(Color.colorify(_key, arg_key_color), _values))
 
         self.context_title("arguments (guessed)")
@@ -9888,7 +9887,7 @@ class GefCommand(gdb.Command):
             nb_added = len(self.loaded_commands) - nb_inital
             if nb_added > 0:
                 ok("{:s} extra commands added from '{:s}'".format(Color.colorify(nb_added, "bold green"),
-                                                                  Color.colorify(directory, "bold blue")))
+                                                                  Color.colorify(directories, "bold blue")))
         except gdb.error as e:
             err("failed: {}".format(str(e)))
         return nb_added
@@ -10448,12 +10447,12 @@ if __name__  == "__main__":
             site.addsitedir(site_packages_dir)
         except FileNotFoundError:
             pass
-        
+
         # When using a Python virtual environment, GDB still loads the system-installed Python
         # so GEF doesn't load site-packages dir from environment
-        # In order to fix it, from the shell with venv activated we run the python binary, 
+        # In order to fix it, from the shell with venv activated we run the python binary,
         # take and parse its path, add the path to the current python process using sys.path.extend
-        
+
         pythonbin = which("python3")
         PREFIX = gef_pystring(subprocess.check_output([pythonbin, '-c', 'import os,sys;print((sys.prefix))'])).strip("\\n")
         if PREFIX != sys.base_prefix:
