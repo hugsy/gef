@@ -7668,10 +7668,9 @@ class ContextCommand(GenericCommand):
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
         cur_insn_color = get_gef_setting("theme.disassemble_current_instruction")
         pc = current_arch.pc
-        bp_locations = [b.location for b in gdb.breakpoints() if b.location.startswith("*")]
+        bp_locations = [b.location for b in gdb.breakpoints() if b.location and b.location.startswith("*")]
 
         frame = gdb.selected_frame()
-        arch = frame.architecture()
         arch_name = "{}:{}".format(current_arch.arch.lower(), current_arch.mode)
 
         self.context_title("code:{}".format(arch_name))
