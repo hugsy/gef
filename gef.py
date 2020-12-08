@@ -83,14 +83,12 @@ import tempfile
 import time
 import traceback
 import configparser
-import xmlrpc.client as xmlrpclib #pylint: disable=import-error
+import xmlrpc.client as xmlrpclib
 
-from html.parser import HTMLParser #pylint: disable=import-error
+from functools import lru_cache
+from html.parser import HTMLParser
 from io import StringIO
-from urllib.request import urlopen #pylint: disable=import-error,no-name-in-module
-
-
-lru_cache = functools.lru_cache #pylint: disable=no-member
+from urllib.request import urlopen
 
 LEFT_ARROW = " \u2190 "
 RIGHT_ARROW = " \u2192 "
@@ -142,7 +140,7 @@ try:
     import gdb
 except ImportError:
     # if out of gdb, the only action allowed is to update gef.py
-    if len(sys.argv)==2 and sys.argv[1] in ["--update", "--upgrade"]:
+    if len(sys.argv)==2 and sys.argv[1].lower() in ("--update", "--upgrade"):
         sys.exit(update_gef(sys.argv))
     print("[-] gef cannot run as standalone")
     sys.exit(0)
@@ -2962,10 +2960,11 @@ def load_libc_args():
 
     path = get_gef_setting("context.libc_args_path")
     if path is None:
-        warn("Config context.libc_args_path not set but context.libc_args is True. Make sure you have gef-extras installed")
+        warn("Config `context.libc_args_path` not set but `context.libc_args` is True. Make sure you have `gef-extras` installed")
         return
-    elif not os.path.isdir(path):
-        warn("Config context.libc_args_path_path set but it's not a directory")
+
+    if not os.path.isdir(path):
+        warn("Config `context.libc_args_path_path` set but it's not a directory")
         return
 
     _arch_mode = "{}_{}".format(current_arch.arch.lower(), current_arch.mode)
@@ -3538,6 +3537,7 @@ class PieVirtualBreakpoint(object):
             self.addr = hex(addr)
         else:
             self.addr = addr
+        return
 
     def instantiate(self, base):
         if self.bp_num:
@@ -3553,9 +3553,9 @@ class PieVirtualBreakpoint(object):
             err(res)
             return
         res_list = res.split()
-        # Breakpoint (no) at (addr)
         self.bp_num = res_list[1]
         self.bp_addr = res_list[3]
+        return
 
     def destroy(self):
         if not self.bp_num:
@@ -3563,6 +3563,8 @@ class PieVirtualBreakpoint(object):
             return
         gdb.execute("delete {}".format(self.bp_num))
         self.bp_num = 0
+        return
+
 
 #
 # Breakpoints
