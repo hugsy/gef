@@ -23,7 +23,7 @@ int main(int argc, char** argv, char** envp)
         memset(p2, 'B', 0x20);
         memset(p3, 'C', 0x30);
         free(p2);
-        __asm__ volatile("int3;");
+        __builtin_trap();
         (void)p1;
         (void)p3;
         return EXIT_SUCCESS;

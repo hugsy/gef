@@ -17,7 +17,7 @@
 int main(int argc, char** argv, char** envp)
 {
         void* p1 = malloc(0x20);
-        __asm__ volatile("int3;" : : : );
+        __builtin_trap();
         (void)p1;
         return EXIT_SUCCESS;
 }

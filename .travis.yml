@@ -1,7 +1,7 @@
 language: python
-python: 3.6
+python: 3.8
 
-dist: bionic
+dist: focal
 
 # https://docs.travis-ci.com/user/multi-cpu-architectures/#testing-on-multiple-cpu-architectures
 arch:

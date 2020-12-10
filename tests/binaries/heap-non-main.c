@@ -12,7 +12,7 @@ void *thread()
         void* p1 = malloc(0x18);
         void* p2 = malloc(0x18);
         free(p1);
-        __asm__ volatile("int3;" : : : );
+        __builtin_trap();
         (void)p2;
 
         return NULL;

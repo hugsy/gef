@@ -26,7 +26,7 @@ int main(int argc, char** argv, char** envp)
         if( p == (void *)-1)
                 return EXIT_FAILURE;
 
-        __asm__ volatile("int3 ;" : : :);
+        __builtin_trap();
 
         return EXIT_SUCCESS;
 }
