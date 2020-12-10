@@ -3166,18 +3166,25 @@ def get_elf_headers(filename=None):
     return Elf(filename)
 
 
+def _ptr_width():
+    void = cached_lookup_type("void")
+    if void is None:
+        uintptr_t = cached_lookup_type("uintptr_t")
+        return uintptr_t.sizeof
+    else:
+        return void.pointer().sizeof
+
+
 @lru_cache()
 def is_64bit():
     """Checks if current target is 64bit."""
-    voidptr = cached_lookup_type("void").pointer()
-    return voidptr.sizeof == 8
+    return _ptr_width() == 8
 
 
 @lru_cache()
 def is_32bit():
     """Checks if current target is 32bit."""
-    voidptr = cached_lookup_type("void").pointer()
-    return voidptr.sizeof == 4
+    return _ptr_width() == 4
 
 
 @lru_cache()
