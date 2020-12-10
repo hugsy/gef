@@ -27,7 +27,7 @@ jobs:
     - name: Build 3rd party deps
       run: |
         sudo apt-get update
-        sudo apt-get install python3-dev git cmake gcc g++ pkg-config libglib2.0-dev
+        sudo apt-get install gdb-multiarch python3-dev git cmake gcc g++ pkg-config libglib2.0-dev
         wget -O /tmp/update-trinity.sh https://github.com/hugsy/stuff/raw/master/update-trinity.sh
         chmod +x /tmp/update-trinity.sh
         /tmp/update-trinity.sh
