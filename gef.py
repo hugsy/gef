@@ -5159,7 +5159,7 @@ class IdaInteractCommand(GenericCommand):
                     argval.fetch_lazy()
                     # check if value is addressable
                     argval = int(argval) if argval.address is None else int(argval.address)
-                    # if the bin is PIE, we need to substract the base address
+                    # if the bin is PIE, we need to subtract the base address
                     if is_pie(get_filepath()) and main_base_address <= argval < main_end_address:
                         argval -= main_base_address
                     args.append("{:#x}".format(argval,))
@@ -7874,7 +7874,7 @@ class ContextCommand(GenericCommand):
             pc = current_arch.pc
             symtabline = gdb.find_pc_line(pc)
             symtab = symtabline.symtab
-            line_num = symtabline.line - 1     # we substract one because line number returned by gdb start at 1
+            line_num = symtabline.line - 1     # we subtract one because line number returned by gdb start at 1
             if not symtab.is_valid():
                 return
 
