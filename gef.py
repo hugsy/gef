@@ -2964,7 +2964,7 @@ def load_libc_args():
         return
 
     if not os.path.isdir(path):
-        warn("Config `context.libc_args_path_path` set but it's not a directory")
+        warn("Config `context.libc_args_path` set but it's not a directory")
         return
 
     _arch_mode = "{}_{}".format(current_arch.arch.lower(), current_arch.mode)
