@@ -2967,7 +2967,7 @@ def load_libc_args():
         return
 
     if not os.path.isdir(path):
-        warn("Config `context.libc_args_path_path` set but it's not a directory")
+        warn("Config `context.libc_args_path` set but it's not a directory")
         return
 
     _arch_mode = "{}_{}".format(current_arch.arch.lower(), current_arch.mode)
@@ -3169,18 +3169,25 @@ def get_elf_headers(filename=None):
     return Elf(filename)
 
 
+def _ptr_width():
+    void = cached_lookup_type("void")
+    if void is None:
+        uintptr_t = cached_lookup_type("uintptr_t")
+        return uintptr_t.sizeof
+    else:
+        return void.pointer().sizeof
+
+
 @lru_cache()
 def is_64bit():
     """Checks if current target is 64bit."""
-    voidptr = cached_lookup_type("void").pointer()
-    return voidptr.sizeof == 8
+    return _ptr_width() == 8
 
 
 @lru_cache()
 def is_32bit():
     """Checks if current target is 32bit."""
-    voidptr = cached_lookup_type("void").pointer()
-    return voidptr.sizeof == 4
+    return _ptr_width() == 4
 
 
 @lru_cache()
@@ -5162,7 +5169,7 @@ class IdaInteractCommand(GenericCommand):
                     argval.fetch_lazy()
                     # check if value is addressable
                     argval = int(argval) if argval.address is None else int(argval.address)
-                    # if the bin is PIE, we need to substract the base address
+                    # if the bin is PIE, we need to subtract the base address
                     if is_pie(get_filepath()) and main_base_address <= argval < main_end_address:
                         argval -= main_base_address
                     args.append("{:#x}".format(argval,))
@@ -7873,7 +7880,7 @@ class ContextCommand(GenericCommand):
             pc = current_arch.pc
             symtabline = gdb.find_pc_line(pc)
             symtab = symtabline.symtab
-            line_num = symtabline.line - 1     # we substract one because line number returned by gdb start at 1
+            line_num = symtabline.line - 1     # we subtract one because line number returned by gdb start at 1
             if not symtab.is_valid():
                 return
 
