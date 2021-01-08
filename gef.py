@@ -716,6 +716,11 @@ class GlibcArena:
             malloc_state_t = cached_lookup_type("struct malloc_state")
             self.__arena = arena.cast(malloc_state_t)
             self.__addr = int(arena.address)
+            self.top             = int(self.top)
+            self.last_remainder  = int(self.last_remainder)
+            self.n               = int(self.next)
+            self.nfree           = int(self.next_free)
+            self.sysmem          = int(self.system_mem)
         except:
             self.__arena = MallocStateStruct(addr)
             self.__addr = self.__arena.addr
@@ -762,13 +767,8 @@ class GlibcArena:
         return GlibcArena("*{:#x} ".format(addr_next))
 
     def __str__(self):
-        top             = int(self.top)
-        last_remainder  = int(self.last_remainder)
-        n               = int(self.next)
-        nfree           = int(self.next_free)
-        sysmem          = int(self.system_mem)
         fmt = "Arena (base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
-        return fmt.format(self.__addr, top, last_remainder, n, nfree, sysmem)
+        return fmt.format(self.__addr, self.top, self.last_remainder, self.n, self.nfree, self.sysmem)
 
 
 class GlibcChunk:
@@ -1104,7 +1104,7 @@ def style_byte(b, color=True):
     return sbyte
 
 
-def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
+def hexdump(source, length=0x10, separator=".", show_raw=False, show_symbol=True, base=0x00):
     """Return the hexdump of `src` argument.
     @param source *MUST* be of type bytes or bytearray
     @param length is the length of items per line
@@ -1125,8 +1125,11 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, base=0x00):
             continue
 
         text = "".join([chr(b) if 0x20 <= b < 0x7F else separator for b in chunk])
-        sym = gdb_get_location_from_symbol(base+i)
-        sym = "<{:s}+{:04x}>".format(*sym) if sym else ""
+        if show_symbol:
+            sym = gdb_get_location_from_symbol(base+i)
+            sym = "<{:s}+{:04x}>".format(*sym) if sym else ""
+        else:
+            sym = ""
 
         result.append("{addr:#0{aw}x} {sym}    {data:<{dw}}    {text}".format(aw=align,
                                                                               addr=base+i,
@@ -6460,12 +6463,10 @@ class GlibcHeapChunksCommand(GenericCommand):
     def do_invoke(self, argv):
 
         if not argv:
-            heap_section = [x for x in get_process_maps() if x.path == "[heap]"]
+            heap_section = HeapBaseFunction.heap_base()
             if not heap_section:
-                err("No heap section")
+                err("Heap not initialized")
                 return
-
-            heap_section = heap_section[0].page_start
         else:
             heap_section = int(argv[0], 0)
 
@@ -6478,7 +6479,6 @@ class GlibcHeapChunksCommand(GenericCommand):
         nb = self.get_setting("peek_nb_byte")
         current_chunk = GlibcChunk(heap_section, from_base=True)
         while True:
-
             if current_chunk.chunk_base_address == arena.top:
                 gef_print("{} {} {}".format(str(current_chunk), LEFT_ARROW, Color.greenify("top chunk")))
                 break
@@ -6503,7 +6503,6 @@ class GlibcHeapChunksCommand(GenericCommand):
             if not next_chunk_addr.valid:
                 # corrupted
                 break
-
 
             current_chunk = next_chunk
         return
