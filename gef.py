@@ -943,24 +943,20 @@ pattern_libc_ver = re.compile(rb"glibc (\d+)\.(\d+)")
 @lru_cache()
 def get_libc_version():
     sections = get_process_maps()
-    libc_version = 0, 0
     for section in sections:
+        match = re.search(r"libc6?[-_](\d+)\.(\d+)\.so", section.path)
+        if match:
+            return tuple(int(_) for _ in match.groups())
         if "libc" in section.path:
             try:
-                libc_version = tuple(int(_) for _ in
-                                     re.search(r"libc6?[-_](\d+)\.(\d+)\.so", section.path).groups())
-            except AttributeError:
-                try:
-                    data = b""
-                    with open(section.path, "rb") as f:
-                        data = f.read()
-                    for match in re.finditer(pattern_libc_ver, data):
-                        libc_version = tuple(int(_) for _ in match.group().split(b" ")[-1].split(b"."))
-                        break
-                except OSError:
-                    pass
-            break
-    return libc_version
+                with open(section.path, "rb") as f:
+                    data = f.read()
+            except OSError:
+                continue
+            match = re.search(pattern_libc_ver, data)
+            if match:
+                return tuple(int(_) for _ in match.groups())
+    return 0, 0
 
 
 @lru_cache()
