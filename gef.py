@@ -4652,6 +4652,7 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("default_title_line", "gray", "Default color of borders")
         self.add_setting("default_title_message", "cyan", "Default color of title")
         self.add_setting("table_heading", "blue", "Color of the column headings to tables (e.g. vmmap)")
+        self.add_setting("old_context", "gray", "Color to use to show things such as code that is not immediately relevant")
         self.add_setting("disassemble_current_instruction", "green", "Color to use to highlight the current $pc when disassembling")
         self.add_setting("dereference_string", "yellow", "Color of dereferenced string")
         self.add_setting("dereference_code", "gray", "Color of dereferenced code")
@@ -7675,6 +7676,7 @@ class ContextCommand(GenericCommand):
         nb_insn = self.get_setting("nb_lines_code")
         nb_insn_prev = self.get_setting("nb_lines_code_prev")
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
+        past_insns_color = get_gef_setting("theme.old_context")
         cur_insn_color = get_gef_setting("theme.disassemble_current_instruction")
         pc = current_arch.pc
         bp_locations = [b.location for b in gdb.breakpoints() if b.location and b.location.startswith("*")]
@@ -7695,7 +7697,7 @@ class ContextCommand(GenericCommand):
                 bp_prefix = Color.redify(BP_GLYPH) if self.addr_has_breakpoint(insn.address, bp_locations) else " "
 
                 if insn.address < pc:
-                    line += "{}  {}".format(bp_prefix, Color.grayify(text))
+                    line += "{}  {}".format(bp_prefix, Color.colorify(text, past_insns_color))
 
                 elif insn.address == pc:
                     line += "{}{}".format(bp_prefix, Color.colorify("{:s}{:s}".format(RIGHT_ARROW[1:], text), cur_insn_color))
@@ -7895,6 +7897,7 @@ class ContextCommand(GenericCommand):
 
         file_base_name = os.path.basename(symtab.filename)
         bp_locations = [b.location for b in gdb.breakpoints() if file_base_name in b.location]
+        past_lines_color = get_gef_setting("theme.old_context")
 
         nb_line = self.get_setting("nb_lines_code")
         fn = symtab.filename
@@ -7912,7 +7915,7 @@ class ContextCommand(GenericCommand):
             bp_prefix = Color.redify(BP_GLYPH) if self.line_has_breakpoint(file_base_name, i + 1, bp_locations) else " "
 
             if i < line_num:
-                gef_print("{}{}".format(bp_prefix, Color.grayify("  {:4d}\t {:s}".format(i + 1, lines[i],))))
+                gef_print("{}{}".format(bp_prefix, Color.colorify("  {:4d}\t {:s}".format(i + 1, lines[i],), past_lines_color)))
 
             if i == line_num:
                 prefix = "{}{}{:4d}\t ".format(bp_prefix, RIGHT_ARROW[1:], i + 1)
