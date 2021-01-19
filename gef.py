@@ -290,6 +290,7 @@ class Color:
     colors = {
         "normal"         : "\033[0m",
         "gray"           : "\033[1;38;5;240m",
+        "light_gray"     : "\033[0;37m",
         "red"            : "\033[31m",
         "green"          : "\033[32m",
         "yellow"         : "\033[33m",
@@ -315,6 +316,8 @@ class Color:
     def yellowify(msg):    return Color.colorify(msg, "yellow")
     @staticmethod
     def grayify(msg):      return Color.colorify(msg, "gray")
+    @staticmethod
+    def light_grayify(msg):return Color.colorify(msg, "light_gray")
     @staticmethod
     def pinkify(msg):      return Color.colorify(msg, "pink")
     @staticmethod
