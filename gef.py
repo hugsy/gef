@@ -1196,7 +1196,7 @@ def set_gef_setting(name, value, _type=None, _desc=None):
     # set existing setting
     func = __config__[name][1]
     __config__[name][0] = func(value)
-    reset_all_caches()
+    get_gef_setting.cache_clear()
     return
 
 
@@ -4047,11 +4047,13 @@ class GenericCommand(gdb.Command):
     def add_setting(self, name, value, description=""):
         key = self.__get_setting_name(name)
         __config__[key] = [value, type(value), description]
+        get_gef_setting.cache_clear()
         return
 
     def del_setting(self, name):
         key = self.__get_setting_name(name)
         del __config__[key]
+        get_gef_setting.cache_clear()
         return
 
     def __set_repeat_count(self, argv, from_tty):
@@ -10111,6 +10113,7 @@ class GefConfigCommand(gdb.Command):
 
         reset_all_caches()
         __config__[argv[0]][0] = _newval
+        get_gef_setting.cache_clear()
         return
 
     def complete(self, text, word):
