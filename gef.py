@@ -4078,6 +4078,36 @@ class GenericCommand(gdb.Command):
 #     def do_invoke(self, argv):
 #         return
 
+
+@register_command
+class VersionCommand(GenericCommand):
+    """Display GEF version info."""
+
+    _cmdline_ = "version"
+    _syntax_  = "{:s}".format(_cmdline_)
+    _example_ = "{:s}".format(_cmdline_)
+
+    def do_invoke(self, argv):
+        gef_fpath = os.path.abspath(os.path.expanduser(inspect.stack()[0][1]))
+        gef_dir = os.path.dirname(gef_fpath)
+        gef_hash = hashlib.sha1(open(gef_fpath, "rb").read()).hexdigest()
+
+        if os.access("{}/.git".format(gef_dir), os.X_OK):
+            cwd = os.getcwd()
+            ver = subprocess.check_output('cd {}; git log --format="%H" -n 1 HEAD; cd {}'.format(gef_dir, cwd), shell=True).decode("utf8").strip()
+            gef_print("GEF: rev:{} (Git)".format(ver,))
+        else:
+            gef_print("GEF: (Standalone)".format())
+        gef_print("SHA1({}): {}".format(gef_fpath, gef_hash))
+        gef_print("GDB: {}".format(gdb.VERSION, ))
+        py_ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
+        gef_print("GDB-Python: {}".format(py_ver, ))
+
+        if "full" in argv:
+            gef_print("Loaded command list: {}".format(__gef__.loaded_command_names))
+        return
+
+
 @register_command
 class PrintFormatCommand(GenericCommand):
     """Print bytes format in high level languages."""
