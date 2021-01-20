@@ -7541,9 +7541,6 @@ class ContextCommand(GenericCommand):
         if redirect and os.access(redirect, os.W_OK):
             enable_redirect_output(to_file=redirect)
 
-        if self.get_setting("clear_screen") and len(argv) == 0:
-            clear_screen(redirect)
-
         for section in current_layout:
             if section[0] == "-":
                 continue
@@ -7554,8 +7551,10 @@ class ContextCommand(GenericCommand):
                 # a MemoryError will happen when $pc is corrupted (invalid address)
                 err(str(e))
 
-
         self.context_title("")
+
+        if self.get_setting("clear_screen") and len(argv) == 0:
+            clear_screen(redirect)
 
         if redirect and os.access(redirect, os.W_OK):
             disable_redirect_output()
