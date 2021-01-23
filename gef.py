@@ -4096,7 +4096,7 @@ class VersionCommand(GenericCommand):
 
         if os.access("{}/.git".format(gef_dir), os.X_OK):
             ver = subprocess.check_output('git log --format="%H" -n 1 HEAD', cwd=gef_dir, shell=True).decode("utf8").strip()
-            extra = "dirty" if len(subprocess.check_output('git status -s', cwd=gef_dir, shell=True).decode("utf8").strip()) else "clean"
+            extra = "dirty" if len(subprocess.check_output('git ls-files -m', cwd=gef_dir, shell=True).decode("utf8").strip()) else "clean"
             gef_print("GEF: rev:{} (Git - {})".format(ver, extra))
         else:
             gef_print("GEF: (Standalone)")
