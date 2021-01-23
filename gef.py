@@ -1028,6 +1028,8 @@ def show_last_exception():
                                                                 lineno, Color.greenify(method)))
         gef_print("   {}    {}".format(RIGHT_ARROW, code))
 
+    gef_print(" Version ".center(80, HORIZONTAL_LINE))
+    gdb.execute("version full")
     gef_print(" Last 10 GDB commands ".center(80, HORIZONTAL_LINE))
     gdb.execute("show commands")
     gef_print(" Runtime environment ".center(80, HORIZONTAL_LINE))
@@ -4097,18 +4099,18 @@ class VersionCommand(GenericCommand):
         gef_hash = hashlib.sha1(open(gef_fpath, "rb").read()).hexdigest()
 
         if os.access("{}/.git".format(gef_dir), os.X_OK):
-            cwd = os.getcwd()
-            ver = subprocess.check_output('cd {}; git log --format="%H" -n 1 HEAD; cd {}'.format(gef_dir, cwd), shell=True).decode("utf8").strip()
-            gef_print("GEF: rev:{} (Git)".format(ver,))
+            ver = subprocess.check_output('git log --format="%H" -n 1 HEAD', cwd=gef_dir, shell=True).decode("utf8").strip()
+            extra = "dirty" if len(subprocess.check_output('git status -s', cwd=gef_dir, shell=True).decode("utf8").strip()) else "clean"
+            gef_print("GEF: rev:{} (Git - {})".format(ver, extra))
         else:
-            gef_print("GEF: (Standalone)".format())
+            gef_print("GEF: (Standalone)")
         gef_print("SHA1({}): {}".format(gef_fpath, gef_hash))
         gef_print("GDB: {}".format(gdb.VERSION, ))
         py_ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
         gef_print("GDB-Python: {}".format(py_ver, ))
 
         if "full" in argv:
-            gef_print("Loaded command list: {}".format(__gef__.loaded_command_names))
+            gef_print("Loaded commands: {}".format(", ".join(__gef__.loaded_command_names)))
         return
 
 
