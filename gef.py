@@ -1465,14 +1465,15 @@ def get_arch():
 
     arch_str = gdb.execute("show architecture", to_string=True).strip()
     if "The target architecture is set automatically (currently " in arch_str:
-        # architecture can be auto detected
         arch_str = arch_str.split("(currently ", 1)[1]
         arch_str = arch_str.split(")", 1)[0]
     elif "The target architecture is assumed to be " in arch_str:
-        # architecture can be assumed
         arch_str = arch_str.replace("The target architecture is assumed to be ", "")
+    elif "The target architecture is set to " in arch_str:
+        # GDB version >= 10.1
+        arch_str = re.findall(r"\"(.+)\"", arch_str)[0]
     else:
-        # unknown, we throw an exception to be safe
+        # Unknown, we throw an exception to be safe
         raise RuntimeError("Unknown architecture: {}".format(arch_str))
     return arch_str
 
@@ -7571,9 +7572,6 @@ class ContextCommand(GenericCommand):
         if redirect and os.access(redirect, os.W_OK):
             enable_redirect_output(to_file=redirect)
 
-        if self.get_setting("clear_screen") and len(argv) == 0:
-            clear_screen(redirect)
-
         for section in current_layout:
             if section[0] == "-":
                 continue
@@ -7584,8 +7582,10 @@ class ContextCommand(GenericCommand):
                 # a MemoryError will happen when $pc is corrupted (invalid address)
                 err(str(e))
 
-
         self.context_title("")
+
+        if self.get_setting("clear_screen") and len(argv) == 0:
+            clear_screen(redirect)
 
         if redirect and os.access(redirect, os.W_OK):
             disable_redirect_output()
