@@ -118,22 +118,18 @@ def http_get(url):
 def update_gef(argv):
     """Try to update `gef` to the latest version pushed on GitHub master branch.
     Return 0 on success, 1 on failure. """
-    gef_local = os.path.realpath(argv[0])
-    hash_gef_local = hashlib.sha512(open(gef_local, "rb").read()).digest()
-    gef_remote = "https://raw.githubusercontent.com/hugsy/gef/master/gef.py"
-    gef_remote_data = http_get(gef_remote)
-    if gef_remote_data is None:
+    ver = "dev" if "--dev" in argv[2:] else "master"
+    latest_gef_data = http_get("https://raw.githubusercontent.com/hugsy/gef/{}/scripts/gef.sh".format(ver,))
+    if latest_gef_data is None:
         print("[-] Failed to get remote gef")
         return 1
 
-    hash_gef_remote = hashlib.sha512(gef_remote_data).digest()
-    if hash_gef_local == hash_gef_remote:
-        print("[-] No update")
-    else:
-        with open(gef_local, "wb") as f:
-            f.write(gef_remote_data)
-        print("[+] Updated")
-    return 0
+    fd, fname = tempfile.mkstemp(suffix=".sh")
+    os.write(fd, latest_gef_data)
+    os.close(fd)
+    retcode = subprocess.run(["bash", fname, ver], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+    os.unlink(fname)
+    return retcode
 
 
 try:

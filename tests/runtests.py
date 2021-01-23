@@ -607,16 +607,6 @@ class TestGdbFunctions(GefUnitTestGeneric):
         self.assertRegex(res, r"\+0x0*20: *0x0000000000000000\n")
         return
 
-class TestGefMisc(GefUnitTestGeneric):
-    """Tests external functionality."""
-
-    def test_update(self):
-        tempdir = tempfile.mkdtemp()
-        update_gef = os.path.join(tempdir, "gef.py")
-        subprocess.call(["cp", "/tmp/gef.py", update_gef])
-        status = subprocess.call(["python3", update_gef, "--update"])
-        self.assertEqual(status, 0)
-
 
 def run_tests(name=None):
 
