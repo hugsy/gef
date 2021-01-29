@@ -1480,13 +1480,13 @@ def get_arch():
 def get_endian():
     """Return the binary endianness."""
 
-    endian = gdb.execute("show endian", to_string=True).strip()
+    endian = gdb.execute("show endian", to_string=True).strip().lower()
     if "little endian" in endian:
         return Elf.LITTLE_ENDIAN
     if "big endian" in endian:
         return Elf.BIG_ENDIAN
 
-    raise EnvironmentError("Invalid endianess")
+    raise EnvironmentError("Invalid endianness")
 
 
 @lru_cache()
