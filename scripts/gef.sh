@@ -12,7 +12,7 @@ test -f "${HOME}/.gdbinit" && mv "${HOME}/.gdbinit" "${HOME}/.gdbinit.old"
 ref=$(curl --silent https://api.github.com/repos/hugsy/gef/git/ref/heads/${branch} | grep '"sha"' | tr -s ' ' | cut -d ' ' -f 3 | tr -d "," | tr -d '"')
 
 # Download the file
-curl --silent --output "${HOME}/.gef-${ref}.py" "https://github.com/hugsy/gef/raw/${branch}/gef.py"
+curl --silent -L --output "${HOME}/.gef-${ref}.py" "https://github.com/hugsy/gef/raw/${branch}/gef.py"
 
 # Create the new gdbinit
 echo "source ~/.gef-${ref}.py" > ~/.gdbinit
