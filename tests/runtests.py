@@ -5,10 +5,8 @@
 
 from __future__ import print_function
 
-import os
 import subprocess
 import sys
-import tempfile
 import unittest
 
 from helpers import gdb_run_cmd, \
