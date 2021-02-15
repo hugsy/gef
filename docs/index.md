@@ -20,7 +20,7 @@ A few of `GEF` features include:
   * Built around an architecture abstraction layer, so all commands work in any GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS, PowerPC, etc.
   * Suited for real-life apps debugging, exploit development, just as much as CTF
 
-Check out the [Screenshot page](docs/screenshots.md) for more.
+Check out the [Screenshot page](https://gef.readthedocs.io/en/master/screenshots/) for more.
 
 Or [try it online](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 

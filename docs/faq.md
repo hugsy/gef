@@ -210,7 +210,7 @@ the [issue #206](https://github.com/hugsy/gef/issues/206) for the whole story.
 
 A unified platform for chatting around GEF (development, new feature, issues, or just simple chat) has been built around [MatterBridge](https://github.com/42wim/matterbridge). Currently, you can chat using any of IRC, Gitter, Slack, or Discord!.
 
-If you cannot find the answer to your issue in here, [the FAQ](docs/faq.md), the [Issues](https://github.com/hugsy/issues) then feel free to drop by and ask away!
+If you cannot find the answer to your issue in the FAQ (here!), the [Issues](https://github.com/hugsy/issues) then feel free to drop by and ask away!
 Even if you don't see people in one specific channel (say Slack), members on other channels (say IRC) will still receive your questions/remarks so feel free to chat! There's always people around!
 
 | IRC                                                                                                                     | Gitter                                                                                                                                                   | Slack                                                                                                                                                                                             | Discord                                                                                                                                                                               |
