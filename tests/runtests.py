@@ -5,16 +5,17 @@
 
 from __future__ import print_function
 
-import subprocess
 import sys
 import unittest
+import subprocess
 
-from helpers import gdb_run_cmd, \
-    gdb_run_silent_cmd, \
-    gdb_start_silent_cmd, \
-    gdb_start_silent_cmd_last_line, \
+from helpers import (
+    gdb_run_cmd,
+    gdb_run_silent_cmd,
+    gdb_start_silent_cmd,
+    gdb_start_silent_cmd_last_line,
     gdb_test_python_method
-
+)
 
 
 class GefUnitTestGeneric(unittest.TestCase):
@@ -106,7 +107,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         return
 
     def test_cmd_entry_break(self):
-        res = gdb_run_cmd("entry-break")
+        res = gdb_run_cmd("entry-break", before=["gef config gef.disable_color 1",])
         self.assertNoException(res)
         return
 
