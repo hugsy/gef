@@ -54,7 +54,6 @@
 #
 #
 
-
 from __future__ import print_function, division, absolute_import
 
 import abc
@@ -86,7 +85,6 @@ import configparser
 import xmlrpc.client as xmlrpclib
 
 from functools import lru_cache
-from html.parser import HTMLParser
 from io import StringIO
 from urllib.request import urlopen
 
@@ -7035,21 +7033,19 @@ class ShellcodeGetCommand(GenericCommand):
         return
 
     def get_shellcode(self, sid):
+        info("Downloading shellcode id={:d}".format(sid))
         res = http_get(self.get_url.format(sid))
         if res is None:
             err("Failed to fetch shellcode #{:d}".format(sid))
             return
 
-        ret  = gef_pystring(res)
-
-        info("Downloading shellcode id={:d}".format(sid))
+        ok("Downloaded, written to disk...")
         fd, fname = tempfile.mkstemp(suffix=".txt", prefix="sc-", text=True, dir="/tmp")
-        data = ret.split("\\n")[7:-11]
-        buf = "\n".join(data)
-        buf = HTMLParser().unescape(buf)
-        os.write(fd, gef_pybytes(buf))
+        shellcode = res.splitlines()[7:-11]
+        shellcode = b"\n".join(shellcode).replace(b"&quot;", b'"')
+        os.write(fd, shellcode)
         os.close(fd)
-        info("Shellcode written to '{:s}'".format(fname))
+        ok("Shellcode written to '{:s}'".format(fname))
         return
 
 
