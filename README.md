@@ -13,10 +13,10 @@ Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb) compile
 ```bash
 # via the install script
 ## using curl
-$ sh -c "$(curl -fsSL http://gef.blah.cat/sh)"
+$ bash -c "$(curl -fsSL http://gef.blah.cat/sh)"
 
 ## using wget
-$ sh -c "$(wget http://gef.blah.cat/sh -O -)"
+$ bash -c "$(wget http://gef.blah.cat/sh -O -)"
 
 # or manually
 $ wget -O ~/.gdbinit-gef.py -q http://gef.blah.cat/py
