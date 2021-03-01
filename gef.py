@@ -1283,9 +1283,8 @@ def gdb_get_nth_previous_instruction_address(addr, n):
             continue
 
         # 2. check all instructions are valid
-        for insn in insns:
-            if not insn.is_valid():
-                continue
+        if any(not insn.is_valid() for insn in insns):
+            continue
 
         # 3. if cur_insn is at the end of the set
         if insns[-1].address==cur_insn_addr:
