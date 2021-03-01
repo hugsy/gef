@@ -1271,15 +1271,15 @@ def gdb_get_nth_previous_instruction_address(addr, n):
 
     # we try to find a good set of previous instructions by "guessing" disassembling backwards
     # the 15 comes from the longest instruction valid size
-    for i in range(15*n, 0, -1):
+    for i in range(1*n, 15*n+1): # Count up instead, likely fewer disassembles needed
         try:
             insns = list(gdb_disassemble(addr-i, end_pc=cur_insn_addr, count=n+1))
         except gdb.MemoryError:
             # this is because we can hit an unmapped page trying to read backward
             break
 
-        # 1. check that the disassembled instructions list size is correct
-        if len(insns)!=n+1: # we expect the current instruction plus the n before it
+        # 1. check that the disassembled instructions list size is correct or longer
+        if len(insns)<n+1: # we expect the current instruction plus the n before it
             continue
 
         # 2. check all instructions are valid
