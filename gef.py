@@ -1273,21 +1273,25 @@ def gdb_get_nth_previous_instruction_address(addr, n):
     # the 15 comes from the longest instruction valid size
     for i in range(15*n, 0, -1):
         try:
-            insns = list(gdb_disassemble(addr-i, end_pc=cur_insn_addr, count=n+1))
+            insns = list(gdb_disassemble(addr-i, end_pc=cur_insn_addr))
         except gdb.MemoryError:
             # this is because we can hit an unmapped page trying to read backward
             break
 
-        # 1. check that the disassembled instructions list size is correct
-        if len(insns)!=n+1: # we expect the current instruction plus the n before it
+        # 1. check that the disassembled instructions list size can satisfy
+        if len(insns) < n+1: # we expect the current instruction plus the n before it
             continue
 
-        # 2. check all instructions are valid
-        if any(not insn.is_valid() for insn in insns):
+        # If the list of instructions is longer than what we need, then we
+        # could get lucky and already have more than what we need, so slice down
+        insns = insns[-n-1:]
+
+        # 2. check that the sequence ends with the current address
+        if insns[-1].address != cur_insn_addr:
             continue
 
-        # 3. if cur_insn is at the end of the set
-        if insns[-1].address==cur_insn_addr:
+        # 3. check all instructions are valid
+        if all(insn.is_valid() for insn in insns):
             return insns[0].address
 
     return None
