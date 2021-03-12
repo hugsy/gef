@@ -8,7 +8,8 @@ assignees: ''
 ---
 
 Your issue will be closed unless you confirm the following (insert `x` in the brackets if done/agreed):
-  * [ ] Did you use the latest version of GEF from `master` branch?
+  * [ ] Did you use the latest version of GEF from `dev` branch?
+  * [ ] Is your bug specific to GEF (not GDB)? - Try reproduce it running `gdb -nx`
   * [ ] Did you read the [documentation](https://gef.readthedocs.org/en/latest/) first?
   * [ ] Did you check [issues](https://github.com/hugsy/gef/issues) (including the closed ones) - and the [PR](https://github.com/hugsy/gef/pulls)?
 
