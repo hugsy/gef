@@ -1329,6 +1329,7 @@ def gef_next_instruction(addr):
     return gef_instruction_n(addr, 1)
 
 
+@lru_cache()
 def gef_disassemble(addr, nb_insn, nb_prev=0):
     """Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`.
     Return an iterator of Instruction objects."""
@@ -2567,6 +2568,7 @@ def to_unsigned_long(v):
     return int(v.cast(gdb.Value(mask).type)) & mask
 
 
+@lru_cache()
 def get_register(regname):
     """Return a register's value."""
     try:
@@ -2864,6 +2866,7 @@ def process_lookup_address(address):
     return None
 
 
+@lru_cache()
 def process_lookup_path(name, perm=Permission.ALL):
     """Look up for a path in the process memory mapping.
     Return a Section object if found, None otherwise."""
@@ -2877,6 +2880,7 @@ def process_lookup_path(name, perm=Permission.ALL):
 
     return None
 
+@lru_cache()
 def file_lookup_name_path(name, path):
     """Look up a file by name and path.
     Return a Zone object if found, None otherwise."""
@@ -2885,6 +2889,7 @@ def file_lookup_name_path(name, path):
             return xfile
     return None
 
+@lru_cache()
 def file_lookup_address(address):
     """Look up for a file by its address.
     Return a Zone object if found, None otherwise."""
@@ -2894,6 +2899,7 @@ def file_lookup_address(address):
     return None
 
 
+@lru_cache()
 def lookup_address(address):
     """Try to find the address in the process address space.
     Return an Address object, with validity flag set based on success."""
@@ -2954,6 +2960,17 @@ def exit_handler(event):
         shutil.rmtree("/tmp/gef/{:d}".format(__gef_remote__))
         __gef_remote__ = None
     return
+
+
+def memchanged_handler(event):
+    """GDB event handler for mem changes cases."""
+    reset_all_caches()
+
+
+def regchanged_handler(event):
+    """GDB event handler for reg changes cases."""
+    reset_all_caches()
+
 
 def load_libc_args():
     # load libc function arguments' definitions
@@ -3415,6 +3432,7 @@ def safe_parse_and_eval(value):
         return None
 
 
+@lru_cache()
 def dereference(addr):
     """GEF wrapper for gdb dereference function."""
     try:
@@ -3527,6 +3545,16 @@ def gef_on_exit_unhook(func): return gdb.events.exited.disconnect(func)
 def gef_on_new_hook(func): return gdb.events.new_objfile.connect(func)
 @only_if_events_supported("new_objfile")
 def gef_on_new_unhook(func): return gdb.events.new_objfile.disconnect(func)
+
+@only_if_events_supported("memory_changed")
+def gef_on_memchanged_hook(func): return gdb.events.memory_changed.connect(func)
+@only_if_events_supported("memory_changed")
+def gef_on_memchanged_unhook(func): return gdb.events.memory_changed.disconnect(func)
+
+@only_if_events_supported("register_changed")
+def gef_on_regchanged_hook(func): return gdb.events.register_changed.connect(func)
+@only_if_events_supported("register_changed")
+def gef_on_regchanged_unhook(func): return gdb.events.register_changed.disconnect(func)
 
 
 #
@@ -8571,7 +8599,6 @@ class DereferenceCommand(GenericCommand):
         base_address_color = get_gef_setting("theme.dereference_base_address")
         registers_color = get_gef_setting("theme.dereference_register_value")
 
-        regs = [(k, get_register(k)) for k in current_arch.all_registers]
 
         sep = " {:s} ".format(RIGHT_ARROW)
         memalign = current_arch.ptrsize
@@ -8587,7 +8614,8 @@ class DereferenceCommand(GenericCommand):
 
         register_hints = []
 
-        for regname, regvalue in regs:
+        for regname in current_arch.all_registers:
+            regvalue = get_register(regname)
             if current_address == regvalue:
                 register_hints.append(regname)
 
@@ -8640,6 +8668,7 @@ class DereferenceCommand(GenericCommand):
 
 
     @staticmethod
+    @lru_cache()
     def dereference_from(addr):
         if not is_alive():
             return [format_address(addr),]
@@ -10540,6 +10569,8 @@ if __name__  == "__main__":
         gef_on_stop_hook(hook_stop_handler)
         gef_on_new_hook(new_objfile_handler)
         gef_on_exit_hook(exit_handler)
+        gef_on_memchanged_hook(memchanged_handler)
+        gef_on_regchanged_hook(regchanged_handler)
 
         if gdb.current_progspace().filename is not None:
             # if here, we are sourcing gef from a gdb session already attached
