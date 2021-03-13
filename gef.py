@@ -2401,6 +2401,7 @@ def write_memory(address, buffer, length=0x10):
     return gdb.selected_inferior().write_memory(address, buffer, length)
 
 
+@lru_cache()
 def read_memory(addr, length=0x10):
     """Return a `length` long byte array with the copy of the process memory at `addr`."""
     return gdb.selected_inferior().read_memory(addr, length).tobytes()
@@ -3618,6 +3619,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
+        reset_all_caches()
         msg = []
         ptr, addr = current_arch.get_ith_parameter(self.num_args)
         addr = lookup_address(addr)
@@ -3688,6 +3690,7 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
+        reset_all_caches()
         _, size = current_arch.get_ith_parameter(0)
         self.retbp = TraceMallocRetBreakpoint(size, self.name)
         return False
@@ -3834,6 +3837,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
+        reset_all_caches()
         _, addr = current_arch.get_ith_parameter(0)
         msg = []
         check_free_null = get_gef_setting("heap-analysis-helper.check_free_null")
@@ -3897,6 +3901,7 @@ class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):
         return
 
     def stop(self):
+        reset_all_caches()
         wp = UafWatchpoint(self.addr)
         __heap_uaf_watchpoints__.append(wp)
         return False
@@ -3914,6 +3919,7 @@ class UafWatchpoint(gdb.Breakpoint):
 
     def stop(self):
         """If this method is triggered, we likely have a UaF. Break the execution and report it."""
+        reset_all_caches()
         frame = gdb.selected_frame()
         if frame.name() in ("_int_malloc", "malloc_consolidate", "__libc_calloc"):
             # ignore when the watchpoint is raised by malloc() - due to reuse
@@ -3941,6 +3947,7 @@ class EntryBreakBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
+        reset_all_caches()
         return True
 
 
@@ -3955,6 +3962,7 @@ class NamedBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
+        reset_all_caches()
         push_context_message("info", "Hit breakpoint {} ({})".format(self.loc, Color.colorify(self.name, "red bold")))
         return True
 
