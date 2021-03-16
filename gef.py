@@ -151,6 +151,7 @@ __context_messages__                   = []
 __heap_allocated_list__                = []
 __heap_freed_list__                    = []
 __heap_uaf_watchpoints__               = []
+__heap_cg_watchpoints__                = {}
 __pie_breakpoints__                    = {}
 __pie_counter__                        = 1
 __gef_remote__                         = None
@@ -3729,6 +3730,10 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
                     push_context_message("warn", "\n".join(msg))
                     return True
 
+        # add a watchpoint to the chunk
+        memchunkptr = int(self.return_value) - 2*current_arch.ptrsize
+        __heap_cg_watchpoints__[loc] = ChunkGuardBreakpoint(memchunkptr)
+
         # add it to alloc-ed list
         __heap_allocated_list__.append(item)
         return False
@@ -3760,7 +3765,7 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
         return
 
     def stop(self):
-        global __heap_uaf_watchpoints__, __heap_freed_list__, __heap_allocated_list__
+        global __heap_uaf_watchpoints__, __heap_freed_list__, __heap_allocated_list__, __heap_cg_watchpoints__
 
         if self.return_value:
             newloc = int(self.return_value)
@@ -3789,6 +3794,11 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
         finally:
             # add new item to alloc-ed list
             __heap_allocated_list__.append(item)
+
+            # delete and recreate the chunkguard
+            cg = __heap_cg_watchpoints__.pop(self.ptr)
+            cg.delete()
+            __heap_cg_watchpoints__[newloc] = ChunkGuardBreakpoint(newloc-2*current_arch)
 
         return False
 
@@ -3883,8 +3893,7 @@ class UafWatchpoint(gdb.Breakpoint):
     def stop(self):
         """If this method is triggered, we likely have a UaF. Break the execution and report it."""
         frame = gdb.selected_frame()
-        if frame.name() in ("_int_malloc", "malloc_consolidate", "__libc_calloc"):
-            # ignore when the watchpoint is raised by malloc() - due to reuse
+        if frame.name() in ("_int_malloc", "malloc_consolidate", "__libc_calloc", ):
             return False
 
         # software watchpoints stop after the next statement (see
@@ -3896,6 +3905,37 @@ class UafWatchpoint(gdb.Breakpoint):
         msg.append("Possible Use-after-Free in '{:s}': pointer {:#x} was freed, but is attempted to be used at {:#x}"
                    .format(get_filepath(), self.address, pc))
         msg.append("{:#x}   {:s} {:s}".format(insn.address, insn.mnemonic, Color.yellowify(", ".join(insn.operands))))
+        push_context_message("warn", "\n".join(msg))
+        return True
+
+
+class ChunkGuardBreakpoint(gdb.Breakpoint):
+    """On-write memory access breakpoint, to detect automatically heap chunk overflow."""
+
+    def __init__(self, addr):
+        super(ChunkGuardBreakpoint, self).__init__("*{:#x}".format(addr), type=gdb.BP_WATCHPOINT, wp_class=gdb.WP_WRITE, internal=True)
+        self.address = addr
+        self.silent = True
+        self.enabled = True
+        return
+
+    def stop(self):
+        frame = gdb.selected_frame()
+        if frame.name() in ("_int_malloc", "malloc_consolidate", "__libc_calloc", "_int_free"):
+            return False
+        pc = gdb_get_nth_previous_instruction_address(current_arch.pc, 1)
+        insn = gef_current_instruction(pc)
+        chunkmem = self.address + 2*current_arch.ptrsize
+        frame = gdb.newest_frame()
+        msg = ["ChunkGuard raised:",
+               "- Location: 0x{:x}".format(insn.address),
+               "- Instruction: {:s} {:s}".format(Color.redify(insn.mnemonic), ", ".join(insn.operands)),]
+        if chunkmem in [x for x,_ in __heap_allocated_list__]:
+            msg.append("- Reason: Write access to {:s} chunk {:x}".format(Color.colorify("allocated", "bold red"), self.address))
+        elif chunkmem in [x for x,_ in __heap_freed_list__]:
+            msg.append("- Reason: Write access to {:s} chunk {:x}".format(Color.colorify("freed", "green bold"), self.address))
+        else:
+            msg.append("- Reason: unknown")
         push_context_message("warn", "\n".join(msg))
         return True
 
