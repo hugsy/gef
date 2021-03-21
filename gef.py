@@ -4916,7 +4916,7 @@ class PCustomCommand(GenericCommand):
                or (_regsize == 8 and _type is ctypes.c_uint64) \
                or (_regsize == ctypes.sizeof(ctypes.c_void_p) and _type is ctypes.c_void_p):
                 # try to dereference pointers
-                _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
+                _value = RIGHT_ARROW.join(dereference_from(_value))
 
             line = []
             line += "  "*depth
@@ -6993,7 +6993,7 @@ class DetailRegistersCommand(GenericCommand):
                 line += str(addr)
             else:
                 line += format_address_spaces(value)
-            addrs = DereferenceCommand.dereference_from(value)
+            addrs = dereference_from(value)
 
             if len(addrs) > 1:
                 sep = " {:s} ".format(RIGHT_ARROW)
@@ -7885,7 +7885,7 @@ class ContextCommand(GenericCommand):
 
         for i, f in enumerate(symbol.type.fields()):
             _value = current_arch.get_ith_parameter(i, in_func=False)[1]
-            _value = RIGHT_ARROW.join(DereferenceCommand.dereference_from(_value))
+            _value = RIGHT_ARROW.join(dereference_from(_value))
             _name = f.name or "var_{}".format(i)
             _type = f.type.name or self.size2type[f.type.sizeof]
             args.append("{} {} = {}".format(_type, _name, _value))
@@ -7964,7 +7964,7 @@ class ContextCommand(GenericCommand):
         args = []
         for i in range(nb_argument):
             _key, _values = current_arch.get_ith_parameter(i, in_func=False)
-            _values = RIGHT_ARROW.join( DereferenceCommand.dereference_from(_values) )
+            _values = RIGHT_ARROW.join(dereference_from(_values))
             try:
                 args.append("{} = {} (def: {})".format(Color.colorify(_key, arg_key_color), _values,
                                                        libc_args_definitions[_arch_mode][_function_name][_key]))
@@ -8048,7 +8048,7 @@ class ContextCommand(GenericCommand):
                         val = gdb.parse_and_eval(symbol)
                         if val.type.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY):
                             addr = int(val.address)
-                            addrs = DereferenceCommand.dereference_from(addr)
+                            addrs = dereference_from(addr)
                             if len(addrs) > 2:
                                 addrs = [addrs[0], "[...]", addrs[-1]]
 
@@ -8625,6 +8625,68 @@ class PatchStringCommand(GenericCommand):
         write_memory(addr, s, len(s))
         return
 
+@lru_cache()
+def dereference_from(addr):
+    if not is_alive():
+        return [format_address(addr),]
+
+    code_color = get_gef_setting("theme.dereference_code")
+    string_color = get_gef_setting("theme.dereference_string")
+    max_recursion = get_gef_setting("dereference.max_recursion") or 10
+    addr = lookup_address(align_address(int(addr)))
+    msg = [format_address(addr.value),]
+    seen_addrs = set()
+
+    while addr.section and max_recursion:
+        if addr.value in seen_addrs:
+            msg.append("[loop detected]")
+            break
+        seen_addrs.add(addr.value)
+
+        max_recursion -= 1
+
+        # Is this value a pointer or a value?
+        # -- If it's a pointer, dereference
+        deref = addr.dereference()
+        if deref is None:
+            # if here, dereferencing addr has triggered a MemoryError, no need to go further
+            msg.append(str(addr))
+            break
+
+        new_addr = lookup_address(deref)
+        if new_addr.valid:
+            addr = new_addr
+            msg.append(str(addr))
+            continue
+
+        # -- Otherwise try to parse the value
+        if addr.section:
+            if addr.section.is_executable() and addr.is_in_text_segment() and not is_ascii_string(addr.value):
+                insn = gef_current_instruction(addr.value)
+                insn_str = "{} {} {}".format(insn.location, insn.mnemonic, ", ".join(insn.operands))
+                msg.append(Color.colorify(insn_str, code_color))
+                break
+
+            elif addr.section.permission.value & Permission.READ:
+                if is_ascii_string(addr.value):
+                    s = read_cstring_from_memory(addr.value)
+                    if len(s) < get_memory_alignment():
+                        txt = '{:s} ("{:s}"?)'.format(format_address(deref), Color.colorify(s, string_color))
+                    elif len(s) > 50:
+                        txt = Color.colorify('"{:s}[...]"'.format(s[:50]), string_color)
+                    else:
+                        txt = Color.colorify('"{:s}"'.format(s), string_color)
+
+                    msg.append(txt)
+                    break
+
+        # if not able to parse cleanly, simply display and break
+        val = "{:#0{ma}x}".format(int(deref & 0xFFFFFFFFFFFFFFFF), ma=(current_arch.ptrsize * 2 + 2))
+        msg.append(val)
+        break
+
+    return msg
+
 
 @register_command
 class DereferenceCommand(GenericCommand):
@@ -8652,7 +8714,7 @@ class DereferenceCommand(GenericCommand):
 
         offset = off * memalign
         current_address = align_address(addr + offset)
-        addrs = DereferenceCommand.dereference_from(current_address)
+        addrs = dereference_from(current_address)
         l  = ""
         addr_l = format_address(int(addrs[0], 16))
         l += "{:s}{:s}+{:#06x}: {:{ma}s}".format(Color.colorify(addr_l, base_address_color),
@@ -8712,70 +8774,6 @@ class DereferenceCommand(GenericCommand):
             gef_print(DereferenceCommand.pprint_dereferenced(start_address, i))
 
         return
-
-
-    @staticmethod
-    @lru_cache()
-    def dereference_from(addr):
-        if not is_alive():
-            return [format_address(addr),]
-
-        code_color = get_gef_setting("theme.dereference_code")
-        string_color = get_gef_setting("theme.dereference_string")
-        max_recursion = get_gef_setting("dereference.max_recursion") or 10
-        addr = lookup_address(align_address(int(addr)))
-        msg = [format_address(addr.value),]
-        seen_addrs = set()
-
-        while addr.section and max_recursion:
-            if addr.value in seen_addrs:
-                msg.append("[loop detected]")
-                break
-            seen_addrs.add(addr.value)
-
-            max_recursion -= 1
-
-            # Is this value a pointer or a value?
-            # -- If it's a pointer, dereference
-            deref = addr.dereference()
-            if deref is None:
-                # if here, dereferencing addr has triggered a MemoryError, no need to go further
-                msg.append(str(addr))
-                break
-
-            new_addr = lookup_address(deref)
-            if new_addr.valid:
-                addr = new_addr
-                msg.append(str(addr))
-                continue
-
-            # -- Otherwise try to parse the value
-            if addr.section:
-                if addr.section.is_executable() and addr.is_in_text_segment() and not is_ascii_string(addr.value):
-                    insn = gef_current_instruction(addr.value)
-                    insn_str = "{} {} {}".format(insn.location, insn.mnemonic, ", ".join(insn.operands))
-                    msg.append(Color.colorify(insn_str, code_color))
-                    break
-
-                elif addr.section.permission.value & Permission.READ:
-                    if is_ascii_string(addr.value):
-                        s = read_cstring_from_memory(addr.value)
-                        if len(s) < get_memory_alignment():
-                            txt = '{:s} ("{:s}"?)'.format(format_address(deref), Color.colorify(s, string_color))
-                        elif len(s) > 50:
-                            txt = Color.colorify('"{:s}[...]"'.format(s[:50]), string_color)
-                        else:
-                            txt = Color.colorify('"{:s}"'.format(s), string_color)
-
-                        msg.append(txt)
-                        break
-
-            # if not able to parse cleanly, simply display and break
-            val = "{:#0{ma}x}".format(int(deref & 0xFFFFFFFFFFFFFFFF), ma=(current_arch.ptrsize * 2 + 2))
-            msg.append(val)
-            break
-
-        return msg
 
 
 @register_command
@@ -9739,7 +9737,7 @@ class SyscallArgsCommand(GenericCommand):
         for name, register, value in zip(param_names, registers, values):
             line = "    {:<20} {:<20} 0x{:x}".format(name, register, value)
 
-            addrs = DereferenceCommand.dereference_from(value)
+            addrs = dereference_from(value)
 
             if len(addrs) > 1:
                 sep = " {:s} ".format(RIGHT_ARROW)
