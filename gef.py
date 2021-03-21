@@ -151,7 +151,6 @@ __context_messages__                   = []
 __heap_allocated_list__                = []
 __heap_freed_list__                    = []
 __heap_uaf_watchpoints__               = []
-__heap_cg_watchpoints__                = {}
 __pie_breakpoints__                    = {}
 __pie_counter__                        = 1
 __gef_remote__                         = None
@@ -3765,10 +3764,6 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
                     push_context_message("warn", "\n".join(msg))
                     return True
 
-        # add a watchpoint to the chunk
-        memchunkptr = int(self.return_value) - 2*current_arch.ptrsize
-        __heap_cg_watchpoints__[loc] = ChunkGuardBreakpoint(memchunkptr)
-
         # add it to alloc-ed list
         __heap_allocated_list__.append(item)
         return False
@@ -3800,7 +3795,7 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
         return
 
     def stop(self):
-        global __heap_uaf_watchpoints__, __heap_freed_list__, __heap_allocated_list__, __heap_cg_watchpoints__
+        global __heap_uaf_watchpoints__, __heap_freed_list__, __heap_allocated_list__
 
         if self.return_value:
             newloc = int(self.return_value)
@@ -3829,11 +3824,6 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
         finally:
             # add new item to alloc-ed list
             __heap_allocated_list__.append(item)
-
-            # delete and recreate the chunkguard
-            cg = __heap_cg_watchpoints__.pop(self.ptr)
-            cg.delete()
-            __heap_cg_watchpoints__[newloc] = ChunkGuardBreakpoint(newloc-2*current_arch.ptrsize)
 
         return False
 
@@ -3943,36 +3933,6 @@ class UafWatchpoint(gdb.Breakpoint):
         msg.append("Possible Use-after-Free in '{:s}': pointer {:#x} was freed, but is attempted to be used at {:#x}"
                    .format(get_filepath(), self.address, pc))
         msg.append("{:#x}   {:s} {:s}".format(insn.address, insn.mnemonic, Color.yellowify(", ".join(insn.operands))))
-        push_context_message("warn", "\n".join(msg))
-        return True
-
-
-class ChunkGuardBreakpoint(gdb.Breakpoint):
-    """On-write memory access breakpoint, to detect automatically heap chunk overflow."""
-
-    def __init__(self, addr):
-        super(ChunkGuardBreakpoint, self).__init__("*{:#x}".format(addr), type=gdb.BP_WATCHPOINT, wp_class=gdb.WP_WRITE, internal=True)
-        self.address = addr
-        self.silent = True
-        self.enabled = True
-        return
-
-    def stop(self):
-        if gdb.selected_frame().name() in ("_int_malloc", "malloc_consolidate", "__libc_calloc", "_int_free"):
-            return False
-        pc = gdb_get_nth_previous_instruction_address(current_arch.pc, 1)
-        insn = gef_current_instruction(pc)
-        chunkmem = self.address + 2*current_arch.ptrsize
-        # frame = gdb.newest_frame()
-        msg = ["ChunkGuard raised:",
-               "- Location: 0x{:x}".format(insn.address),
-               "- Instruction: {:s} {:s}".format(Color.redify(insn.mnemonic), ", ".join(insn.operands)),]
-        if chunkmem in [x for x,_ in __heap_allocated_list__]:
-            msg.append("- Reason: Write access to {:s} chunk {:x}".format(Color.colorify("allocated", "bold red"), self.address))
-        elif chunkmem in [x for x,_ in __heap_freed_list__]:
-            msg.append("- Reason: Write access to {:s} chunk {:x}".format(Color.colorify("freed", "green bold"), self.address))
-        else:
-            msg.append("- Reason: unknown")
         push_context_message("warn", "\n".join(msg))
         return True
 
@@ -7782,7 +7742,8 @@ class ContextCommand(GenericCommand):
         past_insns_color = get_gef_setting("theme.old_context")
         cur_insn_color = get_gef_setting("theme.disassemble_current_instruction")
         pc = current_arch.pc
-        bp_locations = [b.location for b in gdb.breakpoints() if b.location and b.location.startswith("*")]
+        breakpoints = gdb.breakpoints() or []
+        bp_locations = [b.location for b in breakpoints if b.location and b.location.startswith("*")]
 
         frame = gdb.selected_frame()
         arch_name = "{}:{}".format(current_arch.arch.lower(), current_arch.mode)
@@ -7999,7 +7960,8 @@ class ContextCommand(GenericCommand):
             return
 
         file_base_name = os.path.basename(symtab.filename)
-        bp_locations = [b.location for b in gdb.breakpoints() if file_base_name in b.location]
+        breakpoints = gdb.breakpoints() or []
+        bp_locations = [b.location for b in breakpoints if file_base_name in b.location]
         past_lines_color = get_gef_setting("theme.old_context")
 
         nb_line = self.get_setting("nb_lines_code")
