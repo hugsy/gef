@@ -3802,7 +3802,7 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
             # delete and recreate the chunkguard
             cg = __heap_cg_watchpoints__.pop(self.ptr)
             cg.delete()
-            __heap_cg_watchpoints__[newloc] = ChunkGuardBreakpoint(newloc-2*current_arch)
+            __heap_cg_watchpoints__[newloc] = ChunkGuardBreakpoint(newloc-2*current_arch.ptrsize)
 
         return False
 
@@ -3924,13 +3924,12 @@ class ChunkGuardBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self):
-        frame = gdb.selected_frame()
-        if frame.name() in ("_int_malloc", "malloc_consolidate", "__libc_calloc", "_int_free"):
+        if gdb.selected_frame().name() in ("_int_malloc", "malloc_consolidate", "__libc_calloc", "_int_free"):
             return False
         pc = gdb_get_nth_previous_instruction_address(current_arch.pc, 1)
         insn = gef_current_instruction(pc)
         chunkmem = self.address + 2*current_arch.ptrsize
-        frame = gdb.newest_frame()
+        # frame = gdb.newest_frame()
         msg = ["ChunkGuard raised:",
                "- Location: 0x{:x}".format(insn.address),
                "- Instruction: {:s} {:s}".format(Color.redify(insn.mnemonic), ", ".join(insn.operands)),]
