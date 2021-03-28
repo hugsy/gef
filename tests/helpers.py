@@ -4,6 +4,7 @@ import subprocess
 PATH_TO_DEFAULT_BINARY = "/tmp/default.out"
 STRIP_ANSI_DEFAULT = True
 
+
 def ansi_clean(s):
     ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
     return ansi_escape.sub("", s)
