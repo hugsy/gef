@@ -725,14 +725,15 @@ class GlibcArena:
             malloc_state_t = cached_lookup_type("struct malloc_state")
             self.__arena = arena.cast(malloc_state_t)
             self.__addr = int(arena.address)
+        except:
+            self.__arena = MallocStateStruct(addr)
+            self.__addr = self.__arena.addr
+        finally:
             self.top             = int(self.top)
             self.last_remainder  = int(self.last_remainder)
             self.n               = int(self.next)
             self.nfree           = int(self.next_free)
             self.sysmem          = int(self.system_mem)
-        except:
-            self.__arena = MallocStateStruct(addr)
-            self.__addr = self.__arena.addr
         return
 
     def __getitem__(self, item):
