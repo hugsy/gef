@@ -6,9 +6,8 @@ labels: triage
 assignees: ''
 
 ---
-
-Your issue will be closed unless you confirm the following (insert `x` in the
-brackets if done/agreed):
+<!--Your issue will be closed unless you confirm the following (insert `x` in the
+brackets if done/agreed):-->
 
 * [ ] Did you use the latest version of GEF from `dev` branch?
 * [ ] Is your bug specific to GEF (not GDB)? - Try to reproduce it running `gdb -nx`
@@ -32,10 +31,10 @@ brackets if done/agreed):
 
 #### Minimalist test case
 
-Adding a test case goes a long way to help reproduce the issue. This can be
+<!--Adding a test case goes a long way to help reproduce the issue. This can be
 done by either attaching a test binary, including a docker file, providing a
 binary to run, or including source code, **with** its compilation environment
-and options.
+and options.-->
 
 ```c
 // compile with gcc -fPIE -pic -o my_issue.out my_issue.c
@@ -53,7 +52,7 @@ int main(){ return 0; }
 
 #### Traces
 
-Feel free to include in this section screenshots or stack traces.
+<!--Feel free to include in this section screenshots or stack traces.
 
 If you enable `gef.debug` (`gef config gef.debug 1`), gef will display a
 full stack trace when an exception occurs. It is a good idea to copy/paste it here
@@ -62,3 +61,4 @@ to reproduce.
 
 **The more info is provided, the more likely your issue will be able to be
 reproduced and investigated.**
+-->
