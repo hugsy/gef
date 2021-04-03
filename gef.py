@@ -7889,6 +7889,8 @@ class ContextCommand(GenericCommand):
         parameter_set = set()
         pc = current_arch.pc
         block_start = __get_current_block_start_address()
+        if not block_start:
+            return
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
         instruction_iterator = capstone_disassemble if use_capstone else gef_disassemble
         function_parameters = current_arch.function_parameters
