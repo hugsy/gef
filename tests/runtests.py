@@ -50,6 +50,16 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         res = gdb_start_silent_cmd("capstone-disassemble")
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 1)
+
+        self.assertFailIfInactiveSession(gdb_run_cmd("cs opcodes"))
+        res = gdb_start_silent_cmd("cs opcodes")
+        self.assertNoException(res)
+        self.assertTrue(len(res.splitlines()) > 1)
+        """
+        match the following pattern
+        0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
+        """
+        self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2})+\s+.*")
         return
 
     def test_cmd_checksec(self):
@@ -603,6 +613,22 @@ class TestGdbFunctions(GefUnitTestGeneric):
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
         self.assertRegex(res, r"\+0x0*20: *0x0000000000000000\n")
+        return
+
+class TestGefContextConfigs(GefUnitTestGeneric):
+    def test_config_show_opcodes_size(self):
+        res = gdb_run_cmd("entry-break", before=["gef config context.show_opcodes_size 4",])
+        self.assertNoException(res)
+        self.assertTrue(len(res.splitlines()) > 1)
+
+        """
+        match one of the following patterns
+        0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
+        0x5555555546b5 488975e0    <main+11>        mov    QWORD PTR [rbp-0x20], rsi
+        0x5555555546b9 488955d8    <main+15>        mov    QWORD PTR [rbp-0x28], rdx
+        0x5555555546bd 64488b04... <main+19>        mov    rax, QWORD PTR fs:0x28
+        """
+        self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2}){1,4}(\.\.\.)?\s+.*")
         return
 
 
