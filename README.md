@@ -13,10 +13,10 @@ Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb) compile
 ```bash
 # via the install script
 ## using curl
-$ sh -c "$(curl -fsSL http://gef.blah.cat/sh)"
+$ bash -c "$(curl -fsSL http://gef.blah.cat/sh)"
 
 ## using wget
-$ sh -c "$(wget http://gef.blah.cat/sh -O -)"
+$ bash -c "$(wget http://gef.blah.cat/sh -O -)"
 
 # or manually
 $ wget -O ~/.gdbinit-gef.py -q http://gef.blah.cat/py
@@ -44,12 +44,9 @@ If you really need GDB+Python2, use [`gef-legacy`](https://github.com/hugsy/gef-
 
 ## Community ##
 
+[![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) [[invite link](https://discord.gg/HCS8Hg7)]
 
-| IRC                                                                                                                     | Gitter                                                                                                                                                   | Slack                                                                                                                                                                                             | Discord                                                                                                                                                                               |
-| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) | [![Gitter](https://badges.gitter.im/gdb-gef/community.svg)](https://gitter.im/gdb-gef/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) | [![Slack](https://img.shields.io/badge/Slack-GDB--GEF-blueviolet)](https://gdb-gef.slack.com/) [[invite link](https://join.slack.com/t/gdb-gef/shared_invite/zt-efrrdjj7-BmPZdIzgDzrz8LqDTrL8yg)] | [![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) [[invite link](https://discord.gg/HCS8Hg7)] |
-
-All those channels are bridged together via [MatterBridge](https://github.com/42wim/matterbridge). Even if you don't see people in one specific channel (say Slack), members on other channels (say IRC) will still receive your questions/remarks so feel free to chat! There's always people around!
+_Note_: For maintenance simplicity, the unified communities on IRC/Gitter/Slack/Discord based [MatterBridge](https://github.com/42wim/matterbridge) are now discontinued. The GEF Discord is now the only way for talking with us!
 
 ## Highlights ##
 
@@ -73,7 +70,7 @@ Or [try it online](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 
 ## Documentation ##
 
-Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](https://gef.readthedocs.io/). Users are recommended to refer to it as it may help them in their attempts to use GEF. In particular, new users should navigate through it (see the [FAQ](https://gef.readthedocs.io/en/master/faq/) for common installation problems), and the problem persists, try to reach out for help on the IRC channel or submit an issue.
+Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](https://gef.readthedocs.io/). Users are recommended to refer to it as it may help them in their attempts to use GEF. In particular, new users should navigate through it (see the [FAQ](https://gef.readthedocs.io/en/master/faq/) for common installation problems), and the problem persists, try to reach out for help on the Discord channel or submit an issue.
 
 
 ## Current status ##

@@ -4,6 +4,7 @@ import subprocess
 PATH_TO_DEFAULT_BINARY = "/tmp/default.out"
 STRIP_ANSI_DEFAULT = True
 
+
 def ansi_clean(s):
     ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
     return ansi_escape.sub("", s)
@@ -29,7 +30,20 @@ def gdb_run_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, str
     command += ["-ex", "quit", "--", target]
 
     lines = subprocess.check_output(command, stderr=subprocess.STDOUT).strip().splitlines()
-    result = b"\n".join(lines).decode("utf-8")
+    output = b"\n".join(lines)
+    result = None
+
+    # The following is necessary because ANSI escape sequences might have been added in the middle of multibyte
+    # characters, e.g. \x1b[H\x1b[2J is added into the middle of \xe2\x94\x80 to become \xe2\x1b[H\x1b[2J\x94\x80
+    # which causes a UnicodeDecodeError when trying to decode \xe2.
+    # Such broken multibyte characters would need to be removed, otherwise the test will result in an error.
+    while not result:
+        try:
+            result = output.decode("utf-8")
+        except UnicodeDecodeError as e:
+            faulty_idx_start = int(e.start)
+            faulty_idx_end = int(e.end)
+            output = output[:faulty_idx_start] + output[faulty_idx_end:]
 
     if strip_ansi:
         result = ansi_clean(result)

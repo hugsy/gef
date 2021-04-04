@@ -16,4 +16,3 @@ testbins: tests/binaries/*.c
 
 lint:
 	python3 -m pylint --rcfile ./.pylintrc tests/*.py
-	python3 -m pylint -E gef.py

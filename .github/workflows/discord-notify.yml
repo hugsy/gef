@@ -1,0 +1,27 @@
+name: "Discord Notification"
+on: [push, pull_request, issues]
+env:
+  DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+  
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: GEF Push Notification
+        uses: Ilshidur/action-discord@0.0.2
+        if: github.event_name == 'push' && github.repository_owner == 'hugsy'
+        with:
+          args: |
+            ${{ github.actor }} pushed ${{ github.event.ref }} ${{ github.event.compare }}            
+      - name: GEF PR Notification
+        uses: Ilshidur/action-discord@0.0.2
+        if: github.event_name == 'pull_request' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
+        with:
+          args: |
+            ${{ github.actor }} created PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }} (${{ github.event.pull_request.html_url }})
+      - name: GEF Issue Notification
+        uses: Ilshidur/action-discord@0.0.2
+        if: github.event_name == 'issues' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
+        with:
+          args: |
+            ${{ github.actor }} created issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }} (${{ github.event.issue.html_url }})

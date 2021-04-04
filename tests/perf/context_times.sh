@@ -4,9 +4,12 @@
 set -e
 
 time_gef_context() {
-    # Run twice to minimize jitter
-    gdb -ex 'start' -ex 'pi import profile' -ex "pi profile.run(\"gdb.execute('context')\", sort=\"cumtime\")" -ex 'quit' ../binaries/pattern.out >/dev/null 2>&1
-    gdb -ex 'start' -ex 'pi import profile' -ex "pi profile.run(\"gdb.execute('context')\", sort=\"cumtime\")" -ex 'quit' ../binaries/pattern.out 2>&1 | get_context_time
+    gdb -ex 'start' \
+	-ex 'pi import profile' \
+	-ex 'pi reset_all_caches()' \
+	-ex "pi profile.run(\"gdb.execute('context')\", sort=\"cumtime\")" \
+	-ex 'quit' \
+        /tmp/pattern.out 2>&1 | get_context_time
 }
 
 get_context_time() {
@@ -18,8 +21,11 @@ log_this_revision() {
     printf $rev
     title=`git log -1 --pretty="format:%s"`
     printf ",\"$title\""
-    rv=`$1`
-    echo ,$rv
+    for i in `seq 1 5`; do
+        rv=`$1`
+        printf ",$rv"
+    done
+    printf "\n"
 }
 
 log_command() {
@@ -53,7 +59,7 @@ run_on_git_revisions() {
     for rev in $revs; do
         echo "Checking out: $(git log --oneline -1 $rev)"
         git checkout --quiet $rev
-	log_command $test_command
+        log_command $test_command
         git reset --hard --quiet
     done
 

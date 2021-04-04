@@ -23,21 +23,13 @@ _Note_: although some Ubuntu versions are marked as version 7.7 they are actuall
 
 ## I cannot get GEF setup!! ##
 
-GEF will work on any GDB 7.7+ compiled with Python support. You can view
-that commands that failed to load using `gef missing`, but this will not affect
-GEF generally.
+GEF will work on any GDB 7.7+ compiled with Python support. You can view that commands that failed to load using `gef missing`, but this will not affect GEF generally.
 
-If you experience problems setting it up on your host, first go to the
-IRC channel [`freenode##gef`](https://webchat.freenode.net/?channels=##gef) for
-that. You will find great people there willing to help.
+If you experience problems setting it up on your host, first go to the [Discord channel](https://discord.gg/HCS8Hg7) for that. You will find great people there willing to help.
 
-Note that the GitHub issue section is to be used to **report bugs** and
-**GEF issues** (like unexpected crash, improper error handling, weird edge case,
-etc.), not a place to ask for help.
+Note that the GitHub issue section is to be used to **report bugs** and **GEF issues** (like unexpected crash, improper error handling, weird edge case, etc.), not a place to ask for help.
 
-But fear not, GDB 7.7 corresponds to the latest packaged version of Ubuntu
-14.04. Any version higher or equal will work just fine. So you might actually
-only need to run `apt install gdb` to get the full-force of GEF.
+But fear not, GDB 7.7 corresponds to the latest packaged version of Ubuntu 14.04. Any version higher or equal will work just fine. So you might actually only need to run `apt install gdb` to get the full-force of GEF.
 
 ## I get a SegFault when starting GDB with GEF ##
 
@@ -120,13 +112,9 @@ to run smoothly.
 
 ## I want to contribute, where should I head first? ##
 
-I would suggest thoroughly reading this documentation, just having a look to the
-[CONTRIBUTE](https://github.com/hugsy/gef/blob/master/.github/CONTRIBUTING.md)
-file of the project to give you pointers.
+I would suggest thoroughly reading this documentation, just having a look to the [CONTRIBUTE](https://github.com/hugsy/gef/blob/master/.github/CONTRIBUTING.md) file of the project to give you pointers.
 
-Also a good thing would be to join the `##gef` IRC channel
-on [Freenode](https://webchat.freenode.net/?channels=##gef) to get in touch with
-the people involved/using it.
+Also a good thing would be to join our [Discord channel](https://discord.gg/HCS8Hg7) to get in touch with the people involved/using it.
 
 
 ## I think I've found a bug, how can I help fixing it? ##
@@ -208,12 +196,12 @@ the [issue #206](https://github.com/hugsy/gef/issues/206) for the whole story.
 
 ## I still don't have my answer... Where can I go?
 
-A unified platform for chatting around GEF (development, new feature, issues, or just simple chat) has been built around [MatterBridge](https://github.com/42wim/matterbridge). Currently, you can chat using any of IRC, Gitter, Slack, or Discord!.
+Discord is your answer: join and talk to us:
 
-If you cannot find the answer to your issue in here, [the FAQ](docs/faq.md), the [Issues](https://github.com/hugsy/issues) then feel free to drop by and ask away!
-Even if you don't see people in one specific channel (say Slack), members on other channels (say IRC) will still receive your questions/remarks so feel free to chat! There's always people around!
+[![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) [[invite link](https://discord.gg/HCS8Hg7)]
 
-| IRC                                                                                                                     | Gitter                                                                                                                                                   | Slack                                                                                                                                                                                             | Discord                                                                                                                                                                               |
-| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##gef) | [![Gitter](https://badges.gitter.im/gdb-gef/community.svg)](https://gitter.im/gdb-gef/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) | [![Slack](https://img.shields.io/badge/Slack-GDB--GEF-blueviolet)](https://gdb-gef.slack.com/) [[invite link](https://join.slack.com/t/gdb-gef/shared_invite/zt-efrrdjj7-BmPZdIzgDzrz8LqDTrL8yg)] | [![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) [[invite link](https://discord.gg/HCS8Hg7)] |
+If you cannot find the answer to your issue in the FAQ (here!), the [Issues](https://github.com/hugsy/issues) then feel free to drop by and ask away!
+
+
+
 

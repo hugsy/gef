@@ -36,6 +36,5 @@ jobs:
       run: |
         gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
         python3 -m pip install -r ./requirements.txt
-        python3 -m pylint -E gef.py
         make lint
         make test

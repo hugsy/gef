@@ -3,20 +3,17 @@
 # Run tests by spawning a gdb instance for every command.
 #
 
-from __future__ import print_function
-
-import os
-import subprocess
 import sys
-import tempfile
 import unittest
+import subprocess
 
-from helpers import gdb_run_cmd, \
-    gdb_run_silent_cmd, \
-    gdb_start_silent_cmd, \
-    gdb_start_silent_cmd_last_line, \
+from helpers import (
+    gdb_run_cmd,
+    gdb_run_silent_cmd,
+    gdb_start_silent_cmd,
+    gdb_start_silent_cmd_last_line,
     gdb_test_python_method
-
+)
 
 
 class GefUnitTestGeneric(unittest.TestCase):
@@ -108,7 +105,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         return
 
     def test_cmd_entry_break(self):
-        res = gdb_run_cmd("entry-break")
+        res = gdb_run_cmd("entry-break", before=["gef config gef.disable_color 1",])
         self.assertNoException(res)
         return
 
@@ -507,10 +504,10 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         res = gdb_start_silent_cmd('', after=cmds, strip_ansi=False)
 
         self.assertNoException(res)
-        self.assertIn("\033[33m41414141\x1b[0m", res)
-        self.assertIn("\033[34m42424242\x1b[0m", res)
-        self.assertIn("\033[32m43434343\x1b[0m", res)
-        self.assertIn("\033[35m44444444\x1b[0m", res)
+        self.assertIn("\x1b[33m41414141\x1b[0m", res)
+        self.assertIn("\x1b[34m42424242\x1b[0m", res)
+        self.assertIn("\x1b[32m43434343\x1b[0m", res)
+        self.assertIn("\x1b[35m44444444\x1b[0m", res)
         return
 
 
@@ -550,6 +547,7 @@ class TestGefFunctions(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertTrue(int(res.splitlines()[-1]))
         return
+
 
 class TestGdbFunctions(GefUnitTestGeneric):
     """Tests gdb convenience functions added by GEF."""
