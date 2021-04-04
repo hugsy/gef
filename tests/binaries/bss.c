@@ -14,6 +14,6 @@ char msg[0x100];
 int main(int argc, char** argv, char** envp)
 {
         strncpy(msg, "Hello world!", sizeof(msg));
-        __asm__ volatile("int3;" : : : );
+        __builtin_trap();
         return EXIT_SUCCESS;
 }

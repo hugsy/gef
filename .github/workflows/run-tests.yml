@@ -1,0 +1,41 @@
+name: CI Test for GEF
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+
+  pull_request:
+    branches:
+      - master
+      - dev
+
+jobs:
+  build:
+    name: "Run Unit tests"
+    runs-on: [ubuntu-20.04]
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build 3rd party deps
+      run: |
+        sudo apt-get update
+        sudo apt-get install gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev
+        wget -O /tmp/update-trinity.sh https://github.com/hugsy/stuff/raw/master/update-trinity.sh
+        chmod +x /tmp/update-trinity.sh
+        /tmp/update-trinity.sh
+
+    - name: Run Tests
+      run: |
+        gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
+        python3 -m pip install -r ./requirements.txt
+        python3 -m pylint -E gef.py
+        make lint
+        make test

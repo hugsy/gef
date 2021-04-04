@@ -368,16 +368,13 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(gdb_run_cmd("set-permission"))
         target = "/tmp/set-permission.out"
 
-        res = gdb_run_silent_cmd("set-permission 0x1337000", after=["vmmap",], target=target)
+        res = gdb_start_silent_cmd("set-permission $sp", after=["vmmap",], target=target)
         self.assertNoException(res)
-        line = [ l for l in res.splitlines() if "0x0000000001337000" in l ][0]
-        line = line.split()
-        self.assertEqual(line[0], "0x0000000001337000")
-        self.assertEqual(line[1], "0x0000000001338000")
-        self.assertEqual(line[2], "0x0000000000000000")
-        self.assertEqual(line[3], "rwx")
+        line = [ l for l in res.splitlines() if "[stack]" in l ][0]
+        parts = line.split()
+        self.assertEqual(parts[3], "rwx")
 
-        res = gdb_run_silent_cmd("set-permission 0x1338000", target=target)
+        res = gdb_start_silent_cmd("set-permission 0x1338000", target=target)
         self.assertNoException(res)
         self.assertIn("Unmapped address", res)
         return
@@ -440,8 +437,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(res)
 
         cmd = "trace-run $pc+1"
-        res = gdb_start_silent_cmd(cmd,
-                                   before=["gef config trace-run.tracefile_prefix /tmp/gef-trace-"])
+        res = gdb_start_silent_cmd(cmd,before=["gef config trace-run.tracefile_prefix /tmp/gef-trace-"])
         self.assertNoException(res)
         self.assertIn("Tracing from", res)
         return
@@ -499,7 +495,6 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         return
 
     def test_cmd_highlight(self):
-
         cmds = [
             "highlight add 41414141 yellow",
             "highlight add 42424242 blue",
@@ -516,6 +511,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("\033[34m42424242\x1b[0m", res)
         self.assertIn("\033[32m43434343\x1b[0m", res)
         self.assertIn("\033[35m44444444\x1b[0m", res)
+        return
 
 
 class TestGefFunctions(GefUnitTestGeneric):
@@ -610,16 +606,6 @@ class TestGdbFunctions(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertRegex(res, r"\+0x0*20: *0x0000000000000000\n")
         return
-
-class TestGefMisc(GefUnitTestGeneric):
-    """Tests external functionality."""
-
-    def test_update(self):
-        tempdir = tempfile.mkdtemp()
-        update_gef = os.path.join(tempdir, "gef.py")
-        subprocess.call(["cp", "/tmp/gef.py", update_gef])
-        status = subprocess.call(["python3", update_gef, "--update"])
-        self.assertEqual(status, 0)
 
 
 def run_tests(name=None):

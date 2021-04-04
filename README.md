@@ -79,9 +79,9 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 ## Current status ##
 
 
-| Documentation                                                                                                        | License                                                                                                                                      | Compatibility                                                                                 | Test validation                                                                                                                                                                                                                                              |
-| -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) | [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) | [![CircleCI status](https://circleci.com/gh/hugsy/gef/tree/master.svg?style=shield)](https://circleci.com/gh/hugsy/gef/tree/master) [![TravisCI status](https://travis-ci.com/hugsy/gef.svg?branch=master)](https://travis-ci.com/github/hugsy/gef/branches) |
+| Documentation |License | Compatibility |
+|---|---|---|
+| [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) | [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) |
 
 
 ## Contribute ##
