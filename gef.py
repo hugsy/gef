@@ -591,7 +591,7 @@ class Instruction:
     # Allow formatting an instruction with {:o} to show opcodes.
     # The number of bytes to display can be configured, e.g. {:4o} to only show 4 bytes of the opcodes
     def __format__(self, format_spec):
-        if format_spec[-1] != "o":
+        if len(format_spec) == 0 or format_spec[-1] != "o":
             return str(self)
 
         if format_spec == "o":
@@ -6429,8 +6429,14 @@ class CapstoneDisassembleCommand(GenericCommand):
         location = location or current_arch.pc
         length = int(kwargs.get("length", get_gef_setting("context.nb_lines_code")))
 
+        insns = []
+        opcodes_len = 0
         for insn in capstone_disassemble(location, length, skip=length*self.repeat_count, **kwargs):
-            insn_fmt = "{:o}" if show_opcodes else "{}"
+            insns.append(insn)
+            opcodes_len = max(opcodes_len, len(insn.opcodes))
+
+        for insn in insns:
+            insn_fmt = "{{:{}o}}".format(opcodes_len) if show_opcodes else "{}"
             text_insn = insn_fmt.format(insn)
             msg = ""
 
