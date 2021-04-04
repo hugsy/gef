@@ -3436,6 +3436,7 @@ def de_bruijn(alphabet, n):
     """De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib)."""
     k = len(alphabet)
     a = [0] * k * n
+
     def db(t, p):
         if t > n:
             if n % p == 0:
@@ -3574,46 +3575,78 @@ def only_if_events_supported(event_type):
 # Event hooking
 #
 
+
 @only_if_events_supported("cont")
-def gef_on_continue_hook(func): return gdb.events.cont.connect(func)
+def gef_on_continue_hook(func):
+    return gdb.events.cont.connect(func)
+
+
 @only_if_events_supported("cont")
-def gef_on_continue_unhook(func): return gdb.events.cont.disconnect(func)
+def gef_on_continue_unhook(func):
+    return gdb.events.cont.disconnect(func)
+
 
 @only_if_events_supported("stop")
-def gef_on_stop_hook(func): return gdb.events.stop.connect(func)
+def gef_on_stop_hook(func):
+    return gdb.events.stop.connect(func)
+
+
 @only_if_events_supported("stop")
-def gef_on_stop_unhook(func): return gdb.events.stop.disconnect(func)
+def gef_on_stop_unhook(func):
+    return gdb.events.stop.disconnect(func)
+
 
 @only_if_events_supported("exited")
-def gef_on_exit_hook(func): return gdb.events.exited.connect(func)
+def gef_on_exit_hook(func):
+    return gdb.events.exited.connect(func)
+
+
 @only_if_events_supported("exited")
-def gef_on_exit_unhook(func): return gdb.events.exited.disconnect(func)
+def gef_on_exit_unhook(func):
+    return gdb.events.exited.disconnect(func)
+
 
 @only_if_events_supported("new_objfile")
-def gef_on_new_hook(func): return gdb.events.new_objfile.connect(func)
+def gef_on_new_hook(func):
+    return gdb.events.new_objfile.connect(func)
+
+
 @only_if_events_supported("new_objfile")
-def gef_on_new_unhook(func): return gdb.events.new_objfile.disconnect(func)
+def gef_on_new_unhook(func):
+    return gdb.events.new_objfile.disconnect(func)
+
 
 @only_if_events_supported("memory_changed")
-def gef_on_memchanged_hook(func): return gdb.events.memory_changed.connect(func)
+def gef_on_memchanged_hook(func):
+    return gdb.events.memory_changed.connect(func)
+
+
 @only_if_events_supported("memory_changed")
-def gef_on_memchanged_unhook(func): return gdb.events.memory_changed.disconnect(func)
+def gef_on_memchanged_unhook(func):
+    return gdb.events.memory_changed.disconnect(func)
+
 
 @only_if_events_supported("register_changed")
-def gef_on_regchanged_hook(func): return gdb.events.register_changed.connect(func)
+def gef_on_regchanged_hook(func):
+    return gdb.events.register_changed.connect(func)
+
+
 @only_if_events_supported("register_changed")
-def gef_on_regchanged_unhook(func): return gdb.events.register_changed.disconnect(func)
+def gef_on_regchanged_unhook(func):
+    return gdb.events.register_changed.disconnect(func)
 
 
 #
 # Virtual breakpoints
 #
 
+
 class PieVirtualBreakpoint(object):
     """PIE virtual breakpoint (not real breakpoint)."""
+
     def __init__(self, set_func, vbp_num, addr):
         # set_func(base): given a base address return a
-        # set breakpoint gdb command string
+        # "set breakpoint" gdb command string
         self.set_func = set_func
         self.vbp_num = vbp_num
         # breakpoint num, 0 represents not instantiated yet
@@ -7398,11 +7431,11 @@ class ElfInfoCommand(GenericCommand):
             ("ABI Version", "{:#x}".format(elf.e_abiversion)),
             ("Type", "{0:#x} - {1}".format(elf.e_type, types[elf.e_type])),
             ("Machine", "{0:#x} - {1}".format(elf.e_machine, machines[elf.e_machine])),
-            ("Program Header Table" , "{}".format(format_address(elf.e_phoff))),
-            ("Section Header Table" , "{}".format(format_address(elf.e_shoff))),
-            ("Header Table" , "{}".format(format_address(elf.e_phoff))),
+            ("Program Header Table", "{}".format(format_address(elf.e_phoff))),
+            ("Section Header Table", "{}".format(format_address(elf.e_shoff))),
+            ("Header Table", "{}".format(format_address(elf.e_phoff))),
             ("ELF Version", "{:#x}".format(elf.e_version)),
-            ("Header size" , "{0} ({0:#x})".format(elf.e_ehsize)),
+            ("Header size", "{0} ({0:#x})".format(elf.e_ehsize)),
             ("Entry point", "{}".format(format_address(elf.e_entry))),
         ]
 
@@ -7576,19 +7609,20 @@ class ContextCommand(GenericCommand):
         return
 
     def show_legend(self):
-        if get_gef_setting("gef.disable_color")!=True:
-            str_color = get_gef_setting("theme.dereference_string")
-            code_addr_color = get_gef_setting("theme.address_code")
-            stack_addr_color = get_gef_setting("theme.address_stack")
-            heap_addr_color = get_gef_setting("theme.address_heap")
-            changed_register_color = get_gef_setting("theme.registers_value_changed")
+        if get_gef_setting("gef.disable_color") is True:
+            return
+        str_color = get_gef_setting("theme.dereference_string")
+        code_addr_color = get_gef_setting("theme.address_code")
+        stack_addr_color = get_gef_setting("theme.address_stack")
+        heap_addr_color = get_gef_setting("theme.address_heap")
+        changed_register_color = get_gef_setting("theme.registers_value_changed")
 
-            gef_print("[ Legend: {} | {} | {} | {} | {} ]".format(Color.colorify("Modified register", changed_register_color),
-                                                                  Color.colorify("Code", code_addr_color),
-                                                                  Color.colorify("Heap", heap_addr_color),
-                                                                  Color.colorify("Stack", stack_addr_color),
-                                                                  Color.colorify("String", str_color)
-            ))
+        gef_print("[ Legend: {} | {} | {} | {} | {} ]".format(Color.colorify("Modified register", changed_register_color),
+                                                              Color.colorify("Code", code_addr_color),
+                                                              Color.colorify("Heap", heap_addr_color),
+                                                              Color.colorify("Stack", stack_addr_color),
+                                                              Color.colorify("String", str_color)
+        ))
         return
 
     @only_if_gdb_running
@@ -7634,7 +7668,7 @@ class ContextCommand(GenericCommand):
         return
 
     def context_title(self, m):
-        line_color= get_gef_setting("theme.context_title_line")
+        line_color = get_gef_setting("theme.context_title_line")
         msg_color = get_gef_setting("theme.context_title_message")
 
         if not m:
@@ -7666,7 +7700,7 @@ class ContextCommand(GenericCommand):
         widest = l = max(map(len, current_arch.all_registers))
         l += 5
         l += current_arch.ptrsize * 2
-        nb = get_terminal_size()[1]//l
+        nb = get_terminal_size()[1] // l
         i = 1
         line = ""
         changed_color = get_gef_setting("theme.registers_value_changed")
@@ -7681,7 +7715,7 @@ class ContextCommand(GenericCommand):
                 if r.type.code == gdb.TYPE_CODE_VOID:
                     continue
 
-                new_value_type_flag = (r.type.code == gdb.TYPE_CODE_FLAGS)
+                new_value_type_flag = r.type.code == gdb.TYPE_CODE_FLAGS
                 new_value = int(r)
 
             except (gdb.MemoryError, gdb.error):
@@ -7959,7 +7993,8 @@ class ContextCommand(GenericCommand):
             pc = current_arch.pc
             symtabline = gdb.find_pc_line(pc)
             symtab = symtabline.symtab
-            line_num = symtabline.line - 1     # we subtract one because line number returned by gdb start at 1
+            # we subtract one because the line number returned by gdb start at 1
+            line_num = symtabline.line - 1
             if not symtab.is_valid():
                 return
 
@@ -8357,7 +8392,7 @@ class HexdumpCommand(GenericCommand):
             target = arg
 
         if not target:
-            target="$sp"
+            target = "$sp"
 
         start_addr = to_unsigned_long(gdb.parse_and_eval(target))
         read_from = align_address(start_addr)
@@ -8933,9 +8968,9 @@ class XAddressInfoCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    def do_invoke (self, argv):
+    def do_invoke(self, argv):
         if not argv:
-            err ("At least one valid address must be specified")
+            err("At least one valid address must be specified")
             self.usage()
             return
 
@@ -9001,6 +9036,7 @@ class XorMemoryCommand(GenericCommand):
         self.usage()
         return
 
+
 @register_command
 class XorMemoryDisplayCommand(GenericCommand):
     """Display a block of memory pointed by ADDRESS by xor-ing each byte with KEY. The key must be
@@ -9028,6 +9064,7 @@ class XorMemoryDisplayCommand(GenericCommand):
         gef_print(titlify("XOR-ed block"))
         gef_print(hexdump(xor(block, key), base=address))
         return
+
 
 @register_command
 class XorMemoryPatchCommand(GenericCommand):
@@ -9163,6 +9200,7 @@ class PatternCommand(GenericCommand):
         self.usage()
         return
 
+
 @register_command
 class PatternCreateCommand(GenericCommand):
     """Generate a de Bruijn cyclic pattern. It will generate a pattern long of SIZE,
@@ -9191,6 +9229,7 @@ class PatternCreateCommand(GenericCommand):
         gef_print(pattern_str)
         ok("Saved as '{:s}'".format(gef_convenience(pattern_str)))
         return
+
 
 @register_command
 class PatternSearchCommand(GenericCommand):
@@ -9427,9 +9466,7 @@ class GotCommand(GenericCommand):
 
 @register_command
 class HighlightCommand(GenericCommand):
-    """
-    This command highlights user defined text matches which modifies GEF output universally.
-    """
+    """Highlight user-defined text matches in GEF output universally."""
     _cmdline_ = "highlight"
     _syntax_ = "{} (add|remove|list|clear)".format(_cmdline_)
     _aliases_ = ["hl"]
@@ -9562,7 +9599,10 @@ class HeapAnalysisCommand(GenericCommand):
         self.add_setting("check_uaf", True, "Break execution when a possible Use-after-Free condition is found")
         self.add_setting("check_heap_overlap", True, "Break execution when a possible overlap in allocation is found")
 
-        self.bp_malloc, self.bp_calloc, self.bp_free, self.bp_realloc = None, None, None, None
+        self.bp_malloc = None
+        self.bp_calloc = None
+        self.bp_free = None
+        self.bp_realloc = None
         return
 
     @only_if_gdb_running
@@ -9642,8 +9682,7 @@ class HeapAnalysisCommand(GenericCommand):
 
 @register_command
 class IsSyscallCommand(GenericCommand):
-    """
-    Tells whether the next instruction is a system call."""
+    """Tells whether the next instruction is a system call."""
     _cmdline_ = "is-syscall"
     _syntax_ = _cmdline_
 
@@ -9654,7 +9693,7 @@ class IsSyscallCommand(GenericCommand):
         return
 
     def is_syscall(self, arch, instruction):
-        insn_str = instruction.mnemonic  + " " + ", ".join(instruction.operands)
+        insn_str = instruction.mnemonic + " " + ", ".join(instruction.operands)
         return insn_str.strip() in arch.syscall_instructions
 
 
@@ -9788,6 +9827,7 @@ class StackOffsetFunction(GenericFunction):
     def do_invoke(self, args):
         return self.arg_to_long(args, 0) + get_section_base_address("[stack]")
 
+
 @register_function
 class HeapBaseFunction(GenericFunction):
     """Return the current heap base address plus an optional offset."""
@@ -9810,6 +9850,7 @@ class HeapBaseFunction(GenericFunction):
             pass
         return get_section_base_address("[heap]")
 
+
 @register_function
 class SectionBaseFunction(GenericFunction):
     """Return the matching section's base address plus an optional offset."""
@@ -9831,6 +9872,7 @@ class SectionBaseFunction(GenericFunction):
             return 0
         return addr
 
+
 @register_function
 class BssBaseFunction(GenericFunction):
     """Return the current bss base address plus the given offset."""
@@ -9839,6 +9881,7 @@ class BssBaseFunction(GenericFunction):
     def do_invoke(self, args):
         return self.arg_to_long(args, 0) + get_zone_base_address(".bss")
 
+
 @register_function
 class GotBaseFunction(GenericFunction):
     """Return the current bss base address plus the given offset."""
@@ -9846,6 +9889,7 @@ class GotBaseFunction(GenericFunction):
 
     def do_invoke(self, args):
         return self.arg_to_long(args, 0) + get_zone_base_address(".got")
+
 
 @register_command
 class GefFunctionsCommand(GenericCommand):
@@ -9883,6 +9927,7 @@ class GefFunctionsCommand(GenericCommand):
                   .format(Color.colorify("deref $_heap(0x20)", "yellow")))
         gef_print(self.__doc__)
         return
+
 
 class GefCommand(gdb.Command):
     """GEF main command: view all new commands by typing `gef`."""
@@ -10320,8 +10365,7 @@ class GefMissingCommand(gdb.Command):
 
 
 class GefSetCommand(gdb.Command):
-    """Override GDB set commands with the context from GEF.
-    """
+    """Override GDB set commands with the context from GEF."""
     _cmdline_ = "gef set"
     _syntax_  = "{:s} [GDB_SET_ARGUMENTS]".format(_cmdline_)
 
@@ -10349,7 +10393,7 @@ class GefSetCommand(gdb.Command):
 
 class GefRunCommand(gdb.Command):
     """Override GDB run commands with the context from GEF.
-    Simple wrapper for GDB run command to use arguments set from `gef set args`. """
+    Simple wrapper for GDB run command to use arguments set from `gef set args`."""
     _cmdline_ = "gef run"
     _syntax_  = "{:s} [GDB_RUN_ARGUMENTS]".format(_cmdline_)
 
@@ -10373,8 +10417,8 @@ class GefRunCommand(gdb.Command):
 
 
 class GefAlias(gdb.Command):
-    """Simple aliasing wrapper because GDB doesn't do what it should.
-    """
+    """Simple aliasing wrapper because GDB doesn't do what it should."""
+
     def __init__(self, alias, command, completer_class=gdb.COMPLETE_NONE, command_class=gdb.COMMAND_NONE):
         p = command.split()
         if not p:
@@ -10414,6 +10458,7 @@ class GefAlias(gdb.Command):
 
 class GefAliases(gdb.Command):
     """List all custom aliases."""
+
     def __init__(self):
         super(GefAliases, self).__init__("aliases", gdb.COMMAND_OBSCURE, gdb.COMPLETE_NONE)
         return
@@ -10428,6 +10473,7 @@ class GefAliases(gdb.Command):
 
 class GefTmuxSetup(gdb.Command):
     """Setup a confortable tmux debugging environment."""
+
     def __init__(self):
         super(GefTmuxSetup, self).__init__("tmux-setup", gdb.COMMAND_NONE, gdb.COMPLETE_NONE)
         GefAlias("screen-setup", "tmux-setup")
@@ -10496,6 +10542,7 @@ class GefTmuxSetup(gdb.Command):
 
 def __gef_prompt__(current_prompt):
     """GEF custom prompt function."""
+
     if get_gef_setting("gef.readline_compat") is True: return GEF_PROMPT
     if get_gef_setting("gef.disable_color") is True: return GEF_PROMPT
     if is_alive(): return GEF_PROMPT_ON
