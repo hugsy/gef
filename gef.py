@@ -634,7 +634,7 @@ def search_for_main_arena():
     return addr
 
 
-class MallocStateStruct(object):
+class MallocStateStruct:
     """GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
 
     def __init__(self, addr):
@@ -1571,7 +1571,7 @@ def flags_to_human(reg_value, value_table):
     return "[{}]".format(" ".join(flags))
 
 
-class Architecture(object):
+class Architecture:
     """Generic metaclass for the architecture supported by GEF."""
     __metaclass__ = abc.ABCMeta
 
@@ -3671,7 +3671,7 @@ def gef_on_regchanged_unhook(func):
 #
 
 
-class PieVirtualBreakpoint(object):
+class PieVirtualBreakpoint:
     """PIE virtual breakpoint (not real breakpoint)."""
 
     def __init__(self, set_func, vbp_num, addr):
