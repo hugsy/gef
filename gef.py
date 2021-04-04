@@ -969,7 +969,6 @@ def get_libc_version():
     return 0, 0
 
 
-@lru_cache()
 def get_main_arena():
     try:
         return GlibcArena(__gef_default_main_arena__)
