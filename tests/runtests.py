@@ -55,10 +55,8 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         res = gdb_start_silent_cmd("cs opcodes")
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 1)
-        """
-        match the following pattern
-        0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
-        """
+        # match the following pattern
+        # 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
         self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2})+\s+.*")
         return
 
@@ -621,13 +619,11 @@ class TestGefContextConfigs(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 1)
 
-        """
-        match one of the following patterns
-        0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
-        0x5555555546b5 488975e0    <main+11>        mov    QWORD PTR [rbp-0x20], rsi
-        0x5555555546b9 488955d8    <main+15>        mov    QWORD PTR [rbp-0x28], rdx
-        0x5555555546bd 64488b04... <main+19>        mov    rax, QWORD PTR fs:0x28
-        """
+        # match one of the following patterns
+        # 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
+        # 0x5555555546b5 488975e0    <main+11>        mov    QWORD PTR [rbp-0x20], rsi
+        # 0x5555555546b9 488955d8    <main+15>        mov    QWORD PTR [rbp-0x28], rdx
+        # 0x5555555546bd 64488b04... <main+19>        mov    rax, QWORD PTR fs:0x28
         self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2}){1,4}(\.\.\.)?\s+.*")
         return
 
