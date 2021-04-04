@@ -4336,7 +4336,6 @@ class PieBreakpointCommand(GenericCommand):
             self.usage()
             return
         bp_expr = " ".join(argv)
-        tmp_bp_expr = bp_expr
 
         if bp_expr[0] == "*":
             addr = int(gdb.parse_and_eval(bp_expr[1:]))
