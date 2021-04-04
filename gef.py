@@ -4793,7 +4793,7 @@ class GefThemeCommand(GenericCommand):
     _syntax_ = "{:s} [KEY [VALUE]]".format(_cmdline_)
 
     def __init__(self, *args, **kwargs):
-        super().__init__(GefThemeCommand._cmdline_)
+        super().__init__(self._cmdline_)
         self.add_setting("context_title_line", "gray", "Color of the borders in context window")
         self.add_setting("context_title_message", "cyan", "Color of the title in context window")
         self.add_setting("default_title_line", "gray", "Default color of borders")
@@ -9934,7 +9934,7 @@ class GefCommand(gdb.Command):
     _syntax_  = "{:s} (missing|config|save|restore|set|run)".format(_cmdline_)
 
     def __init__(self):
-        super().__init__(GefCommand._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, True)
+        super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, True)
         set_gef_setting("gef.follow_child", True, bool, "Automatically set GDB to follow child when forking")
         set_gef_setting("gef.readline_compat", False, bool, "Workaround for readline SOH/ETX issue (SEGV)")
         set_gef_setting("gef.debug", False, bool, "Enable debug mode for gef")
@@ -10078,10 +10078,7 @@ class GefHelpCommand(gdb.Command):
     _syntax_  = _cmdline_
 
     def __init__(self, commands, *args, **kwargs):
-        super().__init__(GefHelpCommand._cmdline_,
-                                             gdb.COMMAND_SUPPORT,
-                                             gdb.COMPLETE_NONE,
-                                             False)
+        super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, False)
         self.docs = []
         self.generate_help(commands)
         self.refresh()
@@ -10129,7 +10126,7 @@ class GefConfigCommand(gdb.Command):
     _syntax_  = "{:s} [setting_name] [setting_value]".format(_cmdline_)
 
     def __init__(self, loaded_commands, *args, **kwargs):
-        super().__init__(GefConfigCommand._cmdline_, gdb.COMMAND_NONE, prefix=False)
+        super().__init__(self._cmdline_, gdb.COMMAND_NONE, prefix=False)
         self.loaded_commands = loaded_commands
         return
 
@@ -10244,8 +10241,7 @@ class GefSaveCommand(gdb.Command):
     _syntax_  = _cmdline_
 
     def __init__(self, *args, **kwargs):
-        super().__init__(GefSaveCommand._cmdline_, gdb.COMMAND_SUPPORT,
-                                             gdb.COMPLETE_NONE, False)
+        super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, False)
         return
 
     def invoke(self, args, from_tty):
@@ -10284,10 +10280,7 @@ class GefRestoreCommand(gdb.Command):
     _syntax_  = _cmdline_
 
     def __init__(self, *args, **kwargs):
-        super().__init__(GefRestoreCommand._cmdline_,
-                                                gdb.COMMAND_SUPPORT,
-                                                gdb.COMPLETE_NONE,
-                                                False)
+        super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, False)
         return
 
     def invoke(self, args, from_tty):
@@ -10340,10 +10333,7 @@ class GefMissingCommand(gdb.Command):
     _syntax_  = _cmdline_
 
     def __init__(self, *args, **kwargs):
-        super().__init__(GefMissingCommand._cmdline_,
-                                                gdb.COMMAND_SUPPORT,
-                                                gdb.COMPLETE_NONE,
-                                                False)
+        super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, False)
         return
 
     def invoke(self, args, from_tty):
@@ -10365,10 +10355,7 @@ class GefSetCommand(gdb.Command):
     _syntax_  = "{:s} [GDB_SET_ARGUMENTS]".format(_cmdline_)
 
     def __init__(self, *args, **kwargs):
-        super().__init__(GefSetCommand._cmdline_,
-                                            gdb.COMMAND_SUPPORT,
-                                            gdb.COMPLETE_SYMBOL,
-                                            False)
+        super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_SYMBOL, False)
         return
 
     def invoke(self, args, from_tty):
@@ -10393,10 +10380,7 @@ class GefRunCommand(gdb.Command):
     _syntax_  = "{:s} [GDB_RUN_ARGUMENTS]".format(_cmdline_)
 
     def __init__(self, *args, **kwargs):
-        super().__init__(GefRunCommand._cmdline_,
-                                            gdb.COMMAND_SUPPORT,
-                                            gdb.COMPLETE_FILENAME,
-                                            False)
+        super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_FILENAME, False)
         return
 
     def invoke(self, args, from_tty):
