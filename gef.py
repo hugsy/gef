@@ -547,27 +547,34 @@ class Elf:
 
         with open(elf, "rb") as fd:
             # off 0x0
-            self.e_magic, self.e_class, self.e_endianness, self.e_eiversion = struct.unpack(">IBBB", fd.read(7))
+            self.e_magic, self.e_class, self.e_endianness, self.e_eiversion = struct.unpack(
+                ">IBBB", fd.read(7))
 
             # adjust endianness in bin reading
             endian = "<" if self.e_endianness == Elf.LITTLE_ENDIAN else ">"
 
             # off 0x7
-            self.e_osabi, self.e_abiversion = struct.unpack("{}BB".format(endian), fd.read(2))
+            self.e_osabi, self.e_abiversion = struct.unpack(
+                "{}BB".format(endian), fd.read(2))
             # off 0x9
             self.e_pad = fd.read(7)
             # off 0x10
-            self.e_type, self.e_machine, self.e_version = struct.unpack("{}HHI".format(endian), fd.read(8))
+            self.e_type, self.e_machine, self.e_version = struct.unpack(
+                "{}HHI".format(endian), fd.read(8))
             # off 0x18
             if self.e_class == Elf.ELF_64_BITS:
                 # if arch 64bits
-                self.e_entry, self.e_phoff, self.e_shoff = struct.unpack("{}QQQ".format(endian), fd.read(24))
+                self.e_entry, self.e_phoff, self.e_shoff = struct.unpack(
+                    "{}QQQ".format(endian), fd.read(24))
             else:
                 # else arch 32bits
-                self.e_entry, self.e_phoff, self.e_shoff = struct.unpack("{}III".format(endian), fd.read(12))
+                self.e_entry, self.e_phoff, self.e_shoff = struct.unpack(
+                    "{}III".format(endian), fd.read(12))
 
-            self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = struct.unpack("{}HHHH".format(endian), fd.read(8))
-            self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack("{}HHH".format(endian), fd.read(6))
+            self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = struct.unpack(
+                "{}HHHH".format(endian), fd.read(8))
+            self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack(
+                "{}HHH".format(endian), fd.read(6))
         return
 
     def is_valid(self):
@@ -577,9 +584,30 @@ class Elf:
 class Instruction:
     """GEF representation of a CPU instruction."""
 
-    def __init__(self, address, location, mnemo, operands):
-        self.address, self.location, self.mnemonic, self.operands = address, location, mnemo, operands
+    def __init__(self, address, location, mnemo, operands, opcodes):
+        self.address, self.location, self.mnemonic, self.operands, self.opcodes = address, location, mnemo, operands, opcodes
         return
+
+    # Allow formatting an instruction with {:o} to show opcodes.
+    # The number of bytes to display can be configured, e.g. {:4o} to only show 4 bytes of the opcodes
+    def __format__(self, format_spec):
+        if len(format_spec) == 0 or format_spec[-1] != "o":
+            return str(self)
+
+        if format_spec == "o":
+            opcodes_len = len(self.opcodes)
+        else:
+            opcodes_len = int(format_spec[:-1])
+
+        opcodes_text = "".join("{:02x}".format(b) for b in self.opcodes[:opcodes_len])
+        if opcodes_len < len(self.opcodes):
+            opcodes_text += "..."
+        return "{:#10x} {:{:d}} {:16} {:6} {:s}".format(self.address,
+                                                        opcodes_text,
+                                                        opcodes_len * 2 + 3,
+                                                        self.location,
+                                                        self.mnemonic,
+                                                        ", ".join(self.operands))
 
     def __str__(self):
         return "{:#10x} {:16} {:6} {:s}".format(
@@ -1279,7 +1307,9 @@ def gdb_disassemble(start_pc, **kwargs):
         loc = gdb_get_location_from_symbol(address)
         location = "<{}+{}>".format(*loc) if loc else ""
 
-        yield Instruction(address, location, mnemo, operands)
+        opcodes = read_memory(insn["addr"], insn["length"])
+
+        yield Instruction(address, location, mnemo, operands, opcodes)
 
 
 def gdb_get_nth_previous_instruction_address(addr, n):
@@ -1378,7 +1408,7 @@ def capstone_disassemble(location, nb_insn, **kwargs):
         sym_info = gdb_get_location_from_symbol(cs_insn.address)
         loc = "<{}+{}>".format(*sym_info) if sym_info else ""
         ops = [] + cs_insn.op_str.split(", ")
-        return Instruction(cs_insn.address, loc, cs_insn.mnemonic, ops)
+        return Instruction(cs_insn.address, loc, cs_insn.mnemonic, ops, cs_insn.bytes)
 
     capstone    = sys.modules["capstone"]
     arch, mode  = get_capstone_arch(arch=kwargs.get("arch", None), mode=kwargs.get("mode", None), endian=kwargs.get("endian", None))
@@ -6395,7 +6425,7 @@ class CapstoneDisassembleCommand(GenericCommand):
     """Use capstone disassembly framework to disassemble code."""
 
     _cmdline_ = "capstone-disassemble"
-    _syntax_  = "{:s} [LOCATION] [[length=LENGTH] [option=VALUE]] ".format(_cmdline_)
+    _syntax_  = "{:s} [LOCATION] [[length=LENGTH] [OPCODES] [option=VALUE]] ".format(_cmdline_)
     _aliases_ = ["cs-dis",]
     _example_ = "{:s} $pc length=50".format(_cmdline_)
 
@@ -6414,6 +6444,7 @@ class CapstoneDisassembleCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         location = None
+        show_opcodes = False
 
         kwargs = {}
         for arg in argv:
@@ -6421,14 +6452,24 @@ class CapstoneDisassembleCommand(GenericCommand):
                 key, value = arg.split("=", 1)
                 kwargs[key] = value
 
+            elif "opcodes".startswith(arg.lower()):
+                show_opcodes = True
+
             elif location is None:
                 location = parse_address(arg)
 
         location = location or current_arch.pc
         length = int(kwargs.get("length", get_gef_setting("context.nb_lines_code")))
 
+        insns = []
+        opcodes_len = 0
         for insn in capstone_disassemble(location, length, skip=length*self.repeat_count, **kwargs):
-            text_insn = str(insn)
+            insns.append(insn)
+            opcodes_len = max(opcodes_len, len(insn.opcodes))
+
+        for insn in insns:
+            insn_fmt = "{{:{}o}}".format(opcodes_len) if show_opcodes else "{}"
+            text_insn = insn_fmt.format(insn)
             msg = ""
 
             if insn.address == current_arch.pc:
@@ -7571,6 +7612,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("show_source_code_variable_values", True, "Show extra PC context info in the source code")
         self.add_setting("show_stack_raw", False, "Show the stack pane as raw hexdump (no dereference)")
         self.add_setting("show_registers_raw", False, "Show the registers pane with raw values (no dereference)")
+        self.add_setting("show_opcodes_size", 0, "Number of bytes of opcodes to display next to the disassembly")
         self.add_setting("peek_calls", True, "Peek into calls")
         self.add_setting("peek_ret", True, "Peek at return address")
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
@@ -7783,6 +7825,7 @@ class ContextCommand(GenericCommand):
         nb_insn = self.get_setting("nb_lines_code")
         nb_insn_prev = self.get_setting("nb_lines_code_prev")
         use_capstone = self.has_setting("use_capstone") and self.get_setting("use_capstone")
+        show_opcodes_size = self.has_setting("show_opcodes_size") and self.get_setting("show_opcodes_size")
         past_insns_color = get_gef_setting("theme.old_context")
         cur_insn_color = get_gef_setting("theme.disassemble_current_instruction")
         pc = current_arch.pc
@@ -7801,8 +7844,13 @@ class ContextCommand(GenericCommand):
                 line = []
                 is_taken  = False
                 target    = None
-                text = str(insn)
                 bp_prefix = Color.redify(BP_GLYPH) if self.addr_has_breakpoint(insn.address, bp_locations) else " "
+
+                if show_opcodes_size == 0:
+                    text = str(insn)
+                else:
+                    insn_fmt = "{{:{}o}}".format(show_opcodes_size)
+                    text = insn_fmt.format(insn)
 
                 if insn.address < pc:
                     line += "{}  {}".format(bp_prefix, Color.colorify(text, past_insns_color))
