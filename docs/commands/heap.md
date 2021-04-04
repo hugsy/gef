@@ -69,7 +69,7 @@ the specified address for `main_arena`.
 
 ### `heap bins` command ###
 
-Glibc uses bints for keeping tracks of `free`d chunks. This is because making
+Glibc uses bins for keeping tracks of `free`d chunks. This is because making
 allocations through `sbrk` (requiring a syscall) is costly. Glibc uses those
 bins to remember formerly allocated chunks. Because bins are structured in
 single or doubly linked list, I found that quite painful to always interrogate
@@ -82,6 +82,7 @@ on:
       - `unsorted`
       - `small bins`
       - `large bins`
+   - `tcachebins`
 
 
 #### `heap bins fast` command ####
@@ -112,7 +113,28 @@ Fastbin[9] 0x00
 
 #### Other `heap bins X` command ####
 
-All the other subcommands for the `heap bins` work the same way as `fast`. If
-no argument is provided, `gef` will fall back to `main_arena`. Otherwise, it
-will use the address pointed as the base of the `malloc_state` structure and
-print out information accordingly.
+All the other subcommands (with the exception of `tcache`) for the `heap bins`
+work the same way as `fast`. If no argument is provided, `gef` will fall back
+to `main_arena`. Otherwise, it will use the address pointed as the base of the
+`malloc_state` structure and print out information accordingly.
+
+
+#### `heap bins tcache` command ####
+
+Modern versions of `glibc` use `tcache` bins to speed up multithreaded
+programs.  Unlike other bins, `tcache` bins are allocated on a per-thread
+basis, so there is one set of `tcache` bins for each thread.
+
+```
+gef➤ heap bins tcache [all] [thread_ids...]
+```
+
+Without any arguments, `heap bins tcache` will display the `tcache` for the
+current thread. `heap bins tcache all` will show the `tcache`s for every
+thread, or you can specify any number of thread ids to see the `tcache` for
+each of them. For example, use the following command to show the `tcache` bins
+for threads 1 and 2.
+
+```
+gef➤ heap bins tcache 1 2
+```

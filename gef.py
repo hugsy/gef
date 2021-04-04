@@ -744,8 +744,6 @@ class GlibcArena:
     """Glibc arena class
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671"""
 
-    TCACHE_MAX_BINS = 0x40
-
     def __init__(self, addr, name=None):
         self.__name = name or __gef_default_main_arena__
         try:
@@ -772,17 +770,6 @@ class GlibcArena:
 
     def __int__(self):
         return self.__addr
-
-    def tcachebin(self, i):
-        """Return head chunk in tcache[i]."""
-        heap_base = HeapBaseFunction.heap_base()
-        if get_libc_version() < (2, 30):
-            addr = dereference(heap_base + 2*current_arch.ptrsize + self.TCACHE_MAX_BINS + i*current_arch.ptrsize)
-        else:
-            addr = dereference(heap_base + 2*current_arch.ptrsize + 2*self.TCACHE_MAX_BINS + i*current_arch.ptrsize)
-        if not addr:
-            return None
-        return GlibcChunk(int(addr))
 
     def fastbin(self, i):
         """Return head chunk in fastbinsY[i]."""
@@ -6755,7 +6742,9 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
     See https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=d5c3fafc4307c9b7a4c7d5cb381fcdbfad340bcc."""
 
     _cmdline_ = "heap bins tcache"
-    _syntax_  = "{:s} [ARENA_ADDRESS]".format(_cmdline_)
+    _syntax_  = "{:s} [all] [thread_ids...]".format(_cmdline_)
+
+    TCACHE_MAX_BINS = 0x40
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
@@ -6768,54 +6757,138 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             info("No Tcache in this version of libc")
             return
 
-        arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_main_arena()
-
-        if arena is None:
-            err("Invalid Glibc arena")
+        current_thread = gdb.selected_thread()
+        if current_thread is None:
+            err("Couldn't find current thread")
             return
 
-        # Get tcache_perthread_struct for this arena
-        heap_base = HeapBaseFunction.heap_base()
-        if heap_base is None:
-            err("No heap section")
-            return
-        addr = heap_base + 0x10
-
-        gef_print(titlify("Tcachebins for arena {:#x}".format(int(arena))))
-        for i in range(GlibcArena.TCACHE_MAX_BINS):
-            if get_libc_version() < (2, 30):
-                count = ord(read_memory(addr + i, 1))
+        # As a nicety, we want to display threads in ascending order by gdb number
+        threads = sorted(gdb.selected_inferior().threads(), key=lambda t: t.num)
+        if argv:
+            if "all" in argv:
+                tids = [t.num for t in threads]
             else:
-                count = u16(read_memory(addr + 2 * i, 2))
-            chunk = arena.tcachebin(i)
-            chunks = set()
-            m = []
+                tids = self.check_thread_ids(argv)
+        else:
+            tids = [current_thread.num]
 
-            # Only print the entry if there are valid chunks. Don't trust count
-            while True:
-                if chunk is None:
-                    break
+        for thread in threads:
+            if thread.num not in tids:
+                continue
 
-                try:
-                    m.append("{:s} {:s} ".format(LEFT_ARROW, str(chunk)))
-                    if chunk.address in chunks:
-                        m.append("{:s} [loop detected]".format(RIGHT_ARROW))
+            thread.switch()
+
+            tcache_addr = self.find_tcache()
+            if tcache_addr == 0:
+                info("Uninitialized tcache for thread {:d}".format(thread.num))
+                continue
+
+            gef_print(titlify("Tcachebins for thread {:d}".format(thread.num)))
+            tcache_empty = True
+            for i in range(self.TCACHE_MAX_BINS):
+                chunk, count = self.tcachebin(int(tcache_addr), i)
+                chunks = set()
+                msg = []
+
+                # Only print the entry if there are valid chunks. Don't trust count
+                while True:
+                    if chunk is None:
                         break
 
-                    chunks.add(chunk.address)
+                    try:
+                        msg.append("{:s} {:s} ".format(LEFT_ARROW, str(chunk)))
+                        if chunk.address in chunks:
+                            msg.append("{:s} [loop detected]".format(RIGHT_ARROW))
+                            break
 
-                    next_chunk = chunk.get_fwd_ptr(True)
-                    if next_chunk == 0:
+                        chunks.add(chunk.address)
+
+                        next_chunk = chunk.get_fwd_ptr(True)
+                        if next_chunk == 0:
+                            break
+
+                        chunk = GlibcChunk(next_chunk)
+                    except gdb.MemoryError:
+                        msg.append("{:s} [Corrupted chunk at {:#x}]".format(LEFT_ARROW, chunk.address))
                         break
 
-                    chunk = GlibcChunk(next_chunk)
-                except gdb.MemoryError:
-                    m.append("{:s} [Corrupted chunk at {:#x}]".format(LEFT_ARROW, chunk.address))
-                    break
-            if m:
-                gef_print("Tcachebins[idx={:d}, size={:#x}] count={:d} ".format(i, (i+2)*(current_arch.ptrsize)*2, count), end="")
-                gef_print("".join(m))
+                if msg:
+                    tcache_empty = False
+                    gef_print("Tcachebins[idx={:d}, size={:#x}] count={:d} ".format(i, (i+2)*(current_arch.ptrsize)*2, count), end="")
+                    gef_print("".join(msg))
+
+            if tcache_empty:
+                gef_print("All tcachebins are empty")
+
+        current_thread.switch()
         return
+
+    @staticmethod
+    def find_tcache():
+        """Return the location of the current thread's tcache."""
+        try:
+            # For multithreaded binaries, the tcache symbol (in thread local
+            # storage) will give us the correct address.
+            tcache_addr = gdb.parse_and_eval("(void *) tcache")
+        except gdb.error:
+            # In binaries not linked with pthread (and therefore there is only
+            # one thread), we can't use the tcache symbol, but we can guess the
+            # correct address because the tcache is consistently the first
+            # allocation in the main arena.
+            heap_base = HeapBaseFunction.heap_base()
+            if heap_base is None:
+                err("No heap section")
+                return 0x0
+            tcache_addr = heap_base + 0x10
+        return tcache_addr
+
+    @staticmethod
+    def check_thread_ids(tids):
+        """Check the validity, dedup, and return all valid tids."""
+        existing_tids = [t.num for t in gdb.selected_inferior().threads()]
+        valid_tids = set()
+        for tid in tids:
+            try:
+                tid = int(tid)
+            except ValueError:
+                err("Invalid thread id {:s}".format(tid))
+                continue
+            if tid in existing_tids:
+                valid_tids.add(tid)
+            else:
+                err("Unknown thread {}".format(tid))
+
+        return list(valid_tids)
+
+    @staticmethod
+    def tcachebin(tcache_base, i):
+        """Return the head chunk in tcache[i] and the number of chunks in the bin."""
+        assert i <  GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS, "index should be less then TCACHE_MAX_BINS"
+        tcache_chunk = GlibcChunk(tcache_base)
+
+        # Glibc changed the size of the tcache in version 2.30; this fix has
+        # been backported inconsistently between distributions. We detect the
+        # difference by checking the size of the allocated chunk for the
+        # tcache.
+        # Minimum usable size of allocated tcache chunk = ?
+        #   For new tcache:
+        #   TCACHE_MAX_BINS * _2_ + TCACHE_MAX_BINS * ptrsize
+        #   For old tcache:
+        #   TCACHE_MAX_BINS * _1_ + TCACHE_MAX_BINS * ptrsize
+        new_tcache_min_size = (
+                GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS * 2 +
+                GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS * current_arch.ptrsize)
+
+        if tcache_chunk.usable_size < new_tcache_min_size:
+            tcache_count_size = 1
+            count = ord(read_memory(tcache_base + tcache_count_size*i, 1))
+        else:
+            tcache_count_size = 2
+            count = u16(read_memory(tcache_base + tcache_count_size*i, 2))
+
+        chunk = dereference(tcache_base + tcache_count_size*GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS + i*current_arch.ptrsize)
+        chunk = GlibcChunk(int(chunk)) if chunk else None
+        return chunk, count
 
 
 @register_command

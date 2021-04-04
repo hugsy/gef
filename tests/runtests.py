@@ -203,6 +203,23 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("size=0x20", res)
         return
 
+    def test_cmd_heap_bins_tcache(self):
+        cmd = "heap bins tcache"
+        target = "/tmp/heap-non-main.out"
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertIn("Tcachebins[idx=0, size=0x20] count=1", res)
+        return
+
+    def test_cmd_heap_bins_tcache_all(self):
+        cmd = "heap bins tcache all"
+        target = "/tmp/heap-tcache.out"
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertIn("Tcachebins[idx=0, size=0x20] count=3", res)
+        self.assertIn("Tcachebins[idx=1, size=0x30] count=3", res)
+        return
+
     def test_cmd_heap_analysis(self):
         cmd = "heap-analysis-helper"
         target = "/tmp/heap-analysis.out"
