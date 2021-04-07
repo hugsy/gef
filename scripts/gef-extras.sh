@@ -2,7 +2,6 @@
 
 set -e
 
-NAME="gef-extras"
 
 if [ $# -ge 1 ]; then
   DIR="$(realpath $1)/gef-extras"
