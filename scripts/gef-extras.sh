@@ -7,7 +7,7 @@ if [ $# -ge 1 ]; then
   DIR="$(realpath $1)/gef-extras"
   test -d ${DIR} || exit 1
 elif [ -d ${HOME}/.config ]; then
-  DIR=${HOME}/.config
+  DIR="${HOME}/.config/gef-extras"
 else
   DIR=${HOME}
   NAME=".gef-extras"
