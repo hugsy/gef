@@ -10491,7 +10491,7 @@ class GefAliases(gdb.Command):
         return
 
     def usage(self):
-        gef_print("aAliasesliases (add|rm|list)")
+        gef_print("aliases (add|rm|list)")
         return
 
     def add_usage(self):
