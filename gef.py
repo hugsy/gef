@@ -10484,18 +10484,58 @@ class GefAlias(gdb.Command):
 
 
 class GefAliases(gdb.Command):
-    """List all custom aliases."""
+    """Command to add, remove, or list aliases."""
 
     def __init__(self):
         super().__init__("aliases", gdb.COMMAND_OBSCURE, gdb.COMPLETE_NONE)
         return
 
-    def invoke(self, args, from_tty):
-        self.dont_repeat()
-        ok("Aliases defined:")
-        for _alias in __aliases__:
-            gef_print("{:30s} {} {}".format(_alias._alias, RIGHT_ARROW, _alias._command))
+    def usage(self):
+        gef_print("aAliasesliases (add|rm|list)")
         return
+
+    def add_usage(self):
+        gef_print("aliases add [alias] [command]")
+        return
+
+    def rm_usage(self):
+        gef_print("aliases rm [alias]")
+        return
+
+    def invoke(self, args, from_tty):
+
+        self.dont_repeat()
+        args = args.split(" ")
+
+        if (not args or args[0] not in ["add", "rm", "list"]):
+            self.usage()
+            return
+
+        if (args[0] == "add"):
+            if (len(args) < 3):
+                self.add_usage()
+                return
+            GefAlias(args[1], " ".join(args[2:]))
+            GefSaveCommand().invoke(None, False)
+            return
+
+        if (args[0] == "rm"):
+            if (len(args) != 2):
+                self.rm_usage()
+                return
+            if not (alias := [__aliases__.index(a) for a in __aliases__ if a._alias == args[1]]):
+                err("{0} not found in aliases.".format(args[1]))
+                return
+            del __aliases__[alias[0]]
+            GefSaveCommand().invoke(None, False)
+            # TODO: somehow reload GEF so that the alias no longer works in the current session
+            return
+
+        if (args[0] == "list"):
+            ok("Aliases defined:")
+            for _alias in __aliases__:
+                gef_print("{:30s} {} {}".format(_alias._alias, RIGHT_ARROW, _alias._command))
+            return
 
 
 class GefTmuxSetup(gdb.Command):
