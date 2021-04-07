@@ -9,7 +9,7 @@ if [ $# -ge 1 ]; then
 elif [ -d ${HOME}/.config ]; then
   DIR="${HOME}/.config/gef-extras"
 else
-  DIR=${HOME}
+  DIR="${HOME}/.gef-extras"
 fi
 
 git clone https://github.com/hugsy/gef-extras.git ${DIR}/${NAME}
