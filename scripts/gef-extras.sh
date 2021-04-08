@@ -3,18 +3,20 @@
 set -e
 
 if [ $# -ge 1 ]; then
-  DIR="$(realpath $1)"
+  DIR="$(realpath $1)/gef-extras"
   test -d ${DIR} || exit 1
+elif [ -d ${HOME}/.config ]; then
+  DIR="${HOME}/.config/gef-extras"
 else
-  DIR=${HOME}
+  DIR="${HOME}/.gef-extras"
 fi
 
-git clone https://github.com/hugsy/gef-extras.git ${DIR}/gef-extras
-gdb -q -ex "gef config gef.extra_plugins_dir '${DIR}/gef-extras/scripts'" \
-       -ex "gef config pcustom.struct_path '${DIR}/gef-extras/structs'" \
-       -ex "gef config syscall-args.path '${DIR}/gef-extras/syscall-tables'" \
+git clone https://github.com/hugsy/gef-extras.git ${DIR}
+gdb -q -ex "gef config gef.extra_plugins_dir '${DIR}/scripts'" \
+       -ex "gef config pcustom.struct_path '${DIR}/structs'" \
+       -ex "gef config syscall-args.path '${DIR}/syscall-tables'" \
        -ex "gef config libc_args True" \
-       -ex "gef config libc_args_path '${DIR}/gef-extras/glibc-function-args'" \
+       -ex "gef config libc_args_path '${DIR}/glibc-function-args'" \
        -ex 'gef save' \
        -ex quit
 
