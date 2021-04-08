@@ -50,6 +50,7 @@ nav:
 - Command search-pattern: commands/search-pattern.md
 - Command set-permission: commands/set-permission.md
 - Command shellcode: commands/shellcode.md
+- Command stack: commands/stack.md
 - Command stub: commands/stub.md
 - Command syscall-args: commands/syscall-args.md
 - Command theme: commands/theme.md
