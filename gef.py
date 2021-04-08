@@ -8274,6 +8274,41 @@ class ContextCommand(GenericCommand):
 
 
 @register_command
+class StackCommand(GenericCommand):
+    """Print the current stack frame"""
+
+    _cmdline_ = "stack"
+    _syntax_  = "{:s}".format(_cmdline_)
+    _aliases_ = []
+
+    old_registers = {}
+
+    def __init__(self):
+        super().__init__()
+        return
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+
+        try:
+            sp = current_arch.sp
+            bp = current_arch.fp
+            if bp >= sp:
+                num_lines = int((bp - sp) / current_arch.ptrsize) + 1
+                gdb.execute("dereference {:#x} l{:d}".format(sp, num_lines))
+            else:
+                err("Stack base is less than stack top (stack frame is corrupted?)")
+
+        except gdb.MemoryError:
+            err("Cannot read memory from $SP (corrupted stack pointer?)")
+
+        return
+
+        return
+
+
+
+@register_command
 class MemoryCommand(GenericCommand):
     """Add or remove address ranges to the memory view."""
     _cmdline_ = "memory"
