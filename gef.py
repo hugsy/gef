@@ -5065,7 +5065,7 @@ class PCustomListCommand(PCustomCommand):
     _syntax_ = "{:s}".format(_cmdline_)
 
     def __init__(self):
-        super().__init__(complete=gdb.COMPLETE_SYMBOL)
+        super().__init__()
         return
 
     def do_invoke(self, argv):
@@ -5093,7 +5093,7 @@ class PCustomShowCommand(PCustomCommand):
     __aliases__ = ["pcustom create", "pcustom update"]
 
     def __init__(self):
-        super().__init__(complete=gdb.COMPLETE_FILENAME)
+        super().__init__()
         return
 
     def do_invoke(self, argv):
@@ -5143,7 +5143,7 @@ class PCustomEditCommand(PCustomCommand):
     __aliases__ = ["pcustom create", "pcustom new", "pcustom update"]
 
     def __init__(self):
-        super().__init__(complete=gdb.COMPLETE_FILENAME)
+        super().__init__()
         return
 
     def do_invoke(self, argv):
