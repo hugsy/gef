@@ -4886,24 +4886,30 @@ class PCustomCommand(GenericCommand):
         super().__init__(prefix=True)
         self.add_setting("struct_path", os.sep.join([get_gef_setting("gef.tempdir"), "structs"]), "Path to store/load the structure ctypes files")
         self.add_setting("max_depth", 4, "Maximum level of recursion supported")
+        self.add_setting("structure_name", "bold blue", "Color of the structure name")
+        self.add_setting("structure_type", "bold red", "Color of the attribute type")
+        self.add_setting("structure_size", "green", "Color of the attribute size")
         return
 
-    @only_if_gdb_running
+
     def do_invoke(self, argv):
         argc = len(argv)
         if argc == 0:
-            self.usage()
+            gdb.execute("pcustom list")
             return
 
         modname, structname = self.get_modulename_structname_from_arg(argv[0])
 
-        try:
-            address = int(gdb.parse_and_eval(argv[1]))
-        except gdb.error:
-            err("Failed to parse '{:s}'".format(argv[1]))
-            return
+        if argc == 1:
+            gdb.execute("pcustom show {}".format(structname))
+        else:
+            try:
+                address = int(gdb.parse_and_eval(argv[1]))
+            except gdb.error:
+                err("Failed to parse '{:s}'".format(argv[1]))
+                return
 
-        self.apply_structure_to_address(modname, structname, address)
+            self.apply_structure_to_address(modname, structname, address)
         return
 
     def get_pcustom_absolute_root_path(self):
@@ -4950,6 +4956,8 @@ class PCustomCommand(GenericCommand):
         _class = getattr(_mod, classname)
         return _class, _class()
 
+
+    @only_if_gdb_running
     def apply_structure_to_address(self, mod_name, struct_name, addr, depth=0):
         if not self.is_valid_struct(mod_name):
             err("Invalid structure name '{:s}'".format(struct_name))
@@ -5077,9 +5085,11 @@ class PCustomListCommand(PCustomCommand):
         path = self.get_pcustom_absolute_root_path()
         info("Listing custom structures from '{:s}'".format(path))
         structures = self.enumerate_structures()
+        struct_color = get_gef_setting("pcustom.structure_type")
+        filename_color = get_gef_setting("pcustom.structure_name")
         for filename in structures:
-            __modules = ", ".join([Color.greenify(x) for x in structures[filename]])
-            __filename = Color.blueify(filename)
+            __modules = ", ".join([Color.colorify(x, struct_color) for x in structures[filename]])
+            __filename = Color.colorify(filename, filename_color)
             gef_print("{:s} {:s} ({:s})".format(RIGHT_ARROW, __filename, __modules))
         return
 
@@ -5124,11 +5134,10 @@ class PCustomShowCommand(PCustomCommand):
         _class, _struct = self.get_structure_class(mod_name, struct_name)
 
         for _name, _type in _struct._fields_:
-            # todo: use theme to get the colors
             _size = ctypes.sizeof(_type)
-            __name = Color.blueify(_name)
-            __type = Color.redify(_type.__name__)
-            __size = Color.greenify(hex(_size))
+            __name = Color.colorify(_name, get_gef_setting("pcustom.structure_name"))
+            __type = Color.colorify(_type.__name__, get_gef_setting("pcustom.structure_type"))
+            __size = Color.colorify(hex(_size), get_gef_setting("pcustom.structure_size"))
             __offset = Color.boldify("{:04x}".format(getattr(_class, _name).offset))
             gef_print("{:s}   {:32s}   {:16s}  /* size={:s} */".format(__offset, __name, __type, __size))
         return
