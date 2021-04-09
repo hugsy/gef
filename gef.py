@@ -4190,6 +4190,9 @@ class GenericCommand(gdb.Command):
         return key in __config__
 
     def add_setting(self, name, value, description=""):
+        # make sure settings are always associated to the root command (which derives from GenericCommand)
+        if "GenericCommand" not in [x.__name__ for x in self.__class__.__bases__]:
+            return
         key = self.__get_setting_name(name)
         __config__[key] = [value, type(value), description]
         get_gef_setting.cache_clear()
