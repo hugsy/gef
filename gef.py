@@ -6815,12 +6815,12 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             try:
                 tid = int(tid)
             except ValueError:
-                err("invalid thread id {:s}".format(str(tid)))
+                err("Invalid thread id {:s}".format(str(tid)))
                 continue
             if tid in existing_tids:
                 valid_tids.add(tid)
             else:
-                err("unknown thread {:d}".format(tid))
+                err("Unknown thread {:d}".format(tid))
 
         return list(valid_tids)
 
