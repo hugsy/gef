@@ -132,4 +132,9 @@ gef➤ heap bins tcache [all] [thread_ids...]
 Without any arguments, `heap bins tcache` will display the `tcache` for the
 current thread. `heap bins tcache all` will show the `tcache`s for every
 thread, or you can specify any number of thread ids to see the `tcache` for
-each of them.
+each of them. For example, use the following command to show the `tcache` bins
+for threads 1 and 2.
+
+```
+gef➤ heap bins tcache 1 2
+```
