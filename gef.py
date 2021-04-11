@@ -2670,7 +2670,7 @@ def get_os():
 @lru_cache()
 def get_pid():
     """Return the PID of the debuggee process."""
-    return gdb.selected_inferior().pid
+    return gdb.selected_inferior().pid if not __gef_qemu_mode__ else gdb.selected_thread().ptid[1]
 
 
 @lru_cache()
@@ -2752,7 +2752,7 @@ def download_file(target, use_cache=False, local_name=None):
         gdb.execute("remote get {0:s} {1:s}".format(target, local_name))
 
     except gdb.error:
-        # gdb-stub compat
+        # fallback memory view
         with open(local_name, "w") as f:
             if is_32bit():
                 f.write("00000000-ffffffff rwxp 00000000 00:00 0                    {}\n".format(get_filepath()))
@@ -2768,7 +2768,7 @@ def download_file(target, use_cache=False, local_name=None):
 def open_file(path, use_cache=False):
     """Attempt to open the given file, if remote debugging is active, download
     it first to the mirror in /tmp/."""
-    if is_remote_debug():
+    if is_remote_debug() and not __gef_qemu_mode__:
         lpath = download_file(path, use_cache)
         if not lpath:
             raise IOError("cannot open remote path {:s}".format(path))
@@ -2860,7 +2860,7 @@ def get_info_sections():
             break
 
         try:
-            parts = [x.strip() for x in line.split()]
+            parts = [x for x in line.split()]
             addr_start, addr_end = [int(x, 16) for x in parts[1].split("->")]
             off = int(parts[3][:-1], 16)
             path = parts[4]
@@ -6323,9 +6323,17 @@ class RemoteCommand(GenericCommand):
         else:
             raise RuntimeError("unsupported architecture: {}".format(arch))
 
-        ok("Setting QEMU-stub for '{}' (memory mapping may be wrong)".format(current_arch.arch))
+        ok("Setting Qemu-user stub for '{}' (memory mapping may be wrong)".format(current_arch.arch))
+        hide_context()
         gdb.execute("target remote {}".format(target))
-        __gef_qemu_mode__ = True
+        unhide_context()
+
+        if get_pid() == 1 and "ENABLE=1" in gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False):
+            __gef_qemu_mode__ = True
+            reset_all_caches()
+            info("Note: By using Qemu mode, GEF will display the memory mapping of the Qemu process where the emulated binary resides")
+            get_process_maps()
+            gdb.execute("context")
         return
 
 
