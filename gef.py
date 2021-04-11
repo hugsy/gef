@@ -6769,7 +6769,13 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                 continue
 
             thread.switch()
-            tcache_addr = gdb.parse_and_eval("(void *) tcache")
+            try:
+                tcache_addr = gdb.parse_and_eval("(void *) tcache")
+            except gdb.error:
+                # In binaries not linked with pthread, we can't use the tcache
+                # symbol.
+                tcache_addr = self.get_main_thread_tcache()
+
             if tcache_addr == 0:
                 info("Uninitialized tcache for thread {:d}".format(thread.num))
                 continue
@@ -6813,6 +6819,17 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
         current_thread.switch()
         return
+
+    @staticmethod
+    def get_main_thread_tcache():
+        """The tcache is consistently the first allocation in the main arena,
+        so we can reliably guess the location of the tcache in the main thread.
+        """
+        heap_base = HeapBaseFunction.heap_base()
+        if heap_base is None:
+            err("No heap section")
+            return 0x0
+        return heap_base + 0x10
 
     @staticmethod
     def check_thread_ids(tids):
