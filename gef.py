@@ -6775,6 +6775,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                 continue
 
             gef_print(titlify("Tcachebins for thread {:d}".format(thread.num)))
+            tcache_empty = True
             for i in range(self.TCACHE_MAX_BINS):
                 chunk, count = self.tcachebin(int(tcache_addr), i)
                 chunks = set()
@@ -6803,8 +6804,12 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                         break
 
                 if msg:
+                    tcache_empty = False
                     gef_print("Tcachebins[idx={:d}, size={:#x}] count={:d} ".format(i, (i+2)*(current_arch.ptrsize)*2, count), end="")
                     gef_print("".join(msg))
+
+            if tcache_empty:
+                gef_print("All tcachebins are empty")
 
         current_thread.switch()
         return
