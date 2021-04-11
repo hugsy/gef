@@ -6770,6 +6770,9 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
             thread.switch()
             tcache_addr = gdb.parse_and_eval("(void *) tcache")
+            if tcache_addr == 0:
+                info("Uninitialized tcache for thread {:d}".format(i))
+                continue
 
             gef_print(titlify("Tcachebins for thread {:d}".format(thread.num)))
             for i in range(self.TCACHE_MAX_BINS):
