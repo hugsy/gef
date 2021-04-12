@@ -10532,10 +10532,15 @@ class AliasesRmCommand(GenericCommand):
         if (len(argv) != 1):
             self.rm_usage()
             return
-        if not (alias := [__aliases__.index(a) for a in __aliases__ if a._alias == argv[0]]):
+        found = False
+        for idx, obj in enumerate(__aliases__):
+            if (obj._alias == argv[0]):
+                del __aliases__[idx]
+                found = True
+                break
+        if not found:
             err("{0} not found in aliases.".format(argv[0]))
             return
-        del __aliases__[alias[0]]
         GefSaveCommand().invoke(None, False)
         # TODO: reload GEF so that the alias no longer works in the current session?
         return
