@@ -8,19 +8,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: GEF Push Notification
-        uses: Ilshidur/action-discord@0.0.3
+        uses: Ilshidur/action-discord@0.3.0
         if: github.event_name == 'push' && github.repository_owner == 'hugsy'
         with:
           args: |
             ${{ github.actor }} pushed ${{ github.event.ref }}: ${{ github.event.compare }}
       - name: GEF PR Notification
-        uses: Ilshidur/action-discord@0.0.3
+        uses: Ilshidur/action-discord@0.3.0
         if: github.event_name == 'pull_request' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
         with:
           args: |
             New PR (#${{ github.event.pull_request.number }}) from ${{ github.actor }}
       - name: GEF Issue Notification
-        uses: Ilshidur/action-discord@0.0.3
+        uses: Ilshidur/action-discord@0.3.0
         if: github.event_name == 'issues' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
         with:
           args: |
