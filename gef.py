@@ -6754,6 +6754,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             err("Couldn't find current thread")
             return
 
+        # As a nicety, we want to display threads in ascending order by gdb number
         threads = sorted(gdb.selected_inferior().threads(), key=lambda t: t.num)
         if argv:
             if "all" in argv:
@@ -6763,7 +6764,6 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         else:
             tids = [current_thread.num]
 
-        # As a nicety, we want to display threads in ascending order by gdb number
         for thread in threads:
             if thread.num not in tids:
                 continue
