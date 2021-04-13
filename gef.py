@@ -6754,7 +6754,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             err("Couldn't find current thread")
             return
 
-        threads = gdb.selected_inferior().threads()
+        threads = sorted(gdb.selected_inferior().threads(), key=lambda t: t.num)
         if argv:
             if "all" in argv:
                 tids = [t.num for t in threads]
@@ -6764,13 +6764,13 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             tids = [current_thread.num]
 
         # As a nicety, we want to display threads in ascending order by gdb number
-        for thread in sorted(threads, key=lambda t: t.num):
+        for thread in threads:
             if thread.num not in tids:
                 continue
 
             thread.switch()
-            tcache_addr = self.find_tcache()
 
+            tcache_addr = self.find_tcache()
             if tcache_addr == 0:
                 info("Uninitialized tcache for thread {:d}".format(thread.num))
                 continue
@@ -6836,25 +6836,25 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
     @staticmethod
     def check_thread_ids(tids):
-        """Given a list of thread ids, check their validity and dedup"""
+        """Check the validity, dedup, and return all valid tids."""
         existing_tids = [t.num for t in gdb.selected_inferior().threads()]
         valid_tids = set()
         for tid in tids:
             try:
                 tid = int(tid)
             except ValueError:
-                err("Invalid thread id {:s}".format(str(tid)))
+                err("Invalid thread id {:s}".format(tid))
                 continue
             if tid in existing_tids:
                 valid_tids.add(tid)
             else:
-                err("Unknown thread {:d}".format(tid))
+                err("Unknown thread {}".format(tid))
 
         return list(valid_tids)
 
     @staticmethod
     def tcachebin(tcache_base, i):
-        """Return the head chunk in tcache[i] and the number of chunks in the bin"""
+        """Return the head chunk in tcache[i] and the number of chunks in the bin."""
         assert i <  GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS, "index should be less then TCACHE_MAX_BINS"
         tcache_chunk = GlibcChunk(tcache_base)
 
