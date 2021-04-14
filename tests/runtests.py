@@ -518,6 +518,21 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("\x1b[35m44444444\x1b[0m", res)
         return
 
+    def test_cmd_aliases(self):
+        # test add functionality
+        add_res = gdb_start_silent_cmd("aliases add a b")
+        self.assertNoException(add_res)
+        # test list functionality
+        list_res = gdb_start_silent_cmd("aliases list")
+        self.assertNoException(list_res)
+        self.assertIn("a                               →  b", list_res)
+        # test rm functionality
+        rm_res = gdb_start_silent_cmd("aliases rm a")
+        self.assertNoException(rm_res)
+        rm_list_res = gdb_start_silent_cmd("aliases list")
+        self.assertNotIn("a                               →  b", rm_list_res)
+        return
+
 
 class TestGefFunctions(GefUnitTestGeneric):
     """Tests GEF internal functions."""
