@@ -10498,7 +10498,7 @@ class AliasesCommand(GenericCommand):
         return
 
 @register_command
-class AliasesAddCommand(GenericCommand):
+class AliasesAddCommand(AliasesCommand):
     """Command to add aliases"""
 
     _cmdline_ = "aliases add"
@@ -10506,7 +10506,7 @@ class AliasesAddCommand(GenericCommand):
     _example_ = "{0} scope telescope".format(_cmdline_)
 
     def __init__(self):
-        super().__init__(complete=gdb.COMPLETE_LOCATION)
+        super().__init__()
         return
 
     def do_invoke(self, argv):
@@ -10518,42 +10518,39 @@ class AliasesAddCommand(GenericCommand):
         return
 
 @register_command
-class AliasesRmCommand(GenericCommand):
+class AliasesRmCommand(AliasesCommand):
     """Command to remove aliases"""
 
     _cmdline_ = "aliases rm"
     _syntax_ = "{0} [ALIAS]".format(_cmdline_)
 
     def __init__(self):
-        super().__init__(complete=gdb.COMPLETE_LOCATION)
+        super().__init__()
         return
 
     def do_invoke(self, argv):
+        global __aliases__
         if (len(argv) != 1):
             self.rm_usage()
             return
-        found = False
-        for idx, obj in enumerate(__aliases__):
-            if (obj._alias == argv[0]):
-                del __aliases__[idx]
-                found = True
-                break
-        if not found:
-            err("{0} not found in aliases.".format(argv[0]))
-            return
+        numaliases = len(__aliases__)
+        __aliases__ = [alias for alias in __aliases__ if alias._alias != argv[0]]
+        if numaliases == len(__aliases__):
+             err("{0} not found in aliases.".format(argv[0]))
+             return
         GefSaveCommand().invoke(None, False)
         # TODO: reload GEF so that the alias no longer works in the current session?
         return
 
 @register_command
-class AliasesListCommand(GenericCommand):
+class AliasesListCommand(AliasesCommand):
     """Command to list aliases"""
 
     _cmdline_ = "aliases list"
     _syntax_ = _cmdline_
 
     def __init__(self):
-        super().__init__(complete=gdb.COMPLETE_LOCATION)
+        super().__init__()
         return
 
     def do_invoke(self, argv):
