@@ -3,7 +3,7 @@
 The command `name-break` (alias `nb`) can be used to set a breakpoint on 
 a location with a name assigned to it.
 
-Everytime this breakpoint is hit, the specified name will also be shown
+Every time this breakpoint is hit, the specified name will also be shown
 in the `extra` section to make it easier to keep an overview when using
 multiple breakpoints in a stripped binary.
 
