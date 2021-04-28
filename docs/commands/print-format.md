@@ -13,8 +13,8 @@ specified. Currently, the output language supported are
 ```
 gef➤  print-format -h
 [+] print-format [-f FORMAT] [-b BITSIZE] [-l LENGTH] [-c] [-h] LOCATION
-        -f FORMAT specifies the output format for programming language, avaliable value is py, c, js, asm (default py).
-        -b BITSIZE sepecifies size of bit, avaliable values is 8, 16, 32, 64 (default is 8).
+        -f FORMAT specifies the output format for programming language, available value is py, c, js, asm (default py).
+        -b BITSIZE sepecifies size of bit, available values is 8, 16, 32, 64 (default is 8).
         -l LENGTH specifies length of array (default is 256).
         -c The result of data will copied to clipboard (requires xclip)
         LOCATION specifies where the address of bytes is stored.

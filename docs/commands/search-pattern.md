@@ -9,7 +9,7 @@ gef➤  search-pattern MyPattern
 
 ![grep](https://i.imgur.com/YNzsFvk.png)
 
-It will provide an easily understandable to spot occurences of the specified
+It will provide an easily understandable to spot occurrences of the specified
 pattern, including the section it/they was/were found, and the permission
 associated to that section.
 

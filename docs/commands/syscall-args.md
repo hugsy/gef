@@ -1,6 +1,6 @@
 ## Command syscall-args ##
 
-Often it is troublesome to have to refer to syscall tables everytime we encounter a system call instruction.
+Often it is troublesome to have to refer to syscall tables every time we encounter a system call instruction.
 `gef` can be used to determine the system call being invoked and the arguments being passed to it. Requires [gef-extras](http://github.com/hugsy/gef-extras).
 
 To use it, simply run
