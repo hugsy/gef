@@ -6448,7 +6448,6 @@ class CapstoneDisassembleCommand(GenericCommand):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
-    @only_if_gdb_running
     def do_invoke(self, argv):
         location = None
         show_opcodes = False
