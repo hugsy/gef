@@ -18,10 +18,10 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
         with:
           args: |
-            New PR (#${{ github.event.pull_request.number }}) from ${{ github.actor }}
+            New PR (`#${{ github.event.pull_request.number }}`) from ${{ github.actor }}: {{ EVENT_PAYLOAD.pull_request.html_url }}
       - name: GEF Issue Notification
         uses: Ilshidur/action-discord@0.3.0
         if: github.event_name == 'issues' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
         with:
           args: |
-            New Issue (#${{ github.event.issue.number }}) from ${{ github.actor }}
+            New Issue (`#${{ github.event.issue.number }}`) from ${{ github.actor }}: {{ EVENT_PAYLOAD.issue.html_url }}
