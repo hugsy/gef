@@ -76,6 +76,7 @@ class IDAWrapper(object):
     """
     api_map = {
         "AddBpt": idc.add_bpt,
+        "DelBpt": idaapi.del_bpt,
         "GetBptEA": idc.get_bpt_ea,
         "GetBptQty": idc.get_bpt_qty,
         "GetColor": idc.get_color,
