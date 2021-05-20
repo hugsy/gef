@@ -1854,6 +1854,13 @@ class ARM(Architecture):
         return "; ".join(insns)
 
 
+class ARM_M(ARM):
+    arch = "ARM-M"
+
+    all_registers = ARM.all_registers[:-1] + ["$xpsr",]
+    flag_register = "$xpsr"
+
+
 class AARCH64(ARM):
     arch = "ARM64"
     mode = "ARM"
@@ -3298,6 +3305,7 @@ def set_arch(arch=None, default=None):
     """
     arches = {
         "ARM": ARM, Elf.ARM: ARM,
+        "ARM-M": ARM_M,
         "AARCH64": AARCH64, "ARM64": AARCH64, Elf.AARCH64: AARCH64,
         "X86": X86, Elf.X86_32: X86,
         "X86_64": X86_64, Elf.X86_64: X86_64, "i386:x86-64": X86_64,
@@ -7320,6 +7328,7 @@ class AssembleCommand(GenericCommand):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         self.valid_arch_modes = {
             "ARM": ["ARM", "THUMB"],
+            "ARM-M": ["ARM", "THUMB"],
             "ARM64": ["ARM", "THUMB", "V5", "V8", ],
             "MIPS": ["MICRO", "MIPS3", "MIPS32", "MIPS32R6", "MIPS64",],
             "PPC": ["PPC32", "PPC64", "QPX",],
