@@ -1303,7 +1303,7 @@ def gdb_get_nth_previous_instruction_address(addr, n):
     """Return the address (Integer) of the `n`-th instruction before `addr`."""
     # fixed-length ABI
     if current_arch.instruction_length:
-        return addr - n * current_arch.instruction_length
+        return max(0, addr - n * current_arch.instruction_length)
 
     # variable-length ABI
     cur_insn_addr = gef_current_instruction(addr).address
