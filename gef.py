@@ -1928,7 +1928,7 @@ class AARCH64(ARM):
         taken, reason = False, ""
 
         if mnemo in {"cbnz", "cbz", "tbnz", "tbz"}:
-            reg = operands[0]
+            reg = "${}".format(operands[0])
             op = get_register(reg)
             if mnemo == "cbnz":
                 if op!=0: taken, reason = True, "{}!=0".format(reg)
