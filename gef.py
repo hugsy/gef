@@ -10484,10 +10484,10 @@ class GefAlias(gdb.Command):
 
 @register_command
 class AliasesCommand(GenericCommand):
-    """Base command to add, remove, or list aliases"""
+    """Base command to add, remove, or list aliases."""
 
     _cmdline_ = "aliases"
-    _syntax_  = "{:s} (add|rm|list)".format(_cmdline_)
+    _syntax_  = "{:s} (add|rm|ls)".format(_cmdline_)
 
     def __init__(self):
         super().__init__(prefix=True)
@@ -10499,7 +10499,7 @@ class AliasesCommand(GenericCommand):
 
 @register_command
 class AliasesAddCommand(AliasesCommand):
-    """Command to add aliases"""
+    """Command to add aliases."""
 
     _cmdline_ = "aliases add"
     _syntax_  = "{0} [ALIAS] [COMMAND]".format(_cmdline_)
@@ -10519,7 +10519,7 @@ class AliasesAddCommand(AliasesCommand):
 
 @register_command
 class AliasesRmCommand(AliasesCommand):
-    """Command to remove aliases"""
+    """Command to remove aliases."""
 
     _cmdline_ = "aliases rm"
     _syntax_ = "{0} [ALIAS]".format(_cmdline_)
@@ -10530,23 +10530,24 @@ class AliasesRmCommand(AliasesCommand):
 
     def do_invoke(self, argv):
         global __aliases__
-        if (len(argv) != 1):
+        if len(argv) != 1:
             self.rm_usage()
             return
-        numaliases = len(__aliases__)
-        __aliases__ = [alias for alias in __aliases__ if alias._alias != argv[0]]
-        if numaliases == len(__aliases__):
-             err("{0} not found in aliases.".format(argv[0]))
-             return
+        try:
+            alias_to_remove = next(filter(lambda x: x._alias == argv[0], __aliases__))
+            __aliases__.remove(alias_to_remove)
+        except (ValueError, StopIteration) as e:
+            err("{0} not found in aliases.".format(argv[0]))
+            return
         GefSaveCommand().invoke(None, False)
-        # TODO: reload GEF so that the alias no longer works in the current session?
+        gef_print("You must reload GEF for alias removals to apply.")
         return
 
 @register_command
 class AliasesListCommand(AliasesCommand):
-    """Command to list aliases"""
+    """Command to list aliases."""
 
-    _cmdline_ = "aliases list"
+    _cmdline_ = "aliases ls"
     _syntax_ = _cmdline_
 
     def __init__(self):
@@ -10555,8 +10556,8 @@ class AliasesListCommand(AliasesCommand):
 
     def do_invoke(self, argv):
         ok("Aliases defined:")
-        for _alias in __aliases__:
-            gef_print("{:30s} {} {}".format(_alias._alias, RIGHT_ARROW, _alias._command))
+        for a in __aliases__:
+            gef_print("{:30s} {} {}".format(a._alias, RIGHT_ARROW, a._command))
         return
 
 class GefTmuxSetup(gdb.Command):

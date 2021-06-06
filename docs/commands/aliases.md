@@ -25,7 +25,7 @@ aliases rm [alias]
 
 ### Listing Aliases
 
-One can list aliases by using the `aliases list` command. Some sample output of this
+One can list aliases by using the `aliases ls` command. Some sample output of this
 command is seen below.
 
 ```
