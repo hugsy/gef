@@ -10514,7 +10514,6 @@ class AliasesAddCommand(AliasesCommand):
             self.usage()
             return
         GefAlias(argv[0], " ".join(argv[1:]))
-        GefSaveCommand().invoke(None, False)
         return
 
 @register_command
@@ -10531,7 +10530,7 @@ class AliasesRmCommand(AliasesCommand):
     def do_invoke(self, argv):
         global __aliases__
         if len(argv) != 1:
-            self.rm_usage()
+            self.usage()
             return
         try:
             alias_to_remove = next(filter(lambda x: x._alias == argv[0], __aliases__))
@@ -10539,7 +10538,6 @@ class AliasesRmCommand(AliasesCommand):
         except (ValueError, StopIteration) as e:
             err("{0} not found in aliases.".format(argv[0]))
             return
-        GefSaveCommand().invoke(None, False)
         gef_print("You must reload GEF for alias removals to apply.")
         return
 
