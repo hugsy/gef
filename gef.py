@@ -57,6 +57,7 @@
 from __future__ import print_function, division, absolute_import
 
 import abc
+import argparse
 import binascii
 import codecs
 import collections
@@ -2591,6 +2592,47 @@ def only_if_gdb_version_higher_than(required_gdb_version):
                 raise EnvironmentError(reason)
         return inner_f
     return wrapper
+
+
+def parse_arguments(required_arguments, optional_arguments):
+    """Argument parsing decorator."""
+
+    def decorator(f):
+        def wrapper(*args, **kwargs):
+            parser = argparse.ArgumentParser(add_help=False, argument_default=argparse.SUPPRESS)
+
+            for argname in required_arguments:
+                argvalue = required_arguments[argname]
+                argtype = type(argvalue)
+                if argname.startswith("-"):
+                    if argtype == bool:
+                        action = "store_true" if argvalue else "store_false"
+                        parser.add_argument(argname, action=action, help="Help for {}".format(argname), required=True, default=argvalue)
+                    else:
+                        parser.add_argument(argname, type=argtype, help="Help for {}".format(argname), required=True, default=argvalue)
+                else:
+                    parser.add_argument(argname, type=argtype, help="Help for {}".format(argname), default=argvalue)
+
+            for argname in optional_arguments:
+                if not argname.startswith("-"):
+                    continue
+
+                argvalue = optional_arguments[argname]
+                argtype = type(argvalue)
+                if argtype == bool:
+                    action = "store_true" if argvalue else "store_false"
+                    parser.add_argument(argname, action=action, help="Help for {}".format(argname), required=False, default=argvalue)
+                else:
+                    parser.add_argument(argname, type=argtype, help="Help for {}".format(argname), required=False, default=argvalue)
+
+            obj, cmd_args = args[0], args[1:]
+            parsed_args = parser.parse_args(*cmd_args)
+            kwargs["arguments"] = parsed_args
+            info("executing {}".format(f.__name__))
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
 
 
 def use_stdtype():
@@ -5840,49 +5882,12 @@ class UnicornEmulateCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    def do_invoke(self, argv):
-        start_insn = None
-        end_insn = -1
-        nb_insn = -1
-        to_file = None
-        to_script_only = None
-        opts = getopt.getopt(argv, "f:t:n:so:h")[0]
-        for o, a in opts:
-            if o == "-f":   start_insn = int(a, 16)
-            elif o == "-t":
-                end_insn = int(a, 16)
-                self.nb_insn = -1
-
-            elif o == "-n":
-                nb_insn = int(a)
-                end_insn = -1
-
-            elif o == "-s":
-                to_script_only = True
-
-            elif o == "-o":
-                to_file = a
-
-            elif o == "-h":
-                self.help()
-                return
-
-        if start_insn is None:
-            start_insn = current_arch.pc
-
-        if end_insn < 0 and nb_insn < 0:
-            err("No stop condition (-t|-n) defined.")
-            return
-
-        if end_insn > 0:
-            self.run_unicorn(start_insn, end_insn, to_script_only=to_script_only, to_file=to_file)
-
-        elif nb_insn > 0:
-            end_insn = self.get_unicorn_end_addr(start_insn, nb_insn)
-            self.run_unicorn(start_insn, end_insn, to_script_only=to_script_only, to_file=to_file)
-
-        else:
-            raise Exception("Should never be here")
+    @parse_arguments({}, {"--start": 0, "--nb": 1, "--until": 0, "--dry-run": False, "--output-file": ""})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        start_address = args.start or current_arch.pc
+        end_address = args.until or self.get_unicorn_end_addr(start_address, args.nb)
+        self.run_unicorn(start_address, end_address, to_script_only=args.dry_run, to_file=args.output_file)
         return
 
     def get_unicorn_end_addr(self, start_addr, nb):
