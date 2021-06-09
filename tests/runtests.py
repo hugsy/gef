@@ -324,12 +324,12 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         res = gdb_start_silent_cmd("print-format $rsp")
         self.assertNoException(res)
         self.assertTrue("buf = [" in res)
-        res = gdb_start_silent_cmd("print-format -f js $rsp")
+        res = gdb_start_silent_cmd("print-format --lang js $rsp")
         self.assertNoException(res)
         self.assertTrue("var buf = [" in res)
-        res = gdb_start_silent_cmd("print-format -f iDontExist $rsp")
+        res = gdb_start_silent_cmd("print-format --lang iDontExist $rsp")
         self.assertNoException(res)
-        self.assertTrue("Language must be :" in res)
+        self.assertTrue("Language must be in:" in res)
         return
 
     def test_cmd_process_status(self):
@@ -465,7 +465,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         return
 
     def test_cmd_unicorn_emulate(self):
-        cmd = "emu -n 1"
+        cmd = "emu 10"
         res = gdb_run_cmd(cmd)
         self.assertFailIfInactiveSession(res)
 
