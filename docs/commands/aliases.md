@@ -1,9 +1,34 @@
 ## Command aliases ##
 
-List the aliases defined by `GEF`.
+Base command to add, remove, and list `GEF` defined aliases.
 
 ```
 gef➤  aliases
+aliases (add|rm|list)
+```
+
+### Adding/Removing Aliases
+
+`GEF` defines its own aliasing mechanism which overrides the traditional
+alias that GDB provides through the built-in command `alias`. To add a new alias,
+simply use the `aliases add` command. The "command" parameter may contain spaces.
+
+```
+aliases add [alias] [command]
+```
+
+To remove an alias, simply use the `aliases rm` command.
+
+```
+aliases rm [alias]
+```
+
+### Listing Aliases
+
+One can list aliases by using the `aliases ls` command. Some sample output of this
+command is seen below.
+
+```
 [+] Aliases defined:
 fmtstr-helper                   →  format-string-helper
 telescope                       →  dereference
@@ -19,12 +44,9 @@ ps                              →  process-search
 [...]
 ```
 
-### Creating/deleting aliases
+### Using the Configuration File
 
-`GEF` defines its own aliasing mechanism which overrides the traditional
-alias that GDB provides through the built-in command `alias`.
-
-Users can create/modify/delete aliases by editing the `GEF` configuration file,
+Users can also create/modify/delete aliases by editing the `GEF` configuration file,
 by default located at `~/.gef.rc`. The aliases must be in the `aliases` section
 of the configuration file.
 

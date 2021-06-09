@@ -10,7 +10,7 @@ improve it.
 
 | Command    | Description |
 |:-----------|----------------:|
-|aliases                   | GEF defined aliases|
+|aliases                   | Base command to add, remove, and list GEF defined aliases.|
 |aslr                      | View/modify GDB ASLR behavior.|
 |assemble                  | Inline code assemble. Architecture can be set in GEF runtime config (default is x86).  (alias: asm) |
 |capstone-disassemble      | Use capstone disassembly framework to disassemble code. (alias: cs-dis) |

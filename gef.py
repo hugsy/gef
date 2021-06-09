@@ -10575,21 +10575,81 @@ class GefAlias(gdb.Command):
 
         return None
 
+@register_command
+class AliasesCommand(GenericCommand):
+    """Base command to add, remove, or list aliases."""
 
-class GefAliases(gdb.Command):
-    """List all custom aliases."""
+    _cmdline_ = "aliases"
+    _syntax_  = "{:s} (add|rm|ls)".format(_cmdline_)
 
     def __init__(self):
-        super().__init__("aliases", gdb.COMMAND_OBSCURE, gdb.COMPLETE_NONE)
+        super().__init__(prefix=True)
         return
 
-    def invoke(self, args, from_tty):
-        self.dont_repeat()
+    def do_invoke(self, argv):
+        self.usage()
+        return
+
+@register_command
+class AliasesAddCommand(AliasesCommand):
+    """Command to add aliases."""
+
+    _cmdline_ = "aliases add"
+    _syntax_  = "{0} [ALIAS] [COMMAND]".format(_cmdline_)
+    _example_ = "{0} scope telescope".format(_cmdline_)
+
+    def __init__(self):
+        super().__init__()
+        return
+
+    def do_invoke(self, argv):
+        if (len(argv) < 2):
+            self.usage()
+            return
+        GefAlias(argv[0], " ".join(argv[1:]))
+        return
+
+@register_command
+class AliasesRmCommand(AliasesCommand):
+    """Command to remove aliases."""
+
+    _cmdline_ = "aliases rm"
+    _syntax_ = "{0} [ALIAS]".format(_cmdline_)
+
+    def __init__(self):
+        super().__init__()
+        return
+
+    def do_invoke(self, argv):
+        global __aliases__
+        if len(argv) != 1:
+            self.usage()
+            return
+        try:
+            alias_to_remove = next(filter(lambda x: x._alias == argv[0], __aliases__))
+            __aliases__.remove(alias_to_remove)
+        except (ValueError, StopIteration) as e:
+            err("{0} not found in aliases.".format(argv[0]))
+            return
+        gef_print("You must reload GEF for alias removals to apply.")
+        return
+
+@register_command
+class AliasesListCommand(AliasesCommand):
+    """Command to list aliases."""
+
+    _cmdline_ = "aliases ls"
+    _syntax_ = _cmdline_
+
+    def __init__(self):
+        super().__init__()
+        return
+
+    def do_invoke(self, argv):
         ok("Aliases defined:")
-        for _alias in __aliases__:
-            gef_print("{:30s} {} {}".format(_alias._alias, RIGHT_ARROW, _alias._command))
+        for a in __aliases__:
+            gef_print("{:30s} {} {}".format(a._alias, RIGHT_ARROW, a._command))
         return
-
 
 class GefTmuxSetup(gdb.Command):
     """Setup a confortable tmux debugging environment."""
@@ -10750,5 +10810,4 @@ if __name__ == "__main__":
             # we must force a call to the new_objfile handler (see issue #278)
             new_objfile_handler(None)
 
-        GefAliases()
         GefTmuxSetup()
