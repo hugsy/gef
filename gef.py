@@ -2621,7 +2621,7 @@ def parse_arguments(required_arguments, optional_arguments):
                         parser.add_argument(argname, type=argtype, required=True, default=argvalue)
                 else:
                     # positional args
-                    parser.add_argument(argname, type=argtype, default=argvalue, nargs='?')
+                    parser.add_argument(argname, type=argtype, default=argvalue, nargs='*')
 
             for argname in optional_arguments:
                 if not argname.startswith("-"):
@@ -3181,10 +3181,7 @@ def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):
 
     else:
         arch = getattr(module, "{:s}_ARCH_{:s}".format(prefix, arch))
-        if prefix == "KS" and mode == "ARM":
-            # this workaround is because keystone.KS_MODE_ARM doesn't exist, must use 0
-            mode = 0
-        elif mode:
+        if mode:
             mode = getattr(module, "{:s}_MODE_{:s}".format(prefix, mode))
         else:
             mode = 0
@@ -4359,7 +4356,7 @@ class PrintFormatCommand(GenericCommand):
             err("Language must be in: {}".format(str(self.valid_formats)))
             return
 
-        start_addr = int(gdb.parse_and_eval(args.location))
+        start_addr = int(gdb.parse_and_eval(args.location[0]))
         size = int(args.bitlen / 8)
         end_addr = start_addr + args.length * size
         fmt = self.format_matrix[args.bitlen][0]
@@ -5871,7 +5868,7 @@ class UnicornEmulateCommand(GenericCommand):
     def do_invoke(self, argv, *args, **kwargs):
         args = kwargs["arguments"]
         start_address = args.start or current_arch.pc
-        end_address = args.until or self.get_unicorn_end_addr(start_address, args.nb)
+        end_address = args.until or self.get_unicorn_end_addr(start_address, args.nb[0])
         self.run_unicorn(start_address, end_address, skip_emulation=args.skip_emulation, to_file=args.output_file)
         return
 
@@ -6388,7 +6385,7 @@ class StubCommand(GenericCommand):
     @parse_arguments({"address": ""}, {"--retval": 0})
     def do_invoke(self, argv, *args, **kwargs):
         args = kwargs["arguments"]
-        loc = args.address if args.address else "*{:#x}".format(current_arch.pc)
+        loc = args.address[0] if args.address else "*{:#x}".format(current_arch.pc)
         StubBreakpoint(loc, args.retval)
         return
 
@@ -7275,16 +7272,14 @@ class RopperCommand(GenericCommand):
 
 @register_command
 class AssembleCommand(GenericCommand):
-    """Inline code assemble. Architecture can be set in GEF runtime config (default x86-32). """
+    """Inline code assemble. Architecture can be set in GEF runtime config. """
 
     _cmdline_ = "assemble"
     _syntax_  = "{:s} [-a ARCH] [-m MODE] [-e] [-s] [-l LOCATION] instruction;[instruction;...instruction;])".format(_cmdline_)
     _aliases_ = ["asm",]
     _example_ = "\n{0:s} -a x86 -m 32 nop ; nop ; inc eax ; int3\n{0:s} -a arm -m arm add r0, r0, 1".format(_cmdline_)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(complete=gdb.COMPLETE_LOCATION)
-        self.valid_arch_modes = {
+    valid_arch_modes = {
             "ARM": ["ARM", "THUMB"],
             "ARM64": ["ARM", "THUMB", "V5", "V8", ],
             "MIPS": ["MICRO", "MIPS3", "MIPS32", "MIPS32R6", "MIPS64",],
@@ -7293,6 +7288,13 @@ class AssembleCommand(GenericCommand):
             "SYSTEMZ": ["32",],
             "X86": ["16", "32", "64"],
         }
+    valid_archs = valid_arch_modes.keys()
+    valid_modes = [_ for sublist in valid_arch_modes.values() for _ in sublist]
+
+    def __init__(self):
+        super().__init__()
+        self.add_setting("default_architecture", "X86", "Specify the default architecture to use when assembling")
+        self.add_setting("default_mode", "64", "Specify the default architecture to use when assembling")
         return
 
     def pre_load(self):
@@ -7312,52 +7314,37 @@ class AssembleCommand(GenericCommand):
             gef_print("  * {}".format(" / ".join(self.valid_arch_modes[arch])))
         return
 
-    def do_invoke(self, argv):
-        arch_s, mode_s, big_endian, as_shellcode, write_to_location = None, None, False, False, None
-        opts, args = getopt.getopt(argv, "a:m:l:esh")
-        for o, a in opts:
-            if o == "-a": arch_s = a.upper()
-            if o == "-m": mode_s = a.upper()
-            if o == "-e": big_endian = True
-            if o == "-s": as_shellcode = True
-            if o == "-l": write_to_location = int(gdb.parse_and_eval(a))
-            if o == "-h":
-                self.usage()
-                return
+    @parse_arguments({"instructions": ""}, {"--mode": "", "--arch": "", "--overwrite-location": 0, "--big-endian": True, "--as-shellcode": True, })
+    def do_invoke(self, argv, *args, **kwargs):
+        arch_s, mode_s, endian_s = self.get_setting("default_architecture"), self.get_setting("default_mode"), ""
 
-        if not args:
+        args = kwargs["arguments"]
+        if not args.instructions:
+            err("No instruction given.")
             return
 
-        if (arch_s, mode_s) == (None, None):
-            if is_alive():
-                arch_s, mode_s = current_arch.arch, current_arch.mode
-                endian_s = "big" if is_big_endian() else "little"
-                arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=is_big_endian())
-            else:
-                # if not alive, defaults to x86-32
-                arch_s = "X86"
-                mode_s = "32"
-                endian_s = "little"
-                arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=False)
-        elif not arch_s:
-            err("An architecture (-a) must be provided")
-            return
-        elif not mode_s:
-            err("A mode (-m) must be provided")
-            return
-        else:
-            arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=big_endian)
-            endian_s = "big" if big_endian else "little"
+        if is_alive():
+            arch_s, mode_s = current_arch.arch, current_arch.mode
+            endian_s = "big" if is_big_endian() else ""
 
-        insns = " ".join(args)
-        insns = [x.strip() for x in insns.split(";") if x is not None]
+        if args.arch:
+            arch_s = args.arch
 
-        info("Assembling {} instruction{} for {} ({} endian)".format(len(insns),
-                                                                     "s" if len(insns)>1 else "",
-                                                                     ":".join([arch_s, mode_s]),
-                                                                     endian_s))
+        if args.mode:
+            mode_s = args.mode
 
-        if as_shellcode:
+        if args.big_endian:
+            endian_s = "big"
+
+        if arch_s.upper() not in self.valid_archs or mode_s.upper() not in self.valid_modes:
+            raise AttributeError("invalid arch/mode")
+
+        # this is fire a ValueError if the arch/mode/endianess are invalid
+        arch, mode = get_keystone_arch(arch=arch_s.upper(), mode=mode_s.upper(), endian=endian_s.upper())
+        insns = [x.strip() for x in " ".join(args.instructions).split(";") if x]
+        info("Assembling {} instruction(s) for {}:{}".format(len(insns),arch_s, mode_s))
+
+        if args.as_shellcode:
             gef_print("""sc="" """)
 
         raw = b""
@@ -7367,7 +7354,7 @@ class AssembleCommand(GenericCommand):
                 gef_print("(Invalid)")
                 continue
 
-            if write_to_location:
+            if args.overwrite_location:
                 raw += res
                 continue
 
@@ -7375,15 +7362,15 @@ class AssembleCommand(GenericCommand):
             res = b"\\x" + b"\\x".join([s[i:i + 2] for i in range(0, len(s), 2)])
             res = res.decode("utf-8")
 
-            if as_shellcode:
+            if args.as_shellcode:
                 res = """sc+="{0:s}" """.format(res)
 
             gef_print("{0:60s} # {1}".format(res, insn))
 
-        if write_to_location:
+        if args.overwrite_location:
             l = len(raw)
-            info("Overwriting {:d} bytes at {:s}".format(l, format_address(write_to_location)))
-            write_memory(write_to_location, raw, l)
+            info("Overwriting {:d} bytes at {:s}".format(l, format_address(args.overwrite_location)))
+            write_memory(args.overwrite_location, raw, l)
         return
 
 

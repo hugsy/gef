@@ -212,6 +212,17 @@ gef_on_exit_unhook
 > GDB are only present in the very latest version of GDB.
 
 
+```
+@parse_arguments( {"required_argument_1": DefaultValue1, ...}, {"--optional-argument-1": DefaultValue1, ...} )
+```
+> This decorator aims to facilitate the argument passing to a command. If added, it will use
+> the `argparse` module to parse arguments, and will store them in the `kwargs["arguments"]` of
+> the calling function (therefore the function **must** have `*args, **kwargs` added to its
+> signature). Argument type is inferred directly from the default value **except** for boolean,
+> where a value of `True` corresponds to `argparse`'s `store_true` action. For more details on
+> `argparse`, refer to its Python doc.
+
+
 ### Classes ###
 
 For exhaustive documentation, run
