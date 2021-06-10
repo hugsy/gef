@@ -2615,16 +2615,22 @@ def parse_arguments(required_arguments, optional_arguments):
 
                 if argname.startswith("-"):
                     # optional args
-                    if argtype == bool:
+                    if isinstance(argtype, bool):
                         parser.add_argument(argname, action="store_true" if argvalue else "store_false")
                     else:
                         parser.add_argument(argname, type=argtype, required=True, default=argvalue)
                 else:
+                    if argtype in (list, tuple):
+                        nargs = '*'
+                        argtype = type(argvalue[0])
+                    else:
+                        nargs = '?'
                     # positional args
-                    parser.add_argument(argname, type=argtype, default=argvalue, nargs='*')
+                    parser.add_argument(argname, type=argtype, default=argvalue, nargs=nargs)
 
             for argname in optional_arguments:
                 if not argname.startswith("-"):
+                    # refuse positional arguments
                     continue
                 argvalue = optional_arguments[argname]
                 argtype = type(argvalue)
@@ -4356,7 +4362,7 @@ class PrintFormatCommand(GenericCommand):
             err("Language must be in: {}".format(str(self.valid_formats)))
             return
 
-        start_addr = int(gdb.parse_and_eval(args.location[0]))
+        start_addr = int(gdb.parse_and_eval(args.location))
         size = int(args.bitlen / 8)
         end_addr = start_addr + args.length * size
         fmt = self.format_matrix[args.bitlen][0]
@@ -5868,7 +5874,7 @@ class UnicornEmulateCommand(GenericCommand):
     def do_invoke(self, argv, *args, **kwargs):
         args = kwargs["arguments"]
         start_address = args.start or current_arch.pc
-        end_address = args.until or self.get_unicorn_end_addr(start_address, args.nb[0])
+        end_address = args.until or self.get_unicorn_end_addr(start_address, args.nb)
         self.run_unicorn(start_address, end_address, skip_emulation=args.skip_emulation, to_file=args.output_file)
         return
 
@@ -6385,7 +6391,7 @@ class StubCommand(GenericCommand):
     @parse_arguments({"address": ""}, {"--retval": 0})
     def do_invoke(self, argv, *args, **kwargs):
         args = kwargs["arguments"]
-        loc = args.address[0] if args.address else "*{:#x}".format(current_arch.pc)
+        loc = args.address if args.address else "*{:#x}".format(current_arch.pc)
         StubBreakpoint(loc, args.retval)
         return
 
@@ -7314,7 +7320,7 @@ class AssembleCommand(GenericCommand):
             gef_print("  * {}".format(" / ".join(self.valid_arch_modes[arch])))
         return
 
-    @parse_arguments({"instructions": ""}, {"--mode": "", "--arch": "", "--overwrite-location": 0, "--big-endian": True, "--as-shellcode": True, })
+    @parse_arguments({"instructions": ["",]}, {"--mode": "", "--arch": "", "--overwrite-location": 0, "--big-endian": True, "--as-shellcode": True, })
     def do_invoke(self, argv, *args, **kwargs):
         arch_s, mode_s, endian_s = self.get_setting("default_architecture"), self.get_setting("default_mode"), ""
 
