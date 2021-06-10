@@ -249,11 +249,11 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
 
     def test_cmd_keystone_assemble(self):
         valid_cmds = [
-            "assemble nop; xor eax, eax; int 0x80",
-            "assemble -a arm -m arm add r0, r1, r2",
-            "assemble -a mips -m mips32 add $v0, 1",
-            "assemble -a sparc -m sparc32  set 0, %o0",
-            "assemble -a arm64 -m little_endian add x29, sp, 0; mov  w0, 0; ret"
+            "assemble nop; xor eax, eax; syscall",
+            "assemble --arch arm   --mode arm add  r0, r1, r2",
+            "assemble --arch mips  --mode mips32   add $v0, 1",
+            "assemble --arch sparc --mode sparc32  set 0, %o0",
+            "assemble --arch arm64 --mode arm add x29, sp, 0; mov  w0, 0; ret"
         ]
         for cmd in valid_cmds:
             res = gdb_start_silent_cmd(cmd)
