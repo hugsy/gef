@@ -3543,18 +3543,15 @@ def de_bruijn(alphabet, n):
     return db(1, 1)
 
 
-def generate_cyclic_pattern(length):
+def generate_cyclic_pattern(length, cycle=4):
     """Create a `length` byte bytearray of a de Bruijn cyclic pattern."""
     charset = bytearray(b"abcdefghijklmnopqrstuvwxyz")
-    cycle = get_memory_alignment()
-    res = bytearray()
-
+    pattern = bytearray()
     for i, c in enumerate(de_bruijn(charset, cycle)):
         if i == length:
             break
-        res.append(c)
-
-    return res
+        pattern.append(c)
+    return pattern
 
 
 def safe_parse_and_eval(value):
@@ -9291,7 +9288,8 @@ class PatternCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super().__init__(prefix=True)
-        self.add_setting("length", 1024, "Initial length of a cyclic buffer to generate")
+        self.add_setting("length", 1024, "Default length of a cyclic buffer to generate")
+        self.add_setting("period", 4, "Default period")
         return
 
     def do_invoke(self, argv):
@@ -9302,28 +9300,20 @@ class PatternCommand(GenericCommand):
 @register_command
 class PatternCreateCommand(GenericCommand):
     """Generate a de Bruijn cyclic pattern. It will generate a pattern long of SIZE,
-    incrementally varying of one byte at each generation. The length of each block is
-    equal to sizeof(void*).
-    Note: This algorithm is the same than the one used by pwntools library."""
+    incrementally varying of one byte at each generation. The pattern rotation period
+    is by default set to 4 for compatibility with pwntools, but can be adjusted."""
 
     _cmdline_ = "pattern create"
     _syntax_  = "{:s} [SIZE]".format(_cmdline_)
+    _example_ = "{:s} 4096".format(_cmdline_)
 
-    def do_invoke(self, argv):
-        if len(argv) == 1:
-            try:
-                sz = int(argv[0], 0)
-            except ValueError:
-                err("Invalid size")
-                return
-            set_gef_setting("pattern.length", sz)
-        elif len(argv) > 1:
-            err("Invalid syntax")
-            return
-
-        size = get_gef_setting("pattern.length")
-        info("Generating a pattern of {:d} bytes".format(size))
-        pattern_str = gef_pystring(generate_cyclic_pattern(size))
+    @parse_arguments({"length": 0}, {"--period": 0})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        length = args.length or get_gef_setting("pattern.length")
+        period = args.period or get_gef_setting("pattern.period")
+        info("Generating a pattern of {:d} bytes (n={:d})".format(length, period))
+        pattern_str = gef_pystring(generate_cyclic_pattern(length, period))
         gef_print(pattern_str)
         ok("Saved as '{:s}'".format(gef_convenience(pattern_str)))
         return
@@ -9340,27 +9330,16 @@ class PatternSearchCommand(GenericCommand):
     _aliases_ = ["pattern offset",]
 
     @only_if_gdb_running
-    def do_invoke(self, argv):
-        argc = len(argv)
-        if argc not in (1, 2):
-            self.usage()
-            return
-
-        if argc == 2:
-            try:
-                size = int(argv[1], 0)
-            except ValueError:
-                err("Invalid size")
-                return
-        else:
-            size = get_gef_setting("pattern.length")
-
-        pattern = argv[0]
-        info("Searching '{:s}'".format(pattern))
-        self.search(pattern, size)
+    @parse_arguments({"pattern": ""}, {"--period": 0, "--length": 0})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        length = args.length or get_gef_setting("pattern.length")
+        period = args.period or get_gef_setting("pattern.period")
+        info("Searching for '{:s}'".format(args.pattern))
+        self.search(args.pattern, length, period)
         return
 
-    def search(self, pattern, size):
+    def search(self, pattern, size, period):
         pattern_be, pattern_le = None, None
 
         # 1. check if it's a symbol (like "$sp" or "0x1337")
@@ -9384,7 +9363,7 @@ class PatternSearchCommand(GenericCommand):
             pattern_be = gef_pybytes(pattern)
             pattern_le = gef_pybytes(pattern[::-1])
 
-        cyclic_pattern = generate_cyclic_pattern(size)
+        cyclic_pattern = generate_cyclic_pattern(size, period)
         found = False
         off = cyclic_pattern.find(pattern_le)
         if off >= 0:

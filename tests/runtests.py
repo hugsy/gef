@@ -305,14 +305,28 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("Gef!Gef!Gef!Gef!", res)
         return
 
-    def test_cmd_pattern(self):
+    def test_cmd_pattern_create(self):
         cmd = "pattern create 32"
         target = "/tmp/pattern.out"
         res = gdb_run_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn("aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
+        self.assertIn("aaaabaaacaaadaaaeaaaf", res)
 
+        cmd = "pattern create --period 8 32"
+        target = "/tmp/pattern.out"
+        res = gdb_run_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertIn("aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
+        return
+
+    def test_cmd_pattern_search(self):
         cmd = "pattern search $rbp"
+        target = "/tmp/pattern.out"
+        res = gdb_run_cmd(cmd, before=["set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run"], target=target)
+        self.assertNoException(res)
+        self.assertIn("Found at offset", res)
+
+        cmd = "pattern search --period 8 $rbp"
         target = "/tmp/pattern.out"
         res = gdb_run_cmd(cmd, before=["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"], target=target)
         self.assertNoException(res)
