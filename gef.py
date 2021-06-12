@@ -63,7 +63,6 @@ import codecs
 import collections
 import ctypes
 import functools
-import getopt
 import hashlib
 import importlib
 import inspect
@@ -2606,7 +2605,7 @@ def parse_arguments(required_arguments, optional_arguments):
 
     def decorator(f):
         def wrapper(*args, **kwargs):
-            parser = argparse.ArgumentParser(prog="gef", add_help=False)
+            parser = argparse.ArgumentParser(prog=args[0]._cmdline_, add_help=True)
             for argname in required_arguments:
                 argvalue = required_arguments[argname]
                 argtype = type(argvalue)
@@ -2641,7 +2640,7 @@ def parse_arguments(required_arguments, optional_arguments):
                 else:
                     parser.add_argument(argname, type=argtype, default=argvalue)
 
-            obj, cmd_args = args[0], args[1:]
+            _, cmd_args = args[0], args[1:]
             parsed_args = parser.parse_args(*cmd_args)
             kwargs["arguments"] = parsed_args
             return f(*args, **kwargs)
@@ -6102,39 +6101,38 @@ class RemoteCommand(GenericCommand):
         self.add_setting("clean_on_exit", False, "Clean the temporary data downloaded when the session exits.")
         return
 
-    def do_invoke(self, argv):
+    @parse_arguments(
+        {"target": ""},
+        {"--update-solib": True,
+         "--download-everything": True,
+         "--download-lib": "",
+         "--extended-remote": True,
+         "--pid": 0,
+         "--qemu-mode": True,})
+    def do_invoke(self, argv, *args, **kwargs):
         global __gef_remote__
 
         if __gef_remote__ is not None:
             err("You already are in remote session. Close it first before opening a new one...")
             return
 
-        target = None
-        rpid = -1
-        update_solib = False
-        self.download_all_libs = False
-        download_lib = None
-        is_extended_remote = False
-        qemu_gdb_mode = False
-        opts, args = getopt.getopt(argv, "p:UD:qAEh")
-        for o, a in opts:
-            if o == "-U":   update_solib = True
-            elif o == "-D":   download_lib = a
-            elif o == "-A":   self.download_all_libs = True
-            elif o == "-E":   is_extended_remote = True
-            elif o == "-p":   rpid = int(a)
-            elif o == "-q":   qemu_gdb_mode = True
-            elif o == "-h":
-                self.help()
-                return
-
-        if not args or ":" not in args[0]:
+        # argument check
+        args = kwargs["arguments"]
+        if not args.target or ":" not in args.target:
             err("A target (HOST:PORT) must always be provided.")
             return
 
-        if qemu_gdb_mode:
+        if args.extended_remote and not args.pid:
+            err("A PID (--pid) is required for extended remote debugging")
+            return
+
+        target = args.target
+        pid = args.pid if args.extended_remote and args.pid else get_pid()
+        self.download_all_libs = args.download_everything
+
+        if args.qemu_mode:
             # compat layer for qemu-user
-            self.prepare_qemu_stub(args[0])
+            self.prepare_qemu_stub(target)
             return
 
         # lazily install handler on first use
@@ -6142,29 +6140,22 @@ class RemoteCommand(GenericCommand):
             gef_on_new_hook(self.new_objfile_handler)
             self.handler_connected = True
 
-        target = args[0]
-
-        if self.connect_target(target, is_extended_remote) is False:
+        if not self.connect_target(target, args.is_extended_remote):
             return
 
-        # if extended-remote, need to attach
-        if is_extended_remote:
-            ok("Attaching to {:d}".format(rpid))
+        if args.is_extended_remote:
+            ok("Attaching to {:d}".format(pid))
             hide_context()
-            gdb.execute("attach {:d}".format(rpid))
+            gdb.execute("attach {:d}".format(pid))
             unhide_context()
-        else:
-            rpid = get_pid()
-            ok("Targeting PID={:d}".format(rpid))
 
-        self.add_setting("target", target, "Remote target to connect to")
-        self.setup_remote_environment(rpid, update_solib)
+        self.setup_remote_environment(pid, args.update_solib)
 
         if not is_remote_debug():
             err("Failed to establish remote target environment.")
             return
 
-        if self.download_all_libs is True:
+        if self.download_all_libs:
             vmmap = get_process_maps()
             success = 0
             for sect in vmmap:
@@ -6177,19 +6168,21 @@ class RemoteCommand(GenericCommand):
 
             ok("Downloaded {:d} files".format(success))
 
-        elif download_lib is not None:
-            _file = download_file(download_lib)
+        elif args.download_lib:
+            _file = download_file(args.download_lib)
             if _file is None:
                 err("Failed to download remote file")
                 return
 
-            ok("Download success: {:s} {:s} {:s}".format(download_lib, RIGHT_ARROW, _file))
+            ok("Download success: {:s} {:s} {:s}".format(args.download_lib, RIGHT_ARROW, _file))
 
-        if update_solib:
+        if args.update_solib:
             self.refresh_shared_library_path()
 
+
+        # refresh the architecture setting
         set_arch()
-        __gef_remote__ = rpid
+        __gef_remote__ = pid
         return
 
     def new_objfile_handler(self, event):
@@ -6198,10 +6191,10 @@ class RemoteCommand(GenericCommand):
             return
 
         if self.download_all_libs and event.new_objfile.filename.startswith("target:"):
-            lib = event.new_objfile.filename[len("target:"):]
-            llib = download_file(lib, use_cache=True)
-            if llib:
-                ok("Download success: {:s} {:s} {:s}".format(lib, RIGHT_ARROW, llib))
+            remote_lib = event.new_objfile.filename[len("target:"):]
+            local_lib = download_file(remote_lib, use_cache=True)
+            if local_lib:
+                ok("Download success: {:s} {:s} {:s}".format(remote_lib, RIGHT_ARROW, local_lib))
         return
 
     def setup_remote_environment(self, pid, update_solib=False):
@@ -6256,7 +6249,7 @@ class RemoteCommand(GenericCommand):
         gdb.execute("set solib-search-path {:s}".format(path,))
         return
 
-    def help(self):
+    def usage(self):
         h = self._syntax_
         h += "\n\t   TARGET (mandatory) specifies the host:port, serial port or tty to connect to.\n"
         h += "\t-U will update gdb `solib-search-path` attribute to include the files downloaded from server (default: False).\n"
