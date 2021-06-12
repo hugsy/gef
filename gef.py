@@ -2615,7 +2615,7 @@ def parse_arguments(required_arguments, optional_arguments):
 
                 if argname.startswith("-"):
                     # optional args
-                    if isinstance(argtype, bool):
+                    if argtype == bool:
                         parser.add_argument(argname, action="store_true" if argvalue else "store_false")
                     else:
                         parser.add_argument(argname, type=argtype, required=True, default=argvalue)
@@ -7383,9 +7383,9 @@ class ProcessListingCommand(GenericCommand):
     by this pattern."""
 
     _cmdline_ = "process-search"
-    _syntax_  = "{:s} [PATTERN]".format(_cmdline_)
+    _syntax_  = "{:s} [REGEX_PATTERN]".format(_cmdline_)
     _aliases_ = ["ps",]
-    _example_ = "{:s} gdb".format(_cmdline_)
+    _example_ = "{:s} gdb.*".format(_cmdline_)
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
@@ -7393,16 +7393,13 @@ class ProcessListingCommand(GenericCommand):
         self.add_setting("ps_command", "{:s} auxww".format(ps), "`ps` command to get process information")
         return
 
-    def do_invoke(self, argv):
-        do_attach = False
-        smart_scan = False
-
-        opts, args = getopt.getopt(argv, "as")
-        for o, _ in opts:
-            if o == "-a": do_attach  = True
-            if o == "-s": smart_scan = True
-
-        pattern = re.compile("^.*$") if not args else re.compile(args[0])
+    @parse_arguments({"pattern": ""}, {"--attach": True, "--smart-scan": True})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        do_attach = args.attach
+        smart_scan = args.smart_scan
+        pattern = args.pattern
+        pattern = re.compile("^.*$") if not args else re.compile(pattern)
 
         for process in self.get_processes():
             pid = int(process["pid"])

@@ -355,6 +355,20 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("No open connections", res)
         return
 
+    def test_cmd_process_search(self):
+        res = gdb_start_silent_cmd("process-search", target="/tmp/pattern.out", before=["set args w00tw00t", ])
+        self.assertNoException(res)
+        self.assertIn("/tmp/pattern.out", res)
+
+        res = gdb_start_silent_cmd("process-search gdb.*fakefake", target="/tmp/pattern.out", before=["set args w00tw00t", ])
+        self.assertNoException(res)
+        self.assertIn("gdb", res)
+
+        res = gdb_start_silent_cmd("process-search --smart-scan gdb.*fakefake", target="/tmp/pattern.out", before=["set args w00tw00t", ])
+        self.assertNoException(res)
+        self.assertNotIn("gdb", res)
+        return
+
     def test_cmd_registers(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("registers"))
         res = gdb_start_silent_cmd("registers")
