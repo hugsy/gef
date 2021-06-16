@@ -10258,7 +10258,7 @@ class GefHelpCommand(gdb.Command):
 
 class GefConfigCommand(gdb.Command):
     """GEF configuration sub-command
-    This command will help set/view GEF settingsfor the current debugging session.
+    This command will help set/view GEF settings for the current debugging session.
     It is possible to make those changes permanent by running `gef save` (refer
     to this command help), and/or restore previously saved settings by running
     `gef restore` (refer help).
