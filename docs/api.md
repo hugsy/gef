@@ -233,6 +233,14 @@ Checks if the GDB version is higher or equal to the MAJOR and MINOR providedas a
 
 This decorator aims to facilitate the argument passing to a command. If added, it will use the `argparse` module to parse arguments, and will store them in the `kwargs["arguments"]` of the calling function (therefore the function **must** have `*args, **kwargs` added to its signature). Argument type is inferred directly from the default value **except** for boolean, where a value of `True` corresponds to `argparse`'s `store_true` action. For more details on `argparse`, refer to its Python documentation.
 
+Values given for the parameters also allow list of arguments being past. This can be useful in the case where the number of exact option values is known in advance. This can be achieved simply by using a type of `tuple` or `list` for the default value. `parse_arguments` will determine the type of what to expect based on the first default value of the iterable, so make sure it's not empty. For instance:
+
+
+```python
+@parse_arguments( {"instructions": ["nop", "int3", "hlt"], }, {"--arch": "x64", } )
+```
+
+
 Argument flags are also supported, allowing to write simpler version of the flag such as
 
 ```python
@@ -245,7 +253,7 @@ A basic example would be as follow:
 class MyCommand(GenericCommand):
     [...]
 
-    @parse_arguments({"foo": 1}, {"--bleh": "", ("--blah", "-l): True})
+    @parse_arguments({"foo": [1,]}, {"--bleh": "", ("--blah", "-l): True})
     def do_invoke(self, argv, *args, **kwargs):
       args = kwargs["arguments"]
       if args.foo == 1: ...
@@ -255,16 +263,17 @@ class MyCommand(GenericCommand):
 When the user enters the following command:
 
 ```
-gef➤ mycommand --blah 42
+gef➤ mycommand --blah 3 14 159 2653
 ```
 
 The function `MyCommand!do_invoke()` can use the command line argument value
 
 ```python
-args.foo --> 42 # from user input
-args.bleh --> "" # default value
-args.blah --> True # from user input
+args.foo --> [3, 14, 159, 2653] # a List(int) from user input
+args.bleh --> "" # the default value
+args.blah --> True # set to True because user input declared the option (would have been False otherwise)
 ```
+
 
 
 ### Classes ###
