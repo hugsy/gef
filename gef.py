@@ -4371,7 +4371,7 @@ class PrintFormatCommand(GenericCommand):
             out = "buf = [{}]".format(sdata)
         elif args.lang == "c":
             c_type = self.format_matrix[args.bitlen][1]
-            out = "unsigned {0} buf[{1}] = {{{2}}};".format(c_type, length, sdata)
+            out = "unsigned {0} buf[{1}] = {{{2}}};".format(c_type, args.length, sdata)
         elif args.lang == "js":
             out = "var buf = [{}]".format(sdata)
         elif args.lang == "asm":
