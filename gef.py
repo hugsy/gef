@@ -4327,7 +4327,7 @@ class PrintFormatCommand(GenericCommand):
 
     _cmdline_ = "print-format"
     _aliases_ = ["pf",]
-    _syntax_  = """{} [--lang LANG] [--bitlen SIZE] [--length LENGTH] [--clip] LOCATION
+    _syntax_  = """{} [--lang LANG] [--bitlen SIZE] [(--length,-l) LENGTH] [--clip] LOCATION
 \t--lang LANG specifies the output format for programming language (available: {}, default 'py').
 \t--bitlen SIZE specifies size of bit (possible values: {}, default is 8).
 \t--length LENGTH specifies length of array (default is 256).
