@@ -2609,12 +2609,13 @@ def parse_arguments(required_arguments, optional_arguments):
             for argname in required_arguments:
                 argvalue = required_arguments[argname]
                 argtype = type(argvalue)
-                if argtype == int:
+                if argtype is int:
                     argtype = int_wrapper
 
-                if argname.startswith("-"):
+                argname_is_list = isinstance(argname, list) or isinstance(argname, tuple)
+                if not argname_is_list and argname.startswith("-"):
                     # optional args
-                    if argtype == bool:
+                    if argtype is bool:
                         parser.add_argument(argname, action="store_true" if argvalue else "store_false")
                     else:
                         parser.add_argument(argname, type=argtype, required=True, default=argvalue)
@@ -2628,20 +2629,22 @@ def parse_arguments(required_arguments, optional_arguments):
                     parser.add_argument(argname, type=argtype, default=argvalue, nargs=nargs)
 
             for argname in optional_arguments:
-                if not argname.startswith("-"):
+                argname_is_list = isinstance(argname, list) or isinstance(argname, tuple)
+                if not argname_is_list and not argname.startswith("-"):
                     # refuse positional arguments
                     continue
                 argvalue = optional_arguments[argname]
                 argtype = type(argvalue)
-                if argtype == int:
+                if not argname_is_list:
+                    argname = [argname,]
+                if argtype is int:
                     argtype = int_wrapper
-                if argtype == bool:
-                    parser.add_argument(argname, action="store_true" if argvalue else "store_false")
+                if argtype is bool:
+                    parser.add_argument(*argname, action="store_true" if argvalue else "store_false")
                 else:
-                    parser.add_argument(argname, type=argtype, default=argvalue)
+                    parser.add_argument(*argname, type=argtype, default=argvalue)
 
-            _, cmd_args = args[0], args[1:]
-            parsed_args = parser.parse_args(*cmd_args)
+            parsed_args = parser.parse_args(*(args[1:]))
             kwargs["arguments"] = parsed_args
             return f(*args, **kwargs)
         return wrapper
@@ -2657,7 +2660,7 @@ def copy_to_clipboard(data):
         pbcopy = which("pbcopy")
         prog = [pbcopy]
     else:
-        raise NotImplementedError("Unsupported OS")
+        raise NotImplementedError("paste: Unsupported OS")
 
     p = subprocess.Popen(prog, stdin=subprocess.PIPE)
     p.stdin.write(data)
@@ -3545,12 +3548,7 @@ def de_bruijn(alphabet, n):
 def generate_cyclic_pattern(length, cycle=4):
     """Create a `length` byte bytearray of a de Bruijn cyclic pattern."""
     charset = bytearray(b"abcdefghijklmnopqrstuvwxyz")
-    pattern = bytearray()
-    for i, c in enumerate(de_bruijn(charset, cycle)):
-        if i == length:
-            break
-        pattern.append(c)
-    return pattern
+    return bytearray(itertools.islice(de_bruijn(charset, cycle), length))
 
 
 def safe_parse_and_eval(value):
@@ -4343,7 +4341,7 @@ class PrintFormatCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    @parse_arguments({"location": "$pc", }, {"--length": 256, "--bitlen": 0, "--lang": "py", "--clip": True,})
+    @parse_arguments({"location": "$pc", }, {("--length", "-l"): 256, "--bitlen": 0, "--lang": "py", "--clip": True,})
     def do_invoke(self, argv, *args, **kwargs):
         """Default value for print-format command."""
         args = kwargs["arguments"]
@@ -10174,7 +10172,7 @@ class GefHelpCommand(gdb.Command):
         doc = getattr(class_name, "__doc__", "").lstrip()
         doc = "\n                         ".join(doc.split("\n"))
         aliases = " (alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
-        msg = "{cmd:<25s} -- {help:s}{aliases:s}".format(cmd=cmd, help=Color.greenify(doc), aliases=aliases)
+        msg = "{cmd:<25s} -- {help:s}{aliases:s}".format(cmd=cmd, help=doc, aliases=aliases)
         self.docs.append(msg)
         return
 
