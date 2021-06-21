@@ -2660,7 +2660,7 @@ def copy_to_clipboard(data):
         pbcopy = which("pbcopy")
         prog = [pbcopy]
     else:
-        raise NotImplementedError("paste: Unsupported OS")
+        raise NotImplementedError("copy: Unsupported OS")
 
     p = subprocess.Popen(prog, stdin=subprocess.PIPE)
     p.stdin.write(data)
