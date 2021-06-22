@@ -57,12 +57,12 @@
 from __future__ import print_function, division, absolute_import
 
 import abc
+import argparse
 import binascii
 import codecs
 import collections
 import ctypes
 import functools
-import getopt
 import hashlib
 import importlib
 import inspect
@@ -2593,6 +2593,82 @@ def only_if_gdb_version_higher_than(required_gdb_version):
     return wrapper
 
 
+def FakeExit(*args, **kwargs):
+    raise RuntimeWarning
+
+sys.exit = FakeExit
+
+def parse_arguments(required_arguments, optional_arguments):
+    """Argument parsing decorator."""
+
+    def int_wrapper(x): return int(x, 0)
+
+    def decorator(f):
+        def wrapper(*args, **kwargs):
+            parser = argparse.ArgumentParser(prog=args[0]._cmdline_, add_help=True)
+            for argname in required_arguments:
+                argvalue = required_arguments[argname]
+                argtype = type(argvalue)
+                if argtype is int:
+                    argtype = int_wrapper
+
+                argname_is_list = isinstance(argname, list) or isinstance(argname, tuple)
+                if not argname_is_list and argname.startswith("-"):
+                    # optional args
+                    if argtype is bool:
+                        parser.add_argument(argname, action="store_true" if argvalue else "store_false")
+                    else:
+                        parser.add_argument(argname, type=argtype, required=True, default=argvalue)
+                else:
+                    if argtype in (list, tuple):
+                        nargs = '*'
+                        argtype = type(argvalue[0])
+                    else:
+                        nargs = '?'
+                    # positional args
+                    parser.add_argument(argname, type=argtype, default=argvalue, nargs=nargs)
+
+            for argname in optional_arguments:
+                argname_is_list = isinstance(argname, list) or isinstance(argname, tuple)
+                if not argname_is_list and not argname.startswith("-"):
+                    # refuse positional arguments
+                    continue
+                argvalue = optional_arguments[argname]
+                argtype = type(argvalue)
+                if not argname_is_list:
+                    argname = [argname,]
+                if argtype is int:
+                    argtype = int_wrapper
+                if argtype is bool:
+                    parser.add_argument(*argname, action="store_true" if argvalue else "store_false")
+                else:
+                    parser.add_argument(*argname, type=argtype, default=argvalue)
+
+            parsed_args = parser.parse_args(*(args[1:]))
+            kwargs["arguments"] = parsed_args
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def copy_to_clipboard(data):
+    """Helper function to submit data to the clipboard"""
+    if sys.platform == "linux":
+        xclip = which("xclip")
+        prog = [xclip, "-selection", "clipboard", "-i"]
+    elif sys.platform == "darwin":
+        pbcopy = which("pbcopy")
+        prog = [pbcopy]
+    else:
+        raise NotImplementedError("copy: Unsupported OS")
+
+    p = subprocess.Popen(prog, stdin=subprocess.PIPE)
+    p.stdin.write(data)
+    p.stdin.close()
+    p.wait()
+    return
+
+
 def use_stdtype():
     if is_32bit(): return "uint32_t"
     elif is_64bit(): return "uint64_t"
@@ -3113,10 +3189,7 @@ def get_generic_arch(module, prefix, arch, mode, big_endian, to_string=False):
 
     else:
         arch = getattr(module, "{:s}_ARCH_{:s}".format(prefix, arch))
-        if prefix == "KS" and mode == "ARM":
-            # this workaround is because keystone.KS_MODE_ARM doesn't exist, must use 0
-            mode = 0
-        elif mode:
+        if mode:
             mode = getattr(module, "{:s}_MODE_{:s}".format(prefix, mode))
         else:
             mode = 0
@@ -3472,18 +3545,10 @@ def de_bruijn(alphabet, n):
     return db(1, 1)
 
 
-def generate_cyclic_pattern(length):
+def generate_cyclic_pattern(length, cycle=4):
     """Create a `length` byte bytearray of a de Bruijn cyclic pattern."""
     charset = bytearray(b"abcdefghijklmnopqrstuvwxyz")
-    cycle = get_memory_alignment()
-    res = bytearray()
-
-    for i, c in enumerate(de_bruijn(charset, cycle)):
-        if i == length:
-            break
-        res.append(c)
-
-    return res
+    return bytearray(itertools.islice(de_bruijn(charset, cycle), length))
 
 
 def safe_parse_and_eval(value):
@@ -4251,111 +4316,75 @@ class VersionCommand(GenericCommand):
 class PrintFormatCommand(GenericCommand):
     """Print bytes format in high level languages."""
 
-    _cmdline_ = "print-format"
-    _syntax_  = "{:s} [-f FORMAT] [-b BITSIZE] [-l LENGTH] [-c] [-h] LOCATION".format(_cmdline_)
-    _aliases_ = ["pf",]
-    _example_ = "{0:s} -f py -b 8 -l 256 $rsp".format(_cmdline_)
+    format_matrix = {
+        8:  (endian_str() + "B", "char", "db"),
+        16: (endian_str() + "H", "short", "dw"),
+        32: (endian_str() + "I", "int", "dd"),
+        64: (endian_str() + "Q", "long long", "dq"),
+    }
 
-    bitformat = {8: "<B", 16: "<H", 32: "<I", 64: "<Q"}
-    c_type = {8: "char", 16: "short", 32: "int", 64: "long long"}
-    asm_type = {8: "db", 16: "dw", 32: "dd", 64: "dq"}
+    valid_formats = ["py", "c", "js", "asm"]
+
+    _cmdline_ = "print-format"
+    _aliases_ = ["pf",]
+    _syntax_  = """{} [--lang LANG] [--bitlen SIZE] [(--length,-l) LENGTH] [--clip] LOCATION
+\t--lang LANG specifies the output format for programming language (available: {}, default 'py').
+\t--bitlen SIZE specifies size of bit (possible values: {}, default is 8).
+\t--length LENGTH specifies length of array (default is 256).
+\t--clip The output data will be copied to clipboard
+\tLOCATION specifies where the address of bytes is stored.""".format(_cmdline_, str(valid_formats), str(format_matrix.keys()))
+    _example_ = "{} --lang py -l 16 $rsp".format(_cmdline_)
+
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
-    def usage(self):
-        h = self._syntax_
-        h += "\n\t-f FORMAT specifies the output format for programming language, avaliable value is py, c, js, asm (default py).\n"
-        h += "\t-b BITSIZE sepecifies size of bit, avaliable values is 8, 16, 32, 64 (default is 8).\n"
-        h += "\t-l LENGTH specifies length of array (default is 256).\n"
-        h += "\t-c The result of data will copied to clipboard\n"
-        h += "\tLOCATION specifies where the address of bytes is stored."
-        info(h)
-        return
-
-    def clip(self, data):
-        if sys.platform == "linux":
-            xclip = which("xclip")
-            prog = [xclip, "-selection", "clipboard", "-i"]  # For linux
-        elif sys.platform == "darwin":
-            pbcopy = which("pbcopy")
-            prog = [pbcopy]  # For OSX
-        else:
-            warn("Can't copy to clipboard, platform not supported")
-            return False
-
-        try:
-            p = subprocess.Popen(prog, stdin=subprocess.PIPE)
-        except Exception:
-            warn("Can't copy to clipboard, Something went wrong while copying")
-            return False
-
-        p.stdin.write(data)
-        p.stdin.close()
-        p.wait()
-        return True
-
     @only_if_gdb_running
-    def do_invoke(self, argv):
+    @parse_arguments({"location": "$pc", }, {("--length", "-l"): 256, "--bitlen": 0, "--lang": "py", "--clip": True,})
+    def do_invoke(self, argv, *args, **kwargs):
         """Default value for print-format command."""
-        lang = "py"
-        length = 256
-        bitlen = 8
-        copy_to_clipboard = False
-        supported_formats = ["py", "c", "js", "asm"]
+        args = kwargs["arguments"]
+        args.bitlen = args.bitlen or current_arch.ptrsize
 
-        opts, args = getopt.getopt(argv, "f:l:b:ch")
-        for o, a in opts:
-            if o == "-f": lang = a
-            elif o == "-l": length = int(gdb.parse_and_eval(a))
-            elif o == "-b": bitlen = int(a)
-            elif o == "-c": copy_to_clipboard = True
-            elif o == "-h":
-                self.usage()
-                return
-
-        if not args:
-            err("No address specified")
+        valid_bitlens = self.format_matrix.keys()
+        if args.bitlen not in valid_bitlens:
+            err("Size of bit must be in: {}".format(str(valid_bitlens)))
             return
 
-        start_addr = int(gdb.parse_and_eval(args[0]))
-
-        if bitlen not in [8, 16, 32, 64]:
-            err("Size of bit must be in 8, 16, 32, or 64")
+        if args.lang not in self.valid_formats:
+            err("Language must be in: {}".format(str(self.valid_formats)))
             return
 
-        if lang not in supported_formats:
-            err("Language must be : {}".format(str(supported_formats)))
-            return
-
-        size = int(bitlen / 8)
-        end_addr = start_addr + length * size
-        bf = self.bitformat[bitlen]
+        start_addr = int(gdb.parse_and_eval(args.location))
+        size = int(args.bitlen / 8)
+        end_addr = start_addr + args.length * size
+        fmt = self.format_matrix[args.bitlen][0]
         data = []
-        out = ""
 
-        for address in range(start_addr, end_addr, size):
-            value = struct.unpack(bf, read_memory(address, size))[0]
+        for addr in range(start_addr, end_addr, size):
+            value = struct.unpack(fmt, read_memory(addr, size))[0]
             data += [value]
         sdata = ", ".join(map(hex, data))
 
-        if lang == "py":
+        if args.lang == "py":
             out = "buf = [{}]".format(sdata)
-        elif lang == "c":
-            out =  "unsigned {0} buf[{1}] = {{{2}}};".format(self.c_type[bitlen], length, sdata)
-        elif lang == "js":
+        elif args.lang == "c":
+            c_type = self.format_matrix[args.bitlen][1]
+            out = "unsigned {0} buf[{1}] = {{{2}}};".format(c_type, args.length, sdata)
+        elif args.lang == "js":
             out = "var buf = [{}]".format(sdata)
-        elif lang == "asm":
-            out += "buf {0} {1}".format(self.asm_type[bitlen], sdata)
+        elif args.lang == "asm":
+            asm_type = self.format_matrix[args.bitlen][2]
+            out = "buf {0} {1}".format(asm_type, sdata)
 
-        if copy_to_clipboard:
-            if self.clip(bytes(out, "utf-8")):
+        if args.clip:
+            if copy_to_clipboard(gef_pybytes(out)):
                 info("Copied to clipboard")
             else:
                 warn("There's a problem while copying")
 
-        print(out)
+        gef_print(out)
         return
 
 
@@ -5803,26 +5832,21 @@ class UnicornEmulateCommand(GenericCommand):
     the next instruction from current PC."""
 
     _cmdline_ = "unicorn-emulate"
-    _syntax_  = "{:s} [-f LOCATION] [-t LOCATION] [-n NB_INSTRUCTION] [-s] [-o PATH] [-h]".format(_cmdline_)
+    _syntax_  = """{:s} [--start LOCATION] [--until LOCATION] [--skip-emulation] [--output-file PATH] [NB_INSTRUCTION]
+\n\t--start LOCATION specifies the start address of the emulated run (default $pc).
+\t--until LOCATION specifies the end address of the emulated run.
+\t--skip-emulation\t do not execute the script once generated.
+\t--output-file /PATH/TO/SCRIPT.py writes the persistent Unicorn script into this file.
+\tNB_INSTRUCTION indicates the number of instructions to execute
+\nAdditional options can be setup via `gef config unicorn-emulate`
+""".format(_cmdline_)
     _aliases_ = ["emulate",]
-    _example_ = "{0:s} -f $pc -n 10 -o /tmp/my-gef-emulation.py".format(_cmdline_)
+    _example_ = "{0:s} --start $pc 10 --output-file /tmp/my-gef-emulation.py".format(_cmdline_)
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         self.add_setting("verbose", False, "Set unicorn-engine in verbose mode")
         self.add_setting("show_disassembly", False, "Show every instruction executed")
-        return
-
-    def help(self):
-        h = self._syntax_
-        h += "\n\t-f LOCATION specifies the start address of the emulated run (default $pc).\n"
-        h += "\t-t LOCATION specifies the end address of the emulated run.\n"
-        h += "\t-s      Script-Only: do not execute the script once generated.\n"
-        h += "\t-o /PATH/TO/SCRIPT.py writes the persistent Unicorn script into this file.\n"
-        h += "\t-n NB_INSTRUCTION indicates the number of instructions to execute (mutually exclusive with `-t` and `-g`).\n"
-        h += "\t-g NB_GADGET indicates the number of gadgets to execute (mutually exclusive with `-t` and `-n`).\n"
-        h += "\nAdditional options can be setup via `gef config unicorn-emulate`\n"
-        info(h)
         return
 
     def pre_load(self):
@@ -5840,49 +5864,12 @@ class UnicornEmulateCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    def do_invoke(self, argv):
-        start_insn = None
-        end_insn = -1
-        nb_insn = -1
-        to_file = None
-        to_script_only = None
-        opts = getopt.getopt(argv, "f:t:n:so:h")[0]
-        for o, a in opts:
-            if o == "-f":   start_insn = int(a, 16)
-            elif o == "-t":
-                end_insn = int(a, 16)
-                self.nb_insn = -1
-
-            elif o == "-n":
-                nb_insn = int(a)
-                end_insn = -1
-
-            elif o == "-s":
-                to_script_only = True
-
-            elif o == "-o":
-                to_file = a
-
-            elif o == "-h":
-                self.help()
-                return
-
-        if start_insn is None:
-            start_insn = current_arch.pc
-
-        if end_insn < 0 and nb_insn < 0:
-            err("No stop condition (-t|-n) defined.")
-            return
-
-        if end_insn > 0:
-            self.run_unicorn(start_insn, end_insn, to_script_only=to_script_only, to_file=to_file)
-
-        elif nb_insn > 0:
-            end_insn = self.get_unicorn_end_addr(start_insn, nb_insn)
-            self.run_unicorn(start_insn, end_insn, to_script_only=to_script_only, to_file=to_file)
-
-        else:
-            raise Exception("Should never be here")
+    @parse_arguments({"nb": 1}, {"--start": 0, "--until": 0, "--skip-emulation": True, "--output-file": ""})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        start_address = args.start or current_arch.pc
+        end_address = args.until or self.get_unicorn_end_addr(start_address, args.nb)
+        self.run_unicorn(start_address, end_address, skip_emulation=args.skip_emulation, to_file=args.output_file)
         return
 
     def get_unicorn_end_addr(self, start_addr, nb):
@@ -5892,7 +5879,7 @@ class UnicornEmulateCommand(GenericCommand):
 
     def run_unicorn(self, start_insn_addr, end_insn_addr, *args, **kwargs):
         verbose = self.get_setting("verbose") or False
-        to_script_only = kwargs.get("to_script_only", False)
+        skip_emulation = kwargs.get("skip_emulation", False)
         arch, mode = get_unicorn_arch(to_string=True)
         unicorn_registers = get_unicorn_registers(to_string=True)
         cs_arch, cs_mode = get_capstone_arch(to_string=True)
@@ -6081,7 +6068,7 @@ emulate(uc, {start:#x}, {end:#x})
             info("Unicorn script generated as '{}'".format(tmp_filename))
             os.chmod(tmp_filename, 0o700)
 
-        if to_script_only:
+        if skip_emulation:
             return
 
         ok("Starting emulation: {:#x} {} {:#x}".format(start_insn_addr, RIGHT_ARROW, end_insn_addr))
@@ -6112,39 +6099,38 @@ class RemoteCommand(GenericCommand):
         self.add_setting("clean_on_exit", False, "Clean the temporary data downloaded when the session exits.")
         return
 
-    def do_invoke(self, argv):
+    @parse_arguments(
+        {"target": ""},
+        {"--update-solib": True,
+         "--download-everything": True,
+         "--download-lib": "",
+         "--extended-remote": True,
+         "--pid": 0,
+         "--qemu-mode": True,})
+    def do_invoke(self, argv, *args, **kwargs):
         global __gef_remote__
 
         if __gef_remote__ is not None:
             err("You already are in remote session. Close it first before opening a new one...")
             return
 
-        target = None
-        rpid = -1
-        update_solib = False
-        self.download_all_libs = False
-        download_lib = None
-        is_extended_remote = False
-        qemu_gdb_mode = False
-        opts, args = getopt.getopt(argv, "p:UD:qAEh")
-        for o, a in opts:
-            if o == "-U":   update_solib = True
-            elif o == "-D":   download_lib = a
-            elif o == "-A":   self.download_all_libs = True
-            elif o == "-E":   is_extended_remote = True
-            elif o == "-p":   rpid = int(a)
-            elif o == "-q":   qemu_gdb_mode = True
-            elif o == "-h":
-                self.help()
-                return
-
-        if not args or ":" not in args[0]:
+        # argument check
+        args = kwargs["arguments"]
+        if not args.target or ":" not in args.target:
             err("A target (HOST:PORT) must always be provided.")
             return
 
-        if qemu_gdb_mode:
+        if args.extended_remote and not args.pid:
+            err("A PID (--pid) is required for extended remote debugging")
+            return
+
+        target = args.target
+        pid = args.pid if args.extended_remote and args.pid else get_pid()
+        self.download_all_libs = args.download_everything
+
+        if args.qemu_mode:
             # compat layer for qemu-user
-            self.prepare_qemu_stub(args[0])
+            self.prepare_qemu_stub(target)
             return
 
         # lazily install handler on first use
@@ -6152,29 +6138,22 @@ class RemoteCommand(GenericCommand):
             gef_on_new_hook(self.new_objfile_handler)
             self.handler_connected = True
 
-        target = args[0]
-
-        if self.connect_target(target, is_extended_remote) is False:
+        if not self.connect_target(target, args.is_extended_remote):
             return
 
-        # if extended-remote, need to attach
-        if is_extended_remote:
-            ok("Attaching to {:d}".format(rpid))
+        if args.is_extended_remote:
+            ok("Attaching to {:d}".format(pid))
             hide_context()
-            gdb.execute("attach {:d}".format(rpid))
+            gdb.execute("attach {:d}".format(pid))
             unhide_context()
-        else:
-            rpid = get_pid()
-            ok("Targeting PID={:d}".format(rpid))
 
-        self.add_setting("target", target, "Remote target to connect to")
-        self.setup_remote_environment(rpid, update_solib)
+        self.setup_remote_environment(pid, args.update_solib)
 
         if not is_remote_debug():
             err("Failed to establish remote target environment.")
             return
 
-        if self.download_all_libs is True:
+        if self.download_all_libs:
             vmmap = get_process_maps()
             success = 0
             for sect in vmmap:
@@ -6187,19 +6166,21 @@ class RemoteCommand(GenericCommand):
 
             ok("Downloaded {:d} files".format(success))
 
-        elif download_lib is not None:
-            _file = download_file(download_lib)
+        elif args.download_lib:
+            _file = download_file(args.download_lib)
             if _file is None:
                 err("Failed to download remote file")
                 return
 
-            ok("Download success: {:s} {:s} {:s}".format(download_lib, RIGHT_ARROW, _file))
+            ok("Download success: {:s} {:s} {:s}".format(args.download_lib, RIGHT_ARROW, _file))
 
-        if update_solib:
+        if args.update_solib:
             self.refresh_shared_library_path()
 
+
+        # refresh the architecture setting
         set_arch()
-        __gef_remote__ = rpid
+        __gef_remote__ = pid
         return
 
     def new_objfile_handler(self, event):
@@ -6208,10 +6189,10 @@ class RemoteCommand(GenericCommand):
             return
 
         if self.download_all_libs and event.new_objfile.filename.startswith("target:"):
-            lib = event.new_objfile.filename[len("target:"):]
-            llib = download_file(lib, use_cache=True)
-            if llib:
-                ok("Download success: {:s} {:s} {:s}".format(lib, RIGHT_ARROW, llib))
+            remote_lib = event.new_objfile.filename[len("target:"):]
+            local_lib = download_file(remote_lib, use_cache=True)
+            if local_lib:
+                ok("Download success: {:s} {:s} {:s}".format(remote_lib, RIGHT_ARROW, local_lib))
         return
 
     def setup_remote_environment(self, pid, update_solib=False):
@@ -6266,7 +6247,7 @@ class RemoteCommand(GenericCommand):
         gdb.execute("set solib-search-path {:s}".format(path,))
         return
 
-    def help(self):
+    def usage(self):
         h = self._syntax_
         h += "\n\t   TARGET (mandatory) specifies the host:port, serial port or tty to connect to.\n"
         h += "\t-U will update gdb `solib-search-path` attribute to include the files downloaded from server (default: False).\n"
@@ -6330,7 +6311,9 @@ class NopCommand(GenericCommand):
     aware."""
 
     _cmdline_ = "nop"
-    _syntax_  = "{:s} [-b NUM_BYTES] [-h] [LOCATION]".format(_cmdline_)
+    _syntax_  = """{:s} [-nb NUM_BYTES] [LOCATION]
+  LOCATION\taddress/symbol to patch
+    --nb NUM_BYTES\tInstead of writing one instruction, patch the specified number of bytes""".format(_cmdline_)
     _example_ = "{:s} $pc".format(_cmdline_)
 
     def __init__(self):
@@ -6342,30 +6325,12 @@ class NopCommand(GenericCommand):
         next_insn = gef_instruction_n(addr, 2)
         return next_insn.address - cur_insn.address
 
-    def do_invoke(self, argv):
-        opts, args = getopt.getopt(argv, "b:h")
-        num_bytes = 0
-        for o, a in opts:
-            if o == "-b":
-                num_bytes = int(a, 0)
-            elif o == "-h":
-                self.help()
-                return
-
-        if args:
-            loc = parse_address(args[0])
-        else:
-            loc = current_arch.pc
-
-        self.nop_bytes(loc, num_bytes)
-        return
-
-    def help(self):
-        m = self._syntax_
-        m += "\n  LOCATION\taddress/symbol to patch\n"
-        m += "  -b NUM_BYTES\tInstead of writing one instruction, patch the specified number of bytes\n"
-        m += "  -h \t\tprint this help\n"
-        info(m)
+    @parse_arguments({"address": 0}, {"--nb": 0, })
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        address = parse_address(args.address) if args.address else current_arch.pc
+        number_of_bytes = args.nb or 1
+        self.nop_bytes(address, number_of_bytes)
         return
 
     @only_if_gdb_running
@@ -6401,29 +6366,21 @@ class StubCommand(GenericCommand):
     function to be called and disrupt your runtime flow (ex. fork)."""
 
     _cmdline_ = "stub"
-    _syntax_  = """{:s} [-r RETVAL] [-h] [LOCATION]
+    _syntax_  = """{:s} [--retval RETVAL] [LOCATION]
 \tLOCATION\taddress/symbol to stub out
-\t-r RETVAL\tSet the return value""".format(_cmdline_)
-    _example_ = "{:s} -r 0 fork".format(_cmdline_)
+\t--retval RETVAL\tSet the return value""".format(_cmdline_)
+    _example_ = "{:s} --retval 0 fork".format(_cmdline_)
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
     @only_if_gdb_running
-    def do_invoke(self, argv):
-        try:
-            opts, args = getopt.getopt(argv, "r:")
-            retval = 0
-            for o, a in opts:
-                if o == "-r":
-                    retval = int(a, 0)
-        except getopt.GetoptError:
-            self.usage()
-            return
-
-        loc = args[0] if args else "*{:#x}".format(current_arch.pc)
-        StubBreakpoint(loc, retval)
+    @parse_arguments({"address": ""}, {"--retval": 0})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        loc = args.address if args.address else "*{:#x}".format(current_arch.pc)
+        StubBreakpoint(loc, args.retval)
         return
 
 
@@ -7309,16 +7266,14 @@ class RopperCommand(GenericCommand):
 
 @register_command
 class AssembleCommand(GenericCommand):
-    """Inline code assemble. Architecture can be set in GEF runtime config (default x86-32). """
+    """Inline code assemble. Architecture can be set in GEF runtime config. """
 
     _cmdline_ = "assemble"
     _syntax_  = "{:s} [-a ARCH] [-m MODE] [-e] [-s] [-l LOCATION] instruction;[instruction;...instruction;])".format(_cmdline_)
     _aliases_ = ["asm",]
     _example_ = "\n{0:s} -a x86 -m 32 nop ; nop ; inc eax ; int3\n{0:s} -a arm -m arm add r0, r0, 1".format(_cmdline_)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(complete=gdb.COMPLETE_LOCATION)
-        self.valid_arch_modes = {
+    valid_arch_modes = {
             "ARM": ["ARM", "THUMB"],
             "ARM64": ["ARM", "THUMB", "V5", "V8", ],
             "MIPS": ["MICRO", "MIPS3", "MIPS32", "MIPS32R6", "MIPS64",],
@@ -7327,6 +7282,13 @@ class AssembleCommand(GenericCommand):
             "SYSTEMZ": ["32",],
             "X86": ["16", "32", "64"],
         }
+    valid_archs = valid_arch_modes.keys()
+    valid_modes = [_ for sublist in valid_arch_modes.values() for _ in sublist]
+
+    def __init__(self):
+        super().__init__()
+        self.add_setting("default_architecture", "X86", "Specify the default architecture to use when assembling")
+        self.add_setting("default_mode", "64", "Specify the default architecture to use when assembling")
         return
 
     def pre_load(self):
@@ -7346,52 +7308,37 @@ class AssembleCommand(GenericCommand):
             gef_print("  * {}".format(" / ".join(self.valid_arch_modes[arch])))
         return
 
-    def do_invoke(self, argv):
-        arch_s, mode_s, big_endian, as_shellcode, write_to_location = None, None, False, False, None
-        opts, args = getopt.getopt(argv, "a:m:l:esh")
-        for o, a in opts:
-            if o == "-a": arch_s = a.upper()
-            if o == "-m": mode_s = a.upper()
-            if o == "-e": big_endian = True
-            if o == "-s": as_shellcode = True
-            if o == "-l": write_to_location = int(gdb.parse_and_eval(a))
-            if o == "-h":
-                self.usage()
-                return
+    @parse_arguments({"instructions": ["",]}, {"--mode": "", "--arch": "", "--overwrite-location": 0, "--big-endian": True, "--as-shellcode": True, })
+    def do_invoke(self, argv, *args, **kwargs):
+        arch_s, mode_s, endian_s = self.get_setting("default_architecture"), self.get_setting("default_mode"), ""
 
-        if not args:
+        args = kwargs["arguments"]
+        if not args.instructions:
+            err("No instruction given.")
             return
 
-        if (arch_s, mode_s) == (None, None):
-            if is_alive():
-                arch_s, mode_s = current_arch.arch, current_arch.mode
-                endian_s = "big" if is_big_endian() else "little"
-                arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=is_big_endian())
-            else:
-                # if not alive, defaults to x86-32
-                arch_s = "X86"
-                mode_s = "32"
-                endian_s = "little"
-                arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=False)
-        elif not arch_s:
-            err("An architecture (-a) must be provided")
-            return
-        elif not mode_s:
-            err("A mode (-m) must be provided")
-            return
-        else:
-            arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=big_endian)
-            endian_s = "big" if big_endian else "little"
+        if is_alive():
+            arch_s, mode_s = current_arch.arch, current_arch.mode
+            endian_s = "big" if is_big_endian() else ""
 
-        insns = " ".join(args)
-        insns = [x.strip() for x in insns.split(";") if x is not None]
+        if args.arch:
+            arch_s = args.arch
 
-        info("Assembling {} instruction{} for {} ({} endian)".format(len(insns),
-                                                                     "s" if len(insns)>1 else "",
-                                                                     ":".join([arch_s, mode_s]),
-                                                                     endian_s))
+        if args.mode:
+            mode_s = args.mode
 
-        if as_shellcode:
+        if args.big_endian:
+            endian_s = "big"
+
+        if arch_s.upper() not in self.valid_archs or mode_s.upper() not in self.valid_modes:
+            raise AttributeError("invalid arch/mode")
+
+        # this is fire a ValueError if the arch/mode/endianess are invalid
+        arch, mode = get_keystone_arch(arch=arch_s.upper(), mode=mode_s.upper(), endian=endian_s.upper())
+        insns = [x.strip() for x in " ".join(args.instructions).split(";") if x]
+        info("Assembling {} instruction(s) for {}:{}".format(len(insns),arch_s, mode_s))
+
+        if args.as_shellcode:
             gef_print("""sc="" """)
 
         raw = b""
@@ -7401,7 +7348,7 @@ class AssembleCommand(GenericCommand):
                 gef_print("(Invalid)")
                 continue
 
-            if write_to_location:
+            if args.overwrite_location:
                 raw += res
                 continue
 
@@ -7409,15 +7356,15 @@ class AssembleCommand(GenericCommand):
             res = b"\\x" + b"\\x".join([s[i:i + 2] for i in range(0, len(s), 2)])
             res = res.decode("utf-8")
 
-            if as_shellcode:
+            if args.as_shellcode:
                 res = """sc+="{0:s}" """.format(res)
 
             gef_print("{0:60s} # {1}".format(res, insn))
 
-        if write_to_location:
+        if args.overwrite_location:
             l = len(raw)
-            info("Overwriting {:d} bytes at {:s}".format(l, format_address(write_to_location)))
-            write_memory(write_to_location, raw, l)
+            info("Overwriting {:d} bytes at {:s}".format(l, format_address(args.overwrite_location)))
+            write_memory(args.overwrite_location, raw, l)
         return
 
 
@@ -7427,9 +7374,9 @@ class ProcessListingCommand(GenericCommand):
     by this pattern."""
 
     _cmdline_ = "process-search"
-    _syntax_  = "{:s} [PATTERN]".format(_cmdline_)
+    _syntax_  = "{:s} [REGEX_PATTERN]".format(_cmdline_)
     _aliases_ = ["ps",]
-    _example_ = "{:s} gdb".format(_cmdline_)
+    _example_ = "{:s} gdb.*".format(_cmdline_)
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
@@ -7437,16 +7384,13 @@ class ProcessListingCommand(GenericCommand):
         self.add_setting("ps_command", "{:s} auxww".format(ps), "`ps` command to get process information")
         return
 
-    def do_invoke(self, argv):
-        do_attach = False
-        smart_scan = False
-
-        opts, args = getopt.getopt(argv, "as")
-        for o, _ in opts:
-            if o == "-a": do_attach  = True
-            if o == "-s": smart_scan = True
-
-        pattern = re.compile("^.*$") if not args else re.compile(args[0])
+    @parse_arguments({"pattern": ""}, {"--attach": True, "--smart-scan": True})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        do_attach = args.attach
+        smart_scan = args.smart_scan
+        pattern = args.pattern
+        pattern = re.compile("^.*$") if not args else re.compile(pattern)
 
         for process in self.get_processes():
             pid = int(process["pid"])
@@ -8250,7 +8194,7 @@ class ContextCommand(GenericCommand):
             else:
                 try:
                     insn = next(gef_disassemble(pc, 1))
-                except gdb.MemoryError:
+                except gdb.MemoryError as e:
                     break
                 items.append(Color.redify("{} {}".format(insn.mnemonic, ", ".join(insn.operands))))
 
@@ -9332,7 +9276,8 @@ class PatternCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super().__init__(prefix=True)
-        self.add_setting("length", 1024, "Initial length of a cyclic buffer to generate")
+        self.add_setting("length", 1024, "Default length of a cyclic buffer to generate")
+        self.add_setting("period", 4, "Default period")
         return
 
     def do_invoke(self, argv):
@@ -9343,28 +9288,20 @@ class PatternCommand(GenericCommand):
 @register_command
 class PatternCreateCommand(GenericCommand):
     """Generate a de Bruijn cyclic pattern. It will generate a pattern long of SIZE,
-    incrementally varying of one byte at each generation. The length of each block is
-    equal to sizeof(void*).
-    Note: This algorithm is the same than the one used by pwntools library."""
+    incrementally varying of one byte at each generation. The pattern rotation period
+    is by default set to 4 for compatibility with pwntools, but can be adjusted."""
 
     _cmdline_ = "pattern create"
     _syntax_  = "{:s} [SIZE]".format(_cmdline_)
+    _example_ = "{:s} 4096".format(_cmdline_)
 
-    def do_invoke(self, argv):
-        if len(argv) == 1:
-            try:
-                sz = int(argv[0], 0)
-            except ValueError:
-                err("Invalid size")
-                return
-            set_gef_setting("pattern.length", sz)
-        elif len(argv) > 1:
-            err("Invalid syntax")
-            return
-
-        size = get_gef_setting("pattern.length")
-        info("Generating a pattern of {:d} bytes".format(size))
-        pattern_str = gef_pystring(generate_cyclic_pattern(size))
+    @parse_arguments({"length": 0}, {"--period": 0})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        length = args.length or get_gef_setting("pattern.length")
+        period = args.period or get_gef_setting("pattern.period")
+        info("Generating a pattern of {:d} bytes (n={:d})".format(length, period))
+        pattern_str = gef_pystring(generate_cyclic_pattern(length, period))
         gef_print(pattern_str)
         ok("Saved as '{:s}'".format(gef_convenience(pattern_str)))
         return
@@ -9381,27 +9318,16 @@ class PatternSearchCommand(GenericCommand):
     _aliases_ = ["pattern offset",]
 
     @only_if_gdb_running
-    def do_invoke(self, argv):
-        argc = len(argv)
-        if argc not in (1, 2):
-            self.usage()
-            return
-
-        if argc == 2:
-            try:
-                size = int(argv[1], 0)
-            except ValueError:
-                err("Invalid size")
-                return
-        else:
-            size = get_gef_setting("pattern.length")
-
-        pattern = argv[0]
-        info("Searching '{:s}'".format(pattern))
-        self.search(pattern, size)
+    @parse_arguments({"pattern": ""}, {"--period": 0, "--length": 0})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        length = args.length or get_gef_setting("pattern.length")
+        period = args.period or get_gef_setting("pattern.period")
+        info("Searching for '{:s}'".format(args.pattern))
+        self.search(args.pattern, length, period)
         return
 
-    def search(self, pattern, size):
+    def search(self, pattern, size, period):
         pattern_be, pattern_le = None, None
 
         # 1. check if it's a symbol (like "$sp" or "0x1337")
@@ -9425,7 +9351,7 @@ class PatternSearchCommand(GenericCommand):
             pattern_be = gef_pybytes(pattern)
             pattern_le = gef_pybytes(pattern[::-1])
 
-        cyclic_pattern = generate_cyclic_pattern(size)
+        cyclic_pattern = generate_cyclic_pattern(size, period)
         found = False
         off = cyclic_pattern.find(pattern_le)
         if off >= 0:
@@ -10246,7 +10172,7 @@ class GefHelpCommand(gdb.Command):
         doc = getattr(class_name, "__doc__", "").lstrip()
         doc = "\n                         ".join(doc.split("\n"))
         aliases = " (alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
-        msg = "{cmd:<25s} -- {help:s}{aliases:s}".format(cmd=cmd, help=Color.greenify(doc), aliases=aliases)
+        msg = "{cmd:<25s} -- {help:s}{aliases:s}".format(cmd=cmd, help=doc, aliases=aliases)
         self.docs.append(msg)
         return
 

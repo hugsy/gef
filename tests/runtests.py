@@ -249,11 +249,11 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
 
     def test_cmd_keystone_assemble(self):
         valid_cmds = [
-            "assemble nop; xor eax, eax; int 0x80",
-            "assemble -a arm -m arm add r0, r1, r2",
-            "assemble -a mips -m mips32 add $v0, 1",
-            "assemble -a sparc -m sparc32  set 0, %o0",
-            "assemble -a arm64 -m little_endian add x29, sp, 0; mov  w0, 0; ret"
+            "assemble nop; xor eax, eax; syscall",
+            "assemble --arch arm   --mode arm add  r0, r1, r2",
+            "assemble --arch mips  --mode mips32   add $v0, 1",
+            "assemble --arch sparc --mode sparc32  set 0, %o0",
+            "assemble --arch arm64 --mode arm add x29, sp, 0; mov  w0, 0; ret"
         ]
         for cmd in valid_cmds:
             res = gdb_start_silent_cmd(cmd)
@@ -305,14 +305,28 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("Gef!Gef!Gef!Gef!", res)
         return
 
-    def test_cmd_pattern(self):
+    def test_cmd_pattern_create(self):
         cmd = "pattern create 32"
         target = "/tmp/pattern.out"
         res = gdb_run_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn("aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
+        self.assertIn("aaaabaaacaaadaaaeaaaf", res)
 
+        cmd = "pattern create --period 8 32"
+        target = "/tmp/pattern.out"
+        res = gdb_run_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertIn("aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
+        return
+
+    def test_cmd_pattern_search(self):
         cmd = "pattern search $rbp"
+        target = "/tmp/pattern.out"
+        res = gdb_run_cmd(cmd, before=["set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run"], target=target)
+        self.assertNoException(res)
+        self.assertIn("Found at offset", res)
+
+        cmd = "pattern search --period 8 $rbp"
         target = "/tmp/pattern.out"
         res = gdb_run_cmd(cmd, before=["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"], target=target)
         self.assertNoException(res)
@@ -324,12 +338,12 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         res = gdb_start_silent_cmd("print-format $rsp")
         self.assertNoException(res)
         self.assertTrue("buf = [" in res)
-        res = gdb_start_silent_cmd("print-format -f js $rsp")
+        res = gdb_start_silent_cmd("print-format --lang js $rsp")
         self.assertNoException(res)
         self.assertTrue("var buf = [" in res)
-        res = gdb_start_silent_cmd("print-format -f iDontExist $rsp")
+        res = gdb_start_silent_cmd("print-format --lang iDontExist $rsp")
         self.assertNoException(res)
-        self.assertTrue("Language must be :" in res)
+        self.assertTrue("Language must be in:" in res)
         return
 
     def test_cmd_process_status(self):
@@ -339,6 +353,20 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertIn("Process Information", res)
         self.assertIn("No child process", res)
         self.assertIn("No open connections", res)
+        return
+
+    def test_cmd_process_search(self):
+        res = gdb_start_silent_cmd("process-search", target="/tmp/pattern.out", before=["set args w00tw00t", ])
+        self.assertNoException(res)
+        self.assertIn("/tmp/pattern.out", res)
+
+        res = gdb_start_silent_cmd("process-search gdb.*fakefake", target="/tmp/pattern.out", before=["set args w00tw00t", ])
+        self.assertNoException(res)
+        self.assertIn("gdb", res)
+
+        res = gdb_start_silent_cmd("process-search --smart-scan gdb.*fakefake", target="/tmp/pattern.out", before=["set args w00tw00t", ])
+        self.assertNoException(res)
+        self.assertNotIn("gdb", res)
         return
 
     def test_cmd_registers(self):
@@ -465,7 +493,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         return
 
     def test_cmd_unicorn_emulate(self):
-        cmd = "emu -n 1"
+        cmd = "emu 10"
         res = gdb_run_cmd(cmd)
         self.assertFailIfInactiveSession(res)
 
