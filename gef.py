@@ -2662,10 +2662,10 @@ def copy_to_clipboard(data):
     else:
         raise NotImplementedError("copy: Unsupported OS")
 
-    p = subprocess.Popen(prog, stdin=subprocess.PIPE)
-    p.stdin.write(data)
-    p.stdin.close()
-    p.wait()
+    with subprocess.Popen(prog, stdin=subprocess.PIPE) as p:
+        p.stdin.write(data)
+        p.stdin.close()
+        p.wait()
     return
 
 
