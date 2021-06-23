@@ -39,7 +39,7 @@ gef➤  gef help
 ```
 
 _Note_: As of January 2020, GEF doesn't officially support Python 2 any longer, due to Python 2 becoming officially deprecated.
-If you really need GDB+Python2, use [`gef-legacy`](https://github.com/hugsy/gef-legacy) instead.
+If you really need GDB+Python2, use the (not actively maintained) [`gef-legacy`](https://github.com/hugsy/gef-legacy) instead.
 
 
 ## Community ##
@@ -77,7 +77,7 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 
 
 | Documentation |License | Compatibility |
-|---|---|---|
+|:---:|:---:|:---|
 | [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) | [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) |
 
 
@@ -85,7 +85,16 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 
 To get involved, refer to the [Contribution documentation](https://gef.readthedocs.io/en/master/#contribution) and the [guidelines](https://github.com/hugsy/gef/blob/dev/.github/CONTRIBUTING.md) to start.
 
-And special thanks to [Pedro "TheZakMan" Araujo](https://thezakman.tumblr.com/) for the logo!.
+
+## Sponsors ##
+
+We would like to thank in particular the following people who've been sponsoring GEF allowing us to dedicate more time and resources to the project:
+
+ - [@nkaretnikov](https://github.com/nkaretnikov)
+ - [@R3zk0n](https://github.com/r3zk0n)
 
 
-## Happy Hacking ##
+Want to be part of this list of amazing people? [Jump here!](https://github.com/sponsors/hugsy)
+
+
+### Happy Hacking ###
