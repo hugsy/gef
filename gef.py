@@ -7433,7 +7433,9 @@ class ElfInfoCommand(GenericCommand):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
-    def do_invoke(self, argv):
+    @parse_arguments({}, {"--filename": ""})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
         # http://www.sco.com/developers/gabi/latest/ch4.eheader.html
         classes = {
             Elf.ELF_32_BITS     : "32-bit",
@@ -7478,7 +7480,7 @@ class ElfInfoCommand(GenericCommand):
             Elf.IA64              : "IA-64",
         }
 
-        filename = argv[0] if argv else get_filepath()
+        filename = args.filename or get_filepath()
         if filename is None:
             return
 
