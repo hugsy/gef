@@ -51,8 +51,8 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 1)
 
-        self.assertFailIfInactiveSession(gdb_run_cmd("cs opcodes"))
-        res = gdb_start_silent_cmd("cs opcodes")
+        self.assertFailIfInactiveSession(gdb_run_cmd("cs --show-opcodes"))
+        res = gdb_start_silent_cmd("cs --show-opcodes")
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 1)
         # match the following pattern

@@ -7020,17 +7020,18 @@ class DetailRegistersCommand(GenericCommand):
     _example_ = "\n{0:s}\n{0:s} $eax $eip $esp".format(_cmdline_)
 
     @only_if_gdb_running
-    def do_invoke(self, argv):
+    @parse_arguments({"registers": ["",]}, {})
+    def do_invoke(self, argv, *args, **kwargs):
         unchanged_color = get_gef_setting("theme.registers_register_name")
         changed_color = get_gef_setting("theme.registers_value_changed")
         string_color = get_gef_setting("theme.dereference_string")
+        regs = current_arch.all_registers
 
-        if argv:
-            regs = [reg for reg in current_arch.all_registers if reg in argv]
-            if not regs:
-                warn("No matching registers found")
-        else:
-            regs = current_arch.all_registers
+        args = kwargs["arguments"]
+        if args.registers and args.registers[0]:
+            valid_regs = list(set(current_arch.all_registers) & set(args.registers))
+            if valid_regs:
+                regs = valid_regs
 
         memsize = current_arch.ptrsize
         endian = endian_str()
