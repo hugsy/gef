@@ -2,26 +2,33 @@ name: "Discord Notification"
 on: [push, pull_request, issues]
 env:
   DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-  
+
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
       - name: GEF Push Notification
-        uses: Ilshidur/action-discord@0.3.0
+        uses: Ilshidur/action-discord@0.3.2
         if: github.event_name == 'push' && github.repository_owner == 'hugsy'
         with:
           args: |
-            ${{ github.actor }} pushed ${{ github.event.ref }}: ${{ github.event.compare }}
+            [${{ github.actor }}](${{ github.actor.url }}) pushed to `${{ github.event.ref }}`: ${{ github.event.compare }}
+
       - name: GEF PR Notification
-        uses: Ilshidur/action-discord@0.3.0
+        uses: Ilshidur/action-discord@0.3.2
         if: github.event_name == 'pull_request' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
         with:
           args: |
-            New PR (`#${{ github.event.pull_request.number }}`) from ${{ github.actor }}: {{ EVENT_PAYLOAD.pull_request.html_url }}
+            [${{ github.actor }}](${{ github.actor.url }}) created a new Pull Request (`#${{ github.event.pull_request.number }}`)
+        env:
+          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": ${{ github.actor }}, "url": "{{ EVENT_PAYLOAD.pull_request.html_url }}", "icon_url": "${{ github.actor.avatar_url }}" } , "title": "PR `ID=#${{ github.event.pull_request.number }}`", "description": ":grinning:"}]}'
+
       - name: GEF Issue Notification
-        uses: Ilshidur/action-discord@0.3.0
+        uses: Ilshidur/action-discord@0.3.2
         if: github.event_name == 'issues' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
         with:
           args: |
-            New Issue (`#${{ github.event.issue.number }}`) from ${{ github.actor }}: {{ EVENT_PAYLOAD.issue.html_url }}
+            [${{ github.actor }}](${{ github.actor.url }}) created a new Issue (`#${{ github.event.issue.number }}`)
+        env:
+          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": ${{ github.actor }}, "url": "{{ EVENT_PAYLOAD.issue.html_url }}", "icon_url": "${{ github.actor.avatar_url }}" , "title": "Issue `ID=#${{ github.event.issue.number }}`", "description": ":grinning:"}]}'
+
