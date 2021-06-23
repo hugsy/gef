@@ -8568,27 +8568,22 @@ class PatchCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    def do_invoke(self, argv):
-        if not self.format:
+    @parse_arguments({"location": "", "values": ["", ]}, {})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        if not self.format or self.format not in self.SUPPORTED_SIZES:
             self.usage()
             return
 
-        argc = len(argv)
-        if argc < 2:
+        if not args.location or not args.values:
             self.usage()
             return
 
-        location, values = argv[0], argv[1:]
-        fmt = self.format
-        if fmt not in self.SUPPORTED_SIZES:
-            self.usage()
-            return
+        addr = align_address(int(gdb.parse_and_eval(args.location)))
+        size, fcode = self.SUPPORTED_SIZES[self.format]
 
-        addr = align_address(int(gdb.parse_and_eval(location)))
-        size, fcode = self.SUPPORTED_SIZES[fmt]
-
-        d = "<" if is_little_endian() else ">"
-        for value in values:
+        d = endian_str()
+        for value in args.values:
             value = parse_address(value) & ((1 << size * 8) - 1)
             vstr = struct.pack(d + fcode, value)
             write_memory(addr, vstr, length=size)
