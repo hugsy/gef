@@ -7605,16 +7605,16 @@ class NamedBreakpointCommand(GenericCommand):
         super().__init__()
         return
 
-    def do_invoke(self, argv):
-        if not argv:
+    @parse_arguments({"name": "", "location": ""}, {})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        if not args.name:
             err("Missing name for breakpoint")
             self.usage()
             return
 
-        name = argv[0]
-        location = argv[1] if len(argv) > 1 else "*{}".format(hex(current_arch.pc))
-
-        NamedBreakpoint(location, name)
+        location = args.location or "*{:#x}".format(current_arch.pc)
+        NamedBreakpoint(location, args.name)
         return
 
 
