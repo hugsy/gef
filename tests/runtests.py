@@ -239,11 +239,11 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         self.assertFailIfInactiveSession(gdb_run_cmd("hexdump $pc"))
         res = gdb_start_silent_cmd("hexdump qword $pc")
         self.assertNoException(res)
-        res = gdb_start_silent_cmd("hexdump dword $pc l1")
+        res = gdb_start_silent_cmd("hexdump dword $pc -s 1")
         self.assertNoException(res)
-        res = gdb_start_silent_cmd("hexdump word $pc l5 reverse")
+        res = gdb_start_silent_cmd("hexdump word $pc -s 5 -r")
         self.assertNoException(res)
-        res = gdb_start_silent_cmd("hexdump byte $sp l32")
+        res = gdb_start_silent_cmd("hexdump byte $sp -s 32")
         self.assertNoException(res)
         return
 
@@ -551,7 +551,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
             "highlight add 43434343 green",
             "highlight add 44444444 pink",
             'patch string $rsp "AAAABBBBCCCCDDDD"',
-            "hexdump qword $rsp 2"
+            "hexdump qword $rsp -s 2"
         ]
 
         res = gdb_start_silent_cmd('', after=cmds, strip_ansi=False)

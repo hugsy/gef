@@ -8427,61 +8427,34 @@ class HexdumpCommand(GenericCommand):
         super().__init__(complete=gdb.COMPLETE_LOCATION, prefix=True)
         self.add_setting("always_show_ascii", False, "If true, hexdump will always display the ASCII dump")
         self.format = None
+        self.__last_target = "$sp"
         return
 
     @only_if_gdb_running
-    def do_invoke(self, argv):
-        if not self.format:
-            err("Incomplete command")
+    @parse_arguments({"address": "",}, {("--reverse", "-r"): True, ("--size", "-s"): 0})
+    def do_invoke(self, argv, *args, **kwargs):
+        valid_formats = ["byte", "word", "dword", "qword"]
+        if not self.format or self.format not in valid_formats:
+            err("Invalid command")
             return
 
-        fmt = self.format
-        target = ""
-        valid_formats = ["byte", "word", "dword", "qword"]
-        read_len = None
-        reverse = False
-
-        for arg in argv:
-            arg_lower = arg.lower()
-            is_format_given = False
-            for valid_format in valid_formats:
-                if valid_format.startswith(arg_lower):
-                    fmt = valid_format
-                    is_format_given = True
-                    break
-            if is_format_given:
-                continue
-            if "reverse".startswith(arg_lower):
-                reverse = True
-                continue
-            if arg_lower.startswith("l") or target:
-                if arg_lower.startswith("l"):
-                    arg_lower = arg_lower[1:]
-                if read_len:
-                    self.usage()
-                    return
-                read_len = int(arg_lower, 0)
-                continue
-            target = arg
-
-        if not target:
-            target = "$sp"
-
+        args = kwargs["arguments"]
+        target = args.address or self.__last_target
+        read_len = args.size or 0x40 if self.format == "byte" else 0x10
         start_addr = to_unsigned_long(gdb.parse_and_eval(target))
         read_from = align_address(start_addr)
-        if not read_len:
-            read_len = 0x40 if fmt == "byte" else 0x10
 
-        if fmt == "byte":
+        if self.format == "byte":
             read_from += self.repeat_count * read_len
             mem = read_memory(read_from, read_len)
             lines = hexdump(mem, base=read_from).splitlines()
         else:
-            lines = self._hexdump(read_from, read_len, fmt, self.repeat_count * read_len)
+            lines = self._hexdump(read_from, read_len, self.format, self.repeat_count * read_len)
 
-        if reverse:
+        if args.reverse:
             lines.reverse()
 
+        self.__last_target = target
         gef_print("\n".join(lines))
         return
 
