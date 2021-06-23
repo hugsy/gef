@@ -6335,10 +6335,7 @@ class NopCommand(GenericCommand):
 
     @only_if_gdb_running
     def nop_bytes(self, loc, num_bytes):
-        if num_bytes == 0:
-            size = self.get_insn_size(loc)
-        else:
-            size = num_bytes
+        size = self.get_insn_size(loc) if num_bytes == 0 else num_bytes
         nops = current_arch.nop_insn
 
         if len(nops) > size:
@@ -6406,24 +6403,12 @@ class CapstoneDisassembleCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    def do_invoke(self, argv):
-        location = None
-        show_opcodes = False
-
-        kwargs = {}
-        for arg in argv:
-            if "=" in arg:
-                key, value = arg.split("=", 1)
-                kwargs[key] = value
-
-            elif "opcodes".startswith(arg.lower()):
-                show_opcodes = True
-
-            elif location is None:
-                location = parse_address(arg)
-
-        location = location or current_arch.pc
-        length = int(kwargs.get("length", get_gef_setting("context.nb_lines_code")))
+    @parse_arguments({}, {("--location", "-l"): 0, ("--show-opcodes", "-s"): True, "--length": 0})
+    def do_invoke(self, argv, *args, **kwargs):
+        args = kwargs["arguments"]
+        show_opcodes = args.show_opcodes
+        location = args.location if args.location else current_arch.pc
+        length = args.length or get_gef_setting("context.nb_lines_code")
 
         insns = []
         opcodes_len = 0
