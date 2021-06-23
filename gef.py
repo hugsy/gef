@@ -6104,7 +6104,7 @@ class RemoteCommand(GenericCommand):
         {"--update-solib": True,
          "--download-everything": True,
          "--download-lib": "",
-         "--extended-remote": True,
+         "--is-extended-remote": True,
          "--pid": 0,
          "--qemu-mode": True,})
     def do_invoke(self, argv, *args, **kwargs):
@@ -6120,12 +6120,12 @@ class RemoteCommand(GenericCommand):
             err("A target (HOST:PORT) must always be provided.")
             return
 
-        if args.extended_remote and not args.pid:
+        if args.is_extended_remote and not args.pid:
             err("A PID (--pid) is required for extended remote debugging")
             return
 
         target = args.target
-        pid = args.pid if args.extended_remote and args.pid else get_pid()
+        pid = args.pid if args.is_extended_remote and args.pid else get_pid()
         self.download_all_libs = args.download_everything
 
         if args.qemu_mode:
