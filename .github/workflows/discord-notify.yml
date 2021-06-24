@@ -8,29 +8,48 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: GEF Push Notification
-        uses: Ilshidur/action-discord@0.3.2
         if: github.event_name == 'push' && github.repository_owner == 'hugsy'
+        uses: sarisia/actions-status-discord@v1
         with:
-          args: |
-            ${{ github.actor }} pushed to `${{ github.event.ref }}`
-        env:
-          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "{{ EVENT_PAYLOAD.compare }}", "icon_url": "${{ github.actor.avatar_url }}" } , "title": "New Push from ${{ github.actor}}: `{{ EVENT_PAYLOAD.push.ref }}` ", "description": "Commit delta: {{ EVENT_PAYLOAD.push.before }} → {{ EVENT_PAYLOAD.push.before }}\nCompare changes: {{ EVENT_PAYLOAD.push.compare }}\nCommits: ${{ join(github.event.push.commits.*.url) }}"}]}'
+          nodetail: true
+          title: ${{ github.actor }} pushed to `${{ github.event.push.ref }}`
+          description: |
+            Commit delta: ${{ github.event.push.before }} → ${{ github.event.push.after }}
+            Compare changes: ${{ github.event.push.compare }}
+            Commits:
+              * ${{ join(github.event.push.commits.*.message, '\n * ') }}
+          color: 0x0000ff
+          username: ${{ github.actor }}
+          avatar_url: ${{ github.actor.avatar_url }}
 
       - name: GEF PR Notification
-        uses: Ilshidur/action-discord@0.3.2
         if: github.event_name == 'pull_request' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
+        uses: sarisia/actions-status-discord@v1
         with:
-          args: |
-            ${{ github.actor }} created a new Pull Request (`#${{ github.event.pull_request.number }}`)
-        env:
-          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "{{ EVENT_PAYLOAD.pull_request.html_url }}", "icon_url": "${{ github.actor.avatar_url }}" } , "title": "{{ EVENT_PAYLOAD.pull_request.title }}", "description": "{{ EVENT_PAYLOAD.pull_request.body }} "}]}'
+          nodetail: true
+          title: ${{ github.actor }} created a new Pull Request (`#${{ github.event.pull_request.number }}`)
+          description: |
+            **${{ github.event.pull_request.title }}**
+            ---
+            ${{ github.event.pull_request.body }}
+            ---
+            [Link](${{ github.event.pull_request.html_url }})
+          color: 0x0000ff
+          username: ${{ github.actor }}
+          avatar_url: ${{ github.actor.avatar_url }}
 
       - name: GEF Issue Notification
-        uses: Ilshidur/action-discord@0.3.2
         if: github.event_name == 'issues' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
+        uses: sarisia/actions-status-discord@v1
         with:
-          args: |
-            ${{ github.actor }} created a new Issue (`#${{ github.event.issue.number }}`)
-        env:
-          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "{{ EVENT_PAYLOAD.issue.html_url }}", "icon_url": "${{ github.actor.avatar_url }}" , "title": "{{ EVENT_PAYLOAD.issue.title }}", "description": "{{ EVENT_PAYLOAD.issue.body }}"}]}'
-
+          nodetail: true
+          title: ${{ github.actor }} created a new Issue (`#${{ github.event.issue.number }}`)
+          description: |
+            **${{ github.event.issue.title }}**
+            ---
+            ${{ github.event.issue.body }}
+            ---
+            [Link](${{ github.event.pull_request.html_url }})
+          color: 0x0000ff
+          username: ${{ github.actor }}
+          avatar_url: ${{ github.actor.avatar_url }}
