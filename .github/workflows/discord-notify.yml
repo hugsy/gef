@@ -16,9 +16,9 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         with:
           nodetail: true
-          title: ${{ github.actor }} pushed to ${{ github.ref }}
+          title: ${{ github.actor }} pushed to `${{ github.ref }}`
           description: |
-            **Commit delta**: ${{ github.event.before }} → ${{ github.event.after }}
+            **Commit delta**: `${{ github.event.before }}` → `${{ github.event.after }}`
             ---
             **Changes**: ${{ github.event.compare }}
             ---
@@ -26,8 +26,8 @@ jobs:
               ● ${{ join(github.event.commits.*.message, '\n ● ') }}
 
           color: 0x0000ff
-          username: ${{ github.event.pusher }} via GithubBot
-          avatar_url: ${{ github.event.pusher.avatar_url }}
+          username: ${{ github.actor }} via GithubBot
+          avatar_url: ${{ github.actor.avatar_url }}
 
       - name: GEF PR Notification
         if: github.event_name == 'pull_request' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
@@ -44,8 +44,8 @@ jobs:
 
             [Link](${{ github.event.pull_request.html_url }})
           color: 0xff0000
-          username: ${{ github.sender }} via GithubBot
-          avatar_url: ${{ github.sender.avatar_url }}
+          username: ${{ github.actor }} via GithubBot
+          avatar_url: ${{ github.actor.avatar_url }}
 
       - name: GEF Issue Notification
         if: github.event_name == 'issues' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
@@ -62,5 +62,5 @@ jobs:
 
             [Link](${{ github.event.pull_request.html_url }})
           color: 0x00ff00
-          username: ${{ github.user.actor }} via GithubBot
-          avatar_url: ${{ github.user.avatar_url }}
+          username: ${{ github.actor.actor }} via GithubBot
+          avatar_url: ${{ github.actor.avatar_url }}
