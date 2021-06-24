@@ -14,7 +14,7 @@ jobs:
           args: |
             ${{ github.actor }} pushed to `${{ github.event.ref }}`
         env:
-          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "${{ github.event.compare }}", "icon_url": "${{ github.actor.avatar_url }}" } , "title": "New Push from ${{ github.actor}}: `${{ github.event.push.ref }}` ", "description": "Commit delta: ${{ github.event.push.before }} → ${{ github.event.push.before }}\nCompare changes: ${{ github.event.push.compare }}\nCommits: ${{ join(github.event.push.commits.*.url) }}"}]}'
+          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "{{ EVENT_PAYLOAD.compare }}", "icon_url": "${{ github.actor.avatar_url }}" } , "title": "New Push from ${{ github.actor}}: `{{ EVENT_PAYLOAD.push.ref }}` ", "description": "Commit delta: {{ EVENT_PAYLOAD.push.before }} → {{ EVENT_PAYLOAD.push.before }}\nCompare changes: {{ EVENT_PAYLOAD.push.compare }}\nCommits: ${{ join(EVENT_PAYLOAD.push.commits.*.url) }}"}]}'
 
       - name: GEF PR Notification
         uses: Ilshidur/action-discord@0.3.2
@@ -23,7 +23,7 @@ jobs:
           args: |
             ${{ github.actor }} created a new Pull Request (`#${{ github.event.pull_request.number }}`)
         env:
-          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "{{ EVENT_PAYLOAD.pull_request.html_url }}", "icon_url": "${{ github.actor.avatar_url }}" } , "title": "${{ github.event.pull_request.title }}", "description": "${{ github.event.pull_request.body }} "}]}'
+          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "{{ EVENT_PAYLOAD.pull_request.html_url }}", "icon_url": "${{ github.actor.avatar_url }}" } , "title": "{{ EVENT_PAYLOAD.pull_request.title }}", "description": "{{ EVENT_PAYLOAD.pull_request.body }} "}]}'
 
       - name: GEF Issue Notification
         uses: Ilshidur/action-discord@0.3.2
@@ -32,5 +32,5 @@ jobs:
           args: |
             ${{ github.actor }} created a new Issue (`#${{ github.event.issue.number }}`)
         env:
-          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "{{ EVENT_PAYLOAD.issue.html_url }}", "icon_url": "${{ github.actor.avatar_url }}" , "title": "${{ github.event.issue.title }}", "description": "${{ github.event.issue.body }}"}]}'
+          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "{{ EVENT_PAYLOAD.issue.html_url }}", "icon_url": "${{ github.actor.avatar_url }}" , "title": "{{ EVENT_PAYLOAD.issue.title }}", "description": "{{ EVENT_PAYLOAD.issue.body }}"}]}'
 
