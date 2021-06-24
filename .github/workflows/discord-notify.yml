@@ -14,7 +14,7 @@ jobs:
           args: |
             ${{ github.actor }} pushed to `${{ github.event.ref }}`
         env:
-          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "${{ github.event.compare }}", "icon_url": "${{ github.actor.avatar_url }}" } , "title": "New Push from ${{ github.actor}}: `${{ github.event.push.ref }}` ", "description": "Commit delta: ${{ github.event.push.before }} → ${{ github.event.push.before }}\nCompare changes: ${{ github.event.push.compare }}\nCommits: ${{ join(github.event.push.commits.*.message, \"\n * \"") }}"}]}'
+          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "${{ github.event.compare }}", "icon_url": "${{ github.actor.avatar_url }}" } , "title": "New Push from ${{ github.actor}}: `${{ github.event.push.ref }}` ", "description": "Commit delta: ${{ github.event.push.before }} → ${{ github.event.push.before }}\nCompare changes: ${{ github.event.push.compare }}\nCommits: ${{ join(github.event.push.commits.*.message, \'\n * \'") }}"}]}'
 
       - name: GEF PR Notification
         uses: Ilshidur/action-discord@0.3.2
