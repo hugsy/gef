@@ -12,23 +12,25 @@ jobs:
         if: github.event_name == 'push' && github.repository_owner == 'hugsy'
         with:
           args: |
-            ${{ github.actor }} github.actor.url pushed to `${{ github.event.ref }}`: ${{ github.event.compare }}
+            ${{ github.actor }} pushed to `${{ github.event.ref }}`
+        env:
+          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "${{ github.event.compare }}", "icon_url": "${{ github.actor.avatar_url }}" } , "title": "New Push from ${{ github.actor}}: `${{ github.event.push.ref }}` ", "description": "Commit delta: ${{ github.event.push.before }} → ${{ github.event.push.before }}\nCompare changes: ${{ github.event.push.compare }}\nCommits: ${{ join(github.event.push.commits.*.message, \"\n * \"") }}"}]}'
 
       - name: GEF PR Notification
         uses: Ilshidur/action-discord@0.3.2
         if: github.event_name == 'pull_request' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
         with:
           args: |
-            ${{ github.actor }} github.actor.url created a new Pull Request (`#${{ github.event.pull_request.number }}`)
+            ${{ github.actor }} created a new Pull Request (`#${{ github.event.pull_request.number }}`)
         env:
-          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "{{ EVENT_PAYLOAD.pull_request.html_url }}", "icon_url": "${{ github.actor.avatar_url }}" } , "title": "PR `ID=#${{ github.event.pull_request.number }}`", "description": ":grinning:"}]}'
+          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "{{ EVENT_PAYLOAD.pull_request.html_url }}", "icon_url": "${{ github.actor.avatar_url }}" } , "title": "${{ github.event.pull_request.title }}", "description": "${{ github.event.pull_request.body }} "}]}'
 
       - name: GEF Issue Notification
         uses: Ilshidur/action-discord@0.3.2
         if: github.event_name == 'issues' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
         with:
           args: |
-            ${{ github.actor }} github.actor.url created a new Issue (`#${{ github.event.issue.number }}`)
+            ${{ github.actor }} created a new Issue (`#${{ github.event.issue.number }}`)
         env:
-          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "{{ EVENT_PAYLOAD.issue.html_url }}", "icon_url": "${{ github.actor.avatar_url }}" , "title": "Issue `ID=#${{ github.event.issue.number }}`", "description": ":grinning:"}]}'
+          DISCORD_EMBEDS: '{"embeds": [{"author": { "name": "${{ github.actor }}", "url": "{{ EVENT_PAYLOAD.issue.html_url }}", "icon_url": "${{ github.actor.avatar_url }}" , "title": "${{ github.event.issue.title }}", "description": "${{ github.event.issue.body }}"}]}'
 
