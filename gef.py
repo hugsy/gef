@@ -8233,6 +8233,7 @@ class ContextCommand(GenericCommand):
             return
 
         selected_thread = gdb.selected_thread()
+        selected_frame = gdb.selected_frame()
 
         for i, thread in enumerate(threads):
             line = """[{:s}] Id {:d}, """.format(Color.colorify("#{:d}".format(i), "bold green" if thread == selected_thread  else "bold pink"), thread.num)
@@ -8252,6 +8253,7 @@ class ContextCommand(GenericCommand):
             i += 1
 
         selected_thread.switch()
+        selected_frame.select()
         return
 
     def context_additional_information(self):
