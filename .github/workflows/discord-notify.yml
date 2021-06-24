@@ -10,6 +10,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
       - name: GEF Push Notification
         if: github.event_name == 'push' && github.repository_owner == 'hugsy'
         uses: sarisia/actions-status-discord@v1
@@ -17,14 +18,16 @@ jobs:
           nodetail: true
           title: ${{ github.actor }} pushed to ${{ github.ref }}
           description: |
-            Commit delta: ${{ github.event.before }} .. ${{ github.event.after }}
-            Compare changes: ${{ github.event.compare }}
-            Commits:
-              * ${{ join(github.event.commits.*.message, '\n * ') }}
+            **Commit delta**: ${{ github.event.before }} → ${{ github.event.after }}
+            ---
+            **Changes**: ${{ github.event.compare }}
+            ---
+            **Commits**:
+              ● ${{ join(github.event.commits.*.message, '\n ● ') }}
 
           color: 0x0000ff
-          username: ${{ github.actor }} via GithubBot
-          avatar_url: ${{ github.actor.avatar_url }}
+          username: ${{ github.event.pusher }} via GithubBot
+          avatar_url: ${{ github.event.pusher.avatar_url }}
 
       - name: GEF PR Notification
         if: github.event_name == 'pull_request' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
@@ -34,13 +37,15 @@ jobs:
           title: ${{ github.actor }} created a new Pull Request (`#${{ github.event.pull_request.number }}`)
           description: |
             **${{ github.event.pull_request.title }}**
-            ---
+
+            ```
             ${{ github.event.pull_request.body }}
-            ---
+            ```
+
             [Link](${{ github.event.pull_request.html_url }})
-          color: 0x0000ff
-          username: ${{ github.actor }} via GithubBot
-          avatar_url: ${{ github.actor.avatar_url }}
+          color: 0xff0000
+          username: ${{ github.sender }} via GithubBot
+          avatar_url: ${{ github.sender.avatar_url }}
 
       - name: GEF Issue Notification
         if: github.event_name == 'issues' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
@@ -50,10 +55,12 @@ jobs:
           title: ${{ github.actor }} created a new Issue (`#${{ github.event.issue.number }}`)
           description: |
             **${{ github.event.issue.title }}**
-            ---
+
+            ```
             ${{ github.event.issue.body }}
-            ---
+            ```
+
             [Link](${{ github.event.pull_request.html_url }})
-          color: 0x0000ff
-          username: ${{ github.actor }} via GithubBot
-          avatar_url: ${{ github.actor.avatar_url }}
+          color: 0x00ff00
+          username: ${{ github.user.actor }} via GithubBot
+          avatar_url: ${{ github.user.avatar_url }}
