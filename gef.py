@@ -51,10 +51,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-#
-#
-
-from __future__ import print_function, division, absolute_import
 
 import abc
 import argparse
@@ -5085,10 +5081,10 @@ class PCustomCommand(GenericCommand):
         return module
 
     def enumerate_structures_from_module(self, module):
-        _invalid = set(["BigEndianStructure", "LittleEndianStructure", "Structure"])
-        _structs = set([x for x in dir(module) \
+        _invalid = {"BigEndianStructure", "LittleEndianStructure", "Structure"}
+        _structs = {x for x in dir(module) \
                          if inspect.isclass(getattr(module, x)) \
-                         and issubclass(getattr(module, x), ctypes.Structure)])
+                         and issubclass(getattr(module, x), ctypes.Structure)}
         return _structs - _invalid
 
 
@@ -5945,7 +5941,6 @@ def set_fs(uc, addr):    return set_msr(uc, FSMSR, addr)
 #
 # @_hugsy_
 #
-from __future__ import print_function
 import collections
 import capstone, unicorn
 
@@ -9832,9 +9827,8 @@ def get_zone_base_address(name):
 
     return None
 
-class GenericFunction(gdb.Function):
+class GenericFunction(gdb.Function, metaclass=abc.ABCMeta):
     """This is an abstract class for invoking convenience functions, should not be instantiated."""
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractproperty
     def _function_(self): pass
@@ -10074,7 +10068,7 @@ class GefCommand(gdb.Command):
             self.loaded_functions.append(function_class_name())
 
         def is_loaded(x):
-            return any(filter(lambda u: x == u[0], self.loaded_commands))
+            return any(u for u in self.loaded_commands if x == u[0])
 
         for cmd, class_name in self.commands:
             if is_loaded(cmd):
@@ -10098,7 +10092,7 @@ class GefCommand(gdb.Command):
         if initial:
             gef_print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure"
                       .format(Color.greenify("GEF"), get_os(),
-                              Color.colorify("gef","underline yellow"),
+                              Color.colorify("gef", "underline yellow"),
                               Color.colorify("gef config", "underline pink")))
 
             ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
@@ -10190,7 +10184,7 @@ class GefConfigCommand(gdb.Command):
 
         if argc == 1:
             prefix = argv[0]
-            names = list(filter(lambda x: x.startswith(prefix), __config__.keys()))
+            names = [x for x in __config__.keys() if x.startswith(prefix)]
             if names:
                 if len(names) == 1:
                     gef_print(titlify("GEF configuration setting: {:s}".format(names[0])))
@@ -10447,7 +10441,7 @@ class GefAlias(gdb.Command):
         if not p:
             return
 
-        if list(filter(lambda x: x._alias == alias, __aliases__)):
+        if any(x for x in __aliases__ if x._alias == alias):
             return
 
         self._command = command
