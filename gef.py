@@ -1368,7 +1368,6 @@ def gef_next_instruction(addr):
     return gef_instruction_n(addr, 1)
 
 
-@lru_cache()
 def gef_disassemble(addr, nb_insn, nb_prev=0):
     """Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`.
     Return an iterator of Instruction objects."""
@@ -2699,9 +2698,13 @@ def to_unsigned_long(v):
     return int(v.cast(gdb.Value(mask).type)) & mask
 
 
-@lru_cache()
 def get_register(regname):
     """Return a register's value."""
+    return get_register_for_selected_frame(id(gdb.selected_frame()), regname)
+
+
+@lru_cache()
+def get_register_for_selected_frame(selected_frame_id, regname):
     try:
         value = gdb.parse_and_eval(regname)
         return to_unsigned_long(value) if value.type.code == gdb.TYPE_CODE_INT else int(value)
