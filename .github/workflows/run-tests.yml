@@ -58,7 +58,7 @@ jobs:
 
     - name: Install Python optional modules
       run: |
-      python3 -m pip install -r ./requirements.txt
+        python3 -m pip install -r ./requirements.txt
 
     - name: Setup GEF
       run: |
