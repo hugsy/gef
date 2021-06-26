@@ -56,9 +56,16 @@ jobs:
         chmod +x /tmp/update-trinity.sh
         python3 -c 'import capstone, keystone, unicorn' || /tmp/update-trinity.sh
 
+    - name: Install Python optional modules
+      run: |
+      python3 -m pip install -r ./requirements.txt
+
+    - name: Setup GEF
+      run: |
+        echo "source $(pwd)/gef.py" > ~/.gdbinit
+        gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/pwd
+
     - name: Run Tests
       run: |
-        gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/ls
-        python3 -m pip install -r ./requirements.txt
         make lint
         make test
