@@ -24,13 +24,37 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Cache trinity libs
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-trinity-libs-and-python-modules
+      with:
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('/usr/local/lib/libkeystone.so.0', '/usr/lib/libcapstone.a', '/usr/lib64/libunicorn.a') }}
+        path: |
+          /usr/include/capstone
+          /usr/lib/libcapstone*
+          /usr/local/lib/python3.9/site-packages/capstone*
+          /usr/local/lib/python3.8/site-packages/capstone*
+          /usr/local/include/keystone
+          /usr/local/lib/libkeystone*
+          /usr/local/lib/python3.9/dist-packages/keystone*
+          /usr/local/lib/python3.8/dist-packages/keystone*
+          /usr/include/unicorn
+          /usr/lib64/libunicorn*
+          /usr/local/lib/python3.9/dist-packages/unicorn*
+          /usr/local/lib/python3.8/dist-packages/unicorn*
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
+
     - name: Build 3rd party deps
       run: |
         sudo apt-get update
         sudo apt-get install gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev
         wget -O /tmp/update-trinity.sh https://github.com/hugsy/stuff/raw/master/update-trinity.sh
         chmod +x /tmp/update-trinity.sh
-        /tmp/update-trinity.sh
+        python3 -c 'import capstone, keystone, unicorn' || /tmp/update-trinity.sh
 
     - name: Run Tests
       run: |
