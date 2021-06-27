@@ -7646,6 +7646,7 @@ class ContextCommand(GenericCommand):
         self.add_setting("nb_lines_stack", 8, "Number of line in the stack pane")
         self.add_setting("grow_stack_down", False, "Order of stack downward starts at largest down to stack pointer")
         self.add_setting("nb_lines_backtrace", 10, "Number of line in the backtrace pane")
+        self.add_setting("nb_lines_backtrace_before", 2, "Number of line in the backtrace pane before selected frame")
         self.add_setting("nb_lines_threads", -1, "Number of line in the threads pane")
         self.add_setting("nb_lines_code", 6, "Number of instruction after $pc")
         self.add_setting("nb_lines_code_prev", 3, "Number of instruction before $pc")
@@ -8159,13 +8160,22 @@ class ContextCommand(GenericCommand):
         nb_backtrace = self.get_setting("nb_lines_backtrace")
         if nb_backtrace <= 0:
             return
-        orig_frame = current_frame = gdb.selected_frame()
-        i = 0
 
         # backward compat for gdb (gdb < 7.10)
         if not hasattr(gdb, "FrameDecorator"):
             gdb.execute("backtrace {:d}".format(nb_backtrace))
             return
+
+        orig_frame = gdb.selected_frame()
+        current_frame = gdb.newest_frame()
+        frames = [current_frame]
+        while current_frame != orig_frame:
+            current_frame = current_frame.older()
+            frames.append(current_frame)
+
+        nb_backtrace_before = self.get_setting("nb_lines_backtrace_before")
+        level = max(len(frames) - nb_backtrace_before - 1, 0)
+        current_frame = frames[level]
 
         while current_frame:
             current_frame.select()
@@ -8189,10 +8199,10 @@ class ContextCommand(GenericCommand):
                     break
                 items.append(Color.redify("{} {}".format(insn.mnemonic, ", ".join(insn.operands))))
 
-            gef_print("[{}] {}".format(Color.colorify("#{}".format(i), "bold pink"),
+            gef_print("[{}] {}".format(Color.colorify("#{}".format(level), "bold green" if current_frame == orig_frame else "bold pink"),
                                        RIGHT_ARROW.join(items)))
             current_frame = current_frame.older()
-            i += 1
+            level += 1
             nb_backtrace -= 1
             if nb_backtrace == 0:
                 break
