@@ -7032,7 +7032,8 @@ class DetailRegistersCommand(GenericCommand):
 
         args = kwargs["arguments"]
         if args.registers and args.registers[0]:
-            valid_regs = list(set(current_arch.all_registers) & set(args.registers))
+            required_regs = set(args.registers)
+            valid_regs = [reg for reg in current_arch.all_registers if reg in required_regs]
             if valid_regs:
                 regs = valid_regs
 
