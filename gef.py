@@ -2700,11 +2700,13 @@ def to_unsigned_long(v):
 
 def get_register(regname):
     """Return a register's value."""
-    return get_register_for_selected_frame(id(gdb.selected_frame()), regname)
+    curframe = gdb.selected_frame()
+    key = curframe.pc() ^ int(curframe.read_register('sp')) # todo: check when/if gdb.Frame implements `level()`
+    return __get_register_for_selected_frame(regname, key)
 
 
 @lru_cache()
-def get_register_for_selected_frame(selected_frame_id, regname):
+def __get_register_for_selected_frame(regname, hash_key):
     try:
         value = gdb.parse_and_eval(regname)
         return to_unsigned_long(value) if value.type.code == gdb.TYPE_CODE_INT else int(value)
