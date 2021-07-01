@@ -2721,7 +2721,6 @@ def __get_register_for_selected_frame(regname, hash_key):
         except gdb.error:
             return None
 
-# todo make non-regress test for get_register
 def get_path_from_info_proc():
     for x in gdb.execute("info proc", to_string=True).splitlines():
         if x.startswith("exe = "):
