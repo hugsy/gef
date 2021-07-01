@@ -131,7 +131,7 @@ def update_gef(argv):
 
 
 try:
-    import gdb # pylint: disable=missing-import
+    import gdb # pylint: disable=import-error
 except ImportError:
     # if out of gdb, the only action allowed is to update gef.py
     if len(sys.argv) == 2 and sys.argv[1].lower() in ("--update", "--upgrade"):

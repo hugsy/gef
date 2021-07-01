@@ -677,23 +677,15 @@ class TestGefConfigUnit(GefUnitTestGeneric):
 
     def test_config_show_opcodes_size(self):
         """Check opcodes are correctly shown"""
-        res = gdb_start_silent_cmd("context code",
-            before=[
-                "gef config context.show_opcodes_size 4",
-                "gef config context.nb_lines_code_prev 0"
-            ],)
+        res = gdb_run_cmd("entry-break", before=["gef config context.show_opcodes_size 4",])
         self.assertNoException(res)
-        pat = "code:x86:64 ────\n → "
-        res = res[res.find(pat)+len(pat):]
-        lines = res.splitlines()[:-1]
-        self.assertTrue(len(lines) > 1)
-        opcodes = [ col.split()[1] for col in lines ]
-        valid_opcodes = {
-            "f30f1efa", # endbr64
-            "55", # push rbp
-            "4889e5", # mov rbp, rsp
-        }
-        self.assertSetEqual(valid_opcodes, set(opcodes[:len(valid_opcodes)]))
+        self.assertTrue(len(res.splitlines()) > 1)
+        # match one of the following patterns
+        # 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
+        # 0x5555555546b5 488975e0    <main+11>        mov    QWORD PTR [rbp-0x20], rsi
+        # 0x5555555546b9 488955d8    <main+15>        mov    QWORD PTR [rbp-0x28], rdx
+        # 0x5555555546bd 64488b04... <main+19>        mov    rax, QWORD PTR fs:0x28
+        self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2}){1,4}(\.\.\.)?\s+.*")
         return
 
 
