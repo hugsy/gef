@@ -486,7 +486,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(res)
 
         cmd = "trace-run $pc+1"
-        res = gdb_start_silent_cmd(cmd,before=["gef config trace-run.tracefile_prefix /tmp/gef-trace-"])
+        res = gdb_start_silent_cmd(cmd, before=["gef config trace-run.tracefile_prefix /tmp/gef-trace-"])
         self.assertNoException(res)
         self.assertIn("Tracing from", res)
         return

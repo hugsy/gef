@@ -1077,7 +1077,7 @@ def show_last_exception():
 def gef_pystring(x):
     """Returns a sanitized version as string of the bytes list given in input."""
     res = str(x, encoding="utf-8")
-    substs = [("\n","\\n"), ("\r","\\r"), ("\t","\\t"), ("\v","\\v"), ("\b","\\b"), ]
+    substs = [("\n", "\\n"), ("\r", "\\r"), ("\t", "\\t"), ("\v", "\\v"), ("\b", "\\b"), ]
     for x, y in substs: res = res.replace(x, y)
     return res
 
@@ -1557,9 +1557,8 @@ def flags_to_human(reg_value, value_table):
     return "[{}]".format(" ".join(flags))
 
 
-class Architecture:
+class Architecture(metaclass=abc.ABCMeta):
     """Generic metaclass for the architecture supported by GEF."""
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractproperty
     def all_registers(self):                       pass
@@ -1858,8 +1857,8 @@ class AARCH64(ARM):
     mode = "ARM"
 
     all_registers = [
-        "$x0",  "$x1",  "$x2",  "$x3",  "$x4",  "$x5",  "$x6",  "$x7",
-        "$x8",  "$x9",  "$x10", "$x11", "$x12", "$x13", "$x14", "$x15",
+        "$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7",
+        "$x8", "$x9", "$x10", "$x11", "$x12", "$x13", "$x14","$x15",
         "$x16", "$x17", "$x18", "$x19", "$x20", "$x21", "$x22", "$x23",
         "$x24", "$x25", "$x26", "$x27", "$x28", "$x29", "$x30", "$sp",
         "$pc", "$cpsr", "$fpsr", "$fpcr",]
@@ -2222,7 +2221,7 @@ class SPARC(Architecture):
         "$o0", "$o1", "$o2", "$o3", "$o4", "$o5", "$o7",
         "$l0", "$l1", "$l2", "$l3", "$l4", "$l5", "$l6", "$l7",
         "$i0", "$i1", "$i2", "$i3", "$i4", "$i5", "$i7",
-        "$pc", "$npc","$sp ","$fp ","$psr",]
+        "$pc", "$npc", "$sp ", "$fp ", "$psr",]
     instruction_length = 4
     nop_insn = b"\x00\x00\x00\x00"  # sethi 0, %g0
     return_register = "$i0"
@@ -2474,7 +2473,7 @@ def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding
         res = bytes(read_memory(address, length)).decode("utf-8")
 
     res = res.split("\x00", 1)[0]
-    ustr = res.replace("\n","\\n").replace("\r","\\r").replace("\t","\\t")
+    ustr = res.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
     if max_length and len(res) > max_length:
         return "{}[...]".format(ustr[:max_length])
 
@@ -3157,7 +3156,7 @@ def get_terminal_size():
         csbi = create_string_buffer(22)
         res = windll.kernel32.GetConsoleScreenBufferInfo(herr, csbi)
         if res:
-            _,_,_,_,_, left, top, right, bottom, _,_ = struct.unpack("hhhhHhhhhhh", csbi.raw)
+            _, _, _, _, _, left, top, right, bottom, _, _ = struct.unpack("hhhhHhhhhhh", csbi.raw)
             tty_columns = right - left + 1
             tty_rows = bottom - top + 1
             return tty_rows, tty_columns
@@ -4166,10 +4165,8 @@ def register_function(cls):
     return cls
 
 
-class GenericCommand(gdb.Command):
+class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
     """This is an abstract class for invoking commands, should not be instantiated."""
-
-    __metaclass__ = abc.ABCMeta
 
     def __init__(self, *args, **kwargs):
         self.pre_load()
@@ -4633,7 +4630,7 @@ class SmartEvalCommand(GenericCommand):
 
         try:
             res = eval(" ".join(parsed_expr))
-            if type(res) is int:
+            if isinstance(res, int):
                 show_as_int(res)
             else:
                 gef_print("{}".format(res))
@@ -4856,7 +4853,7 @@ class GefThemeCommand(GenericCommand):
         self.add_setting("dereference_string", "yellow", "Color of dereferenced string")
         self.add_setting("dereference_code", "gray", "Color of dereferenced code")
         self.add_setting("dereference_base_address", "cyan", "Color of dereferenced address")
-        self.add_setting("dereference_register_value", "bold blue" , "Color of dereferenced register")
+        self.add_setting("dereference_register_value", "bold blue", "Color of dereferenced register")
         self.add_setting("registers_register_name", "blue", "Color of the register name in the register window")
         self.add_setting("registers_value_changed", "bold red", "Color of the changed register in the register window")
         self.add_setting("address_stack", "pink", "Color to use when a stack address is found")
@@ -5522,7 +5519,7 @@ class IdaInteractCommand(GenericCommand):
                     m = '        (\"{}\", {}),\n'.format(name, csize)
                     f.write(m)
                 f.write("]\n")
-        ok("Success, {:d} structure{:s} imported".format(len(structs),"s" if len(structs)>1 else ""))
+        ok("Success, {:d} structure{:s} imported".format(len(structs), "s" if len(structs)>1 else ""))
         return
 
 
@@ -7326,7 +7323,7 @@ class AssembleCommand(GenericCommand):
         # this is fire a ValueError if the arch/mode/endianess are invalid
         arch, mode = get_keystone_arch(arch=arch_s.upper(), mode=mode_s.upper(), endian=endian_s.upper())
         insns = [x.strip() for x in " ".join(args.instructions).split(";") if x]
-        info("Assembling {} instruction(s) for {}:{}".format(len(insns),arch_s, mode_s))
+        info("Assembling {} instruction(s) for {}:{}".format(len(insns), arch_s, mode_s))
 
         if args.as_shellcode:
             gef_print("""sc="" """)
@@ -8259,7 +8256,7 @@ class ContextCommand(GenericCommand):
                 line += Color.colorify("stopped", "bold red")
                 thread.switch()
                 frame = gdb.selected_frame()
-                line += " {:s} in {:s} ()".format(Color.colorify("{:#x}".format(frame.pc()), "blue"), Color.colorify(frame.name() or "??" ,"bold yellow"))
+                line += " {:s} in {:s} ()".format(Color.colorify("{:#x}".format(frame.pc()), "blue"), Color.colorify(frame.name() or "??", "bold yellow"))
                 line += ", reason: {}".format(Color.colorify(reason(), "bold pink"))
             elif thread.is_exited():
                 line += Color.colorify("exited", "bold yellow")

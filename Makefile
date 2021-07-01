@@ -11,7 +11,7 @@ test: testbins
 	python3 tests/runtests.py
 	@rm -f /tmp/gef.py
 	@rm -f /tmp/gef-*
-	@$(MAKE) -C tests/binaries clean
+	@$(MAKE) -j $(NB_CORES) -C tests/binaries clean
 
 Test%: testbins
 	@cp gef.py /tmp/gef.py
