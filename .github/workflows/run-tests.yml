@@ -26,6 +26,7 @@ jobs:
 
     - name: Cache trinity libs
       uses: actions/cache@v2
+      id: cache-libs
       env:
         cache-name: cache-trinity-libs-and-python-modules
       with:
@@ -48,10 +49,14 @@ jobs:
           ${{ runner.os }}-build-
           ${{ runner.os }}-
 
-    - name: Build 3rd party deps
+    - name: Refresh environment
       run: |
         sudo apt-get update
-        sudo apt-get install gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev
+        sudo apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev
+
+    - name: Compile Capstone/Keystone/Unicorn and install Python modules
+      if: steps.cache-libs.outputs.cache-hit != 'true'
+      run: |
         wget -O /tmp/update-trinity.sh https://github.com/hugsy/stuff/raw/master/update-trinity.sh
         chmod +x /tmp/update-trinity.sh
         python3 -c 'import capstone, keystone, unicorn' || /tmp/update-trinity.sh

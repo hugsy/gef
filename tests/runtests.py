@@ -691,7 +691,7 @@ class TestGefConfigUnit(GefUnitTestGeneric):
 class TestNonRegressionUnit(GefUnitTestGeneric):
     """Non-regression tests."""
 
-    def test_registers_show_registers_in_correct_order(self):
+    def test_registers_show_registers_in_correct_order(self): #pylint: disable=invalid-name
         """Ensure the registers are printed in the correct order (PR #670)."""
         cmd = "registers"
         x64_registers_in_correct_order = ["$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip", "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", "$eflags", "$cs", ]
@@ -701,7 +701,7 @@ class TestNonRegressionUnit(GefUnitTestGeneric):
         return
 
 
-    def test_context_correct_registers_refresh_with_frames(self):
+    def test_context_correct_registers_refresh_with_frames(self): #pylint: disable=invalid-name
         """Ensure registers are correctly refreshed when changing frame (PR #668)"""
         lines = gdb_run_silent_cmd("registers", after=["frame 5", "registers"], target="/tmp/nested.out").splitlines()
         rips = [ x for x in lines if x.startswith("$rip") ]
