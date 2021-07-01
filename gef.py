@@ -131,7 +131,7 @@ def update_gef(argv):
 
 
 try:
-    import gdb # pylint: disable=import-error
+    import gdb # pylint: disable=
 except ImportError:
     # if out of gdb, the only action allowed is to update gef.py
     if len(sys.argv) == 2 and sys.argv[1].lower() in ("--update", "--upgrade"):
@@ -3559,7 +3559,8 @@ def safe_parse_and_eval(value):
     try:
         return gdb.parse_and_eval(value)
     except gdb.error:
-        return None
+        pass
+    return None
 
 
 @lru_cache()
@@ -4272,7 +4273,7 @@ class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
 # Copy/paste this template for new command
 # @register_command
 # class TemplateCommand(GenericCommand):
-# """TemplateCommand: description here will be seen in the help menu for the command."""
+#      """TemplateCommand: description here will be seen in the help menu for the command."""
 #     _cmdline_ = "template-fake"
 #     _syntax_  = "{:s}".format(_cmdline_)
 #     _aliases_ = ["tpl-fk",]
@@ -4412,18 +4413,16 @@ class PieBreakpointCommand(GenericCommand):
     _cmdline_ = "pie breakpoint"
     _syntax_ = "{:s} BREAKPOINT".format(_cmdline_)
 
-    def do_invoke(self, argv):
+    @parse_arguments({"expression": ""}, {})
+    def do_invoke(self, argv, *args, **kwargs):
         global __pie_counter__, __pie_breakpoints__
         if len(argv) < 1:
             self.usage()
             return
-        bp_expr = " ".join(argv)
 
-        if bp_expr[0] == "*":
-            addr = int(gdb.parse_and_eval(bp_expr[1:]))
-        else:
-            addr = int(gdb.parse_and_eval("&{}".format(bp_expr))) # get address of symbol or function name
-
+        args = kwargs["arguments"]
+        bp_expr = args.expression[1:] if args.expression[0] == "*" else "&{}".format(args.expression)
+        addr = int(gdb.parse_and_eval(bp_expr))
         self.set_pie_breakpoint(lambda base: "b *{}".format(base + addr), addr)
 
         # When the process is already on, set real breakpoints immediately
@@ -4432,12 +4431,14 @@ class PieBreakpointCommand(GenericCommand):
             base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
             for bp_ins in __pie_breakpoints__.values():
                 bp_ins.instantiate(base_address)
+        return
 
     @staticmethod
     def set_pie_breakpoint(set_func, addr):
         global __pie_counter__, __pie_breakpoints__
         __pie_breakpoints__[__pie_counter__] = PieVirtualBreakpoint(set_func, __pie_counter__, addr)
         __pie_counter__ += 1
+        return
 
 
 @register_command
@@ -4447,23 +4448,24 @@ class PieInfoCommand(GenericCommand):
     _cmdline_ = "pie info"
     _syntax_ = "{:s} BREAKPOINT".format(_cmdline_)
 
-    def do_invoke(self, argv):
+    @parse_arguments({"breakpoints": [-1,]}, {})
+    def do_invoke(self, argv, *args, **kwargs):
         global __pie_breakpoints__
-        if len(argv) < 1:
+
+        args = kwargs["arguments"]
+        if args.breakpoints[0] == -1:
             # No breakpoint info needed
             bps = [__pie_breakpoints__[x] for x in __pie_breakpoints__]
         else:
-            try:
-                bps = [__pie_breakpoints__[int(x)] for x in argv]
-            except ValueError:
-                err("Please give me breakpoint number")
-                return
+            bps = [__pie_breakpoints__[x] for x in args.breakpoints]
+
         lines = []
         lines.append("VNum\tNum\tAddr")
         lines += [
             "{}\t{}\t{}".format(x.vbp_num, x.bp_num if x.bp_num else "N/A", x.addr) for x in bps
         ]
         gef_print("\n".join(lines))
+        return
 
 
 @register_command
@@ -4473,16 +4475,18 @@ class PieDeleteCommand(GenericCommand):
     _cmdline_ = "pie delete"
     _syntax_ = "{:s} [BREAKPOINT]".format(_cmdline_)
 
-    def do_invoke(self, argv):
+    @parse_arguments({"breakpoints": [-1,]}, {})
+    def do_invoke(self, argv, *args, **kwargs):
         global __pie_breakpoints__
-        if len(argv) < 1:
+        args = kwargs["arguments"]
+        if args.breakpoints[0] == -1:
             # no arg, delete all
             to_delete = [__pie_breakpoints__[x] for x in __pie_breakpoints__]
             self.delete_bp(to_delete)
-        try:
-            self.delete_bp([__pie_breakpoints__[int(x)] for x in argv])
-        except ValueError:
-            err("Please input PIE virtual breakpoint number to delete")
+        else:
+            self.delete_bp([__pie_breakpoints__[x] for x in args.breakpoints])
+        return
+
 
     @staticmethod
     def delete_bp(breakpoints):
@@ -4493,6 +4497,7 @@ class PieDeleteCommand(GenericCommand):
                 gdb.execute("delete {}".format(bp.bp_num))
             # delete virtual breakpoints
             del __pie_breakpoints__[bp.vbp_num]
+        return
 
 
 @register_command
@@ -4535,6 +4540,7 @@ class PieRunCommand(GenericCommand):
         except gdb.error as e:
             err(e)
             gdb.execute("kill")
+        return
 
 
 @register_command
@@ -4558,6 +4564,7 @@ class PieAttachCommand(GenericCommand):
         for bp_ins in __pie_breakpoints__.values():
             bp_ins.instantiate(base_address)
         gdb.execute("context")
+        return
 
 
 @register_command
@@ -4581,6 +4588,7 @@ class PieRemoteCommand(GenericCommand):
         for bp_ins in __pie_breakpoints__.values():
             bp_ins.instantiate(base_address)
         gdb.execute("context")
+        return
 
 
 @register_command
