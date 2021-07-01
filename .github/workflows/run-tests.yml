@@ -47,6 +47,7 @@ jobs:
     - name: Compile Capstone/Keystone/Unicorn and install Python modules
       if: steps.cache-libs.outputs.cache-hit != 'true'
       run: |
+        mkdir -p ~/.cache/pip || echo ok
         wget -O /tmp/update-trinity.sh https://github.com/hugsy/stuff/raw/master/update-trinity.sh
         chmod +x /tmp/update-trinity.sh
         python3 -c 'import capstone, keystone, unicorn' || /tmp/update-trinity.sh
@@ -55,13 +56,13 @@ jobs:
     - name: Restore Capstone/Keystone/Unicorn
       if: steps.cache-libs.outputs.cache-hit == 'true'
       run: |
-        sudo cp -v .cache/trinity-libs.tar.xz /
+        sudo cp -v ~/.cache/trinity-libs.tar.xz /
         cd /
         sudo tar -vxJf ./trinity-libs.tar.xz
 
     - name: Install Python optional modules
       run: |
-        python3 -m pip install -r ./requirements.txt
+        python3 -m pip install --user --upgrade -r ./requirements.txt
 
     - name: Setup GEF
       run: |
