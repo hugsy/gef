@@ -19,7 +19,7 @@ class GefUnitTestGeneric(unittest.TestCase):
     """Generic class for command testing, that defines all helpers"""
 
     @staticmethod
-    def assertNoException(buf): #pylint: disable=invalid-name
+    def assertNoException(buf):
         if not ("Python Exception <" not in buf
                 and "Traceback" not in buf
                 and "'gdb.error'" not in buf
@@ -28,12 +28,12 @@ class GefUnitTestGeneric(unittest.TestCase):
             raise AssertionError("Detected error in gdb output")
 
     @staticmethod
-    def assertFailIfInactiveSession(buf): #pylint: disable=invalid-name
+    def assertFailIfInactiveSession(buf):
         if "No debugging session active" not in buf:
             raise AssertionError("No debugging session inactive warning")
 
 
-class TestGefCommandsUnit(GefUnitTestGeneric): #pylint: disable=too-many-public-methods
+class TestGefCommandsUnit(GefUnitTestGeneric):
     """Tests GEF GDB commands."""
 
     def test_cmd_canary(self):
@@ -674,24 +674,33 @@ class TestGdbFunctionsUnit(GefUnitTestGeneric):
 
 class TestGefConfigUnit(GefUnitTestGeneric):
     """Test GEF configuration paramaters."""
-    def test_config_show_opcodes_size(self):
-        res = gdb_run_cmd("entry-break", before=["gef config context.show_opcodes_size 4",])
-        self.assertNoException(res)
-        self.assertTrue(len(res.splitlines()) > 1)
 
-        # match one of the following patterns
-        # 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
-        # 0x5555555546b5 488975e0    <main+11>        mov    QWORD PTR [rbp-0x20], rsi
-        # 0x5555555546b9 488955d8    <main+15>        mov    QWORD PTR [rbp-0x28], rdx
-        # 0x5555555546bd 64488b04... <main+19>        mov    rax, QWORD PTR fs:0x28
-        self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2}){1,4}(\.\.\.)?\s+.*")
+    def test_config_show_opcodes_size(self):
+        """Check opcodes are correctly shown"""
+        res = gdb_start_silent_cmd("context code",
+            before=[
+                "gef config context.show_opcodes_size 4",
+                "gef config context.nb_lines_code_prev 0"
+            ],)
+        self.assertNoException(res)
+        pat = "code:x86:64 ────\n → "
+        res = res[res.find(pat)+len(pat):]
+        lines = res.splitlines()[:-1]
+        self.assertTrue(len(lines) > 1)
+        opcodes = [ col.split()[1] for col in lines ]
+        valid_opcodes = {
+            "f30f1efa", # endbr64
+            "55", # push rbp
+            "4889e5", # mov rbp, rsp
+        }
+        self.assertSetEqual(valid_opcodes, set(opcodes[:len(valid_opcodes)]))
         return
 
 
 class TestNonRegressionUnit(GefUnitTestGeneric):
     """Non-regression tests."""
 
-    def test_registers_show_registers_in_correct_order(self): #pylint: disable=invalid-name
+    def test_registers_show_registers_in_correct_order(self):
         """Ensure the registers are printed in the correct order (PR #670)."""
         cmd = "registers"
         x64_registers_in_correct_order = ["$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip", "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", "$eflags", "$cs", ]
@@ -701,7 +710,7 @@ class TestNonRegressionUnit(GefUnitTestGeneric):
         return
 
 
-    def test_context_correct_registers_refresh_with_frames(self): #pylint: disable=invalid-name
+    def test_context_correct_registers_refresh_with_frames(self):
         """Ensure registers are correctly refreshed when changing frame (PR #668)"""
         lines = gdb_run_silent_cmd("registers", after=["frame 5", "registers"], target="/tmp/nested.out").splitlines()
         rips = [ x for x in lines if x.startswith("$rip") ]
@@ -710,7 +719,6 @@ class TestNonRegressionUnit(GefUnitTestGeneric):
         self.assertIn("<f10", rips[0]) # the first one must be in the f10 frame
         self.assertIn("<f5", rips[1]) # the second one must be in the f5 frame
         return
-
 
 
 def run_tests():
