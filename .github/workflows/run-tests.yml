@@ -32,7 +32,7 @@ jobs:
       with:
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('/usr/local/lib/libkeystone.so.0', '/usr/lib/libcapstone.a', '/usr/lib64/libunicorn.a') }}
         path: |
-
+          ~/.cache/trinity-libs.tar.xz
           ~/.cache/pip
         restore-keys: |
           ${{ runner.os }}-build-${{ env.cache-name }}-
