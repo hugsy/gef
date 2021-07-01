@@ -3,7 +3,6 @@
 # Run tests by spawning a gdb instance for every command.
 #
 
-import sys
 import unittest
 import subprocess
 
@@ -34,7 +33,7 @@ class GefUnitTestGeneric(unittest.TestCase):
             raise AssertionError("No debugging session inactive warning")
 
 
-class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-methods
+class TestGefCommandsUnit(GefUnitTestGeneric): #pylint: disable=too-many-public-methods
     """Tests GEF GDB commands."""
 
     def test_cmd_canary(self):
@@ -578,7 +577,7 @@ class TestGefCommands(GefUnitTestGeneric): #pylint: disable=too-many-public-meth
         return
 
 
-class TestGefFunctions(GefUnitTestGeneric):
+class TestGefFunctionsUnit(GefUnitTestGeneric):
     """Tests GEF internal functions."""
 
     def test_func_get_memory_alignment(self):
@@ -616,7 +615,7 @@ class TestGefFunctions(GefUnitTestGeneric):
         return
 
 
-class TestGdbFunctions(GefUnitTestGeneric):
+class TestGdbFunctionsUnit(GefUnitTestGeneric):
     """Tests gdb convenience functions added by GEF."""
 
     def test_func_base(self):
@@ -672,7 +671,9 @@ class TestGdbFunctions(GefUnitTestGeneric):
         self.assertRegex(res, r"\+0x0*20: *0x0000000000000000\n")
         return
 
-class TestGefContextConfigs(GefUnitTestGeneric):
+
+class TestGefConfigUnit(GefUnitTestGeneric):
+    """Test GEF configuration paramaters."""
     def test_config_show_opcodes_size(self):
         res = gdb_run_cmd("entry-break", before=["gef config context.show_opcodes_size 4",])
         self.assertNoException(res)
@@ -687,11 +688,34 @@ class TestGefContextConfigs(GefUnitTestGeneric):
         return
 
 
-def run_tests(name=None):
+class TestNonRegressionUnit(GefUnitTestGeneric):
+    """Non-regression tests."""
 
-    runner = unittest.TextTestRunner(verbosity=3)
-    unittest.main(testRunner=runner)
+    def test_registers_show_registers_in_correct_order(self):
+        """Ensure the registers are printed in the correct order (PR #670)."""
+        cmd = "registers"
+        x64_registers_in_correct_order = ["$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip", "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", "$eflags", "$cs", ]
+        lines = gdb_start_silent_cmd(cmd).splitlines()[-len(x64_registers_in_correct_order):]
+        lines = [ line.split(' ')[0].replace(':', '') for line in lines ]
+        self.assertEqual(x64_registers_in_correct_order, lines)
+        return
+
+
+    def test_context_correct_registers_refresh_with_frames(self):
+        """Ensure registers are correctly refreshed when changing frame (PR #668)"""
+        lines = gdb_run_silent_cmd("registers", after=["frame 5", "registers"], target="/tmp/nested.out").splitlines()
+        rips = [ x for x in lines if x.startswith("$rip") ]
+        self.assertEqual(len(rips), 2) # we must have only 2 entries
+        self.assertNotEqual(rips[0], rips[1]) # they must be different
+        self.assertIn("<f10", rips[0]) # the first one must be in the f10 frame
+        self.assertIn("<f5", rips[1]) # the second one must be in the f5 frame
+        return
+
+
+
+def run_tests():
+    unittest.main(testRunner=unittest.TextTestRunner(verbosity=3))
 
 
 if __name__ == "__main__":
-    sys.exit(run_tests())
+    run_tests()
