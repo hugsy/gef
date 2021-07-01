@@ -12,7 +12,7 @@ from helpers import (
     gdb_start_silent_cmd,
     gdb_start_silent_cmd_last_line,
     gdb_test_python_method
-)
+) # pylint: disable=import-error
 
 
 class GefUnitTestGeneric(unittest.TestCase):
