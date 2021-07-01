@@ -71,10 +71,9 @@ jobs:
         gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/pwd
 
     - name: Run linter
-      continue-on-error: true
       run: |
         make lint
-        
+
     - name: Run Tests
       run: |
         make test

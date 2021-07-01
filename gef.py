@@ -1922,8 +1922,6 @@ class AARCH64(ARM):
 
     def is_branch_taken(self, insn):
         mnemo, operands = insn.mnemonic, insn.operands
-        flags = dict((self.flags_table[k], k) for k in self.flags_table)
-        val = get_register(self.flag_register)
         taken, reason = False, ""
 
         if mnemo in {"cbnz", "cbz", "tbnz", "tbz"}:
@@ -3446,6 +3444,7 @@ def get_memory_alignment(in_bits=False):
 
 def clear_screen(tty=""):
     """Clear the screen."""
+    global __gef_redirect_output_fd__
     if not tty:
         gdb.execute("shell clear -x")
         return
@@ -8197,7 +8196,7 @@ class ContextCommand(GenericCommand):
             else:
                 try:
                     insn = next(gef_disassemble(pc, 1))
-                except gdb.MemoryError as e:
+                except gdb.MemoryError:
                     break
                 items.append(Color.redify("{} {}".format(insn.mnemonic, ", ".join(insn.operands))))
 
@@ -10527,7 +10526,7 @@ class AliasesRmCommand(AliasesCommand):
         try:
             alias_to_remove = next(filter(lambda x: x._alias == argv[0], __aliases__))
             __aliases__.remove(alias_to_remove)
-        except (ValueError, StopIteration) as e:
+        except (ValueError, StopIteration):
             err("{0} not found in aliases.".format(argv[0]))
             return
         gef_print("You must reload GEF for alias removals to apply.")
