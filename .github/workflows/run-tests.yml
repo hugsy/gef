@@ -50,7 +50,7 @@ jobs:
         wget -O /tmp/update-trinity.sh https://github.com/hugsy/stuff/raw/master/update-trinity.sh
         chmod +x /tmp/update-trinity.sh
         python3 -c 'import capstone, keystone, unicorn' || /tmp/update-trinity.sh
-        sudo tar --ignore-failed-read -cJf .cache/trinity-libs.tar.xz /usr/include/capstone /usr/lib/libcapstone* /usr/local/lib/python3.9/site-packages/capstone* /usr/local/lib/python3.8/site-packages/capstone* /usr/local/include/keystone /usr/local/lib/libkeystone* /usr/local/lib/python3.9/dist-packages/keystone* /usr/local/lib/python3.8/dist-packages/keystone* /usr/include/unicorn /usr/lib64/libunicorn* /usr/local/lib/python3.9/dist-packages/unicorn* /usr/local/lib/python3.8/dist-packages/unicorn*
+        sudo tar --ignore-failed-read -cJf ~/.cache/trinity-libs.tar.xz /usr/include/capstone /usr/lib/libcapstone* /usr/local/lib/python3.9/site-packages/capstone* /usr/local/lib/python3.8/site-packages/capstone* /usr/local/include/keystone /usr/local/lib/libkeystone* /usr/local/lib/python3.9/dist-packages/keystone* /usr/local/lib/python3.8/dist-packages/keystone* /usr/include/unicorn /usr/lib64/libunicorn* /usr/local/lib/python3.9/dist-packages/unicorn* /usr/local/lib/python3.8/dist-packages/unicorn*
 
     - name: Restore Capstone/Keystone/Unicorn
       if: steps.cache-libs.outputs.cache-hit == 'true'
