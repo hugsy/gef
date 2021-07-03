@@ -24,7 +24,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Refresh environment
+    - name: Install python and toolchain
       run: |
         sudo apt-get update
         sudo apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev
@@ -33,29 +33,27 @@ jobs:
     - name: Get pip cache dir
       id: pip-cache
       run: |
-        echo "::set-output name=dir::$(pip cache dir)"
+        echo "::set-output name=dir::$(python3 -m pip cache dir)"
 
-    - name: Cache trinity libs
+    - name: Cache dependencies
       uses: actions/cache@v2
-      id: cache-libs
+      id: cache-deps
       env:
-        cache-name: cache-trinity-libs-and-python-modules
+        cache-name: cache-deps
       with:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         path: |
           ${{ steps.pip-cache.outputs.dir }}
-          ~/.cache/pip
         restore-keys:
           ${{ runner.os }}-pip-${{ env.cache-name }}-
           ${{ runner.os }}-pip-
           ${{ runner.os }}-${{ env.cache-name }}-
           ${{ runner.os }}-
 
-    - name: Compile Capstone/Keystone/Unicorn and install Python modules
-      if: steps.cache-libs.outputs.cache-hit != 'true'
+    - name: Install Python modules (Capstone, Keystone, Unicorn, Ropper)
       run: |
-        mkdir -p ~/.cache/pip || echo ok
-        python3 -c 'import capstone, keystone, unicorn' || python3 -m pip install --user --upgrade -r ./requirements.txt
+        mkdir -p ${{ steps.pip-cache.outputs.dir }}
+        python3 -m pip install --user --upgrade -r ./requirements.txt
 
     - name: Setup GEF
       run: |
