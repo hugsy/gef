@@ -24,24 +24,32 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Refresh environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev
+        sudo python3 -m pip install --upgrade pip
+
+    - name: Get pip cache dir
+      id: pip-cache
+      run: |
+        echo "::set-output name=dir::$(pip cache dir)"
+
     - name: Cache trinity libs
       uses: actions/cache@v2
       id: cache-libs
       env:
         cache-name: cache-trinity-libs-and-python-modules
       with:
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/lockfiles') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         path: |
+          ${{ steps.pip-cache.outputs.dir }}
           ~/.cache/pip
-        restore-keys: |
-          ${{ runner.os }}-build-${{ env.cache-name }}-
-          ${{ runner.os }}-build-
+        restore-keys:
+          ${{ runner.os }}-pip-${{ env.cache-name }}-
+          ${{ runner.os }}-pip-
+          ${{ runner.os }}-${{ env.cache-name }}-
           ${{ runner.os }}-
-
-    - name: Refresh environment
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev
 
     - name: Compile Capstone/Keystone/Unicorn and install Python modules
       if: steps.cache-libs.outputs.cache-hit != 'true'
