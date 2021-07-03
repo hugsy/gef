@@ -16,7 +16,7 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         with:
           nodetail: true
-          title: ${{ github.actor }} pushed to `${{ github.ref }}`
+          title: "[${{ github.repository }}] ${{ github.actor }} pushed to `${{ github.ref }}`"
           description: |
             **Commit delta**: `${{ github.event.before }}` → `${{ github.event.after }}`
             ---
@@ -35,7 +35,7 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         with:
           nodetail: true
-          title: ${{ github.actor }} created a new Pull Request (`#${{ github.event.pull_request.number }}`)
+          title: "[${{ github.repository }}] ${{ github.actor }} created a new Pull Request (`#${{ github.event.pull_request.number }}`)"
           description: |
             **${{ github.event.pull_request.title }}**
 
@@ -52,7 +52,7 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         with:
           nodetail: true
-          title: ${{ github.actor }} created a new Issue (`#${{ github.event.issue.number }}`)
+          title: "[${{ github.repository }}] ${{ github.actor }} created a new Issue (`#${{ github.event.issue.number }}`)"
           description: |
             **${{ github.event.issue.title }}**
 
