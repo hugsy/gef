@@ -1788,7 +1788,7 @@ class ARM(Architecture):
         return flags_to_human(val, self.flags_table)
 
     def is_conditional_branch(self, insn):
-        conditions = {"eq", "ne", "lt", "le", "gt", "ge", "vs", "vc", "mi", "pl", "hi", "ls"}
+        conditions = {"eq", "ne", "lt", "le", "gt", "ge", "vs", "vc", "mi", "pl", "hi", "ls", "cc", "cs"}
         return insn.mnemonic[-2:] in conditions
 
     def is_branch_taken(self, insn):
@@ -1820,6 +1820,8 @@ class ARM(Architecture):
             taken, reason = val&(1<<flags["carry"]) and not val&(1<<flags["zero"]), "C && !Z"
         elif mnemo.endswith("ls"):
             taken, reason = not val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "!C || Z"
+        elif mnemo.endswith("cs"): taken, reason = bool(val&(1<<flags["carry"])), "C"
+        elif mnemo.endswith("cc"): taken, reason = not val&(1<<flags["carry"]), "!C"
         return taken, reason
 
     def get_ra(self, insn, frame):
