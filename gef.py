@@ -2098,13 +2098,25 @@ class X86_64(X86):
     @classmethod
     def mprotect_asm(cls, addr, size, perm):
         _NR_mprotect = 10
-        insns = ["push rax", "push rdi", "push rsi", "push rdx",
-                 "mov rax, {:d}".format(_NR_mprotect),
-                 "mov rdi, {:d}".format(addr),
-                 "mov rsi, {:d}".format(size),
-                 "mov rdx, {:d}".format(perm),
-                 "syscall",
-                 "pop rdx", "pop rsi", "pop rdi", "pop rax"]
+        insns = [
+            "push rax",
+            "push rdi",
+            "push rsi",
+            "push rdx",
+            "push rcx",
+            "push r11",
+            "mov rax, {:d}".format(_NR_mprotect),
+            "mov rdi, {:d}".format(addr),
+            "mov rsi, {:d}".format(size),
+            "mov rdx, {:d}".format(perm),
+            "syscall",
+            "pop r11",
+            "pop rcx",
+            "pop rdx",
+            "pop rsi",
+            "pop rdi",
+            "pop rax",
+        ]
         return "; ".join(insns)
 
 

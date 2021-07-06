@@ -3,6 +3,7 @@
 # Run tests by spawning a gdb instance for every command.
 #
 
+import re
 import unittest
 import subprocess
 
@@ -426,6 +427,24 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("set-permission 0x1338000", target=target)
         self.assertNoException(res)
         self.assertIn("Unmapped address", res)
+
+        # Make sure set-permission command doesn't clobber any register
+        before = [
+            "starti",
+            "si",
+            "printf \"match_before\\n\"",
+            "info registers",
+            "printf \"match_before\\n\""
+        ]
+        after = [
+            "printf \"match_after\\n\"",
+            "info registers",
+            "printf \"match_after\\n\""
+        ]
+        res = gdb_start_silent_cmd("set-permission $sp", before=before, after=after, target=target)
+        regs_before = re.match(r"(?:.*match_before)(.+)(?:match_before.*)", res, flags=re.DOTALL)[1]
+        regs_after = re.match(r"(?:.*match_after)(.+)(?:match_after.*)", res, flags=re.DOTALL)[1]
+        self.assertEqual(regs_before, regs_after)
         return
 
     def test_cmd_shellcode(self):
