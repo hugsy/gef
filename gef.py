@@ -5645,7 +5645,22 @@ class SearchPatternCommand(GenericCommand):
             else:
                 chunk_size = step
 
-            mem = read_memory(chunk_addr, chunk_size)
+            try:
+                mem = read_memory(chunk_addr, chunk_size)
+            except gdb.error as e:
+                estr = str(e)
+                if estr.startswith("Cannot access memory "):
+                    #
+                    # This is a special case where /proc/$pid/maps
+                    # shows virtual memory address with a read bit,
+                    # but it cannot be read directly from userspace.
+                    #
+                    # See: https://github.com/hugsy/gef/issues/674
+                    #
+                    err(estr)
+                    return []
+                else:
+                    raise e
 
             for match in re.finditer(pattern, mem):
                 start = chunk_addr + match.start()
