@@ -430,18 +430,19 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
         # Make sure set-permission command doesn't clobber any register
         before = [
-            "starti",
-            "si",
+            "gef config context.clear_screen False",
+            "gef config context.layout '-code -stack'",
+            "entry-break",
             "printf \"match_before\\n\"",
-            "info registers",
+            "info registers all",
             "printf \"match_before\\n\""
         ]
         after = [
             "printf \"match_after\\n\"",
-            "info registers",
+            "info registers all",
             "printf \"match_after\\n\""
         ]
-        res = gdb_start_silent_cmd("set-permission $sp", before=before, after=after, target=target)
+        res = gdb_run_cmd("set-permission $sp", before=before, after=after, target=target)
         regs_before = re.match(r"(?:.*match_before)(.+)(?:match_before.*)", res, flags=re.DOTALL)[1]
         regs_after = re.match(r"(?:.*match_after)(.+)(?:match_after.*)", res, flags=re.DOTALL)[1]
         self.assertEqual(regs_before, regs_after)
