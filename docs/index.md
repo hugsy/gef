@@ -182,21 +182,18 @@ _Side Note_: `GEF` fully relies on the GDB API and other Linux-specific sources 
 Or if you just like the tool, feel free to drop a simple *"thanks"* on Discord, Twitter or other, it is **always** very appreciated.
 
 
+### Sponsors ###
 
-## Open-Source Rewards ##
+We would like to thank in particular the following people who've been sponsoring GEF allowing us to dedicate more time and resources to the project:
 
-I love Open-Source, and just like my [other projects](https://proxenet.readthedocs.io/en/latest/#contributing) I've decided to offer a :beer: 4 :bug: (a.k.a *beer4bugs*) bounty for `GEF`, to thank everybody who helps keeping the project living and always better.
+ - [@nkaretnikov](https://github.com/nkaretnikov)
+ - [@R3zk0n](https://github.com/r3zk0n)
+ - [@merces](https://github.com/merces)
 
-The rule is simple, provide a (substantial) contribution to `GEF`, such as:
 
-   1. Submitting a Pull-Request for a new feature/command.
-   2. Submitting a Pull-Request for a new architecture support.
-   3. Or sending a relevant issue request (like a bug, crash, or else).
+### Extra Credits ###
 
-Come on our [Discord channel](https://discord.gg/HCS8Hg7) to talk about it, and next time we meet in person (like at a conference), I'll be happy to pay you a beer.
+ - The GEF logo was designed by [TheZakMan](https://twitter.com/thezakman)
 
-I do also accept beers if you think that the tool is cool! :wink:
-
-Cheers :beers:
 
 ### Happy hacking ###
