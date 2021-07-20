@@ -8864,7 +8864,7 @@ class DereferenceCommand(GenericCommand):
 
         ref_addr = int(ref_addr)
         if process_lookup_address(ref_addr) is None:
-            err("Unmapped address: '{}'".format(ref_addr))
+            err("Unmapped address: '{}'".format(reference))
             return
 
         if get_gef_setting("context.grow_stack_down") is True:
