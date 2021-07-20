@@ -8857,9 +8857,14 @@ class DereferenceCommand(GenericCommand):
             err("Unmapped address")
             return
 
-        ref_addr = int(safe_parse_and_eval(reference))
+        ref_addr = safe_parse_and_eval(reference)
         if ref_addr is None:
             err("Invalid address: '{}'".format(reference))
+            return
+
+        ref_addr = int(ref_addr)
+        if process_lookup_address(ref_addr) is None:
+            err("Unmapped address: reference")
             return
 
         if get_gef_setting("context.grow_stack_down") is True:
