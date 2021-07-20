@@ -8810,7 +8810,7 @@ class DereferenceCommand(GenericCommand):
         addrs = dereference_from(current_address)
         l = ""
         addr_l = format_address(int(addrs[0], 16))
-        l += "{:s}{:s}{:+#06x}: {:{ma}s}".format(Color.colorify(addr_l, base_address_color),
+        l += "{:s}{:s}{:+#07x}: {:{ma}s}".format(Color.colorify(addr_l, base_address_color),
                                                  VERTICAL_LINE, base_offset+offset,
                                                  sep.join(addrs[1:]), ma=(memalign*2 + 2))
 
