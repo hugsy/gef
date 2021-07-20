@@ -8788,9 +8788,9 @@ class DereferenceCommand(GenericCommand):
     command."""
 
     _cmdline_ = "dereference"
-    _syntax_  = "{:s} [LOCATION] [l[NB]]".format(_cmdline_)
+    _syntax_  = "{:s} [LOCATION] [[l]NB] [rLOCATION]".format(_cmdline_)
     _aliases_ = ["telescope", ]
-    _example_ = "{:s} $sp l20".format(_cmdline_)
+    _example_ = "{:s} $sp l20 r$sp+0x10".format(_cmdline_)
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
@@ -8798,20 +8798,20 @@ class DereferenceCommand(GenericCommand):
         return
 
     @staticmethod
-    def pprint_dereferenced(addr, off):
+    def pprint_dereferenced(addr, idx, base_offset=0):
         base_address_color = get_gef_setting("theme.dereference_base_address")
         registers_color = get_gef_setting("theme.dereference_register_value")
 
         sep = " {:s} ".format(RIGHT_ARROW)
         memalign = current_arch.ptrsize
 
-        offset = off * memalign
+        offset = idx * memalign
         current_address = align_address(addr + offset)
         addrs = dereference_from(current_address)
         l = ""
         addr_l = format_address(int(addrs[0], 16))
-        l += "{:s}{:s}+{:#06x}: {:{ma}s}".format(Color.colorify(addr_l, base_address_color),
-                                                 VERTICAL_LINE, offset,
+        l += "{:s}{:s}{:+#06x}: {:{ma}s}".format(Color.colorify(addr_l, base_address_color),
+                                                 VERTICAL_LINE, base_offset+offset,
                                                  sep.join(addrs[1:]), ma=(memalign*2 + 2))
 
         register_hints = []
@@ -8831,6 +8831,7 @@ class DereferenceCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         target = "$sp"
+        reference = ""
         nb = 10
 
         for arg in argv:
@@ -8838,8 +8839,13 @@ class DereferenceCommand(GenericCommand):
                 nb = int(arg)
             elif arg[0] in ("l", "L") and arg[1:].isdigit():
                 nb = int(arg[1:])
+            elif arg[0] in ("r", "R") and len(arg) > 1:
+                reference = arg[1:]
             else:
                 target = arg
+
+        if reference == "":
+            reference = target
 
         addr = safe_parse_and_eval(target)
         if addr is None:
@@ -8849,6 +8855,16 @@ class DereferenceCommand(GenericCommand):
         addr = int(addr)
         if process_lookup_address(addr) is None:
             err("Unmapped address")
+            return
+
+        ref_addr = safe_parse_and_eval(reference)
+        if ref_addr is None:
+            err("Invalid reference")
+            return
+
+        ref_addr = int(ref_addr)
+        if process_lookup_address(ref_addr) is None:
+            err("Unmapped reference")
             return
 
         if get_gef_setting("context.grow_stack_down") is True:
@@ -8861,9 +8877,11 @@ class DereferenceCommand(GenericCommand):
             insnum_step = 1
 
         start_address = align_address(addr)
+        ref_address = align_address(ref_addr)
+        base_offset = start_address-ref_address
 
         for i in range(from_insnum, to_insnum, insnum_step):
-            gef_print(DereferenceCommand.pprint_dereferenced(start_address, i))
+            gef_print(DereferenceCommand.pprint_dereferenced(start_address, i, base_offset))
 
         return
 
