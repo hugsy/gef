@@ -8872,8 +8872,7 @@ class DereferenceCommand(GenericCommand):
             insnum_step = 1
 
         start_address = align_address(addr)
-        ref_address = align_address(ref_addr)
-        base_offset = start_address - ref_address
+        base_offset = start_address - align_address(ref_addr)
 
         for i in range(from_insnum, to_insnum, insnum_step):
             gef_print(DereferenceCommand.pprint_dereferenced(start_address, i, base_offset))
