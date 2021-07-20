@@ -8859,7 +8859,7 @@ class DereferenceCommand(GenericCommand):
 
         ref_addr = safe_parse_and_eval(reference)
         if ref_addr is None:
-            err("Invalid address: reference")
+            err("Invalid address: '{}'".format(reference))
             return
 
         ref_addr = int(ref_addr)
