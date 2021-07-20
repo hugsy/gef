@@ -7,9 +7,9 @@ actually points to.
 It is a useful convienence function to spare to process of manually tracking
 values with successive `x/x` in GDB.
 
-`dereference` takes three optional arguments, a start address (or symbol or 
-register, etc) to dereference (by default, `$sp`), the number of consecutive 
-addresses to dereference (by default, `10`) and the base location for offset 
+`dereference` takes three optional arguments, a start address (or symbol or
+register, etc) to dereference (by default, `$sp`), the number of consecutive
+addresses to dereference (by default, `10`) and the base location for offset
 calculation (by default the same as the start address):
 
 ```
