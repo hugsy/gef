@@ -7,9 +7,10 @@ actually points to.
 It is a useful convienence function to spare to process of manually tracking
 values with successive `x/x` in GDB.
 
-`dereference` takes three optional arguments, an start address (or symbol or register, etc)
-to dereference (by default, `$sp`) , the number of consecutive addresses to
-dereference (by default, `10`) and the base location for offset calculation(by default the same as the start address):
+`dereference` takes three optional arguments, a start address (or symbol or 
+register, etc) to dereference (by default, `$sp`), the number of consecutive 
+addresses to dereference (by default, `10`) and the base location for offset 
+calculation(by default the same as the start address):
 
 ```
 gef➤  dereference
@@ -56,7 +57,8 @@ gef➤  dereference 5
 0x00007fffffffe190│+0x0020: 0x0000000000400690  →  push r15        ← $rbp
 ```
 
-It is possible to change the offset calculation to use a different address then the start address:
+It is possible to change the offset calculation to use a different address than
+the start address:
 
 ```
 gef➤  dereference $sp l7 r$rbp

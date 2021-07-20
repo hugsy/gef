@@ -8859,12 +8859,12 @@ class DereferenceCommand(GenericCommand):
 
         ref_addr = safe_parse_and_eval(reference)
         if ref_addr is None:
-            err("Invalid reference")
+            err("Invalid address: reference")
             return
 
         ref_addr = int(ref_addr)
         if process_lookup_address(ref_addr) is None:
-            err("Unmapped reference")
+            err("Unmapped address: reference")
             return
 
         if get_gef_setting("context.grow_stack_down") is True:
@@ -8878,7 +8878,7 @@ class DereferenceCommand(GenericCommand):
 
         start_address = align_address(addr)
         ref_address = align_address(ref_addr)
-        base_offset = start_address-ref_address
+        base_offset = start_address - ref_address
 
         for i in range(from_insnum, to_insnum, insnum_step):
             gef_print(DereferenceCommand.pprint_dereferenced(start_address, i, base_offset))
