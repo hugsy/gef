@@ -125,10 +125,6 @@ to install:
 For a quick installation, simply use the `pip` packaged version:
 
 ```bash
-# for Python2.x
-$ pip2 install capstone unicorn keystone-engine ropper
-
-# for Python3.x
 $ pip3 install capstone unicorn keystone-engine ropper
 ```
 
