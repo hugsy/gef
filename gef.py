@@ -5960,7 +5960,7 @@ def set_fs(uc, addr):    return set_msr(uc, FSMSR, addr)
     set_gs(emu, SEGMENT_GS_ADDR)
 """
 
-        pythonbin = which("python")
+        pythonbin = which("python3")
 
         content = """#!{pythonbin} -i
 #
@@ -6105,7 +6105,7 @@ emulate(uc, {start:#x}, {end:#x})
 
         ok("Starting emulation: {:#x} {} {:#x}".format(start_insn_addr, RIGHT_ARROW, end_insn_addr))
 
-        pythonbin = which("python")
+        pythonbin = which("python3")
         res = gef_execute_external([pythonbin, tmp_filename], as_list=True)
         gef_print("\n".join(res))
 
