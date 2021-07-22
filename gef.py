@@ -3022,6 +3022,18 @@ def process_lookup_path(name, perm=Permission.ALL):
 
     return None
 
+@lru_cache()
+def process_lookup_path_by_list(names):
+    if not is_alive():
+        err("Process is not running")
+        return None
+
+    for name in names:
+        sect = process_lookup_path(name)
+        if sect is not None:
+            return sect
+
+    return None
 
 @lru_cache()
 def file_lookup_name_path(name, path):
@@ -7280,6 +7292,37 @@ class RopperCommand(GenericCommand):
         ropper.start(argv)
         readline.set_completer(old_completer)
         readline.set_completer_delims(old_completer_delims)
+        return
+
+@register_command
+class OneGadgetCommand(GenericCommand):
+    """Exec `one_gadget`. If `rebase` is given as an argument, gadgets will be rebased to current libc base address."""
+
+    _cmdline_ = "onegadget"
+    _syntax_ = f"{_cmdline_} [rebase]"
+    _example_ = f"{_cmdline_} rebase"
+
+    def pre_load(self):
+        try:
+            one_gadget = which("one_gadget")
+            assert(os.system(f"{one_gadget} --version") == 0)
+        except:
+            msg = "Missing `one_gadget` gem for Ruby, install with: `gem install one_gadget`."
+            raise ImportWarning(msg)
+        return
+
+
+    @only_if_gdb_running
+    def do_invoke(self, argv):
+        libc = process_lookup_path_by_list(("libc-2.", "libc.so.6"))
+        if libc is None:
+            err("libc not found")
+            return
+        libc_base = libc.page_start if "rebase" in argv else 0
+
+        one_gadget = which("one_gadget")
+        gef_print(titlify(f"{one_gadget} {libc.path} -l 1 --base {libc_base}"))
+        os.system(f"{one_gadget} {libc.path} -l 1 --base {libc_base}")
         return
 
 

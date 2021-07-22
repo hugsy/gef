@@ -392,6 +392,14 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertTrue(len(res.splitlines()) > 2)
         return
 
+    def test_cmd_onegadget(self):
+        cmd = "onegadget"
+        res = gdb_run_silent_cmd(cmd)
+        self.assertFailIfInactiveSession(res)
+        self.assertNoException(res)
+        self.assertTrue(len(res.splitlines()) > 2)
+        return
+
     def test_cmd_scan(self):
         cmd = "scan libc stack"
         target = "/tmp/checksec-no-pie.out"

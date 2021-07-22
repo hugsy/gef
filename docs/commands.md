@@ -34,6 +34,7 @@ improve it.
 |ksymaddr                  | Solve kernel symbols from kallsyms table.|
 |memory                    | Add memory watches to the context view.|
 |nop                       | Patch the instruction pointed by parameters with NOP. If the return option is specified, it will set the return register to the specific value.|
+|onegadget                 | one gadget (<https://github.com/david942j/one_gadget>) plugin |
 |patch                     | Write specified values to the specified address.|
 |pattern                   | This command will create or search a De Bruijn cyclic pattern to facilitate determining the offset in memory. The algorithm used is the same as the one used by pwntools, and can therefore be used in conjunction.|
 |pcustom                   | Dump user defined structure. This command attempts to reproduce WinDBG awesome `dt` command for GDB and allows to apply structures (from symbols or custom) directly to an address. Custom structures can be defined in pure Python using ctypes, and should be stored in a specific directory, whose path must be stored in the `pcustom.struct_path` configuration setting. (alias: dt)|

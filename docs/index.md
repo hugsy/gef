@@ -120,6 +120,7 @@ to install:
 - [`keystone`](https://github.com/keystone-engine/keystone)
 - [`unicorn`](https://github.com/unicorn-engine/unicorn)
 - [`Ropper`](https://github.com/sashs/ropper)
+- [`one_gadget`](https://github.com/david942j/one_gadget)
 
 
 For a quick installation, simply use the `pip` packaged version:
@@ -137,6 +138,13 @@ your GDB was compiled with. If you are experiencing issues installing them,
 post an issue on the GitHub of the respective projects. If your bug is not
 related to `GEF`, you will not get an answer.
 
+For `one_gadget` the Ruby language has to be installed on the machine. The
+recommended installation method is to use the package manager of your
+distribution. Then install `one_gadget like this:
+
+```bash
+gem install one_gadget
+```
 
 ## Additional commands ##
 
