@@ -2574,6 +2574,17 @@ def only_if_gdb_target_local(f):
     return wrapper
 
 
+def obsolete_command(f):
+    """Decorator to add a warning when a command is obsolete and will be removed."""
+
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        warn("This command is obsolete and will be removed in a feature release.")
+        return f(*args, **kwargs)
+
+    return wrapper
+
+
 def experimental_feature(f):
     """Decorator to add a warning when a feature is experimental."""
 
@@ -5306,7 +5317,6 @@ class ChangeFdCommand(GenericCommand):
         res = int(res.split()[2], 0)
         return res
 
-
 @register_command
 class IdaInteractCommand(GenericCommand):
     """IDA Interact: set of commands to interact with IDA via a XML RPC service
@@ -5363,6 +5373,7 @@ class IdaInteractCommand(GenericCommand):
         self.sock = None
         return
 
+    @obsolete_command
     def do_invoke(self, argv):
         def parsed_arglist(arglist):
             args = []
