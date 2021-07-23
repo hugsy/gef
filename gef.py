@@ -5960,8 +5960,6 @@ def set_fs(uc, addr):    return set_msr(uc, FSMSR, addr)
     set_gs(emu, SEGMENT_GS_ADDR)
 """
 
-        pythonbin = which("python")
-
         content = """#!{pythonbin} -i
 #
 # Emulation script for "{fname}" from {start:#x} to {end:#x}
@@ -6016,7 +6014,7 @@ def reset():
     emu = unicorn.Uc({arch}, {mode})
 
 {context_block}
-""".format(pythonbin=pythonbin, fname=fname, start=start_insn_addr, end=end_insn_addr,
+""".format(pythonbin=PYTHONBIN, fname=fname, start=start_insn_addr, end=end_insn_addr,
            regs=",".join(["'%s': %s" % (k.strip(), unicorn_registers[k]) for k in unicorn_registers]),
            verbose="True" if verbose else "False",
            syscall_reg=current_arch.syscall_register,
@@ -6105,8 +6103,7 @@ emulate(uc, {start:#x}, {end:#x})
 
         ok("Starting emulation: {:#x} {} {:#x}".format(start_insn_addr, RIGHT_ARROW, end_insn_addr))
 
-        pythonbin = which("python")
-        res = gef_execute_external([pythonbin, tmp_filename], as_list=True)
+        res = gef_execute_external([PYTHONBIN, tmp_filename], as_list=True)
         gef_print("\n".join(res))
 
         if not kwargs.get("to_file", None):
@@ -10698,11 +10695,11 @@ if __name__ == "__main__":
         # In order to fix it, from the shell with venv activated we run the python binary,
         # take and parse its path, add the path to the current python process using sys.path.extend
 
-        pythonbin = which("python3")
-        PREFIX = gef_pystring(subprocess.check_output([pythonbin, '-c', 'import os, sys;print((sys.prefix))'])).strip("\\n")
+        PYTHONBIN = which("python3")
+        PREFIX = gef_pystring(subprocess.check_output([PYTHONBIN, '-c', 'import os, sys;print((sys.prefix))'])).strip("\\n")
         if PREFIX != sys.base_prefix:
             SITE_PACKAGES_DIRS = subprocess.check_output(
-                [pythonbin, "-c", "import os, sys;print(os.linesep.join(sys.path).strip())"]).decode("utf-8").split()
+                [PYTHONBIN, "-c", "import os, sys;print(os.linesep.join(sys.path).strip())"]).decode("utf-8").split()
             sys.path.extend(SITE_PACKAGES_DIRS)
 
         # setup prompt
