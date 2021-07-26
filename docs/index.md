@@ -33,10 +33,14 @@ Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb).
 
 ```bash
 # via the install script
-$ wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
+## using curl
+$ bash -c "$(curl -fsSL http://gef.blah.cat/sh)"
 
-# manually
-$ wget -O ~/.gdbinit-gef.py -q https://github.com/hugsy/gef/raw/master/gef.py
+## using wget
+$ bash -c "$(wget http://gef.blah.cat/sh -O -)"
+
+# or manually
+$ wget -O ~/.gdbinit-gef.py -q http://gef.blah.cat/py
 $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 ```
 
@@ -45,11 +49,7 @@ Alternatively from inside `gdb` directly:
 
 ```bash
 $ gdb -q
-(gdb) pi \
-import urllib.request as u, tempfile as t; \
-g=t.NamedTemporaryFile(suffix='-gef.py'); \
-open(g.name, 'wb+').write( u.urlopen('https://github.com/hugsy/gef/raw/master/gef.py').read() ); \
-gdb.execute('source %s' % g.name)
+(gdb) pi import urllib.request as u, tempfile as t; g=t.NamedTemporaryFile(suffix='-gef.py'); open(g.name, 'wb+').write(u.urlopen('https://tinyurl.com/gef-master').read()); gdb.execute('source %s' % g.name)
 ```
 
 ### Run ###
