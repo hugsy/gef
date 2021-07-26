@@ -144,7 +144,7 @@ GEF's API.
 To benefit from it:
 ```bash
 # via the install script
-$ wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef-extras.sh | sh
+$ wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef-extras.sh | bash
 
 # manually
 # clone the repo
