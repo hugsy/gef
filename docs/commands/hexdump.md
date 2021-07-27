@@ -22,7 +22,7 @@ is printable (similarly to the `hexdump -C` command on Linux).
 The syntax is as following:
 
 ```
-hexdump [qword|dword|word|byte] [LOCATION] [--size SIZE] [--reverse]
+hexdump (qword|dword|word|byte) [LOCATION] [--size SIZE] [--reverse]
 ```
 
 Examples:
