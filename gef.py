@@ -8473,7 +8473,7 @@ class HexdumpCommand(GenericCommand):
     """Display SIZE lines of hexdump from the memory location pointed by LOCATION."""
 
     _cmdline_ = "hexdump"
-    _syntax_  = "{:s} [WORD_LENGTH] [LOCATION] [--size SIZE] [--reverse]".format(_cmdline_)
+    _syntax_  = "{:s} (qword|dword|word|byte) [LOCATION] [--size SIZE] [--reverse]".format(_cmdline_)
     _example_ = "{:s} byte $rsp --size 16 --reverse".format(_cmdline_)
 
     def __init__(self):
