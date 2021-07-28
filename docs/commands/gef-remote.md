@@ -79,7 +79,7 @@ the remote procfs.
 
 To circumvent this and still enjoy `gef` features with QEMU-user, a simple stub
 can be artificially added, with the option `--qemu-mode` option of `gef-remote`.
-Note that you need to set the architecture properly first:
+Note that you need to set the architecture to match the target binary first:
 
 ```
 $ qemu-arm -g 1234 ./my/arm/binary
