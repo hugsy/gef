@@ -4319,11 +4319,13 @@ class VersionCommand(GenericCommand):
         gef_hash = hashlib.sha1(open(gef_fpath, "rb").read()).hexdigest()
 
         if os.access("{}/.git".format(gef_dir), os.X_OK):
-            ver = subprocess.check_output('git log --format="%H" -n 1 HEAD', cwd=gef_dir, shell=True).decode("utf8").strip()
-            extra = "dirty" if len(subprocess.check_output('git ls-files -m', cwd=gef_dir, shell=True).decode("utf8").strip()) else "clean"
+            ver = subprocess.check_output("git log --format='%H' -n 1 HEAD", cwd=gef_dir, shell=True).decode("utf8").strip()
+            extra = "dirty" if len(subprocess.check_output("git ls-files -m", cwd=gef_dir, shell=True).decode("utf8").strip()) else "clean"
             gef_print("GEF: rev:{} (Git - {})".format(ver, extra))
         else:
+            gef_blob_hash = subprocess.check_output("git hash-object {}".format(gef_fpath), shell=True).decode().strip()
             gef_print("GEF: (Standalone)")
+            gef_print("Blob Hash({}): {}".format(gef_fpath, gef_blob_hash))
         gef_print("SHA1({}): {}".format(gef_fpath, gef_hash))
         gef_print("GDB: {}".format(gdb.VERSION, ))
         py_ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
