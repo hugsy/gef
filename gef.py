@@ -6165,7 +6165,6 @@ class RemoteCommand(GenericCommand):
             return
 
         target = args.target
-        pid = args.pid if args.is_extended_remote and args.pid else get_pid()
         self.download_all_libs = args.download_everything
 
         if args.qemu_mode:
@@ -6181,6 +6180,7 @@ class RemoteCommand(GenericCommand):
         if not self.connect_target(target, args.is_extended_remote):
             return
 
+        pid = args.pid if args.is_extended_remote and args.pid else get_pid()
         if args.is_extended_remote:
             ok("Attaching to {:d}".format(pid))
             hide_context()
