@@ -6131,7 +6131,7 @@ class RemoteCommand(GenericCommand):
 
     _cmdline_ = "gef-remote"
     _syntax_  = "{:s} [OPTIONS] TARGET".format(_cmdline_)
-    _example_  = "\n{0:s} -p 6789 localhost:1234\n{0:s} -q localhost:4444 # when using qemu-user".format(_cmdline_)
+    _example_  = "\n{0:s} --pid 6789 localhost:1234\n{0:s} --qemu-mode localhost:4444 # when using qemu-user".format(_cmdline_)
 
     def __init__(self):
         super().__init__(prefix=False)
