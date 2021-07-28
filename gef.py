@@ -750,12 +750,14 @@ class GlibcArena:
         except:
             self.__arena = MallocStateStruct(addr)
             self.__addr = self.__arena.addr
-        finally:
+        try:
             self.top             = int(self.top)
             self.last_remainder  = int(self.last_remainder)
             self.n               = int(self.next)
             self.nfree           = int(self.next_free)
             self.sysmem          = int(self.system_mem)
+        except gdb.error as e:
+            err("Glibc arena: {}".format(e))
         return
 
     def __getitem__(self, item):
