@@ -44,8 +44,9 @@ It is possible to use `gdb` internal functions to copy our targeted binary.
 Following our previous example, if we want to debug `uname`, run `gdb` and
 connect to our `gdbserver`. To be able to locate the right process in the
 `/proc` structure, the command `gef-remote` requires 1 argument, the target
-host and port.  The option `-p` must be provided and indicate the process PID
-on the remote host, only if the extended mode (`-E`) is being used.
+host and port.  The option `--pid` must be provided and indicate the process
+PID on the remote host, only if the extended mode (`--is-extended-remote`) 
+is being used.
 
 ```
 $ gdb
@@ -77,14 +78,14 @@ for `gef` will not work either, as `gef` won't be able to fetch the content of
 the remote procfs.
 
 To circumvent this and still enjoy `gef` features with QEMU-user, a simple stub
-can be artificially added, with the option `-q` option of `gef-remote`. Note
-that you need to set the architecture properly first:
+can be artificially added, with the option `--qemu-mode` option of `gef-remote`.
+Note that you need to set the architecture properly first:
 
 ```
 $ qemu-arm -g 1234 ./my/arm/binary
 $ gdb-multiarch ./my/arm/binary
 gef➤  set architecture arm
-gef➤  gef-remote -q localhost:1234
+gef➤  gef-remote --qemu-mode localhost:1234
 ```
 
 ![gef-qemu-user](http://i.imgur.com/JtEQndv.png)
