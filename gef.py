@@ -2755,7 +2755,10 @@ def get_os():
 @lru_cache()
 def get_pid():
     """Return the PID of the debuggee process."""
-    return gdb.selected_inferior().pid if not __gef_qemu_mode__ else gdb.selected_thread().ptid[1]
+    pid = gdb.selected_inferior().pid if not __gef_qemu_mode__ else gdb.selected_thread().ptid[1]
+    if pid == 0:
+        raise RuntimeError("cannot retrieve PID for debuggee process")
+    return pid
 
 
 @lru_cache()
