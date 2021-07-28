@@ -247,6 +247,36 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNoException(res)
         return
 
+    def test_cmd_memory_watch(self):
+        self.assertFailIfInactiveSession(gdb_run_cmd("memory watch $pc"))
+        res = gdb_start_silent_cmd("memory watch $pc 0x100 byte")
+        self.assertNoException(res)
+        res = gdb_start_silent_cmd("memory watch $pc 0x40 word")
+        self.assertNoException(res)
+        res = gdb_start_silent_cmd("memory watch $pc 0x30 dword")
+        self.assertNoException(res)
+        res = gdb_start_silent_cmd("memory watch $pc 0x20 qword")
+        self.assertNoException(res)
+        res = gdb_start_silent_cmd("memory watch $pc 0x8 pointers")
+        self.assertNoException(res)
+        res = gdb_start_silent_cmd("memory watch $pc")
+        self.assertNoException(res)
+
+    def test_cmd_memory_unwatch(self):
+        self.assertFailIfInactiveSession(gdb_run_cmd("memory unwatch $pc"))
+        res = gdb_start_silent_cmd("memory unwatch $pc")
+        self.assertNoException(res)
+
+    def test_cmd_memory_list(self):
+        self.assertFailIfInactiveSession(gdb_run_cmd("memory list"))
+        res = gdb_start_silent_cmd("memory list")
+        self.assertNoException(res)
+
+    def test_cmd_memory_reset(self):
+        self.assertFailIfInactiveSession(gdb_run_cmd("memory reset"))
+        res = gdb_start_silent_cmd("memory reset")
+        self.assertNoException(res)
+
     def test_cmd_keystone_assemble(self):
         valid_cmds = [
             "assemble nop; xor eax, eax; syscall",
