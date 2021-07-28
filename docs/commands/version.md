@@ -17,7 +17,7 @@ GDB-Python: 3.8
 Otherwise the command shows the `standalone` information:
 
 ```
-gef➤  aslr on
+gef➤  version
 GEF: (Standalone)
 Blob Hash(/gef/rules/gef.py): 2939fbc037bca090422e12cf1b555bd58223dccb
 SHA1(/gef/rules/gef.py): 6e6bfd03282a0d5b1eec5276fa57af0ccbac31c6
