@@ -8495,15 +8495,16 @@ class HexdumpCommand(GenericCommand):
 
         args = kwargs["arguments"]
         target = args.address or self.__last_target
-        read_len = args.size or 0x40 if self.format == "byte" else 0x10
         start_addr = to_unsigned_long(gdb.parse_and_eval(target))
         read_from = align_address(start_addr)
 
         if self.format == "byte":
+            read_len = args.size or 0x40
             read_from += self.repeat_count * read_len
             mem = read_memory(read_from, read_len)
             lines = hexdump(mem, base=read_from).splitlines()
         else:
+            read_len = args.size or 0x10
             lines = self._hexdump(read_from, read_len, self.format, self.repeat_count * read_len)
 
         if args.reverse:
