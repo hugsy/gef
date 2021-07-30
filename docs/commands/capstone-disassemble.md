@@ -9,22 +9,18 @@ You can use its alias `cs-disassemble` or just `cs` with the location to
 disassemble at. If not specified, it will use `$pc`.
 
 ```
-gef➤ cs main
+gef➤ cs main+0x10
 ```
 
-![cs-disassemble](https://i.imgur.com/wypt7Fo.png)
+![cs-disassemble](https://i.imgur.com/JG7aVRP.png)
 
 Disassemble more instructions
-```
-gef➤ cs length=20
-```
 
-Show instructions before $pc
 ```
-gef➤ cs nb_prev=3
+gef➤ cs --length 20
 ```
 
 Show opcodes next to disassembly
 ```
-gef➤ cs op
+gef➤ cs --show-opcodes
 ```
