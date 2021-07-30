@@ -67,6 +67,21 @@ You can then reuse the downloaded file for your future debugging sessions, use
 it under IDA and such. This makes the entire remote debugging process
 (particularly for Android applications) a child's game.
 
+### Handling remote libraries ###
+
+Often times you are missing a specific library the remote process is using.
+Therefore `gef-remote` can download remote libraries (and other files) if the
+remote target supports it (and the remote gdbserver has sufficient permissions).
+The `--download-lib LIBRARY` option can download a remote file specified by
+it's filepath. Furthermore `--download-everything` downloads all remote libs
+found in the processes virtual memory map (`vmmap`).
+
+Another issue with libraries is that even if you have the same libraries that
+are used remotely they might have different filepaths and GDB can't
+automatically find them and thereby can't resolve their symbols. The option
+`--update-solib` adds the previously, with `--dowload-everything`, downloaded
+libraries to the solib path so GDB can take full advantage of their symbols.
+
 ### QEMU-user mode ###
 
 Although GDB through QEMU-user works, QEMU only supports a limited subset of all

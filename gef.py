@@ -2756,7 +2756,7 @@ def get_os():
 def get_pid():
     """Return the PID of the debuggee process."""
     pid = gdb.selected_inferior().pid if not __gef_qemu_mode__ else gdb.selected_thread().ptid[1]
-    if pid == 0:
+    if not pid:
         raise RuntimeError("cannot retrieve PID for debuggee process")
     return pid
 
@@ -6134,7 +6134,8 @@ class RemoteCommand(GenericCommand):
 
     _cmdline_ = "gef-remote"
     _syntax_  = "{:s} [OPTIONS] TARGET".format(_cmdline_)
-    _example_  = "\n{0:s} --pid 6789 localhost:1234\n{0:s} --qemu-mode localhost:4444 # when using qemu-user".format(_cmdline_)
+    _example_  = "\n{0:s} --pid 6789 localhost:1234"\
+        "\n{0:s} --qemu-mode localhost:4444 # when using qemu-user".format(_cmdline_)
 
     def __init__(self):
         super().__init__(prefix=False)
@@ -6149,7 +6150,7 @@ class RemoteCommand(GenericCommand):
          "--download-lib": "",
          "--is-extended-remote": True,
          "--pid": 0,
-         "--qemu-mode": True,})
+         "--qemu-mode": True})
     def do_invoke(self, argv, *args, **kwargs):
         global __gef_remote__
 
