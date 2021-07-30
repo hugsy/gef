@@ -6452,7 +6452,7 @@ class CapstoneDisassembleCommand(GenericCommand):
     _cmdline_ = "capstone-disassemble"
     _syntax_  = "{:s} [-h] [--show-opcodes] [--length LENGTH] [LOCATION]".format(_cmdline_)
     _aliases_ = ["cs-dis"]
-    _example_ = "{:s} --location $pc --length 50".format(_cmdline_)
+    _example_ = "{:s} --length 50 $pc".format(_cmdline_)
 
     def pre_load(self):
         try:
