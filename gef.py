@@ -7392,26 +7392,29 @@ class AssembleCommand(GenericCommand):
 
         if args.arch:
             arch_s = args.arch
+        arch_s = arch_s.upper()
 
         if args.mode:
             mode_s = args.mode
+        mode_s = mode_s.upper()
 
         if args.endian == "big":
             endian_s = "big"
+        endian_s = endian_s.upper()
 
-        if arch_s.upper() not in self.valid_arch_modes:
+        if arch_s not in self.valid_arch_modes:
             raise AttributeError("invalid arch '{}'".format(arch_s))
 
-        valid_modes = self.valid_arch_modes[arch_s.upper()]
+        valid_modes = self.valid_arch_modes[arch_s]
         try:
-            mode_idx = [m[0] for m in valid_modes].index(mode_s.upper())
+            mode_idx = [m[0] for m in valid_modes].index(mode_s)
         except ValueError:
             raise AttributeError("invalid mode '{}' for arch '{}'".format(mode_s, arch_s))
 
         if endian_s == "little" and not valid_modes[mode_idx][1] or endian_s == "big" and not valid_modes[mode_idx][2]:
             raise AttributeError("invalid endianness '{}' for arch/mode '{}:{}'".format(endian_s, arch_s, mode_s))
 
-        arch, mode = get_keystone_arch(arch=arch_s.upper(), mode=mode_s.upper(), endian=endian_s.upper())
+        arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=endian_s)
         insns = [x.strip() for x in " ".join(args.instructions).split(";") if x]
         info("Assembling {} instruction(s) for {}:{}".format(len(insns), arch_s, mode_s))
 
