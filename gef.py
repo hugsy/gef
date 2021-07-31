@@ -750,12 +750,14 @@ class GlibcArena:
         except:
             self.__arena = MallocStateStruct(addr)
             self.__addr = self.__arena.addr
-        finally:
+        try:
             self.top             = int(self.top)
             self.last_remainder  = int(self.last_remainder)
             self.n               = int(self.next)
             self.nfree           = int(self.next_free)
             self.sysmem          = int(self.system_mem)
+        except gdb.error as e:
+            err("Glibc arena: {}".format(e))
         return
 
     def __getitem__(self, item):
@@ -4322,11 +4324,13 @@ class VersionCommand(GenericCommand):
         gef_hash = hashlib.sha1(open(gef_fpath, "rb").read()).hexdigest()
 
         if os.access("{}/.git".format(gef_dir), os.X_OK):
-            ver = subprocess.check_output('git log --format="%H" -n 1 HEAD', cwd=gef_dir, shell=True).decode("utf8").strip()
-            extra = "dirty" if len(subprocess.check_output('git ls-files -m', cwd=gef_dir, shell=True).decode("utf8").strip()) else "clean"
+            ver = subprocess.check_output("git log --format='%H' -n 1 HEAD", cwd=gef_dir, shell=True).decode("utf8").strip()
+            extra = "dirty" if len(subprocess.check_output("git ls-files -m", cwd=gef_dir, shell=True).decode("utf8").strip()) else "clean"
             gef_print("GEF: rev:{} (Git - {})".format(ver, extra))
         else:
+            gef_blob_hash = subprocess.check_output("git hash-object {}".format(gef_fpath), shell=True).decode().strip()
             gef_print("GEF: (Standalone)")
+            gef_print("Blob Hash({}): {}".format(gef_fpath, gef_blob_hash))
         gef_print("SHA1({}): {}".format(gef_fpath, gef_hash))
         gef_print("GDB: {}".format(gdb.VERSION, ))
         py_ver = "{:d}.{:d}".format(sys.version_info.major, sys.version_info.minor)
@@ -8334,7 +8338,7 @@ class ContextCommand(GenericCommand):
                     size=sz,
                 ))
             else:
-                gdb.execute("hexdump {fmt:s} 0x{address:x} {size:d}".format(
+                gdb.execute("hexdump {fmt:s} 0x{address:x} -s {size:d}".format(
                     address=address,
                     size=sz,
                     fmt=fmt,
@@ -8474,11 +8478,11 @@ class MemoryWatchListCommand(GenericCommand):
 
 @register_command
 class HexdumpCommand(GenericCommand):
-    """Display SIZE lines of hexdump from the memory location pointed by ADDRESS."""
+    """Display SIZE lines of hexdump from the memory location pointed by LOCATION."""
 
     _cmdline_ = "hexdump"
-    _syntax_  = "{:s} [ADDRESS] [[L][SIZE]] [REVERSE]".format(_cmdline_)
-    _example_ = "{:s} byte $rsp L16 REVERSE".format(_cmdline_)
+    _syntax_  = "{:s} (qword|dword|word|byte) [LOCATION] [--size SIZE] [--reverse]".format(_cmdline_)
+    _example_ = "{:s} byte $rsp --size 16 --reverse".format(_cmdline_)
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION, prefix=True)
@@ -8497,15 +8501,16 @@ class HexdumpCommand(GenericCommand):
 
         args = kwargs["arguments"]
         target = args.address or self.__last_target
-        read_len = args.size or 0x40 if self.format == "byte" else 0x10
         start_addr = to_unsigned_long(gdb.parse_and_eval(target))
         read_from = align_address(start_addr)
 
         if self.format == "byte":
+            read_len = args.size or 0x40
             read_from += self.repeat_count * read_len
             mem = read_memory(read_from, read_len)
             lines = hexdump(mem, base=read_from).splitlines()
         else:
+            read_len = args.size or 0x10
             lines = self._hexdump(read_from, read_len, self.format, self.repeat_count * read_len)
 
         if args.reverse:

@@ -56,6 +56,7 @@ nav:
 - Command tmux-setup: commands/tmux-setup.md
 - Command trace-run: commands/trace-run.md
 - Command unicorn-emulate: commands/unicorn-emulate.md
+- Command version: commands/version.md
 - Command vmmap: commands/vmmap.md
 - Command xfiles: commands/xfiles.md
 - Command xinfo: commands/xinfo.md
