@@ -1393,11 +1393,7 @@ def capstone_disassemble(location, nb_insn, **kwargs):
         return Instruction(cs_insn.address, loc, cs_insn.mnemonic, ops, cs_insn.bytes)
 
     capstone    = sys.modules["capstone"]
-    arch, mode  = get_capstone_arch(
-        arch=kwargs.get("arch"),
-        mode=kwargs.get("mode"),
-        endian=kwargs.get("endian")
-    )
+    arch, mode  = get_capstone_arch(arch=kwargs.get("arch"), mode=kwargs.get("mode"), endian=kwargs.get("endian"))
     cs          = capstone.Cs(arch, mode)
     cs.detail   = True
 
@@ -3639,21 +3635,26 @@ def parse_string_range(s):
 
 @lru_cache()
 def gef_get_auxiliary_values():
-    """Retrieves the auxiliary values of the current execution. Returns None if not running, or a dict()
-    of values."""
+    """Retrieves the ELF auxiliary values of the current execution. This information is provided by
+    the operating system to transfer some kernel level information to the user process."""
+    """Retrieves the auxiliary values of the current execution. This information is provided by the operationg system
+    at program startup. Returns None if not running, or a dict() of values as: {aux_vect_name: int(aux_vect_value)}."""
     if not is_alive():
         return None
 
     try:
         res = {}
         for line in gdb.execute("info auxv", to_string=True).splitlines():
-            tmp = line.split()
-            _type = tmp[1]
-            if _type in ("AT_PLATFORM", "AT_EXECFN"):
+            # format of aux_vector as returned by GDB: [a_type_idx, a_type_name, description, value]
+            aux_vect = line.split()
+            _a_type_name = aux_vect[1]
+            if _a_type_name in ("AT_PLATFORM", "AT_EXECFN"):
+                # AT_PLATFORM and AT_EXECFN provide an additional string at the end of the line.
+                # This additional information is removed here so these vectors match the others.
                 idx = line[:-1].rfind('"') - 1
-                tmp = line[:idx].split()
+                aux_vect = line[:idx].split()
 
-            res[_type] = int(tmp[-1], 0)
+            res[_a_type_name] = int(aux_vect[-1], 0)
         return res
     except gdb.error:
         return None
