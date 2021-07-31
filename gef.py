@@ -3592,7 +3592,7 @@ def parse_location(value):
     """GEF wrapper for gdb.parse_and_eval() spezialied to resolve LOCATIONs like
     '$pc' or 'main+5' """
     try:
-        location = gdb.parse_and_eval(value)
+        location = gdb.parse_and_eval(str(value))
         ltype = location.dynamic_type.code
         if ltype == 1 or ltype == 8:
             return int(location)
