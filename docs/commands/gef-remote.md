@@ -79,7 +79,7 @@ found in the processes virtual memory map (`vmmap`).
 Another issue with libraries is that even if you have the same libraries that
 are used remotely they might have different filepaths and GDB can't
 automatically find them and thereby can't resolve their symbols. The option
-`--update-solib` adds the previously, with `--dowload-everything`, downloaded
+`--update-solib` adds the previously (with `--dowload-everything`) downloaded
 libraries to the solib path so GDB can take full advantage of their symbols.
 
 ### QEMU-user mode ###
