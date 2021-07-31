@@ -8904,7 +8904,7 @@ class ASLRCommand(GenericCommand):
     attached). This command allows to change that setting."""
 
     _cmdline_ = "aslr"
-    _syntax_  = "{:s} (on|off)".format(_cmdline_)
+    _syntax_  = "{:s} [(on|off)]".format(_cmdline_)
 
     def do_invoke(self, argv):
         argc = len(argv)
