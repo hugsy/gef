@@ -70,11 +70,11 @@ it under IDA and such. This makes the entire remote debugging process
 ### Handling remote libraries ###
 
 Often times you are missing a specific library the remote process is using.
-Therefore `gef-remote` can download remote libraries (and other files) if the
-remote target supports it (and the remote gdbserver has sufficient permissions).
-The `--download-lib LIBRARY` option can download a remote file specified by
-it's filepath. Furthermore `--download-everything` downloads all remote libs
-found in the processes virtual memory map (`vmmap`).
+To remedy this `gef-remote` can download remote libraries (and other files) if
+the remote target supports it (and the remote gdbserver has sufficient
+permissions). The `--download-lib LIBRARY` option can download a remote file
+specified by its filepath. Furthermore `--download-everything` downloads all
+remote libs found in the process's virtual memory map (`vmmap`).
 
 Another issue with libraries is that even if you have the same libraries that
 are used remotely they might have different filepaths and GDB can't
