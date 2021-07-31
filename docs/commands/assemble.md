@@ -48,10 +48,10 @@ gef➤ asm --arch x86 --mode 32 [INSTRUCTION [; INSTRUCTION ...]]
 gef➤ asm --arch arm [INSTRUCTION [; INSTRUCTION ...]]
 ```
 
-To change the endianness from `little endian` to `big endian` use `--big-endian`.
+To choose the endianness use `--endian ENDIANNESS` (by default, `little`):
 
 ```
-gef➤ asm --big-endian [INSTRUCTION [; INSTRUCTION ...]]
+gef➤ asm --endian big [INSTRUCTION [; INSTRUCTION ...]]
 ```
 
 Using the `--overwrite-location LOCATION` option, `gef` will write the assembly
@@ -60,7 +60,8 @@ makes it extremely convenient to simply overwrite opcodes.
 
 ![gef-assemble-overwrite](https://i.imgur.com/BsbGXNC.png)
 
-Another convenient option is `--as-shellcode` which allows you to easily use
-the generated assembly as shellcode in your python exploit scripts.
+Another convenient option is `--as-shellcode` which outputs the generated
+shellcode as an escaped python string. It can then easily be used in your
+python scripts.
 
 ![gef-assemble-shellcode](https://i.imgur.com/E2fpFuH.png)

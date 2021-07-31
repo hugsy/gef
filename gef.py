@@ -7319,7 +7319,7 @@ class AssembleCommand(GenericCommand):
     """Inline code assemble. Architecture can be set in GEF runtime config. """
 
     _cmdline_ = "assemble"
-    _syntax_  = "{:s} [-h] [--list-archs] [--mode MODE] [--arch ARCH] [--overwrite-location LOCATION] [--big-endian] [--as-shellcode] instruction;[instruction;...instruction;])".format(_cmdline_)
+    _syntax_  = "{:s} [-h] [--list-archs] [--mode MODE] [--arch ARCH] [--overwrite-location LOCATION] [--endian ENDIAN] [--as-shellcode] instruction;[instruction;...instruction;])".format(_cmdline_)
     _aliases_ = ["asm",]
     _example_ = "\n{0:s} -a x86 -m 32 nop ; nop ; inc eax ; int3\n{0:s} -a arm -m arm add r0, r0, 1".format(_cmdline_)
 
@@ -7373,7 +7373,7 @@ class AssembleCommand(GenericCommand):
                 gef_print("  * {:<7} ({})".format(mode, endianness))
         return
 
-    @parse_arguments({"instructions": ["",]}, {"--mode": "", "--arch": "", "--overwrite-location": 0, "--big-endian": True, "--list-archs": True, "--as-shellcode": True, })
+    @parse_arguments({"instructions": [""]}, {"--mode": "", "--arch": "", "--overwrite-location": 0, "--endian": "little", "--list-archs": True, "--as-shellcode": True})
     def do_invoke(self, argv, *args, **kwargs):
         arch_s, mode_s, endian_s = self.get_setting("default_architecture"), self.get_setting("default_mode"), ""
 
@@ -7396,7 +7396,7 @@ class AssembleCommand(GenericCommand):
         if args.mode:
             mode_s = args.mode
 
-        if args.big_endian:
+        if args.endian == "big":
             endian_s = "big"
 
         if arch_s.upper() not in self.valid_arch_modes:
