@@ -263,6 +263,17 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNoException(res)
         res = gdb_start_silent_cmd("memory watch $pc")
         self.assertNoException(res)
+        target = "/tmp/memwatch.out"
+        res = gdb_run_cmd("memory watch &myglobal",
+                before=["gef config context.layout 'memory'", "r <<< $((0xdeadbeef))"],
+                after=["c", "q"], target=target)
+        self.assertIn("deadbeef", res)
+        self.assertNotIn("cafebabe", res)
+        res = gdb_run_cmd("memory watch &myglobal",
+                before=["gef config context.layout 'memory'", "r <<< $((0xcafebabe))"],
+                after=["c", "q"], target=target)
+        self.assertIn("cafebabe", res)
+        self.assertNotIn("deadbeef", res)
 
     def test_cmd_memory_unwatch(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("memory unwatch $pc"))

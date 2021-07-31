@@ -750,12 +750,14 @@ class GlibcArena:
         except:
             self.__arena = MallocStateStruct(addr)
             self.__addr = self.__arena.addr
-        finally:
+        try:
             self.top             = int(self.top)
             self.last_remainder  = int(self.last_remainder)
             self.n               = int(self.next)
             self.nfree           = int(self.next_free)
             self.sysmem          = int(self.system_mem)
+        except gdb.error as e:
+            err("Glibc arena: {}".format(e))
         return
 
     def __getitem__(self, item):
@@ -8521,15 +8523,16 @@ class HexdumpCommand(GenericCommand):
 
         args = kwargs["arguments"]
         target = args.address or self.__last_target
-        read_len = args.size or 0x40 if self.format == "byte" else 0x10
         start_addr = to_unsigned_long(gdb.parse_and_eval(target))
         read_from = align_address(start_addr)
 
         if self.format == "byte":
+            read_len = args.size or 0x40
             read_from += self.repeat_count * read_len
             mem = read_memory(read_from, read_len)
             lines = hexdump(mem, base=read_from).splitlines()
         else:
+            read_len = args.size or 0x10
             lines = self._hexdump(read_from, read_len, self.format, self.repeat_count * read_len)
 
         if args.reverse:
@@ -8927,7 +8930,7 @@ class ASLRCommand(GenericCommand):
     attached). This command allows to change that setting."""
 
     _cmdline_ = "aslr"
-    _syntax_  = "{:s} (on|off)".format(_cmdline_)
+    _syntax_  = "{:s} [(on|off)]".format(_cmdline_)
 
     def do_invoke(self, argv):
         argc = len(argv)
