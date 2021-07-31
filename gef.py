@@ -1394,9 +1394,9 @@ def capstone_disassemble(location, nb_insn, **kwargs):
 
     capstone    = sys.modules["capstone"]
     arch, mode  = get_capstone_arch(
-        arch=kwargs.get("arch", None),
-        mode=kwargs.get("mode", None),
-        endian=kwargs.get("endian", None)
+        arch=kwargs.get("arch"),
+        mode=kwargs.get("mode"),
+        endian=kwargs.get("endian")
     )
     cs          = capstone.Cs(arch, mode)
     cs.detail   = True
@@ -3589,17 +3589,18 @@ def safe_parse_and_eval(value):
 
 
 def parse_location(value):
-    """GEF wrapper for gdb.parse_and_eval() spezialied to resolve LOCATIONs like
-    '$pc' or 'main+5' """
+    """GEF wrapper for gdb.parse_and_eval() specialized to resolve LOCATIONs like
+    '$pc' or 'main+5'. """
+    # GDBs type codes: https://sourceware.org/gdb/current/onlinedocs/gdb/Types-In-Python.html#Types-In-Python
     try:
         location = gdb.parse_and_eval(str(value))
-        ltype = location.dynamic_type.code
-        if ltype == 1 or ltype == 8:
+        ptype = location.type.code
+        if ptype == gdb.TYPE_CODE_PTR or ptype == gdb.TYPE_CODE_INT:
             return int(location)
-        elif ltype == 7:
+        elif ptype == gdb.TYPE_CODE_FUNC:
             return int(location.address)
     except gdb.error as e:
-        err("{}".format(e))
+        err(e)
     return None
 
 
@@ -3652,7 +3653,7 @@ def gef_get_auxiliary_values():
                 idx = line[:-1].rfind('"') - 1
                 tmp = line[:idx].split()
 
-            res[_type] = int(tmp[-1], base=0)
+            res[_type] = int(tmp[-1], 0)
         return res
     except gdb.error:
         return None
