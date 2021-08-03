@@ -799,13 +799,14 @@ class GlibcChunk:
     address pointed to as the chunk data. Setting from_base to True instead treats that data as the chunk header.
     Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/."""
 
-    def __init__(self, addr, from_base=False):
+    def __init__(self, addr, from_base=False, allow_unaligned=False):
         self.ptrsize = current_arch.ptrsize
         if from_base:
             self.data_address = addr + 2 * self.ptrsize
         else:
             self.data_address = addr
-        self.align_data_address()
+        if not allow_unaligned:
+            self.align_data_address()
         self.base_address = addr - 2 * self.ptrsize
 
         self.size_addr = int(self.data_address - self.ptrsize)
