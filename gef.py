@@ -963,7 +963,7 @@ class GlibcChunk:
 
     def __str__(self):
         msg = "{:s}(addr={:#x}, size={:#x}, flags={:s})".format(Color.colorify("Chunk", "yellow bold underline"),
-                                                                int(self.base_address),
+                                                                int(self.data_address),
                                                                 self.get_chunk_size(),
                                                                 self.flags_as_string())
         return msg
