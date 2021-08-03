@@ -9,10 +9,6 @@ for `malloc` structure information). Syntax to the subcommands is straight forwa
 gef➤ heap <sub_commands>
 ```
 
-Note that the LOCATION passed to a heap command that optionally accepts one
-needs to be aligned to your memory according to glibc's
-architecture-specific requirements (usually either 8 or 16 Bytes).
-
 ### `heap chunks` command ###
 
 Displays all the chunks from the `heap` section.
