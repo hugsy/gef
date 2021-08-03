@@ -103,3 +103,6 @@ gef➤  gef-remote --qemu-mode localhost:1234
 ```
 
 ![gef-qemu-user](https://i.imgur.com/A0xgEdR.png)
+
+When debugging a process in QEMU both the memory map of QEMU and of the process
+are being shown alongside.
