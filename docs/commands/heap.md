@@ -21,7 +21,7 @@ In some cases, the allocation will start immediately from start of the page. If
 so, specify the base address of the first chunk as follows:
 
 ```
-gef➤ heap chunks [LOCATION]
+gef➤ heap chunks [address]
 ```
 
 ![heap-chunks](https://i.imgur.com/2Ew2fA6.png)
@@ -38,7 +38,7 @@ provide the address to the user memory pointer of the chunk to show the
 information related to a specific chunk:
 
 ```
-gef➤ heap chunk [LOCATION]
+gef➤ heap chunk [address]
 ```
 
 ![heap-chunk](https://i.imgur.com/SAWNptW.png)
@@ -64,7 +64,7 @@ binary), it is possible to instruct GEF to find the `main_arena` at a different
 location with the command:
 
 ```
-gef➤ heap set-arena [LOCATION]
+gef➤ heap set-arena [address]
 ```
 
 If the arena address is correct, all `heap` commands will be functional, and use

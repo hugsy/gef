@@ -814,7 +814,7 @@ class GlibcChunk:
         return
 
     def align_data_address(self):
-        """Align chunk data addresses according to glibc's MALLOC_ALIGNMENT."""
+        """Align chunk data addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github"""
         if is_x86_32() and get_libc_version() >= (2, 26):
             # Special case introduced in Glibc 2.26:
             # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
@@ -6541,7 +6541,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
     """Display information on a heap chunk."""
 
     _cmdline_ = "heap set-arena"
-    _syntax_  = "{:s} LOCATION".format(_cmdline_)
+    _syntax_  = "{:s} address".format(_cmdline_)
     _example_ = "{:s} 0x001337001337".format(_cmdline_)
 
     def __init__(self):
@@ -6558,13 +6558,13 @@ class GlibcHeapSetArenaCommand(GenericCommand):
 
         new_arena = safe_parse_and_eval(argv[0])
         if new_arena is None:
-            err("Invalid location")
+            err("Invalid address")
             return
 
         if argv[0].startswith("0x"):
             new_arena = Address(value=to_unsigned_long(new_arena))
             if new_arena is None or not new_arena.valid:
-                err("Invalid location")
+                err("Invalid address")
                 return
 
             __gef_default_main_arena__ = "*{:s}".format(format_address(new_arena.value))
@@ -6602,17 +6602,17 @@ class GlibcHeapChunkCommand(GenericCommand):
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
 
     _cmdline_ = "heap chunk"
-    _syntax_  = "{:s} [-h] [--allow-unaligned] LOCATION".format(_cmdline_)
+    _syntax_  = "{:s} [-h] [--allow-unaligned] address".format(_cmdline_)
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
-    @parse_arguments({"LOCATION": ""}, {"--allow-unaligned": True})
+    @parse_arguments({"address": ""}, {"--allow-unaligned": True})
     @only_if_gdb_running
     def do_invoke(self, *args, **kwargs):
         args = kwargs["arguments"]
-        if not args.LOCATION:
+        if not args.address:
             err("Missing chunk address")
             self.usage()
             return
@@ -6620,7 +6620,7 @@ class GlibcHeapChunkCommand(GenericCommand):
         if get_main_arena() is None:
             return
 
-        addr = to_unsigned_long(gdb.parse_and_eval(args.LOCATION))
+        addr = to_unsigned_long(gdb.parse_and_eval(args.address))
         chunk = GlibcChunk(addr, allow_unaligned=args.allow_unaligned)
         gef_print(chunk.psprint())
         return
@@ -6632,7 +6632,7 @@ class GlibcHeapChunksCommand(GenericCommand):
     it must correspond to the base address of the first chunk."""
 
     _cmdline_ = "heap chunks"
-    _syntax_  = "{0} [-h] [--allow-unaligned] [LOCATION]".format(_cmdline_)
+    _syntax_  = "{0} [-h] [--allow-unaligned] [address]".format(_cmdline_)
     _example_ = "\n{0}\n{0} 0x555555775000".format(_cmdline_)
 
     def __init__(self):
@@ -6640,18 +6640,18 @@ class GlibcHeapChunksCommand(GenericCommand):
         self.add_setting("peek_nb_byte", 16, "Hexdump N first byte(s) inside the chunk data (0 to disable)")
         return
 
-    @parse_arguments({"LOCATION": ""}, {"--allow-unaligned": True})
+    @parse_arguments({"address": ""}, {"--allow-unaligned": True})
     @only_if_gdb_running
     def do_invoke(self, *args, **kwargs):
         args = kwargs["arguments"]
 
-        if not args.LOCATION:
+        if not args.address:
             heap_section = HeapBaseFunction.heap_base()
             if not heap_section:
                 err("Heap not initialized")
                 return
         else:
-            heap_section = int(args.LOCATION, 0)
+            heap_section = int(args.address, 0)
 
         arena = get_main_arena()
         if arena is None:
