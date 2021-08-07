@@ -3639,7 +3639,7 @@ def parse_string_range(s):
 def gef_get_auxiliary_values():
     """Retrieves the ELF auxiliary values of the current execution. This information is provided by
     the operating system to transfer some kernel level information to the user process. Returns
-    None is not running, or a dict() of values as: {aux_vect_name: int(aux_vect_value)}."""
+    None if not found, or a dict() of values as: {aux_vect_name: int(aux_vect_value)}."""
     if not is_alive():
         return None
 
