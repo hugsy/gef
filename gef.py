@@ -795,21 +795,41 @@ class GlibcArena:
 
 
 class GlibcChunk:
-    """Glibc chunk class.
+    """Glibc chunk class. The default behavior (from_base=False) is to interpret the data starting at the memory
+    address pointed to as the chunk data. Setting from_base to True instead treats that data as the chunk header.
     Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/."""
 
-    def __init__(self, addr, from_base=False):
+    def __init__(self, addr, from_base=False, allow_unaligned=True):
         self.ptrsize = current_arch.ptrsize
         if from_base:
-            self.chunk_base_address = addr
-            self.address = addr + 2 * self.ptrsize
+            self.data_address = addr + 2 * self.ptrsize
         else:
-            self.chunk_base_address = int(addr - 2 * self.ptrsize)
-            self.address = addr
+            self.data_address = addr
+        if not allow_unaligned:
+            self.align_data_address()
+        self.base_address = addr - 2 * self.ptrsize
 
-        self.size_addr = int(self.address - self.ptrsize)
-        self.prev_size_addr = self.chunk_base_address
+        self.size_addr = int(self.data_address - self.ptrsize)
+        self.prev_size_addr = self.base_address
         return
+
+    def align_data_address(self):
+        """Align chunk data addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github"""
+        if is_x86_32() and get_libc_version() >= (2, 26):
+            # Special case introduced in Glibc 2.26:
+            # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
+            malloc_alignment = 0x10
+        else:
+            # Generic case:
+            # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/generic/malloc-alignment.h#L22
+            __alignof__long_double = int(safe_parse_and_eval("_Alignof(long double)"))
+            malloc_alignment = max(__alignof__long_double, 2 * self.ptrsize)
+
+        ceil = lambda n: int(-1 * n // 1 * -1)
+        # align data_address to nearest next multiple of malloc_alignment
+        self.data_address = malloc_alignment * ceil(self.data_address / malloc_alignment)
+        return
+
 
     def get_chunk_size(self):
         return read_int_from_memory(self.size_addr) & (~0x07)
@@ -833,17 +853,17 @@ class GlibcChunk:
         return read_int_from_memory(self.prev_size_addr)
 
     def get_next_chunk(self):
-        addr = self.address + self.get_chunk_size()
+        addr = self.data_address + self.get_chunk_size()
         return GlibcChunk(addr)
 
     # if free-ed functions
     def get_fwd_ptr(self, sll):
         # Not a single-linked-list (sll) or no Safe-Linking support yet
         if not sll or get_libc_version() < (2, 32):
-            return read_int_from_memory(self.address)
+            return read_int_from_memory(self.data_address)
         # Unmask ("reveal") the Safe-Linking pointer
         else:
-            return read_int_from_memory(self.address) ^ (self.address >> 12)
+            return read_int_from_memory(self.data_address) ^ (self.data_address >> 12)
 
     @property
     def fwd(self):
@@ -852,7 +872,7 @@ class GlibcChunk:
     fd = fwd  # for compat
 
     def get_bkw_ptr(self):
-        return read_int_from_memory(self.address + self.ptrsize)
+        return read_int_from_memory(self.data_address + self.ptrsize)
 
     @property
     def bck(self):
@@ -902,7 +922,7 @@ class GlibcChunk:
             msg.append("Previous chunk size: {0:d} ({0:#x})".format(self.get_prev_chunk_size()))
             failed = True
         except gdb.MemoryError:
-            msg.append("Previous chunk size: Cannot read at {:#x} (corrupted?)".format(self.chunk_base_address))
+            msg.append("Previous chunk size: Cannot read at {:#x} (corrupted?)".format(self.base_address))
 
         if failed:
             msg.append(self.str_chunk_size_flag())
@@ -910,8 +930,8 @@ class GlibcChunk:
         return "\n".join(msg)
 
     def _str_pointers(self):
-        fwd = self.address
-        bkw = self.address + self.ptrsize
+        fwd = self.data_address
+        bkw = self.data_address + self.ptrsize
 
         msg = []
         try:
@@ -944,7 +964,7 @@ class GlibcChunk:
 
     def __str__(self):
         msg = "{:s}(addr={:#x}, size={:#x}, flags={:s})".format(Color.colorify("Chunk", "yellow bold underline"),
-                                                                int(self.address),
+                                                                int(self.data_address),
                                                                 self.get_chunk_size(),
                                                                 self.flags_as_string())
         return msg
@@ -6521,7 +6541,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
     """Display information on a heap chunk."""
 
     _cmdline_ = "heap set-arena"
-    _syntax_  = "{:s} LOCATION".format(_cmdline_)
+    _syntax_  = "{:s} address".format(_cmdline_)
     _example_ = "{:s} 0x001337001337".format(_cmdline_)
 
     def __init__(self):
@@ -6538,13 +6558,13 @@ class GlibcHeapSetArenaCommand(GenericCommand):
 
         new_arena = safe_parse_and_eval(argv[0])
         if new_arena is None:
-            err("Invalid location")
+            err("Invalid address")
             return
 
         if argv[0].startswith("0x"):
             new_arena = Address(value=to_unsigned_long(new_arena))
             if new_arena is None or not new_arena.valid:
-                err("Invalid location")
+                err("Invalid address")
                 return
 
             __gef_default_main_arena__ = "*{:s}".format(format_address(new_arena.value))
@@ -6582,15 +6602,17 @@ class GlibcHeapChunkCommand(GenericCommand):
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
 
     _cmdline_ = "heap chunk"
-    _syntax_  = "{:s} LOCATION".format(_cmdline_)
+    _syntax_  = "{:s} [-h] [--allow-unaligned] address".format(_cmdline_)
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
+    @parse_arguments({"address": ""}, {"--allow-unaligned": True})
     @only_if_gdb_running
-    def do_invoke(self, argv):
-        if not argv:
+    def do_invoke(self, *args, **kwargs):
+        args = kwargs["arguments"]
+        if not args.address:
             err("Missing chunk address")
             self.usage()
             return
@@ -6598,8 +6620,8 @@ class GlibcHeapChunkCommand(GenericCommand):
         if get_main_arena() is None:
             return
 
-        addr = to_unsigned_long(gdb.parse_and_eval(argv[0]))
-        chunk = GlibcChunk(addr)
+        addr = to_unsigned_long(gdb.parse_and_eval(args.address))
+        chunk = GlibcChunk(addr, allow_unaligned=args.allow_unaligned)
         gef_print(chunk.psprint())
         return
 
@@ -6610,7 +6632,7 @@ class GlibcHeapChunksCommand(GenericCommand):
     it must correspond to the base address of the first chunk."""
 
     _cmdline_ = "heap chunks"
-    _syntax_  = "{0} [LOCATION]".format(_cmdline_)
+    _syntax_  = "{0} [-h] [--allow-unaligned] [address]".format(_cmdline_)
     _example_ = "\n{0}\n{0} 0x555555775000".format(_cmdline_)
 
     def __init__(self):
@@ -6618,16 +6640,18 @@ class GlibcHeapChunksCommand(GenericCommand):
         self.add_setting("peek_nb_byte", 16, "Hexdump N first byte(s) inside the chunk data (0 to disable)")
         return
 
+    @parse_arguments({"address": ""}, {"--allow-unaligned": True})
     @only_if_gdb_running
-    def do_invoke(self, argv):
+    def do_invoke(self, *args, **kwargs):
+        args = kwargs["arguments"]
 
-        if not argv:
+        if not args.address:
             heap_section = HeapBaseFunction.heap_base()
             if not heap_section:
                 err("Heap not initialized")
                 return
         else:
-            heap_section = int(argv[0], 0)
+            heap_section = int(args.address, 0)
 
         arena = get_main_arena()
         if arena is None:
@@ -6635,13 +6659,13 @@ class GlibcHeapChunksCommand(GenericCommand):
             return
 
         nb = self.get_setting("peek_nb_byte")
-        current_chunk = GlibcChunk(heap_section, from_base=True)
+        current_chunk = GlibcChunk(heap_section, from_base=True, allow_unaligned=args.allow_unaligned)
         while True:
-            if current_chunk.chunk_base_address == arena.top:
+            if current_chunk.base_address == arena.top:
                 gef_print("{} {} {}".format(str(current_chunk), LEFT_ARROW, Color.greenify("top chunk")))
                 break
 
-            if current_chunk.chunk_base_address > arena.top:
+            if current_chunk.base_address > arena.top:
                 break
 
             if current_chunk.size == 0:
@@ -6650,14 +6674,14 @@ class GlibcHeapChunksCommand(GenericCommand):
 
             line = str(current_chunk)
             if nb:
-                line += "\n    [" + hexdump(read_memory(current_chunk.address, nb), nb, base=current_chunk.address)  + "]"
+                line += "\n    [" + hexdump(read_memory(current_chunk.data_address, nb), nb, base=current_chunk.data_address)  + "]"
             gef_print(line)
 
             next_chunk = current_chunk.get_next_chunk()
             if next_chunk is None:
                 break
 
-            next_chunk_addr = Address(value=next_chunk.address)
+            next_chunk_addr = Address(value=next_chunk.data_address)
             if not next_chunk_addr.valid:
                 # corrupted
                 break
@@ -6783,11 +6807,11 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
                     try:
                         msg.append("{:s} {:s} ".format(LEFT_ARROW, str(chunk)))
-                        if chunk.address in chunks:
+                        if chunk.data_address in chunks:
                             msg.append("{:s} [loop detected]".format(RIGHT_ARROW))
                             break
 
-                        chunks.add(chunk.address)
+                        chunks.add(chunk.data_address)
 
                         next_chunk = chunk.get_fwd_ptr(True)
                         if next_chunk == 0:
@@ -6795,7 +6819,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
                         chunk = GlibcChunk(next_chunk)
                     except gdb.MemoryError:
-                        msg.append("{:s} [Corrupted chunk at {:#x}]".format(LEFT_ARROW, chunk.address))
+                        msg.append("{:s} [Corrupted chunk at {:#x}]".format(LEFT_ARROW, chunk.data_address))
                         break
 
                 if msg:
@@ -6917,14 +6941,14 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
                 try:
                     gef_print("{:s} {:s} ".format(LEFT_ARROW, str(chunk)), end="")
-                    if chunk.address in chunks:
+                    if chunk.data_address in chunks:
                         gef_print("{:s} [loop detected]".format(RIGHT_ARROW), end="")
                         break
 
                     if fastbin_index(chunk.get_chunk_size()) != i:
                         gef_print("[incorrect fastbin_index] ", end="")
 
-                    chunks.add(chunk.address)
+                    chunks.add(chunk.data_address)
 
                     next_chunk = chunk.get_fwd_ptr(True)
                     if next_chunk == 0:
@@ -6932,7 +6956,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
                     chunk = GlibcChunk(next_chunk, from_base=True)
                 except gdb.MemoryError:
-                    gef_print("{:s} [Corrupted chunk at {:#x}]".format(LEFT_ARROW, chunk.address), end="")
+                    gef_print("{:s} [Corrupted chunk at {:#x}]".format(LEFT_ARROW, chunk.data_address), end="")
                     break
             gef_print()
         return
