@@ -6355,7 +6355,7 @@ class NopCommand(GenericCommand):
     aware."""
 
     _cmdline_ = "nop"
-    _syntax_  = """{:s} [-nb NUM_BYTES] [LOCATION]
+    _syntax_  = """{:s} [LOCATION] [--nb NUM_BYTES]
   LOCATION\taddress/symbol to patch
     --nb NUM_BYTES\tInstead of writing one instruction, patch the specified number of bytes""".format(_cmdline_)
     _example_ = "{:s} $pc".format(_cmdline_)
@@ -6369,7 +6369,7 @@ class NopCommand(GenericCommand):
         next_insn = gef_instruction_n(addr, 2)
         return next_insn.address - cur_insn.address
 
-    @parse_arguments({"address": 0}, {"--nb": 0, })
+    @parse_arguments({"address": "$pc"}, {"--nb": 0, })
     def do_invoke(self, argv, *args, **kwargs):
         args = kwargs["arguments"]
         address = parse_address(args.address) if args.address else current_arch.pc
