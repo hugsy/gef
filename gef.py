@@ -2776,8 +2776,11 @@ def get_os():
 
 @lru_cache()
 def get_pid():
-    """Return the PID of the debuggee process."""
-    return gdb.selected_inferior().pid if not __gef_qemu_mode__ else gdb.selected_thread().ptid[1]
+    """Return the PID of the target process."""
+    pid = gdb.selected_inferior().pid if not __gef_qemu_mode__ else gdb.selected_thread().ptid[1]
+    if not pid:
+        raise RuntimeError("cannot retrieve PID for target process")
+    return pid
 
 
 @lru_cache()
@@ -6155,7 +6158,8 @@ class RemoteCommand(GenericCommand):
 
     _cmdline_ = "gef-remote"
     _syntax_  = "{:s} [OPTIONS] TARGET".format(_cmdline_)
-    _example_  = "\n{0:s} -p 6789 localhost:1234\n{0:s} -q localhost:4444 # when using qemu-user".format(_cmdline_)
+    _example_  = "\n{0:s} --pid 6789 localhost:1234"\
+        "\n{0:s} --qemu-mode localhost:4444 # when using qemu-user".format(_cmdline_)
 
     def __init__(self):
         super().__init__(prefix=False)
@@ -6170,7 +6174,7 @@ class RemoteCommand(GenericCommand):
          "--download-lib": "",
          "--is-extended-remote": True,
          "--pid": 0,
-         "--qemu-mode": True,})
+         "--qemu-mode": True})
     def do_invoke(self, argv, *args, **kwargs):
         global __gef_remote__
 
@@ -6189,7 +6193,6 @@ class RemoteCommand(GenericCommand):
             return
 
         target = args.target
-        pid = args.pid if args.is_extended_remote and args.pid else get_pid()
         self.download_all_libs = args.download_everything
 
         if args.qemu_mode:
@@ -6205,6 +6208,7 @@ class RemoteCommand(GenericCommand):
         if not self.connect_target(target, args.is_extended_remote):
             return
 
+        pid = args.pid if args.is_extended_remote and args.pid else get_pid()
         if args.is_extended_remote:
             ok("Attaching to {:d}".format(pid))
             hide_context()
