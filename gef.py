@@ -2632,6 +2632,22 @@ def only_if_gdb_version_higher_than(required_gdb_version):
     return wrapper
 
 
+def only_if_current_arch_in(valid_architectures):
+    """Decorator to allow commands for only a subset of the architectured supported by GEF.
+    This decorator is to use lightly, as it goes against the purpose of GEF to support all
+    architectures GDB does. However in some cases, it is necessary."""
+
+    def wrapper(f):
+        def inner_f(*args, **kwargs):
+            if current_arch in valid_architectures:
+                f(*args, **kwargs)
+            else:
+                reason = "This command cannot work for the '{}' architecture".format(current_arch.arch)
+                raise EnvironmentError(reason)
+        return inner_f
+    return wrapper
+
+
 def FakeExit(*args, **kwargs):
     raise RuntimeWarning
 
