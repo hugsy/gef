@@ -1010,7 +1010,7 @@ def titlify(text, color=None, msg_color=None):
     return "".join(msg)
 
 
-def err(msg):   return gef_print("{} {}".format(Color.colorify("[!]", "bold red"), msg))
+def err(msg):   return gef_print("{} {}".format(Color.colorify("[!]", "bold red"), m
 def warn(msg):  return gef_print("{} {}".format(Color.colorify("[*]", "bold yellow"), msg))
 def ok(msg):    return gef_print("{} {}".format(Color.colorify("[+]", "bold green"), msg))
 def info(msg):  return gef_print("{} {}".format(Color.colorify("[+]", "bold blue"), msg))
@@ -3643,22 +3643,20 @@ def gef_get_auxiliary_values():
     if not is_alive():
         return None
 
-    try:
-        res = {}
-        for line in gdb.execute("info auxv", to_string=True).splitlines():
-            # format of aux_vector as returned by GDB: [a_type_idx, a_type_name, description, value]
-            aux_vect = line.split()
-            _a_type_name = aux_vect[1]
-            if _a_type_name in ("AT_PLATFORM", "AT_EXECFN"):
-                # AT_PLATFORM and AT_EXECFN provide an additional string at the end of the line.
-                # This additional information is removed here so these vectors match the others.
-                idx = line[:-1].rfind('"') - 1
-                aux_vect = line[:idx].split()
-
-            res[_a_type_name] = int(aux_vect[-1], 0)
-        return res
-    except gdb.error:
+    __auxiliary_vector = {}
+    auxv_info = gdb.execute("info auxv", to_string=True)
+    if "failed" in auxv_info:
+        err(auxv_info)  # print GDB error
         return None
+    for line in auxv_info.splitlines():
+        line = line.split('"')[0].strip()  # remove the ending string (if any)
+        line = line.split()  # split the string by whitespace(s)
+        if len(line) < 4:
+            continue  # a valid entry should have at least 4 columns
+        __av_type = line[1]
+        __av_value = line[:-1]
+        __auxiliary_vector[__av_type] = int(__av_value, base=0)
+    return __auxiliary_vector
 
 
 def gef_read_canary():
@@ -6470,14 +6468,14 @@ class CapstoneDisassembleCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    @parse_arguments({("LOCATION"): "$pc"}, {("--show-opcodes", "-s"): True, "--length": 0})
+    @parse_arguments({("location"): "$pc"}, {("--show-opcodes", "-s"): True, "--length": 0})
     def do_invoke(self, argv, *args, **kwargs):
         args = kwargs["arguments"]
         show_opcodes = args.show_opcodes
         length = args.length or get_gef_setting("context.nb_lines_code")
-        location = parse_location(args.LOCATION)
+        location = parse_location(args.location)
         if not location:
-            info("Can't find address for {}".format(args.LOCATION))
+            info("Can't find address for {}".format(args.location))
             return
 
         insns = []
