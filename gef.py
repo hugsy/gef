@@ -1010,7 +1010,7 @@ def titlify(text, color=None, msg_color=None):
     return "".join(msg)
 
 
-def err(msg):   return gef_print("{} {}".format(Color.colorify("[!]", "bold red"), m
+def err(msg):   return gef_print("{} {}".format(Color.colorify("[!]", "bold red"), msg))
 def warn(msg):  return gef_print("{} {}".format(Color.colorify("[*]", "bold yellow"), msg))
 def ok(msg):    return gef_print("{} {}".format(Color.colorify("[+]", "bold green"), msg))
 def info(msg):  return gef_print("{} {}".format(Color.colorify("[+]", "bold blue"), msg))
@@ -3586,22 +3586,6 @@ def safe_parse_and_eval(value):
     return None
 
 
-def parse_location(value):
-    """GEF wrapper for gdb.parse_and_eval() specialized to resolve LOCATIONs like
-    '$pc' or 'main+5'. """
-    # GDBs type codes: https://sourceware.org/gdb/current/onlinedocs/gdb/Types-In-Python.html#Types-In-Python
-    try:
-        location = gdb.parse_and_eval(str(value))
-        ptype = location.type.code
-        if ptype == gdb.TYPE_CODE_PTR or ptype == gdb.TYPE_CODE_INT:
-            return int(location)
-        elif ptype == gdb.TYPE_CODE_FUNC:
-            return int(location.address)
-    except gdb.error as e:
-        err(e)
-    return None
-
-
 @lru_cache()
 def dereference(addr):
     """GEF wrapper for gdb dereference function."""
@@ -3654,7 +3638,8 @@ def gef_get_auxiliary_values():
         if len(line) < 4:
             continue  # a valid entry should have at least 4 columns
         __av_type = line[1]
-        __av_value = line[:-1]
+        __av_value = line[-1]
+        info(__av_value)
         __auxiliary_vector[__av_type] = int(__av_value, base=0)
     return __auxiliary_vector
 
@@ -6473,7 +6458,7 @@ class CapstoneDisassembleCommand(GenericCommand):
         args = kwargs["arguments"]
         show_opcodes = args.show_opcodes
         length = args.length or get_gef_setting("context.nb_lines_code")
-        location = parse_location(args.location)
+        location = parse_address(args.location)
         if not location:
             info("Can't find address for {}".format(args.location))
             return
