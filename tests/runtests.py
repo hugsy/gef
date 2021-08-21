@@ -694,7 +694,7 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
         self.assertTrue(int(res.splitlines()[-1]))
         return
 
-    def test_gef_get_auxiliary_values(self):
+    def test_fun_gef_get_auxiliary_values(self):
         func = "gef_get_auxiliary_values()"
         res = gdb_test_python_method(func, target="/bin/ls")
         self.assertNoException(res)
@@ -704,10 +704,20 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
         self.assertFalse("'AT_WHATEVER':" in res)
         return
 
-    def test_gef_convenience(self):
+    def test_func_gef_convenience(self):
         func = "gef_convenience('meh')"
         res = gdb_test_python_method(func, target="/bin/ls")
         self.assertNoException(res)
+        return
+
+    def test_func_parse_address(self):
+        func = "parse_address('main+0x4')"
+        res = gdb_test_python_method(func)
+        self.assertNoException(res)
+
+        func = "parse_address('meh')"
+        res = gdb_test_python_method(func)
+        self.assertException(res)
         return
 
 
