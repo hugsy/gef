@@ -16,17 +16,32 @@ from helpers import (
 ) # pylint: disable=import-error
 
 
+class GdbAssertionError(AssertionError):
+    pass
+
+
 class GefUnitTestGeneric(unittest.TestCase):
     """Generic class for command testing, that defines all helpers"""
 
     @staticmethod
+    def assertException(buf):
+        """Expect an exception to be raised"""
+        if not ("Python Exception <" in buf
+                or "Traceback" in buf
+                or "'gdb.error'" in buf
+                or "Exception raised" in buf
+                or "failed to execute properly, reason:" in buf):
+            raise GdbAssertionError("GDB Exception expected, not raised")
+
+    @staticmethod
     def assertNoException(buf):
+        """No exception should be raised"""
         if not ("Python Exception <" not in buf
                 and "Traceback" not in buf
                 and "'gdb.error'" not in buf
                 and "Exception raised" not in buf
                 and "failed to execute properly, reason:" not in buf):
-            raise AssertionError("Detected error in gdb output")
+            raise GdbAssertionError("Unexpected GDB Exception raised")
 
     @staticmethod
     def assertFailIfInactiveSession(buf):
@@ -262,14 +277,18 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("memory watch $pc")
         self.assertNoException(res)
         target = "/tmp/memwatch.out"
-        res = gdb_run_cmd("memory watch &myglobal",
-                before=["gef config context.layout 'memory'", "r <<< $((0xdeadbeef))"],
-                after=["c", "q"], target=target)
+        res = gdb_start_silent_cmd("memory watch &myglobal",
+                before=["set args <<<$((0xdeadbeef))"],
+                after=["continue",],
+                target=target,
+                context='memory')
         self.assertIn("deadbeef", res)
         self.assertNotIn("cafebabe", res)
-        res = gdb_run_cmd("memory watch &myglobal",
-                before=["gef config context.layout 'memory'", "r <<< $((0xcafebabe))"],
-                after=["c", "q"], target=target)
+        res = gdb_start_silent_cmd("memory watch &myglobal",
+                before=["set args <<<$((0xcafebabe))",],
+                after=["continue", ],
+                target=target,
+                context="memory")
         self.assertIn("cafebabe", res)
         self.assertNotIn("deadbeef", res)
 
@@ -673,6 +692,22 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
         res = gdb_test_python_method("get_pid()", target="/bin/ls")
         self.assertNoException(res)
         self.assertTrue(int(res.splitlines()[-1]))
+        return
+
+    def test_gef_get_auxiliary_values(self):
+        func = "gef_get_auxiliary_values()"
+        res = gdb_test_python_method(func, target="/bin/ls")
+        self.assertNoException(res)
+        # we need at least ("AT_PLATFORM", "AT_EXECFN") right now
+        self.assertTrue("'AT_PLATFORM'" in res)
+        self.assertTrue("'AT_EXECFN':" in res)
+        self.assertFalse("'AT_WHATEVER':" in res)
+        return
+
+    def test_gef_convenience(self):
+        func = "gef_convenience('meh')"
+        res = gdb_test_python_method(func, target="/bin/ls")
+        self.assertNoException(res)
         return
 
 

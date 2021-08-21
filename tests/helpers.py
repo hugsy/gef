@@ -3,7 +3,7 @@ import subprocess
 
 PATH_TO_DEFAULT_BINARY = "/tmp/default.out"
 STRIP_ANSI_DEFAULT = True
-
+DEFAULT_CONTEXT = "-code -stack"
 
 def ansi_clean(s):
     ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
@@ -67,14 +67,14 @@ def gdb_run_cmd_last_line(cmd, before=None, after=None, target=PATH_TO_DEFAULT_B
     return gdb_run_cmd(cmd, before, after, target, strip_ansi).splitlines()[-1]
 
 
-def gdb_start_silent_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT):
+def gdb_start_silent_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT, context=DEFAULT_CONTEXT):
     """Execute a command in GDB by starting an execution context. This command disables the `context`
     and sets a tbreak at the most convenient entry point."""
     if not before:
         before = []
 
     before += ["gef config context.clear_screen False",
-               "gef config context.layout '-code -stack'",
+               "gef config context.layout '{}'".format(context),
                "entry-break"]
     return gdb_run_cmd(cmd, before, after, target, strip_ansi)
 
