@@ -3639,7 +3639,6 @@ def gef_get_auxiliary_values():
             continue  # a valid entry should have at least 4 columns
         __av_type = line[1]
         __av_value = line[-1]
-        info(__av_value)
         __auxiliary_vector[__av_type] = int(__av_value, base=0)
     return __auxiliary_vector
 
