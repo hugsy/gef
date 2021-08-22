@@ -66,4 +66,4 @@ jobs:
 
     - name: Run Tests
       run: |
-        bash -c 'make test'
+        make test

@@ -278,14 +278,14 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNoException(res)
         target = "/tmp/memwatch.out"
         res = gdb_start_silent_cmd("memory watch &myglobal",
-                before=["set args <<<$((0xdeadbeef))"],
+                before=["set args 0xdeadbeef",],
                 after=["continue",],
                 target=target,
                 context='memory')
         self.assertIn("deadbeef", res)
         self.assertNotIn("cafebabe", res)
         res = gdb_start_silent_cmd("memory watch &myglobal",
-                before=["set args <<<$((0xcafebabe))",],
+                before=["set args 0xcafebabe",],
                 after=["continue", ],
                 target=target,
                 context="memory")
