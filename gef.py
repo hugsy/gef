@@ -6680,7 +6680,7 @@ class GlibcHeapChunksCommand(GenericCommand):
                 err("Heap not initialized")
                 return
         else:
-            heap_section = int(args.address, 0)
+            heap_section = parse_address(args.address)
 
         arena = get_main_arena()
         if arena is None:
