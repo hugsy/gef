@@ -3621,9 +3621,10 @@ def parse_string_range(s):
 
 @lru_cache()
 def gef_get_auxiliary_values():
-    """Retrieves the ELF auxiliary values of the current execution. This information is provided by
-    the operating system to transfer some kernel level information to the user process. Returns
-    None if not found, or a dict() of values as: {aux_vect_name: int(aux_vect_value)}."""
+    """Retrieve the ELF auxiliary values of the current execution. This
+    information is provided by the operating system to transfer some kernel
+    level information to the user process. Return None if not found, or a
+    dict() of values as: {aux_vect_name: int(aux_vect_value)}."""
     if not is_alive():
         return None
 
