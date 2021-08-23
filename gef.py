@@ -6553,7 +6553,7 @@ class GlibcHeapCommand(GenericCommand):
     """Base command to get information about the Glibc heap structure."""
 
     _cmdline_ = "heap"
-    _syntax_  = "{:s} (chunk|chunks|bins|arenas)".format(_cmdline_)
+    _syntax_  = "{:s} (chunk|chunks|bins|arenas|set-arena)".format(_cmdline_)
 
     def __init__(self):
         super().__init__(prefix=True)
@@ -6657,8 +6657,8 @@ class GlibcHeapChunkCommand(GenericCommand):
 
 @register_command
 class GlibcHeapChunksCommand(GenericCommand):
-    """Display information all chunks from main_arena heap. If a location is passed,
-    it must correspond to the base address of the first chunk."""
+    """Display information all chunks from main_arena heap. If a location is
+    passed, it must correspond to the base address of the first chunk."""
 
     _cmdline_ = "heap chunks"
     _syntax_  = "{0} [-h] [--allow-unaligned] [address]".format(_cmdline_)
