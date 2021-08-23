@@ -206,9 +206,10 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         cmd = "heap bins fast"
         target = "/tmp/heap-fastbins.out"
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
-        res = gdb_run_silent_cmd(cmd, target=target)
+        res = gdb_run_silent_cmd(cmd, before=["br *break_here", "c"], target=target)
         self.assertNoException(res)
         self.assertIn("Fastbins[idx=0, size=0x20]", res)
+        self.assertIn("Chunk(addr=", res)
         return
 
     def test_cmd_heap_bins_non_main(self):
