@@ -7754,7 +7754,7 @@ class NamedBreakpointCommand(GenericCommand):
         super().__init__()
         return
 
-    @parse_arguments({"name": "", "location": "$pc"}, {})
+    @parse_arguments({"name": "", "address": "$pc"}, {})
     def do_invoke(self, argv, *args, **kwargs):
         args = kwargs["arguments"]
         if not args.name:
@@ -7762,7 +7762,7 @@ class NamedBreakpointCommand(GenericCommand):
             self.usage()
             return
 
-        location = parse_address(args.location)
+        location = parse_address(args.address)
         NamedBreakpoint(location, args.name)
         return
 
