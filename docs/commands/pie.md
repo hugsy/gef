@@ -4,7 +4,7 @@ The `pie` command provides a useful way to set breakpoint to a PIE enabled
 binary. `pie` command then provides what we call "PIE breakpoints". A PIE
 breakpoint is just a virtual breakpoint which will be turned to a real
 breakpoint at runtime. A PIE breakpoint's address is the offset from
-the base address of the binary.
+the base address of the binary or a symbol of the binary.
 
 Note that you need to use the **entire `pie` command series** to support PIE
 breakpoints, especially the "`pie` run commands", like `pie attach`, `pie run`,
@@ -14,9 +14,9 @@ etc.
 
 This command sets a new PIE breakpoint. It can be used like the normal
 `breakpoint` command in gdb. The argument for the command is the offset from
-the base address. The breakpoints will not be set immediately after this
-command. Instead, it will be set when you use `pie attach`, `pie run`, `pie
-remote` to actually attach to a process, so it can resolve the right base
+the base address or a symbol. The breakpoints will not be set immediately after
+this command. Instead, it will be set when you use `pie attach`, `pie run`,
+`pie remote` to actually attach to a process, so it can resolve the right base
 address.
 
 Usage:

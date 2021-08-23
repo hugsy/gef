@@ -4499,21 +4499,20 @@ class PieCommand(GenericCommand):
 
 @register_command
 class PieBreakpointCommand(GenericCommand):
-    """Set a PIE breakpoint."""
+    """Set a PIE breakpoint at an offset to the target binaries base address."""
 
     _cmdline_ = "pie breakpoint"
-    _syntax_ = "{:s} BREAKPOINT".format(_cmdline_)
+    _syntax_ = "{:s} OFFSET".format(_cmdline_)
 
-    @parse_arguments({"expression": ""}, {})
+    @parse_arguments({"offset": ""}, {})
     def do_invoke(self, argv, *args, **kwargs):
         global __pie_counter__, __pie_breakpoints__
-        if len(argv) < 1:
+        args = kwargs["arguments"]
+        if not args.offset:
             self.usage()
             return
 
-        args = kwargs["arguments"]
-        bp_expr = args.expression[1:] if args.expression[0] == "*" else "&{}".format(args.expression)
-        addr = int(gdb.parse_and_eval(bp_expr))
+        addr = parse_address(args.offset)
         self.set_pie_breakpoint(lambda base: "b *{}".format(base + addr), addr)
 
         # When the process is already on, set real breakpoints immediately
