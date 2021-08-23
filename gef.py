@@ -1415,7 +1415,7 @@ def capstone_disassemble(location, nb_insn, **kwargs):
         return Instruction(cs_insn.address, loc, cs_insn.mnemonic, ops, cs_insn.bytes)
 
     capstone    = sys.modules["capstone"]
-    arch, mode  = get_capstone_arch(arch=kwargs.get("arch", None), mode=kwargs.get("mode", None), endian=kwargs.get("endian", None))
+    arch, mode  = get_capstone_arch(arch=kwargs.get("arch"), mode=kwargs.get("mode"), endian=kwargs.get("endian"))
     cs          = capstone.Cs(arch, mode)
     cs.detail   = True
 
@@ -3660,21 +3660,27 @@ def parse_string_range(s):
 
 @lru_cache()
 def gef_get_auxiliary_values():
-    """Retrieves the auxiliary values of the current execution. Returns None if not running, or a dict()
-    of values."""
+    """Retrieve the ELF auxiliary values of the current execution. This
+    information is provided by the operating system to transfer some kernel
+    level information to the user process. Return None if not found, or a
+    dict() of values as: {aux_vect_name: int(aux_vect_value)}."""
     if not is_alive():
         return None
 
-    res = {}
-    for line in gdb.execute("info auxv", to_string=True).splitlines():
-        tmp = line.split()
-        _type = tmp[1]
-        if _type in ("AT_PLATFORM", "AT_EXECFN"):
-            idx = line[:-1].rfind('"') - 1
-            tmp = line[:idx].split()
-
-        res[_type] = int(tmp[-1], base=0)
-    return res
+    __auxiliary_vector = {}
+    auxv_info = gdb.execute("info auxv", to_string=True)
+    if "failed" in auxv_info:
+        err(auxv_info)  # print GDB error
+        return None
+    for line in auxv_info.splitlines():
+        line = line.split('"')[0].strip()  # remove the ending string (if any)
+        line = line.split()  # split the string by whitespace(s)
+        if len(line) < 4:
+            continue  # a valid entry should have at least 4 columns
+        __av_type = line[1]
+        __av_value = line[-1]
+        __auxiliary_vector[__av_type] = int(__av_value, base=0)
+    return __auxiliary_vector
 
 
 def gef_read_canary():
@@ -6470,9 +6476,9 @@ class CapstoneDisassembleCommand(GenericCommand):
     """Use capstone disassembly framework to disassemble code."""
 
     _cmdline_ = "capstone-disassemble"
-    _syntax_  = "{:s} [LOCATION] [[length=LENGTH] [OPCODES] [option=VALUE]] ".format(_cmdline_)
-    _aliases_ = ["cs-dis",]
-    _example_ = "{:s} $pc length=50".format(_cmdline_)
+    _syntax_  = "{:s} [-h] [--show-opcodes] [--length LENGTH] [LOCATION]".format(_cmdline_)
+    _aliases_ = ["cs-dis"]
+    _example_ = "{:s} --length 50 $pc".format(_cmdline_)
 
     def pre_load(self):
         try:
@@ -6487,16 +6493,19 @@ class CapstoneDisassembleCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    @parse_arguments({}, {("--location", "-l"): 0, ("--show-opcodes", "-s"): True, "--length": 0})
+    @parse_arguments({("location"): "$pc"}, {("--show-opcodes", "-s"): True, "--length": 0})
     def do_invoke(self, argv, *args, **kwargs):
         args = kwargs["arguments"]
         show_opcodes = args.show_opcodes
-        location = args.location if args.location else current_arch.pc
         length = args.length or get_gef_setting("context.nb_lines_code")
+        location = parse_address(args.location)
+        if not location:
+            info("Can't find address for {}".format(args.location))
+            return
 
         insns = []
         opcodes_len = 0
-        for insn in capstone_disassemble(location, length, skip=length*self.repeat_count, **kwargs):
+        for insn in capstone_disassemble(location, length, skip=length * self.repeat_count, **kwargs):
             insns.append(insn)
             opcodes_len = max(opcodes_len, len(insn.opcodes))
 
@@ -6513,7 +6522,7 @@ class CapstoneDisassembleCommand(GenericCommand):
                     gef_print(reason)
                     break
             else:
-                msg = "{} {}".format(" "*5, text_insn)
+                msg = "{} {}".format(" " * 5, text_insn)
 
             gef_print(msg)
         return
@@ -6533,7 +6542,7 @@ class CapstoneDisassembleCommand(GenericCommand):
             target_address = int(insn.operands[-1].split()[0], 16)
             msg = []
             for i, new_insn in enumerate(capstone_disassemble(target_address, nb_insn)):
-                msg.append("   {}  {}".format (DOWN_ARROW if i == 0 else " ", str(new_insn)))
+                msg.append("   {}  {}".format(DOWN_ARROW if i == 0 else " ", str(new_insn)))
             return (True, "\n".join(msg))
 
         return (False, "")

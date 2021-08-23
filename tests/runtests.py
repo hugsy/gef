@@ -67,12 +67,14 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertTrue(len(res.splitlines()) > 1)
 
         self.assertFailIfInactiveSession(gdb_run_cmd("cs --show-opcodes"))
-        res = gdb_start_silent_cmd("cs --show-opcodes")
+        res = gdb_start_silent_cmd("cs --show-opcodes $pc")
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 1)
         # match the following pattern
         # 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
         self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2})+\s+.*")
+        res = gdb_start_silent_cmd("cs --show-opcodes main")
+        self.assertNoException(res)
         return
 
     def test_cmd_checksec(self):
