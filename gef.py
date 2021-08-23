@@ -7746,7 +7746,7 @@ class NamedBreakpointCommand(GenericCommand):
     """Sets a breakpoint and assigns a name to it, which will be shown, when it's hit."""
 
     _cmdline_ = "name-break"
-    _syntax_  = "{:s} NAME [LOCATION]".format(_cmdline_)
+    _syntax_  = "{:s} name [address]".format(_cmdline_)
     _aliases_ = ["nb",]
     _example  = "{:s} main *0x4008a9"
 
@@ -7754,7 +7754,7 @@ class NamedBreakpointCommand(GenericCommand):
         super().__init__()
         return
 
-    @parse_arguments({"name": "", "location": ""}, {})
+    @parse_arguments({"name": "", "location": "$pc"}, {})
     def do_invoke(self, argv, *args, **kwargs):
         args = kwargs["arguments"]
         if not args.name:
@@ -7762,7 +7762,7 @@ class NamedBreakpointCommand(GenericCommand):
             self.usage()
             return
 
-        location = args.location or "*{:#x}".format(current_arch.pc)
+        location = parse_address(args.location)
         NamedBreakpoint(location, args.name)
         return
 

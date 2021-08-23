@@ -1,17 +1,17 @@
 ## Command name-break ##
 
-The command `name-break` (alias `nb`) can be used to set a breakpoint on 
+The command `name-break` (alias `nb`) can be used to set a breakpoint on
 a location with a name assigned to it.
 
 Every time this breakpoint is hit, the specified name will also be shown
 in the `extra` section to make it easier to keep an overview when using
 multiple breakpoints in a stripped binary.
 
-`name-break <NAME> [LOCATION]`
+`name-break name [address]`
 
-`LOCATION` may be a linespec, address, or explicit location, same as specified
-for `break`. If `LOCATION` isn't specified, it will create the breakpoint at the current
-instruction pointer address.
+`address` may be a linespec, address, or explicit location, same as specified
+for `break`. If `address` isn't specified, it will create the breakpoint at the
+current instruction pointer address.
 
 Examples:
 
@@ -26,7 +26,7 @@ Example output:
 ─────────────────────────────────────────────────────────────────────────── code:x86:64 ────
      0x400e04                  add    eax, 0xfffbe6e8
      0x400e09                  dec    ecx
-     0x400e0b                  ret    
+     0x400e0b                  ret
  →   0x400e0c                  push   rbp
      0x400e0d                  mov    rbp, rsp
      0x400e10                  sub    rsp, 0x50
@@ -43,5 +43,5 @@ Example output:
 ───────────────────────────────────────────────────────────────────────────────── extra ────
 [+] Hit breakpoint *0x400e0c (check_entry)
 ────────────────────────────────────────────────────────────────────────────────────────────
-gef➤  
+gef➤
 ```
