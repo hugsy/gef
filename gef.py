@@ -3319,7 +3319,28 @@ def get_keystone_arch(arch=None, mode=None, endian=None, to_string=False):
     keystone = sys.modules["keystone"]
     if (arch, mode, endian) == (None, None, None):
         return get_generic_running_arch(keystone, "KS", to_string)
-    return get_generic_arch(keystone, "KS", arch, mode, endian, to_string)
+
+    if arch in ["ARM64", "SYSTEMZ"]:
+        modes = [None]
+    elif arch == "ARM" and mode == "ARMV8":
+        modes = ["ARM", "V8"]
+    elif arch == "ARM" and mode == "THUMBV8":
+        modes = ["THUMB", "V8"]
+    else:
+        modes = [mode]
+    a = arch
+    if not to_string:
+        mode = 0
+        for m in modes:
+            arch, _mode = get_generic_arch(keystone, "KS", a, m, endian, to_string)
+            mode |= _mode
+    else:
+        mode = ""
+        for m in modes:
+            arch, _mode = get_generic_arch(keystone, "KS", a, m, endian, to_string)
+            mode += "|{}".format(_mode)
+        mode = mode[1:]
+    return arch, mode
 
 
 def get_unicorn_registers(to_string=False):
@@ -7353,18 +7374,21 @@ class AssembleCommand(GenericCommand):
     """Inline code assemble. Architecture can be set in GEF runtime config. """
 
     _cmdline_ = "assemble"
-    _syntax_  = "{:s} [-a ARCH] [-m MODE] [-e] [-s] [-l LOCATION] instruction;[instruction;...instruction;])".format(_cmdline_)
+    _syntax_  = "{:s} [-h] [--list-archs] [--mode MODE] [--arch ARCH] [--overwrite-location LOCATION] [--endian ENDIAN] [--as-shellcode] instruction;[instruction;...instruction;])".format(_cmdline_)
     _aliases_ = ["asm",]
     _example_ = "\n{0:s} -a x86 -m 32 nop ; nop ; inc eax ; int3\n{0:s} -a arm -m arm add r0, r0, 1".format(_cmdline_)
 
     valid_arch_modes = {
-            "ARM": ["ARM", "THUMB"],
-            "ARM64": ["ARM", "THUMB", "V5", "V8", ],
-            "MIPS": ["MICRO", "MIPS3", "MIPS32", "MIPS32R6", "MIPS64",],
-            "PPC": ["PPC32", "PPC64", "QPX",],
-            "SPARC": ["SPARC32", "SPARC64", "V9",],
-            "SYSTEMZ": ["32",],
-            "X86": ["16", "32", "64"],
+            # Format: ARCH = [MODES] with MODE = (NAME, HAS_LITTLE_ENDIAN, HAS_BIG_ENDIAN)
+            "ARM":     [("ARM",     True,  True),  ("THUMB",   True,  True),
+                        ("ARMV8",   True,  True),  ("THUMBV8", True,  True)],
+            "ARM64":   [("AARCH64", True,  False)],
+            "MIPS":    [("MIPS32",  True,  True),  ("MIPS64",  True,  True)],
+            "PPC":     [("PPC32",   False, True),  ("PPC64",   True,  True)],
+            "SPARC":   [("SPARC32", True,  True),  ("SPARC64", False, True)],
+            "SYSTEMZ": [("SYSTEMZ", True,  True)],
+            "X86":     [("16",      True,  False), ("32",      True,  False),
+                        ("64",      True,  False)]
         }
     valid_archs = valid_arch_modes.keys()
     valid_modes = [_ for sublist in valid_arch_modes.values() for _ in sublist]
@@ -7385,18 +7409,34 @@ class AssembleCommand(GenericCommand):
 
     def usage(self):
         super().usage()
-        gef_print("\nAvailable architectures/modes:")
-        # for updates, see https://github.com/keystone-engine/keystone/blob/master/include/keystone/keystone.h
-        for arch in self.valid_arch_modes:
-            gef_print(" - {} ".format(arch))
-            gef_print("  * {}".format(" / ".join(self.valid_arch_modes[arch])))
+        gef_print("")
+        self.list_archs()
         return
 
-    @parse_arguments({"instructions": ["",]}, {"--mode": "", "--arch": "", "--overwrite-location": 0, "--big-endian": True, "--as-shellcode": True, })
+    def list_archs(self):
+        gef_print("Available architectures/modes (with endianness):")
+        # for updates, see https://github.com/keystone-engine/keystone/blob/master/include/keystone/keystone.h
+        for arch in self.valid_arch_modes:
+            gef_print("- {}".format(arch))
+            for mode, le, be in self.valid_arch_modes[arch]:
+                if le and be:
+                    endianness = "little, big"
+                elif le:
+                    endianness = "little"
+                elif be:
+                    endianness = "big"
+                gef_print("  * {:<7} ({})".format(mode, endianness))
+        return
+
+    @parse_arguments({"instructions": [""]}, {"--mode": "", "--arch": "", "--overwrite-location": 0, "--endian": "little", "--list-archs": True, "--as-shellcode": True})
     def do_invoke(self, argv, *args, **kwargs):
         arch_s, mode_s, endian_s = self.get_setting("default_architecture"), self.get_setting("default_mode"), ""
 
         args = kwargs["arguments"]
+        if args.list_archs:
+            self.list_archs()
+            return
+
         if not args.instructions:
             err("No instruction given.")
             return
@@ -7407,18 +7447,29 @@ class AssembleCommand(GenericCommand):
 
         if args.arch:
             arch_s = args.arch
+        arch_s = arch_s.upper()
 
         if args.mode:
             mode_s = args.mode
+        mode_s = mode_s.upper()
 
-        if args.big_endian:
+        if args.endian == "big":
             endian_s = "big"
+        endian_s = endian_s.upper()
 
-        if arch_s.upper() not in self.valid_archs or mode_s.upper() not in self.valid_modes:
-            raise AttributeError("invalid arch/mode")
+        if arch_s not in self.valid_arch_modes:
+            raise AttributeError("invalid arch '{}'".format(arch_s))
 
-        # this is fire a ValueError if the arch/mode/endianess are invalid
-        arch, mode = get_keystone_arch(arch=arch_s.upper(), mode=mode_s.upper(), endian=endian_s.upper())
+        valid_modes = self.valid_arch_modes[arch_s]
+        try:
+            mode_idx = [m[0] for m in valid_modes].index(mode_s)
+        except ValueError:
+            raise AttributeError("invalid mode '{}' for arch '{}'".format(mode_s, arch_s))
+
+        if endian_s == "little" and not valid_modes[mode_idx][1] or endian_s == "big" and not valid_modes[mode_idx][2]:
+            raise AttributeError("invalid endianness '{}' for arch/mode '{}:{}'".format(endian_s, arch_s, mode_s))
+
+        arch, mode = get_keystone_arch(arch=arch_s, mode=mode_s, endian=endian_s)
         insns = [x.strip() for x in " ".join(args.instructions).split(";") if x]
         info("Assembling {} instruction(s) for {}:{}".format(len(insns), arch_s, mode_s))
 
