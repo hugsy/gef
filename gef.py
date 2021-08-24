@@ -7512,8 +7512,8 @@ class ProcessListingCommand(GenericCommand):
     by this pattern."""
 
     _cmdline_ = "process-search"
-    _syntax_  = "{:s} [REGEX_PATTERN]".format(_cmdline_)
-    _aliases_ = ["ps",]
+    _syntax_  = "{:s} [-h] [--attach] [--smart-scan] [REGEX_PATTERN]".format(_cmdline_)
+    _aliases_ = ["ps"]
     _example_ = "{:s} gdb.*".format(_cmdline_)
 
     def __init__(self):
