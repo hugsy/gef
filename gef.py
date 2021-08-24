@@ -4499,21 +4499,20 @@ class PieCommand(GenericCommand):
 
 @register_command
 class PieBreakpointCommand(GenericCommand):
-    """Set a PIE breakpoint."""
+    """Set a PIE breakpoint at an offset from the target binaries base address."""
 
     _cmdline_ = "pie breakpoint"
-    _syntax_ = "{:s} BREAKPOINT".format(_cmdline_)
+    _syntax_ = "{:s} OFFSET".format(_cmdline_)
 
-    @parse_arguments({"expression": ""}, {})
+    @parse_arguments({"offset": ""}, {})
     def do_invoke(self, argv, *args, **kwargs):
         global __pie_counter__, __pie_breakpoints__
-        if len(argv) < 1:
+        args = kwargs["arguments"]
+        if not args.offset:
             self.usage()
             return
 
-        args = kwargs["arguments"]
-        bp_expr = args.expression[1:] if args.expression[0] == "*" else "&{}".format(args.expression)
-        addr = int(gdb.parse_and_eval(bp_expr))
+        addr = parse_address(args.offset)
         self.set_pie_breakpoint(lambda base: "b *{}".format(base + addr), addr)
 
         # When the process is already on, set real breakpoints immediately
@@ -7746,7 +7745,7 @@ class NamedBreakpointCommand(GenericCommand):
     """Sets a breakpoint and assigns a name to it, which will be shown, when it's hit."""
 
     _cmdline_ = "name-break"
-    _syntax_  = "{:s} NAME [LOCATION]".format(_cmdline_)
+    _syntax_  = "{:s} name [address]".format(_cmdline_)
     _aliases_ = ["nb",]
     _example  = "{:s} main *0x4008a9"
 
@@ -7754,7 +7753,7 @@ class NamedBreakpointCommand(GenericCommand):
         super().__init__()
         return
 
-    @parse_arguments({"name": "", "location": ""}, {})
+    @parse_arguments({"name": "", "address": "$pc"}, {})
     def do_invoke(self, argv, *args, **kwargs):
         args = kwargs["arguments"]
         if not args.name:
@@ -7762,7 +7761,7 @@ class NamedBreakpointCommand(GenericCommand):
             self.usage()
             return
 
-        location = args.location or "*{:#x}".format(current_arch.pc)
+        location = parse_address(args.address)
         NamedBreakpoint(location, args.name)
         return
 
