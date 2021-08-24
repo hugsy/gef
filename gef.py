@@ -5696,7 +5696,7 @@ class SearchPatternCommand(GenericCommand):
     the command will also try to look for upwards cross-references to this address."""
 
     _cmdline_ = "search-pattern"
-    _syntax_ = "{:s} PATTERN [small|big] [section]".format(_cmdline_)
+    _syntax_ = "{:s} PATTERN [little|big] [section]".format(_cmdline_)
     _aliases_ = ["grep", "xref"]
     _example_ = "\n{0:s} AAAAAAAA\n{0:s} 0x555555554000 little stack\n{0:s}AAAA 0x600000-0x601000".format(_cmdline_)
 
@@ -5790,13 +5790,13 @@ class SearchPatternCommand(GenericCommand):
 
         if argc >= 2:
             if argv[1].lower() == "big": endian = Elf.BIG_ENDIAN
-            elif argv[1].lower() == "small": endian = Elf.LITTLE_ENDIAN
+            elif argv[1].lower() == "little": endian = Elf.LITTLE_ENDIAN
 
         if is_hex(pattern):
             if endian == Elf.BIG_ENDIAN:
-                pattern = "".join(["\\x"+pattern[i:i+2] for i in range(2, len(pattern), 2)])
+                pattern = "".join(["\\x" + pattern[i:i + 2] for i in range(2, len(pattern), 2)])
             else:
-                pattern = "".join(["\\x"+pattern[i:i+2] for i in range(len(pattern) - 2, 0, -2)])
+                pattern = "".join(["\\x" + pattern[i:i + 2] for i in range(len(pattern) - 2, 0, -2)])
 
         if argc == 3:
             info("Searching '{:s}' in {:s}".format(Color.yellowify(pattern), argv[2]))
