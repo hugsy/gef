@@ -13,7 +13,7 @@ etc.
 This command sets a new PIE breakpoint. It can be used like the normal
 `breakpoint` command in gdb. The argument for the command is the offset from
 the base address or a symbol. The breakpoints will not be set immediately after
-this command. Instead, it will be set when you use `pie attach`, `pie run`,
+this command. Instead, it will be set when you use `pie attach`, `pie run` or
 `pie remote` to actually attach to a process, so it can resolve the right base
 address.
 
@@ -36,10 +36,10 @@ VNum    Num     Addr
 1       N/A     0xdeadbeef
 ```
 
-VNum stands for virtual number and is used to numerate the PIE breakpoints and
-Num is the number of the associated real breakpoint at runtime in GDB.
+VNum stands for virtual number and is used to enumerate the PIE breakpoints.
+Num is the number of the associated real breakpoints at runtime in GDB.
 
-You can omit the VNum argument to get the info on all PIE breakpoints.
+You can omit the VNum argument to get info on all PIE breakpoints.
 
 Usage:
 
@@ -50,7 +50,7 @@ gef➤  pie info [VNum]
 
 ### `pie delete` command ###
 
-This command deletes a PIE breakpoint given a VNum of that PIE breakpoint.
+This command deletes a PIE breakpoint given its VNum.
 
 Usage:
 
