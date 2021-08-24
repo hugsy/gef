@@ -30,6 +30,8 @@ gef➤  ps bash
 22590           vagrant         0.0             0.8             pts/0       -bash
 ```
 
+Note: Use "\\" for escaping and "\\\\" for a literal backslash" in the pattern.
+
 `ps` also accepts options:
 
 * `--smart-scan` will discard a number of process (belonging to different
