@@ -11,7 +11,7 @@ gef➤  scan NEEDLE HAYSTACK
 
 `scan` requires two arguments, the first is the memory section that will be
 searched and the second is what will be searched for. The arguments are grepped
-against the processes memory mappings (just like [vmmap](./vmmap.md) to
+against the process's memory mappings (just like [vmmap](./vmmap.md)) to
 determine the memory ranges to search.
 
 ```
@@ -28,7 +28,7 @@ gef➤  scan stack libc
 ### Advanced Needle/Haystack syntax ###
 
 To check mappings without a path associated, an address range (start-end) can
-be used.
+be used. Note that ranges don't include whitespaces.
 
 ![scan-address](https://i.imgur.com/ExJC2p7.png)
 
