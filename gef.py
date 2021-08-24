@@ -7138,7 +7138,7 @@ class DetailRegistersCommand(GenericCommand):
     _example_ = "\n{0:s}\n{0:s} $eax $eip $esp".format(_cmdline_)
 
     @only_if_gdb_running
-    @parse_arguments({"registers": ["",]}, {})
+    @parse_arguments({"registers": [""]}, {})
     def do_invoke(self, argv, *args, **kwargs):
         unchanged_color = get_gef_setting("theme.registers_register_name")
         changed_color = get_gef_setting("theme.registers_value_changed")
@@ -7151,6 +7151,9 @@ class DetailRegistersCommand(GenericCommand):
             valid_regs = [reg for reg in current_arch.all_registers if reg in required_regs]
             if valid_regs:
                 regs = valid_regs
+            invalid_regs = [reg for reg in required_regs if reg not in valid_regs]
+            if invalid_regs:
+                err("invalid registers for architecture: {}".format(", ".join(invalid_regs)))
 
         memsize = current_arch.ptrsize
         endian = endian_str()
