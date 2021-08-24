@@ -648,7 +648,10 @@ class MallocStateStruct:
             ptr_type = "unsigned long" if current_arch.ptrsize == 8 else "unsigned int"
             self.size_t = cached_lookup_type(ptr_type)
 
-        if get_libc_version() >= (2, 26):
+        # Account for separation of have_fastchunks flag into its own field within the malloc_state struct in GLIBC >= 2.27
+        # https://sourceware.org/git/?p=glibc.git;a=commit;h=e956075a5a2044d05ce48b905b10270ed4a63e87
+        # Be aware you could see this change backported into GLIBC release branches.
+        if get_libc_version() >= (2, 27):
             self.fastbin_offset = align_address_to_size(self.int_size * 3, 8)
         else:
             self.fastbin_offset = self.int_size * 2
