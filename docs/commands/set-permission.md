@@ -1,10 +1,10 @@
 ## Command set-permission ##
 
 This command was added to facilitate the exploitation process, by changing the
-permission rights on a specific page directly from the debugger.
+permissions on a specific memory page directly from the debugger.
 
-By default, `GDB` does not allow you to do that, so the command will modify a
-code section of the binary being debugged, and add a native mprotect syscall
+By default, GDB does not allow you to do that, so the command will modify a
+code section of the binary being debugged, and add a native `mprotect` syscall
 stub. For example, for x86, the following stub will be inserted:
 
 ```
@@ -24,13 +24,11 @@ The usage is
 
 ```
 gef➤ set-permission address [permission]
-  address       an address within the memory page for which the permissions should be changed
-  permission    a 3-bit bitmask with read=1, write=2 and execute=4 as integer
 ```
 
 The `permission` can be set using a bitmask as integer with read (1), write (2)
-and execute (4). For combinations of these permissions a bitwise OR has to be
-applied: Read and Execute permission would be 1 | 4 = 5.
+and execute (4). For combinations of these permissions they can just be added:
+Read and Execute permission would be 1 + 4 = 5.
 
 `mprotect` is an alias for `set-permission`. As an example, to set the `stack`
 as READ|WRITE|EXECUTE on this binary,
@@ -43,8 +41,8 @@ Simply run
 gef➤ mprotect 0xfffdd000
 ```
 
-Et voilà ! `gef` will use the memory runtime information to correctly adjust
-the protection of the entire section.
+Et voilà! GEF will use the memory runtime information to correctly adjust the
+permissions of the entire section.
 
 ![mprotect-after](https://i.imgur.com/9MvyQi8.png)
 
