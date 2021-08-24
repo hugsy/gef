@@ -11,13 +11,6 @@ This command takes 4 optional arguments:
   is byte, 16 otherwise)
 - The direction of output lines (by default, from low to high addresses)
 
-The command provides WinDBG compatible aliases by default:
-
-- `hexdump qword` -> `dq`
-- `hexdump dword` -> `dd`
-- `hexdump word` -> `dw`
-- `hexdump byte` -> `db`
-
 `hexdump byte` will also try to display the ASCII character values if the byte
 is printable (similarly to the `hexdump -C` command on Linux).
 
@@ -29,10 +22,10 @@ hexdump (qword|dword|word|byte) [-h] [--reverse] [--size SIZE] [address]
 
 Examples:
 
-- Display 4 QWORD from `$pc`:
+- Display 4 QWORDs from `$pc`:
 
 ```
-gef➤  dq $pc --size 4
+gef➤  hexdump qword $pc --size 4
 0x7ffff7a5c1c0+0000 │ 0x4855544155415641
 0x7ffff7a5c1c0+0008 │ 0x0090ec814853cd89
 0x7ffff7a5c1c0+0010 │ 0x377d6f058b480000
@@ -42,15 +35,15 @@ gef➤  dq $pc --size 4
 - Display 32 bytes from a location in the stack:
 
 ```
-gef➤  db 0x00007fffffffe5e5 --size 32
+gef➤  hexdump byte 0x00007fffffffe5e5 --size 32
 0x00007fffffffe5e5     2f 68 6f 6d 65 2f 68 75 67 73 79 2f 63 6f 64 65     /home/hugsy/code
 0x00007fffffffe5f5     2f 67 65 66 2f 74 65 73 74 73 2f 77 69 6e 00 41     /gef/tests/win.A
 ```
 
-- Display 8 WORD from `$sp` in reverse order:
+- Display 8 WORDs from `$sp` in reverse order:
 
 ```
-gef➤  dw 8 --reverse
+gef➤  hexdump word 8 --reverse
 0x00007fffffffe0ee│+0x000e   0x0000
 0x00007fffffffe0ec│+0x000c   0x7fff
 0x00007fffffffe0ea│+0x000a   0xffff
