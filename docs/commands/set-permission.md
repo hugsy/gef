@@ -1,6 +1,5 @@
 ## Command set-permission ##
 
-
 This command was added to facilitate the exploitation process, by changing the
 permission rights on a specific page directly from the debugger.
 
@@ -21,8 +20,20 @@ popad
 A breakpoint is added following this stub, which when hit will restore the
 original context, allowing you to resume execution.
 
-`mprotect` is an alias for `set-permission`. As an example, to set the `stack` as
-READ|WRITE|EXECUTE on this binary,
+The usage is
+
+```
+gef➤ set-permission address [permission]
+  address       an address within the memory page for which the permissions should be changed
+  permission    a 3-bit bitmask with read=1, write=2 and execute=4 as integer
+```
+
+The `permission` can be set using a bitmask as integer with read (1), write (2)
+and execute (4). For combinations of these permissions a bitwise OR has to be
+applied: Read and Execute permission would be 1 | 4 = 5.
+
+`mprotect` is an alias for `set-permission`. As an example, to set the `stack`
+as READ|WRITE|EXECUTE on this binary,
 
 ![mprotect-before](https://i.imgur.com/RRYHxzW.png)
 
@@ -32,8 +43,8 @@ Simply run
 gef➤ mprotect 0xfffdd000
 ```
 
-Et voilà ! `gef` will use the memory runtime information to correctly adjust the protection
-of the entire section.
+Et voilà ! `gef` will use the memory runtime information to correctly adjust
+the protection of the entire section.
 
 ![mprotect-after](https://i.imgur.com/9MvyQi8.png)
 

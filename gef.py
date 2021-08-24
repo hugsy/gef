@@ -5865,11 +5865,13 @@ class FlagsCommand(GenericCommand):
 
 @register_command
 class ChangePermissionCommand(GenericCommand):
-    """Change a page permission. By default, it will change it to RWX."""
+    """Change a page permission. By default, it will change it to 7 (RWX)."""
 
     _cmdline_ = "set-permission"
-    _syntax_  = "{:s} LOCATION [PERMISSION]".format(_cmdline_)
-    _aliases_ = ["mprotect",]
+    _syntax_  = "{:s} address [permission]\n"\
+                "\taddress\t\tan address within the memory page for which the permissions should be changed\n"\
+                "\tpermission\ta 3-bit bitmask with read=1, write=2 and execute=4 as integer".format(_cmdline_)
+    _aliases_ = ["mprotect"]
     _example_ = "{:s} $sp 7".format(_cmdline_)
 
     def __init__(self):
