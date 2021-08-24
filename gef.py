@@ -4499,7 +4499,7 @@ class PieCommand(GenericCommand):
 
 @register_command
 class PieBreakpointCommand(GenericCommand):
-    """Set a PIE breakpoint at an offset to the target binaries base address."""
+    """Set a PIE breakpoint at an offset from the target binaries base address."""
 
     _cmdline_ = "pie breakpoint"
     _syntax_ = "{:s} OFFSET".format(_cmdline_)

@@ -1,10 +1,8 @@
 ## Command pie ##
 
-The `pie` command provides a useful way to set breakpoint to a PIE enabled
-binary. `pie` command then provides what we call "PIE breakpoints". A PIE
-breakpoint is just a virtual breakpoint which will be turned to a real
-breakpoint at runtime. A PIE breakpoint's address is the offset from
-the base address of the binary or a symbol of the binary.
+The `pie` command is handy when working with position-independent executables.
+At runtime, it can automatically resolve addresses for breakpoints that are not
+static.
 
 Note that you need to use the **entire `pie` command series** to support PIE
 breakpoints, especially the "`pie` run commands", like `pie attach`, `pie run`,
@@ -27,7 +25,7 @@ gef➤ pie breakpoint OFFSET
 
 ### `pie info` command ###
 
-Since a PIE breakpoint is not a real breakpoint, this command provide a way to
+Since a PIE breakpoint is not a real breakpoint, this command provides a way to
 observe the state of all PIE breakpoints.
 
 This works just like `info breakpoint` in gdb.
@@ -41,7 +39,7 @@ VNum    Num     Addr
 VNum stands for virtual number and is used to numerate the PIE breakpoints and
 Num is the number of the associated real breakpoint at runtime in GDB.
 
-You can ommit the VNum argument to get the info on all PIE breakpoints.
+You can omit the VNum argument to get the info on all PIE breakpoints.
 
 Usage:
 
@@ -71,7 +69,8 @@ The usage is just the same as `attach`.
 ### `pie remote` command ###
 
 This command behaves like GDB's `remote` command. Always use this command
-instead of `remote` if you have PIE breakpoints. This will convert the PIE
+instead of `remote` if you have PIE breakpoints. Behind the scenes this will
+connect to the remote target using `gef remote` and then convert the PIE
 breakpoints to real breakpoints at runtime.
 
 The usage is just the same as `remote`.
