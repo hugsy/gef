@@ -1,5 +1,7 @@
 ## Command heap-analysis-helper ##
 
+Please note: This feature is still under development, expect bugs and unstability.
+
 `heap-analysis-helper` command aims to help the process of idenfitying Glibc
 heap inconsistencies by tracking and analyzing allocations and deallocations of
 chunks of memory.
