@@ -13,13 +13,15 @@ on:
 
 jobs:
   build:
-    name: "Run Unit tests"
-    runs-on: [ubuntu-20.04, ubuntu-18.04]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-20.04', 'ubuntu-18.04']
+    name: "Run Unit tests on ${{ matrix.os }}"
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash
-    strategy:
-      fail-fast: false
 
     steps:
     - uses: actions/checkout@v2
