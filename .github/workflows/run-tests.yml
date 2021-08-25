@@ -14,7 +14,7 @@ on:
 jobs:
   build:
     name: "Run Unit tests"
-    runs-on: [ubuntu-20.04]
+    runs-on: [ubuntu-20.04, ubuntu-18.04]
     defaults:
       run:
         shell: bash

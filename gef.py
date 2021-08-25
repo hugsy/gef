@@ -822,7 +822,7 @@ class GlibcChunk:
         else:
             # Generic case:
             # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/generic/malloc-alignment.h#L22
-            __alignof__long_double = int(safe_parse_and_eval("_Alignof(long double)"))
+            __alignof__long_double = int(safe_parse_and_eval("_Alignof(long double)") or 0x10)
             malloc_alignment = max(__alignof__long_double, 2 * self.ptrsize)
 
         ceil = lambda n: int(-1 * n // 1 * -1)
