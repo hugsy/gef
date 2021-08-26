@@ -815,14 +815,15 @@ class GlibcChunk:
 
     def align_data_address(self):
         """Align chunk data addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github"""
+        __default_malloc_alignment = 0x10
         if is_x86_32() and get_libc_version() >= (2, 26):
             # Special case introduced in Glibc 2.26:
             # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
-            malloc_alignment = 0x10
+            malloc_alignment = __default_malloc_alignment
         else:
             # Generic case:
             # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/generic/malloc-alignment.h#L22
-            __alignof__long_double = int(safe_parse_and_eval("_Alignof(long double)") or 0x10)
+            __alignof__long_double = int(safe_parse_and_eval("_Alignof(long double)") or __default_malloc_alignment) # fallback to default if the expression fails to evaluate
             malloc_alignment = max(__alignof__long_double, 2 * self.ptrsize)
 
         ceil = lambda n: int(-1 * n // 1 * -1)
