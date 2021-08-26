@@ -12,7 +12,9 @@ from helpers import (
     gdb_run_silent_cmd,
     gdb_start_silent_cmd,
     gdb_start_silent_cmd_last_line,
-    gdb_test_python_method
+    gdb_test_python_method,
+    include_for_architectures,
+    exclude_for_architectures
 ) # pylint: disable=import-error
 
 

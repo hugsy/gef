@@ -1,5 +1,8 @@
+from typing import List
 import re
 import subprocess
+import os
+import sys
 
 PATH_TO_DEFAULT_BINARY = "/tmp/default.out"
 STRIP_ANSI_DEFAULT = True
@@ -87,3 +90,31 @@ def gdb_start_silent_cmd_last_line(cmd, before=None, after=None, target=PATH_TO_
 def gdb_test_python_method(meth, before="", after="", target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT):
     cmd = "pi {}print({});{}".format(before+";" if before else "", meth, after)
     return gdb_start_silent_cmd(cmd, target=target, strip_ansi=strip_ansi)
+
+
+def include_for_architectures(valid_architectures: List[str] ):
+    # by default, if env[GEF_CI_ARCH] is not set, the test is included
+    running_arch = os.environ.get("GEF_CI_ARCH", "").lower()
+    def wrapper(f):
+        def inner_f(*args, **kwargs):
+            if running_arch in valid_architectures:
+                f(*args, **kwargs)
+            else:
+                sys.stderr.write(f"SKIPPED for {running_arch}  ")
+                sys.stderr.flush()
+        return inner_f
+    return wrapper
+
+
+def exclude_for_architectures(invalid_architectures: List[str] ):
+    # by default, if env[GEF_CI_ARCH] is not set, the test is included
+    running_arch = os.environ.get("GEF_CI_ARCH", "something can is not and will never be").lower()
+    def wrapper(f):
+        def inner_f(*args, **kwargs):
+            if running_arch not in invalid_architectures:
+                f(*args, **kwargs)
+            else:
+                sys.stderr.write(f"SKIPPED for {running_arch}  ")
+                sys.stderr.flush()
+        return inner_f
+    return wrapper
