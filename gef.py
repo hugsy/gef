@@ -5698,7 +5698,7 @@ class SearchPatternCommand(GenericCommand):
     _cmdline_ = "search-pattern"
     _syntax_ = "{:s} PATTERN [small|big] [section]".format(_cmdline_)
     _aliases_ = ["grep", "xref"]
-    _example_ = "\n{0:s} AAAAAAAA\n{0:s} 0x555555554000 little stack\n{0:s}AAAA 0x600000-0x601000".format(_cmdline_)
+    _example_ = "\n{0:s} AAAAAAAA\n{0:s} 0x555555554000 little stack\n{0:s} AAAA 0x600000-0x601000".format(_cmdline_)
 
     def print_section(self, section):
         title = "In "
