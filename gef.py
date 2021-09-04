@@ -789,6 +789,17 @@ class GlibcArena:
             return None
         return GlibcArena("*{:#x} ".format(addr_next))
 
+    def heap_addr(self):
+        main_arena_addr = to_unsigned_long(gdb.parse_and_eval("&main_arena"))
+        if self.addr == main_arena_addr:
+            heap_section = HeapBaseFunction.heap_base()
+            if not heap_section:
+                err("Heap not initialized")
+                return None
+            return heap_section
+        _addr = self.addr + self.struct_size
+        return malloc_align_address(_addr)
+
     def __str__(self):
         fmt = "Arena (base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
         return fmt.format(self.__addr, self.top, self.last_remainder, self.n, self.nfree, self.sysmem)
@@ -806,31 +817,12 @@ class GlibcChunk:
         else:
             self.data_address = addr
         if not allow_unaligned:
-            self.align_data_address()
+            self.data_address = malloc_align_address(self.data_address)
         self.base_address = addr - 2 * self.ptrsize
 
         self.size_addr = int(self.data_address - self.ptrsize)
         self.prev_size_addr = self.base_address
         return
-
-    def align_data_address(self):
-        """Align chunk data addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github"""
-        __default_malloc_alignment = 0x10
-        if is_x86_32() and get_libc_version() >= (2, 26):
-            # Special case introduced in Glibc 2.26:
-            # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
-            malloc_alignment = __default_malloc_alignment
-        else:
-            # Generic case:
-            # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/generic/malloc-alignment.h#L22
-            __alignof__long_double = int(safe_parse_and_eval("_Alignof(long double)") or __default_malloc_alignment) # fallback to default if the expression fails to evaluate
-            malloc_alignment = max(__alignof__long_double, 2 * self.ptrsize)
-
-        ceil = lambda n: int(-1 * n // 1 * -1)
-        # align data_address to nearest next multiple of malloc_alignment
-        self.data_address = malloc_alignment * ceil(self.data_address / malloc_alignment)
-        return
-
 
     def get_chunk_size(self):
         return read_int_from_memory(self.size_addr) & (~0x07)
@@ -3582,6 +3574,23 @@ def align_address_to_page(address):
     """Align the address to a page."""
     a = align_address(address) >> DEFAULT_PAGE_ALIGN_SHIFT
     return a << DEFAULT_PAGE_ALIGN_SHIFT
+
+def malloc_align_address(address):
+    """Align addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github"""
+    __default_malloc_alignment = 0x10
+    if is_x86_32() and get_libc_version() >= (2, 26):
+        # Special case introduced in Glibc 2.26:
+        # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
+        malloc_alignment = __default_malloc_alignment
+    else:
+        # Generic case:
+        # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/generic/malloc-alignment.h#L22
+        __alignof__long_double = int(safe_parse_and_eval("_Alignof(long double)") or __default_malloc_alignment) # fallback to default if the expression fails to evaluate
+        malloc_alignment = max(__alignof__long_double, 2 * current_arch.ptrsize)
+
+    ceil = lambda n: int(-1 * n // 1 * -1)
+    # align address to nearest next multiple of malloc_alignment
+    return malloc_alignment * ceil((address / malloc_alignment))
 
 
 def parse_address(address):
@@ -6604,7 +6613,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
         global __gef_default_main_arena__
 
         if not argv:
-            ok("Current main_arena set to: '{}'".format(__gef_default_main_arena__))
+            ok("Current arena set to: '{}'".format(__gef_default_main_arena__))
             return
 
         new_arena = safe_parse_and_eval(argv[0])
@@ -6696,21 +6705,20 @@ class GlibcHeapChunksCommand(GenericCommand):
     def do_invoke(self, *args, **kwargs):
         args = kwargs["arguments"]
 
-        if not args.address:
-            heap_section = HeapBaseFunction.heap_base()
-            if not heap_section:
-                err("Heap not initialized")
-                return
-        else:
-            heap_section = parse_address(args.address)
-
         arena = get_main_arena()
         if arena is None:
             err("No valid arena")
             return
 
+        if not args.address:
+            heap_addr = arena.heap_addr()
+            if heap_addr is None:
+                return
+        else:
+            heap_addr = int(args.address, 0)
+
         nb = self.get_setting("peek_nb_byte")
-        current_chunk = GlibcChunk(heap_section, from_base=True, allow_unaligned=args.allow_unaligned)
+        current_chunk = GlibcChunk(heap_addr, from_base=True, allow_unaligned=args.allow_unaligned)
         while True:
             if current_chunk.base_address == arena.top:
                 gef_print("{} {} {}".format(str(current_chunk), LEFT_ARROW, Color.greenify("top chunk")))
