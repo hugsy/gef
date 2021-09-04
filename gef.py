@@ -747,6 +747,7 @@ class GlibcArena:
             malloc_state_t = cached_lookup_type("struct malloc_state")
             self.__arena = arena.cast(malloc_state_t)
             self.__addr = int(arena.address)
+            self.struct_size = malloc_state_t.sizeof
         except:
             self.__arena = MallocStateStruct(addr)
             self.__addr = self.__arena.addr
@@ -791,13 +792,13 @@ class GlibcArena:
 
     def heap_addr(self):
         main_arena_addr = to_unsigned_long(gdb.parse_and_eval("&main_arena"))
-        if self.addr == main_arena_addr:
+        if int(self) == main_arena_addr:
             heap_section = HeapBaseFunction.heap_base()
             if not heap_section:
                 err("Heap not initialized")
                 return None
             return heap_section
-        _addr = self.addr + self.struct_size
+        _addr = int(self) + self.struct_size
         return malloc_align_address(_addr)
 
     def __str__(self):
