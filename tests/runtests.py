@@ -311,6 +311,11 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("memory reset")
         self.assertNoException(res)
 
+    def test_cmd_name_break(self):
+        res = gdb_run_cmd("nb foobar *main+10")
+        self.assertNoException(res)
+        return
+
     def test_cmd_keystone_assemble(self):
         valid_cmds = [
             "assemble nop; xor eax, eax; syscall",
