@@ -4206,8 +4206,7 @@ class NamedBreakpoint(gdb.Breakpoint):
     """Breakpoint which shows a specified name, when hit."""
 
     def __init__(self, location, name):
-        address = "*{}".format(parse_address(location))
-        super().__init__(spec=address, type=gdb.BP_BREAKPOINT, internal=False, temporary=False)
+        super().__init__(spec=location, type=gdb.BP_BREAKPOINT, internal=False, temporary=False)
         self.name = name
         self.loc = location
         return
@@ -7754,7 +7753,7 @@ class NamedBreakpointCommand(GenericCommand):
         super().__init__()
         return
 
-    @parse_arguments({"name": "", "address": "$pc"}, {})
+    @parse_arguments({"name": "", "address": "*$pc"}, {})
     def do_invoke(self, *args, **kwargs):
         args = kwargs["arguments"]
         if not args.name:
