@@ -314,6 +314,14 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
     def test_cmd_name_break(self):
         res = gdb_run_cmd("nb foobar *main+10")
         self.assertNoException(res)
+
+        res = gdb_run_cmd("nb foobar *0xcafebabe")
+        self.assertNoException(res)
+        self.assertIn("at 0xcafebabe", res)
+
+        res = gdb_start_silent_cmd("nb foobar")
+        self.assertNoException(res)
+
         return
 
     def test_cmd_keystone_assemble(self):
