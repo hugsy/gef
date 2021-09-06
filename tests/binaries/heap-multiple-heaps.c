@@ -9,7 +9,13 @@
 
 /* Any allocation over 128KB is directed directly to mmap, which we don't want. */
 #define LESS_THAN_MMAP_THRESHOLD    (127 * 1024)
-/* Experimentally, a new heap is created at ~500 allocations. */
+/* For a 64-bit executable, an arena has about 0x8000000 bytes of space before
+ * it runs into another arena. 0x8000000 / 127KB is roughly 1032, so that's
+ * our upper limit for the number of allocations we'll create. In practice,
+ * you don't need nearly this many allocations to trigger the creation of a
+ * new heap within a non-main arena. For 64-bit executables, a new heap
+ * triggers at around ~500 allocations of 127KB each.
+ */
 #define NUM_ALLOCS                  1032
 /* The expected distance is the chunk size plus room for the metadata. */
 #define EXPECTED_CHUNK_DISTANCE     LESS_THAN_MMAP_THRESHOLD + 24
