@@ -6,6 +6,9 @@
  *
  * @author: @_hugsy_
  * @licence: WTFPL v.2
+ *
+ * to test the fastbins the tcache has to be disabled through the environment in GDB:
+ * `set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0`
  */
 
 #include <stdio.h>
