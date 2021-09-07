@@ -151,7 +151,7 @@ __pie_breakpoints__                    = {}
 __pie_counter__                        = 1
 __gef_remote__                         = None
 __gef_qemu_mode__                      = False
-__gef_default_main_arena__             = "main_arena"
+__gef_current_arena__             = "main_arena"
 __gef_int_stream_buffer__              = None
 __gef_redirect_output_fd__             = None
 
@@ -176,14 +176,14 @@ ANSI_SPLIT_RE = r"(\033\[[\d;]*m)"
 def reset_all_caches():
     """Free all caches. If an object is cached, it will have a callable attribute `cache_clear`
     which will be invoked to purge the function cache."""
-    global __gef_default_main_arena__
+    global __gef_current_arena__
 
     for mod in dir(sys.modules["__main__"]):
         obj = getattr(sys.modules["__main__"], mod)
         if hasattr(obj, "cache_clear"):
             obj.cache_clear()
 
-    __gef_default_main_arena__ = "main_arena"
+    __gef_current_arena__ = "main_arena"
     return
 
 
@@ -616,7 +616,7 @@ class Instruction:
 
 @lru_cache()
 def search_for_main_arena():
-    global __gef_default_main_arena__
+    global __gef_current_arena__
     malloc_hook_addr = to_unsigned_long(gdb.parse_and_eval("(void *)&__malloc_hook"))
 
     if is_x86():
@@ -626,7 +626,7 @@ def search_for_main_arena():
     else:
         raise OSError("Cannot find main_arena for {}".format(current_arch.arch))
 
-    __gef_default_main_arena__ = "*0x{:x}".format(addr)
+    __gef_current_arena__ = "*0x{:x}".format(addr)
     return addr
 
 
@@ -741,7 +741,7 @@ class GlibcArena:
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671"""
 
     def __init__(self, addr, name=None):
-        self.__name = name or __gef_default_main_arena__
+        self.__name = name or __gef_current_arena__
         try:
             arena = gdb.parse_and_eval(addr)
             malloc_state_t = cached_lookup_type("struct malloc_state")
@@ -998,7 +998,7 @@ def get_libc_version():
 
 def get_main_arena():
     try:
-        return GlibcArena(__gef_default_main_arena__)
+        return GlibcArena(__gef_current_arena__)
     except Exception as e:
         err(
             "Failed to get the main arena, heap commands may not work properly: {}".format(
@@ -6611,10 +6611,10 @@ class GlibcHeapSetArenaCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        global __gef_default_main_arena__
+        global __gef_current_arena__
 
         if not argv:
-            ok("Current arena set to: '{}'".format(__gef_default_main_arena__))
+            ok("Current arena set to: '{}'".format(__gef_current_arena__))
             return
 
         new_arena = safe_parse_and_eval(argv[0])
@@ -6628,9 +6628,9 @@ class GlibcHeapSetArenaCommand(GenericCommand):
                 err("Invalid address")
                 return
 
-            __gef_default_main_arena__ = "*{:s}".format(format_address(new_arena.value))
+            __gef_current_arena__ = "*{:s}".format(format_address(new_arena.value))
         else:
-            __gef_default_main_arena__ = argv[0]
+            __gef_current_arena__ = argv[0]
         return
 
 
@@ -6644,7 +6644,7 @@ class GlibcHeapArenaCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv):
         try:
-            arena = GlibcArena(__gef_default_main_arena__)
+            arena = GlibcArena(__gef_current_arena__)
         except gdb.error:
             err("Could not find Glibc main arena")
             return
@@ -7039,7 +7039,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_default_main_arena__
+        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_current_arena__
         gef_print(titlify("Unsorted Bin for arena '{:s}'".format(arena_addr)))
         nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, 0, "unsorted_")
         if nb_chunk >= 0:
@@ -7063,7 +7063,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_default_main_arena__
+        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_current_arena__
         gef_print(titlify("Small Bins for arena '{:s}'".format(arena_addr)))
         bins = {}
         for i in range(1, 63):
@@ -7092,7 +7092,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_default_main_arena__
+        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_current_arena__
         gef_print(titlify("Large Bins for arena '{:s}'".format(arena_addr)))
         bins = {}
         for i in range(63, 126):
