@@ -99,17 +99,14 @@ can easily find using `heap arenas`).
 
 ```
 gef➤ heap bins fast
-[+] FastbinsY of arena 0x7ffff7dd5b20
-Fastbin[0] 0x00
-Fastbin[1]  →  FreeChunk(0x600310)  →  FreeChunk(0x600350)
-Fastbin[2] 0x00
-Fastbin[3] 0x00
-Fastbin[4] 0x00
-Fastbin[5] 0x00
-Fastbin[6] 0x00
-Fastbin[7] 0x00
-Fastbin[8] 0x00
-Fastbin[9] 0x00
+──────────────────────── Fastbins for arena 0x7ffff7fb8b80 ────────────────────────
+Fastbins[idx=0, size=0x20]  ←  Chunk(addr=0x555555559380, size=0x20, flags=PREV_INUSE)
+Fastbins[idx=1, size=0x30] 0x00
+Fastbins[idx=2, size=0x40] 0x00
+Fastbins[idx=3, size=0x50] 0x00
+Fastbins[idx=4, size=0x60] 0x00
+Fastbins[idx=5, size=0x70] 0x00
+Fastbins[idx=6, size=0x80] 0x00
 ```
 
 #### Other `heap bins X` command ####
