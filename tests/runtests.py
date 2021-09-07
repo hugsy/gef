@@ -204,7 +204,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
     def test_cmd_heap_bins_fast(self):
         cmd = "heap bins fast"
-        before = ['set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0']
+        before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
         target = "/tmp/heap-fastbins.out"
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, before=before, target=target))
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
@@ -214,8 +214,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_heap_bins_non_main(self):
-        cmd = 'python gdb.execute("heap bins fast {}".format(get_main_arena().next))'
-        before = ['set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0']
+        cmd = "python gdb.execute('heap bins fast {}'.format(get_main_arena().next))"
+        before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
         target = "/tmp/heap-non-main.out"
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
