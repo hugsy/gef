@@ -167,6 +167,26 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNotIn("strcpy", res)
         return
 
+    def test_cmd_gef_remote(self):
+        def start_gdbserver(exe="/tmp/default.out", port=1234):
+            return subprocess.Popen(["gdbserver", ":{}".format(port), exe],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        def stop_gdbserver(gdbserver):
+            """Stops the gdbserver and waits until it is terminated if it was
+            still running. Needed to make the used port available again."""
+            if gdbserver.poll() is None:
+                gdbserver.kill()
+                gdbserver.wait()
+            return
+
+        before = ["gef-remote :1234"]
+        gdbserver = start_gdbserver()
+        res = gdb_start_silent_cmd("vmmap", before=before)
+        self.assertNoException(res)
+        stop_gdbserver(gdbserver)
+        return
+
     def test_cmd_heap_arenas(self):
         cmd = "heap arenas"
         target = "/tmp/heap.out"
