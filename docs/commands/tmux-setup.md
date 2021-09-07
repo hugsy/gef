@@ -26,5 +26,7 @@ would be recommended to use the `tmux-setup` command instead.
 
 On Linux tmux only supports 8 colors with some terminal capabilities (`$TERM`
 environment variable). This can mess up your color themes when using GEF with
-tmux. If you know your terminal supports 256 colors you can start `tmux` with
-either `-2` flag to force tmux to use 256 colors.
+tmux. To remedy this if your terminal supports more colors you can either set
+the variable to something like `TERM=screen-256color` or if you don't want or
+can't change that variable you can start `tmux` with the `-2` flag to force
+tmux to use 256 colors.
