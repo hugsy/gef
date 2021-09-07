@@ -6716,7 +6716,7 @@ class GlibcHeapChunksCommand(GenericCommand):
             if heap_addr is None:
                 return
         else:
-            heap_addr = int(args.address, 0)
+            heap_addr = parse_address(args.address)
 
         nb = self.get_setting("peek_nb_byte")
         current_chunk = GlibcChunk(heap_addr, from_base=True, allow_unaligned=args.allow_unaligned)
