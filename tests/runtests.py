@@ -204,9 +204,10 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
     def test_cmd_heap_bins_fast(self):
         cmd = "heap bins fast"
+        before = ['set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0']
         target = "/tmp/heap-fastbins.out"
-        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
-        res = gdb_run_silent_cmd(cmd, before=["br *break_here", "c"], target=target)
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, before=before, target=target))
+        res = gdb_run_silent_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
         self.assertIn("Fastbins[idx=0, size=0x20]", res)
         self.assertIn("Chunk(addr=", res)
