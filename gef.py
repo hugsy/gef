@@ -151,7 +151,7 @@ __pie_breakpoints__                    = {}
 __pie_counter__                        = 1
 __gef_remote__                         = None
 __gef_qemu_mode__                      = False
-__gef_current_arena__             = "main_arena"
+__gef_current_arena__                  = "main_arena"
 __gef_int_stream_buffer__              = None
 __gef_redirect_output_fd__             = None
 
