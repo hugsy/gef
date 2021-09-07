@@ -19,16 +19,18 @@ Otherwise the command shows the `standalone` information:
 ```
 gef➤  version
 GEF: (Standalone)
-Blob Hash(/gef/rules/gef.py): 2939fbc037bca090422e12cf1b555bd58223dccb
-SHA1(/gef/rules/gef.py): 6e6bfd03282a0d5b1eec5276fa57af0ccbac31c6
+Blob Hash(/gef/rules/gef.py): f0aef0f481e8157006b26690bd121585d3befee0
+SHA1(/gef/rules/gef.py): 4b26a1175abcd8314d4816f97fdf908b3837c779
 GDB: 9.2
 GDB-Python: 3.8
 ```
 
 The `Blob Hash` can be used to easily find the git commit(s) matching
-this file revision (or whether it has been modified and does not match
-any revision):
+this file revision.
 
 ```
 git log --oneline --find-object <BLOB_HASH>
 ```
+
+If this command does not return anything then the file was most likely
+modified and cannot be matched to a specific git commit.

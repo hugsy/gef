@@ -5695,7 +5695,7 @@ class SearchPatternCommand(GenericCommand):
     the command will also try to look for upwards cross-references to this address."""
 
     _cmdline_ = "search-pattern"
-    _syntax_ = "{:s} PATTERN [small|big] [section]".format(_cmdline_)
+    _syntax_ = "{:s} PATTERN [little|big] [section]".format(_cmdline_)
     _aliases_ = ["grep", "xref"]
     _example_ = "\n{0:s} AAAAAAAA\n{0:s} 0x555555554000 little stack\n{0:s} AAAA 0x600000-0x601000".format(_cmdline_)
 
@@ -5789,13 +5789,13 @@ class SearchPatternCommand(GenericCommand):
 
         if argc >= 2:
             if argv[1].lower() == "big": endian = Elf.BIG_ENDIAN
-            elif argv[1].lower() == "small": endian = Elf.LITTLE_ENDIAN
+            elif argv[1].lower() == "little": endian = Elf.LITTLE_ENDIAN
 
         if is_hex(pattern):
             if endian == Elf.BIG_ENDIAN:
-                pattern = "".join(["\\x"+pattern[i:i+2] for i in range(2, len(pattern), 2)])
+                pattern = "".join(["\\x" + pattern[i:i + 2] for i in range(2, len(pattern), 2)])
             else:
-                pattern = "".join(["\\x"+pattern[i:i+2] for i in range(len(pattern) - 2, 0, -2)])
+                pattern = "".join(["\\x" + pattern[i:i + 2] for i in range(len(pattern) - 2, 0, -2)])
 
         if argc == 3:
             info("Searching '{:s}' in {:s}".format(Color.yellowify(pattern), argv[2]))
@@ -5864,11 +5864,13 @@ class FlagsCommand(GenericCommand):
 
 @register_command
 class ChangePermissionCommand(GenericCommand):
-    """Change a page permission. By default, it will change it to RWX."""
+    """Change a page permission. By default, it will change it to 7 (RWX)."""
 
     _cmdline_ = "set-permission"
-    _syntax_  = "{:s} LOCATION [PERMISSION]".format(_cmdline_)
-    _aliases_ = ["mprotect",]
+    _syntax_  = "{:s} address [permission]\n"\
+                "\taddress\t\tan address within the memory page for which the permissions should be changed\n"\
+                "\tpermission\ta 3-bit bitmask with read=1, write=2 and execute=4 as integer".format(_cmdline_)
+    _aliases_ = ["mprotect"]
     _example_ = "{:s} $sp 7".format(_cmdline_)
 
     def __init__(self):
@@ -7137,7 +7139,7 @@ class DetailRegistersCommand(GenericCommand):
     _example_ = "\n{0:s}\n{0:s} $eax $eip $esp".format(_cmdline_)
 
     @only_if_gdb_running
-    @parse_arguments({"registers": ["",]}, {})
+    @parse_arguments({"registers": [""]}, {})
     def do_invoke(self, argv, *args, **kwargs):
         unchanged_color = get_gef_setting("theme.registers_register_name")
         changed_color = get_gef_setting("theme.registers_value_changed")
@@ -7150,6 +7152,9 @@ class DetailRegistersCommand(GenericCommand):
             valid_regs = [reg for reg in current_arch.all_registers if reg in required_regs]
             if valid_regs:
                 regs = valid_regs
+            invalid_regs = [reg for reg in required_regs if reg not in valid_regs]
+            if invalid_regs:
+                err("invalid registers for architecture: {}".format(", ".join(invalid_regs)))
 
         memsize = current_arch.ptrsize
         endian = endian_str()
@@ -7508,8 +7513,8 @@ class ProcessListingCommand(GenericCommand):
     by this pattern."""
 
     _cmdline_ = "process-search"
-    _syntax_  = "{:s} [REGEX_PATTERN]".format(_cmdline_)
-    _aliases_ = ["ps",]
+    _syntax_  = "{:s} [-h] [--attach] [--smart-scan] [REGEX_PATTERN]".format(_cmdline_)
+    _aliases_ = ["ps"]
     _example_ = "{:s} gdb.*".format(_cmdline_)
 
     def __init__(self):

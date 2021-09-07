@@ -20,3 +20,10 @@ ELF Version           : 0x1
 Header size           : 0 (0x0)
 Entry point           : 0x0000000000400460
 ```
+
+Optionally a filepath to another ELF binary can be provided to view the basic
+information for that binary instead.
+
+```
+gef➤ elf-info /path/to/elf/executable
+```

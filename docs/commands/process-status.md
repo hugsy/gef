@@ -7,7 +7,7 @@ process, by extending the information provided by GDB `info proc` command, with
 all the information from the `procfs` structure.
 
 ```
-gef➤ ps -s zsh
+gef➤ ps --smart-scan zsh
 22879
 gef➤ attach 22879
 [...]
