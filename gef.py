@@ -1396,7 +1396,6 @@ def gef_disassemble(addr, nb_insn, nb_prev=0):
     """Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`.
     Return an iterator of Instruction objects."""
     nb_insn = max(1, nb_insn)
-    count = nb_insn + 1 if nb_insn & 1 else nb_insn
 
     if nb_prev:
         start_addr = gdb_get_nth_previous_instruction_address(addr, nb_prev)
@@ -1405,7 +1404,7 @@ def gef_disassemble(addr, nb_insn, nb_prev=0):
                 if insn.address == addr: break
                 yield insn
 
-    for insn in gdb_disassemble(addr, count=count):
+    for insn in gdb_disassemble(addr, count=nb_insn):
         yield insn
 
 
@@ -5984,16 +5983,16 @@ class UnicornEmulateCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    @parse_arguments({"nb": 1}, {"--start": 0, "--until": 0, "--skip-emulation": True, "--output-file": ""})
-    def do_invoke(self, argv, *args, **kwargs):
+    @parse_arguments({"nb": 1}, {"--start": "", "--until": "", "--skip-emulation": True, "--output-file": ""})
+    def do_invoke(self, *args, **kwargs):
         args = kwargs["arguments"]
-        start_address = args.start or current_arch.pc
-        end_address = args.until or self.get_unicorn_end_addr(start_address, args.nb)
+        start_address = parse_address(str(args.start or current_arch.pc))
+        end_address = parse_address(str(args.until or self.get_unicorn_end_addr(start_address, args.nb)))
         self.run_unicorn(start_address, end_address, skip_emulation=args.skip_emulation, to_file=args.output_file)
         return
 
     def get_unicorn_end_addr(self, start_addr, nb):
-        dis = list(gef_disassemble(start_addr, nb + 1, True))
+        dis = list(gef_disassemble(start_addr, nb + 1))
         last_insn = dis[-1]
         return last_insn.address
 
@@ -6106,7 +6105,7 @@ def reset():
            verbose="True" if verbose else "False",
            syscall_reg=current_arch.syscall_register,
            cs_arch=cs_arch, cs_mode=cs_mode,
-           ptrsize=current_arch.ptrsize,
+           ptrsize=current_arch.ptrsize * 2 + 2,  # two hex chars per byte plus "0x" prefix
            emu_block=emulate_segmentation_block if is_x86() else "",
            arch=arch, mode=mode,
            context_block=context_segmentation_block if is_x86() else "")
