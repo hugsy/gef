@@ -629,13 +629,20 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_unicorn_emulate(self):
-        cmd = "emu 10"
+        nb_insn = 4
+        cmd = "emu {}".format(nb_insn)
         res = gdb_run_cmd(cmd)
         self.assertFailIfInactiveSession(res)
 
-        res = gdb_start_silent_cmd(cmd)
+        start_marker = "= Starting emulation ="
+        end_marker = "Final registers"
+        res = gdb_run_cmd(cmd, before=["start", "si"])  # "si" needed to avoid invalid memory read
         self.assertNoException(res)
-        self.assertIn("Final registers", res)
+        self.assertNotIn("Emulation failed", res)
+        self.assertIn(start_marker, res)
+        self.assertIn(end_marker, res)
+        insn_executed = len(res[res.find(start_marker):res.find(end_marker)].splitlines()[1:-1])
+        self.assertTrue(insn_executed >= nb_insn)
         return
 
     def test_cmd_vmmap(self):
