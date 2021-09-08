@@ -6084,7 +6084,6 @@ def syscall_hook(emu, user_data):
     return
 
 def print_regs(emu, regs):
-    
     for i, r in enumerate(regs):
         print("{{:7s}} = {{:#0{ptrsize}x}}  ".format(r, emu.reg_read(regs[r])), end="")
         if (i % 4 == 3) or (i == len(regs)-1): print("")
@@ -6101,7 +6100,7 @@ def reset():
            verbose="True" if verbose else "False",
            syscall_reg=current_arch.syscall_register,
            cs_arch=cs_arch, cs_mode=cs_mode,
-           ptrsize=current_arch.ptrsize * 2,  # two hex chars per byte
+           ptrsize=current_arch.ptrsize * 2 + 2,  # two hex chars per byte plus "0x" prefix
            emu_block=emulate_segmentation_block if is_x86() else "",
            arch=arch, mode=mode,
            context_block=context_segmentation_block if is_x86() else "")
