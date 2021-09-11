@@ -26,7 +26,7 @@ void *thread()
         for (int i = 0; i < NUM_ALLOCS; i++) {
             pointers[i] = malloc(LESS_THAN_MMAP_THRESHOLD);
             int chunk_distance = (i > 0) ? pointers[i] - pointers[i-1] : EXPECTED_CHUNK_DISTANCE;
-            /* If the chunk_distance is negative, a new heap was created 
+            /* If the chunk_distance is negative, a new heap was created
              * before the first heap. If greater than the expected distance,
              * then a new heap was created after the first heap.
              */
