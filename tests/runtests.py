@@ -629,8 +629,6 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_unicorn_emulate(self):
-        before = ["br *main", "r", "si"]  # "si" needed to avoid invalid memory read
-
         nb_insn = 4
         cmd = "emu {}".format(nb_insn)
         res = gdb_run_cmd(cmd)
@@ -638,7 +636,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
         start_marker = "= Starting emulation ="
         end_marker = "Final registers"
-        res = gdb_run_cmd(cmd, before=before)
+        res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
         self.assertNotIn("Emulation failed", res)
         self.assertIn(start_marker, res)
