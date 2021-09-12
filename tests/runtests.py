@@ -631,12 +631,14 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
     def test_cmd_unicorn_emulate(self):
         nb_insn = 4
         cmd = "emu {}".format(nb_insn)
-        res = gdb_run_cmd(cmd)
+        res = gdb_run_silent_cmd(cmd)
         self.assertFailIfInactiveSession(res)
 
+        target = "/tmp/unicorn.out"
+        before = ["break function1", "si"]
         start_marker = "= Starting emulation ="
         end_marker = "Final registers"
-        res = gdb_start_silent_cmd(cmd)
+        res = gdb_run_silent_cmd(cmd, target=target, before=before)
         self.assertNoException(res)
         self.assertNotIn("Emulation failed", res)
         self.assertIn(start_marker, res)
