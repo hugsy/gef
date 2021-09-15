@@ -94,6 +94,8 @@ def gdb_test_python_method(meth, before="", after="", target=PATH_TO_DEFAULT_BIN
 
 def include_for_architectures(valid_architectures: List[str] ):
     # by default, if env[GEF_CI_ARCH] is not set, the test is included
+    # the possible values for architecture are the output from `uname --processor`
+    # currently supported values are x86_64, i386, aarch64, armv7l
     running_arch = os.environ.get("GEF_CI_ARCH", "").lower()
     def wrapper(f):
         def inner_f(*args, **kwargs):

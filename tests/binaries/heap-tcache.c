@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include "utils.h"
 
 void *thread1(void *vargp)
 {
@@ -33,6 +34,6 @@ int main()
     pthread_create(&thread_id1, NULL, thread1, NULL);
     pthread_create(&thread_id2, NULL, thread2, NULL);
     sleep(1);
-    __builtin_trap();
+    DebugBreak();
     exit(0);
 }

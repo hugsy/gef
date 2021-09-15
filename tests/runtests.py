@@ -103,13 +103,13 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("dereference $sp")
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 2)
-        self.assertIn("$rsp", res)
 
         res = gdb_start_silent_cmd("dereference 0x0")
         self.assertNoException(res)
         self.assertIn("Unmapped address", res)
         return
 
+    @include_for_architectures(valid_architectures=["i386", "amd64", "arm", "arm64"])
     def test_cmd_edit_flags(self):
         # force enable flag
         res = gdb_start_silent_cmd_last_line("edit-flags +carry")
@@ -120,9 +120,14 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertIn("carry ", res)
         # toggle flag
+        res = gdb_start_silent_cmd_last_line("edit-flags")
+        flag_set = "CARRY " in res
         res = gdb_start_silent_cmd_last_line("edit-flags ~carry")
         self.assertNoException(res)
-        self.assertIn("CARRY ", res)
+        if flag_set:
+            self.assertIn("carry ", res)
+        else:
+            self.assertIn("CARRY ", res)
         return
 
     def test_cmd_elf_info(self):
@@ -486,6 +491,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNotIn("gdb", res)
         return
 
+    @include_for_architectures(["x86_64",])
     def test_cmd_registers(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("registers"))
         res = gdb_start_silent_cmd("registers")
@@ -494,11 +500,21 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("$eflags", res)
         return
 
+    @include_for_architectures(["aarch64",])
+    def test_cmd_registers(self):
+        self.assertFailIfInactiveSession(gdb_run_cmd("registers"))
+        res = gdb_start_silent_cmd("registers")
+        self.assertNoException(res)
+        self.assertIn("$x0", res)
+        self.assertIn("$cpsr", res)
+        return
+
     def test_cmd_reset_cache(self):
         res = gdb_start_silent_cmd("reset-cache")
         self.assertNoException(res)
         return
 
+    @include_for_architectures(["x86_64", "i386"])
     def test_cmd_ropper(self):
         cmd = "ropper"
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
@@ -731,6 +747,7 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
         self.assertIn(res.splitlines()[-1], ("4", "8"))
         return
 
+    @include_for_architectures(["x86_64", "i386"])
     def test_func_set_arch(self):
         res = gdb_test_python_method("current_arch.arch, current_arch.mode", before="set_arch()")
         res = (res.splitlines()[-1])
@@ -864,6 +881,7 @@ class TestGefConfigUnit(GefUnitTestGeneric):
 class TestNonRegressionUnit(GefUnitTestGeneric):
     """Non-regression tests."""
 
+    @include_for_architectures(["x86_64",])
     def test_registers_show_registers_in_correct_order(self):
         """Ensure the registers are printed in the correct order (PR #670)."""
         cmd = "registers"
@@ -873,7 +891,7 @@ class TestNonRegressionUnit(GefUnitTestGeneric):
         self.assertEqual(x64_registers_in_correct_order, lines)
         return
 
-
+    @include_for_architectures(["x86_64",])
     def test_context_correct_registers_refresh_with_frames(self):
         """Ensure registers are correctly refreshed when changing frame (PR #668)"""
         lines = gdb_run_silent_cmd("registers", after=["frame 5", "registers"], target="/tmp/nested.out").splitlines()
