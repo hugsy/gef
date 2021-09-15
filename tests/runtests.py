@@ -362,7 +362,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
             "assemble --arch arm   --mode armv8   --endian big add  r0, r1, r2",
             "assemble --arch arm   --mode thumbv8              add  r0, r1, r2",
             "assemble --arch arm   --mode thumbv8 --endian big add  r0, r1, r2",
-            "assemble --arch arm64 --mode aarch64 add x29, sp, 0; mov  w0, 0; ret",
+            "assemble --arch arm64                             add x29, sp, 0; mov  w0, 0; ret",
             "assemble --arch mips  --mode mips32               add $v0, 1",
             "assemble --arch mips  --mode mips32  --endian big add $v0, 1",
             "assemble --arch mips  --mode mips64               add $v0, 1",
