@@ -17,6 +17,7 @@ from helpers import (
     exclude_for_architectures
 ) # pylint: disable=import-error
 
+ARCH = None
 
 class GdbAssertionError(AssertionError):
     pass
@@ -348,12 +349,10 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
         res = gdb_start_silent_cmd("nb foobar")
         self.assertNoException(res)
-
         return
 
     def test_cmd_keystone_assemble(self):
         valid_cmds = [
-            "assemble nop; xor eax, eax; syscall",
             "assemble --arch arm   --mode arm                  add  r0, r1, r2",
             "assemble --arch arm   --mode arm     --endian big add  r0, r1, r2",
             "assemble --arch arm   --mode thumb                add  r0, r1, r2",
@@ -362,7 +361,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
             "assemble --arch arm   --mode armv8   --endian big add  r0, r1, r2",
             "assemble --arch arm   --mode thumbv8              add  r0, r1, r2",
             "assemble --arch arm   --mode thumbv8 --endian big add  r0, r1, r2",
-            "assemble --arch arm64                             add x29, sp, 0; mov  w0, 0; ret",
+            "assemble --arch arm64 --mode 0                    add x29, sp, 0; mov  w0, 0; ret",
             "assemble --arch mips  --mode mips32               add $v0, 1",
             "assemble --arch mips  --mode mips32  --endian big add $v0, 1",
             "assemble --arch mips  --mode mips64               add $v0, 1",
@@ -441,14 +440,20 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
         return
 
+    @include_for_architectures(valid_architectures=["x86_64", "aarch64"])
     def test_cmd_pattern_search(self):
-        cmd = "pattern search $rbp"
+        if ARCH == "aarch64":
+            r = "$x30"
+        if ARCH == "x86_64":
+            r = "$rbp"
+
+        cmd = f"pattern search {r}"
         target = "/tmp/pattern.out"
         res = gdb_run_cmd(cmd, before=["set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run"], target=target)
         self.assertNoException(res)
         self.assertIn("Found at offset", res)
 
-        cmd = "pattern search --period 8 $rbp"
+        cmd = "pattern search --period 8 {r}"
         target = "/tmp/pattern.out"
         res = gdb_run_cmd(cmd, before=["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"], target=target)
         self.assertNoException(res)
@@ -457,13 +462,13 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
     def test_cmd_print_format(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("print-format"))
-        res = gdb_start_silent_cmd("print-format $rsp")
+        res = gdb_start_silent_cmd("print-format $sp")
         self.assertNoException(res)
         self.assertTrue("buf = [" in res)
-        res = gdb_start_silent_cmd("print-format --lang js $rsp")
+        res = gdb_start_silent_cmd("print-format --lang js $sp")
         self.assertNoException(res)
         self.assertTrue("var buf = [" in res)
-        res = gdb_start_silent_cmd("print-format --lang iDontExist $rsp")
+        res = gdb_start_silent_cmd("print-format --lang iDontExist $sp")
         self.assertNoException(res)
         self.assertTrue("Language must be in:" in res)
         return
@@ -492,7 +497,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     @include_for_architectures(["x86_64",])
-    def test_cmd_registers(self):
+    def test_cmd_registers_x86(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("registers"))
         res = gdb_start_silent_cmd("registers")
         self.assertNoException(res)
@@ -501,7 +506,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     @include_for_architectures(["aarch64",])
-    def test_cmd_registers(self):
+    def test_cmd_registers_arch(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("registers"))
         res = gdb_start_silent_cmd("registers")
         self.assertNoException(res)
@@ -644,6 +649,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("Tracing from", res)
         return
 
+    @include_for_architectures(["x86_64", "i386"])
     def test_cmd_unicorn_emulate(self):
         nb_insn = 4
         cmd = "emu {}".format(nb_insn)
@@ -705,14 +711,15 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("Patching XOR-ing ", res)
         return
 
-    def test_cmd_highlight(self):
+    @include_for_architectures(["x86_64", "aarch64"])
+    def test_cmd_highlight_x86(self):
         cmds = [
             "highlight add 41414141 yellow",
             "highlight add 42424242 blue",
             "highlight add 43434343 green",
             "highlight add 44444444 pink",
-            'patch string $rsp "AAAABBBBCCCCDDDD"',
-            "hexdump qword $rsp -s 2"
+            'patch string $sp "AAAABBBBCCCCDDDD"',
+            "hexdump qword $sp -s 2"
         ]
 
         res = gdb_start_silent_cmd('', after=cmds, strip_ansi=False)
@@ -908,4 +915,5 @@ def run_tests():
 
 
 if __name__ == "__main__":
+    ARCH = subprocess.check_output("uname --processor".split()).strip()
     run_tests()

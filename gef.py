@@ -7399,7 +7399,7 @@ class AssembleCommand(GenericCommand):
             # Format: ARCH = [MODES] with MODE = (NAME, HAS_LITTLE_ENDIAN, HAS_BIG_ENDIAN)
             "ARM":     [("ARM",     True,  True),  ("THUMB",   True,  True),
                         ("ARMV8",   True,  True),  ("THUMBV8", True,  True)],
-            "ARM64":   [("", True,  False)],
+            "ARM64":   [("0", True,  False)],
             "MIPS":    [("MIPS32",  True,  True),  ("MIPS64",  True,  True)],
             "PPC":     [("PPC32",   False, True),  ("PPC64",   True,  True)],
             "SPARC":   [("SPARC32", True,  True),  ("SPARC64", False, True)],

@@ -14,9 +14,11 @@
 #include <unistd.h>
 #include "utils.h"
 
+void* p1 = NULL;
+
 int main(int argc, char** argv, char** envp)
 {
-        void* p1 = malloc(0x20);
+        p1 = malloc(0x20);
         DebugBreak();
         (void)p1;
         return EXIT_SUCCESS;
