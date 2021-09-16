@@ -222,6 +222,14 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertIn("Chunk(addr=", res)
         self.assertIn("top chunk", res)
+
+        cmd = "python gdb.execute('heap chunks {}'.format(get_glibc_arena().next))"
+        target = "/tmp/heap-non-main.out"
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertNotIn("using '&main_arena' instead", res)
+        self.assertIn("Chunk(addr=", res)
+        self.assertIn("top chunk", res)
         return
 
     def test_cmd_heap_bins_fast(self):

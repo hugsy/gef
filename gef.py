@@ -637,6 +637,7 @@ class MallocStateStruct:
         try:
             self.__addr = to_unsigned_long(gdb.parse_and_eval("&{}".format(addr)))
         except gdb.error:
+            warn("Could not parse address '&{}' when searching malloc_state struct, using '&main_arena' instead".format(addr))
             self.__addr = search_for_main_arena()
 
         self.num_fastbins = 10
@@ -857,7 +858,7 @@ class GlibcArena:
     def is_main_arena(self):
         return int(self) == parse_address("&main_arena")
 
-    def heap_addr(self):
+    def heap_addr(self, allow_unaligned=False):
         if self.is_main_arena():
             heap_section = HeapBaseFunction.heap_base()
             if not heap_section:
@@ -865,6 +866,8 @@ class GlibcArena:
                 return None
             return heap_section
         _addr = int(self) + self.struct_size
+        if allow_unaligned:
+            return _addr
         return malloc_align_address(_addr)
 
     def get_heap_infos(self):
@@ -934,9 +937,9 @@ class GlibcChunk:
     def get_prev_chunk_size(self):
         return read_int_from_memory(self.prev_size_addr)
 
-    def get_next_chunk(self):
+    def get_next_chunk(self, allow_unaligned=False):
         addr = self.get_next_chunk_addr()
-        return GlibcChunk(addr)
+        return GlibcChunk(addr, allow_unaligned=allow_unaligned)
 
     def get_next_chunk_addr(self):
         return self.data_address + self.get_chunk_size()
@@ -1089,10 +1092,11 @@ def get_libc_version():
 
 def get_glibc_arena(addr=None):
     try:
-        return GlibcArena(addr) if addr else GlibcArena(__gef_current_arena__)
+        addr = "*{}".format(addr) if addr else __gef_current_arena__
+        return GlibcArena(addr)
     except Exception as e:
         err(
-            "Failed to get the main arena, heap commands may not work properly: {}".format(
+            "Failed to get the glibc arena, heap commands may not work properly: {}".format(
                 e
             )
         )
@@ -6784,7 +6788,7 @@ class GlibcHeapChunksCommand(GenericCommand):
     the base address of a different arena can be passed"""
 
     _cmdline_ = "heap chunks"
-    _syntax_  = "{0} [-h] [arena_address]".format(_cmdline_)
+    _syntax_  = "{0} [-h] [--allow-unaligned] [arena_address]".format(_cmdline_)
     _example_ = "\n{0}\n{0} 0x555555775000".format(_cmdline_)
 
     def __init__(self):
@@ -6792,7 +6796,7 @@ class GlibcHeapChunksCommand(GenericCommand):
         self.add_setting("peek_nb_byte", 16, "Hexdump N first byte(s) inside the chunk data (0 to disable)")
         return
 
-    @parse_arguments({"arena_address": ""}, {})
+    @parse_arguments({"arena_address": ""}, {"--allow-unaligned": True})
     @only_if_gdb_running
     def do_invoke(self, *args, **kwargs):
         args = kwargs["arguments"]
@@ -6802,27 +6806,32 @@ class GlibcHeapChunksCommand(GenericCommand):
             err("No valid arena")
             return
 
+
+    def dump_chunks_arena(self, arena, print_arena=False, allow_unaligned=False):
         top_chunk_addr = arena.top
+        heap_addr = arena.heap_addr(allow_unaligned=allow_unaligned)
+        if heap_addr is None:
+            err("Could not find heap for arena")
+            return
+        if print_arena:
+            gef_print(str(arena))
         if arena.is_main_arena():
-            heap_addr = arena.heap_addr()
-            if heap_addr is None:
-                err("Could not find heap for arena")
-                return
-            self.dump_chunks(heap_addr, top=arena.top)
+            self.dump_chunks_heap(heap_addr, top=top_chunk_addr, allow_unaligned=allow_unaligned)
         else:
-            heap_infos = arena.get_heap_infos()
-            heap_info = heap_infos.pop(0)
-            heap_info_t_size = int(arena) - int(heap_info)  # address of malloc_state - address of heap_info
-            self.dump_chunks(arena.heap_addr(), until=int(heap_info) + heap_info.size, top=top_chunk_addr)
-            for heap_info in heap_infos:
+            heap_info_structs = arena.get_heap_infos()
+            first_heap_info = heap_info_structs.pop(0)
+            heap_info_t_size = int(arena) - int(first_heap_info)
+            until = int(first_heap_info) + first_heap_info.size
+            self.dump_chunks_heap(heap_addr, until=until, top=top_chunk_addr, allow_unaligned=allow_unaligned)
+            for heap_info in heap_info_structs:
                 start = int(heap_info) + heap_info_t_size
                 until = int(heap_info) + heap_info.size
-                self.dump_chunks(start, until=until, top=top_chunk_addr)
+                self.dump_chunks_heap(start, until=until, top=top_chunk_addr, allow_unaligned=allow_unaligned)
         return
 
-    def dump_chunks(self, start, until=None, top=None):
+    def dump_chunks_heap(self, start, until=None, top=None, allow_unaligned=False):
         nb = self.get_setting("peek_nb_byte")
-        current_chunk = GlibcChunk(start, from_base=True)
+        current_chunk = GlibcChunk(start, from_base=True, allow_unaligned=allow_unaligned)
         while True:
             if current_chunk.base_address == top:
                 gef_print("{} {} {}".format(str(current_chunk), LEFT_ARROW, Color.greenify("top chunk")))

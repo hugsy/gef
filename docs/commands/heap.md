@@ -11,25 +11,29 @@ gef➤ heap <sub_commands>
 
 ### `heap chunks` command ###
 
-Displays all the chunks from the `heap` section.
+Displays all the chunks from the `heap` section of the current arena.
 
 ```
 gef➤ heap chunks
 ```
 
-In some cases, the allocation will start immediately from start of the page. If
-so, specify the base address of the first chunk as follows:
+![heap-chunks](https://i.imgur.com/y90SfKH.png)
+
+To change the arena for which to display the chunks either use the `heap
+set-arena` command or provide the base address of the other arena like
+this:
 
 ```
-gef➤ heap chunks [address]
+gef➤ heap chunks [arena_address]
 ```
 
 ![heap-chunks](https://i.imgur.com/2Ew2fA6.png)
 
 Because usually the heap chunks are aligned to a certain number of bytes in
 memory GEF automatically re-aligns the chunks data start addresses to match
-Glibc's behavior. To be able to view unaligned chunks as well, you can
-disable this with the `--allow-unaligned` flag.
+Glibc's behavior. To be able to view unaligned chunks as well, you can disable
+this with the `--allow-unaligned` flag. Note that this might result in
+incorrect output.
 
 ### `heap chunk` command ###
 
@@ -41,12 +45,13 @@ information related to a specific chunk:
 gef➤ heap chunk [address]
 ```
 
-![heap-chunk](https://i.imgur.com/SAWNptW.png)
+![heap-chunk](https://i.imgur.com/WXpHR58.png)
 
 Because usually the heap chunks are aligned to a certain number of bytes in
 memory GEF automatically re-aligns the chunks data start addresses to match
-Glibc's behavior. To be able to view unaligned chunks as well, you can
-disable this with the `--allow-unaligned` flag.
+Glibc's behavior. To be able to view unaligned chunks as well, you can disable
+this with the `--allow-unaligned` flag. Note that this might result in
+incorrect output.
 
 ### `heap arenas` command ###
 
