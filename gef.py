@@ -753,12 +753,9 @@ class GlibcHeapInfo:
             ptr_type = "unsigned long" if current_arch.ptrsize == 8 else "unsigned int"
             self.size_t = cached_lookup_type(ptr_type)
 
-    def __int__(self):
-        return self.__addr
-
     @property
     def addr(self):
-        return int(self)
+        return self.__addr
 
     @property
     def ar_ptr_addr(self):
@@ -870,7 +867,7 @@ class GlibcArena:
             return _addr
         return malloc_align_address(_addr)
 
-    def get_heap_infos(self):
+    def get_heap_info_list(self):
         if self.is_main_arena():
             return None
         heap_addr = self.get_heap_for_ptr(self.top)
@@ -887,7 +884,7 @@ class GlibcArena:
         See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L129"""
         if is_32bit():
             default_mmap_threshold_max = 512 * 1024
-        elif is_64bit():
+        else:
             default_mmap_threshold_max = 4 * 1024 * 1024 * cached_lookup_type("long").sizeof
         heap_max_size = 2 * default_mmap_threshold_max
         return ptr & ~(heap_max_size - 1)
@@ -6674,7 +6671,6 @@ class CapstoneDisassembleCommand(GenericCommand):
         return (False, "")
 
 
-
 @register_command
 class GlibcHeapCommand(GenericCommand):
     """Base command to get information about the Glibc heap structure."""
@@ -6818,7 +6814,7 @@ class GlibcHeapChunksCommand(GenericCommand):
         if arena.is_main_arena():
             self.dump_chunks_heap(heap_addr, top=top_chunk_addr, allow_unaligned=allow_unaligned)
         else:
-            heap_info_structs = arena.get_heap_infos()
+            heap_info_structs = arena.get_heap_info_list()
             first_heap_info = heap_info_structs.pop(0)
             heap_info_t_size = int(arena) - int(first_heap_info)
             until = int(first_heap_info) + first_heap_info.size
