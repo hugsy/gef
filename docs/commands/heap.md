@@ -27,7 +27,7 @@ this:
 gef➤ heap chunks [arena_address]
 ```
 
-![heap-chunks](https://i.imgur.com/2Ew2fA6.png)
+![heap-chunks-arena](https://i.imgur.com/y1fybRx.png)
 
 Because usually the heap chunks are aligned to a certain number of bytes in
 memory GEF automatically re-aligns the chunks data start addresses to match
