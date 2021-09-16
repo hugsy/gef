@@ -1087,6 +1087,7 @@ def get_libc_version():
     return 0, 0
 
 
+@lru_cache()
 def get_glibc_arena(addr=None):
     try:
         addr = "*{}".format(addr) if addr else __gef_current_arena__
