@@ -741,6 +741,65 @@ class MallocStateStruct:
         return getattr(self, item)
 
 
+class GlibcHeapInfo:
+    """Glibc heap_info struct
+    See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L64"""
+
+    def __init__(self, addr):
+        self.__addr = addr if type(addr) is int else parse_address(addr)
+        self.size_t = cached_lookup_type("size_t")
+        if not self.size_t:
+            ptr_type = "unsigned long" if current_arch.ptrsize == 8 else "unsigned int"
+            self.size_t = cached_lookup_type(ptr_type)
+
+    def __int__(self):
+        return self.__addr
+
+    @property
+    def addr(self):
+        return int(self)
+
+    @property
+    def ar_ptr_addr(self):
+        return self.addr
+
+    @property
+    def prev_addr(self):
+        return self.ar_ptr_addr + current_arch.ptrsize
+
+    @property
+    def size_addr(self):
+        return self.prev_addr + current_arch.ptrsize
+
+    @property
+    def mprotect_size_addr(self):
+        return self.size_addr + self.size_t.sizeof
+
+    @property
+    def ar_ptr(self):
+        return self.get_size_t_pointer(self.ar_ptr_addr)
+
+    @property
+    def prev(self):
+        return self.get_size_t_pointer(self.prev_addr)
+
+    @property
+    def size(self):
+        return self.get_size_t(self.size_addr)
+
+    @property
+    def mprotect_size(self):
+        return self.get_size_t(self.mprotect_size_addr)
+
+    # helper methods
+    def get_size_t_pointer(self, addr):
+        size_t_pointer = self.size_t.pointer()
+        return dereference(addr).cast(size_t_pointer)
+
+    def get_size_t(self, addr):
+        return dereference(addr).cast(self.size_t)
+
+
 class GlibcArena:
     """Glibc arena class
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671"""
@@ -795,9 +854,11 @@ class GlibcArena:
             return None
         return GlibcArena("*{:#x} ".format(addr_next))
 
+    def is_main_arena(self):
+        return int(self) == parse_address("&main_arena")
+
     def heap_addr(self):
-        main_arena_addr = to_unsigned_long(gdb.parse_and_eval("&main_arena"))
-        if int(self) == main_arena_addr:
+        if self.is_main_arena():
             heap_section = HeapBaseFunction.heap_base()
             if not heap_section:
                 err("Heap not initialized")
@@ -805,6 +866,17 @@ class GlibcArena:
             return heap_section
         _addr = int(self) + self.struct_size
         return malloc_align_address(_addr)
+
+    def get_heap_infos(self):
+        if self.is_main_arena():
+            return None
+        heap_addr = glibc_heap_for_ptr(self.top)
+        heap_infos = [GlibcHeapInfo(heap_addr)]
+        while heap_infos[-1].prev != 0:
+            prev = int(heap_infos[-1].prev)
+            heap_info = GlibcHeapInfo(prev)  # TODO: try..except?
+            heap_infos.append(heap_info)
+        return heap_infos[::-1]
 
     def __str__(self):
         fmt = "Arena (base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
@@ -852,8 +924,11 @@ class GlibcChunk:
         return read_int_from_memory(self.prev_size_addr)
 
     def get_next_chunk(self):
-        addr = self.data_address + self.get_chunk_size()
+        addr = self.get_next_chunk_addr()
         return GlibcChunk(addr)
+
+    def get_next_chunk_addr(self):
+        return self.data_address + self.get_chunk_size()
 
     # if free-ed functions
     def get_fwd_ptr(self, sll):
@@ -1001,9 +1076,9 @@ def get_libc_version():
     return 0, 0
 
 
-def get_main_arena():
+def get_glibc_arena(addr=None):
     try:
-        return GlibcArena(__gef_current_arena__)
+        return GlibcArena(addr) if addr else GlibcArena(__gef_current_arena__)
     except Exception as e:
         err(
             "Failed to get the main arena, heap commands may not work properly: {}".format(
@@ -6584,6 +6659,27 @@ class CapstoneDisassembleCommand(GenericCommand):
         return (False, "")
 
 
+def glibc_heap_for_ptr(ptr):
+    """Find the corresponding heap for a given pointer (int).
+    See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L129"""
+    heap_max_size = 1024 * 1024  # TODO: or 2 * default_mmap_threshold_max if it is defined (if __WORDSIZE==32 its 512*1024 else its 4 * 1024 * 1024 * sizeof(long))
+    return ptr & ~(heap_max_size - 1)
+
+
+def glibc_arena_for_chunk(ptr, from_base=False):
+    """Find the corresponding arena for a given pointer (int).
+    See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L131"""
+    chunk_main_arena = is_glibc_main_arena_chunk(ptr, from_base)
+    arena_addr = parse_address("&main_arena") if chunk_main_arena else GlibcHeapInfo(glibc_heap_for_ptr(ptr)).ar_ptr
+    return get_glibc_arena(arena_addr)
+
+
+def is_glibc_main_arena_chunk(ptr, from_base=False):
+    chunk_size_addr = ptr + current_arch.ptrsize if from_base else ptr - current_arch.ptrsize
+    chunk_size = int(dereference(chunk_size_addr))
+    return chunk_size & 0x4 == 0
+
+
 @register_command
 class GlibcHeapCommand(GenericCommand):
     """Base command to get information about the Glibc heap structure."""
@@ -6682,7 +6778,7 @@ class GlibcHeapChunkCommand(GenericCommand):
             self.usage()
             return
 
-        if get_main_arena() is None:
+        if get_glibc_arena() is None:
             return
 
         addr = to_unsigned_long(gdb.parse_and_eval(args.address))
@@ -6693,11 +6789,11 @@ class GlibcHeapChunkCommand(GenericCommand):
 
 @register_command
 class GlibcHeapChunksCommand(GenericCommand):
-    """Display information all chunks from main_arena heap. If a location is
-    passed, it must correspond to the base address of the first chunk."""
+    """Display all heap chunks for the current arena. As an optional argument
+    the base address of a different arena can be passed"""
 
     _cmdline_ = "heap chunks"
-    _syntax_  = "{0} [-h] [--allow-unaligned] [address]".format(_cmdline_)
+    _syntax_  = "{0} [-h] [arena_address]".format(_cmdline_)
     _example_ = "\n{0}\n{0} 0x555555775000".format(_cmdline_)
 
     def __init__(self):
@@ -6705,49 +6801,55 @@ class GlibcHeapChunksCommand(GenericCommand):
         self.add_setting("peek_nb_byte", 16, "Hexdump N first byte(s) inside the chunk data (0 to disable)")
         return
 
-    @parse_arguments({"address": ""}, {"--allow-unaligned": True})
+    @parse_arguments({"arena_address": ""}, {})
     @only_if_gdb_running
     def do_invoke(self, *args, **kwargs):
         args = kwargs["arguments"]
 
-        arena = get_main_arena()
+        arena = get_glibc_arena(addr=args.arena_address)
         if arena is None:
             err("No valid arena")
             return
 
-        if not args.address:
+        top_chunk_addr = arena.top
+        if arena.is_main_arena():
             heap_addr = arena.heap_addr()
             if heap_addr is None:
                 return
+            self.dump_chunks(heap_addr, top=arena.top)
         else:
-            heap_addr = parse_address(args.address)
+            heap_infos = arena.get_heap_infos()
+            heap_info = heap_infos.pop(0)
+            heap_info_t_size = int(arena) - int(heap_info)
+            self.dump_chunks(arena.heap_addr(), until=int(heap_info) + heap_info.size, top=top_chunk_addr)
+            for heap_info in heap_infos:
+                start = int(heap_info) + heap_info_t_size
+                until = int(heap_info) + heap_info.size
+                self.dump_chunks(start, until=until, top=top_chunk_addr)
+        return
 
+    def dump_chunks(self, start, until=None, top=None):
         nb = self.get_setting("peek_nb_byte")
-        current_chunk = GlibcChunk(heap_addr, from_base=True, allow_unaligned=args.allow_unaligned)
+        current_chunk = GlibcChunk(start, from_base=True)
         while True:
-            if current_chunk.base_address == arena.top:
+            if current_chunk.base_address == top:
                 gef_print("{} {} {}".format(str(current_chunk), LEFT_ARROW, Color.greenify("top chunk")))
                 break
-
-            if current_chunk.base_address > arena.top:
-                break
-
             if current_chunk.size == 0:
-                # EOF
                 break
-
             line = str(current_chunk)
             if nb:
                 line += "\n    [" + hexdump(read_memory(current_chunk.data_address, nb), nb, base=current_chunk.data_address)  + "]"
             gef_print(line)
 
-            next_chunk = current_chunk.get_next_chunk()
-            if next_chunk is None:
+            next_chunk_addr = current_chunk.get_next_chunk_addr()
+            if until and next_chunk_addr >= until:
+                break
+            if not Address(value=next_chunk_addr).valid:
                 break
 
-            next_chunk_addr = Address(value=next_chunk.data_address)
-            if not next_chunk_addr.valid:
-                # corrupted
+            next_chunk = current_chunk.get_next_chunk()
+            if next_chunk is None:
                 break
 
             current_chunk = next_chunk
@@ -6986,7 +7088,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         MAX_FAST_SIZE = 80 * SIZE_SZ // 4
         NFASTBINS = fastbin_index(MAX_FAST_SIZE) - 1
 
-        arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_main_arena()
+        arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_glibc_arena()
 
         if arena is None:
             err("Invalid Glibc arena")
@@ -7039,7 +7141,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if get_main_arena() is None:
+        if get_glibc_arena() is None:
             err("Invalid Glibc arena")
             return
 
@@ -7063,7 +7165,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if get_main_arena() is None:
+        if get_glibc_arena() is None:
             err("Invalid Glibc arena")
             return
 
@@ -7092,7 +7194,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if get_main_arena() is None:
+        if get_glibc_arena() is None:
             err("Invalid Glibc arena")
             return
 

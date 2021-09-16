@@ -236,7 +236,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_heap_bins_non_main(self):
-        cmd = "python gdb.execute('heap bins fast {}'.format(get_main_arena().next))"
+        cmd = "python gdb.execute('heap bins fast {}'.format(get_glibc_arena().next))"
         before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
         target = "/tmp/heap-non-main.out"
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
