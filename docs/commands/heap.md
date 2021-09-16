@@ -19,9 +19,8 @@ gef➤ heap chunks
 
 ![heap-chunks](https://i.imgur.com/y90SfKH.png)
 
-To change the arena for which to display the chunks either use the `heap
-set-arena` command or provide the base address of the other arena like
-this:
+To select from which arena to display chunks either use the `heap set-arena`
+command or provide the base address of the other arena like this:
 
 ```
 gef➤ heap chunks [arena_address]

@@ -637,7 +637,8 @@ class MallocStateStruct:
         try:
             self.__addr = to_unsigned_long(gdb.parse_and_eval("&{}".format(addr)))
         except gdb.error:
-            warn("Could not parse address '&{}' when searching malloc_state struct, using '&main_arena' instead".format(addr))
+            warn("Could not parse address '&{}' when searching malloc_state struct, "
+                 "using '&main_arena' instead".format(addr))
             self.__addr = search_for_main_arena()
 
         self.num_fastbins = 10
@@ -1093,11 +1094,7 @@ def get_glibc_arena(addr=None):
         addr = "*{}".format(addr) if addr else __gef_current_arena__
         return GlibcArena(addr)
     except Exception as e:
-        err(
-            "Failed to get the glibc arena, heap commands may not work properly: {}".format(
-                e
-            )
-        )
+        err("Failed to get the glibc arena, heap commands may not work properly: {}".format(e))
         return None
 
 
