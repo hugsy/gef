@@ -870,13 +870,24 @@ class GlibcArena:
     def get_heap_infos(self):
         if self.is_main_arena():
             return None
-        heap_addr = glibc_heap_for_ptr(self.top)
+        heap_addr = self.get_heap_for_ptr(self.top)
         heap_infos = [GlibcHeapInfo(heap_addr)]
         while heap_infos[-1].prev != 0:
             prev = int(heap_infos[-1].prev)
-            heap_info = GlibcHeapInfo(prev)  # TODO: try..except?
+            heap_info = GlibcHeapInfo(prev)
             heap_infos.append(heap_info)
         return heap_infos[::-1]
+
+    @staticmethod
+    def get_heap_for_ptr(ptr):
+        """Find the corresponding heap for a given pointer (int).
+        See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L129"""
+        if is_32bit():
+            default_mmap_threshold_max = 512 * 1024
+        elif is_64bit():
+            default_mmap_threshold_max = 4 * 1024 * 1024 * cached_lookup_type("long").sizeof
+        heap_max_size = 2 * default_mmap_threshold_max
+        return ptr & ~(heap_max_size - 1)
 
     def __str__(self):
         fmt = "Arena (base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
@@ -6659,26 +6670,6 @@ class CapstoneDisassembleCommand(GenericCommand):
         return (False, "")
 
 
-def glibc_heap_for_ptr(ptr):
-    """Find the corresponding heap for a given pointer (int).
-    See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L129"""
-    heap_max_size = 1024 * 1024  # TODO: or 2 * default_mmap_threshold_max if it is defined (if __WORDSIZE==32 its 512*1024 else its 4 * 1024 * 1024 * sizeof(long))
-    return ptr & ~(heap_max_size - 1)
-
-
-def glibc_arena_for_chunk(ptr, from_base=False):
-    """Find the corresponding arena for a given pointer (int).
-    See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L131"""
-    chunk_main_arena = is_glibc_main_arena_chunk(ptr, from_base)
-    arena_addr = parse_address("&main_arena") if chunk_main_arena else GlibcHeapInfo(glibc_heap_for_ptr(ptr)).ar_ptr
-    return get_glibc_arena(arena_addr)
-
-
-def is_glibc_main_arena_chunk(ptr, from_base=False):
-    chunk_size_addr = ptr + current_arch.ptrsize if from_base else ptr - current_arch.ptrsize
-    chunk_size = int(dereference(chunk_size_addr))
-    return chunk_size & 0x4 == 0
-
 
 @register_command
 class GlibcHeapCommand(GenericCommand):
@@ -6815,12 +6806,13 @@ class GlibcHeapChunksCommand(GenericCommand):
         if arena.is_main_arena():
             heap_addr = arena.heap_addr()
             if heap_addr is None:
+                err("Could not find heap for arena")
                 return
             self.dump_chunks(heap_addr, top=arena.top)
         else:
             heap_infos = arena.get_heap_infos()
             heap_info = heap_infos.pop(0)
-            heap_info_t_size = int(arena) - int(heap_info)
+            heap_info_t_size = int(arena) - int(heap_info)  # address of malloc_state - address of heap_info
             self.dump_chunks(arena.heap_addr(), until=int(heap_info) + heap_info.size, top=top_chunk_addr)
             for heap_info in heap_infos:
                 start = int(heap_info) + heap_info_t_size
@@ -6839,7 +6831,7 @@ class GlibcHeapChunksCommand(GenericCommand):
                 break
             line = str(current_chunk)
             if nb:
-                line += "\n    [" + hexdump(read_memory(current_chunk.data_address, nb), nb, base=current_chunk.data_address)  + "]"
+                line += "\n    [{}]".format(hexdump(read_memory(current_chunk.data_address, nb), nb, base=current_chunk.data_address))
             gef_print(line)
 
             next_chunk_addr = current_chunk.get_next_chunk_addr()
