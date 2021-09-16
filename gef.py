@@ -884,7 +884,7 @@ class GlibcArena:
         See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L129"""
         if is_32bit():
             default_mmap_threshold_max = 512 * 1024
-        else:
+        else:  # 64bit
             default_mmap_threshold_max = 4 * 1024 * 1024 * cached_lookup_type("long").sizeof
         heap_max_size = 2 * default_mmap_threshold_max
         return ptr & ~(heap_max_size - 1)
