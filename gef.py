@@ -7925,14 +7925,14 @@ class ElfInfoCommand(GenericCommand):
         gef_print("")
         gef_print(titlify("Program Header"))
 
-        gef_print("  [{:>2s}] {:12s} {:>8s} {:>8s} {:>8s} {:>8s} {:>8s} {:5s} {:>8s}".format(
+        gef_print("  [{:>2s}] {:12s} {:>8s} {:>10s} {:>10s} {:>8s} {:>8s} {:5s} {:>8s}".format(
             "#", "Type", "Offset", "Virtaddr", "Physaddr", "FileSiz", "MemSiz", "Flags", "Align"))
 
         for i, p in enumerate(elf.phdrs):
             p_type = ptype[p.p_type] if p.p_type in ptype else "UNKNOWN"
             p_flags = pflags[p.p_flags] if p.p_flags in pflags else "???"
 
-            gef_print("  [{:2d}] {:12s} {:#8x} {:#8x} {:#8x} {:#8x} {:#8x} {:5s} {:#8x}".format(
+            gef_print("  [{:2d}] {:12s} {:#8x} {:#10x} {:#10x} {:#8x} {:#8x} {:5s} {:#8x}".format(
                 i, p_type, p.p_offset, p.p_vaddr, p.p_paddr, p.p_filesz, p.p_memsz, p_flags, p.p_align))
 
         stype = {
@@ -7977,7 +7977,7 @@ class ElfInfoCommand(GenericCommand):
 
         gef_print("")
         gef_print(titlify("Section Header"))        
-        gef_print("  [{:>2s}] {:20s} {:>15s} {:>8s} {:>8s} {:>8s} {:>8s} {:5s} {:4s} {:4s} {:>8s}".format(
+        gef_print("  [{:>2s}] {:20s} {:>15s} {:>10s} {:>8s} {:>8s} {:>8s} {:5s} {:4s} {:4s} {:>8s}".format(
             "#", "Name", "Type", "Address", "Offset", "Size", "EntSiz", "Flags", "Link", "Info", "Align"))
 
         for i, s in enumerate(elf.shdrs):
@@ -7996,7 +7996,7 @@ class ElfInfoCommand(GenericCommand):
             if s.sh_flags & Shdr.SHF_EXCLUDE:          sh_flags += "E"
             if s.sh_flags & Shdr.SHF_COMPRESSED:       sh_flags += "C"
 
-            gef_print("  [{:2d}] {:20s} {:>15s} {:#8x} {:#8x} {:#8x} {:#8x} {:5s} {:#4x} {:#4x} {:#8x}".format(
+            gef_print("  [{:2d}] {:20s} {:>15s} {:#10x} {:#8x} {:#8x} {:#8x} {:5s} {:#4x} {:#4x} {:#8x}".format(
                 i, s.sh_name, sh_type, s.sh_addr, s.sh_offset, s.sh_size, s.sh_entsize, sh_flags, s.sh_link, s.sh_info, s.sh_addralign))
         return
 
