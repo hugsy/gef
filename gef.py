@@ -6816,12 +6816,12 @@ class GlibcHeapChunksCommand(GenericCommand):
         else:
             heap_info_structs = arena.get_heap_info_list()
             first_heap_info = heap_info_structs.pop(0)
-            heap_info_t_size = int(arena) - int(first_heap_info)
-            until = int(first_heap_info) + first_heap_info.size
+            heap_info_t_size = int(arena) - first_heap_info.addr
+            until = first_heap_info.addr + first_heap_info.size
             self.dump_chunks_heap(heap_addr, until=until, top=top_chunk_addr, allow_unaligned=allow_unaligned)
             for heap_info in heap_info_structs:
-                start = int(heap_info) + heap_info_t_size
-                until = int(heap_info) + heap_info.size
+                start = heap_info.addr + heap_info_t_size
+                until = heap_info.addr + heap_info.size
                 self.dump_chunks_heap(start, until=until, top=top_chunk_addr, allow_unaligned=allow_unaligned)
         return
 
