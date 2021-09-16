@@ -6805,7 +6805,7 @@ class GlibcHeapChunksCommand(GenericCommand):
         if arena is None:
             err("No valid arena")
             return
-
+        self.dump_chunks_arena(arena, allow_unaligned=args.allow_unaligned)
 
     def dump_chunks_arena(self, arena, print_arena=False, allow_unaligned=False):
         top_chunk_addr = arena.top
