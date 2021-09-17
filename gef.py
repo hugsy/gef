@@ -2984,7 +2984,7 @@ def is_qemu():
 
 @lru_cache()
 def is_qemu_usermode():
-    if is_qemu() == False:
+    if not is_qemu():
         return False
     response = gdb.execute('maintenance packet QOffsets', to_string=True, from_tty=False)
     return "Text=" in response
@@ -2992,7 +2992,7 @@ def is_qemu_usermode():
 
 @lru_cache()
 def is_qemu_system():
-    if is_qemu() == False:
+    if not is_qemu():
         return False
     response = gdb.execute('maintenance packet QOffsets', to_string=True, from_tty=False)
     return 'received: ""' in response
@@ -7962,7 +7962,7 @@ class ElfInfoCommand(GenericCommand):
             Shdr.SHT_CHECKSUM:      "CHECKSUM",
             Shdr.SHT_LOSUNW:        "LOSUNW",
             Shdr.SHT_SUNW_move:     "SUNW_move",
-            Shdr.SHT_SUNW_COMDAT:   "SUNW_COMDAT",  
+            Shdr.SHT_SUNW_COMDAT:   "SUNW_COMDAT",
             Shdr.SHT_SUNW_syminfo:  "SUNW_syminfo",
             Shdr.SHT_GNU_verdef:    "GNU_verdef",
             Shdr.SHT_GNU_verneed:   "GNU_verneed",
@@ -7976,7 +7976,7 @@ class ElfInfoCommand(GenericCommand):
         }
 
         gef_print("")
-        gef_print(titlify("Section Header"))        
+        gef_print(titlify("Section Header"))
         gef_print("  [{:>2s}] {:20s} {:>15s} {:>10s} {:>8s} {:>8s} {:>8s} {:5s} {:4s} {:4s} {:>8s}".format(
             "#", "Name", "Type", "Address", "Offset", "Size", "EntSiz", "Flags", "Link", "Info", "Align"))
 
