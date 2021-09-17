@@ -7,6 +7,8 @@ import sys
 PATH_TO_DEFAULT_BINARY = "/tmp/default.out"
 STRIP_ANSI_DEFAULT = True
 DEFAULT_CONTEXT = "-code -stack"
+ARCH = subprocess.check_output("uname --processor".split()).strip().decode("utf-8")
+CI_VALID_ARCHITECTURES = ["x86_64", "i386", "aarch64", "armv7l"]
 
 def ansi_clean(s):
     ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
@@ -92,11 +94,8 @@ def gdb_test_python_method(meth, before="", after="", target=PATH_TO_DEFAULT_BIN
     return gdb_start_silent_cmd(cmd, target=target, strip_ansi=strip_ansi)
 
 
-def include_for_architectures(valid_architectures: List[str] ):
-    # by default, if env[GEF_CI_ARCH] is not set, the test is included
-    # the possible values for architecture are the output from `uname --processor`
-    # currently supported values are x86_64, i386, aarch64, armv7l
-    running_arch = os.environ.get("GEF_CI_ARCH", "").lower()
+def include_for_architectures(valid_architectures: List[str] = CI_VALID_ARCHITECTURES ):
+    running_arch = os.environ.get("GEF_CI_ARCH", ARCH).lower()
     def wrapper(f):
         def inner_f(*args, **kwargs):
             if running_arch in valid_architectures:
@@ -108,9 +107,8 @@ def include_for_architectures(valid_architectures: List[str] ):
     return wrapper
 
 
-def exclude_for_architectures(invalid_architectures: List[str] ):
-    # by default, if env[GEF_CI_ARCH] is not set, the test is included
-    running_arch = os.environ.get("GEF_CI_ARCH", "something can is not and will never be").lower()
+def exclude_for_architectures(invalid_architectures: List[str] = []):
+    running_arch = os.environ.get("GEF_CI_ARCH", ARCH).lower()
     def wrapper(f):
         def inner_f(*args, **kwargs):
             if running_arch not in invalid_architectures:

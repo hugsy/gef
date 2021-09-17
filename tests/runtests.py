@@ -17,7 +17,10 @@ from helpers import (
     exclude_for_architectures
 ) # pylint: disable=import-error
 
-ARCH = None
+ARCH = subprocess.check_output("uname --processor".split()).strip().decode('utf-8')
+
+def is_64b():
+    return ARCH in ("x86_64", "aarch64")
 
 class GdbAssertionError(AssertionError):
     pass
@@ -70,14 +73,25 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertTrue(len(res.splitlines()) > 1)
 
         self.assertFailIfInactiveSession(gdb_run_cmd("cs --show-opcodes"))
-        res = gdb_start_silent_cmd("cs --show-opcodes $pc")
+        res = gdb_start_silent_cmd("cs --show-opcodes --length 5 $pc")
         self.assertNoException(res)
-        self.assertTrue(len(res.splitlines()) > 1)
-        # match the following pattern
-        # 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
-        self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2})+\s+.*")
+        self.assertTrue(len(res.splitlines()) >= 5)
+
+        line = [x.strip() for x in res.splitlines()[9].strip().split()]
+        # match the correct output format: <addr> <opcode> [<symbol>] mnemonic [operands,]
+        # gef➤  cs --show-opcodes --length 5 $pc
+        # →    0xaaaaaaaaa840 80000090    <main+20>        adrp   x0, #0xaaaaaaaba000
+        #      0xaaaaaaaaa844 00f047f9    <main+24>        ldr    x0, [x0, #0xfe0]
+        #      0xaaaaaaaaa848 010040f9    <main+28>        ldr    x1, [x0]
+        #      0xaaaaaaaaa84c e11f00f9    <main+32>        str    x1, [sp, #0x38]
+        #      0xaaaaaaaaa850 010080d2    <main+36>        movz   x1, #0
+        self.assertTrue( line[0].startswith("0x") and int(line[0], 16) )
+        self.assertTrue( int(line[1], 16) )
+        self.assertTrue( line[2].startswith("<") and line[2].endswith(">") )
+
         res = gdb_start_silent_cmd("cs --show-opcodes main")
         self.assertNoException(res)
+        self.assertTrue(len(res.splitlines()) > 1)
         return
 
     def test_cmd_checksec(self):
@@ -237,7 +251,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, before=before, target=target))
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        self.assertIn("Fastbins[idx=0, size=0x20]", res)
+        if is_64b():
+            self.assertIn("Fastbins[idx=0, size=0x20]", res)
         self.assertIn("Chunk(addr=", res)
         return
 
@@ -255,7 +270,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         target = "/tmp/heap-non-main.out"
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn("Tcachebins[idx=0, size=0x20] count=1", res)
+        if is_64b():
+            self.assertIn("Tcachebins[idx=0, size=0x20] count=1", res)
         return
 
     def test_cmd_heap_bins_tcache_all(self):
@@ -263,8 +279,9 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         target = "/tmp/heap-tcache.out"
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn("Tcachebins[idx=0, size=0x20] count=3", res)
-        self.assertIn("Tcachebins[idx=1, size=0x30] count=3", res)
+        if is_64b():
+            self.assertIn("Tcachebins[idx=0, size=0x20] count=3", res)
+            self.assertIn("Tcachebins[idx=1, size=0x30] count=3", res)
         return
 
     def test_cmd_heap_analysis(self):
@@ -453,7 +470,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertIn("Found at offset", res)
 
-        cmd = "pattern search --period 8 {r}"
+        cmd = f"pattern search --period 8 {r}"
         target = "/tmp/pattern.out"
         res = gdb_run_cmd(cmd, before=["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"], target=target)
         self.assertNoException(res)
@@ -496,22 +513,24 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNotIn("gdb", res)
         return
 
-    @include_for_architectures(["x86_64",])
-    def test_cmd_registers_x86(self):
+    @include_for_architectures(["aarch64", "armv7l", "x86_64", "i386"])
+    def test_cmd_registers(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("registers"))
         res = gdb_start_silent_cmd("registers")
         self.assertNoException(res)
-        self.assertIn("$rax", res)
-        self.assertIn("$eflags", res)
-        return
-
-    @include_for_architectures(["aarch64",])
-    def test_cmd_registers_arch(self):
-        self.assertFailIfInactiveSession(gdb_run_cmd("registers"))
-        res = gdb_start_silent_cmd("registers")
-        self.assertNoException(res)
-        self.assertIn("$x0", res)
-        self.assertIn("$cpsr", res)
+        if ARCH in ("aarch64",):
+            self.assertIn("$x0", res)
+            self.assertIn("$cpsr", res)
+        elif ARCH in ("armv7l", ):
+            self.assertIn("$r0", res)
+            self.assertIn("$lr", res)
+            self.assertIn("$cpsr", res)
+        elif ARCH in ("x86_64", ):
+            self.assertIn("$rax", res)
+            self.assertIn("$eflags", res)
+        elif ARCH in ("i386", ):
+            self.assertIn("$eax", res)
+            self.assertIn("$eflags", res)
         return
 
     def test_cmd_reset_cache(self):
@@ -542,7 +561,6 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("scan binary libc", target=target)
         self.assertNoException(res)
         self.assertIn("__libc_start_main", res)
-
         return
 
     def test_cmd_search_pattern(self):
@@ -556,11 +574,17 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd("set-permission"))
         target = "/tmp/set-permission.out"
 
-        res = gdb_start_silent_cmd("set-permission $sp", after=["vmmap",], target=target)
+        # get the initial stack address
+        res = gdb_start_silent_cmd("vmmap", target=target)
         self.assertNoException(res)
-        line = [ l for l in res.splitlines() if "[stack]" in l ][0]
-        parts = line.split()
-        self.assertEqual(parts[3], "rwx")
+        stack_line = [ l.strip() for l in res.splitlines() if "[stack]" in l ][0]
+        stack_address = int(stack_line.split()[0], 0)
+
+        # compare the new permissions
+        res = gdb_start_silent_cmd(f"set-permission {stack_address:#x}", after=[f"xinfo {stack_address:#x}",], target=target)
+        self.assertNoException(res)
+        line = [ l.strip() for l in res.splitlines() if l.startswith("Permissions: ") ][0]
+        self.assertEqual(line.split()[1], "rwx")
 
         res = gdb_start_silent_cmd("set-permission 0x1338000", target=target)
         self.assertNoException(res)
@@ -835,12 +859,14 @@ class TestGdbFunctionsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target="/tmp/heap.out"))
         res = gdb_run_silent_cmd(cmd, target="/tmp/heap.out")
         self.assertNoException(res)
-        self.assertIn("+0x0048:", res)
+        if is_64b():  self.assertIn("+0x0048:", res)
+        else:         self.assertIn("+0x0024:", res)
 
         cmd = "deref $_heap(0x10+0x10)"
         res = gdb_run_silent_cmd(cmd, target="/tmp/heap.out")
         self.assertNoException(res)
-        self.assertIn("+0x0048:", res)
+        if is_64b():  self.assertIn("+0x0048:", res)
+        else:         self.assertIn("+0x0024:", res)
         return
 
     def test_func_got(self):
@@ -864,7 +890,10 @@ class TestGdbFunctionsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertRegex(res, r"\+0x0*20: *0x0000000000000000\n")
+        if is_64b():
+            self.assertRegex(res, r"\+0x0*20: *0x0000000000000000\n")
+        else:
+            self.assertRegex(res, r"\+0x0.*20: *0x00000000\n")
         return
 
 
@@ -876,12 +905,13 @@ class TestGefConfigUnit(GefUnitTestGeneric):
         res = gdb_run_cmd("entry-break", before=["gef config context.show_opcodes_size 4",])
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 1)
-        # match one of the following patterns
-        # 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
-        # 0x5555555546b5 488975e0    <main+11>        mov    QWORD PTR [rbp-0x20], rsi
-        # 0x5555555546b9 488955d8    <main+15>        mov    QWORD PTR [rbp-0x28], rdx
-        # 0x5555555546bd 64488b04... <main+19>        mov    rax, QWORD PTR fs:0x28
-        self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2}){1,4}(\.\.\.)?\s+.*")
+        if is_64b():
+            # match one of the following patterns
+            # 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
+            # 0x5555555546b5 488975e0    <main+11>        mov    QWORD PTR [rbp-0x20], rsi
+            # 0x5555555546b9 488955d8    <main+15>        mov    QWORD PTR [rbp-0x28], rdx
+            # 0x5555555546bd 64488b04... <main+19>        mov    rax, QWORD PTR fs:0x28
+            self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2}){1,4}(\.\.\.)?\s+.*")
         return
 
 
@@ -915,5 +945,4 @@ def run_tests():
 
 
 if __name__ == "__main__":
-    ARCH = subprocess.check_output("uname --processor".split()).strip()
     run_tests()

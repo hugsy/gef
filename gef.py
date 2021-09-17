@@ -1860,9 +1860,12 @@ class ARM(Architecture):
         _NR_mprotect = 125
         insns = [
             "push {r0-r2, r7}",
-            "mov r0, {:d}".format(addr),
-            "mov r1, {:d}".format(size),
-            "mov r2, {:d}".format(perm),
+            "mov r1, {:d}".format(addr & 0xffff),
+            "mov r0, {:d}".format((addr & 0xffff0000) >> 16),
+            "lsl r0, r0, 16",
+            "add r0, r0, r1",
+            "mov r1, {:d}".format(size & 0xffff),
+            "mov r2, {:d}".format(perm & 0xff),
             "mov r7, {:d}".format(_NR_mprotect),
             "svc 0",
             "pop {r0-r2, r7}",
@@ -4451,7 +4454,7 @@ class PrintFormatCommand(GenericCommand):
     def do_invoke(self, argv, *args, **kwargs):
         """Default value for print-format command."""
         args = kwargs["arguments"]
-        args.bitlen = args.bitlen or current_arch.ptrsize
+        args.bitlen = args.bitlen or current_arch.ptrsize*2
 
         valid_bitlens = self.format_matrix.keys()
         if args.bitlen not in valid_bitlens:
