@@ -776,26 +776,26 @@ class GlibcHeapInfo:
 
     @property
     def ar_ptr(self):
-        return self.get_size_t_pointer(self.ar_ptr_addr)
+        return self._get_size_t_pointer(self.ar_ptr_addr)
 
     @property
     def prev(self):
-        return self.get_size_t_pointer(self.prev_addr)
+        return self._get_size_t_pointer(self.prev_addr)
 
     @property
     def size(self):
-        return self.get_size_t(self.size_addr)
+        return self._get_size_t(self.size_addr)
 
     @property
     def mprotect_size(self):
-        return self.get_size_t(self.mprotect_size_addr)
+        return self._get_size_t(self.mprotect_size_addr)
 
     # helper methods
-    def get_size_t_pointer(self, addr):
+    def _get_size_t_pointer(self, addr):
         size_t_pointer = self.size_t.pointer()
         return dereference(addr).cast(size_t_pointer)
 
-    def get_size_t(self, addr):
+    def _get_size_t(self, addr):
         return dereference(addr).cast(self.size_t)
 
 
