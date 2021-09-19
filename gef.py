@@ -628,7 +628,7 @@ class Phdr:
     p_align  = None
 
     def __init__(self, elf, off):
-        if elf is None:
+        if not elf:
             return None
         elf.seek(off)
         endian = endian_str()
