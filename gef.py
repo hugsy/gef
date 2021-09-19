@@ -536,26 +536,18 @@ class Elf:
         if minimalist:
             return
 
-        if isinstance(elf, str):
-            if not os.access(elf, os.R_OK):
-                err("'{0}' not found/readable".format(elf))
-                err("Failed to get file debug information, most of gef features will not work")
-                return
-            self.fd = open(elf, "rb")
-            self.addr = None
-            self.pos = 0
-        elif isinstance(elf, int):
-            self.fd = None
-            self.addr = elf
-            self.pos = 0
-        else:
-            raise
+        if not os.access(elf, os.R_OK):
+            err("'{0}' not found/readable".format(elf))
+            err("Failed to get file debug information, most of gef features will not work")
+            return
+
+        self.fd = open(elf, "rb")
 
         # off 0x0
         self.e_magic, self.e_class, self.e_endianness, self.e_eiversion = struct.unpack(">IBBB", self.read(7))
 
         # adjust endianness in bin reading
-        endian = "<" if self.e_endianness == Elf.LITTLE_ENDIAN else ">"
+        endian = endian_str()
 
         # off 0x7
         self.e_osabi, self.e_abiversion = struct.unpack("{}BB".format(endian), self.read(2))
@@ -585,30 +577,17 @@ class Elf:
         for i in range(self.e_shnum):
             self.shdrs.append(Shdr(self, self.e_shoff + self.e_shentsize * i))
 
-        if self.fd is not None:
+        if self.fd:
             self.fd.close()
             self.fd = None
 
         return
 
     def read(self, size):
-        if self.fd is not None:
-            v = self.fd.read(size)
-        elif self.addr is not None:
-            v = read_memory(self.addr + self.pos, size)
-        else:
-            raise
-        self.pos += size
-        return v
+        return self.fd.read(size)
 
     def seek(self, off):
-        if self.fd is not None:
-            self.fd.seek(off, 0)
-        elif self.addr is not None:
-            self.pos = off
-        else:
-            raise
-        return
+        self.fd.seek(off, 0)
 
     def is_valid(self):
         return self.e_magic == Elf.ELF_MAGIC
@@ -652,7 +631,7 @@ class Phdr:
         if elf is None:
             return None
         elf.seek(off)
-        endian = "<" if elf.e_endianness == Elf.LITTLE_ENDIAN else ">"
+        endian = endian_str()
         if elf.e_class == Elf.ELF_64_BITS:
             self.p_type, self.p_flags, self.p_offset = struct.unpack("{}IIQ".format(endian), elf.read(16))
             self.p_vaddr, self.p_paddr = struct.unpack("{}QQ".format(endian), elf.read(16))
@@ -733,7 +712,7 @@ class Shdr:
         if elf is None:
             return None
         elf.seek(off)
-        endian = "<" if elf.e_endianness == Elf.LITTLE_ENDIAN else ">"
+        endian = endian_str()
         if elf.e_class == Elf.ELF_64_BITS:
             self.sh_name, self.sh_type, self.sh_flags = struct.unpack("{}IIQ".format(endian), elf.read(16))
             self.sh_addr, self.sh_offset = struct.unpack("{}QQ".format(endian), elf.read(16))
@@ -7912,14 +7891,14 @@ class ElfInfoCommand(GenericCommand):
         }
 
         pflags = {
-            0:                             "---",
-            Phdr.PF_X:                     "--X",
-            Phdr.PF_W:                     "-W-",
-            Phdr.PF_R:                     "R--",
-            Phdr.PF_W|Phdr.PF_X:           "-WX",
-            Phdr.PF_R|Phdr.PF_X:           "R-X",
-            Phdr.PF_R|Phdr.PF_W:           "RW-",
-            Phdr.PF_R|Phdr.PF_W|Phdr.PF_X: "RWX",
+            0:                             Permission.from_process_maps("---"),
+            Phdr.PF_X:                     Permission.from_process_maps("--x"),
+            Phdr.PF_W:                     Permission.from_process_maps("-w-"),
+            Phdr.PF_R:                     Permission.from_process_maps("r--"),
+            Phdr.PF_W|Phdr.PF_X:           Permission.from_process_maps("-wx"),
+            Phdr.PF_R|Phdr.PF_X:           Permission.from_process_maps("r-x"),
+            Phdr.PF_R|Phdr.PF_W:           Permission.from_process_maps("rw-"),
+            Phdr.PF_R|Phdr.PF_W|Phdr.PF_X: Permission.from_process_maps("rwx"),
         }
 
         gef_print("")
@@ -7933,7 +7912,7 @@ class ElfInfoCommand(GenericCommand):
             p_flags = pflags[p.p_flags] if p.p_flags in pflags else "???"
 
             gef_print("  [{:2d}] {:12s} {:#8x} {:#10x} {:#10x} {:#8x} {:#8x} {:5s} {:#8x}".format(
-                i, p_type, p.p_offset, p.p_vaddr, p.p_paddr, p.p_filesz, p.p_memsz, p_flags, p.p_align))
+                i, p_type, p.p_offset, p.p_vaddr, p.p_paddr, p.p_filesz, p.p_memsz, str(p_flags), p.p_align))
 
         stype = {
             Shdr.SHT_NULL:          "NULL",
