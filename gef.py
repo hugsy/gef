@@ -7891,14 +7891,14 @@ class ElfInfoCommand(GenericCommand):
         }
 
         pflags = {
-            0:                             Permission.from_process_maps("---"),
-            Phdr.PF_X:                     Permission.from_process_maps("--x"),
-            Phdr.PF_W:                     Permission.from_process_maps("-w-"),
-            Phdr.PF_R:                     Permission.from_process_maps("r--"),
-            Phdr.PF_W|Phdr.PF_X:           Permission.from_process_maps("-wx"),
-            Phdr.PF_R|Phdr.PF_X:           Permission.from_process_maps("r-x"),
-            Phdr.PF_R|Phdr.PF_W:           Permission.from_process_maps("rw-"),
-            Phdr.PF_R|Phdr.PF_W|Phdr.PF_X: Permission.from_process_maps("rwx"),
+            0:                             Permission.NONE,
+            Phdr.PF_X:                     Permission.EXECUTE,
+            Phdr.PF_W:                     Permission.WRITE,
+            Phdr.PF_R:                     Permission.READ,
+            Phdr.PF_W|Phdr.PF_X:           Permission.WRITE|Permission.EXECUTE,
+            Phdr.PF_R|Phdr.PF_X:           Permission.READ|Permission.EXECUTE,
+            Phdr.PF_R|Phdr.PF_W:           Permission.READ|Permission.WRITE,
+            Phdr.PF_R|Phdr.PF_W|Phdr.PF_X: Permission.ALL,
         }
 
         gef_print("")
@@ -7909,7 +7909,7 @@ class ElfInfoCommand(GenericCommand):
 
         for i, p in enumerate(elf.phdrs):
             p_type = ptype[p.p_type] if p.p_type in ptype else "UNKNOWN"
-            p_flags = pflags[p.p_flags] if p.p_flags in pflags else "???"
+            p_flags = Permission(value=pflags[p.p_flags]) if p.p_flags in pflags else "???"
 
             gef_print("  [{:2d}] {:12s} {:#8x} {:#10x} {:#10x} {:#8x} {:#8x} {:5s} {:#8x}".format(
                 i, p_type, p.p_offset, p.p_vaddr, p.p_paddr, p.p_filesz, p.p_memsz, str(p_flags), p.p_align))
