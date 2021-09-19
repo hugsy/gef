@@ -541,40 +541,205 @@ class Elf:
             err("Failed to get file debug information, most of gef features will not work")
             return
 
-        with open(elf, "rb") as fd:
-            # off 0x0
-            self.e_magic, self.e_class, self.e_endianness, self.e_eiversion = struct.unpack(
-                ">IBBB", fd.read(7))
+        self.fd = open(elf, "rb")
 
-            # adjust endianness in bin reading
-            endian = "<" if self.e_endianness == Elf.LITTLE_ENDIAN else ">"
+        # off 0x0
+        self.e_magic, self.e_class, self.e_endianness, self.e_eiversion = struct.unpack(">IBBB", self.read(7))
 
-            # off 0x7
-            self.e_osabi, self.e_abiversion = struct.unpack(
-                "{}BB".format(endian), fd.read(2))
-            # off 0x9
-            self.e_pad = fd.read(7)
-            # off 0x10
-            self.e_type, self.e_machine, self.e_version = struct.unpack(
-                "{}HHI".format(endian), fd.read(8))
-            # off 0x18
-            if self.e_class == Elf.ELF_64_BITS:
-                # if arch 64bits
-                self.e_entry, self.e_phoff, self.e_shoff = struct.unpack(
-                    "{}QQQ".format(endian), fd.read(24))
-            else:
-                # else arch 32bits
-                self.e_entry, self.e_phoff, self.e_shoff = struct.unpack(
-                    "{}III".format(endian), fd.read(12))
+        # adjust endianness in bin reading
+        endian = endian_str()
 
-            self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = struct.unpack(
-                "{}HHHH".format(endian), fd.read(8))
-            self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack(
-                "{}HHH".format(endian), fd.read(6))
+        # off 0x7
+        self.e_osabi, self.e_abiversion = struct.unpack("{}BB".format(endian), self.read(2))
+
+        # off 0x9
+        self.e_pad = self.read(7)
+
+        # off 0x10
+        self.e_type, self.e_machine, self.e_version = struct.unpack("{}HHI".format(endian), self.read(8))
+
+        # off 0x18
+        if self.e_class == Elf.ELF_64_BITS:
+            # if arch 64bits
+            self.e_entry, self.e_phoff, self.e_shoff = struct.unpack("{}QQQ".format(endian), self.read(24))
+        else:
+            # else arch 32bits
+            self.e_entry, self.e_phoff, self.e_shoff = struct.unpack("{}III".format(endian), self.read(12))
+
+        self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = struct.unpack("{}IHHH".format(endian), self.read(10))
+        self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack("{}HHH".format(endian), self.read(6))
+
+        self.phdrs = []
+        for i in range(self.e_phnum):
+            self.phdrs.append(Phdr(self, self.e_phoff + self.e_phentsize * i))
+
+        self.shdrs = []
+        for i in range(self.e_shnum):
+            self.shdrs.append(Shdr(self, self.e_shoff + self.e_shentsize * i))
+
+        if self.fd:
+            self.fd.close()
+            self.fd = None
+
         return
+
+    def read(self, size):
+        return self.fd.read(size)
+
+    def seek(self, off):
+        self.fd.seek(off, 0)
 
     def is_valid(self):
         return self.e_magic == Elf.ELF_MAGIC
+
+
+class Phdr:
+    PT_NULL         = 0
+    PT_LOAD         = 1
+    PT_DYNAMIC      = 2
+    PT_INTERP       = 3
+    PT_NOTE         = 4
+    PT_SHLIB        = 5
+    PT_PHDR         = 6
+    PT_TLS          = 7
+    PT_LOOS         = 0x60000000
+    PT_GNU_EH_FRAME = 0x6474e550
+    PT_GNU_STACK    = 0x6474e551
+    PT_GNU_RELRO    = 0x6474e552
+    PT_LOSUNW       = 0x6ffffffa
+    PT_SUNWBSS      = 0x6ffffffa
+    PT_SUNWSTACK    = 0x6ffffffb
+    PT_HISUNW       = 0x6fffffff
+    PT_HIOS         = 0x6fffffff
+    PT_LOPROC       = 0x70000000
+    PT_HIPROC       = 0x7fffffff
+
+    PF_X            = 1
+    PF_W            = 2
+    PF_R            = 4
+
+    p_type   = None
+    p_flags  = None
+    p_offset = None
+    p_vaddr  = None
+    p_paddr  = None
+    p_filesz = None
+    p_memsz  = None
+    p_align  = None
+
+    def __init__(self, elf, off):
+        if not elf:
+            return None
+        elf.seek(off)
+        endian = endian_str()
+        if elf.e_class == Elf.ELF_64_BITS:
+            self.p_type, self.p_flags, self.p_offset = struct.unpack("{}IIQ".format(endian), elf.read(16))
+            self.p_vaddr, self.p_paddr = struct.unpack("{}QQ".format(endian), elf.read(16))
+            self.p_filesz, self.p_memsz, self.p_align = struct.unpack("{}QQQ".format(endian), elf.read(24))
+        else:
+            self.p_type, self.p_offset = struct.unpack("{}II".format(endian), elf.read(8))
+            self.p_vaddr, self.p_paddr = struct.unpack("{}II".format(endian), elf.read(8))
+            self.p_filesz, self.p_memsz, self.p_flags, self.p_align = struct.unpack("{}IIII".format(endian), elf.read(16))
+
+
+class Shdr:
+    SHT_NULL             = 0
+    SHT_PROGBITS         = 1
+    SHT_SYMTAB           = 2
+    SHT_STRTAB           = 3
+    SHT_RELA             = 4
+    SHT_HASH             = 5
+    SHT_DYNAMIC          = 6
+    SHT_NOTE             = 7
+    SHT_NOBITS           = 8
+    SHT_REL              = 9
+    SHT_SHLIB            = 10
+    SHT_DYNSYM           = 11
+    SHT_NUM              = 12
+    SHT_INIT_ARRAY       = 14
+    SHT_FINI_ARRAY       = 15
+    SHT_PREINIT_ARRAY    = 16
+    SHT_GROUP            = 17
+    SHT_SYMTAB_SHNDX     = 18
+    SHT_NUM              = 19
+    SHT_LOOS             = 0x60000000
+    SHT_GNU_ATTRIBUTES   = 0x6ffffff5
+    SHT_GNU_HASH         = 0x6ffffff6
+    SHT_GNU_LIBLIST      = 0x6ffffff7
+    SHT_CHECKSUM         = 0x6ffffff8
+    SHT_LOSUNW           = 0x6ffffffa
+    SHT_SUNW_move        = 0x6ffffffa
+    SHT_SUNW_COMDAT      = 0x6ffffffb
+    SHT_SUNW_syminfo     = 0x6ffffffc
+    SHT_GNU_verdef       = 0x6ffffffd
+    SHT_GNU_verneed      = 0x6ffffffe
+    SHT_GNU_versym       = 0x6fffffff
+    SHT_HISUNW           = 0x6fffffff
+    SHT_HIOS             = 0x6fffffff
+    SHT_LOPROC           = 0x70000000
+    SHT_HIPROC           = 0x7fffffff
+    SHT_LOUSER           = 0x80000000
+    SHT_HIUSER           = 0x8fffffff
+
+    SHF_WRITE            = 1
+    SHF_ALLOC            = 2
+    SHF_EXECINSTR        = 4
+    SHF_MERGE            = 0x10
+    SHF_STRINGS          = 0x20
+    SHF_INFO_LINK        = 0x40
+    SHF_LINK_ORDER       = 0x80
+    SHF_OS_NONCONFORMING = 0x100
+    SHF_GROUP            = 0x200
+    SHF_TLS              = 0x400
+    SHF_COMPRESSED       = 0x800
+    SHF_RELA_LIVEPATCH   = 0x00100000
+    SHF_RO_AFTER_INIT    = 0x00200000
+    SHF_ORDERED          = 0x40000000
+    SHF_EXCLUDE          = 0x80000000
+
+    sh_name      = None
+    sh_type      = None
+    sh_flags     = None
+    sh_addr      = None
+    sh_offset    = None
+    sh_size      = None
+    sh_link      = None
+    sh_info      = None
+    sh_addralign = None
+    sh_entsize   = None
+
+    def __init__(self, elf, off):
+        if elf is None:
+            return None
+        elf.seek(off)
+        endian = endian_str()
+        if elf.e_class == Elf.ELF_64_BITS:
+            self.sh_name, self.sh_type, self.sh_flags = struct.unpack("{}IIQ".format(endian), elf.read(16))
+            self.sh_addr, self.sh_offset = struct.unpack("{}QQ".format(endian), elf.read(16))
+            self.sh_size, self.sh_link, self.sh_info = struct.unpack("{}QII".format(endian), elf.read(16))
+            self.sh_addralign, self.sh_entsize = struct.unpack("{}QQ".format(endian), elf.read(16))
+        else:
+            self.sh_name, self.sh_type, self.sh_flags = struct.unpack("{}III".format(endian), elf.read(12))
+            self.sh_addr, self.sh_offset = struct.unpack("{}II".format(endian), elf.read(8))
+            self.sh_size, self.sh_link, self.sh_info = struct.unpack("{}III".format(endian), elf.read(12))
+            self.sh_addralign, self.sh_entsize = struct.unpack("{}II".format(endian), elf.read(8))
+
+        stroff = elf.e_shoff + elf.e_shentsize * elf.e_shstrndx
+
+        if elf.e_class == Elf.ELF_64_BITS:
+            elf.seek(stroff + 16 + 8)
+            offset = struct.unpack("{}Q".format(endian), elf.read(8))[0]
+        else:
+            elf.seek(stroff + 12 + 4)
+            offset = struct.unpack("{}I".format(endian), elf.read(4))[0]
+        elf.seek(offset + self.sh_name)
+        self.sh_name = ""
+        while True:
+            c = ord(elf.read(1))
+            if c == 0:
+                break
+            self.sh_name += chr(c)
+        return
 
 
 class Instruction:
@@ -2786,6 +2951,30 @@ def get_path_from_info_proc():
 def get_os():
     """Return the current OS."""
     return platform.system().lower()
+
+
+@lru_cache()
+def is_qemu():
+    if not is_remote_debug():
+        return False
+    response = gdb.execute('maintenance packet Qqemu.sstepbits', to_string=True, from_tty=False)
+    return 'ENABLE=' in response
+
+
+@lru_cache()
+def is_qemu_usermode():
+    if not is_qemu():
+        return False
+    response = gdb.execute('maintenance packet QOffsets', to_string=True, from_tty=False)
+    return "Text=" in response
+
+
+@lru_cache()
+def is_qemu_system():
+    if not is_qemu():
+        return False
+    response = gdb.execute('maintenance packet QOffsets', to_string=True, from_tty=False)
+    return 'received: ""' in response
 
 
 @lru_cache()
@@ -7602,6 +7791,11 @@ class ElfInfoCommand(GenericCommand):
     @parse_arguments({}, {"--filename": ""})
     def do_invoke(self, argv, *args, **kwargs):
         args = kwargs["arguments"]
+
+        if is_qemu_system():
+            err("Unsupported")
+            return
+
         # http://www.sco.com/developers/gabi/latest/ch4.eheader.html
         classes = {
             Elf.ELF_32_BITS     : "32-bit",
@@ -7673,6 +7867,116 @@ class ElfInfoCommand(GenericCommand):
 
         for title, content in data:
             gef_print("{}: {}".format(Color.boldify("{:<22}".format(title)), content))
+
+        ptype = {
+            Phdr.PT_NULL:         "NULL",
+            Phdr.PT_LOAD:         "LOAD",
+            Phdr.PT_DYNAMIC:      "DYNAMIC",
+            Phdr.PT_INTERP:       "INTERP",
+            Phdr.PT_NOTE:         "NOTE",
+            Phdr.PT_SHLIB:        "SHLIB",
+            Phdr.PT_PHDR:         "PHDR",
+            Phdr.PT_TLS:          "TLS",
+            Phdr.PT_LOOS:         "LOOS",
+            Phdr.PT_GNU_EH_FRAME: "GNU_EH_FLAME",
+            Phdr.PT_GNU_STACK:    "GNU_STACK",
+            Phdr.PT_GNU_RELRO:    "GNU_RELRO",
+            Phdr.PT_LOSUNW:       "LOSUNW",
+            Phdr.PT_SUNWBSS:      "SUNWBSS",
+            Phdr.PT_SUNWSTACK:    "SUNWSTACK",
+            Phdr.PT_HISUNW:       "HISUNW",
+            Phdr.PT_HIOS:         "HIOS",
+            Phdr.PT_LOPROC:       "LOPROC",
+            Phdr.PT_HIPROC:       "HIPROC",
+        }
+
+        pflags = {
+            0:                             Permission.NONE,
+            Phdr.PF_X:                     Permission.EXECUTE,
+            Phdr.PF_W:                     Permission.WRITE,
+            Phdr.PF_R:                     Permission.READ,
+            Phdr.PF_W|Phdr.PF_X:           Permission.WRITE|Permission.EXECUTE,
+            Phdr.PF_R|Phdr.PF_X:           Permission.READ|Permission.EXECUTE,
+            Phdr.PF_R|Phdr.PF_W:           Permission.READ|Permission.WRITE,
+            Phdr.PF_R|Phdr.PF_W|Phdr.PF_X: Permission.ALL,
+        }
+
+        gef_print("")
+        gef_print(titlify("Program Header"))
+
+        gef_print("  [{:>2s}] {:12s} {:>8s} {:>10s} {:>10s} {:>8s} {:>8s} {:5s} {:>8s}".format(
+            "#", "Type", "Offset", "Virtaddr", "Physaddr", "FileSiz", "MemSiz", "Flags", "Align"))
+
+        for i, p in enumerate(elf.phdrs):
+            p_type = ptype[p.p_type] if p.p_type in ptype else "UNKNOWN"
+            p_flags = Permission(value=pflags[p.p_flags]) if p.p_flags in pflags else "???"
+
+            gef_print("  [{:2d}] {:12s} {:#8x} {:#10x} {:#10x} {:#8x} {:#8x} {:5s} {:#8x}".format(
+                i, p_type, p.p_offset, p.p_vaddr, p.p_paddr, p.p_filesz, p.p_memsz, str(p_flags), p.p_align))
+
+        stype = {
+            Shdr.SHT_NULL:          "NULL",
+            Shdr.SHT_PROGBITS:      "PROGBITS",
+            Shdr.SHT_SYMTAB:        "SYMTAB",
+            Shdr.SHT_STRTAB:        "STRTAB",
+            Shdr.SHT_RELA:          "RELA",
+            Shdr.SHT_HASH:          "HASH",
+            Shdr.SHT_DYNAMIC:       "DYNAMIC",
+            Shdr.SHT_NOTE:          "NOTE",
+            Shdr.SHT_NOBITS:        "NOBITS",
+            Shdr.SHT_REL:           "REL",
+            Shdr.SHT_SHLIB:         "SHLIB",
+            Shdr.SHT_DYNSYM:        "DYNSYM",
+            Shdr.SHT_NUM:           "NUM",
+            Shdr.SHT_INIT_ARRAY:    "INIT_ARRAY",
+            Shdr.SHT_FINI_ARRAY:    "FINI_ARRAY",
+            Shdr.SHT_PREINIT_ARRAY: "PREINIT_ARRAY",
+            Shdr.SHT_GROUP:         "GROUP",
+            Shdr.SHT_SYMTAB_SHNDX:  "SYMTAB_SHNDX",
+            Shdr.SHT_NUM:           "NUM",
+            Shdr.SHT_LOOS:          "LOOS",
+            Shdr.SHT_GNU_ATTRIBUTES:"GNU_ATTRIBUTES",
+            Shdr.SHT_GNU_HASH:      "GNU_HASH",
+            Shdr.SHT_GNU_LIBLIST:   "GNU_LIBLIST",
+            Shdr.SHT_CHECKSUM:      "CHECKSUM",
+            Shdr.SHT_LOSUNW:        "LOSUNW",
+            Shdr.SHT_SUNW_move:     "SUNW_move",
+            Shdr.SHT_SUNW_COMDAT:   "SUNW_COMDAT",
+            Shdr.SHT_SUNW_syminfo:  "SUNW_syminfo",
+            Shdr.SHT_GNU_verdef:    "GNU_verdef",
+            Shdr.SHT_GNU_verneed:   "GNU_verneed",
+            Shdr.SHT_GNU_versym:    "GNU_versym",
+            Shdr.SHT_HISUNW:        "HISUNW",
+            Shdr.SHT_HIOS:          "HIOS",
+            Shdr.SHT_LOPROC:        "LOPROC",
+            Shdr.SHT_HIPROC:        "HIPROC",
+            Shdr.SHT_LOUSER:        "LOUSER",
+            Shdr.SHT_HIUSER:        "HIUSER",
+        }
+
+        gef_print("")
+        gef_print(titlify("Section Header"))
+        gef_print("  [{:>2s}] {:20s} {:>15s} {:>10s} {:>8s} {:>8s} {:>8s} {:5s} {:4s} {:4s} {:>8s}".format(
+            "#", "Name", "Type", "Address", "Offset", "Size", "EntSiz", "Flags", "Link", "Info", "Align"))
+
+        for i, s in enumerate(elf.shdrs):
+            sh_type = stype[s.sh_type] if s.sh_type in stype else "UNKNOWN"
+            sh_flags = ""
+            if s.sh_flags & Shdr.SHF_WRITE:            sh_flags += "W"
+            if s.sh_flags & Shdr.SHF_ALLOC:            sh_flags += "A"
+            if s.sh_flags & Shdr.SHF_EXECINSTR:        sh_flags += "X"
+            if s.sh_flags & Shdr.SHF_MERGE:            sh_flags += "M"
+            if s.sh_flags & Shdr.SHF_STRINGS:          sh_flags += "S"
+            if s.sh_flags & Shdr.SHF_INFO_LINK:        sh_flags += "I"
+            if s.sh_flags & Shdr.SHF_LINK_ORDER:       sh_flags += "L"
+            if s.sh_flags & Shdr.SHF_OS_NONCONFORMING: sh_flags += "O"
+            if s.sh_flags & Shdr.SHF_GROUP:            sh_flags += "G"
+            if s.sh_flags & Shdr.SHF_TLS:              sh_flags += "T"
+            if s.sh_flags & Shdr.SHF_EXCLUDE:          sh_flags += "E"
+            if s.sh_flags & Shdr.SHF_COMPRESSED:       sh_flags += "C"
+
+            gef_print("  [{:2d}] {:20s} {:>15s} {:#10x} {:#8x} {:#8x} {:#8x} {:5s} {:#4x} {:#4x} {:#8x}".format(
+                i, s.sh_name, sh_type, s.sh_addr, s.sh_offset, s.sh_size, s.sh_entsize, sh_flags, s.sh_link, s.sh_info, s.sh_addralign))
         return
 
 
