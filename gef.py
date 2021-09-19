@@ -8249,7 +8249,7 @@ class ContextCommand(GenericCommand):
 
         file_base_name = os.path.basename(symtab.filename)
         breakpoints = gdb.breakpoints() or []
-        bp_locations = [b.location for b in breakpoints if file_base_name in b.location]
+        bp_locations = [b.location for b in breakpoints if b.location and file_base_name in b.location]
         past_lines_color = get_gef_setting("theme.old_context")
 
         nb_line = self.get_setting("nb_lines_code")
