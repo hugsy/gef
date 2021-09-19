@@ -19,8 +19,8 @@ jobs:
         os:
           - ubuntu-20.04
           - ubuntu-18.04
-          - [self-hosted, linux, ARM64]
-          - [self-hosted, linux, ARM]
+          # - [self-hosted, linux, ARM64]
+          # - [self-hosted, linux, ARM]
     name: "Run Unit tests on ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
     defaults:
