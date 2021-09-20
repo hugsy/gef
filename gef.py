@@ -1056,8 +1056,11 @@ class GlibcArena:
         return ptr & ~(heap_max_size - 1)
 
     def __str__(self):
-        fmt = "Arena (base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
-        return fmt.format(self.__addr, self.top, self.last_remainder, self.n, self.nfree, self.sysmem)
+        fmt = "{:s}(base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
+        return fmt.format(
+            Color.colorify("Arena", "blue bold underline"),
+            self.__addr, self.top, self.last_remainder, self.n, self.nfree, self.sysmem
+        )
 
 
 class GlibcChunk:

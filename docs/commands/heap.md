@@ -67,7 +67,7 @@ Multi-threaded programs have different arenas, and the knowledge of the
 to help you list all the arenas allocated in your program **at the moment you
 call the command**.
 
-![heap-arenas](https://i.imgur.com/ajbLiCF.png)
+![heap-arenas](https://i.imgur.com/RUTiADa.png)
 
 ### `heap set-arena` command ###
 
