@@ -2862,7 +2862,10 @@ def parse_arguments(required_arguments, optional_arguments):
                 else:
                     parser.add_argument(*argname, type=argtype, default=argvalue)
 
-            parsed_args = parser.parse_args(*(args[1:]))
+            try:
+                parsed_args = parser.parse_args(*(args[1:]))
+            except RuntimeWarning:
+                return
             kwargs["arguments"] = parsed_args
             return f(*args, **kwargs)
         return wrapper
@@ -7569,7 +7572,10 @@ class RopperCommand(GenericCommand):
         # ropper set up own autocompleter after which gdb/gef autocomplete don't work
         old_completer_delims = readline.get_completer_delims()
         old_completer = readline.get_completer()
-        ropper.start(argv)
+        try:
+            ropper.start(argv)
+        except RuntimeWarning:
+            return
         readline.set_completer(old_completer)
         readline.set_completer_delims(old_completer_delims)
         return
