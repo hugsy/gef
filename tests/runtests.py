@@ -233,7 +233,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_heap_chunks_mult_heaps(self):
-        before = ['python gdb.execute("heap set-arena {}".format(get_main_arena().next))']
+        before = ['run', 'python gdb.execute("heap set-arena {}".format(get_glibc_arena().next))']
         cmd = "heap chunks"
         target = "/tmp/heap-multiple-heaps.out"
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
