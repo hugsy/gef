@@ -3015,8 +3015,7 @@ def get_register(regname):
 @lru_cache()
 def __get_register_for_selected_frame(regname, hash_key):
     try:
-        value = gdb.parse_and_eval(regname)
-        return to_unsigned_long(value) if value.type.code == gdb.TYPE_CODE_INT else int(value)
+        return parse_address(regname)
     except gdb.error:
         assert regname[0] == "$"
         regname = regname[1:]
@@ -5300,6 +5299,7 @@ class PCustomCommand(GenericCommand):
         return
 
 
+
     def do_invoke(self, argv):
         argc = len(argv)
         if argc == 0:
@@ -7192,7 +7192,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         try:
             # For multithreaded binaries, the tcache symbol (in thread local
             # storage) will give us the correct address.
-            tcache_addr = gdb.parse_and_eval("(void *) tcache")
+            tcache_addr = parse_address("(void *) tcache")
         except gdb.error:
             # In binaries not linked with pthread (and therefore there is only
             # one thread), we can't use the tcache symbol, but we can guess the
@@ -8117,7 +8117,7 @@ class EntryPointBreakCommand(GenericCommand):
 
         for sym in entrypoints:
             try:
-                value = gdb.parse_and_eval(sym)
+                value = parse_address(sym)
                 info("Breaking at '{:s}'".format(str(value)))
                 bp = EntryBreakBreakpoint(sym)
                 gdb.execute("run {}".format(" ".join(argv)))
