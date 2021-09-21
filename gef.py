@@ -7149,7 +7149,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             gef_print(titlify("Tcachebins for thread {:d}".format(thread.num)))
             tcache_empty = True
             for i in range(self.TCACHE_MAX_BINS):
-                chunk, count = self.tcachebin(int(tcache_addr), i)
+                chunk, count = self.tcachebin(tcache_addr, i)
                 chunks = set()
                 msg = []
 
