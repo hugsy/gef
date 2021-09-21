@@ -8917,7 +8917,6 @@ class MemoryWatchCommand(GenericCommand):
             self.usage()
             return
 
-        address = to_unsigned_long(gdb.parse_and_eval(argv[0]))
         address = parse_address(argv[0])
         size    = parse_address(argv[1]) if len(argv) > 1 else 0x10
         group   = "byte"
