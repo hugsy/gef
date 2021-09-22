@@ -5299,7 +5299,6 @@ class PCustomCommand(GenericCommand):
         return
 
 
-
     def do_invoke(self, argv):
         argc = len(argv)
         if argc == 0:
