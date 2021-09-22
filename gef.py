@@ -998,6 +998,12 @@ class GlibcArena:
     def __int__(self):
         return self.__addr
 
+    def __iter__(self):
+        arena = self
+        while arena is not None:
+            yield arena
+            arena = arena.get_next()
+
     def fastbin(self, i):
         """Return head chunk in fastbinsY[i]."""
         addr = int(self.fastbinsY[i])
@@ -1268,15 +1274,7 @@ def get_glibc_arena(addr=None):
 
 def get_glibc_arenas(addr=None, get_all=True):
     arena = get_glibc_arena(addr)
-    arenas = [arena]
-    if not get_all:
-        return arenas
-    while True:
-        arena = arena.get_next()
-        if arena is None:
-            break
-        arenas.append(arena)
-    return arenas
+    return [arena for arena in iter(arena)] if get_all else [arena]
 
 
 def titlify(text, color=None, msg_color=None):
