@@ -7,7 +7,9 @@ LDFLAGS         =
 EXTRA_FLAGS     =
 BINDIR          =       /tmp
 
-ifeq ($(TARGET), x86)
+ifeq ($(TARGET), i686)
+CFLAGS          +=      -m32
+else ifeq ($(TARGET), i386)
 CFLAGS          +=      -m32
 endif
 

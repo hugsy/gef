@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 #
 # Run tests by spawning a gdb instance for every command.
+# A test is always executed against all architectures, unless the
+# decorators `include_for_architectures` and `exclude_for_architectures`
+# are used.
 #
+
 
 import re
 import unittest
@@ -14,11 +18,11 @@ from helpers import (
     gdb_start_silent_cmd_last_line,
     gdb_test_python_method,
     include_for_architectures,
-    exclude_for_architectures
+    exclude_for_architectures,
+    ARCH,
+    is_64b
 ) # pylint: disable=import-error
 
-ARCH = subprocess.check_output("uname --processor".split()).strip().decode("utf-8")
-IS_64B = subprocess.check_output("getconf LONG_BIT".split()).strip().decode("utf-8")
 
 class GdbAssertionError(AssertionError):
     pass
@@ -249,7 +253,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, before=before, target=target))
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        if IS_64B:
+        if is_64b():
             self.assertIn("Fastbins[idx=0, size=0x20]", res)
         self.assertIn("Chunk(addr=", res)
         return
@@ -268,7 +272,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         target = "/tmp/heap-non-main.out"
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        if IS_64B:
+        if is_64b():
             self.assertIn("Tcachebins[idx=0, size=0x20] count=1", res)
         return
 
@@ -277,7 +281,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         target = "/tmp/heap-tcache.out"
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        if IS_64B:
+        if is_64b():
             self.assertIn("Tcachebins[idx=0, size=0x20] count=3", res)
             self.assertIn("Tcachebins[idx=1, size=0x30] count=3", res)
         return
@@ -455,12 +459,14 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
         return
 
-    @include_for_architectures(valid_architectures=["x86_64", "aarch64"])
+    @include_for_architectures(["x86_64", "aarch64"])
     def test_cmd_pattern_search(self):
         if ARCH == "aarch64":
             r = "$x30"
-        if ARCH == "x86_64":
+        elif ARCH == "x86_64":
             r = "$rbp"
+        else:
+            raise ValueError("Invalid architecture")
 
         cmd = f"pattern search {r}"
         target = "/tmp/pattern.out"
@@ -857,17 +863,17 @@ class TestGdbFunctionsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target="/tmp/heap.out"))
         res = gdb_run_silent_cmd(cmd, target="/tmp/heap.out")
         self.assertNoException(res)
-        if IS_64B:  
+        if is_64b():
             self.assertIn("+0x0048:", res)
-        else:         
+        else:
             self.assertIn("+0x0024:", res)
 
         cmd = "deref $_heap(0x10+0x10)"
         res = gdb_run_silent_cmd(cmd, target="/tmp/heap.out")
         self.assertNoException(res)
-        if IS_64B:  
+        if is_64b():
             self.assertIn("+0x0048:", res)
-        else:         
+        else:
             self.assertIn("+0x0024:", res)
         return
 
@@ -892,7 +898,7 @@ class TestGdbFunctionsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        if IS_64B:
+        if is_64b():
             self.assertRegex(res, r"\+0x0*20: *0x0000000000000000\n")
         else:
             self.assertRegex(res, r"\+0x0.*20: *0x00000000\n")
@@ -907,7 +913,7 @@ class TestGefConfigUnit(GefUnitTestGeneric):
         res = gdb_run_cmd("entry-break", before=["gef config context.show_opcodes_size 4",])
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 1)
-        # output format: 0xaddress   opcode  <symbol+offset>   mnemo  [operands, ...] 
+        # output format: 0xaddress   opcode  <symbol+offset>   mnemo  [operands, ...]
         # example: 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
         self.assertRegex(res, r"(0x([0-9a-f]{2})+)\s+(([0-9a-f]{2})+)\s+<[^>]+>\s+(.*)")
         return
@@ -916,14 +922,19 @@ class TestGefConfigUnit(GefUnitTestGeneric):
 class TestNonRegressionUnit(GefUnitTestGeneric):
     """Non-regression tests."""
 
-    @include_for_architectures(["x86_64",])
+    @include_for_architectures(["x86_64", "i386"])
     def test_registers_show_registers_in_correct_order(self):
         """Ensure the registers are printed in the correct order (PR #670)."""
         cmd = "registers"
-        x64_registers_in_correct_order = ["$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip", "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", "$eflags", "$cs", ]
-        lines = gdb_start_silent_cmd(cmd).splitlines()[-len(x64_registers_in_correct_order):]
+        if ARCH == "i386":
+            registers_in_correct_order = ["$eax", "$ebx", "$ecx", "$edx", "$esp", "$ebp", "$esi", "$edi", "$eip", "$eflags", "$cs", ]
+        elif ARCH == "x86_64":
+            registers_in_correct_order = ["$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip", "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", "$eflags", "$cs", ]
+        else:
+            raise ValueError("Unknown architecture")
+        lines = gdb_start_silent_cmd(cmd).splitlines()[-len(registers_in_correct_order):]
         lines = [ line.split(' ')[0].replace(':', '') for line in lines ]
-        self.assertEqual(x64_registers_in_correct_order, lines)
+        self.assertEqual(registers_in_correct_order, lines)
         return
 
     @include_for_architectures(["x86_64",])

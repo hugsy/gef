@@ -7,8 +7,13 @@ import sys
 PATH_TO_DEFAULT_BINARY = "/tmp/default.out"
 STRIP_ANSI_DEFAULT = True
 DEFAULT_CONTEXT = "-code -stack"
-ARCH = subprocess.check_output("uname --processor".split()).strip().decode("utf-8")
+ARCH = os.getenv("GEF_CI_ARCH").lower() or subprocess.check_output("lscpu | head -1 | sed -e 's/Architecture:\s*//g'", shell=True).strip().decode("utf-8").lower()
 CI_VALID_ARCHITECTURES = ("x86_64", "i386", "aarch64", "armv7l")
+
+
+def is_64b():
+    return ARCH in ("x86_64", "aarch64")
+
 
 def ansi_clean(s):
     ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
@@ -95,26 +100,24 @@ def gdb_test_python_method(meth, before="", after="", target=PATH_TO_DEFAULT_BIN
 
 
 def include_for_architectures(valid_architectures: List[str] = CI_VALID_ARCHITECTURES ):
-    running_arch = os.environ.get("GEF_CI_ARCH", ARCH).lower()
     def wrapper(f):
         def inner_f(*args, **kwargs):
-            if running_arch in valid_architectures:
+            if ARCH in valid_architectures:
                 f(*args, **kwargs)
             else:
-                sys.stderr.write(f"SKIPPED for {running_arch}  ")
+                sys.stderr.write(f"SKIPPED for {ARCH}  ")
                 sys.stderr.flush()
         return inner_f
     return wrapper
 
 
 def exclude_for_architectures(invalid_architectures: List[str] = []):
-    running_arch = os.environ.get("GEF_CI_ARCH", ARCH).lower()
     def wrapper(f):
         def inner_f(*args, **kwargs):
-            if running_arch not in invalid_architectures:
+            if ARCH not in invalid_architectures:
                 f(*args, **kwargs)
             else:
-                sys.stderr.write(f"SKIPPED for {running_arch}  ")
+                sys.stderr.write(f"SKIPPED for {ARCH}  ")
                 sys.stderr.flush()
         return inner_f
     return wrapper
