@@ -998,6 +998,12 @@ class GlibcArena:
     def __int__(self):
         return self.__addr
 
+    def __iter__(self):
+        arena = self
+        while arena is not None:
+            yield arena
+            arena = arena.get_next()
+
     def fastbin(self, i):
         """Return head chunk in fastbinsY[i]."""
         addr = int(self.fastbinsY[i])
@@ -1056,8 +1062,11 @@ class GlibcArena:
         return ptr & ~(heap_max_size - 1)
 
     def __str__(self):
-        fmt = "Arena (base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
-        return fmt.format(self.__addr, self.top, self.last_remainder, self.n, self.nfree, self.sysmem)
+        fmt = "{:s}(base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
+        return fmt.format(
+            Color.colorify("Arena", "blue bold underline"),
+            self.__addr, self.top, self.last_remainder, self.n, self.nfree, self.sysmem
+        )
 
 
 class GlibcChunk:
@@ -1261,6 +1270,11 @@ def get_glibc_arena(addr=None):
     except Exception as e:
         err("Failed to get the glibc arena, heap commands may not work properly: {}".format(e))
         return None
+
+
+def get_glibc_arenas(addr=None, get_all=True):
+    arena = get_glibc_arena(addr)
+    return [arena for arena in iter(arena)] if get_all else [arena]
 
 
 def titlify(text, color=None, msg_color=None):
@@ -6924,17 +6938,9 @@ class GlibcHeapArenaCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        try:
-            arena = GlibcArena(__gef_current_arena__)
-        except gdb.error:
-            err("Could not find Glibc main arena")
-            return
-
-        while True:
-            gef_print("{}".format(arena))
-            arena = arena.get_next()
-            if arena is None:
-                break
+        arenas = get_glibc_arenas()
+        for arena in arenas:
+            gef_print(str(arena))
         return
 
 
@@ -6974,7 +6980,7 @@ class GlibcHeapChunksCommand(GenericCommand):
     the base address of a different arena can be passed"""
 
     _cmdline_ = "heap chunks"
-    _syntax_  = "{0} [-h] [--allow-unaligned] [arena_address]".format(_cmdline_)
+    _syntax_  = "{0} [-h] [--all] [--allow-unaligned] [arena_address]".format(_cmdline_)
     _example_ = "\n{0}\n{0} 0x555555775000".format(_cmdline_)
 
     def __init__(self):
@@ -6982,16 +6988,14 @@ class GlibcHeapChunksCommand(GenericCommand):
         self.add_setting("peek_nb_byte", 16, "Hexdump N first byte(s) inside the chunk data (0 to disable)")
         return
 
-    @parse_arguments({"arena_address": ""}, {"--allow-unaligned": True})
+    @parse_arguments({"arena_address": ""}, {("--all", "-a"): True, "--allow-unaligned": True})
     @only_if_gdb_running
     def do_invoke(self, *args, **kwargs):
         args = kwargs["arguments"]
 
-        arena = get_glibc_arena(addr=args.arena_address)
-        if arena is None:
-            err("No valid arena")
-            return
-        self.dump_chunks_arena(arena, allow_unaligned=args.allow_unaligned)
+        arenas = get_glibc_arenas(addr=args.arena_address, get_all=args.all)
+        for arena in arenas:
+            self.dump_chunks_arena(arena, print_arena=args.all, allow_unaligned=args.allow_unaligned)
 
     def dump_chunks_arena(self, arena, print_arena=False, allow_unaligned=False):
         top_chunk_addr = arena.top

@@ -193,7 +193,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_start_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn("Arena (base=", res)
+        self.assertIn("Arena(base=", res)
         return
 
     def test_cmd_heap_set_arena(self):
@@ -202,7 +202,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target, after=["heap arenas",])
         self.assertNoException(res)
-        self.assertIn("Arena (base=", res)
+        self.assertIn("Arena(base=", res)
         return
 
     def test_cmd_heap_chunk(self):

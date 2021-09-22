@@ -28,6 +28,14 @@ gef➤ heap chunks [arena_address]
 
 ![heap-chunks-arena](https://i.imgur.com/y1fybRx.png)
 
+In order to display the chunks of all the available arenas at once use
+
+```
+gef➤ heap chunks -a
+```
+
+![heap-chunks-all](https://i.imgur.com/pTjRJFo.png)
+
 Because usually the heap chunks are aligned to a certain number of bytes in
 memory GEF automatically re-aligns the chunks data start addresses to match
 Glibc's behavior. To be able to view unaligned chunks as well, you can disable
@@ -59,7 +67,7 @@ Multi-threaded programs have different arenas, and the knowledge of the
 to help you list all the arenas allocated in your program **at the moment you
 call the command**.
 
-![heap-arenas](https://i.imgur.com/ajbLiCF.png)
+![heap-arenas](https://i.imgur.com/RUTiADa.png)
 
 ### `heap set-arena` command ###
 
