@@ -18,9 +18,7 @@ from helpers import (
 ) # pylint: disable=import-error
 
 ARCH = subprocess.check_output("uname --processor".split()).strip().decode('utf-8')
-
-def is_64b():
-    return ARCH in ("x86_64", "aarch64")
+IS_64B = subprocess.check_output("getconf LONG_BIT".split()).strip().decode('utf-8')
 
 class GdbAssertionError(AssertionError):
     pass
@@ -251,7 +249,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, before=before, target=target))
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        if is_64b():
+        if IS_64B:
             self.assertIn("Fastbins[idx=0, size=0x20]", res)
         self.assertIn("Chunk(addr=", res)
         return
@@ -270,7 +268,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         target = "/tmp/heap-non-main.out"
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        if is_64b():
+        if IS_64B:
             self.assertIn("Tcachebins[idx=0, size=0x20] count=1", res)
         return
 
@@ -279,7 +277,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         target = "/tmp/heap-tcache.out"
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        if is_64b():
+        if IS_64B:
             self.assertIn("Tcachebins[idx=0, size=0x20] count=3", res)
             self.assertIn("Tcachebins[idx=1, size=0x30] count=3", res)
         return
@@ -859,13 +857,13 @@ class TestGdbFunctionsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target="/tmp/heap.out"))
         res = gdb_run_silent_cmd(cmd, target="/tmp/heap.out")
         self.assertNoException(res)
-        if is_64b():  self.assertIn("+0x0048:", res)
+        if IS_64B:  self.assertIn("+0x0048:", res)
         else:         self.assertIn("+0x0024:", res)
 
         cmd = "deref $_heap(0x10+0x10)"
         res = gdb_run_silent_cmd(cmd, target="/tmp/heap.out")
         self.assertNoException(res)
-        if is_64b():  self.assertIn("+0x0048:", res)
+        if IS_64B:  self.assertIn("+0x0048:", res)
         else:         self.assertIn("+0x0024:", res)
         return
 
@@ -890,7 +888,7 @@ class TestGdbFunctionsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        if is_64b():
+        if IS_64B:
             self.assertRegex(res, r"\+0x0*20: *0x0000000000000000\n")
         else:
             self.assertRegex(res, r"\+0x0.*20: *0x00000000\n")
@@ -905,7 +903,7 @@ class TestGefConfigUnit(GefUnitTestGeneric):
         res = gdb_run_cmd("entry-break", before=["gef config context.show_opcodes_size 4",])
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 1)
-        if is_64b():
+        if IS_64B:
             # match one of the following patterns
             # 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
             # 0x5555555546b5 488975e0    <main+11>        mov    QWORD PTR [rbp-0x20], rsi
