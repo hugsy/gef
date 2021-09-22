@@ -85,9 +85,9 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         #      0xaaaaaaaaa848 010040f9    <main+28>        ldr    x1, [x0]
         #      0xaaaaaaaaa84c e11f00f9    <main+32>        str    x1, [sp, #0x38]
         #      0xaaaaaaaaa850 010080d2    <main+36>        movz   x1, #0
-        self.assertTrue( line[0].startswith("0x") and int(line[0], 16) )
-        self.assertTrue( int(line[1], 16) )
-        self.assertTrue( line[2].startswith("<") and line[2].endswith(">") )
+        self.assertTrue(line[0].startswith("0x") and int(line[0], 16))
+        self.assertTrue(int(line[1], 16))
+        self.assertTrue(line[2].startswith("<") and line[2].endswith(">"))
 
         res = gdb_start_silent_cmd("cs --show-opcodes main")
         self.assertNoException(res)
@@ -577,13 +577,13 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         # get the initial stack address
         res = gdb_start_silent_cmd("vmmap", target=target)
         self.assertNoException(res)
-        stack_line = [ l.strip() for l in res.splitlines() if "[stack]" in l ][0]
+        stack_line = [l.strip() for l in res.splitlines() if "[stack]" in l][0]
         stack_address = int(stack_line.split()[0], 0)
 
         # compare the new permissions
         res = gdb_start_silent_cmd(f"set-permission {stack_address:#x}", after=[f"xinfo {stack_address:#x}",], target=target)
         self.assertNoException(res)
-        line = [ l.strip() for l in res.splitlines() if l.startswith("Permissions: ") ][0]
+        line = [l.strip() for l in res.splitlines() if l.startswith("Permissions: ")][0]
         self.assertEqual(line.split()[1], "rwx")
 
         res = gdb_start_silent_cmd("set-permission 0x1338000", target=target)
