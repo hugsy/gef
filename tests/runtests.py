@@ -232,6 +232,16 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("top chunk", res)
         return
 
+    def test_cmd_heap_chunks_mult_heaps(self):
+        before = ['run', 'python gdb.execute("heap set-arena {}".format(get_glibc_arena().next))']
+        cmd = "heap chunks"
+        target = "/tmp/heap-multiple-heaps.out"
+        res = gdb_run_silent_cmd(cmd, before=before, target=target)
+        self.assertNoException(res)
+        self.assertIn("Chunk(addr=", res)
+        self.assertIn("top chunk", res)
+        return
+
     def test_cmd_heap_bins_fast(self):
         cmd = "heap bins fast"
         before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]

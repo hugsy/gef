@@ -44,6 +44,6 @@ pattern.out: EXTRA_FLAGS := -D_FORTIFY_SOURCE=0 -fno-stack-protector
 
 canary.out: EXTRA_FLAGS := -fstack-protector-all
 
-heap-non-main.out heap-tcache.out: EXTRA_FLAGS := -pthread
+heap-non-main.out heap-tcache.out heap-multiple-heaps.out: EXTRA_FLAGS := -pthread
 
 default.out: EXTRA_FLAGS := -fstack-protector-all -fpie -pie
