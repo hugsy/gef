@@ -782,7 +782,7 @@ class Instruction:
 @lru_cache()
 def search_for_main_arena():
     global __gef_current_arena__
-    malloc_hook_addr = to_unsigned_long(gdb.parse_and_eval("(void *)&__malloc_hook"))
+    malloc_hook_addr = parse_address("(void *)&__malloc_hook")
 
     if is_x86():
         addr = align_address_to_size(malloc_hook_addr + current_arch.ptrsize, 0x20)
@@ -800,7 +800,7 @@ class MallocStateStruct:
 
     def __init__(self, addr):
         try:
-            self.__addr = to_unsigned_long(gdb.parse_and_eval("&{}".format(addr)))
+            self.__addr = parse_address("&{}".format(addr))
         except gdb.error:
             warn("Could not parse address '&{}' when searching malloc_state struct, "
                  "using '&main_arena' instead".format(addr))
@@ -3029,8 +3029,7 @@ def get_register(regname):
 @lru_cache()
 def __get_register_for_selected_frame(regname, hash_key):
     try:
-        value = gdb.parse_and_eval(regname)
-        return to_unsigned_long(value) if value.type.code == gdb.TYPE_CODE_INT else int(value)
+        return parse_address(regname)
     except gdb.error:
         assert regname[0] == "$"
         regname = regname[1:]
@@ -4272,7 +4271,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         if self.return_value:
             loc = int(self.return_value)
         else:
-            loc = to_unsigned_long(gdb.parse_and_eval(current_arch.return_register))
+            loc = parse_address(current_arch.return_register)
 
         size = self.size
         ok("{} - {}({})={:#x}".format(Color.colorify("Heap-Analysis", "yellow bold"), self.name, size, loc))
@@ -4358,7 +4357,7 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
         if self.return_value:
             newloc = int(self.return_value)
         else:
-            newloc = to_unsigned_long(gdb.parse_and_eval(current_arch.return_register))
+            newloc = parse_address(current_arch.return_register)
 
         if newloc != self:
             ok("{} - realloc({:#x}, {})={}".format(Color.colorify("Heap-Analysis", "yellow bold"),
@@ -4753,7 +4752,7 @@ class PrintFormatCommand(GenericCommand):
             err("Language must be in: {}".format(str(self.valid_formats)))
             return
 
-        start_addr = int(gdb.parse_and_eval(args.location))
+        start_addr = parse_address(args.location)
         size = int(args.bitlen / 8)
         end_addr = start_addr + args.length * size
         fmt = self.format_matrix[args.bitlen][0]
@@ -5326,7 +5325,7 @@ class PCustomCommand(GenericCommand):
             gdb.execute("pcustom show {}".format(structname))
         else:
             try:
-                address = int(gdb.parse_and_eval(argv[1]))
+                address = parse_address(argv[1])
             except gdb.error:
                 err("Failed to parse '{:s}'".format(argv[1]))
                 return
@@ -5833,7 +5832,7 @@ class IdaInteractCommand(GenericCommand):
         for bp in breakpoints:
             if bp.enabled and not bp.temporary:
                 if bp.location[0] == "*": # if it's an address i.e. location starts with "*"
-                    addr = int(gdb.parse_and_eval(bp.location[1:]))
+                    addr = parse_address(bp.location[1:])
                 else:  # it is a symbol
                     addr = int(gdb.parse_and_eval(bp.location).address)
                 if not (base_address <= addr < end_address):
@@ -5864,7 +5863,7 @@ class IdaInteractCommand(GenericCommand):
         for bp in breakpoints:
             if bp.enabled and not bp.temporary:
                 if bp.location[0] == "*": # if it's an address i.e. location starts with "*"
-                    addr = int(gdb.parse_and_eval(bp.location[1:]))
+                    addr = parse_address(bp.location[1:])
                 else:  # it is a symbol
                     addr = int(gdb.parse_and_eval(bp.location).address)
 
@@ -6968,7 +6967,7 @@ class GlibcHeapChunkCommand(GenericCommand):
         if get_glibc_arena() is None:
             return
 
-        addr = to_unsigned_long(gdb.parse_and_eval(args.address))
+        addr = parse_address(args.address)
         chunk = GlibcChunk(addr, allow_unaligned=args.allow_unaligned)
         gef_print(chunk.psprint())
         return
@@ -7153,7 +7152,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             gef_print(titlify("Tcachebins for thread {:d}".format(thread.num)))
             tcache_empty = True
             for i in range(self.TCACHE_MAX_BINS):
-                chunk, count = self.tcachebin(int(tcache_addr), i)
+                chunk, count = self.tcachebin(tcache_addr, i)
                 chunks = set()
                 msg = []
 
@@ -7196,7 +7195,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         try:
             # For multithreaded binaries, the tcache symbol (in thread local
             # storage) will give us the correct address.
-            tcache_addr = gdb.parse_and_eval("(void *) tcache")
+            tcache_addr = parse_address("(void *) tcache")
         except gdb.error:
             # In binaries not linked with pthread (and therefore there is only
             # one thread), we can't use the tcache symbol, but we can guess the
@@ -8121,7 +8120,7 @@ class EntryPointBreakCommand(GenericCommand):
 
         for sym in entrypoints:
             try:
-                value = gdb.parse_and_eval(sym)
+                value = parse_address(sym)
                 info("Breaking at '{:s}'".format(str(value)))
                 bp = EntryBreakBreakpoint(sym)
                 gdb.execute("run {}".format(" ".join(argv)))
@@ -8921,8 +8920,8 @@ class MemoryWatchCommand(GenericCommand):
             self.usage()
             return
 
-        address = to_unsigned_long(gdb.parse_and_eval(argv[0]))
-        size    = to_unsigned_long(gdb.parse_and_eval(argv[1])) if len(argv) > 1  else 0x10
+        address = parse_address(argv[0])
+        size    = parse_address(argv[1]) if len(argv) > 1 else 0x10
         group   = "byte"
 
         if len(argv) == 3:
@@ -8960,7 +8959,7 @@ class MemoryUnwatchCommand(GenericCommand):
             self.usage()
             return
 
-        address = to_unsigned_long(gdb.parse_and_eval(argv[0]))
+        address = parse_address(argv[0])
         res = __watches__.pop(address, None)
         if not res:
             warn("You weren't watching {:#x}".format(address))
@@ -9028,7 +9027,7 @@ class HexdumpCommand(GenericCommand):
 
         args = kwargs["arguments"]
         target = args.address or self.__last_target
-        start_addr = to_unsigned_long(gdb.parse_and_eval(target))
+        start_addr = parse_address(target)
         read_from = align_address(start_addr)
 
         if self.format == "byte":
@@ -9168,7 +9167,7 @@ class PatchCommand(GenericCommand):
             self.usage()
             return
 
-        addr = align_address(int(gdb.parse_and_eval(args.location)))
+        addr = align_address(parse_address(args.location))
         size, fcode = self.SUPPORTED_SIZES[self.format]
 
         d = endian_str()
@@ -9252,7 +9251,7 @@ class PatchStringCommand(GenericCommand):
             return
 
         location, s = argv[0:2]
-        addr = align_address(int(gdb.parse_and_eval(location)))
+        addr = align_address(parse_address(location))
 
         try:
             s = codecs.escape_decode(s)[0]
@@ -9697,7 +9696,7 @@ class XorMemoryDisplayCommand(GenericCommand):
             self.usage()
             return
 
-        address = int(gdb.parse_and_eval(argv[0]))
+        address = parse_address(argv[0])
         length = int(argv[1], 0)
         key = argv[2]
         block = read_memory(address, length)
@@ -9765,7 +9764,7 @@ class TraceRunCommand(GenericCommand):
 
         try:
             loc_start   = current_arch.pc
-            loc_end     = int(gdb.parse_and_eval(argv[0]))
+            loc_end     = parse_address(argv[0])
         except gdb.error as e:
             err("Invalid location: {:s}".format(e))
             return
@@ -10469,7 +10468,7 @@ class HeapBaseFunction(GenericFunction):
     @staticmethod
     def heap_base():
         try:
-            base = int(gdb.parse_and_eval("mp_->sbrk_base"))
+            base = parse_address("mp_->sbrk_base")
             if base != 0:
                 return base
         except gdb.error:
