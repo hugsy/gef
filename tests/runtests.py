@@ -77,7 +77,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) >= 5)
 
-        line = [x.strip() for x in res.splitlines()[9].strip().split()]
+        addr, opcode, symbol, *_ = [x.strip() for x in res.splitlines()[9].strip().split()]
         # match the correct output format: <addr> <opcode> [<symbol>] mnemonic [operands,]
         # gef➤  cs --show-opcodes --length 5 $pc
         # →    0xaaaaaaaaa840 80000090    <main+20>        adrp   x0, #0xaaaaaaaba000
@@ -85,9 +85,9 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         #      0xaaaaaaaaa848 010040f9    <main+28>        ldr    x1, [x0]
         #      0xaaaaaaaaa84c e11f00f9    <main+32>        str    x1, [sp, #0x38]
         #      0xaaaaaaaaa850 010080d2    <main+36>        movz   x1, #0
-        self.assertTrue(line[0].startswith("0x") and int(line[0], 16))
-        self.assertTrue(int(line[1], 16))
-        self.assertTrue(line[2].startswith("<") and line[2].endswith(">"))
+        self.assertTrue(addr.startswith("0x") and int(addr, 16))
+        self.assertTrue(int(opcode, 16))
+        self.assertTrue(symbol.startswith("<") and symbol.endswith(">"))
 
         res = gdb_start_silent_cmd("cs --show-opcodes main")
         self.assertNoException(res)
