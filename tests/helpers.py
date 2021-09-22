@@ -8,7 +8,7 @@ PATH_TO_DEFAULT_BINARY = "/tmp/default.out"
 STRIP_ANSI_DEFAULT = True
 DEFAULT_CONTEXT = "-code -stack"
 ARCH = subprocess.check_output("uname --processor".split()).strip().decode("utf-8")
-CI_VALID_ARCHITECTURES = ["x86_64", "i386", "aarch64", "armv7l"]
+CI_VALID_ARCHITECTURES = ("x86_64", "i386", "aarch64", "armv7l")
 
 def ansi_clean(s):
     ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")

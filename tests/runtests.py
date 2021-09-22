@@ -17,8 +17,8 @@ from helpers import (
     exclude_for_architectures
 ) # pylint: disable=import-error
 
-ARCH = subprocess.check_output("uname --processor".split()).strip().decode('utf-8')
-IS_64B = subprocess.check_output("getconf LONG_BIT".split()).strip().decode('utf-8')
+ARCH = subprocess.check_output("uname --processor".split()).strip().decode("utf-8")
+IS_64B = subprocess.check_output("getconf LONG_BIT".split()).strip().decode("utf-8")
 
 class GdbAssertionError(AssertionError):
     pass
@@ -122,7 +122,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("Unmapped address", res)
         return
 
-    @include_for_architectures(valid_architectures=["i386", "amd64", "arm", "arm64"])
+    @include_for_architectures(["i386", "amd64", "arm", "arm64"])
     def test_cmd_edit_flags(self):
         # force enable flag
         res = gdb_start_silent_cmd_last_line("edit-flags +carry")
@@ -857,14 +857,18 @@ class TestGdbFunctionsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target="/tmp/heap.out"))
         res = gdb_run_silent_cmd(cmd, target="/tmp/heap.out")
         self.assertNoException(res)
-        if IS_64B:  self.assertIn("+0x0048:", res)
-        else:         self.assertIn("+0x0024:", res)
+        if IS_64B:  
+            self.assertIn("+0x0048:", res)
+        else:         
+            self.assertIn("+0x0024:", res)
 
         cmd = "deref $_heap(0x10+0x10)"
         res = gdb_run_silent_cmd(cmd, target="/tmp/heap.out")
         self.assertNoException(res)
-        if IS_64B:  self.assertIn("+0x0048:", res)
-        else:         self.assertIn("+0x0024:", res)
+        if IS_64B:  
+            self.assertIn("+0x0048:", res)
+        else:         
+            self.assertIn("+0x0024:", res)
         return
 
     def test_func_got(self):
@@ -903,13 +907,9 @@ class TestGefConfigUnit(GefUnitTestGeneric):
         res = gdb_run_cmd("entry-break", before=["gef config context.show_opcodes_size 4",])
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 1)
-        if IS_64B:
-            # match one of the following patterns
-            # 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
-            # 0x5555555546b5 488975e0    <main+11>        mov    QWORD PTR [rbp-0x20], rsi
-            # 0x5555555546b9 488955d8    <main+15>        mov    QWORD PTR [rbp-0x28], rdx
-            # 0x5555555546bd 64488b04... <main+19>        mov    rax, QWORD PTR fs:0x28
-            self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2}){1,4}(\.\.\.)?\s+.*")
+        # output format: 0xaddress   opcode  <symbol+offset>   mnemo  [operands, ...] 
+        # example: 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
+        self.assertRegex(res, r"(0x([0-9a-f]{2})+)\s+(([0-9a-f]{2})+)\s+<[^>]+>\s+(.*)")
         return
 
 
