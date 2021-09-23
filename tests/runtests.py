@@ -78,8 +78,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("cs --show-opcodes --length 5 $pc")
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) >= 5)
-
-        addr, opcode, symbol, *_ = [x.strip() for x in res.splitlines()[9].strip().split()]
+        res = res[res.find("→  "):] # jump to the output buffer
+        addr, opcode, symbol, *_ = [x.strip() for x in res.splitlines()[2].strip().split()]
         # match the correct output format: <addr> <opcode> [<symbol>] mnemonic [operands,]
         # gef➤  cs --show-opcodes --length 5 $pc
         # →    0xaaaaaaaaa840 80000090    <main+20>        adrp   x0, #0xaaaaaaaba000
@@ -87,7 +87,9 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         #      0xaaaaaaaaa848 010040f9    <main+28>        ldr    x1, [x0]
         #      0xaaaaaaaaa84c e11f00f9    <main+32>        str    x1, [sp, #0x38]
         #      0xaaaaaaaaa850 010080d2    <main+36>        movz   x1, #0
-        self.assertTrue(addr.startswith("0x") and int(addr, 16))
+
+        self.assertTrue(addr.startswith("0x"))
+        self.assertTrue(int(addr, 16))
         self.assertTrue(int(opcode, 16))
         self.assertTrue(symbol.startswith("<") and symbol.endswith(">"))
 
@@ -126,7 +128,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("Unmapped address", res)
         return
 
-    @include_for_architectures(["i686", "amd64", "arm", "arm64"])
+    @include_for_architectures(["i686", "amd64", "armv7l", "aarch64"])
     def test_cmd_edit_flags(self):
         # force enable flag
         res = gdb_start_silent_cmd_last_line("edit-flags +carry")
