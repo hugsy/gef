@@ -3,24 +3,25 @@ import re
 import subprocess
 import os
 import sys
+import platform
 
 PATH_TO_DEFAULT_BINARY = "/tmp/default.out"
 STRIP_ANSI_DEFAULT = True
 DEFAULT_CONTEXT = "-code -stack"
-ARCH = (os.getenv("GEF_CI_ARCH") or subprocess.check_output(r"lscpu | head -1 | sed -e 's/Architecture:\s*//g'", shell=True).strip().decode("utf-8")).lower()
+ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()
 CI_VALID_ARCHITECTURES = ("x86_64", "i686", "aarch64", "armv7l")
 
 
-def is_64b():
+def is_64b() -> bool:
     return ARCH in ("x86_64", "aarch64")
 
 
-def ansi_clean(s):
+def ansi_clean(s: str) -> str:
     ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
     return ansi_escape.sub("", s)
 
 
-def gdb_run_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT):
+def gdb_run_cmd(cmd: str, before: List[str]=None, after: List[str]=None, target: str=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT) -> str:
     """Execute a command inside GDB. `before` and `after` are lists of commands to be executed
     before (resp. after) the command to test."""
     command = [
@@ -29,13 +30,13 @@ def gdb_run_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, str
         "-ex", "gef config gef.debug True"
     ]
 
-    if before:
-        for _ in before: command += ["-ex", _]
+    for _cmd in before:
+        command += ["-ex", _cmd]
 
     command += ["-ex", cmd]
 
-    if after:
-        for _ in after: command += ["-ex", _]
+    for _cmd in after:
+        command += ["-ex", _cmd]
 
     command += ["-ex", "quit", "--", target]
 
@@ -61,7 +62,7 @@ def gdb_run_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, str
     return result
 
 
-def gdb_run_silent_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT):
+def gdb_run_silent_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT) -> str:
     """Disable the output and run entirely the `target` binary."""
     if not before:
         before = []
@@ -72,12 +73,12 @@ def gdb_run_silent_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINA
     return gdb_run_cmd(cmd, before, after, target, strip_ansi)
 
 
-def gdb_run_cmd_last_line(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT):
+def gdb_run_cmd_last_line(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT) -> str:
     """Execute a command in GDB, and return only the last line of its output."""
     return gdb_run_cmd(cmd, before, after, target, strip_ansi).splitlines()[-1]
 
 
-def gdb_start_silent_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT, context=DEFAULT_CONTEXT):
+def gdb_start_silent_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT, context=DEFAULT_CONTEXT) -> str:
     """Execute a command in GDB by starting an execution context. This command disables the `context`
     and sets a tbreak at the most convenient entry point."""
     if not before:
@@ -89,12 +90,12 @@ def gdb_start_silent_cmd(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BI
     return gdb_run_cmd(cmd, before, after, target, strip_ansi)
 
 
-def gdb_start_silent_cmd_last_line(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT):
+def gdb_start_silent_cmd_last_line(cmd, before=None, after=None, target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT) -> str:
     """Execute `gdb_start_silent_cmd()` and return only the last line of its output."""
     return gdb_start_silent_cmd(cmd, before, after, target, strip_ansi).splitlines()[-1]
 
 
-def gdb_test_python_method(meth, before="", after="", target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT):
+def gdb_test_python_method(meth, before="", after="", target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT) -> str:
     cmd = "pi {}print({});{}".format(before+";" if before else "", meth, after)
     return gdb_start_silent_cmd(cmd, target=target, strip_ansi=strip_ansi)
 
