@@ -7,8 +7,8 @@ import sys
 PATH_TO_DEFAULT_BINARY = "/tmp/default.out"
 STRIP_ANSI_DEFAULT = True
 DEFAULT_CONTEXT = "-code -stack"
-ARCH = os.getenv("GEF_CI_ARCH").lower() or subprocess.check_output("lscpu | head -1 | sed -e 's/Architecture:\s*//g'", shell=True).strip().decode("utf-8").lower()
-CI_VALID_ARCHITECTURES = ("x86_64", "i386", "aarch64", "armv7l")
+ARCH = (os.getenv("GEF_CI_ARCH") or subprocess.check_output(r"lscpu | head -1 | sed -e 's/Architecture:\s*//g'", shell=True).strip().decode("utf-8")).lower()
+CI_VALID_ARCHITECTURES = ("x86_64", "i686", "aarch64", "armv7l")
 
 
 def is_64b():
@@ -99,7 +99,7 @@ def gdb_test_python_method(meth, before="", after="", target=PATH_TO_DEFAULT_BIN
     return gdb_start_silent_cmd(cmd, target=target, strip_ansi=strip_ansi)
 
 
-def include_for_architectures(valid_architectures: List[str] = CI_VALID_ARCHITECTURES ):
+def include_for_architectures(valid_architectures: List[str] = CI_VALID_ARCHITECTURES):
     def wrapper(f):
         def inner_f(*args, **kwargs):
             if ARCH in valid_architectures:

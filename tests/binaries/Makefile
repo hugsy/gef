@@ -9,8 +9,6 @@ BINDIR          =       /tmp
 
 ifeq ($(TARGET), i686)
 CFLAGS          +=      -m32
-else ifeq ($(TARGET), i386)
-CFLAGS          +=      -m32
 endif
 
 ifeq ($(DEBUG), 1)
