@@ -21,7 +21,7 @@ def ansi_clean(s: str) -> str:
     return ansi_escape.sub("", s)
 
 
-def gdb_run_cmd(cmd: str, before: List[str]=None, after: List[str]=None, target: str=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT) -> str:
+def gdb_run_cmd(cmd: str, before=None, after=None, target: str=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT) -> str:
     """Execute a command inside GDB. `before` and `after` are lists of commands to be executed
     before (resp. after) the command to test."""
     command = [
@@ -30,13 +30,15 @@ def gdb_run_cmd(cmd: str, before: List[str]=None, after: List[str]=None, target:
         "-ex", "gef config gef.debug True"
     ]
 
-    for _cmd in before:
-        command += ["-ex", _cmd]
+    if before:
+        for _cmd in before:
+            command += ["-ex", _cmd]
 
     command += ["-ex", cmd]
 
-    for _cmd in after:
-        command += ["-ex", _cmd]
+    if after:
+        for _cmd in after:
+            command += ["-ex", _cmd]
 
     command += ["-ex", "quit", "--", target]
 
