@@ -679,7 +679,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("Tracing from", res)
         return
 
-    @include_for_architectures(["x86_64", ])
+    @include_for_architectures(["x86_64"])
     def test_cmd_unicorn_emulate(self):
         nb_insn = 4
         cmd = "emu {}".format(nb_insn)
@@ -936,7 +936,7 @@ class TestNonRegressionUnit(GefUnitTestGeneric):
         else:
             raise ValueError("Unknown architecture")
         lines = gdb_start_silent_cmd(cmd).splitlines()[-len(registers_in_correct_order):]
-        lines = [ line.split(' ')[0].replace(':', '') for line in lines ]
+        lines = [line.split(' ')[0].replace(':', '') for line in lines]
         self.assertEqual(registers_in_correct_order, lines)
         return
 

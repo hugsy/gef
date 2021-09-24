@@ -4454,7 +4454,7 @@ class PrintFormatCommand(GenericCommand):
     def do_invoke(self, argv, *args, **kwargs):
         """Default value for print-format command."""
         args = kwargs["arguments"]
-        args.bitlen = args.bitlen or current_arch.ptrsize*2
+        args.bitlen = args.bitlen or current_arch.ptrsize * 2
 
         valid_bitlens = self.format_matrix.keys()
         if args.bitlen not in valid_bitlens:
