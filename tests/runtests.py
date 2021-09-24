@@ -18,7 +18,6 @@ from helpers import (
     gdb_start_silent_cmd_last_line,
     gdb_test_python_method,
     include_for_architectures,
-    exclude_for_architectures,
     ARCH,
     is_64b
 ) # pylint: disable=import-error
@@ -193,7 +192,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
     def test_cmd_gef_remote(self):
         def start_gdbserver(exe="/tmp/default.out", port=1234):
-            return subprocess.Popen(["gdbserver", ":{}".format(port), exe],
+            return subprocess.Popen(["gdbserver", f":{port}", exe],
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         def stop_gdbserver(gdbserver):
@@ -318,7 +317,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("calloc(32)=", res)
         addr = int(res.split("calloc(32)=")[1].split("\n")[0], 0)
         self.assertRegex(res, r"realloc\(.+, 48")
-        self.assertIn("free({:#x}".format(addr), res)
+        self.assertIn(f"free({addr:#x}", res)
         return
 
     def test_cmd_hexdump(self):
@@ -686,12 +685,12 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         ]
         for t in possible_themes:
             # testing command viewing
-            res = gdb_run_cmd("theme {}".format(t))
+            res = gdb_run_cmd(f"theme {t}")
             self.assertNoException(res)
 
             # testing command setting
             v = "blue blah 10 -1 0xfff bold"
-            res = gdb_run_cmd("theme {} {}".format(t, v))
+            res = gdb_run_cmd(f"theme {t} {v}")
             self.assertNoException(res)
         return
 
@@ -710,7 +709,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
     @include_for_architectures(["x86_64"])
     def test_cmd_unicorn_emulate(self):
         nb_insn = 4
-        cmd = "emu {}".format(nb_insn)
+        cmd = f"emu {nb_insn}"
         res = gdb_run_silent_cmd(cmd)
         self.assertFailIfInactiveSession(res)
 

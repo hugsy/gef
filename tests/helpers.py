@@ -89,7 +89,7 @@ def gdb_start_silent_cmd(cmd, before: List[str]=[], after: List[str]=[],
     disables the `context` and sets a tbreak at the most convenient entry
     point."""
     before += ["gef config context.clear_screen False",
-               "gef config context.layout '{}'".format(context),
+               f"gef config context.layout '{context}'",
                "entry-break"]
     return gdb_run_cmd(cmd, before, after, target, strip_ansi)
 
@@ -104,7 +104,8 @@ def gdb_start_silent_cmd_last_line(cmd, before: List[str]=[], after: List[str]=[
 def gdb_test_python_method(meth: str, before: str="", after: str="",
                            target: str=PATH_TO_DEFAULT_BINARY,
                            strip_ansi: bool=STRIP_ANSI_DEFAULT) -> str:
-    cmd = "pi {}print({});{}".format(before+";" if before else "", meth, after)
+    brk = before + ";" if before else ""
+    cmd = f"pi {brk}print({meth});{after}"
     return gdb_start_silent_cmd(cmd, target=target, strip_ansi=strip_ansi)
 
 
