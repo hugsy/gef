@@ -438,13 +438,15 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_patch_dword(self):
-        res = gdb_start_silent_cmd_last_line("patch dword $pc 0xcccccccc", after=["display/8bx $pc",])
+        res = gdb_start_silent_cmd_last_line("patch dword $pc 0xcccccccc",
+                                             after=["display/8bx $pc",])
         self.assertNoException(res)
         self.assertRegex(res, r"(0xcc\s*)(\1\1\1)0x[^c]{2}")
         return
 
     def test_cmd_patch_qword(self):
-        res = gdb_start_silent_cmd_last_line("patch qword $pc 0xcccccccccccccccc", after=["display/8bx $pc",])
+        res = gdb_start_silent_cmd_last_line("patch qword $pc 0xcccccccccccccccc",
+                                             after=["display/8bx $pc",])
         self.assertNoException(res)
         self.assertRegex(res, r"(0xcc\s*)(\1\1\1\1\1\1)0xcc")
         return
@@ -460,7 +462,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_patch_string(self):
-        res = gdb_start_silent_cmd_last_line("patch string $sp \"Gef!Gef!Gef!Gef!\"", after=["grep Gef!Gef!Gef!Gef!",])
+        res = gdb_start_silent_cmd_last_line("patch string $sp \"Gef!Gef!Gef!Gef!\"",
+                                             after=["grep Gef!Gef!Gef!Gef!",])
         self.assertNoException(res)
         self.assertIn("Gef!Gef!Gef!Gef!", res)
         return
@@ -490,13 +493,15 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
         cmd = f"pattern search {r}"
         target = "/tmp/pattern.out"
-        res = gdb_run_cmd(cmd, before=["set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run"], target=target)
+        res = gdb_run_cmd(cmd, before=["set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run"],
+                          target=target)
         self.assertNoException(res)
         self.assertIn("Found at offset", res)
 
         cmd = f"pattern search --period 8 {r}"
         target = "/tmp/pattern.out"
-        res = gdb_run_cmd(cmd, before=["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"], target=target)
+        res = gdb_run_cmd(cmd, before=["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"],
+                          target=target)
         self.assertNoException(res)
         self.assertIn("Found at offset", res)
         return
@@ -524,15 +529,18 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_process_search(self):
-        res = gdb_start_silent_cmd("process-search", target="/tmp/pattern.out", before=["set args w00tw00t", ])
+        res = gdb_start_silent_cmd("process-search", target="/tmp/pattern.out",
+                                   before=["set args w00tw00t", ])
         self.assertNoException(res)
         self.assertIn("/tmp/pattern.out", res)
 
-        res = gdb_start_silent_cmd("process-search gdb.*fakefake", target="/tmp/pattern.out", before=["set args w00tw00t", ])
+        res = gdb_start_silent_cmd("process-search gdb.*fakefake",
+                                   target="/tmp/pattern.out", before=["set args w00tw00t", ])
         self.assertNoException(res)
         self.assertIn("gdb", res)
 
-        res = gdb_start_silent_cmd("process-search --smart-scan gdb.*fakefake", target="/tmp/pattern.out", before=["set args w00tw00t", ])
+        res = gdb_start_silent_cmd("process-search --smart-scan gdb.*fakefake",
+                                   target="/tmp/pattern.out", before=["set args w00tw00t", ])
         self.assertNoException(res)
         self.assertNotIn("gdb", res)
         return
@@ -605,7 +613,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         stack_address = int(stack_line.split()[0], 0)
 
         # compare the new permissions
-        res = gdb_start_silent_cmd(f"set-permission {stack_address:#x}", after=[f"xinfo {stack_address:#x}",], target=target)
+        res = gdb_start_silent_cmd(f"set-permission {stack_address:#x}",
+                                   after=[f"xinfo {stack_address:#x}",], target=target)
         self.assertNoException(res)
         line = [l.strip() for l in res.splitlines() if l.startswith("Permissions: ")][0]
         self.assertEqual(line.split()[1], "rwx")
@@ -692,7 +701,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(res)
 
         cmd = "trace-run $pc+1"
-        res = gdb_start_silent_cmd(cmd, before=["gef config trace-run.tracefile_prefix /tmp/gef-trace-"])
+        res = gdb_start_silent_cmd(cmd,
+                                   before=["gef config trace-run.tracefile_prefix /tmp/gef-trace-"])
         self.assertNoException(res)
         self.assertIn("Tracing from", res)
         return
@@ -785,11 +795,14 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         add_res = gdb_start_silent_cmd("aliases add alias_function_test example")
         self.assertNoException(add_res)
         # test list functionality
-        list_res = gdb_start_silent_cmd("aliases ls", before=["aliases add alias_function_test example"])
+        list_res = gdb_start_silent_cmd("aliases ls",
+                                        before=["aliases add alias_function_test example"])
         self.assertNoException(list_res)
         self.assertIn("alias_function_test", list_res)
         # test rm functionality
-        rm_res = gdb_start_silent_cmd("aliases ls", before=["aliases add alias_function_test example", "aliases rm alias_function_test"])
+        rm_res = gdb_start_silent_cmd("aliases ls",
+                                      before=["aliases add alias_function_test example",
+                                              "aliases rm alias_function_test"])
         self.assertNoException(rm_res)
         self.assertNotIn("alias_function_test", rm_res)
         return
@@ -948,9 +961,12 @@ class TestNonRegressionUnit(GefUnitTestGeneric):
         """Ensure the registers are printed in the correct order (PR #670)."""
         cmd = "registers"
         if ARCH == "i686":
-            registers_in_correct_order = ["$eax", "$ebx", "$ecx", "$edx", "$esp", "$ebp", "$esi", "$edi", "$eip", "$eflags", "$cs", ]
+            registers_in_correct_order = ["$eax", "$ebx", "$ecx", "$edx", "$esp", "$ebp", "$esi",
+                                          "$edi", "$eip", "$eflags", "$cs", ]
         elif ARCH == "x86_64":
-            registers_in_correct_order = ["$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip", "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", "$eflags", "$cs", ]
+            registers_in_correct_order = ["$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi",
+                                          "$rdi", "$rip", "$r8", "$r9", "$r10", "$r11", "$r12",
+                                          "$r13", "$r14", "$r15", "$eflags", "$cs", ]
         else:
             raise ValueError("Unknown architecture")
         lines = gdb_start_silent_cmd(cmd).splitlines()[-len(registers_in_correct_order):]
@@ -961,7 +977,8 @@ class TestNonRegressionUnit(GefUnitTestGeneric):
     @include_for_architectures(["x86_64",])
     def test_context_correct_registers_refresh_with_frames(self):
         """Ensure registers are correctly refreshed when changing frame (PR #668)"""
-        lines = gdb_run_silent_cmd("registers", after=["frame 5", "registers"], target="/tmp/nested.out").splitlines()
+        lines = gdb_run_silent_cmd("registers", after=["frame 5", "registers"],
+                                   target="/tmp/nested.out").splitlines()
         rips = [ x for x in lines if x.startswith("$rip") ]
         self.assertEqual(len(rips), 2) # we must have only 2 entries
         self.assertNotEqual(rips[0], rips[1]) # they must be different
