@@ -67,7 +67,7 @@ def gdb_run_cmd(cmd: str, before: List[str]=[], after: List[str]=[],
 
 def gdb_run_silent_cmd(cmd, before: List[str]=[], after: List[str]=[],
                        target: str=PATH_TO_DEFAULT_BINARY,
-                       strip_ansi: str=STRIP_ANSI_DEFAULT) -> str:
+                       strip_ansi: bool=STRIP_ANSI_DEFAULT) -> str:
     """Disable the output and run entirely the `target` binary."""
     before += ["gef config context.clear_screen False",
                "gef config context.layout '-code -stack'",
@@ -103,7 +103,7 @@ def gdb_start_silent_cmd_last_line(cmd, before: List[str]=[], after: List[str]=[
 
 def gdb_test_python_method(meth: str, before: str="", after: str="",
                            target: str=PATH_TO_DEFAULT_BINARY,
-                           strip_ansi: str=STRIP_ANSI_DEFAULT) -> str:
+                           strip_ansi: bool=STRIP_ANSI_DEFAULT) -> str:
     cmd = "pi {}print({});{}".format(before+";" if before else "", meth, after)
     return gdb_start_silent_cmd(cmd, target=target, strip_ansi=strip_ansi)
 
