@@ -1,4 +1,5 @@
-void f10(){ __builtin_trap(); }
+#include "utils.h"
+void f10(){ DebugBreak(); }
 void f9(){ f10(); }
 void f8(){ f9(); }
 void f7(){ f8(); }

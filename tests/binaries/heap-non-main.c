@@ -6,13 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include "utils.h"
 
 void *thread()
 {
         void* p1 = malloc(0x18);
         void* p2 = malloc(0x18);
         free(p1);
-        __builtin_trap();
+        DebugBreak();
         (void)p2;
 
         return NULL;

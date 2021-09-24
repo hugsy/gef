@@ -14,6 +14,8 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+#include "utils.h"
+
 int main(int argc, char** argv, char** envp)
 {
         void *p = mmap((void *)0x1337000,
@@ -26,7 +28,7 @@ int main(int argc, char** argv, char** envp)
         if( p == (void *)-1)
                 return EXIT_FAILURE;
 
-        __builtin_trap();
+        DebugBreak();
 
         return EXIT_SUCCESS;
 }

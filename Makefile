@@ -4,7 +4,7 @@ PYLINT_ENABLE := F,E,unreachable,duplicate-key,unnecessary-semicolon,global-vari
 PYLINT_JOBS := $(NB_CORES)
 PYLINT_SUGGEST_FIX := y
 PYLINT_PARAMETERS := --disable=$(PYLINT_DISABLE) --enable=$(PYLINT_ENABLE) --jobs=$(PYLINT_JOBS) --suggestion-mode=$(PYLINT_SUGGEST_FIX) --exit-zero
-
+TARGET := $(shell lscpu | head -1 | sed -e 's/Architecture:\s*//g')
 
 test: testbins
 	@cp gef.py /tmp/gef.py
@@ -20,7 +20,7 @@ Test%: testbins
 	@rm -f /tmp/gef-*
 
 testbins: tests/binaries/*.c
-	@$(MAKE) -j $(NB_CORES) -C tests/binaries all
+	@$(MAKE) -j $(NB_CORES) -C tests/binaries TARGET=$(TARGET) all
 
 lint:
 	python3 -m pylint $(PYLINT_PARAMETERS) gef.py

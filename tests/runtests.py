@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 #
 # Run tests by spawning a gdb instance for every command.
+# A test is always executed against all architectures, unless the
+# decorators `include_for_architectures` and `exclude_for_architectures`
+# are used.
 #
+
 
 import re
 import unittest
@@ -14,7 +18,9 @@ from helpers import (
     gdb_start_silent_cmd_last_line,
     gdb_test_python_method,
     include_for_architectures,
-    exclude_for_architectures
+    exclude_for_architectures,
+    ARCH,
+    is_64b
 ) # pylint: disable=import-error
 
 
@@ -69,14 +75,27 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertTrue(len(res.splitlines()) > 1)
 
         self.assertFailIfInactiveSession(gdb_run_cmd("cs --show-opcodes"))
-        res = gdb_start_silent_cmd("cs --show-opcodes $pc")
+        res = gdb_start_silent_cmd("cs --show-opcodes --length 5 $pc")
         self.assertNoException(res)
-        self.assertTrue(len(res.splitlines()) > 1)
-        # match the following pattern
-        # 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
-        self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2})+\s+.*")
+        self.assertTrue(len(res.splitlines()) >= 5)
+        res = res[res.find("→  "):] # jump to the output buffer
+        addr, opcode, symbol, *_ = [x.strip() for x in res.splitlines()[2].strip().split()]
+        # match the correct output format: <addr> <opcode> [<symbol>] mnemonic [operands,]
+        # gef➤  cs --show-opcodes --length 5 $pc
+        # →    0xaaaaaaaaa840 80000090    <main+20>        adrp   x0, #0xaaaaaaaba000
+        #      0xaaaaaaaaa844 00f047f9    <main+24>        ldr    x0, [x0, #0xfe0]
+        #      0xaaaaaaaaa848 010040f9    <main+28>        ldr    x1, [x0]
+        #      0xaaaaaaaaa84c e11f00f9    <main+32>        str    x1, [sp, #0x38]
+        #      0xaaaaaaaaa850 010080d2    <main+36>        movz   x1, #0
+
+        self.assertTrue(addr.startswith("0x"))
+        self.assertTrue(int(addr, 16))
+        self.assertTrue(int(opcode, 16))
+        self.assertTrue(symbol.startswith("<") and symbol.endswith(">"))
+
         res = gdb_start_silent_cmd("cs --show-opcodes main")
         self.assertNoException(res)
+        self.assertTrue(len(res.splitlines()) > 1)
         return
 
     def test_cmd_checksec(self):
@@ -103,13 +122,13 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("dereference $sp")
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 2)
-        self.assertIn("$rsp", res)
 
         res = gdb_start_silent_cmd("dereference 0x0")
         self.assertNoException(res)
         self.assertIn("Unmapped address", res)
         return
 
+    @include_for_architectures(["i686", "amd64", "armv7l", "aarch64"])
     def test_cmd_edit_flags(self):
         # force enable flag
         res = gdb_start_silent_cmd_last_line("edit-flags +carry")
@@ -120,9 +139,14 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertIn("carry ", res)
         # toggle flag
+        res = gdb_start_silent_cmd_last_line("edit-flags")
+        flag_set = "CARRY " in res
         res = gdb_start_silent_cmd_last_line("edit-flags ~carry")
         self.assertNoException(res)
-        self.assertIn("CARRY ", res)
+        if flag_set:
+            self.assertIn("carry ", res)
+        else:
+            self.assertIn("CARRY ", res)
         return
 
     def test_cmd_elf_info(self):
@@ -249,7 +273,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, before=before, target=target))
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        self.assertIn("Fastbins[idx=0, size=0x20]", res)
+        # ensure fastbins is populated
+        self.assertIn("Fastbins[idx=0, size=", res)
         self.assertIn("Chunk(addr=", res)
         return
 
@@ -267,7 +292,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         target = "/tmp/heap-non-main.out"
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn("Tcachebins[idx=0, size=0x20] count=1", res)
+        # ensure tcachebins is populated
+        self.assertIn("Tcachebins[idx=", res)
         return
 
     def test_cmd_heap_bins_tcache_all(self):
@@ -275,8 +301,9 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         target = "/tmp/heap-tcache.out"
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn("Tcachebins[idx=0, size=0x20] count=3", res)
-        self.assertIn("Tcachebins[idx=1, size=0x30] count=3", res)
+        # ensure there's 2 tcachebins
+        tcachebins_lines = [x for x in res.splitlines() if x.startswith("Tcachebins[idx=")]
+        self.assertTrue(len(tcachebins_lines) == 2)
         return
 
     def test_cmd_heap_analysis(self):
@@ -361,12 +388,10 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
         res = gdb_start_silent_cmd("nb foobar")
         self.assertNoException(res)
-
         return
 
     def test_cmd_keystone_assemble(self):
         valid_cmds = [
-            "assemble nop; xor eax, eax; syscall",
             "assemble --arch arm   --mode arm                  add  r0, r1, r2",
             "assemble --arch arm   --mode arm     --endian big add  r0, r1, r2",
             "assemble --arch arm   --mode thumb                add  r0, r1, r2",
@@ -375,7 +400,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
             "assemble --arch arm   --mode armv8   --endian big add  r0, r1, r2",
             "assemble --arch arm   --mode thumbv8              add  r0, r1, r2",
             "assemble --arch arm   --mode thumbv8 --endian big add  r0, r1, r2",
-            "assemble --arch arm64 --mode aarch64 add x29, sp, 0; mov  w0, 0; ret",
+            "assemble --arch arm64 --mode 0                    add x29, sp, 0; mov  w0, 0; ret",
             "assemble --arch mips  --mode mips32               add $v0, 1",
             "assemble --arch mips  --mode mips32  --endian big add $v0, 1",
             "assemble --arch mips  --mode mips64               add $v0, 1",
@@ -454,14 +479,22 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
         return
 
+    @include_for_architectures(["x86_64", "aarch64"])
     def test_cmd_pattern_search(self):
-        cmd = "pattern search $rbp"
+        if ARCH == "aarch64":
+            r = "$x30"
+        elif ARCH == "x86_64":
+            r = "$rbp"
+        else:
+            raise ValueError("Invalid architecture")
+
+        cmd = f"pattern search {r}"
         target = "/tmp/pattern.out"
         res = gdb_run_cmd(cmd, before=["set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run"], target=target)
         self.assertNoException(res)
         self.assertIn("Found at offset", res)
 
-        cmd = "pattern search --period 8 $rbp"
+        cmd = f"pattern search --period 8 {r}"
         target = "/tmp/pattern.out"
         res = gdb_run_cmd(cmd, before=["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"], target=target)
         self.assertNoException(res)
@@ -470,13 +503,13 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
     def test_cmd_print_format(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("print-format"))
-        res = gdb_start_silent_cmd("print-format $rsp")
+        res = gdb_start_silent_cmd("print-format $sp")
         self.assertNoException(res)
         self.assertTrue("buf = [" in res)
-        res = gdb_start_silent_cmd("print-format --lang js $rsp")
+        res = gdb_start_silent_cmd("print-format --lang js $sp")
         self.assertNoException(res)
         self.assertTrue("var buf = [" in res)
-        res = gdb_start_silent_cmd("print-format --lang iDontExist $rsp")
+        res = gdb_start_silent_cmd("print-format --lang iDontExist $sp")
         self.assertNoException(res)
         self.assertTrue("Language must be in:" in res)
         return
@@ -504,12 +537,24 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNotIn("gdb", res)
         return
 
+    @include_for_architectures(["aarch64", "armv7l", "x86_64", "i686"])
     def test_cmd_registers(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("registers"))
         res = gdb_start_silent_cmd("registers")
         self.assertNoException(res)
-        self.assertIn("$rax", res)
-        self.assertIn("$eflags", res)
+        if ARCH in ("aarch64",):
+            self.assertIn("$x0", res)
+            self.assertIn("$cpsr", res)
+        elif ARCH in ("armv7l", ):
+            self.assertIn("$r0", res)
+            self.assertIn("$lr", res)
+            self.assertIn("$cpsr", res)
+        elif ARCH in ("x86_64", ):
+            self.assertIn("$rax", res)
+            self.assertIn("$eflags", res)
+        elif ARCH in ("i686", ):
+            self.assertIn("$eax", res)
+            self.assertIn("$eflags", res)
         return
 
     def test_cmd_reset_cache(self):
@@ -517,6 +562,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNoException(res)
         return
 
+    @include_for_architectures(["x86_64", "i686"])
     def test_cmd_ropper(self):
         cmd = "ropper"
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
@@ -539,7 +585,6 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("scan binary libc", target=target)
         self.assertNoException(res)
         self.assertIn("__libc_start_main", res)
-
         return
 
     def test_cmd_search_pattern(self):
@@ -553,11 +598,17 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd("set-permission"))
         target = "/tmp/set-permission.out"
 
-        res = gdb_start_silent_cmd("set-permission $sp", after=["vmmap",], target=target)
+        # get the initial stack address
+        res = gdb_start_silent_cmd("vmmap", target=target)
         self.assertNoException(res)
-        line = [ l for l in res.splitlines() if "[stack]" in l ][0]
-        parts = line.split()
-        self.assertEqual(parts[3], "rwx")
+        stack_line = [l.strip() for l in res.splitlines() if "[stack]" in l][0]
+        stack_address = int(stack_line.split()[0], 0)
+
+        # compare the new permissions
+        res = gdb_start_silent_cmd(f"set-permission {stack_address:#x}", after=[f"xinfo {stack_address:#x}",], target=target)
+        self.assertNoException(res)
+        line = [l.strip() for l in res.splitlines() if l.startswith("Permissions: ")][0]
+        self.assertEqual(line.split()[1], "rwx")
 
         res = gdb_start_silent_cmd("set-permission 0x1338000", target=target)
         self.assertNoException(res)
@@ -646,6 +697,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("Tracing from", res)
         return
 
+    @include_for_architectures(["x86_64"])
     def test_cmd_unicorn_emulate(self):
         nb_insn = 4
         cmd = "emu {}".format(nb_insn)
@@ -653,10 +705,11 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(res)
 
         target = "/tmp/unicorn.out"
-        before = ["break function1", "si"]
+        before = ["break function1", ]
+        after = ["si", ]
         start_marker = "= Starting emulation ="
         end_marker = "Final registers"
-        res = gdb_run_silent_cmd(cmd, target=target, before=before)
+        res = gdb_run_silent_cmd(cmd, target=target, before=before, after=after)
         self.assertNoException(res)
         self.assertNotIn("Emulation failed", res)
         self.assertIn(start_marker, res)
@@ -707,14 +760,15 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("Patching XOR-ing ", res)
         return
 
-    def test_cmd_highlight(self):
+    @include_for_architectures(["x86_64", "aarch64"])
+    def test_cmd_highlight_x86(self):
         cmds = [
             "highlight add 41414141 yellow",
             "highlight add 42424242 blue",
             "highlight add 43434343 green",
             "highlight add 44444444 pink",
-            'patch string $rsp "AAAABBBBCCCCDDDD"',
-            "hexdump qword $rsp -s 2"
+            'patch string $sp "AAAABBBBCCCCDDDD"',
+            "hexdump qword $sp -s 2"
         ]
 
         res = gdb_start_silent_cmd('', after=cmds, strip_ansi=False)
@@ -749,6 +803,7 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
         self.assertIn(res.splitlines()[-1], ("4", "8"))
         return
 
+    @include_for_architectures(["x86_64", "i686"])
     def test_func_set_arch(self):
         res = gdb_test_python_method("current_arch.arch, current_arch.mode", before="set_arch()")
         res = (res.splitlines()[-1])
@@ -829,12 +884,18 @@ class TestGdbFunctionsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target="/tmp/heap.out"))
         res = gdb_run_silent_cmd(cmd, target="/tmp/heap.out")
         self.assertNoException(res)
-        self.assertIn("+0x0048:", res)
+        if is_64b():
+            self.assertIn("+0x0048:", res)
+        else:
+            self.assertIn("+0x0024:", res)
 
         cmd = "deref $_heap(0x10+0x10)"
         res = gdb_run_silent_cmd(cmd, target="/tmp/heap.out")
         self.assertNoException(res)
-        self.assertIn("+0x0048:", res)
+        if is_64b():
+            self.assertIn("+0x0048:", res)
+        else:
+            self.assertIn("+0x0024:", res)
         return
 
     def test_func_got(self):
@@ -858,7 +919,10 @@ class TestGdbFunctionsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertRegex(res, r"\+0x0*20: *0x0000000000000000\n")
+        if is_64b():
+            self.assertRegex(res, r"\+0x0*20: *0x0000000000000000\n")
+        else:
+            self.assertRegex(res, r"\+0x0.*20: *0x00000000\n")
         return
 
 
@@ -870,28 +934,31 @@ class TestGefConfigUnit(GefUnitTestGeneric):
         res = gdb_run_cmd("entry-break", before=["gef config context.show_opcodes_size 4",])
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) > 1)
-        # match one of the following patterns
-        # 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
-        # 0x5555555546b5 488975e0    <main+11>        mov    QWORD PTR [rbp-0x20], rsi
-        # 0x5555555546b9 488955d8    <main+15>        mov    QWORD PTR [rbp-0x28], rdx
-        # 0x5555555546bd 64488b04... <main+19>        mov    rax, QWORD PTR fs:0x28
-        self.assertRegex(res, r"0x.{12}\s([0-9a-f]{2}){1,4}(\.\.\.)?\s+.*")
+        # output format: 0xaddress   opcode  <symbol+offset>   mnemo  [operands, ...]
+        # example: 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
+        self.assertRegex(res, r"(0x([0-9a-f]{2})+)\s+(([0-9a-f]{2})+)\s+<[^>]+>\s+(.*)")
         return
 
 
 class TestNonRegressionUnit(GefUnitTestGeneric):
     """Non-regression tests."""
 
+    @include_for_architectures(["x86_64", "i686"])
     def test_registers_show_registers_in_correct_order(self):
         """Ensure the registers are printed in the correct order (PR #670)."""
         cmd = "registers"
-        x64_registers_in_correct_order = ["$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip", "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", "$eflags", "$cs", ]
-        lines = gdb_start_silent_cmd(cmd).splitlines()[-len(x64_registers_in_correct_order):]
-        lines = [ line.split(' ')[0].replace(':', '') for line in lines ]
-        self.assertEqual(x64_registers_in_correct_order, lines)
+        if ARCH == "i686":
+            registers_in_correct_order = ["$eax", "$ebx", "$ecx", "$edx", "$esp", "$ebp", "$esi", "$edi", "$eip", "$eflags", "$cs", ]
+        elif ARCH == "x86_64":
+            registers_in_correct_order = ["$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip", "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", "$eflags", "$cs", ]
+        else:
+            raise ValueError("Unknown architecture")
+        lines = gdb_start_silent_cmd(cmd).splitlines()[-len(registers_in_correct_order):]
+        lines = [line.split(' ')[0].replace(':', '') for line in lines]
+        self.assertEqual(registers_in_correct_order, lines)
         return
 
-
+    @include_for_architectures(["x86_64",])
     def test_context_correct_registers_refresh_with_frames(self):
         """Ensure registers are correctly refreshed when changing frame (PR #668)"""
         lines = gdb_run_silent_cmd("registers", after=["frame 5", "registers"], target="/tmp/nested.out").splitlines()
