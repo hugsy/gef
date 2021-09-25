@@ -356,7 +356,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNotIn("cafebabe", res)
         res = gdb_start_silent_cmd("memory watch &myglobal",
                 before=["set args 0xcafebabe",],
-                after=["continue", ],
+                after=["continue"],
                 target=target,
                 context="memory")
         self.assertIn("cafebabe", res)
@@ -529,17 +529,17 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
     def test_cmd_process_search(self):
         res = gdb_start_silent_cmd("process-search", target="/tmp/pattern.out",
-                                   before=["set args w00tw00t", ])
+                                   before=["set args w00tw00t"])
         self.assertNoException(res)
         self.assertIn("/tmp/pattern.out", res)
 
         res = gdb_start_silent_cmd("process-search gdb.*fakefake",
-                                   target="/tmp/pattern.out", before=["set args w00tw00t", ])
+                                   target="/tmp/pattern.out", before=["set args w00tw00t"])
         self.assertNoException(res)
         self.assertIn("gdb", res)
 
         res = gdb_start_silent_cmd("process-search --smart-scan gdb.*fakefake",
-                                   target="/tmp/pattern.out", before=["set args w00tw00t", ])
+                                   target="/tmp/pattern.out", before=["set args w00tw00t"])
         self.assertNoException(res)
         self.assertNotIn("gdb", res)
         return
@@ -714,8 +714,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(res)
 
         target = "/tmp/unicorn.out"
-        before = ["break function1", ]
-        after = ["si", ]
+        before = ["break function1"]
+        after = ["si"]
         start_marker = "= Starting emulation ="
         end_marker = "Final registers"
         res = gdb_run_silent_cmd(cmd, target=target, before=before, after=after)
@@ -961,11 +961,11 @@ class TestNonRegressionUnit(GefUnitTestGeneric):
         cmd = "registers"
         if ARCH == "i686":
             registers_in_correct_order = ["$eax", "$ebx", "$ecx", "$edx", "$esp", "$ebp", "$esi",
-                                          "$edi", "$eip", "$eflags", "$cs", ]
+                                          "$edi", "$eip", "$eflags", "$cs"]
         elif ARCH == "x86_64":
             registers_in_correct_order = ["$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi",
                                           "$rdi", "$rip", "$r8", "$r9", "$r10", "$r11", "$r12",
-                                          "$r13", "$r14", "$r15", "$eflags", "$cs", ]
+                                          "$r13", "$r14", "$r15", "$eflags", "$cs"]
         else:
             raise ValueError("Unknown architecture")
         lines = gdb_start_silent_cmd(cmd).splitlines()[-len(registers_in_correct_order):]
