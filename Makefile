@@ -1,7 +1,7 @@
 NB_CORES := $(shell grep --count '^processor' /proc/cpuinfo)
 PYLINT_DISABLE:= all
-PYLINT_ENABLE := F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode
-PYLINT_TEST_ENABLE := $(PYLINT_ENABLE),line-too-long,multiple-statements,unused-import,consider-using-f-string,dangerous-default-value
+PYLINT_ENABLE := F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode,dangerous-default-value,trailing-whitespace,unneeded-not,singleton-comparison,unused-import
+PYLINT_TEST_ENABLE := $(PYLINT_ENABLE),line-too-long,multiple-statements,consider-using-f-string
 PYLINT_JOBS := $(NB_CORES)
 PYLINT_SUGGEST_FIX := y
 PYLINT_COMMON_PARAMETERS := --jobs=$(PYLINT_JOBS) --suggestion-mode=$(PYLINT_SUGGEST_FIX) --exit-zero
