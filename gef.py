@@ -10700,7 +10700,7 @@ class GefCommand(gdb.Command):
         # assure users can toggle the new context
         corrected_settings_name = pane_name.replace(" ", "_")
         layout_settings = context_obj.get_setting("layout")
-        context_obj.update_setting("layout", layout_settings+f" {corrected_settings_name} ")
+        context_obj.update_setting("layout", layout_settings+f" {corrected_settings_name}")
 
         # overload the printing of pane title
         context_obj.layout_mapping[corrected_settings_name] = (pane_function, pane_name)
