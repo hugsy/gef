@@ -4522,9 +4522,27 @@ class NamedBreakpoint(gdb.Breakpoint):
 
 
 #
-# Commands
+# Context Panes
 #
 
+def register_external_context_pane(pane_name, pane_function):
+    """
+    Registering function for new GEF Context View. Dynamic pane titles are not supported.
+
+    Example Usage:
+    __start_time__ = int(time.time())
+    def wasted_time_debugging():
+        global __start_time__
+        gef_print(f"{int(time.time()) - __start_time__} seconds!")
+
+    register_external_context_pane("wasted time debugging", wasted_time_debugging)
+    """
+    return __gef__.add_context_pane(pane_name, pane_function)
+
+
+#
+# Commands
+#
 
 def register_external_command(obj):
     """Registering function for new GEF (sub-)command to GDB."""
@@ -4634,6 +4652,22 @@ class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
     def has_setting(self, name):
         key = self.__get_setting_name(name)
         return key in __config__
+
+    def update_setting(self, name, value, description=None):
+        """
+        Function to allow for internal commands to update the value
+        of a setting without destroying the description.
+        """
+        # make sure settings are always associated to the root command (which derives from GenericCommand)
+        if "GenericCommand" not in [x.__name__ for x in self.__class__.__bases__]:
+            return
+        key = self.__get_setting_name(name)
+        __config__[key][0] = value
+        __config__[key][1] = type(value)
+        if description:
+            __config__[key][3] = description
+        get_gef_setting.cache_clear()
+        return
 
     def add_setting(self, name, value, description=""):
         # make sure settings are always associated to the root command (which derives from GenericCommand)
@@ -8232,18 +8266,20 @@ class ContextCommand(GenericCommand):
         if "capstone" in list(sys.modules.keys()):
             self.add_setting("use_capstone", False, "Use capstone as disassembler in the code pane (instead of GDB)")
 
-        self.layout_mapping = {
-            "legend":  self.show_legend,
-            "regs":  self.context_regs,
-            "stack": self.context_stack,
-            "code": self.context_code,
-            "args": self.context_args,
-            "memory": self.context_memory,
-            "source": self.context_source,
-            "trace": self.context_trace,
-            "threads": self.context_threads,
-            "extra": self.context_additional_information,
-        }
+        self.layout_mapping = collections.OrderedDict(
+            {
+                "legend": (self.show_legend, None),
+                "regs": (self.context_regs, None),
+                "stack": (self.context_stack, None),
+                "code": (self.context_code, None),
+                "args": (self.context_args, None),
+                "memory": (self.context_memory, None),
+                "source": (self.context_source, None),
+                "trace": (self.context_trace, None),
+                "threads": (self.context_threads, None),
+                "extra": (self.context_additional_information, None),
+            }
+        )
         return
 
     def post_load(self):
@@ -8296,7 +8332,10 @@ class ContextCommand(GenericCommand):
                 continue
 
             try:
-                self.layout_mapping[section]()
+                pane_function, corrected_title = self.layout_mapping[section]
+                if corrected_title:
+                    self.context_title(corrected_title)
+                pane_function()
             except gdb.MemoryError as e:
                 # a MemoryError will happen when $pc is corrupted (invalid address)
                 err(str(e))
@@ -10646,6 +10685,26 @@ class GefCommand(gdb.Command):
         self.dont_repeat()
         gdb.execute("gef help")
         return
+
+    def add_context_pane(self, pane_name, pane_function):
+        """Add a new context pane to ContextCommand"""
+        context_obj = None  # type: ContextCommand
+        for cmd, class_name, class_obj in self.loaded_commands:
+            if isinstance(class_obj, ContextCommand):
+                context_obj = class_obj
+                break
+
+        if not context_obj:
+            return False
+
+        # assure users can toggle the new context
+        corrected_settings_name = pane_name.replace(" ", "_")
+        layout_settings = context_obj.get_setting("layout")
+        context_obj.update_setting("layout", layout_settings+f" {corrected_settings_name} ")
+
+        # overload the printing of pane title
+        context_obj.layout_mapping[corrected_settings_name] = (pane_function, pane_name)
+        return True
 
     def load(self, initial=False):
         """Load all the commands and functions defined by GEF into GDB."""
