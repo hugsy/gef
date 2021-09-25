@@ -1,4 +1,4 @@
-from typing import List, Iterable
+from typing import Iterable
 import re
 import subprocess
 import os
@@ -21,7 +21,8 @@ def ansi_clean(s: str) -> str:
     return ansi_escape.sub("", s)
 
 
-def gdb_run_cmd(cmd: str, before: List[str]=[], after: List[str]=[], target: str=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT) -> str:
+def gdb_run_cmd(cmd: str, before: Iterable[str]=(), after: Iterable[str]=(),
+                target: str=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT) -> str:
     """Execute a command inside GDB. `before` and `after` are lists of commands to be executed
     before (resp. after) the command to test."""
     command = [
@@ -44,10 +45,12 @@ def gdb_run_cmd(cmd: str, before: List[str]=[], after: List[str]=[], target: str
     output = b"\n".join(lines)
     result = None
 
-    # The following is necessary because ANSI escape sequences might have been added in the middle of multibyte
-    # characters, e.g. \x1b[H\x1b[2J is added into the middle of \xe2\x94\x80 to become \xe2\x1b[H\x1b[2J\x94\x80
-    # which causes a UnicodeDecodeError when trying to decode \xe2.
-    # Such broken multibyte characters would need to be removed, otherwise the test will result in an error.
+    # The following is necessary because ANSI escape sequences might have been
+    # added in the middle of multibyte characters, e.g. \x1b[H\x1b[2J is added
+    # into the middle of \xe2\x94\x80 to become \xe2\x1b[H\x1b[2J\x94\x80 which
+    # causes a UnicodeDecodeError when trying to decode \xe2. Such broken
+    # multibyte characters would need to be removed, otherwise the test will
+    # result in an error.
     while not result:
         try:
             result = output.decode("utf-8")
@@ -62,35 +65,47 @@ def gdb_run_cmd(cmd: str, before: List[str]=[], after: List[str]=[], target: str
     return result
 
 
-def gdb_run_silent_cmd(cmd, before: List[str]=[], after: List[str]=[], target: str=PATH_TO_DEFAULT_BINARY, strip_ansi: str=STRIP_ANSI_DEFAULT) -> str:
+def gdb_run_silent_cmd(cmd, before: Iterable[str]=(), after: Iterable[str]=(),
+                       target: str=PATH_TO_DEFAULT_BINARY,
+                       strip_ansi: bool=STRIP_ANSI_DEFAULT) -> str:
     """Disable the output and run entirely the `target` binary."""
-    before += ["gef config context.clear_screen False",
-               "gef config context.layout '-code -stack'",
-               "run"]
+    before = [*before, "gef config context.clear_screen False",
+              "gef config context.layout '-code -stack'",
+              "run"]
     return gdb_run_cmd(cmd, before, after, target, strip_ansi)
 
 
-def gdb_run_cmd_last_line(cmd, before: List[str]=[], after: List[str]=[], target: str=PATH_TO_DEFAULT_BINARY, strip_ansi: str=STRIP_ANSI_DEFAULT) -> str:
+def gdb_run_cmd_last_line(cmd, before: Iterable[str]=(), after: Iterable[str]=(),
+                          target: str=PATH_TO_DEFAULT_BINARY,
+                          strip_ansi: bool=STRIP_ANSI_DEFAULT) -> str:
     """Execute a command in GDB, and return only the last line of its output."""
     return gdb_run_cmd(cmd, before, after, target, strip_ansi).splitlines()[-1]
 
 
-def gdb_start_silent_cmd(cmd, before: List[str]=[], after: List[str]=[], target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT, context=DEFAULT_CONTEXT) -> str:
-    """Execute a command in GDB by starting an execution context. This command disables the `context`
-    and sets a tbreak at the most convenient entry point."""
-    before += ["gef config context.clear_screen False",
-               "gef config context.layout '{}'".format(context),
-               "entry-break"]
+def gdb_start_silent_cmd(cmd, before: Iterable[str]=(), after: Iterable[str]=(),
+                         target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT,
+                         context=DEFAULT_CONTEXT) -> str:
+    """Execute a command in GDB by starting an execution context. This command
+    disables the `context` and sets a tbreak at the most convenient entry
+    point."""
+    before = [*before, "gef config context.clear_screen False",
+              f"gef config context.layout '{context}'",
+              "entry-break"]
     return gdb_run_cmd(cmd, before, after, target, strip_ansi)
 
 
-def gdb_start_silent_cmd_last_line(cmd, before: List[str]=[], after: List[str]=[], target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT) -> str:
+def gdb_start_silent_cmd_last_line(cmd, before: Iterable[str]=(), after: Iterable[str]=(),
+                                   target=PATH_TO_DEFAULT_BINARY,
+                                   strip_ansi=STRIP_ANSI_DEFAULT) -> str:
     """Execute `gdb_start_silent_cmd()` and return only the last line of its output."""
     return gdb_start_silent_cmd(cmd, before, after, target, strip_ansi).splitlines()[-1]
 
 
-def gdb_test_python_method(meth: str, before: str="", after: str="", target: str=PATH_TO_DEFAULT_BINARY, strip_ansi: str=STRIP_ANSI_DEFAULT) -> str:
-    cmd = "pi {}print({});{}".format(before+";" if before else "", meth, after)
+def gdb_test_python_method(meth: str, before: str="", after: str="",
+                           target: str=PATH_TO_DEFAULT_BINARY,
+                           strip_ansi: bool=STRIP_ANSI_DEFAULT) -> str:
+    brk = before + ";" if before else ""
+    cmd = f"pi {brk}print({meth});{after}"
     return gdb_start_silent_cmd(cmd, target=target, strip_ansi=strip_ansi)
 
 
@@ -106,7 +121,7 @@ def include_for_architectures(valid_architectures: Iterable[str] = CI_VALID_ARCH
     return wrapper
 
 
-def exclude_for_architectures(invalid_architectures: Iterable[str] = []):
+def exclude_for_architectures(invalid_architectures: Iterable[str]=()):
     def wrapper(f):
         def inner_f(*args, **kwargs):
             if ARCH not in invalid_architectures:
