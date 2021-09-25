@@ -20,7 +20,7 @@ from helpers import (
     include_for_architectures,
     ARCH,
     is_64b
-) # pylint: disable=import-error
+)
 
 
 class GdbAssertionError(AssertionError):
@@ -32,7 +32,7 @@ class GefUnitTestGeneric(unittest.TestCase):
 
     @staticmethod
     def assertException(buf):
-        """Expect an exception to be raised"""
+        """Assert that GEF raised an Exception."""
         if not ("Python Exception <" in buf
                 or "Traceback" in buf
                 or "'gdb.error'" in buf
@@ -42,12 +42,12 @@ class GefUnitTestGeneric(unittest.TestCase):
 
     @staticmethod
     def assertNoException(buf):
-        """No exception should be raised"""
-        if not ("Python Exception <" not in buf
-                and "Traceback" not in buf
-                and "'gdb.error'" not in buf
-                and "Exception raised" not in buf
-                and "failed to execute properly, reason:" not in buf):
+        """Assert that no Exception was raised from GEF."""
+        if ("Python Exception <" in buf
+                or "Traceback" in buf
+                or "'gdb.error'" in buf
+                or "Exception raised" in buf
+                or "failed to execute properly, reason:" in buf):
             raise GdbAssertionError("Unexpected GDB Exception raised")
 
     @staticmethod
@@ -978,7 +978,7 @@ class TestNonRegressionUnit(GefUnitTestGeneric):
         """Ensure registers are correctly refreshed when changing frame (PR #668)"""
         lines = gdb_run_silent_cmd("registers", after=["frame 5", "registers"],
                                    target="/tmp/nested.out").splitlines()
-        rips = [ x for x in lines if x.startswith("$rip") ]
+        rips = [x for x in lines if x.startswith("$rip")]
         self.assertEqual(len(rips), 2) # we must have only 2 entries
         self.assertNotEqual(rips[0], rips[1]) # they must be different
         self.assertIn("<f10", rips[0]) # the first one must be in the f10 frame
