@@ -4527,7 +4527,7 @@ class NamedBreakpoint(gdb.Breakpoint):
 
 def register_external_context_pane(pane_name, display_pane_function, pane_title_function):
     """
-    Registering function for new GEF Context View. pane_title_function must return a string.
+    Registering function for new GEF Context View.
     pane_name: a string that has no spaces (used in settings)
     display_pane_function: a function that uses gef_print() to print strings
     pane_title_function: a function that returns a string, which will be displayed as the title
@@ -4537,7 +4537,7 @@ def register_external_context_pane(pane_name, display_pane_function, pane_title_
     def pane_title(): return "example:pane"
     register_external_context_pane("example_pane", display_pane, pane_title)
     """
-    return __gef__.add_context_pane(pane_name, display_pane_function, pane_title_function)
+    __gef__.add_context_pane(pane_name, display_pane_function, pane_title_function)
 
 
 #
@@ -4654,10 +4654,7 @@ class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
         return key in __config__
 
     def update_setting(self, name, value, description=None):
-        """
-        Function to allow for internal commands to update the value
-        of a setting without destroying the description.
-        """
+        """Update the value of a setting without destroying the description"""
         # make sure settings are always associated to the root command (which derives from GenericCommand)
         if "GenericCommand" not in [x.__name__ for x in self.__class__.__bases__]:
             return
@@ -10685,7 +10682,7 @@ class GefCommand(gdb.Command):
         return
 
     def add_context_pane(self, pane_name, display_pane_function, pane_title_function):
-        """Add a new context pane to ContextCommand"""
+        """Add a new context pane to ContextCommand."""
         for cmd, class_name, class_obj in self.loaded_commands:
             if isinstance(class_obj, ContextCommand):
                 context_obj = class_obj
@@ -10698,7 +10695,6 @@ class GefCommand(gdb.Command):
 
         # overload the printing of pane title
         context_obj.layout_mapping[corrected_settings_name] = (display_pane_function, pane_title_function)
-        return True
 
     def load(self, initial=False):
         """Load all the commands and functions defined by GEF into GDB."""

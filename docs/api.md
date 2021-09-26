@@ -92,7 +92,7 @@ gef➤  source /path/to/custom_context_pane.py
 ```
 
 It can even be included in the same file as a Command.
-Now on each break you will notice a new pane near the bottom of the context. This order
+Now on each break you will notice a new pane near the bottom of the context. The order
 can be modified in the gef context config.
 
 ### Context Pane API ###

@@ -22,15 +22,13 @@ menu when hitting a breakpoint.
 ### Adding custom context panes ###
 
 As well as using the built in context panes, you can add your own custom pane that
-will be displated at each break-like event with all the other panes. Custom panes
+will be displayed at each break-like event with all the other panes. Custom panes
 can be added using the api:
 ```python
 register_external_context_pane(pane_name, display_pane_function, pane_title_function)
 ```
 
-Check the [api](../api.md) documentation to see a full usage of the api. Custom panes
-added act just like normal panes, meaning you can disable them in the context 
-layout config.
+Check the [api](../api.md) documentation to see a full usage of the registration api.
 
 
 ### Editing context layout ###
