@@ -4525,19 +4525,19 @@ class NamedBreakpoint(gdb.Breakpoint):
 # Context Panes
 #
 
-def register_external_context_pane(pane_name, pane_function):
+def register_external_context_pane(pane_name, display_pane_function, pane_title_function):
     """
-    Registering function for new GEF Context View. Dynamic pane titles are not supported.
+    Registering function for new GEF Context View. pane_title_function must return a string.
+    pane_name: a string that has no spaces (used in settings)
+    display_pane_function: a function that uses gef_print() to print strings
+    pane_title_function: a function that returns a string, which will be displayed as the title
 
     Example Usage:
-    __start_time__ = int(time.time())
-    def wasted_time_debugging():
-        global __start_time__
-        gef_print(f"{int(time.time()) - __start_time__} seconds!")
-
-    register_external_context_pane("wasted time debugging", wasted_time_debugging)
+    def display_pane(): gef_print("Wow, I am a context pane!")
+    def pane_title(): return "example:pane"
+    register_external_context_pane("example_pane", display_pane, pane_title)
     """
-    return __gef__.add_context_pane(pane_name, pane_function)
+    return __gef__.add_context_pane(pane_name, display_pane_function, pane_title_function)
 
 
 #
@@ -8330,10 +8330,10 @@ class ContextCommand(GenericCommand):
                 continue
 
             try:
-                pane_function, corrected_title = self.layout_mapping[section]
-                if corrected_title:
-                    self.context_title(corrected_title)
-                pane_function()
+                display_pane_function, pane_title_function = self.layout_mapping[section]
+                if pane_title_function:
+                    self.context_title(pane_title_function())
+                display_pane_function()
             except gdb.MemoryError as e:
                 # a MemoryError will happen when $pc is corrupted (invalid address)
                 err(str(e))
@@ -10684,7 +10684,7 @@ class GefCommand(gdb.Command):
         gdb.execute("gef help")
         return
 
-    def add_context_pane(self, pane_name, pane_function):
+    def add_context_pane(self, pane_name, display_pane_function, pane_title_function):
         """Add a new context pane to ContextCommand"""
         for cmd, class_name, class_obj in self.loaded_commands:
             if isinstance(class_obj, ContextCommand):
@@ -10697,7 +10697,7 @@ class GefCommand(gdb.Command):
         context_obj.update_setting("layout", "{} {}".format(layout_settings, corrected_settings_name))
 
         # overload the printing of pane title
-        context_obj.layout_mapping[corrected_settings_name] = (pane_function, pane_name)
+        context_obj.layout_mapping[corrected_settings_name] = (display_pane_function, pane_title_function)
         return True
 
     def load(self, initial=False):

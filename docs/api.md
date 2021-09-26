@@ -70,6 +70,39 @@ or add to your `~/.gdbinit`:
 $ echo source /path/to/newcmd.py >> ~/.gdbinit
 ```
 
+## Custom context panes ##
+
+Sometimes you want something similar to a command to run on each break-like event 
+and display itself as a part of the GEF context. Here is a simple example of how to
+make a custom context pane:
+```python
+__start_time__ = int(time.time())
+def wasted_time_debugging():
+    gef_print("You have wasted {} seconds!".format(int(time.time()) - __start_time__))
+
+def wasted_time_debugging_title():
+    return "wasted:time:debugging:{}".format(int(time.time()) - __start_time__)
+
+register_external_context_pane("wasted_time_debugging", wasted_time_debugging, wasted_time_debugging_title)
+```
+
+Loading it in `GEF` is as easy as loading a command
+```
+gef➤  source /path/to/custom_context_pane.py
+```
+
+It can even be included in the same file as a Command.
+Now on each break you will notice a new pane near the bottom of the context. This order
+can be modified in the gef context config.
+
+### Context Pane API ###
+
+The api demonstrated above requires very specific argument types:
+`register_external_context_pane(pane_name, display_pane_function, pane_title_function)`
+- `pane_name`: a string that will be used as the panes setting name
+- `display_pane_function`: a function that uses gef_print() to print content in the pane
+- `pane_title_function`: a function that returns the string of the panes title 
+
 ## API ##
 
 Some of the most important parts of the API for creating new commands are
