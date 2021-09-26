@@ -8266,20 +8266,18 @@ class ContextCommand(GenericCommand):
         if "capstone" in list(sys.modules.keys()):
             self.add_setting("use_capstone", False, "Use capstone as disassembler in the code pane (instead of GDB)")
 
-        self.layout_mapping = collections.OrderedDict(
-            {
-                "legend": (self.show_legend, None),
-                "regs": (self.context_regs, None),
-                "stack": (self.context_stack, None),
-                "code": (self.context_code, None),
-                "args": (self.context_args, None),
-                "memory": (self.context_memory, None),
-                "source": (self.context_source, None),
-                "trace": (self.context_trace, None),
-                "threads": (self.context_threads, None),
-                "extra": (self.context_additional_information, None),
-            }
-        )
+        self.layout_mapping = {
+            "legend": (self.show_legend, None),
+            "regs": (self.context_regs, None),
+            "stack": (self.context_stack, None),
+            "code": (self.context_code, None),
+            "args": (self.context_args, None),
+            "memory": (self.context_memory, None),
+            "source": (self.context_source, None),
+            "trace": (self.context_trace, None),
+            "threads": (self.context_threads, None),
+            "extra": (self.context_additional_information, None),
+        }
         return
 
     def post_load(self):
@@ -10688,14 +10686,10 @@ class GefCommand(gdb.Command):
 
     def add_context_pane(self, pane_name, pane_function):
         """Add a new context pane to ContextCommand"""
-        context_obj = None  # type: ContextCommand
         for cmd, class_name, class_obj in self.loaded_commands:
             if isinstance(class_obj, ContextCommand):
                 context_obj = class_obj
                 break
-
-        if not context_obj:
-            return False
 
         # assure users can toggle the new context
         corrected_settings_name = pane_name.replace(" ", "_")
