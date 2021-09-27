@@ -1,0 +1,3 @@
+rules "~MD002", "~MD006", "~MD014", "~MD034"
+# view rules at: https://github.com/markdownlint/markdownlint/blob/master/docs/RULES.md
+# MD034 can be enabled when https://github.com/markdownlint/markdownlint/issues/191 has been resolved

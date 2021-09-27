@@ -80,3 +80,14 @@ jobs:
         GEF_CI_ARCH: ${{ steps.set-arch-properties.outputs.arch }}
       run: |
         make test
+
+  markdown-lint:
+    name: Lint markdown files
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: echo "export PATH=$PATH:/usr/local/bundle/bin" >> $GITHUB_PATH
+    - name: Run mdl
+      uses: actionshub/markdownlint@main
+      with:
+        path: "README.md docs"
