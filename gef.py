@@ -10683,7 +10683,7 @@ class GefCommand(gdb.Command):
 
     def add_context_pane(self, pane_name, display_pane_function, pane_title_function):
         """Add a new context pane to ContextCommand."""
-        for cmd, class_name, class_obj in self.loaded_commands:
+        for _, _, class_obj in self.loaded_commands:
             if isinstance(class_obj, ContextCommand):
                 context_obj = class_obj
                 break
