@@ -93,14 +93,14 @@ gef➤  source /path/to/custom_context_pane.py
 
 It can even be included in the same file as a Command.
 Now on each break you will notice a new pane near the bottom of the context. The order
-can be modified in the gef context config.
+can be modified in the `GEF` context config.
 
 ### Context Pane API ###
 
-The api demonstrated above requires very specific argument types:
+The API demonstrated above requires very specific argument types:
 `register_external_context_pane(pane_name, display_pane_function, pane_title_function)`
 - `pane_name`: a string that will be used as the panes setting name
-- `display_pane_function`: a function that uses gef_print() to print content in the pane
+- `display_pane_function`: a function that uses `gef_print()` to print content in the pane
 - `pane_title_function`: a function that returns the string of the panes title 
 
 ## API ##

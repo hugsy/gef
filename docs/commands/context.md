@@ -21,9 +21,9 @@ menu when hitting a breakpoint.
 
 ### Adding custom context panes ###
 
-As well as using the built in context panes, you can add your own custom pane that
-will be displayed at each break-like event with all the other panes. Custom panes
-can be added using the api:
+As well as using the built-in context panes, you can add your own custom pane that
+will be displayed at each `break`-like event with all the other panes. Custom panes
+can be added using the API:
 ```python
 register_external_context_pane(pane_name, display_pane_function, pane_title_function)
 ```
