@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include "utils.h"
 
 /* Any allocation over 128KB is directed directly to mmap, which we don't want. */
 #define LESS_THAN_MMAP_THRESHOLD    (127 * 1024)
@@ -31,8 +32,8 @@ void *thread()
              * then a new heap was created after the first heap.
              */
             if (chunk_distance < 0 ||
-                    chunk_distance > EXPECTED_CHUNK_DISTANCE) {
-                __builtin_trap();
+                chunk_distance > EXPECTED_CHUNK_DISTANCE) {
+                DebugBreak();
             }
         }
 
