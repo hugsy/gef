@@ -91,3 +91,4 @@ jobs:
       uses: actionshub/markdownlint@main
       with:
         path: "README.md docs"
+      continue-on-error: true
