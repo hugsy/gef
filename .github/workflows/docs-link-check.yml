@@ -1,9 +1,5 @@
 name: Check URLs in docs
-on:
-  push:
-    branches:
-      - master
-      - dev
+on: [push]
 
 jobs:
   link-check:
