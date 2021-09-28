@@ -8351,8 +8351,8 @@ class ContextCommand(GenericCommand):
         line_color = get_gef_setting("theme.context_title_line")
         msg_color = get_gef_setting("theme.context_title_message")
 
+        # print nothing if no title is provided
         if not m:
-            gef_print(Color.colorify(HORIZONTAL_LINE * self.tty_columns, line_color))
             return
 
         trail_len = len(m) + 6
