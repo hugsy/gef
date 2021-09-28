@@ -4533,7 +4533,8 @@ def register_external_context_pane(pane_name, display_pane_function, pane_title_
     Registering function for new GEF Context View.
     pane_name: a string that has no spaces (used in settings)
     display_pane_function: a function that uses gef_print() to print strings
-    pane_title_function: a function that returns a string, which will be displayed as the title
+    pane_title_function: a function that returns a string or None, which will be displayed as the title.
+    If None, no title line is displayed.
 
     Example Usage:
     def display_pane(): gef_print("Wow, I am a context pane!")
@@ -8348,6 +8349,10 @@ class ContextCommand(GenericCommand):
         return
 
     def context_title(self, m):
+        # allow for not displaying a title line
+        if m is None:
+            return
+
         line_color = get_gef_setting("theme.context_title_line")
         msg_color = get_gef_setting("theme.context_title_message")
 
