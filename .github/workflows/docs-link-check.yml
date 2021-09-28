@@ -12,3 +12,5 @@ jobs:
         file-path: './README.md'
         folder-path: 'docs/'
         max-depth: 2
+        config-file: '.ci/mlc_config.json'
+
