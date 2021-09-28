@@ -10456,6 +10456,8 @@ def get_zone_base_address(name):
 class GenericFunction(gdb.Function, metaclass=abc.ABCMeta):
     """This is an abstract class for invoking convenience functions, should not be instantiated."""
 
+    _example_ = ""
+
     @abc.abstractproperty
     def _function_(self): pass
     @property
@@ -10515,8 +10517,11 @@ class HeapBaseFunction(GenericFunction):
 
 @register_function
 class SectionBaseFunction(GenericFunction):
-    """Return the matching section's base address plus an optional offset."""
+    """Return the matching file's base address plus an optional offset.
+    Defaults to current file. Note that quotes need to be escaped"""
     _function_ = "_base"
+    _syntax_   = "$_base([filepath])"
+    _example_  = "p $_base(\\\"/usr/lib/ld-2.33.so\\\")"
 
     def do_invoke(self, args):
         try:
@@ -10539,6 +10544,7 @@ class SectionBaseFunction(GenericFunction):
 class BssBaseFunction(GenericFunction):
     """Return the current bss base address plus the given offset."""
     _function_ = "_bss"
+    _example_ = "deref $_bss(0x20)"
 
     def do_invoke(self, args):
         return self.arg_to_long(args, 0) + get_zone_base_address(".bss")
@@ -10578,6 +10584,10 @@ class GefFunctionsCommand(GenericCommand):
         doc = "\n                         ".join(doc.split("\n"))
         syntax = getattr(function, "_syntax_", "").lstrip()
         msg = "{syntax:<25s} -- {help:s}".format(syntax=syntax, help=Color.greenify(doc))
+        example = getattr(function, "_example_", "").strip()
+        if example:
+            msg += "\n {padding:27s} example: {example:s}".format(
+                padding="", example=Color.yellowify(example))
         self.docs.append(msg)
         return
 
@@ -10585,8 +10595,7 @@ class GefFunctionsCommand(GenericCommand):
         self.dont_repeat()
         gef_print(titlify("GEF - Convenience Functions"))
         gef_print("These functions can be used as arguments to other "
-                  "commands to dynamically calculate values, eg: {:s}\n"
-                  .format(Color.colorify("deref $_heap(0x20)", "yellow")))
+                  "commands to dynamically calculate values\n")
         gef_print(self.__doc__)
         return
 
