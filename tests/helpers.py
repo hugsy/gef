@@ -69,7 +69,8 @@ def gdb_run_cmd(cmd: CommandType, before: CommandType = (), after: CommandType =
 
 
 def gdb_run_silent_cmd(cmd: CommandType, before: CommandType = (), after: CommandType = (),
-                       target: str = PATH_TO_DEFAULT_BINARY, strip_ansi: bool = STRIP_ANSI_DEFAULT) -> str:
+                       target: str = PATH_TO_DEFAULT_BINARY,
+                       strip_ansi: bool = STRIP_ANSI_DEFAULT) -> str:
     """Disable the output and run entirely the `target` binary."""
     before = [*before, "gef config context.clear_screen False",
               "gef config context.layout '-code -stack'",
@@ -78,13 +79,15 @@ def gdb_run_silent_cmd(cmd: CommandType, before: CommandType = (), after: Comman
 
 
 def gdb_run_cmd_last_line(cmd: CommandType, before: CommandType = (), after: CommandType = (),
-                          target: str = PATH_TO_DEFAULT_BINARY, strip_ansi: bool = STRIP_ANSI_DEFAULT) -> str:
+                          target: str = PATH_TO_DEFAULT_BINARY,
+                          strip_ansi: bool = STRIP_ANSI_DEFAULT) -> str:
     """Execute a command in GDB, and return only the last line of its output."""
     return gdb_run_cmd(cmd, before, after, target, strip_ansi).splitlines()[-1]
 
 
 def gdb_start_silent_cmd(cmd: CommandType, before: CommandType = (), after: CommandType = (),
-                         target: str = PATH_TO_DEFAULT_BINARY, strip_ansi: bool = STRIP_ANSI_DEFAULT,
+                         target: str = PATH_TO_DEFAULT_BINARY,
+                         strip_ansi: bool = STRIP_ANSI_DEFAULT,
                          context: str = DEFAULT_CONTEXT) -> str:
     """Execute a command in GDB by starting an execution context. This command
     disables the `context` and sets a tbreak at the most convenient entry
@@ -95,8 +98,10 @@ def gdb_start_silent_cmd(cmd: CommandType, before: CommandType = (), after: Comm
     return gdb_run_cmd(cmd, before, after, target, strip_ansi)
 
 
-def gdb_start_silent_cmd_last_line(cmd: CommandType, before: CommandType = (), after: CommandType = (),
-                                   target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT) -> str:
+def gdb_start_silent_cmd_last_line(cmd: CommandType, before: CommandType = (),
+                                   after: CommandType = (),
+                                   target=PATH_TO_DEFAULT_BINARY,
+                                   strip_ansi=STRIP_ANSI_DEFAULT) -> str:
     """Execute `gdb_start_silent_cmd()` and return only the last line of its output."""
     return gdb_start_silent_cmd(cmd, before, after, target, strip_ansi).splitlines()[-1]
 

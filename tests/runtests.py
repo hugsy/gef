@@ -671,7 +671,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_stub(self):
-        cmds = ["stub printf", "stub puts"]  # due to compiler optimizations printf might be converted to puts
+        # due to compiler optimizations printf might be converted to puts
+        cmds = ["stub printf", "stub puts"]
         self.assertFailIfInactiveSession(gdb_run_cmd(cmds))
         res = gdb_start_silent_cmd("continue")
         self.assertNoException(res)
