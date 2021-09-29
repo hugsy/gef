@@ -7443,29 +7443,30 @@ class SolveKernelSymbolCommand(GenericCommand):
     _syntax_  = "{:s} SymbolToSearch".format(_cmdline_)
     _example_ = "{:s} prepare_creds".format(_cmdline_)
 
-    def do_invoke(self, argv):
-        if len(argv) != 1:
+    @parse_arguments({"symbol": ""}, {})
+    def do_invoke(self, *args, **kwargs):
+        def hex_to_int(num):
+            try:
+                return int(num, 16)
+            except ValueError:
+                return 0
+        args = kwargs["arguments"]
+        if not args.symbol:
             self.usage()
             return
-
-        found = False
-        sym = argv[0]
+        sym = args.symbol
         with open("/proc/kallsyms", "r") as f:
-            for line in f:
-                try:
-                    symaddr, symtype, symname = line.strip().split(" ", 3)
-                    symaddr = int(symaddr, 16)
-                    if symname == sym:
-                        ok("Found matching symbol for '{:s}' at {:#x} (type={:s})".format(sym, symaddr, symtype))
-                        found = True
-                    if sym in symname:
-                        warn("Found partial match for '{:s}' at {:#x} (type={:s}): {:s}".format(sym, symaddr, symtype, symname))
-                        found = True
-                except ValueError:
-                    pass
-
-        if not found:
+            syms = [line.strip().split(" ", 2) for line in f]
+        matches = [(hex_to_int(addr), sym_t, " ".join(name.split())) for addr, sym_t, name in syms if sym in name]
+        for addr, sym_t, name in matches:
+            if sym == name.split()[0]:
+                ok("Found matching symbol for '{:s}' at {:#x} (type={:s})".format(name, addr, sym_t))
+            else:
+                warn("Found partial match for '{:s}' at {:#x} (type={:s}): {:s}".format(sym, addr, sym_t, name))
+        if not matches:
             err("No match for '{:s}'".format(sym))
+        elif matches[0][0] == 0:
+            err("Check that you have the correct permissions to view kernel symbol addresses")
         return
 
 

@@ -18,3 +18,7 @@ gef➤  ksymaddr commit_creds
 [*] Found partial match for 'commit_creds' at 0xffffffff8fc8d008 (type=r): __kcrctab_commit_creds
 [*] Found partial match for 'commit_creds' at 0xffffffff8fc9bfcd (type=r): __kstrtab_commit_creds
 ```
+
+Note that the debugging process needs to have the correct permissions for this
+command to show kernel addresses. For more information see
+also [this stackoverflow post](https://stackoverflow.com/a/55592796).
