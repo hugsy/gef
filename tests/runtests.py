@@ -468,21 +468,20 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_pattern_create(self):
-        cmd = "pattern create 32"
-        target = "/tmp/pattern.out"
-        res = gdb_run_cmd(cmd, target=target)
+        cmd = "pattern create -n 4 32"
+        res = gdb_run_cmd(cmd)
         self.assertNoException(res)
         self.assertIn("aaaabaaacaaadaaaeaaaf", res)
 
-        cmd = "pattern create --period 8 32"
-        target = "/tmp/pattern.out"
-        res = gdb_run_cmd(cmd, target=target)
+        cmd = "pattern create -n 8 32"
+        res = gdb_run_cmd(cmd)
         self.assertNoException(res)
         self.assertIn("aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
         return
 
     @include_for_architectures(["x86_64", "aarch64"])
     def test_cmd_pattern_search(self):
+        target = "/tmp/pattern.out"
         if ARCH == "aarch64":
             r = "$x30"
         elif ARCH == "x86_64":
@@ -490,17 +489,27 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         else:
             raise ValueError("Invalid architecture")
 
-        cmd = f"pattern search {r}"
-        target = "/tmp/pattern.out"
-        res = gdb_run_cmd(cmd, before=["set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run"],
-                          target=target)
+        cmd = f"pattern search -n 4 {r}"
+        before = ["set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run"]
+        res = gdb_run_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
         self.assertIn("Found at offset", res)
 
-        cmd = f"pattern search --period 8 {r}"
-        target = "/tmp/pattern.out"
-        res = gdb_run_cmd(cmd, before=["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"],
-                          target=target)
+        cmd = f"pattern search -n 8 {r}"
+        before = ["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"]
+        res = gdb_run_cmd(cmd, before=before, target=target)
+        self.assertNoException(res)
+        self.assertIn("Found at offset", res)
+
+        res = gdb_start_silent_cmd("pattern search -n 4 caaaaaaa")
+        self.assertNoException(res)
+        self.assertNotIn("Found at offset", res)
+
+        res = gdb_start_silent_cmd("pattern search -n 8 caaaaaaa")
+        self.assertNoException(res)
+        self.assertIn("Found at offset", res)
+
+        res = gdb_start_silent_cmd("pattern search -n 8 0x6261616161616161")
         self.assertNoException(res)
         self.assertIn("Found at offset", res)
         return
