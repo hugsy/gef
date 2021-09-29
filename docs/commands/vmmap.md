@@ -2,7 +2,7 @@
 
 `vmmap` displays the target process's entire memory space mapping.
 
-![vmmap-example](https://i.imgur.com/iau8SwS.png)
+![vmmap](https://i.imgur.com/V9zMLUt.png)
 
 Interestingly, it helps finding secret gems: as an aware reader might have
 seen, memory mapping differs from one architecture to another (this is one of
