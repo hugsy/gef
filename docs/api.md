@@ -105,7 +105,7 @@ The API demonstrated above requires very specific argument types:
 -`pane_name`: a string that will be used as the panes setting name
 -`display_pane_function`: a function that uses `gef_print()` to print content
 in the pane
--`pane_title_function`: a function that returns the string of the panes title
+-`pane_title_function`: a function that returns the title string or None to hide the title
 
 ## API ##
 
