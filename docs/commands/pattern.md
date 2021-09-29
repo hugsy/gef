@@ -2,7 +2,7 @@
 
 This command will create or search a [De
 Bruijn](https://en.wikipedia.org/wiki/De_Bruijn_sequence) cyclic pattern to
-facilitate determining offsets in memory. The Sequence consists of a number of
+facilitate determining offsets in memory. The sequence consists of a number of
 unique substrings of a chosen length.
 
 It should be noted that for better compatibility, the algorithm implemented in
@@ -15,14 +15,14 @@ conjunction.
 pattern create [-h] [-n N] [length]
 ```
 
-The sub-command `create` allows to create a new de bruijn sequence. The optional
-argument `n` determines the length of unique subsequences. It's default value
-matches the currently loaded architecture. The `length` argument sets the total
-length of the whole sequence.
+The sub-command `create` allows one create a new de bruijn sequence. The
+optional argument `n` determines the length of unique subsequences. Its default
+value matches the currently loaded architecture. The `length` argument sets the
+total length of the whole sequence.
 
 ```
-gef➤  pattern create -n 8 128
-[+] Generating a pattern of 128 bytes (n=8)
+gef➤  pattern create -n 4 128
+[+] Generating a pattern of 128 bytes (n=4)
 aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaab
 [+] Saved as '$_gef0'
 ```
