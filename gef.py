@@ -6813,8 +6813,8 @@ class StubCommand(GenericCommand):
     function to be called and disrupt your runtime flow (ex. fork)."""
 
     _cmdline_ = "stub"
-    _syntax_  = """{:s} [--retval RETVAL] [LOCATION]
-\tLOCATION\taddress/symbol to stub out
+    _syntax_  = """{:s} [--retval RETVAL] [address]
+\taddress\taddress/symbol to stub out
 \t--retval RETVAL\tSet the return value""".format(_cmdline_)
     _example_ = "{:s} --retval 0 fork".format(_cmdline_)
 
@@ -6823,7 +6823,7 @@ class StubCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    @parse_arguments({"address": ""}, {"--retval": 0})
+    @parse_arguments({"address": ""}, {("-r", "--retval"): 0})
     def do_invoke(self, argv, *args, **kwargs):
         args = kwargs["arguments"]
         loc = args.address if args.address else "*{:#x}".format(current_arch.pc)

@@ -662,10 +662,14 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_stub(self):
-        cmd = "stub printf"
-        self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
-        res = gdb_start_silent_cmd(cmd)
+        cmds = ["stub printf", "stub puts"]  # due to compiler optimizations printf might be converted to puts
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmds))
+        res = gdb_start_silent_cmd("continue")
         self.assertNoException(res)
+        self.assertIn("Hello World!", res)
+        res = gdb_start_silent_cmd(cmds, after=["continue"])
+        self.assertNoException(res)
+        self.assertNotIn("Hello World!", res)
         return
 
     def test_cmd_theme(self):
