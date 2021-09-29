@@ -8450,7 +8450,7 @@ class ContextCommand(GenericCommand):
                 mem = read_memory(sp, 0x10 * nb_lines)
                 gef_print(hexdump(mem, base=sp))
             else:
-                gdb.execute("dereference {:#x} l{:d}".format(sp, nb_lines))
+                gdb.execute("dereference -l {:d} {:#x}".format(nb_lines, sp))
 
         except gdb.MemoryError:
             err("Cannot read memory from $SP (corrupted stack pointer?)")
@@ -8897,12 +8897,12 @@ class ContextCommand(GenericCommand):
             sz, fmt = opt[0:2]
             self.context_title("memory:{:#x}".format(address))
             if fmt == "pointers":
-                gdb.execute("dereference 0x{address:x} L{size:d}".format(
+                gdb.execute("dereference -l {size:d} {address:#x}".format(
                     address=address,
                     size=sz,
                 ))
             else:
-                gdb.execute("hexdump {fmt:s} 0x{address:x} -s {size:d}".format(
+                gdb.execute("hexdump {fmt:s} -s {size:d} {address:#x}".format(
                     address=address,
                     size=sz,
                     fmt=fmt,
@@ -9369,9 +9369,9 @@ class DereferenceCommand(GenericCommand):
     command."""
 
     _cmdline_ = "dereference"
-    _syntax_  = "{:s} [LOCATION] [[l]NB] [rLOCATION]".format(_cmdline_)
+    _syntax_  = "{:s} [-h] [--length LENGTH] [--reference REFERENCE] [address]".format(_cmdline_)
     _aliases_ = ["telescope", ]
-    _example_ = "{:s} $sp l20 r$sp+0x10".format(_cmdline_)
+    _example_ = "{:s} --length 20 --reference $sp+0x10 $sp".format(_cmdline_)
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
@@ -9410,40 +9410,21 @@ class DereferenceCommand(GenericCommand):
         return l
 
     @only_if_gdb_running
-    def do_invoke(self, argv):
-        target = "$sp"
-        reference = ""
-        nb = 10
+    @parse_arguments({"address": "$sp"}, {("-r", "--reference"): "", ("-l", "--length"): 10})
+    def do_invoke(self, *args, **kwargs):
+        args = kwargs["arguments"]
+        nb = args.length
 
-        for arg in argv:
-            if arg.isdigit():
-                nb = int(arg)
-            elif arg[0] in ("l", "L") and arg[1:].isdigit():
-                nb = int(arg[1:])
-            elif arg[0] in ("r", "R") and len(arg) > 1:
-                reference = arg[1:]
-            else:
-                target = arg
+        target = args.address
+        target_addr = parse_address(target)
 
-        if reference == "":
-            reference = target
+        reference = args.reference or target
+        ref_addr = parse_address(reference)
 
-        addr = safe_parse_and_eval(target)
-        if addr is None:
-            err("Invalid address")
+        if process_lookup_address(target_addr) is None:
+            err("Unmapped address: '{}'".format(target))
             return
 
-        addr = int(addr)
-        if process_lookup_address(addr) is None:
-            err("Unmapped address")
-            return
-
-        ref_addr = safe_parse_and_eval(reference)
-        if ref_addr is None:
-            err("Invalid address: '{}'".format(reference))
-            return
-
-        ref_addr = int(ref_addr)
         if process_lookup_address(ref_addr) is None:
             err("Unmapped address: '{}'".format(reference))
             return
@@ -9457,7 +9438,7 @@ class DereferenceCommand(GenericCommand):
             to_insnum = nb * (self.repeat_count + 1)
             insnum_step = 1
 
-        start_address = align_address(addr)
+        start_address = align_address(target_addr)
         base_offset = start_address - align_address(ref_addr)
 
         for i in range(from_insnum, to_insnum, insnum_step):

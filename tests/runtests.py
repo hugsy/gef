@@ -452,8 +452,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
     def test_cmd_patch_qword_symbol(self):
         target = "/tmp/bss.out"
-        before = gdb_run_silent_cmd("deref $sp 1", target=target)
-        after = gdb_run_silent_cmd("patch qword $sp &msg", after=["deref $sp 1",], target=target)
+        before = gdb_run_silent_cmd("deref -l 1 $sp", target=target)
+        after = gdb_run_silent_cmd("patch qword $sp &msg", after=["deref -l 1 $sp"], target=target)
         self.assertNoException(before)
         self.assertNoException(after)
         self.assertNotIn("Hello world!", before)
