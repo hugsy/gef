@@ -1314,7 +1314,8 @@ def show_last_exception():
 
     def _show_code_line(fname, idx):
         fname = os.path.expanduser(os.path.expandvars(fname))
-        __data = open(fname, "r").read().splitlines()
+        with open(fname, "r") as f:
+            __data = f.readlines()
         return __data[idx - 1] if idx < len(__data) else ""
 
     gef_print("")
@@ -3204,7 +3205,9 @@ def get_function_length(sym):
 
 def get_process_maps_linux(proc_map_file):
     """Parse the Linux process `/proc/pid/maps` file."""
-    for line in open_file(proc_map_file, use_cache=False):
+    with open_file(proc_map_file, use_cache=False) as f:
+        file = f.readlines()
+    for line in file:
         line = line.strip()
         addr, perm, off, _, rest = line.split(" ", 4)
         rest = rest.split(" ", 1)
@@ -4723,7 +4726,8 @@ class VersionCommand(GenericCommand):
     def do_invoke(self, argv):
         gef_fpath = os.path.abspath(os.path.expanduser(inspect.stack()[0][1]))
         gef_dir = os.path.dirname(gef_fpath)
-        gef_hash = hashlib.sha1(open(gef_fpath, "rb").read()).hexdigest()
+        with open(gef_fpath, "rb") as f:
+            gef_hash = hashlib.sha1(f.read()).hexdigest()
 
         if os.access("{}/.git".format(gef_dir), os.X_OK):
             ver = subprocess.check_output("git log --format='%H' -n 1 HEAD", cwd=gef_dir, shell=True).decode("utf8").strip()
@@ -5138,13 +5142,16 @@ class ProcessStatusCommand(GenericCommand):
 
     def get_state_of(self, pid):
         res = {}
-        for line in open("/proc/{}/status".format(pid), "r"):
+        with open("/proc/{}/status".format(pid), "r") as f:
+            file = f.readlines()
+        for line in file:
             key, value = line.split(":", 1)
             res[key.strip()] = value.strip()
         return res
 
     def get_cmdline_of(self, pid):
-        return open("/proc/{}/cmdline".format(pid), "r").read().replace("\x00", "\x20").strip()
+        with open("/proc/{}/cmdline".format(pid), "r") as f:
+            return f.read().replace("\x00", "\x20").strip()
 
     def get_process_path_of(self, pid):
         return os.readlink("/proc/{}/exe".format(pid))
@@ -5250,9 +5257,11 @@ class ProcessStatusCommand(GenericCommand):
             gef_print("\tNo open connections")
             return
 
-        entries = {}
-        entries["TCP"] = [x.split() for x in open("/proc/{:d}/net/tcp".format(pid), "r").readlines()[1:]]
-        entries["UDP"]= [x.split() for x in open("/proc/{:d}/net/udp".format(pid), "r").readlines()[1:]]
+        entries = dict()
+        with open("/proc/{:d}/net/tcp".format(pid), "r") as tcp:
+            entries["TCP"] = [x.split() for x in tcp.readlines()[1:]]
+        with open("/proc/{:d}/net/udp".format(pid), "r") as udp:
+            entries["UDP"] = [x.split() for x in udp.readlines()[1:]]
 
         for proto in entries:
             for entry in entries[proto]:
