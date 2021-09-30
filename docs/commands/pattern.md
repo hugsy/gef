@@ -15,7 +15,7 @@ conjunction.
 pattern create [-h] [-n N] [length]
 ```
 
-The sub-command `create` allows one create a new de bruijn sequence. The
+The sub-command `create` allows one create a new De Bruijn sequence. The
 optional argument `n` determines the length of unique subsequences. Its default
 value matches the currently loaded architecture. The `length` argument sets the
 total length of the whole sequence.
