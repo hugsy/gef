@@ -10,3 +10,5 @@ tests/pylint3.html
 _build
 debug.log
 .pytest_cache
+.coverage
+htmlcov
