@@ -2769,10 +2769,12 @@ def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding
         return ""
     try:
         with warnings.catch_warnings():
+            # ignore DeprecationWarnings (see #735)
             warnings.simplefilter("ignore")
             res = res_bytes.decode(encoding, "strict")
     except UnicodeDecodeError:
-        res = res_bytes.decode("latin-1", "replace")  # latin-1 as fallback due to its single-byte to glyph mapping
+        # latin-1 as fallback due to its single-byte to glyph mapping
+        res = res_bytes.decode("latin-1", "replace")
 
     res = res.split("\x00", 1)[0]
     ustr = res.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
