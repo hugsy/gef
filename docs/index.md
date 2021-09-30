@@ -145,7 +145,6 @@ To benefit from it:
 ```bash
 # via the install script
 $ bash -c "$(wget https://github.com/hugsy/gef/raw/master/scripts/gef-extras.sh -O -)"
-```
 
 # manually
 # clone the repo

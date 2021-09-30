@@ -90,8 +90,6 @@ g = gef run
 uf = disassemble
 ```
 
-Note that many of these aliases are already supported by `GEF` (e.g. `eb`).
-
 Or here are some `PEDA` aliases for people used to using `PEDA` who made the
 smart move to `GEF`.
 
@@ -99,7 +97,7 @@ smart move to `GEF`.
 # some peda aliases
 telescope = dereference
 start = entry-break
-stack = dereference $sp 10
+stack = dereference -l 10 $sp
 argv = show args
 kp = info stack
 findmem = search-pattern

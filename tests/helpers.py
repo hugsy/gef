@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Union, NewType, List
 import re
 import subprocess
 import os
@@ -11,6 +11,8 @@ DEFAULT_CONTEXT = "-code -stack"
 ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()
 CI_VALID_ARCHITECTURES = ("x86_64", "i686", "aarch64", "armv7l")
 
+CommandType = NewType("CommandType", Union[str, Iterable[str]])
+
 
 def is_64b() -> bool:
     return ARCH in ("x86_64", "aarch64")
@@ -21,8 +23,14 @@ def ansi_clean(s: str) -> str:
     return ansi_escape.sub("", s)
 
 
-def gdb_run_cmd(cmd: str, before: Iterable[str]=(), after: Iterable[str]=(),
-                target: str=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT) -> str:
+def _add_command(commands: CommandType) -> List[str]:
+    if type(commands) == str:
+        commands = [commands]
+    return [_str for cmd in commands for _str in ["-ex", cmd]]
+
+
+def gdb_run_cmd(cmd: CommandType, before: CommandType = (), after: CommandType = (),
+                target: str = PATH_TO_DEFAULT_BINARY, strip_ansi: bool = STRIP_ANSI_DEFAULT) -> str:
     """Execute a command inside GDB. `before` and `after` are lists of commands to be executed
     before (resp. after) the command to test."""
     command = [
@@ -31,14 +39,9 @@ def gdb_run_cmd(cmd: str, before: Iterable[str]=(), after: Iterable[str]=(),
         "-ex", "gef config gef.debug True"
     ]
 
-    for _cmd in before:
-        command += ["-ex", _cmd]
-
-    command += ["-ex", cmd]
-
-    for _cmd in after:
-        command += ["-ex", _cmd]
-
+    command += _add_command(before)
+    command += _add_command(cmd)
+    command += _add_command(after)
     command += ["-ex", "quit", "--", target]
 
     lines = subprocess.check_output(command, stderr=subprocess.STDOUT).strip().splitlines()
@@ -65,9 +68,9 @@ def gdb_run_cmd(cmd: str, before: Iterable[str]=(), after: Iterable[str]=(),
     return result
 
 
-def gdb_run_silent_cmd(cmd, before: Iterable[str]=(), after: Iterable[str]=(),
-                       target: str=PATH_TO_DEFAULT_BINARY,
-                       strip_ansi: bool=STRIP_ANSI_DEFAULT) -> str:
+def gdb_run_silent_cmd(cmd: CommandType, before: CommandType = (), after: CommandType = (),
+                       target: str = PATH_TO_DEFAULT_BINARY,
+                       strip_ansi: bool = STRIP_ANSI_DEFAULT) -> str:
     """Disable the output and run entirely the `target` binary."""
     before = [*before, "gef config context.clear_screen False",
               "gef config context.layout '-code -stack'",
@@ -75,16 +78,17 @@ def gdb_run_silent_cmd(cmd, before: Iterable[str]=(), after: Iterable[str]=(),
     return gdb_run_cmd(cmd, before, after, target, strip_ansi)
 
 
-def gdb_run_cmd_last_line(cmd, before: Iterable[str]=(), after: Iterable[str]=(),
-                          target: str=PATH_TO_DEFAULT_BINARY,
-                          strip_ansi: bool=STRIP_ANSI_DEFAULT) -> str:
+def gdb_run_cmd_last_line(cmd: CommandType, before: CommandType = (), after: CommandType = (),
+                          target: str = PATH_TO_DEFAULT_BINARY,
+                          strip_ansi: bool = STRIP_ANSI_DEFAULT) -> str:
     """Execute a command in GDB, and return only the last line of its output."""
     return gdb_run_cmd(cmd, before, after, target, strip_ansi).splitlines()[-1]
 
 
-def gdb_start_silent_cmd(cmd, before: Iterable[str]=(), after: Iterable[str]=(),
-                         target=PATH_TO_DEFAULT_BINARY, strip_ansi=STRIP_ANSI_DEFAULT,
-                         context=DEFAULT_CONTEXT) -> str:
+def gdb_start_silent_cmd(cmd: CommandType, before: CommandType = (), after: CommandType = (),
+                         target: str = PATH_TO_DEFAULT_BINARY,
+                         strip_ansi: bool = STRIP_ANSI_DEFAULT,
+                         context: str = DEFAULT_CONTEXT) -> str:
     """Execute a command in GDB by starting an execution context. This command
     disables the `context` and sets a tbreak at the most convenient entry
     point."""
@@ -94,16 +98,17 @@ def gdb_start_silent_cmd(cmd, before: Iterable[str]=(), after: Iterable[str]=(),
     return gdb_run_cmd(cmd, before, after, target, strip_ansi)
 
 
-def gdb_start_silent_cmd_last_line(cmd, before: Iterable[str]=(), after: Iterable[str]=(),
+def gdb_start_silent_cmd_last_line(cmd: CommandType, before: CommandType = (),
+                                   after: CommandType = (),
                                    target=PATH_TO_DEFAULT_BINARY,
                                    strip_ansi=STRIP_ANSI_DEFAULT) -> str:
     """Execute `gdb_start_silent_cmd()` and return only the last line of its output."""
     return gdb_start_silent_cmd(cmd, before, after, target, strip_ansi).splitlines()[-1]
 
 
-def gdb_test_python_method(meth: str, before: str="", after: str="",
-                           target: str=PATH_TO_DEFAULT_BINARY,
-                           strip_ansi: bool=STRIP_ANSI_DEFAULT) -> str:
+def gdb_test_python_method(meth: str, before: str = "", after: str = "",
+                           target: str = PATH_TO_DEFAULT_BINARY,
+                           strip_ansi: bool = STRIP_ANSI_DEFAULT) -> str:
     brk = before + ";" if before else ""
     cmd = f"pi {brk}print({meth});{after}"
     return gdb_start_silent_cmd(cmd, target=target, strip_ansi=strip_ansi)
@@ -121,7 +126,7 @@ def include_for_architectures(valid_architectures: Iterable[str] = CI_VALID_ARCH
     return wrapper
 
 
-def exclude_for_architectures(invalid_architectures: Iterable[str]=()):
+def exclude_for_architectures(invalid_architectures: Iterable[str] = ()):
     def wrapper(f):
         def inner_f(*args, **kwargs):
             if ARCH not in invalid_architectures:
