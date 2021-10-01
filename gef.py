@@ -11339,7 +11339,9 @@ if __name__ == "__main__":
         __gef__ = GefCommand()
         __gef__.setup()
 
-        gdb.execute("save gdb-index {}".format(get_gef_setting("gef.tempdir")))
+        tempdir = get_gef_setting("gef.tempdir")
+        gef_makedirs(tempdir)
+        gdb.execute("save gdb-index {}".format(tempdir))
 
         # gdb events configuration
         gef_on_continue_hook(continue_handler)
