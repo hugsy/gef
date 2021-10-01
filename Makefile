@@ -10,17 +10,21 @@ PYLINT_TEST_PARAMETERS := --disable=$(PYLINT_DISABLE) --enable=$(PYLINT_TEST_ENA
 TARGET := $(shell lscpu | head -1 | sed -e 's/Architecture:\s*//g')
 GEF_PATH ?= $(shell readlink -f gef.py)
 TMPDIR ?= /tmp
+PYTEST_PARAMETERS := --verbose -n $(NB_CORES)
+ifdef DEBUG
+	PYTEST_PARAMETERS += --pdb
+endif
 
 .PHONY: test test_% Test% testbins clean lint
 
 test: $(TMPDIR) testbins
-	TMPDIR=$(TMPDIR) python3 -m pytest --verbose -n $(NB_CORES) tests/runtests.py
+	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) tests/runtests.py
 
 Test%: $(TMPDIR) testbins
-	TMPDIR=$(TMPDIR) python3 -m pytest --verbose -n $(NB_CORES) tests/runtests.py::$@
+	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) tests/runtests.py::$@
 
 test_%: $(TMPDIR) testbins
-	TMPDIR=$(TMPDIR) python3 -m pytest --verbose -n $(NB_CORES) tests/runtests.py -k $@
+	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) tests/runtests.py -k $@
 
 testbins: $(TMPDIR) $(wildcard tests/binaries/*.c)
 	@TMPDIR=$(TMPDIR) $(MAKE) -j $(NB_CORES) -C tests/binaries TARGET=$(TARGET) all
