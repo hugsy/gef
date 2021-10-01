@@ -14,7 +14,7 @@ STRIP_ANSI_DEFAULT = True
 DEFAULT_CONTEXT = "-code -stack"
 ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()
 CI_VALID_ARCHITECTURES = ("x86_64", "i686", "aarch64", "armv7l")
-COVERAGE_DIR = os.environ.get("COVERAGE_DIR") or ""
+COVERAGE_DIR = os.environ.get("COVERAGE_DIR", "")
 
 CommandType = NewType("CommandType", Union[str, Iterable[str]])
 
