@@ -42,7 +42,7 @@ coverage:
 	@COVERAGE_DIR=$(COVERAGE_DIR) $(MAKE) test
 	@coverage combine $(COVERAGE_DIR)/*
 	@coverage html --include "*/gef.py"
-	@rm -f $(COVERAGE_DIR)
+	@rm -rf $(COVERAGE_DIR)
 
 $(TMPDIR):
 	mkdir -p $@
