@@ -7674,7 +7674,8 @@ class ShellcodeGetCommand(GenericCommand):
             return
 
         ok("Downloaded, written to disk...")
-        fd, fname = tempfile.mkstemp(suffix=".txt", prefix="sc-", text=True, dir="/tmp")
+        tempdir = get_gef_setting("gef.tempdir")
+        fd, fname = tempfile.mkstemp(suffix=".txt", prefix="sc-", text=True, dir=tempdir)
         shellcode = res.splitlines()[7:-11]
         shellcode = b"\n".join(shellcode).replace(b"&quot;", b'"')
         os.write(fd, shellcode)
