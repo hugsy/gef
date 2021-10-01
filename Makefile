@@ -8,23 +8,31 @@ PYLINT_COMMON_PARAMETERS := --jobs=$(PYLINT_JOBS) --suggestion-mode=$(PYLINT_SUG
 PYLINT_GEF_PARAMETERS := --disable=$(PYLINT_DISABLE) --enable=$(PYLINT_ENABLE) $(PYLINT_COMMON_PARAMETERS)
 PYLINT_TEST_PARAMETERS := --disable=$(PYLINT_DISABLE) --enable=$(PYLINT_TEST_ENABLE) $(PYLINT_COMMON_PARAMETERS)
 TARGET := $(shell lscpu | head -1 | sed -e 's/Architecture:\s*//g')
+GEF_PATH ?= $(shell readlink -f gef.py)
+TMPDIR ?= /tmp
 
-test: testbins
-	@cp gef.py /tmp/gef.py
-	python3 -m pytest --verbose --numprocesses=$(NB_CORES) tests/runtests.py
-	@rm -f /tmp/gef.py
-	@rm -f /tmp/gef-*
-	@$(MAKE) -j $(NB_CORES) -C tests/binaries clean
+.PHONY: test test_% Test% testbins clean lint
 
-Test%: testbins
-	@cp gef.py /tmp/gef.py
-	python3 -m pytest --verbose --numprocesses=$(NB_CORES) tests/runtests.py $@
-	@rm -f /tmp/gef.py
-	@rm -f /tmp/gef-*
+test: $(TMPDIR) testbins
+	TMPDIR=$(TMPDIR) python3 -m pytest --verbose -n $(NB_CORES) tests/runtests.py
 
-testbins: tests/binaries/*.c
-	@$(MAKE) -j $(NB_CORES) -C tests/binaries TARGET=$(TARGET) all
+Test%: $(TMPDIR) testbins
+	TMPDIR=$(TMPDIR) python3 -m pytest --verbose -n $(NB_CORES) tests/runtests.py::$@
+
+test_%: $(TMPDIR) testbins
+	TMPDIR=$(TMPDIR) python3 -m pytest --verbose -n $(NB_CORES) tests/runtests.py -k $@
+
+testbins: $(TMPDIR) $(wildcard tests/binaries/*.c)
+	@TMPDIR=$(TMPDIR) $(MAKE) -j $(NB_CORES) -C tests/binaries TARGET=$(TARGET) all
+
+clean:
+	TMPDIR=$(TMPDIR) $(MAKE) -j $(NB_CORES) -C tests/binaries clean
+	@rm -rf $(TMPDIR)
 
 lint:
-	python3 -m pylint $(PYLINT_GEF_PARAMETERS) gef.py
-	python3 -m pylint $(PYLINT_TEST_PARAMETERS) tests/*.py
+	python3 -m pylint $(PYLINT_GEF_PARAMETERS) $(GEF_PATH)
+	python3 -m pylint $(PYLINT_TEST_PARAMETERS) $(wildcard tests/*.py)
+
+$(TMPDIR):
+	mkdir -p $@
+

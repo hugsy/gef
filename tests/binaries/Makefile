@@ -5,7 +5,7 @@ SOURCES         =       $(wildcard *.c)
 LINKED          =       $(SOURCES:.c=.out)
 LDFLAGS         =
 EXTRA_FLAGS     =
-BINDIR          =       /tmp
+TMPDIR          ?=      /tmp
 
 ifeq ($(TARGET), i686)
 CFLAGS          +=      -m32
@@ -25,11 +25,11 @@ all: $(LINKED)
 
 %.out : %.c
 	@echo "[+] Building '$@'"
-	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -o $(BINDIR)/$@ $? $(LDFLAGS)
+	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -o $(TMPDIR)/$@ $? $(LDFLAGS)
 
 clean :
 	@echo "[+] Cleaning stuff"
-	@cd $(BINDIR) && rm -f $(LINKED)
+	@cd $(TMPDIR) && rm -f $(LINKED)
 
 format-string-helper.out: EXTRA_FLAGS := -Wno-format-security
 
