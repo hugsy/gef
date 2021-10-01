@@ -43,7 +43,7 @@ def gdb_run_cmd(cmd: CommandType, before: CommandType = (), after: CommandType =
         command += _add_command([
             "pi from coverage import Coverage",
             f"pi cov = Coverage(data_file=\"{COVERAGE_DIR}/"
-            f"{os.environ.get('PYTEST_XDIST_WORKER')}\", auto_data=True)",
+            f"{os.environ.get('PYTEST_XDIST_WORKER')}\", auto_data=True, branch=True)",
             "pi cov.start()",
         ])
     command += _add_command([

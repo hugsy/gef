@@ -40,8 +40,10 @@ lint:
 
 coverage:
 	@COVERAGE_DIR=$(COVERAGE_DIR) $(MAKE) test
+	@cp gef.py /tmp/gef.py
 	@coverage combine $(COVERAGE_DIR)/*
 	@coverage html --include "*/gef.py"
+	@rm -f /tmp/gef.py
 	@rm -rf $(COVERAGE_DIR)
 
 $(TMPDIR):
