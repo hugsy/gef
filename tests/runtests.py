@@ -11,6 +11,7 @@ import re
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 from helpers import (
     gdb_run_cmd,
@@ -24,8 +25,9 @@ from helpers import (
     _target
 )
 
-BIN_LS = "/bin/ls"
-TMPDIR = tempfile.gettempdir()
+BIN_LS = Path("/bin/ls")
+BIN_SH = Path("/bin/sh")
+TMPDIR = Path(tempfile.gettempdir())
 
 
 class GdbAssertionError(AssertionError):
@@ -546,7 +548,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("process-search", target=target,
                                    before=["set args w00tw00t"])
         self.assertNoException(res)
-        self.assertIn(target, res)
+        self.assertIn(str(target), res)
 
         res = gdb_start_silent_cmd("process-search gdb.*fakefake",
                                    target=target, before=["set args w00tw00t"])
@@ -601,7 +603,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn(target, res)
+        self.assertIn(str(target), res)
 
         res = gdb_start_silent_cmd("scan binary libc")
         self.assertNoException(res)
@@ -609,8 +611,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_search_pattern(self):
-        self.assertFailIfInactiveSession(gdb_run_cmd("grep /bin/sh"))
-        res = gdb_start_silent_cmd("grep /bin/sh")
+        self.assertFailIfInactiveSession(gdb_run_cmd(f"grep {BIN_SH}"))
+        res = gdb_start_silent_cmd(f"grep {BIN_SH}")
         self.assertNoException(res)
         self.assertIn("0x", res)
         return
@@ -663,10 +665,10 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_shellcode_search(self):
-        cmd = "shellcode search execve /bin/sh"
+        cmd = f"shellcode search execve {BIN_SH}"
         res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
-        self.assertIn("setuid(0) + execve(/bin/sh) 49 bytes", res)
+        self.assertIn(f"setuid(0) + execve({BIN_SH}) 49 bytes", res)
         return
 
     def test_cmd_shellcode_get(self):
@@ -720,7 +722,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
 
         cmd = "trace-run $pc+1"
         res = gdb_start_silent_cmd(
-            cmd, before=[f"gef config trace-run.tracefile_prefix {TMPDIR}/gef-trace-"])
+            cmd, before=[f"gef config trace-run.tracefile_prefix {TMPDIR / 'gef-trace-'}"])
         self.assertNoException(res)
         self.assertIn("Tracing from", res)
         return
@@ -852,7 +854,7 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
     def test_func_get_filepath(self):
         res = gdb_test_python_method("get_filepath()", target=BIN_LS)
         self.assertNoException(res)
-        target = _target("foo bar", extension="")
+        target = TMPDIR / "foo bar"
         subprocess.call(["cp", BIN_LS, target])
         res = gdb_test_python_method("get_filepath()", target=target)
         self.assertNoException(res)
