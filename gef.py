@@ -79,6 +79,7 @@ import time
 import traceback
 import configparser
 import xmlrpc.client as xmlrpclib
+import warnings
 
 from functools import lru_cache
 from io import StringIO
@@ -2759,16 +2760,22 @@ def read_int_from_memory(addr):
 def read_cstring_from_memory(address, max_length=GEF_MAX_STRING_LENGTH, encoding=None):
     """Return a C-string read from memory."""
 
-    if not encoding:
-        encoding = "unicode_escape"
+    encoding = encoding or "unicode-escape"
 
-    char_ptr = cached_lookup_type("char").pointer()
-
-    length = min(address|(DEFAULT_PAGE_SIZE-1), max_length+1)
+    length = min(address | (DEFAULT_PAGE_SIZE-1), max_length+1)
     try:
-        res = gdb.Value(address).cast(char_ptr).string(encoding=encoding, length=length).strip()
+        res_bytes = bytes(read_memory(address, length))
     except gdb.error:
-        res = bytes(read_memory(address, length)).decode("utf-8")
+        err("Can't read memory at '{}'".format(address))
+        return ""
+    try:
+        with warnings.catch_warnings():
+            # ignore DeprecationWarnings (see #735)
+            warnings.simplefilter("ignore")
+            res = res_bytes.decode(encoding, "strict")
+    except UnicodeDecodeError:
+        # latin-1 as fallback due to its single-byte to glyph mapping
+        res = res_bytes.decode("latin-1", "replace")
 
     res = res.split("\x00", 1)[0]
     ustr = res.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
