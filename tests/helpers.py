@@ -9,7 +9,7 @@ from typing import Iterable, Union, NewType, List
 
 TMPDIR = Path(tempfile.gettempdir())
 DEFAULT_TARGET = TMPDIR / "default.out"
-GEF_PATH = os.getenv("GEF_PATH", "gef.py")
+GEF_PATH = Path(os.getenv("GEF_PATH", "gef.py"))
 STRIP_ANSI_DEFAULT = True
 DEFAULT_CONTEXT = "-code -stack"
 ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()
