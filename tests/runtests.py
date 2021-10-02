@@ -8,9 +8,9 @@
 
 
 import re
-import unittest
 import subprocess
-import os
+import tempfile
+import unittest
 
 from helpers import (
     gdb_run_cmd,

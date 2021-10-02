@@ -1,9 +1,10 @@
-from typing import Iterable, Union, NewType, List
+import os
+import platform
 import re
 import subprocess
-import os
 import sys
-import platform
+import tempfile
+from typing import Iterable, Union, NewType, List
 
 TMPDIR = tempfile.gettempdir()
 DEFAULT_TARGET = f"{TMPDIR}/default.out"
