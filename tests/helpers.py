@@ -5,7 +5,7 @@ import os
 import sys
 import platform
 
-TMPDIR = os.getenv("TMPDIR", "/tmp")
+TMPDIR = tempfile.gettempdir()
 DEFAULT_TARGET = f"{TMPDIR}/default.out"
 GEF_PATH = os.getenv("GEF_PATH", "gef.py")
 STRIP_ANSI_DEFAULT = True

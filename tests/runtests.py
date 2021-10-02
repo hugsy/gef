@@ -25,7 +25,7 @@ from helpers import (
 )
 
 BIN_LS = "/bin/ls"
-TMPDIR = os.getenv("TMPDIR", "/tmp")
+TMPDIR = tempfile.gettempdir()
 
 
 class GdbAssertionError(AssertionError):
