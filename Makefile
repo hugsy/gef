@@ -39,6 +39,8 @@ lint:
 	python3 -m pylint $(PYLINT_TEST_PARAMETERS) $(wildcard tests/*.py)
 
 coverage:
+	@! ( [ -d $(COVERAGE_DIR) ] && echo "COVERAGE_DIR=$(COVERAGE_DIR) exists already")
+	@mkdir -p $(COVERAGE_DIR)
 	@COVERAGE_DIR=$(COVERAGE_DIR) $(MAKE) test
 	@coverage combine $(COVERAGE_DIR)/*
 	@coverage html --include "*/gef.py"
