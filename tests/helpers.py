@@ -56,7 +56,7 @@ def gdb_run_cmd(cmd: CommandType, before: CommandType = (), after: CommandType =
     command += _add_command(after)
     if COVERAGE_DIR:
         command += _add_command(["pi cov.stop()", "pi cov.save()"])
-    command += ["-ex", "quit", "--", target]
+    command += ["-ex", "quit", "--", str(target)]
 
     lines = subprocess.check_output(command, stderr=subprocess.STDOUT).strip().splitlines()
     output = b"\n".join(lines)
