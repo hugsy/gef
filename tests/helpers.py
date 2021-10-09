@@ -14,7 +14,7 @@ STRIP_ANSI_DEFAULT = True
 DEFAULT_CONTEXT = "-code -stack"
 ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()
 CI_VALID_ARCHITECTURES = ("x86_64", "i686", "aarch64", "armv7l")
-COVERAGE_DIR = os.environ.get("COVERAGE_DIR", "")
+COVERAGE_DIR = os.getenv("COVERAGE_DIR", "")
 
 CommandType = NewType("CommandType", Union[str, Iterable[str]])
 
@@ -40,10 +40,11 @@ def gdb_run_cmd(cmd: CommandType, before: CommandType = (), after: CommandType =
     before (resp. after) the command to test."""
     command = ["gdb", "-q", "-nx"]
     if COVERAGE_DIR:
+        coverage_file = Path(COVERAGE_DIR) / os.getenv("PYTEST_XDIST_WORKER")
         command += _add_command([
             "pi from coverage import Coverage",
-            f"pi cov = Coverage(data_file=\"{COVERAGE_DIR}/"
-            f"{os.environ.get('PYTEST_XDIST_WORKER')}\", auto_data=True, branch=True)",
+            f"pi cov = Coverage(data_file=\"{coverage_file}\","
+            "auto_data=True, branch=True)",
             "pi cov.start()",
         ])
     command += _add_command([
