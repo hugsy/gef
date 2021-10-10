@@ -31,7 +31,7 @@ testbins: $(TMPDIR) $(wildcard tests/binaries/*.c)
 
 clean:
 	TMPDIR=$(TMPDIR) $(MAKE) -j $(NB_CORES) -C tests/binaries clean
-	@rm -rf $(TMPDIR)
+	@rm -rf $(TMPDIR)/gef-* $(TMPDIR)/gef.py || true
 
 lint:
 	python3 -m pylint $(PYLINT_GEF_PARAMETERS) $(GEF_PATH)
