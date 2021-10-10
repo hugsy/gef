@@ -8,6 +8,7 @@ PYLINT_COMMON_PARAMETERS := --jobs=$(PYLINT_JOBS) --suggestion-mode=$(PYLINT_SUG
 PYLINT_GEF_PARAMETERS := --disable=$(PYLINT_DISABLE) --enable=$(PYLINT_ENABLE) $(PYLINT_COMMON_PARAMETERS)
 PYLINT_TEST_PARAMETERS := --disable=$(PYLINT_DISABLE) --enable=$(PYLINT_TEST_ENABLE) $(PYLINT_COMMON_PARAMETERS)
 TARGET := $(shell lscpu | head -1 | sed -e 's/Architecture:\s*//g')
+COVERAGE_DIR ?= /tmp/cov
 GEF_PATH ?= $(shell readlink -f gef.py)
 TMPDIR ?= /tmp
 PYTEST_PARAMETERS := --verbose -n $(NB_CORES)
@@ -31,11 +32,19 @@ testbins: $(TMPDIR) $(wildcard tests/binaries/*.c)
 
 clean:
 	TMPDIR=$(TMPDIR) $(MAKE) -j $(NB_CORES) -C tests/binaries clean
-	@rm -rf $(TMPDIR)
+	@rm -rf $(TMPDIR)/gef-* $(TMPDIR)/gef.py || true
 
 lint:
 	python3 -m pylint $(PYLINT_GEF_PARAMETERS) $(GEF_PATH)
 	python3 -m pylint $(PYLINT_TEST_PARAMETERS) $(wildcard tests/*.py)
+
+coverage:
+	@! ( [ -d $(COVERAGE_DIR) ] && echo "COVERAGE_DIR=$(COVERAGE_DIR) exists already")
+	@mkdir -p $(COVERAGE_DIR)
+	@COVERAGE_DIR=$(COVERAGE_DIR) $(MAKE) test
+	@coverage combine $(COVERAGE_DIR)/*
+	@coverage html --include "*/gef.py"
+	@rm -rf $(COVERAGE_DIR)
 
 $(TMPDIR):
 	mkdir -p $@
