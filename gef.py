@@ -8042,7 +8042,9 @@ class ContextCommand(GenericCommand):
                 pass
 
         if not nb_argument:
-            if is_x86_32():
+            if not parameter_set:
+                nb_argument = 0
+            elif is_x86_32():
                 nb_argument = len(parameter_set)
             else:
                 nb_argument = max(function_parameters.index(p)+1 for p in parameter_set)
