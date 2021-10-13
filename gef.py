@@ -8836,7 +8836,7 @@ class ContextCommand(GenericCommand):
                 symbol = ""
                 if sym_found:
                     sym_name, offset = sym_found
-                    symbol = "<{}+{:x}> ".format(sym_name, offset)
+                    symbol = " <{}+{:x}> ".format(sym_name, offset)
 
                 items.append(Color.redify("{}{} {}".format(symbol, insn.mnemonic, ", ".join(insn.operands))))
 
