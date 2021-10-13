@@ -44,7 +44,7 @@ If you really need GDB+Python2, use the (not actively maintained) [`gef-legacy`]
 
 ## Community ##
 
-[![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) [[invite link](https://discord.gg/HCS8Hg7)]
+[![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discord.gg/HCS8Hg7)
 
 _Note_: For maintenance simplicity, the unified communities on IRC/Gitter/Slack/Discord based [MatterBridge](https://github.com/42wim/matterbridge) are now discontinued. The GEF Discord is now the only way for talking with us!
 
@@ -92,6 +92,8 @@ We would like to thank in particular the following people who've been sponsoring
 
  - [@nkaretnikov](https://github.com/nkaretnikov)
  - [@R3zk0n](https://github.com/r3zk0n)
+ - [@merces](https://github.com/merces)
+ - [@nbars](https://github.com/nbars)
 
 
 Want to be part of this list of amazing people? [Jump here!](https://github.com/sponsors/hugsy)

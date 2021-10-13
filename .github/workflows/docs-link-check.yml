@@ -1,0 +1,16 @@
+name: Check URLs in docs
+on: [push]
+
+jobs:
+  link-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: gaurav-nelson/github-action-markdown-link-check@1.0.13
+      with:
+        use-quiet-mode: 'yes'
+        file-path: './README.md'
+        folder-path: 'docs/'
+        max-depth: 2
+        config-file: '.ci/mlc_config.json'
+

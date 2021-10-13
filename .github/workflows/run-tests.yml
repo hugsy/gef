@@ -13,13 +13,19 @@ on:
 
 jobs:
   build:
-    name: "Run Unit tests"
-    runs-on: [ubuntu-20.04]
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-20.04
+          - ubuntu-18.04
+          # - [self-hosted, linux, ARM64]
+          # - [self-hosted, linux, ARM]
+    name: "Run Unit tests on ${{ matrix.os }}"
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash
-    strategy:
-      fail-fast: false
 
     steps:
     - uses: actions/checkout@v2
@@ -27,8 +33,13 @@ jobs:
     - name: Install python and toolchain
       run: |
         sudo apt-get update
-        sudo apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev
+        sudo apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver
         sudo python3 -m pip install --upgrade pip
+
+    - name: Set architecture specific properties
+      id: set-arch-properties
+      run: |
+        echo "::set-output name=arch::$(uname --processor)"
 
     - name: Get pip cache dir
       id: pip-cache
@@ -65,5 +76,7 @@ jobs:
         make lint
 
     - name: Run Tests
+      env:
+        GEF_CI_ARCH: ${{ steps.set-arch-properties.outputs.arch }}
       run: |
         make test

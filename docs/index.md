@@ -2,7 +2,11 @@
 
 [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) [![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discord.gg/HCS8Hg7)
 
-`GEF` (pronounced ʤɛf - "Jeff") is a kick-ass set of commands for X86, ARM, MIPS, PowerPC and SPARC to make GDB cool again for exploit dev. It is aimed to be used mostly by exploit developers and reverse-engineers, to provide additional features to GDB using the Python API to assist during the process of dynamic analysis and exploit development.
+`GEF` (pronounced ʤɛf - "Jeff") is a kick-ass set of commands for X86, ARM,
+MIPS, PowerPC and SPARC to make GDB cool again for exploit dev. It is aimed to
+be used mostly by exploit developers and reverse-engineers, to provide
+additional features to GDB using the Python API to assist during the process of
+dynamic analysis and exploit development.
 
 It has full support for both Python2 and Python3 indifferently (as more and more
 distros start pushing `gdb` compiled with Python3 support).
@@ -12,15 +16,27 @@ distros start pushing `gdb` compiled with Python3 support).
 A few of `GEF` features include:
 
   * **One** single GDB script
-  * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included and [is installable instantly](https://gef.readthedocs.io/en/master/#setup)
-  * **Fast** limiting the number of dependencies and optimizing code to make the commands as fast as possible
-  * Provides [a great variety of commands](https://gef.readthedocs.io/en/master/commands/) to drastically change your experience in GDB.
-  * [**Easily** extensible](https://gef.readthedocs.io/en/master/api/) to create other commands by providing more comprehensible layout to GDB Python API.
-  * Full Python3 support ([Python2 support was dropped](https://github.com/hugsy/gef/releases/tag/2020.03) - see [`gef-legacy`](https://github.com/hugsy/gef-legacy)).
-  * Built around an architecture abstraction layer, so all commands work in any GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS, PowerPC, etc.
-  * Suited for real-life apps debugging, exploit development, just as much as CTF
+  * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included
+    and [is installable instantly](https://gef.readthedocs.io/en/master/#setup)
+  * **Fast** limiting the number of dependencies and optimizing code to make
+    the commands as fast as possible
+  * Provides [a great variety of
+    commands](https://gef.readthedocs.io/en/master/commands/) to drastically
+    change your experience in GDB.
+  * [**Easily** extensible](https://gef.readthedocs.io/en/master/api/) to
+    create other commands by providing more comprehensible layout to GDB Python
+    API.
+  * Full Python3 support ([Python2 support was
+    dropped](https://github.com/hugsy/gef/releases/tag/2020.03) - see
+    [`gef-legacy`](https://github.com/hugsy/gef-legacy)).
+  * Built around an architecture abstraction layer, so all commands work in any
+    GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC,
+    MIPS, PowerPC, etc.
+  * Suited for real-life debugging, exploit development, just as much as for
+    CTFs
 
-Check out the [Screenshot page](https://gef.readthedocs.io/en/master/screenshots/) for more.
+Check out the [Screenshot
+page](https://gef.readthedocs.io/en/master/screenshots/) for more.
 
 Or [try it online](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 
@@ -32,25 +48,11 @@ Or [try it online](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb).
 
 ```bash
-# via the install script
-$ wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
-
-# manually
-$ wget -O ~/.gdbinit-gef.py -q https://github.com/hugsy/gef/raw/master/gef.py
-$ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
+$ bash -c "$(curl -fsSL http://gef.blah.cat/sh)"
 ```
 
-
-Alternatively from inside `gdb` directly:
-
-```bash
-$ gdb -q
-(gdb) pi \
-import urllib.request as u, tempfile as t; \
-g=t.NamedTemporaryFile(suffix='-gef.py'); \
-open(g.name, 'wb+').write( u.urlopen('https://github.com/hugsy/gef/raw/master/gef.py').read() ); \
-gdb.execute('source %s' % g.name)
-```
+For more details and other ways to install GEF please see [./config.md](the
+config docs).
 
 ### Run ###
 
@@ -74,8 +76,6 @@ And:
 local:~ $ gdb -q
 gef➤  gef-remote -t your.ip.address:1234 -p 666
 ```
-
-
 
 ### Update ###
 
@@ -125,10 +125,6 @@ to install:
 For a quick installation, simply use the `pip` packaged version:
 
 ```bash
-# for Python2.x
-$ pip2 install capstone unicorn keystone-engine ropper
-
-# for Python3.x
 $ pip3 install capstone unicorn keystone-engine ropper
 ```
 
@@ -148,7 +144,7 @@ GEF's API.
 To benefit from it:
 ```bash
 # via the install script
-$ wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef-extras.sh | sh
+$ bash -c "$(wget https://github.com/hugsy/gef/raw/master/scripts/gef-extras.sh -O -)"
 
 # manually
 # clone the repo
@@ -182,21 +178,18 @@ _Side Note_: `GEF` fully relies on the GDB API and other Linux-specific sources 
 Or if you just like the tool, feel free to drop a simple *"thanks"* on Discord, Twitter or other, it is **always** very appreciated.
 
 
+### Sponsors ###
 
-## Open-Source Rewards ##
+We would like to thank in particular the following people who've been sponsoring GEF allowing us to dedicate more time and resources to the project:
 
-I love Open-Source, and just like my [other projects](https://proxenet.readthedocs.io/en/latest/#contributing) I've decided to offer a :beer: 4 :bug: (a.k.a *beer4bugs*) bounty for `GEF`, to thank everybody who helps keeping the project living and always better.
+ - [@nkaretnikov](https://github.com/nkaretnikov)
+ - [@R3zk0n](https://github.com/r3zk0n)
+ - [@merces](https://github.com/merces)
 
-The rule is simple, provide a (substantial) contribution to `GEF`, such as:
 
-   1. Submitting a Pull-Request for a new feature/command.
-   2. Submitting a Pull-Request for a new architecture support.
-   3. Or sending a relevant issue request (like a bug, crash, or else).
+### Extra Credits ###
 
-Come on our [Discord channel](https://discord.gg/HCS8Hg7) to talk about it, and next time we meet in person (like at a conference), I'll be happy to pay you a beer.
+ - The GEF logo was designed by [TheZakMan](https://twitter.com/thezakman)
 
-I do also accept beers if you think that the tool is cool! :wink:
-
-Cheers :beers:
 
 ### Happy hacking ###

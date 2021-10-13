@@ -18,7 +18,7 @@
 | POWERPC      | :heavy_multiplication_x: |                                           |
 | SPARC        | :heavy_multiplication_x: |                                           |
 | RISC-V       | :heavy_multiplication_x: |                                           |
-| `make tests` | :heavy_multiplication_x: |                                           |
+| `make test`  | :heavy_multiplication_x: |                                           |
 
 ### Checklist ###
 

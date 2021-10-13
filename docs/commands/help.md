@@ -1,5 +1,7 @@
-## Command help ##
+## Command gef help ##
 
-Displays the help menu for the commands loaded.
+Displays the help menu for the loaded GEF commands.
 
-![help](https://i.imgur.com/cvMoI3P.png)
+```
+gef➤ gef help
+```

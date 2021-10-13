@@ -9,3 +9,6 @@ tests/pylint3.html
 .vscode
 _build
 debug.log
+.pytest_cache
+.coverage
+htmlcov

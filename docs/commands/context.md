@@ -18,6 +18,18 @@ menu when hitting a breakpoint.
 * The code context box shows the 10 (by default but can be tweaked) next
   instructions to be executed.
 
+### Adding custom context panes ###
+
+As well as using the built-in context panes, you can add your own custom pane that
+will be displayed at each `break`-like event with all the other panes. Custom panes
+can be added using the API:
+
+```python
+register_external_context_pane(pane_name, display_pane_function, pane_title_function)
+```
+
+Check the [API](../api.md) documentation to see a full usage of the
+registration API.
 
 ### Editing context layout ###
 

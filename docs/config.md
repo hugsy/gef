@@ -4,17 +4,17 @@ There is **NO mandatory dependency** to have `gef` running contrarily to other p
 A simple recent GDB compiled with Python scripting support will do.
 
 
-### Pre-requisites
+### Prerequisites
 
 Only [GDB 7.7 and higher](https://www.gnu.org/s/gdb) is required. It must be
 compiled with Python 3 support.
 
-As of January 2020, GEF doesn't officially support Python 2 any longer, due to
+As of January 2020, GEF officially doesn't support Python 2 any longer, due to
 Python 2 becoming officially deprecated.
 
-This version of GEF will then only work for Python 3. If you absolutely require
-GDB + Python 2, please use [GEF-Legacy](https://github.com/hugsy/gef-legacy)
-instead. Note that `gef-legacy` won't provide new features, and only functional
+GEF will then only work for Python 3. If you absolutely require GDB + Python 2,
+please use [GEF-Legacy](https://github.com/hugsy/gef-legacy) instead. Note that
+`gef-legacy` won't provide new features, and only functional
 bugs will be handled.
 
 You can verify it with the following command:
@@ -36,7 +36,7 @@ If you see an error here, it means that your GDB installation does not support P
 
 ### Setup from repository
 
-The best way to use `GEF` is through cloning the git repository from GitHub, and
+The best way to use `GEF` is by cloning the git repository from GitHub, and
 then sourcing the file from your `~/.gdbinit`.
 
 ```bash
@@ -44,13 +44,29 @@ $ git clone https://github.com/hugsy/gef.git  # or git pull to update
 $ echo 'source /path/to/gef.py' >> ~/.gdbinit
 ```
 
+We keep releases on the _master_ branch. Checkout the _dev_ branch if you want
+the latest, though you're more likely to encounter a bug.
+
 ### One-time setup script
 
-If you only need `GEF` for a one-time environment (VMs, etc.) that do not
-have/need `git` installed, just go with:
+```bash
+# via the install script
+## using curl
+$ bash -c "$(curl -fsSL http://gef.blah.cat/sh)"
+
+## using wget
+$ bash -c "$(wget http://gef.blah.cat/sh -O -)"
+
+# or manually
+$ wget -O ~/.gdbinit-gef.py -q http://gef.blah.cat/py
+$ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
+```
+
+Alternatively from inside `gdb` directly:
 
 ```bash
-$ curl -s -L https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
+$ gdb -q
+(gdb) pi import urllib.request as u, tempfile as t; g=t.NamedTemporaryFile(suffix='-gef.py'); open(g.name, 'wb+').write(u.urlopen('https://tinyurl.com/gef-master').read()); gdb.execute('source %s' % g.name)
 ```
 
 ### Optional dependencies
@@ -63,8 +79,8 @@ highly recommended to install the following modules (but not required):
 - [`unicorn`](https://github.com/unicorn-engine/unicorn) - emulation engine
 - [`keystone`](https://github.com/keystone-engine/keystone) - assembly engine
 
-Some of those modules can be installed through `python-pip`. The following
-commands will work for most distributions, but substitute `pip3` for versions of `gdb` compiled with Python 3:
+Some of those modules can be installed through `python-pip`.
+
 ```bash
 $ pip install capstone
 $ pip install ropper

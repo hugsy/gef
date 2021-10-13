@@ -3,3 +3,6 @@ keystone-engine
 pylint
 ropper
 unicorn
+pytest
+pytest-xdist
+coverage

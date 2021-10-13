@@ -4,15 +4,15 @@ The `stub` command allows you stub out functions, optionally specifying the
 return value.
 
 ```
-gef➤  stub [-h] [-r RETVAL] [LOCATION]
+gef➤  stub [-h] [--retval RETVAL] [address]
 ```
 
-`LOCATION` indicates the address of the function to bypass. If not
-specified, gef will consider the instruction at the program counter to be the
+`address` indicates the address of the function to bypass. If not
+specified, `GEF` will consider the instruction at the program counter to be the
 start of the function.
 
-If `-r RETVAL` is provided, gef will set the return value to the provided
-value. Otherwise it will set the return value to 0.
+If `--retval RETVAL` is provided, `GEF` will set the return value to the
+provided value. Otherwise, it will set the return value to 0.
 
 For example, it is trivial to bypass `fork()` calls. Since the return value is
 set to 0, it will in fact drop us into the "child" process. It must be noted
@@ -25,7 +25,9 @@ process into thinking it has become the child.
 Patching `fork()` calls:
 
 * Without stub:
+
 ![fork execution](http://i.imgur.com/TjnTDot.png)
 
 * With stub:
+
 ![stubbed fork](http://i.imgur.com/CllTnRH.png)

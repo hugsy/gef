@@ -50,5 +50,4 @@ Please use the `-h` argument to see all the methods available and their syntax.
 
 It is also note-worthy that [Binary Ninja](https://binary.ninja) support has be added:
 ![](https://pbs.twimg.com/media/CzSso9bUAAArL1f.jpg:large), by using the
-script
-[`binja_gef.py`](https://raw.githubusercontent.com/hugsy/gef/master/scripts/binja_gef.py).
+Binary Ninja plugin [`gef-binja.py`](https://github.com/hugsy/gef-binja).

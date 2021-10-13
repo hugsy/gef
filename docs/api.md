@@ -70,6 +70,43 @@ or add to your `~/.gdbinit`:
 $ echo source /path/to/newcmd.py >> ~/.gdbinit
 ```
 
+## Custom context panes ##
+
+Sometimes you want something similar to a command to run on each break-like
+event and display itself as a part of the GEF context. Here is a simple example
+of how to make a custom context pane:
+
+```python
+__start_time__ = int(time.time())
+def wasted_time_debugging():
+    gef_print("You have wasted {} seconds!".format(int(time.time()) - __start_time__))
+
+def wasted_time_debugging_title():
+    return "wasted:time:debugging:{}".format(int(time.time()) - __start_time__)
+
+register_external_context_pane("wasted_time_debugging", wasted_time_debugging, wasted_time_debugging_title)
+```
+
+Loading it in `GEF` is as easy as loading a command
+
+```
+gef➤  source /path/to/custom_context_pane.py
+```
+
+It can even be included in the same file as a Command.
+Now on each break you will notice a new pane near the bottom of the context.
+The order can be modified in the `GEF` context config.
+
+### Context Pane API ###
+
+The API demonstrated above requires very specific argument types:
+`register_external_context_pane(pane_name, display_pane_function, pane_title_function)`
+
+-`pane_name`: a string that will be used as the panes setting name
+-`display_pane_function`: a function that uses `gef_print()` to print content
+in the pane
+-`pane_title_function`: a function that returns the title string or None to hide the title
+
 ## API ##
 
 Some of the most important parts of the API for creating new commands are
@@ -88,12 +125,27 @@ $ gdb -q -ex 'pi help(hexdump)' -ex quit
 ```
 
 
-### Globals ###
+### Reference
+
+#### Global
 
 ```python
 register_external_command()
 ```
 Procedure to add the new GEF command
+
+---
+
+```python
+parse_address()
+```
+Parse an expression into a integer from the current debugging context.
+
+
+```python
+gef ➤ pi hex(parse_address("main+0x4"))
+'0x55555555a7d4'
+```
 
 ---
 
@@ -105,9 +157,46 @@ Global variable associated with the architecture of the currently debugged proce
 ---
 
 ```python
+current_elf
+```
+Global variable associated to the currently debugging ELF file.
+
+
+#### Logging
+
+```python
+ok(msg)
+info(msg)
+warn(msg)
+err(msg)
+```
+
+
+#### CPU
+
+```python
+get_register(register_name)
+```
+
+Returns the value of given register. The function will fail outside a running debugging context.
+
+
+
+
+#### Memory
+
+
+```python
 read_memory(addr, length=0x10)
 ```
 Returns a `length` long byte array with a copy of the process memory read from `addr`.
+
+Ex:
+```python
+0:000 ➤  pi print(hexdump( read_memory(parse_address("$pc"), length=0x20 )))
+0x0000000000000000     f3 0f 1e fa 31 ed 49 89 d1 5e 48 89 e2 48 83 e4    ....1.I..^H..H..
+0x0000000000000010     f0 50 54 4c 8d 05 66 0d 01 00 48 8d 0d ef 0c 01    .PTL..f...H.....
+```
 
 ---
 
@@ -134,35 +223,36 @@ Return a NULL-terminated array of bytes, from `addr`.
 ---
 
 ```python
-get_register(register_name)
-```
-
-Returns the value of given register.
-
----
-
-```python
 get_process_maps()
 ```
-Returns an array of Section objects (see below) corresponding to the current memory layout of the process.
+Returns an iterable of Section objects (see below) corresponding to the current memory layout of the process.
 
----
+```python
+0:000 ➤   pi print('\n'.join([ f"{x.page_start:#x} -> {x.page_end:#x}" for x in get_process_maps()]))
+0x555555554000 -> 0x555555558000
+0x555555558000 -> 0x55555556c000
+0x55555556c000 -> 0x555555575000
+0x555555576000 -> 0x555555577000
+0x555555577000 -> 0x555555578000
+0x555555578000 -> 0x55555559a000
+0x7ffff7cd8000 -> 0x7ffff7cda000
+0x7ffff7cda000 -> 0x7ffff7ce1000
+0x7ffff7ce1000 -> 0x7ffff7cf2000
+0x7ffff7cf2000 -> 0x7ffff7cf7000
+[...]
+```
+
+#### Code
+
 
 ```python
 gef_disassemble(addr, nb_insn, from_top=False)
 ```
 Disassemble `nb_insn` instructions after `addr`. If `from_top` is False (default), it will also disassemble the `nb_insn` instructions before `addr`. Return an iterator of Instruction objects (see below).
 
----
 
-```python
-ok(msg)
-info(msg)
-warn(msg)
-err(msg)
-```
 
-Logging functions
+#### Runtime hooks
 
 ---
 
@@ -200,7 +290,7 @@ gef_on_exit_unhook
 Takes a callback function FUNC as parameter: add/remove a call to `FUNC` when GDB exits an inferior.
 
 
-### Decorators ###
+### `do_invoke` decorators ###
 
 ```python
 @only_if_gdb_running
@@ -224,6 +314,22 @@ Checks if the current GDB session is local i.e. not debugging using GDB `remote`
 ```
 
 Checks if the GDB version is higher or equal to the MAJOR and MINOR providedas arguments (both as Integers). This is required since some commands/API ofGDB are only present in the very latest version of GDB.
+
+---
+
+```python
+@obsolete_command
+```
+
+Decorator to add a warning when a command is obsolete and may be removed without warning in future releases.
+
+---
+
+```python
+@experimental_feature
+```
+Decorator to add a warning when a feature is experimental, and its API/behavior may change in future releases.
+
 
 ---
 
@@ -274,6 +380,18 @@ args.bleh --> "" # the default value
 args.blah --> True # set to True because user input declared the option (would have been False otherwise)
 ```
 
+---
+
+```python
+@only_if_current_arch_in(valid_architectures)
+```
+Decorator to allow commands for only a subset of the architectured supported by GEF. This decorator is to use lightly, as it goes against the purpose of GEF to support all architectures GDB does. However in some cases, it is necessary.
+
+```python
+@only_if_current_arch_in(["X86", "RISCV"])
+def do_invoke(self, argv):
+  [...]
+```
 
 
 ### Classes ###
