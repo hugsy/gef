@@ -8832,7 +8832,15 @@ class ContextCommand(GenericCommand):
                     insn = next(gef_disassemble(pc, 1))
                 except gdb.MemoryError:
                     break
-                items.append(Color.redify("{} {}".format(insn.mnemonic, ", ".join(insn.operands))))
+
+                # check if the gdb symbol table may know the address
+                sym_found = gdb_get_location_from_symbol(pc)
+                symbol = ""
+                if sym_found:
+                    sym_name, offset = sym_found
+                    symbol = " <{}+{:x}> ".format(sym_name, offset)
+
+                items.append(Color.redify("{}{} {}".format(symbol, insn.mnemonic, ", ".join(insn.operands))))
 
             gef_print("[{}] {}".format(Color.colorify("#{}".format(level), "bold green" if current_frame == orig_frame else "bold pink"),
                                        RIGHT_ARROW.join(items)))
