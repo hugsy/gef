@@ -8901,7 +8901,16 @@ class ContextCommand(GenericCommand):
                 line += Color.colorify("stopped", "bold red")
                 thread.switch()
                 frame = gdb.selected_frame()
-                line += " {:s} in {:s} ()".format(Color.colorify("{:#x}".format(frame.pc()), "blue"), Color.colorify(frame.name() or "??", "bold yellow"))
+                frame_name = frame.name()
+
+                # check if the gdb symbol table may know the address
+                if not frame_name:
+                    sym_found = gdb_get_location_from_symbol(frame.pc())
+                    if sym_found:
+                        sym_name, offset = sym_found
+                        frame_name = "<{}+{:x}>".format(sym_name, offset)
+
+                line += " {:s} in {:s} ()".format(Color.colorify("{:#x}".format(frame.pc()), "blue"), Color.colorify(frame_name or "??", "bold yellow"))
                 line += ", reason: {}".format(Color.colorify(reason(), "bold pink"))
             elif thread.is_exited():
                 line += Color.colorify("exited", "bold yellow")
