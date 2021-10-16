@@ -16,6 +16,7 @@ ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()
 CI_VALID_ARCHITECTURES_32B = ("i686", "armv7l")
 CI_VALID_ARCHITECTURES_64B = ("x86_64", "aarch64", "mips64el", "ppc64le")
 CI_VALID_ARCHITECTURES = CI_VALID_ARCHITECTURES_64B + CI_VALID_ARCHITECTURES_32B
+COVERAGE_DIR = os.getenv("COVERAGE_DIR", "")
 
 CommandType = NewType("CommandType", Union[str, Iterable[str]])
 
@@ -39,16 +40,25 @@ def gdb_run_cmd(cmd: CommandType, before: CommandType = (), after: CommandType =
                 target: Path = DEFAULT_TARGET, strip_ansi: bool = STRIP_ANSI_DEFAULT) -> str:
     """Execute a command inside GDB. `before` and `after` are lists of commands to be executed
     before (resp. after) the command to test."""
-    command = [
-        "gdb", "-q", "-nx",
-        "-ex", f"source {GEF_PATH}",
-        "-ex", "gef config gef.debug True"
-    ]
-
+    command = ["gdb", "-q", "-nx"]
+    if COVERAGE_DIR:
+        coverage_file = Path(COVERAGE_DIR) / os.getenv("PYTEST_XDIST_WORKER")
+        command += _add_command([
+            "pi from coverage import Coverage",
+            f"pi cov = Coverage(data_file=\"{coverage_file}\","
+            "auto_data=True, branch=True)",
+            "pi cov.start()",
+        ])
+    command += _add_command([
+        f"source {GEF_PATH}",
+        "gef config gef.debug True",
+    ])
     command += _add_command(before)
     command += _add_command(cmd)
     command += _add_command(after)
-    command += ["-ex", "quit", "--", target]
+    if COVERAGE_DIR:
+        command += _add_command(["pi cov.stop()", "pi cov.save()"])
+    command += ["-ex", "quit", "--", str(target)]
 
     lines = subprocess.check_output(command, stderr=subprocess.STDOUT).strip().splitlines()
     output = b"\n".join(lines)

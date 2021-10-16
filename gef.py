@@ -8672,7 +8672,9 @@ class ContextCommand(GenericCommand):
                 pass
 
         if not nb_argument:
-            if is_x86_32():
+            if not parameter_set:
+                nb_argument = 0
+            elif is_x86_32():
                 nb_argument = len(parameter_set)
             else:
                 nb_argument = max(function_parameters.index(p)+1 for p in parameter_set)
@@ -8830,7 +8832,15 @@ class ContextCommand(GenericCommand):
                     insn = next(gef_disassemble(pc, 1))
                 except gdb.MemoryError:
                     break
-                items.append(Color.redify("{} {}".format(insn.mnemonic, ", ".join(insn.operands))))
+
+                # check if the gdb symbol table may know the address
+                sym_found = gdb_get_location_from_symbol(pc)
+                symbol = ""
+                if sym_found:
+                    sym_name, offset = sym_found
+                    symbol = " <{}+{:x}> ".format(sym_name, offset)
+
+                items.append(Color.redify("{}{} {}".format(symbol, insn.mnemonic, ", ".join(insn.operands))))
 
             gef_print("[{}] {}".format(Color.colorify("#{}".format(level), "bold green" if current_frame == orig_frame else "bold pink"),
                                        RIGHT_ARROW.join(items)))
@@ -8891,7 +8901,16 @@ class ContextCommand(GenericCommand):
                 line += Color.colorify("stopped", "bold red")
                 thread.switch()
                 frame = gdb.selected_frame()
-                line += " {:s} in {:s} ()".format(Color.colorify("{:#x}".format(frame.pc()), "blue"), Color.colorify(frame.name() or "??", "bold yellow"))
+                frame_name = frame.name()
+
+                # check if the gdb symbol table may know the address
+                if not frame_name:
+                    sym_found = gdb_get_location_from_symbol(frame.pc())
+                    if sym_found:
+                        sym_name, offset = sym_found
+                        frame_name = "<{}+{:x}>".format(sym_name, offset)
+
+                line += " {:s} in {:s} ()".format(Color.colorify("{:#x}".format(frame.pc()), "blue"), Color.colorify(frame_name or "??", "bold yellow"))
                 line += ", reason: {}".format(Color.colorify(reason(), "bold pink"))
             elif thread.is_exited():
                 line += Color.colorify("exited", "bold yellow")

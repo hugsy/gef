@@ -5,3 +5,4 @@ ropper
 unicorn
 pytest
 pytest-xdist
+coverage
