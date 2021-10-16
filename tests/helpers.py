@@ -13,13 +13,15 @@ GEF_PATH = Path(os.getenv("GEF_PATH", "gef.py"))
 STRIP_ANSI_DEFAULT = True
 DEFAULT_CONTEXT = "-code -stack"
 ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()
-CI_VALID_ARCHITECTURES = ("x86_64", "i686", "aarch64", "armv7l")
+CI_VALID_ARCHITECTURES_32B = ("i686", "armv7l")
+CI_VALID_ARCHITECTURES_64B = ("x86_64", "aarch64", "mips64el", "ppc64le")
+CI_VALID_ARCHITECTURES = CI_VALID_ARCHITECTURES_64B + CI_VALID_ARCHITECTURES_32B
 
 CommandType = NewType("CommandType", Union[str, Iterable[str]])
 
 
 def is_64b() -> bool:
-    return ARCH in ("x86_64", "aarch64")
+    return ARCH in CI_VALID_ARCHITECTURES_64B
 
 
 def ansi_clean(s: str) -> str:
@@ -28,7 +30,7 @@ def ansi_clean(s: str) -> str:
 
 
 def _add_command(commands: CommandType) -> List[str]:
-    if type(commands) == str:
+    if isinstance(commands, str):
         commands = [commands]
     return [_str for cmd in commands for _str in ["-ex", cmd]]
 
