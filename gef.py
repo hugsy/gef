@@ -1217,6 +1217,8 @@ class GlibcChunk:
         flags = []
         if self.has_p_bit():
             flags.append(Color.colorify("PREV_INUSE", "red bold"))
+        else:
+            flags.append(Color.colorify("PREV_FREE", "green bold"))
         if self.has_m_bit():
             flags.append(Color.colorify("IS_MMAPPED", "red bold"))
         if self.has_n_bit():
@@ -7000,13 +7002,13 @@ class GlibcHeapChunkCommand(GenericCommand):
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
 
     _cmdline_ = "heap chunk"
-    _syntax_  = "{:s} [-h] [--allow-unaligned] address".format(_cmdline_)
+    _syntax_  = "{:s} [-h] [--allow-unaligned] address [number]".format(_cmdline_)
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
-    @parse_arguments({"address": ""}, {"--allow-unaligned": True})
+    @parse_arguments({"address": "", "number" : 1}, {"--allow-unaligned": True}, )
     @only_if_gdb_running
     def do_invoke(self, *args, **kwargs):
         args = kwargs["arguments"]
@@ -7015,12 +7017,39 @@ class GlibcHeapChunkCommand(GenericCommand):
             self.usage()
             return
 
-        if get_glibc_arena() is None:
-            return
+        # if get_glibc_arena() is None:
+        #     return
+        if int(args.number) > 1:
+            number = int(args.number)
+            #nb = self.get_setting("peek_nb_byte")
+            if number > 0:
+                addr = parse_address(args.address)
+                current_chunk = GlibcChunk(addr, allow_unaligned=args.allow_unaligned)
+                while number:
+                    if current_chunk.size == 0:
+                        break
 
-        addr = parse_address(args.address)
-        chunk = GlibcChunk(addr, allow_unaligned=args.allow_unaligned)
-        gef_print(chunk.psprint())
+                    line = str(current_chunk)
+                    # if nb:
+                    #     line += "\n    [{}]".format(hexdump(read_memory(current_chunk.data_address, nb), nb, base=current_chunk.data_address))
+                    gef_print(line)
+
+                    next_chunk_addr = current_chunk.get_next_chunk_addr()
+
+                    if not Address(value=next_chunk_addr).valid:
+                        break
+
+                    next_chunk = current_chunk.get_next_chunk()
+                    if next_chunk is None:
+                        break
+
+                    current_chunk = next_chunk
+                    number -= 1
+
+        else:
+            addr = parse_address(args.address)
+            chunk = GlibcChunk(addr, allow_unaligned=args.allow_unaligned)
+            gef_print(chunk.psprint())
         return
 
 
