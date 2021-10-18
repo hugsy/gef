@@ -7025,7 +7025,7 @@ class GlibcHeapChunkCommand(GenericCommand):
             if number > 0:
                 addr = parse_address(args.address)
                 current_chunk = GlibcChunk(addr, allow_unaligned=args.allow_unaligned)
-                while number:
+                for _ in range(number):
                     if current_chunk.size == 0:
                         break
 
@@ -7044,7 +7044,6 @@ class GlibcHeapChunkCommand(GenericCommand):
                         break
 
                     current_chunk = next_chunk
-                    number -= 1
 
         else:
             addr = parse_address(args.address)

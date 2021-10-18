@@ -60,6 +60,20 @@ Glibc's behavior. To be able to view unaligned chunks as well, you can disable
 this with the `--allow-unaligned` flag. Note that this might result in
 incorrect output.
 
+To display heap chunk layout from address, simply provides the `number` argument after the `address` argument:
+
+```
+gef➤ heap chunk [address] [number]
+gef➤ heap chunk 0x4e5400 6
+Chunk(addr=0x4e5400, size=0xd0, flags=PREV_INUSE)
+Chunk(addr=0x4e54d0, size=0x1a0, flags=PREV_INUSE)
+Chunk(addr=0x4e5670, size=0x200, flags=PREV_INUSE)
+Chunk(addr=0x4e5870, size=0xbc0, flags=PREV_INUSE)
+Chunk(addr=0x4e6430, size=0x330, flags=PREV_INUSE)
+Chunk(addr=0x4e6760, size=0x4c0, flags=PREV_INUSE)
+
+```
+
 ### `heap arenas` command ###
 
 Multi-threaded programs have different arenas, and the knowledge of the
