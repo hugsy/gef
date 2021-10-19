@@ -60,11 +60,11 @@ Glibc's behavior. To be able to view unaligned chunks as well, you can disable
 this with the `--allow-unaligned` flag. Note that this might result in
 incorrect output.
 
-To display heap chunk layout from address, simply provides the `number` argument after the `address` argument:
+
+There is an optional `number` argument, to specify the number of chunks printed by this command. To do so, simply provide the `--number` argument:
 
 ```
-gef➤ heap chunk [address] [number]
-gef➤ heap chunk 0x4e5400 6
+gef➤ heap chunk --number 6 0x4e5400
 Chunk(addr=0x4e5400, size=0xd0, flags=PREV_INUSE)
 Chunk(addr=0x4e54d0, size=0x1a0, flags=PREV_INUSE)
 Chunk(addr=0x4e5670, size=0x200, flags=PREV_INUSE)
