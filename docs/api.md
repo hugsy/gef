@@ -404,7 +404,7 @@ $ gdb -q -ex 'pi help(<ClassName>)' -ex quit
 #### Generic ####
 
 New GEF commands **must** inherit `GenericCommand`, have `_cmdline_` and
-`_syntax_` attrivutes, and have a instance method `do_invoke(args)` defined.
+`_syntax_` attributes, and have a instance method `do_invoke(args)` defined.
 
 Other than that, new commands can enjoy all the GEF abstract layer
 representation classes, such as:
