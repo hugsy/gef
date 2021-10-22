@@ -4552,6 +4552,7 @@ def register_external_context_pane(pane_name, display_pane_function, pane_title_
     register_external_context_pane("example_pane", display_pane, pane_title)
     """
     __gef__.add_context_pane(pane_name, display_pane_function, pane_title_function)
+    return
 
 
 #

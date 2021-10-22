@@ -56,10 +56,10 @@ def generate_changelog(args: argparse.Namespace) -> bool:
 
     dbg("Adding contributor summary...")
     args.output_file.write(f"## Contributors{os.linesep}{os.linesep}")
-    contributor_names = shell(f"git log {latest_tag}... --pretty=format:'%aN' | sort -u").splitlines()
+    contributor_names = shell(f"git log {latest_tag}..HEAD --pretty=format:'%aN' | sort -u").splitlines()
     commits = {}
     for author in contributor_names:
-        author_commits = shell(f'git log {latest_tag}...  --pretty=format:"%h" --author="{author}"').splitlines()
+        author_commits = shell(f'git log {latest_tag}..HEAD  --pretty=format:"%h" --author="{author}"').splitlines()
         commits[ author ] = len(author_commits)
     total_commits = sum(commits.values())
 
@@ -90,8 +90,8 @@ def generate_changelog(args: argparse.Namespace) -> bool:
 """)
 
     dbg("Adding commit summary...")
-    log = shell(f"""git log "{latest_tag}"...HEAD  --pretty=format:' * %cs [%h](https://github.com/{args.repository}/commit/%H) &bull; *%aN* &bull; %s ' --reverse""")
-    diff = shell(f"""git diff --no-color --stat {latest_tag} HEAD""")
+    log = shell(f"""git log {latest_tag}..HEAD  --pretty=format:' * %cs [%h](https://github.com/{args.repository}/commit/%H) &bull; *%aN* &bull; %s ' --reverse""")
+    diff = shell(f"""git diff --no-color --stat {latest_tag}..HEAD""")
     args.output_file.write(f"""
 ## Commit details
 
