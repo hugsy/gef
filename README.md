@@ -94,6 +94,7 @@ We would like to thank in particular the following people who've been sponsoring
  - [@R3zk0n](https://github.com/r3zk0n)
  - [@merces](https://github.com/merces)
  - [@nbars](https://github.com/nbars)
+ - [@maycon](https://github.com/maycon)
 
 
 Want to be part of this list of amazing people? [Jump here!](https://github.com/sponsors/hugsy)
