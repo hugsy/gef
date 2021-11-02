@@ -242,6 +242,13 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
         self.assertIn("NON_MAIN_ARENA flag: ", res)
+
+        cmd = "heap chunk --number 2 p1"
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        heap_lines = [x for x in res.splitlines() if x.startswith("Chunk(addr=")]
+        self.assertTrue(len(heap_lines) == 2)
         return
 
     def test_cmd_heap_chunks(self):
