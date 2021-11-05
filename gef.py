@@ -3783,7 +3783,7 @@ def set_arch(arch=None, default=None):
 
     arch_name = current_elf.e_machine if current_elf else get_arch()
     try:
-        current_arch = arches[arch_name]()
+        current_arch = arches[arch_name.upper()]()
     except KeyError:
         if default:
             try:
