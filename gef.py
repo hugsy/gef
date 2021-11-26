@@ -3053,7 +3053,7 @@ def __get_register_for_selected_frame(regname, hash_key):
             regname = regname[1:]
         value = gdb.selected_frame().read_register(regname)
         return int(value)
-    except (ValueError, gdb.error) as e:
+    except (ValueError, gdb.error):
         pass
     return None
 
@@ -8113,7 +8113,6 @@ class ElfInfoCommand(GenericCommand):
             Shdr.SHT_PREINIT_ARRAY: "PREINIT_ARRAY",
             Shdr.SHT_GROUP:         "GROUP",
             Shdr.SHT_SYMTAB_SHNDX:  "SYMTAB_SHNDX",
-            Shdr.SHT_NUM:           "NUM",
             Shdr.SHT_LOOS:          "LOOS",
             Shdr.SHT_GNU_ATTRIBUTES:"GNU_ATTRIBUTES",
             Shdr.SHT_GNU_HASH:      "GNU_HASH",
