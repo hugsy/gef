@@ -3041,18 +3041,22 @@ def get_register(regname):
 
 @lru_cache()
 def __get_register_for_selected_frame(regname, hash_key):
+    # 1st chance
     try:
         return parse_address(regname)
     except gdb.error:
-        assert regname[0] == "$"
-        regname = regname[1:]
-        try:
-            value = gdb.selected_frame().read_register(regname)
-            return int(value)
-        except ValueError:
-            return None
-        except gdb.error:
-            return None
+        pass
+
+    # 2nd chance
+    try:
+        if regname[0] == "$":
+            regname = regname[1:]
+        value = gdb.selected_frame().read_register(regname)
+        return int(value)
+    except (ValueError, gdb.error) as e:
+        pass
+    return None
+
 
 def get_path_from_info_proc():
     for x in gdb.execute("info proc", to_string=True).splitlines():
