@@ -1,17 +1,18 @@
 ## Command print-format ##
 
-The command `print-format` (alias `pf`) will dump an arbitrary location as an array of bytes following the syntax of the programming language specified. Currently, the output language supported are
+The command `print-format` (alias `pf`) will dump an arbitrary location as an array of bytes following the format specified. Currently, the output formats supported are
 
  - Python (`py` - default)
  - C (`c`)
  - Assembly (`asm`)
  - Javascript (`js`)
+ - Hex string (`hex`)
 
 
 ```
 gef➤  print-format -h
 [+] print-format [--lang LANG] [--bitlen SIZE] [(--length,-l) LENGTH] [--clip] LOCATION
-    --lang LANG specifies the output format for programming language (available: ['py', 'c', 'js', 'asm'], default 'py').
+    --lang LANG specifies the output format for programming language (available: ['py', 'c', 'js', 'asm', 'hex'], default 'py').
     --bitlen SIZE specifies size of bit (possible values: [8, 16, 32, 64], default is 8).
     --length LENGTH specifies length of array (default is 256).
     --clip The output data will be copied to clipboard
