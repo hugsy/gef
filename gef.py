@@ -3041,18 +3041,21 @@ def get_register(regname):
 
 @lru_cache()
 def __get_register_for_selected_frame(regname, hash_key):
+    # 1st chance
     try:
         return parse_address(regname)
     except gdb.error:
-        assert regname[0] == "$"
-        regname = regname[1:]
-        try:
-            value = gdb.selected_frame().read_register(regname)
-            return int(value)
-        except ValueError:
-            return None
-        except gdb.error:
-            return None
+        pass
+
+    # 2nd chance
+    try:
+        regname == regname.lstrip("$")
+        value = gdb.selected_frame().read_register(regname)
+        return int(value)
+    except (ValueError, gdb.error):
+        pass
+    return None
+
 
 def get_path_from_info_proc():
     for x in gdb.execute("info proc", to_string=True).splitlines():
@@ -8109,7 +8112,6 @@ class ElfInfoCommand(GenericCommand):
             Shdr.SHT_PREINIT_ARRAY: "PREINIT_ARRAY",
             Shdr.SHT_GROUP:         "GROUP",
             Shdr.SHT_SYMTAB_SHNDX:  "SYMTAB_SHNDX",
-            Shdr.SHT_NUM:           "NUM",
             Shdr.SHT_LOOS:          "LOOS",
             Shdr.SHT_GNU_ATTRIBUTES:"GNU_ATTRIBUTES",
             Shdr.SHT_GNU_HASH:      "GNU_HASH",
