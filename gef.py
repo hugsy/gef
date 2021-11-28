@@ -4823,7 +4823,7 @@ class PrintFormatCommand(GenericCommand):
             asm_type = self.format_matrix[args.bitlen][2]
             out = "buf {0} {1}".format(asm_type, sdata)
         elif args.lang == "hex":
-            out = "".join(f'{x:02x}' for x in data)
+            out = "".join('{:02x}'.format(x) for x in data)
 
         if args.clip:
             if copy_to_clipboard(gef_pybytes(out)):
