@@ -3049,7 +3049,7 @@ def __get_register_for_selected_frame(regname, hash_key):
 
     # 2nd chance
     try:
-        regname == regname.lstrip("$")
+        regname = regname.lstrip("$")
         value = gdb.selected_frame().read_register(regname)
         return int(value)
     except (ValueError, gdb.error):
