@@ -71,12 +71,13 @@ jobs:
         echo "source $(pwd)/gef.py" > ~/.gdbinit
         gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/pwd
 
-    - name: Run linter
-      run: |
-        make lint
-
     - name: Run Tests
       env:
         GEF_CI_ARCH: ${{ steps.set-arch-properties.outputs.arch }}
       run: |
         make test
+
+    - name: Run linter
+      run: |
+        make lint
+        
