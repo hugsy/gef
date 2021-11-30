@@ -7298,7 +7298,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
     def tcachebin(tcache_base, i):
         """Return the head chunk in tcache[i] and the number of chunks in the bin."""
         if i >= GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS:
-            err("Incorrect index value, {} not in [0, {}[".format(i, GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS))
+            err("Incorrect index value, index value must be between 0 and {}-1, given {}".format(GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS, i))
             return None, 0
 
         tcache_chunk = GlibcChunk(tcache_base)
