@@ -4762,7 +4762,7 @@ class VersionCommand(GenericCommand):
 
 @register_command
 class PrintFormatCommand(GenericCommand):
-    """Print bytes format in high level languages."""
+    """Print bytes format in commonly used formats, such as literals in high level languages."""
 
     format_matrix = {
         8:  (endian_str() + "B", "char", "db"),
@@ -4771,12 +4771,12 @@ class PrintFormatCommand(GenericCommand):
         64: (endian_str() + "Q", "long long", "dq"),
     }
 
-    valid_formats = ["py", "c", "js", "asm"]
+    valid_formats = ["py", "c", "js", "asm", "hex"]
 
     _cmdline_ = "print-format"
     _aliases_ = ["pf",]
     _syntax_  = """{} [--lang LANG] [--bitlen SIZE] [(--length,-l) LENGTH] [--clip] LOCATION
-\t--lang LANG specifies the output format for programming language (available: {}, default 'py').
+\t--lang LANG specifies the output format (available: {}, default 'py').
 \t--bitlen SIZE specifies size of bit (possible values: {}, default is 8).
 \t--length LENGTH specifies length of array (default is 256).
 \t--clip The output data will be copied to clipboard
@@ -4825,6 +4825,8 @@ class PrintFormatCommand(GenericCommand):
         elif args.lang == "asm":
             asm_type = self.format_matrix[args.bitlen][2]
             out = "buf {0} {1}".format(asm_type, sdata)
+        elif args.lang == "hex":
+            out = binascii.hexlify(read_memory(start_addr, end_addr-start_addr)).decode()
 
         if args.clip:
             if copy_to_clipboard(gef_pybytes(out)):
