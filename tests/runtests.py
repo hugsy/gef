@@ -538,7 +538,6 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertTrue("var buf = [" in res)
         res = gdb_start_silent_cmd("print-format --lang hex $sp")
         self.assertNoException(res)
-        print(res)
         self.assertTrue("f7ff7f" in res)
         res = gdb_start_silent_cmd("print-format --lang iDontExist $sp")
         self.assertNoException(res)
