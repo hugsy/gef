@@ -10597,7 +10597,7 @@ class BssBaseFunction(GenericFunction):
 
 @register_function
 class GotBaseFunction(GenericFunction):
-    """Return the current bss base address plus the given offset."""
+    """Return the current GOT base address plus the given offset."""
     _function_ = "_got"
 
     def do_invoke(self, args):
