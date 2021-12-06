@@ -493,6 +493,7 @@ class Elf:
     AARCH64           = 0xb7
     RISCV             = 0xf3
     IA64              = 0x32
+    M68K              = 0x04
 
     ET_RELOC          = 1
     ET_EXEC           = 2
@@ -2740,6 +2741,20 @@ class MIPS(Architecture):
         return "; ".join(insns)
 
 
+SUPPORTED_ARCHITECTURES = {
+    "ARM": ARM, Elf.ARM: ARM,
+    "AARCH64": AARCH64, "ARM64": AARCH64, Elf.AARCH64: AARCH64,
+    "X86": X86, Elf.X86_32: X86,
+    "X86_64": X86_64, Elf.X86_64: X86_64, "i386:x86-64": X86_64,
+    "PowerPC": PowerPC, "PPC": PowerPC, Elf.POWERPC: PowerPC,
+    "PowerPC64": PowerPC64, "PPC64": PowerPC64, Elf.POWERPC64: PowerPC64,
+    "RISCV": RISCV, Elf.RISCV: RISCV,
+    "SPARC": SPARC, Elf.SPARC: SPARC,
+    "SPARC64": SPARC64, Elf.SPARC64: SPARC64,
+    "MIPS": MIPS, Elf.MIPS: MIPS,
+}
+
+
 def write_memory(address, buffer, length=0x10):
     """Write `buffer` at address `address`."""
     return gdb.selected_inferior().write_memory(address, buffer, length)
@@ -3759,23 +3774,11 @@ def set_arch(arch=None, default=None):
     set that arch.
     Return the selected arch, or raise an OSError.
     """
-    arches = {
-        "ARM": ARM, Elf.ARM: ARM,
-        "AARCH64": AARCH64, "ARM64": AARCH64, Elf.AARCH64: AARCH64,
-        "X86": X86, Elf.X86_32: X86,
-        "X86_64": X86_64, Elf.X86_64: X86_64, "i386:x86-64": X86_64,
-        "PowerPC": PowerPC, "PPC": PowerPC, Elf.POWERPC: PowerPC,
-        "PowerPC64": PowerPC64, "PPC64": PowerPC64, Elf.POWERPC64: PowerPC64,
-        "RISCV": RISCV, Elf.RISCV: RISCV,
-        "SPARC": SPARC, Elf.SPARC: SPARC,
-        "SPARC64": SPARC64, Elf.SPARC64: SPARC64,
-        "MIPS": MIPS, Elf.MIPS: MIPS,
-    }
     global current_arch, current_elf
 
     if arch:
         try:
-            current_arch = arches[arch.upper()]()
+            current_arch = SUPPORTED_ARCHITECTURES[arch.upper()]()
             return current_arch
         except KeyError:
             raise OSError("Specified arch {:s} is not supported".format(arch.upper()))
@@ -3786,11 +3789,11 @@ def set_arch(arch=None, default=None):
 
     arch_name = current_elf.e_machine if current_elf else get_arch()
     try:
-        current_arch = arches[arch_name]()
+        current_arch = SUPPORTED_ARCHITECTURES[arch_name]()
     except KeyError:
         if default:
             try:
-                current_arch = arches[default.upper()]()
+                current_arch = SUPPORTED_ARCHITECTURES[default.upper()]()
             except KeyError:
                 raise OSError("CPU not supported, neither is default {:s}".format(default.upper()))
         else:
@@ -8022,6 +8025,7 @@ class ElfInfoCommand(GenericCommand):
             Elf.AARCH64           : "AArch64",
             Elf.RISCV             : "RISC-V",
             Elf.IA64              : "IA-64",
+            Elf.M68K              : "M68K",
         }
 
         filename = args.filename or get_filepath()
