@@ -178,13 +178,19 @@ _Side Note_: `GEF` fully relies on the GDB API and other Linux-specific sources 
 Or if you just like the tool, feel free to drop a simple *"thanks"* on Discord, Twitter or other, it is **always** very appreciated.
 
 
-### Sponsors ###
+## Sponsors ##
 
 We would like to thank in particular the following people who've been sponsoring GEF allowing us to dedicate more time and resources to the project:
 
  - [@nkaretnikov](https://github.com/nkaretnikov)
  - [@R3zk0n](https://github.com/r3zk0n)
  - [@merces](https://github.com/merces)
+ - [@nbars](https://github.com/nbars)
+ - [@maycon](https://github.com/maycon)
+ - [@jespinhara](https://github.com/jespinhara)
+ - [@therealdreg](https://github.com/therealdreg)
+
+Want to be part of this list of amazing people? [Jump here!](https://github.com/sponsors/hugsy)
 
 
 ### Extra Credits ###
