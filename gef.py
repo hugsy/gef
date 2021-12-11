@@ -802,10 +802,9 @@ class MallocStateStruct:
 
     def __init__(self, addr):
         try:
-            self.__addr = parse_address("&{}".format(addr))
+            pattern = "&0x{:x}".format(addr) if is_hex(addr) else "{}".format(addr)
+            self.__addr = parse_address(pattern)
         except gdb.error:
-            warn("Could not parse address '&{}' when searching malloc_state struct, "
-                 "using '&main_arena' instead".format(addr))
             self.__addr = search_for_main_arena()
 
         self.num_fastbins = 10
@@ -1027,7 +1026,7 @@ class GlibcArena:
         return GlibcArena("*{:#x} ".format(addr_next))
 
     def is_main_arena(self):
-        return int(self) == parse_address("&main_arena")
+        return int(self) == search_for_main_arena()
 
     def heap_addr(self, allow_unaligned=False):
         if self.is_main_arena():
