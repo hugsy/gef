@@ -85,19 +85,7 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 
 To get involved, refer to the [Contribution documentation](https://gef.readthedocs.io/en/master/#contribution) and the [guidelines](https://github.com/hugsy/gef/blob/dev/.github/CONTRIBUTING.md) to start.
 
-
-## Sponsors ##
-
-We would like to thank in particular the following people who've been sponsoring GEF allowing us to dedicate more time and resources to the project:
-
- - [@nkaretnikov](https://github.com/nkaretnikov)
- - [@R3zk0n](https://github.com/r3zk0n)
- - [@merces](https://github.com/merces)
- - [@nbars](https://github.com/nbars)
- - [@maycon](https://github.com/maycon)
- - [@jespinhara](https://github.com/jespinhara)
-
-Want to be part of this list of amazing people? [Jump here!](https://github.com/sponsors/hugsy)
+Another way to contribute to keeping the project alive is by sponsoring it! Check out [the sponsoring documentation](https://gef.readthedocs.io/en/master/#sponsors) for details so you can be part of the list of those [awesome sponsors](https://github.com/sponsors/hugsy).
 
 
 ### Happy Hacking ###
