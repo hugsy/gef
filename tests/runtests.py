@@ -28,7 +28,7 @@ from helpers import (
 BIN_LS = Path("/bin/ls")
 BIN_SH = Path("/bin/sh")
 TMPDIR = Path(tempfile.gettempdir())
-
+GEF_DEFAULT_PROMPT = "gef➤  "
 
 class GdbAssertionError(AssertionError):
     pass
@@ -845,7 +845,7 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
 
     @include_for_architectures(["x86_64", "i686"])
     def test_func_set_arch(self):
-        res = gdb_test_python_method("current_arch.arch, current_arch.mode", before="set_arch()")
+        res = gdb_test_python_method("gef.arch.arch, gef.arch.mode", before="set_arch()")
         res = (res.splitlines()[-1])
         self.assertIn("X86", res)
         return
