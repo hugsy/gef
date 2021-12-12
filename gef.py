@@ -162,10 +162,10 @@ GEF_RC                                 = os.getenv("GEF_RC") or os.path.join(os.
 GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
 GEF_MAX_STRING_LENGTH                  = 50
 
-GDB_MIN_VERSION                        = (7, 7)
+GDB_MIN_VERSION                        = (8, 0)
+PYTHON_MIN_VERSION                     = (3, 6)
 GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
 PYTHON_VERSION                         = sys.version_info[0:2]
-PYTHON_MIN_VERSION                     = (3, 4)
 
 libc_args_definitions = {}
 
