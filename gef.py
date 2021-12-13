@@ -410,6 +410,17 @@ def only_if_current_arch_in(valid_architectures):
     return wrapper
 
 
+def only_if_events_supported(event_type):
+    """Checks if GDB supports events without crashing."""
+    def wrap(f):
+        def wrapped_f(*args, **kwargs):
+            if getattr(gdb, "events") and getattr(gdb.events, event_type):
+                return f(*args, **kwargs)
+            warn("GDB events cannot be set")
+        return wrapped_f
+    return wrap
+
+
 def FakeExit(*args, **kwargs):
     raise RuntimeWarning
 
@@ -469,6 +480,8 @@ def parse_arguments(required_arguments, optional_arguments):
             return f(*args, **kwargs)
         return wrapper
     return decorator
+
+
 class Color:
     """Used to colorify terminal output."""
     colors = {
@@ -1200,18 +1213,14 @@ class GlibcArena:
         return self.__addr
 
     def __iter__(self):
-        return self
+        yield self
 
-    def __next__(self):
-        # arena = self
-        # while arena is not None:
-        #     yield arena
-        #     arena = arena.get_next()
-        next_arena_address = int(self.next)
-        # arena_main = GlibcArena(self.__name)
-        if next_arena_address == int(gef.heap.main_arena):
-            raise StopIteration
-        return GlibcArena("*{:#x} ".format(next_arena_address))
+        while True:
+            next_arena_address = int(self.next)
+            if next_arena_address == int(gef.heap.main_arena):
+                break
+            yield GlibcArena("*{:#x} ".format(next_arena_address))
+        return
 
     def __eq__(self, other):
         # You cannot have 2 arenas at the same address, so this check should be enough
@@ -1324,10 +1333,30 @@ class GlibcChunk:
         return gef.memory.read_integer(self.prev_size_addr)
 
     def __iter__(self):
-        return self
+        current_chunk = self
+        top = gef.heap.main_arena.top
 
-    def __next__(self):
-        return self.get_next_chunk()
+        while True:
+            yield current_chunk
+
+            if current_chunk.base_address == top:
+                break
+
+            if current_chunk.size == 0:
+                break
+
+            next_chunk_addr = current_chunk.get_next_chunk_addr()
+
+            if not Address(value=next_chunk_addr).valid:
+                break
+
+            next_chunk = current_chunk.get_next_chunk()
+            if next_chunk is None:
+                break
+
+            current_chunk = next_chunk
+        return
+
 
     def get_next_chunk(self, allow_unaligned=False):
         addr = self.get_next_chunk_addr()
@@ -4045,22 +4074,22 @@ def gef_getpagesize():
     return auxval["AT_PAGESZ"]
 
 
-def only_if_events_supported(event_type):
-    """Checks if GDB supports events without crashing."""
+#
+# Deprecated API
+#
 
-    def wrap(f):
-        def wrapped_f(*args, **kwargs):
-            if getattr(gdb, "events") and getattr(gdb.events, event_type):
-                return f(*args, **kwargs)
-            warn("GDB events cannot be set")
+@deprecated("Use `gef.config[key]`")
+def get_gef_setting(name):
+    return gef.config
 
-        return wrapped_f
-
-    return wrap
+@deprecated("Use `gef.config[key] = value`")
+def set_gef_setting(name, value):
+    gef.config[name] = value
+    return
 
 
 #
-# Event hooking
+# GDB event hooking
 #
 
 
@@ -6987,9 +7016,7 @@ class GlibcHeapArenaCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        # arenas = get_glibc_arenas()
         for arena in gef.heap.arenas:
-            print("foo")
             gef_print(str(arena))
         return
 
@@ -7088,29 +7115,20 @@ class GlibcHeapChunksCommand(GenericCommand):
 
     def dump_chunks_heap(self, start, until=None, top=None, allow_unaligned=False):
         nb = self["peek_nb_byte"]
-        current_chunk = GlibcChunk(start, from_base=True, allow_unaligned=allow_unaligned)
-        while True:
-            if current_chunk.base_address == top:
-                gef_print("{} {} {}".format(str(current_chunk), LEFT_ARROW, Color.greenify("top chunk")))
-                break
-            if current_chunk.size == 0:
-                break
-            line = str(current_chunk)
+        chunk_iterator = GlibcChunk(start, from_base=True, allow_unaligned=allow_unaligned)
+        for chunk in chunk_iterator:
+            line = str(chunk)
             if nb:
-                line += "\n    [{}]".format(hexdump(gef.memory.read(current_chunk.data_address, nb), nb, base=current_chunk.data_address))
+                line += "\n    [{}]".format(hexdump(gef.memory.read(chunk.data_address, nb), nb, base=chunk.data_address))
             gef_print(line)
 
-            next_chunk_addr = current_chunk.get_next_chunk_addr()
+            next_chunk_addr = chunk.get_next_chunk_addr()
             if until and next_chunk_addr >= until:
                 break
-            if not Address(value=next_chunk_addr).valid:
-                break
 
-            next_chunk = current_chunk.get_next_chunk()
-            if next_chunk is None:
+            if chunk.base_address == top:
+                gef_print("{} {} {}".format(str(chunk), LEFT_ARROW, Color.greenify("top chunk")))
                 break
-
-            current_chunk = next_chunk
         return
 
 
@@ -11407,7 +11425,7 @@ class GefHeapManager:
     def arenas(self):
         if not self.main_arena:
             return []
-        return iter(self.__libc_main_arena)
+        return iter(self.main_arena)
 
     @property
     def base_address(self):
@@ -11419,7 +11437,7 @@ class GefHeapManager:
     def chunks(self):
         if not self.base_address:
             return []
-        return iter( GlibcChunk(self.base_address) )
+        return iter( GlibcChunk(self.base_address, from_base=True) )
 
 
 class GefSetting:
