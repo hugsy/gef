@@ -279,35 +279,35 @@ def bufferize(f):
 
 def p8(x: int, s: bool = False) -> bytes:
     """Pack one byte respecting the current architecture endianness."""
-    return struct.pack("{}B".format(endian_str()), x) if not s else struct.pack("{}b".format(endian_str()), x)
+    return struct.pack("{}B".format(gef.arch.endianness), x) if not s else struct.pack("{}b".format(gef.arch.endianness), x)
 
 def p16(x: int, s: bool = False) -> bytes:
     """Pack one word respecting the current architecture endianness."""
-    return struct.pack("{}H".format(endian_str()), x) if not s else struct.pack("{}h".format(endian_str()), x)
+    return struct.pack("{}H".format(gef.arch.endianness), x) if not s else struct.pack("{}h".format(gef.arch.endianness), x)
 
 def p32(x: int, s: bool = False) -> bytes:
     """Pack one dword respecting the current architecture endianness."""
-    return struct.pack("{}I".format(endian_str()), x) if not s else struct.pack("{}i".format(endian_str()), x)
+    return struct.pack("{}I".format(gef.arch.endianness), x) if not s else struct.pack("{}i".format(gef.arch.endianness), x)
 
 def p64(x: int, s: bool = False) -> bytes:
     """Pack one qword respecting the current architecture endianness."""
-    return struct.pack("{}Q".format(endian_str()), x) if not s else struct.pack("{}q".format(endian_str()), x)
+    return struct.pack("{}Q".format(gef.arch.endianness), x) if not s else struct.pack("{}q".format(gef.arch.endianness), x)
 
 def u8(x: bytes, s: bool = False) -> int:
     """Unpack one byte respecting the current architecture endianness."""
-    return struct.unpack("{}B".format(endian_str()), x)[0] if not s else struct.unpack("{}b".format(endian_str()), x)[0]
+    return struct.unpack("{}B".format(gef.arch.endianness), x)[0] if not s else struct.unpack("{}b".format(gef.arch.endianness), x)[0]
 
 def u16(x: bytes, s: bool = False) -> int:
     """Unpack one word respecting the current architecture endianness."""
-    return struct.unpack("{}H".format(endian_str()), x)[0] if not s else struct.unpack("{}h".format(endian_str()), x)[0]
+    return struct.unpack("{}H".format(gef.arch.endianness), x)[0] if not s else struct.unpack("{}h".format(gef.arch.endianness), x)[0]
 
 def u32(x: bytes, s: bool = False) -> int:
     """Unpack one dword respecting the current architecture endianness."""
-    return struct.unpack("{}I".format(endian_str()), x)[0] if not s else struct.unpack("{}i".format(endian_str()), x)[0]
+    return struct.unpack("{}I".format(gef.arch.endianness), x)[0] if not s else struct.unpack("{}i".format(gef.arch.endianness), x)[0]
 
 def u64(x: bytes, s: bool = False) -> int:
     """Unpack one qword respecting the current architecture endianness."""
-    return struct.unpack("{}Q".format(endian_str()), x)[0] if not s else struct.unpack("{}q".format(endian_str()), x)[0]
+    return struct.unpack("{}Q".format(gef.arch.endianness), x)[0] if not s else struct.unpack("{}q".format(gef.arch.endianness), x)[0]
 
 
 def is_ascii_string(address):
@@ -761,7 +761,7 @@ class Elf:
         self.e_magic, self.e_class, self.e_endianness, self.e_eiversion = struct.unpack(">IBBB", self.read(7))
 
         # adjust endianness in bin reading
-        endian = endian_str()
+        endian = gef.arch.endianness
 
         # off 0x7
         self.e_osabi, self.e_abiversion = struct.unpack("{}BB".format(endian), self.read(2))
@@ -845,7 +845,7 @@ class Phdr:
         if not elf:
             return None
         elf.seek(off)
-        endian = endian_str()
+        endian = gef.arch.endianness
         if elf.e_class == Elf.ELF_64_BITS:
             self.p_type, self.p_flags, self.p_offset = struct.unpack("{}IIQ".format(endian), elf.read(16))
             self.p_vaddr, self.p_paddr = struct.unpack("{}QQ".format(endian), elf.read(16))
@@ -926,7 +926,7 @@ class Shdr:
         if elf is None:
             return None
         elf.seek(off)
-        endian = endian_str()
+        endian = gef.arch.endianness
         if elf.e_class == Elf.ELF_64_BITS:
             self.sh_name, self.sh_type, self.sh_flags = struct.unpack("{}IIQ".format(endian), elf.read(16))
             self.sh_addr, self.sh_offset = struct.unpack("{}QQ".format(endian), elf.read(16))
@@ -1240,14 +1240,6 @@ class GlibcArena:
         bw = int(self.bins[idx + 1])
         return fd, bw
 
-    # def get_next(self):
-    #     addr_next = int(self.next)
-    #     arena_main = GlibcArena(self.__name)
-    #     if addr_next == arena_main.__addr:
-    #         return None
-    #     return GlibcArena("*{:#x} ".format(addr_next))
-
-    @deprecated("use `==` operator instead")
     def is_main_arena(self):
         return int(self) == int(gef.heap.main_arena)
 
@@ -4001,7 +3993,6 @@ def endian_str():
 def get_gef_setting(name):
     return gef.config
 
-
 @deprecated("Use `gef.config[key] = value`")
 def set_gef_setting(name, value):
     gef.config[name] = value
@@ -4724,12 +4715,12 @@ class PrintFormatCommand(GenericCommand):
 
     @property
     def format_matrix(self):
-        # `endian_str()` is a runtime property, should not be defined as a class property
+        # `gef.arch.endianness` is a runtime property, should not be defined as a class property
         return {
-            8:  (endian_str() + "B", "char", "db"),
-            16: (endian_str() + "H", "short", "dw"),
-            32: (endian_str() + "I", "int", "dd"),
-            64: (endian_str() + "Q", "long long", "dq"),
+            8:  (gef.arch.endianness + "B", "char", "db"),
+            16: (gef.arch.endianness + "H", "short", "dw"),
+            32: (gef.arch.endianness + "I", "int", "dd"),
+            64: (gef.arch.endianness + "Q", "long long", "dq"),
         }
 
     @only_if_gdb_running
@@ -7475,7 +7466,7 @@ class DetailRegistersCommand(GenericCommand):
                 err("invalid registers for architecture: {}".format(", ".join(invalid_regs)))
 
         memsize = gef.arch.ptrsize
-        endian = endian_str()
+        endian = gef.arch.endianness
         charset = string.printable
         widest = max(map(len, gef.arch.all_registers))
         special_line = ""
@@ -9086,7 +9077,7 @@ class HexdumpCommand(GenericCommand):
         return
 
     def _hexdump(self, start_addr, length, arrange_as, offset=0):
-        endianness = endian_str()
+        endianness = gef.arch.endianness
 
         base_address_color = gef.config["theme.dereference_base_address"]
         show_ascii = gef.config["hexdump.always_show_ascii"]
@@ -9209,7 +9200,7 @@ class PatchCommand(GenericCommand):
         addr = align_address(parse_address(args.location))
         size, fcode = self.SUPPORTED_SIZES[self.format]
 
-        d = endian_str()
+        d = gef.arch.endianness
         for value in args.values:
             value = parse_address(value) & ((1 << size * 8) - 1)
             vstr = struct.pack(d + fcode, value)
@@ -11343,7 +11334,15 @@ class GefHeapManager:
     @property
     def base_address(self):
         if not self.__heap_base:
-            self.__heap_base = parse_address("mp_->sbrk_base")
+            base = 0
+            try:
+                base = parse_address("mp_->sbrk_base")
+            except gdb.error:
+                # missing symbol, try again
+                base = 0
+            if not base:
+                base = get_section_base_address("[heap]")
+            self.__heap_base = base
         return self.__heap_base
 
     @property
