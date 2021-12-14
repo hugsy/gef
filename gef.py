@@ -1231,7 +1231,7 @@ class GlibcArena:
 
     def __eq__(self, other):
         # You cannot have 2 arenas at the same address, so this check should be enough
-        return self.__addr == int(self)
+        return self.__addr == int(other)
 
     def fastbin(self, i):
         """Return head chunk in fastbinsY[i]."""
