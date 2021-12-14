@@ -1931,16 +1931,6 @@ def checksec(filename):
     - Partial/Full RelRO.
     Return a dict() with the different keys mentioned above, and the boolean
     associated whether the protection was found."""
-
-    if is_macho(filename):
-        return {
-            "Canary": False,
-            "NX": False,
-            "PIE": False,
-            "Fortify": False,
-            "Partial RelRO": False,
-        }
-
     readelf = gef.session.constants["readelf"]
 
     def __check_security_property(opt, filename, pattern):
@@ -3088,10 +3078,6 @@ def is_qemu_system():
     response = gdb.execute('maintenance packet QOffsets', to_string=True, from_tty=False)
     return 'received: ""' in response
 
-@deprecated("Use `gef.session.pid`")
-def get_pid():
-    return gef.session.pid
-
 
 @lru_cache()
 def get_filepath():
@@ -3101,7 +3087,7 @@ def get_filepath():
     if is_remote_debug():
         # if no filename specified, try downloading target from /proc
         if filename is None:
-            pid = get_pid()
+            pid = gef.session.pid
             if pid > 0:
                 return download_file("/proc/{:d}/exe".format(pid), use_cache=True)
             return None
@@ -3125,38 +3111,13 @@ def get_filepath():
         return get_path_from_info_proc()
 
 
-@deprecated("Use `gef.session.file`")
-def get_filename():
-    return gef.session.file
-
-
-@lru_cache()
-def inferior_is_macho():
-    """Return True if the current file is a Mach-O binary."""
-    for x in gdb.execute("info files", to_string=True).splitlines():
-        if "file type mach-o" in x:
-            return True
-    return False
-
-
-@lru_cache()
-def is_macho(filename):
-    """Return True if the specified file is a Mach-O binary."""
-    file_bin = gef.session.constants["file"]
-    cmd = [file_bin, filename]
-    out = gef_execute_external(cmd)
-    if "Mach-O" in out:
-        return True
-    return False
-
-
 def download_file(target, use_cache=False, local_name=None):
     """Download filename `target` inside the mirror tree inside the gef.config["gef.tempdir"].
     The tree architecture must be gef.config["gef.tempdir"]/gef/<local_pid>/<remote_filepath>.
     This allow a "chroot-like" tree format."""
 
     try:
-        local_root = os.path.sep.join([gef.config["gef.tempdir"], str(get_pid())])
+        local_root = os.path.sep.join([gef.config["gef.tempdir"], str(gef.session.pid)])
         if local_name is None:
             local_path = os.path.sep.join([local_root, os.path.dirname(target)])
             local_name = os.path.sep.join([local_path, os.path.basename(target)])
@@ -3232,38 +3193,12 @@ def get_process_maps_linux(proc_map_file):
     return
 
 
-def get_mach_regions():
-    sp = gef.arch.sp
-    for line in gdb.execute("info mach-regions", to_string=True).splitlines():
-        line = line.strip()
-        addr, perm, _ = line.split(" ", 2)
-        addr_start, addr_end = [int(x, 16) for x in addr.split("-")]
-        perm = Permission.from_process_maps(perm.split("/")[0])
-
-        zone = file_lookup_address(addr_start)
-        if zone:
-            path = zone.filename
-        else:
-            path = "[stack]" if sp >= addr_start and sp < addr_end else ""
-
-        yield Section(page_start=addr_start,
-                      page_end=addr_end,
-                      offset=0,
-                      permission=perm,
-                      inode=None,
-                      path=path)
-    return
-
-
 @lru_cache()
 def get_process_maps():
     """Return the mapped memory sections"""
 
-    if inferior_is_macho():
-        return list(get_mach_regions())
-
     try:
-        pid = get_pid()
+        pid = gef.session.pid
         fpath = "/proc/{:d}/maps".format(pid)
         return list(get_process_maps_linux(fpath))
     except FileNotFoundError as e:
@@ -4006,6 +3941,13 @@ def gef_getpagesize():
 def gef_read_canary():
     return gef.session.canary
 
+@deprecated("Use `gef.session.pid`")
+def get_pid():
+    return gef.session.pid
+
+@deprecated("Use `gef.session.file`")
+def get_filename():
+    return gef.session.file
 
 #
 # GDB event hooking
@@ -5061,7 +5003,7 @@ class CanaryCommand(GenericCommand):
 
         canary, location = res
         info("Found AT_RANDOM at {:#x}, reading {} bytes".format(location, gef.arch.ptrsize))
-        info("The canary of process {} is {:#x}".format(get_pid(), canary))
+        info("The canary of process {} is {:#x}".format(gef.session.pid, canary))
         return
 
 
@@ -5113,7 +5055,7 @@ class ProcessStatusCommand(GenericCommand):
 
     def show_info_proc(self):
         info("Process Information")
-        pid = get_pid()
+        pid = gef.session.pid
         cmdline = self.get_cmdline_of(pid)
         gef_print("\tPID {} {}".format(RIGHT_ARROW, pid))
         gef_print("\tExecutable {} {}".format(RIGHT_ARROW, self.get_process_path_of(pid)))
@@ -5122,7 +5064,7 @@ class ProcessStatusCommand(GenericCommand):
 
     def show_ancestor(self):
         info("Parent Process Information")
-        ppid = int(self.get_state_of(get_pid())["PPid"])
+        ppid = int(self.get_state_of(gef.session.pid)["PPid"])
         state = self.get_state_of(ppid)
         cmdline = self.get_cmdline_of(ppid)
         gef_print("\tParent PID {} {}".format(RIGHT_ARROW, state["Pid"]))
@@ -5131,7 +5073,7 @@ class ProcessStatusCommand(GenericCommand):
 
     def show_descendants(self):
         info("Children Process Information")
-        children = self.get_children_pids(get_pid())
+        children = self.get_children_pids(gef.session.pid)
         if not children:
             gef_print("\tNo child process")
             return
@@ -5146,7 +5088,7 @@ class ProcessStatusCommand(GenericCommand):
             return
 
     def show_fds(self):
-        pid = get_pid()
+        pid = gef.session.pid
         path = "/proc/{:d}/fd".format(pid)
 
         info("File Descriptors:")
@@ -5198,7 +5140,7 @@ class ProcessStatusCommand(GenericCommand):
         }
 
         info("Network Connections")
-        pid = get_pid()
+        pid = gef.session.pid
         sockets = self.list_sockets(pid)
         if not sockets:
             gef_print("\tNo open connections")
@@ -5624,7 +5566,7 @@ class ChangeFdCommand(GenericCommand):
             self.usage()
             return
 
-        if not os.access("/proc/{:d}/fd/{:s}".format(get_pid(), argv[0]), os.R_OK):
+        if not os.access("/proc/{:d}/fd/{:s}".format(gef.session.pid, argv[0]), os.R_OK):
             self.usage()
             return
 
@@ -6547,7 +6489,7 @@ class RemoteCommand(GenericCommand):
         if not self.connect_target(target, args.is_extended_remote):
             return
 
-        pid = args.pid if args.is_extended_remote and args.pid else get_pid()
+        pid = args.pid if args.is_extended_remote and args.pid else gef.session.pid
         if args.is_extended_remote:
             ok("Attaching to {:d}".format(pid))
             hide_context()
@@ -6622,7 +6564,7 @@ class RemoteCommand(GenericCommand):
             err("Source binary is not readable")
             return
 
-        directory  = os.path.sep.join([gef.config["gef.tempdir"], str(get_pid())])
+        directory  = os.path.sep.join([gef.config["gef.tempdir"], str(gef.session.pid)])
         # gdb.execute("file {:s}".format(infos["exe"]))
         self["root"] = ( directory, "Path to store the remote data")
         ok("Remote information loaded to temporary path '{:s}'".format(directory))
@@ -6703,7 +6645,7 @@ class RemoteCommand(GenericCommand):
         gdb.execute("target remote {}".format(target))
         unhide_context()
 
-        if get_pid() == 1 and "ENABLE=1" in gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False):
+        if gef.session.pid == 1 and "ENABLE=1" in gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False):
             __gef_qemu_mode__ = True
             reset_all_caches()
             info("Note: By using Qemu mode, GEF will display the memory mapping of the Qemu process where the emulated binary resides")
@@ -10334,9 +10276,7 @@ class SyscallArgsCommand(GenericCommand):
 
     def __init__(self):
         super().__init__()
-        path = pathlib.Path(self["path"]) / "syscall-tables"
-        if not path.exists():
-            raise EnvironmentError("Syscall tables directory not found")
+        path = pathlib.Path(gef.config["gef.tempdir"]) / "syscall-tables"
         self["path"] = (str(path.absolute()), "Path to store/load the syscall tables files")
         return
 
