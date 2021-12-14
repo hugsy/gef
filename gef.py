@@ -1253,7 +1253,7 @@ class GlibcArena:
 
     def heap_addr(self, allow_unaligned=False):
         if self.is_main_arena():
-            heap_section = HeapBaseFunction.heap_base()
+            heap_section = gef.heap.base_address
             if not heap_section:
                 err("Heap not initialized")
                 return None
@@ -1659,7 +1659,7 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, show_symbol=True
     @param base is the start address of the block being hexdump
     @return a string with the hexdump"""
     result = []
-    align = get_memory_alignment() * 2 + 2 if is_alive() else 18
+    align = gef.arch.ptrsize * 2 + 2 if is_alive() else 18
 
     for i in range(0, len(source), length):
         chunk = bytearray(source[i : i + length])
@@ -2358,7 +2358,7 @@ class ARM(Architecture):
         if self.is_ret(insn):
             # If it's a pop, we have to peek into the stack, otherwise use lr
             if insn.mnemonic == "pop":
-                ra_addr = gef.arch.sp + (len(insn.operands)-1) * get_memory_alignment()
+                ra_addr = gef.arch.sp + (len(insn.operands)-1) * self.ptrsize
                 ra = to_unsigned_long(dereference(ra_addr))
             elif insn.mnemonic == "ldr":
                 return to_unsigned_long(dereference(gef.arch.sp))
@@ -3835,7 +3835,7 @@ def clear_screen(tty=""):
 
 def format_address(addr):
     """Format the address according to its size."""
-    memalign_size = get_memory_alignment()
+    memalign_size = gef.arch.ptrsize
     addr = align_address(addr)
 
     if memalign_size == 4:
@@ -3846,7 +3846,7 @@ def format_address(addr):
 
 def format_address_spaces(addr, left=True):
     """Format the address according to its size, but with spaces instead of zeroes."""
-    width = get_memory_alignment() * 2 + 2
+    width = gef.arch.ptrsize * 2 + 2
     addr = align_address(addr)
 
     if not left:
@@ -3857,7 +3857,7 @@ def format_address_spaces(addr, left=True):
 
 def align_address(address):
     """Align the provided address to the process's native length."""
-    if get_memory_alignment() == 4:
+    if gef.arch.ptrsize == 4:
         return address & 0xFFFFFFFF
 
     return address & 0xFFFFFFFFFFFFFFFF
@@ -4268,7 +4268,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         if check_heap_overlap:
             # seek all the currently allocated chunks, read their effective size and check for overlap
             msg = []
-            align = get_memory_alignment()
+            align = gef.arch.ptrsize
             for chunk_addr, _ in __heap_allocated_list__:
                 current_chunk = GlibcChunk(chunk_addr)
                 current_chunk_size = current_chunk.get_chunk_size()
@@ -5397,7 +5397,7 @@ class PCustomCommand(GenericCommand):
 
         self.deserialize(_struct, data)
 
-        _regsize = get_memory_alignment()
+        _regsize = gef.arch.ptrsize
 
         for field in _struct._fields_:
             _name, _type = field
@@ -7213,7 +7213,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             # one thread), we can't use the tcache symbol, but we can guess the
             # correct address because the tcache is consistently the first
             # allocation in the main arena.
-            heap_base = HeapBaseFunction.heap_base()
+            heap_base = gef.heap.base_address
             if heap_base is None:
                 err("No heap section")
                 return 0x0
@@ -9346,7 +9346,7 @@ def dereference_from(addr):
             elif addr.section.permission.value & Permission.READ:
                 if is_ascii_string(addr.value):
                     s = gef.memory.read_cstring(addr.value)
-                    if len(s) < get_memory_alignment():
+                    if len(s) < gef.arch.ptrsize:
                         txt = '{:s} ("{:s}"?)'.format(format_address(deref), Color.colorify(s, string_color))
                     elif len(s) > 50:
                         txt = Color.colorify('"{:s}[...]"'.format(s[:50]), string_color)
@@ -9525,7 +9525,7 @@ class VMMapCommand(GenericCommand):
         color = gef.config["theme.table_heading"]
 
         headers = ["Start", "End", "Offset", "Perm", "Path"]
-        gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<{w}s}{:<4s} {:s}".format(*headers, w=get_memory_alignment()*2+3), color))
+        gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<{w}s}{:<4s} {:s}".format(*headers, w=gef.arch.ptrsize*2+3), color))
 
         for entry in vmmap:
             if not argv:
@@ -9598,7 +9598,7 @@ class XFilesCommand(GenericCommand):
     def do_invoke(self, argv):
         color = gef.config["theme.table_heading"]
         headers = ["Start", "End", "Name", "File"]
-        gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<21s} {:s}".format(*headers, w=get_memory_alignment()*2+3), color))
+        gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<21s} {:s}".format(*headers, w=gef.arch.ptrsize*2+3), color))
 
         filter_by_file = argv[0] if argv and argv[0] else None
         filter_by_name = argv[1] if len(argv) > 1 and argv[1] else None
@@ -10568,7 +10568,7 @@ class GefFunctionsCommand(GenericCommand):
 
 
 #
-# GEF internal classes
+# GEF internal command classes
 #
 class GefCommand(gdb.Command):
     """GEF main command: view all new commands by typing `gef`."""
@@ -11237,6 +11237,10 @@ class GefTmuxSetup(gdb.Command):
         return
 
 
+#
+# GEF internal  classes
+#
+
 def __gef_prompt__(current_prompt):
     """GEF custom prompt function."""
 
@@ -11244,7 +11248,6 @@ def __gef_prompt__(current_prompt):
     if gef.config["gef.disable_color"] is True: return GEF_PROMPT
     if is_alive(): return GEF_PROMPT_ON
     return GEF_PROMPT_OFF
-
 
 class GefMemoryManager:
     """Class that manages memory access for gef."""

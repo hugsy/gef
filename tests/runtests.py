@@ -839,7 +839,7 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
     """Tests GEF internal functions."""
 
     def test_func_get_memory_alignment(self):
-        res = gdb_test_python_method("get_memory_alignment(in_bits=False)")
+        res = gdb_test_python_method("gef.arch.ptrsize")
         self.assertIn(res.splitlines()[-1], ("4", "8"))
         return
 
@@ -859,23 +859,23 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
         return
 
     def test_func_get_filepath(self):
-        res = gdb_test_python_method("get_filepath()", target=BIN_LS)
+        res = gdb_test_python_method("gef.session.file", target=BIN_LS)
         self.assertNoException(res)
         target = TMPDIR / "foo bar"
         subprocess.call(["cp", BIN_LS, target])
-        res = gdb_test_python_method("get_filepath()", target=target)
+        res = gdb_test_python_method("gef.session.file", target=target)
         self.assertNoException(res)
         subprocess.call(["rm", target])
         return
 
     def test_func_get_pid(self):
-        res = gdb_test_python_method("get_pid()", target=BIN_LS)
+        res = gdb_test_python_method("gef.session.pid", target=BIN_LS)
         self.assertNoException(res)
         self.assertTrue(int(res.splitlines()[-1]))
         return
 
     def test_fun_gef_get_auxiliary_values(self):
-        func = "gef_get_auxiliary_values()"
+        func = "gef.session.auxiliary_values"
         res = gdb_test_python_method(func, target=BIN_LS)
         self.assertNoException(res)
         # we need at least ("AT_PLATFORM", "AT_EXECFN") right now
