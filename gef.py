@@ -1247,7 +1247,6 @@ class GlibcArena:
         if self.is_main_arena():
             heap_section = gef.heap.base_address
             if not heap_section:
-                err("Heap not initialized")
                 return None
             return heap_section
         _addr = int(self) + self.struct_size
@@ -9141,7 +9140,7 @@ class PatchCommand(GenericCommand):
         addr = align_address(parse_address(args.location))
         size, fcode = self.SUPPORTED_SIZES[self.format]
 
-        d = gef.arch.endianness
+        d = str(gef.arch.endianness)
         for value in args.values:
             value = parse_address(value) & ((1 << size * 8) - 1)
             vstr = struct.pack(d + fcode, value)
