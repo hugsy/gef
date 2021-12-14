@@ -279,35 +279,35 @@ def bufferize(f):
 
 def p8(x: int, s: bool = False) -> bytes:
     """Pack one byte respecting the current architecture endianness."""
-    return struct.pack("{}B".format(gef.arch.endianness), x) if not s else struct.pack("{}b".format(gef.arch.endianness), x)
+    return struct.pack(f"{gef.arch.endianness:s}B", x) if not s else struct.pack(f"{gef.arch.endianness:s}b", x)
 
 def p16(x: int, s: bool = False) -> bytes:
     """Pack one word respecting the current architecture endianness."""
-    return struct.pack("{}H".format(gef.arch.endianness), x) if not s else struct.pack("{}h".format(gef.arch.endianness), x)
+    return struct.pack(f"{gef.arch.endianness:s}H", x) if not s else struct.pack(f"{gef.arch.endianness:s}h", x)
 
 def p32(x: int, s: bool = False) -> bytes:
     """Pack one dword respecting the current architecture endianness."""
-    return struct.pack("{}I".format(gef.arch.endianness), x) if not s else struct.pack("{}i".format(gef.arch.endianness), x)
+    return struct.pack(f"{gef.arch.endianness:s}I", x) if not s else struct.pack(f"{gef.arch.endianness:s}i", x)
 
 def p64(x: int, s: bool = False) -> bytes:
     """Pack one qword respecting the current architecture endianness."""
-    return struct.pack("{}Q".format(gef.arch.endianness), x) if not s else struct.pack("{}q".format(gef.arch.endianness), x)
+    return struct.pack(f"{gef.arch.endianness:s}Q", x) if not s else struct.pack(f"{gef.arch.endianness:s}q", x)
 
 def u8(x: bytes, s: bool = False) -> int:
     """Unpack one byte respecting the current architecture endianness."""
-    return struct.unpack("{}B".format(gef.arch.endianness), x)[0] if not s else struct.unpack("{}b".format(gef.arch.endianness), x)[0]
+    return struct.unpack(f"{gef.arch.endianness:s}B", x)[0] if not s else struct.unpack(f"{gef.arch.endianness:s}b", x)[0]
 
 def u16(x: bytes, s: bool = False) -> int:
     """Unpack one word respecting the current architecture endianness."""
-    return struct.unpack("{}H".format(gef.arch.endianness), x)[0] if not s else struct.unpack("{}h".format(gef.arch.endianness), x)[0]
+    return struct.unpack(f"{gef.arch.endianness:s}H", x)[0] if not s else struct.unpack(f"{gef.arch.endianness:s}h", x)[0]
 
 def u32(x: bytes, s: bool = False) -> int:
     """Unpack one dword respecting the current architecture endianness."""
-    return struct.unpack("{}I".format(gef.arch.endianness), x)[0] if not s else struct.unpack("{}i".format(gef.arch.endianness), x)[0]
+    return struct.unpack(f"{gef.arch.endianness:s}I", x)[0] if not s else struct.unpack("{}i".format(gef.arch.endianness), x)[0]
 
 def u64(x: bytes, s: bool = False) -> int:
     """Unpack one qword respecting the current architecture endianness."""
-    return struct.unpack("{}Q".format(gef.arch.endianness), x)[0] if not s else struct.unpack("{}q".format(gef.arch.endianness), x)[0]
+    return struct.unpack(f"{gef.arch.endianness:s}Q", x)[0] if not s else struct.unpack(f"{gef.arch.endianness:s}q", x)[0]
 
 
 def is_ascii_string(address):
@@ -5002,8 +5002,7 @@ class CanaryCommand(GenericCommand):
             return
 
         canary, location = res
-        info("Found AT_RANDOM at {:#x}, reading {} bytes".format(location, gef.arch.ptrsize))
-        info("The canary of process {} is {:#x}".format(gef.session.pid, canary))
+        info("The canary of process {} is at {:#x}, value is {:#x}".format(gef.session.pid, location, canary))
         return
 
 
@@ -10340,9 +10339,8 @@ class SyscallArgsCommand(GenericCommand):
         return getattr(_mod, "syscall_table")
 
     def get_settings_path(self):
-        path = os.path.expanduser(self["path"])
-        path = os.path.realpath(path)
-        return path if os.path.isdir(path) else None
+        path = pathlib.Path(os.path.expanduser(self["path"]))
+        return path if path.exists() and path.is_dir() else None
 
 
 
@@ -11408,10 +11406,10 @@ class GefSessionManager:
         if not auxval:
             return None
         canary_location = auxval["AT_RANDOM"]
-        canary = u64(canary_location)
+        canary = gef.memory.read_integer(canary_location)
         canary &= ~0xFF
         self.__canary = (canary, canary_location)
-        return self.__canary, canary_location
+        return self.__canary
 
 class Gef:
     """The GEF root class"""
