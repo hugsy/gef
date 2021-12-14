@@ -1,15 +1,6 @@
 name: CI Test for GEF
 
-on:
-  push:
-    branches:
-      - master
-      - dev
-
-  pull_request:
-    branches:
-      - master
-      - dev
+on: [push, pull_request]
 
 jobs:
   build:
