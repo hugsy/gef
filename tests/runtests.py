@@ -70,8 +70,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd("canary"))
         res = gdb_start_silent_cmd("canary", target=_target("canary"))
         self.assertNoException(res)
-        self.assertIn("Found AT_RANDOM at", res)
-        self.assertIn("The canary of process ", res)
+        self.assertIn("The canary of process", res)
         return
 
     def test_cmd_capstone_disassemble(self):
@@ -260,7 +259,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("Chunk(addr=", res)
         self.assertIn("top chunk", res)
 
-        cmd = "python gdb.execute('heap chunks {}'.format(get_glibc_arena().next))"
+        cmd = "python gdb.execute('heap chunks 0x{:x}'.format(int(list(gef.heap.arenas)[1])))"
         target = _target("heap-non-main")
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
@@ -270,7 +269,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_heap_chunks_mult_heaps(self):
-        before = ['run', 'python gdb.execute("heap set-arena {}".format(get_glibc_arena().next))']
+        before = ['run', 'python gdb.execute("heap set-arena 0x{:x}".format(int(list(gef.heap.arenas)[1])))']
         cmd = "heap chunks"
         target = _target("heap-multiple-heaps")
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
@@ -292,7 +291,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_heap_bins_non_main(self):
-        cmd = "python gdb.execute('heap bins fast {}'.format(get_glibc_arena().next))"
+        cmd = "python gdb.execute('heap bins fast {}'.format(gef.heap.main_arena))"
         before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
         target = _target("heap-non-main")
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
@@ -874,8 +873,8 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
         self.assertTrue(int(res.splitlines()[-1]))
         return
 
-    def test_fun_gef_get_auxiliary_values(self):
-        func = "gef.session.auxiliary_values"
+    def test_func_auxiliary_vector(self):
+        func = "gef.session.auxiliary_vector"
         res = gdb_test_python_method(func, target=BIN_LS)
         self.assertNoException(res)
         # we need at least ("AT_PLATFORM", "AT_EXECFN") right now

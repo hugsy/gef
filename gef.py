@@ -566,6 +566,9 @@ class Address:
             return Color.colorify(value, stack_color)
         return value
 
+    def __int__(self):
+        return self.value
+
     def is_in_text_segment(self):
         return (hasattr(self.info, "name") and ".text" in self.info.name) or \
             (hasattr(self.section, "path") and get_filepath() == self.section.path and self.section.is_executable())
@@ -1215,12 +1218,15 @@ class GlibcArena:
 
     def __iter__(self):
         yield self
+        current_arena = self
 
         while True:
-            next_arena_address = int(self.next)
+            next_arena_address = int(current_arena.next)
             if next_arena_address == int(gef.heap.main_arena):
                 break
-            yield GlibcArena("*{:#x} ".format(next_arena_address))
+
+            current_arena = GlibcArena("*{:#x} ".format(next_arena_address))
+            yield current_arena
         return
 
     def __eq__(self, other):
@@ -3944,9 +3950,13 @@ def gef_read_canary():
 def get_pid():
     return gef.session.pid
 
-@deprecated("Use `gef.session.file`")
+@deprecated("Use `gef.session.file.name`")
 def get_filename():
-    return gef.session.file
+    return gef.session.file.name
+
+@deprecated("Use `gef.heap.main_arena`")
+def get_glibc_arena():
+    return gef.heap.main_arena
 
 #
 # GDB event hooking
@@ -4658,10 +4668,10 @@ class PrintFormatCommand(GenericCommand):
     def format_matrix(self):
         # `gef.arch.endianness` is a runtime property, should not be defined as a class property
         return {
-            8:  (gef.arch.endianness + "B", "char", "db"),
-            16: (gef.arch.endianness + "H", "short", "dw"),
-            32: (gef.arch.endianness + "I", "int", "dd"),
-            64: (gef.arch.endianness + "Q", "long long", "dq"),
+            8:  (f"{gef.arch.endianness:s}B", "char", "db"),
+            16: (f"{gef.arch.endianness:s}H", "short", "dw"),
+            32: (f"{gef.arch.endianness:s}I", "int", "dd"),
+            64: (f"{gef.arch.endianness:s}Q", "long long", "dq"),
         }
 
     @only_if_gdb_running
@@ -4980,8 +4990,7 @@ class SmartEvalCommand(GenericCommand):
 
 @register_command
 class CanaryCommand(GenericCommand):
-    """Shows the canary value of the current process. Apply the techique detailed in
-    https://www.elttam.com.au/blog/playing-with-canaries/ to show the canary."""
+    """Shows the canary value of the current process."""
 
     _cmdline_ = "canary"
     _syntax_ = _cmdline_
@@ -6020,7 +6029,7 @@ class SearchPatternCommand(GenericCommand):
             return
 
         pattern = argv[0]
-        endian = get_endian()
+        endian = gef.arch.endianness
 
         if argc >= 2:
             if argv[1].lower() == "big": endian = Endianness.BIG_ENDIAN
@@ -6233,7 +6242,7 @@ class UnicornEmulateCommand(GenericCommand):
         arch, mode = get_unicorn_arch(to_string=True)
         unicorn_registers = get_unicorn_registers(to_string=True)
         cs_arch, cs_mode = get_capstone_arch(to_string=True)
-        fname = get_filename()
+        fname = gef.session.file.name
         to_file = kwargs.get("to_file", None)
         emulate_segmentation_block = ""
         context_segmentation_block = ""
@@ -6843,19 +6852,15 @@ class GlibcHeapSetArenaCommand(GenericCommand):
             return
 
         if is_hex(argv[0]):
-            new_arena_address = argv[0]
+            new_arena_address = int(argv[0], 16)
         else:
             new_arena_symbol = safe_parse_and_eval(argv[0])
             if not new_arena_symbol:
                 err("Invalid symbol for arena")
                 return
+            new_arena_address = to_unsigned_long(new_arena_symbol)
 
-        new_arena_address = Address(value=to_unsigned_long(new_arena_symbol))
-        if not new_arena_address or not new_arena_address.valid:
-            err("Invalid address")
-            return
-
-        new_arena = GlibcArena(f"*{new_arena_address:#x}")
+        new_arena = GlibcArena( "*0x{:x}".format(new_arena_address))
         if new_arena not in gef.heap.arenas:
             err("Invalid arena")
             return
@@ -6940,8 +6945,6 @@ class GlibcHeapChunksCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, *args, **kwargs):
         args = kwargs["arguments"]
-
-        # arenas = get_glibc_arenas(addr=args.arena_address, get_all=args.all)
         arenas = gef.heap.arenas
         for arena in arenas:
             self.dump_chunks_arena(arena, print_arena=args.all, allow_unaligned=args.allow_unaligned)
@@ -7221,7 +7224,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         MAX_FAST_SIZE = 80 * SIZE_SZ // 4
         NFASTBINS = fastbin_index(MAX_FAST_SIZE) - 1
 
-        arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else get_glibc_arena()
+        arena = GlibcArena("*{:s}".format(argv[0])) if len(argv) == 1 else gef.heap.main_arena
 
         if arena is None:
             err("Invalid Glibc arena")
@@ -7278,7 +7281,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_current_arena__
+        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else gef.heap.selected_arena
         gef_print(titlify("Unsorted Bin for arena '{:s}'".format(arena_addr)))
         nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, 0, "unsorted_")
         if nb_chunk >= 0:
@@ -7327,11 +7330,11 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if get_glibc_arena() is None:
+        if gef.heap.main_arena  is None:
             err("Invalid Glibc arena")
             return
 
-        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else __gef_current_arena__
+        arena_addr = "*{:s}".format(argv[0]) if len(argv) == 1 else gef.heap.selected_arena
         gef_print(titlify("Large Bins for arena '{:s}'".format(arena_addr)))
         bins = {}
         for i in range(63, 126):
@@ -7406,7 +7409,7 @@ class DetailRegistersCommand(GenericCommand):
                 err("invalid registers for architecture: {}".format(", ".join(invalid_regs)))
 
         memsize = gef.arch.ptrsize
-        endian = gef.arch.endianness
+        endian = str(gef.arch.endianness)
         charset = string.printable
         widest = max(map(len, gef.arch.all_registers))
         special_line = ""
@@ -9030,7 +9033,7 @@ class HexdumpCommand(GenericCommand):
 
         r, l = formats[arrange_as]
         fmt_str = "{{base}}{v}+{{offset:#06x}}   {{sym}}{{val:#0{prec}x}}   {{text}}".format(v=VERTICAL_LINE, prec=l*2+2)
-        fmt_pack = endianness + r
+        fmt_pack = f"{endianness:s}{r}"
         lines = []
 
         i = 0
@@ -9197,7 +9200,7 @@ class PatchByteCommand(PatchCommand):
 
     _cmdline_ = "patch byte"
     _syntax_  = "{0:s} LOCATION BYTE1 [BYTE2 [BYTE3..]]".format(_cmdline_)
-    _example_ = "{:s} $rip 0x41 0x41 0x41 0x41 0x41".format(_cmdline_)
+    _example_ = "{:s} $pc 0x41 0x41 0x41 0x41 0x41".format(_cmdline_)
 
     def __init__(self):
         super().__init__()
@@ -10415,7 +10418,7 @@ class SectionBaseFunction(GenericFunction):
         try:
             name = args[0].string()
         except IndexError:
-            name = get_filename()
+            name = gef.session.file.name
         except gdb.error:
             err("Invalid arg: {}".format(args[0]))
             return 0
