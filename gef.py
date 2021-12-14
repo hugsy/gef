@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-#
-#
 #######################################################################################
 # GEF - Multi-Architecture GDB Enhanced Features for Exploiters & Reverse-Engineers
 #
