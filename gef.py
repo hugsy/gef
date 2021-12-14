@@ -390,7 +390,7 @@ def only_if_gdb_version_higher_than(required_gdb_version):
                 f(*args, **kwargs)
             else:
                 reason = "GDB >= {} for this command".format(required_gdb_version)
-                raise EnvironmentError(reason)
+                raise OSError(reason)
         return inner_f
     return wrapper
 
@@ -406,7 +406,7 @@ def only_if_current_arch_in(valid_architectures):
                 f(*args, **kwargs)
             else:
                 reason = "This command cannot work for the '{}' architecture".format(gef.arch.arch)
-                raise EnvironmentError(reason)
+                raise OSError(reason)
         return inner_f
     return wrapper
 
@@ -2098,7 +2098,7 @@ class Architecture(metaclass=abc.ABCMeta):
             elif "big endian" in output:
                 self.__endianness = Endianness.BIG_ENDIAN
             else:
-                raise EnvironmentError(f"No valid endianess found in '{output}'")
+                raise OSError(f"No valid endianess found in '{output}'")
         return self.__endianness
 
     def get_ith_parameter(self, i, in_func=True):
@@ -3156,7 +3156,7 @@ def open_file(path, use_cache=False):
     if is_remote_debug() and not __gef_qemu_mode__:
         lpath = download_file(path, use_cache)
         if not lpath:
-            raise IOError("cannot open remote path {:s}".format(path))
+            raise OSError("cannot open remote path {:s}".format(path))
         path = lpath
 
     return open(path, "r")
@@ -3744,7 +3744,7 @@ def get_memory_alignment(in_bits=False):
     except:
         pass
 
-    raise EnvironmentError("GEF is running under an unsupported mode")
+    raise OSError("GEF is running under an unsupported mode")
 
 
 def clear_screen(tty=""):
@@ -5660,7 +5660,7 @@ class IdaInteractCommand(GenericCommand):
             s.settimeout(1)
             s.connect((host, port))
             s.close()
-        except socket.error:
+        except OSError:
             return False
         return True
 
@@ -5753,7 +5753,7 @@ class IdaInteractCommand(GenericCommand):
                 jump = getattr(self.sock, "jump")
                 jump(hex(gef.arch.pc-main_base_address),)
 
-        except socket.error:
+        except OSError:
             self.disconnect()
         return
 
