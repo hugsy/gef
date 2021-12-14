@@ -3185,7 +3185,7 @@ def get_process_maps_linux(proc_map_file):
             inode = rest[0]
             pathname = rest[1].lstrip()
 
-        addr_start, addr_end = [int(x, 16) for x in addr.split("-")]
+        addr_start, addr_end = (int(x, 16) for x in addr.split("-"))
         off = int(off, 16)
         perm = Permission.from_process_maps(perm)
 
@@ -3222,7 +3222,7 @@ def get_info_sections():
 
         try:
             parts = [x for x in line.split()]
-            addr_start, addr_end = [int(x, 16) for x in parts[1].split("->")]
+            addr_start, addr_end = (int(x, 16) for x in parts[1].split("->"))
             off = int(parts[3][:-1], 16)
             path = parts[4]
             inode = ""
@@ -3346,7 +3346,7 @@ def xor(data, key):
     """Return `data` xor-ed with `key`."""
     key = key.lstrip("0x")
     key = binascii.unhexlify(key)
-    return bytearray([x ^ y for x, y in zip(data, itertools.cycle(key))])
+    return bytearray(x ^ y for x, y in zip(data, itertools.cycle(key)))
 
 
 def is_hex(pattern):
@@ -4760,7 +4760,7 @@ class PieBreakpointCommand(GenericCommand):
         # When the process is already on, set real breakpoints immediately
         if is_alive():
             vmmap = get_process_maps()
-            base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
+            base_address = next(x.page_start for x in vmmap if x.path == get_filepath())
             for bp_ins in __pie_breakpoints__.values():
                 bp_ins.instantiate(base_address)
         return
@@ -4860,7 +4860,7 @@ class PieRunCommand(GenericCommand):
         unhide_context()
         gdb.execute("set stop-on-solib-events 0")
         vmmap = get_process_maps()
-        base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
+        base_address = next(x.page_start for x in vmmap if x.path == get_filepath())
         info("base address {}".format(hex(base_address)))
 
         # modify all breakpoints
@@ -4891,7 +4891,7 @@ class PieAttachCommand(GenericCommand):
         # after attach, we are stopped so that we can
         # get base address to modify our breakpoint
         vmmap = get_process_maps()
-        base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
+        base_address = next(x.page_start for x in vmmap if x.path == get_filepath())
 
         for bp_ins in __pie_breakpoints__.values():
             bp_ins.instantiate(base_address)
@@ -4915,7 +4915,7 @@ class PieRemoteCommand(GenericCommand):
         # after remote attach, we are stopped so that we can
         # get base address to modify our breakpoint
         vmmap = get_process_maps()
-        base_address = [x.page_start for x in vmmap if x.realpath == get_filepath()][0]
+        base_address = next(x.page_start for x in vmmap if x.realpath == get_filepath())
 
         for bp_ins in __pie_breakpoints__.values():
             bp_ins.instantiate(base_address)
@@ -5730,8 +5730,8 @@ class IdaInteractCommand(GenericCommand):
             main_base_address = main_end_address = 0
         else:
             vmmap = get_process_maps()
-            main_base_address = min([x.page_start for x in vmmap if x.realpath == get_filepath()])
-            main_end_address = max([x.page_end for x in vmmap if x.realpath == get_filepath()])
+            main_base_address = min(x.page_start for x in vmmap if x.realpath == get_filepath())
+            main_end_address = max(x.page_end for x in vmmap if x.realpath == get_filepath())
 
         try:
             if method_name == "sync":
@@ -5761,8 +5761,8 @@ class IdaInteractCommand(GenericCommand):
         """Submit all active breakpoint addresses to IDA/BN."""
         pc = gef.arch.pc
         vmmap = get_process_maps()
-        base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
-        end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
+        base_address = min(x.page_start for x in vmmap if x.path == get_filepath())
+        end_address = max(x.page_end for x in vmmap if x.path == get_filepath())
         if not (base_address <= pc < end_address):
             # do not sync in library
             return
@@ -8105,7 +8105,7 @@ class EntryPointBreakCommand(GenericCommand):
         unhide_context()
         gdb.execute("set stop-on-solib-events 0")
         vmmap = get_process_maps()
-        base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
+        base_address = next(x.page_start for x in vmmap if x.path == get_filepath())
         return self.set_init_tbreak(base_address + addr)
 
 
@@ -9980,8 +9980,8 @@ class GotCommand(GenericCommand):
         # getting vmmap to understand the boundaries of the main binary
         # we will use this info to understand if a function has been resolved or not.
         vmmap = get_process_maps()
-        base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
-        end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
+        base_address = min(x.page_start for x in vmmap if x.path == get_filepath())
+        end_address = max(x.page_end for x in vmmap if x.path == get_filepath())
 
         # get the checksec output.
         checksec_status = checksec(get_filepath())
