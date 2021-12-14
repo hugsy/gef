@@ -2310,7 +2310,7 @@ class ARM(Architecture):
     def is_branch_taken(self, insn):
         mnemo = insn.mnemonic
         # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
-        flags = dict((self.flags_table[k], k) for k in self.flags_table)
+        flags = {self.flags_table[k]: k for k in self.flags_table}
         val = get_register(self.flag_register)
         taken, reason = False, ""
 
@@ -2527,7 +2527,7 @@ class X86(Architecture):
     def is_branch_taken(self, insn):
         mnemo = insn.mnemonic
         # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
-        flags = dict((self.flags_table[k], k) for k in self.flags_table)
+        flags = {self.flags_table[k]: k for k in self.flags_table}
         val = get_register(self.flag_register)
 
         taken, reason = False, ""
@@ -2692,7 +2692,7 @@ class PowerPC(Architecture):
 
     def is_branch_taken(self, insn):
         mnemo = insn.mnemonic
-        flags = dict((self.flags_table[k], k) for k in self.flags_table)
+        flags = {self.flags_table[k]: k for k in self.flags_table}
         val = get_register(self.flag_register)
         taken, reason = False, ""
         if mnemo == "beq": taken, reason = val&(1<<flags["equal[7]"]), "E"
@@ -2795,7 +2795,7 @@ class SPARC(Architecture):
 
     def is_branch_taken(self, insn):
         mnemo = insn.mnemonic
-        flags = dict((self.flags_table[k], k) for k in self.flags_table)
+        flags = {self.flags_table[k]: k for k in self.flags_table}
         val = get_register(self.flag_register)
         taken, reason = False, ""
 
