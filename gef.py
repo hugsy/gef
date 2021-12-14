@@ -3855,13 +3855,11 @@ def de_bruijn(alphabet, n):
                     yield alphabet[a[j]]
         else:
             a[t] = a[t - p]
-            for c in db(t + 1, p):
-                yield c
+            yield from db(t + 1, p)
 
             for j in range(a[t - p] + 1, k):
                 a[t] = j
-                for c in db(t + 1, t):
-                    yield c
+                yield from db(t + 1, t)
 
     return db(1, 1)
 
