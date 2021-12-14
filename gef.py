@@ -6024,11 +6024,11 @@ class SearchPatternCommand(GenericCommand):
         endian = get_endian()
 
         if argc >= 2:
-            if argv[1].lower() == "big": endian = Elf.BIG_ENDIAN
-            elif argv[1].lower() == "little": endian = Elf.LITTLE_ENDIAN
+            if argv[1].lower() == "big": endian = Endianness.BIG_ENDIAN
+            elif argv[1].lower() == "little": endian = Endianness.LITTLE_ENDIAN
 
         if is_hex(pattern):
-            if endian == Elf.BIG_ENDIAN:
+            if endian == Endianness.BIG_ENDIAN:
                 pattern = "".join(["\\x" + pattern[i:i + 2] for i in range(2, len(pattern), 2)])
             else:
                 pattern = "".join(["\\x" + pattern[i:i + 2] for i in range(len(pattern) - 2, 0, -2)])
@@ -7854,8 +7854,8 @@ class ElfInfoCommand(GenericCommand):
         }
 
         endianness = {
-            Elf.LITTLE_ENDIAN   : "Little-Endian",
-            Elf.BIG_ENDIAN      : "Big-Endian",
+            Endianness.LITTLE_ENDIAN   : "Little-Endian",
+            Endianness.BIG_ENDIAN      : "Big-Endian",
         }
 
         osabi = {
@@ -7902,7 +7902,7 @@ class ElfInfoCommand(GenericCommand):
         data = [
             ("Magic", "{0!s}".format(hexdump(struct.pack(">I", elf.e_magic), show_raw=True))),
             ("Class", "{0:#x} - {1}".format(elf.e_class, classes[elf.e_class])),
-            ("Endianness", "{0:#x} - {1}".format(elf.e_endianness, endianness[elf.e_endianness])),
+            ("Endianness", "{0:#x} - {1}".format(elf.e_endianness, Endianness(elf.e_endianness).name)),
             ("Version", "{:#x}".format(elf.e_eiversion)),
             ("OS ABI", "{0:#x} - {1}".format(elf.e_osabi, osabi[elf.e_osabi])),
             ("ABI Version", "{:#x}".format(elf.e_abiversion)),
@@ -10640,7 +10640,7 @@ class GefCommand(gdb.Command):
 
         if initial:
             gef_print("{:s} for {:s} ready, type `{:s}' to start, `{:s}' to configure"
-                      .format(Color.greenify("GEF"), get_os(),
+                      .format(Color.greenify("GEF"), gef.session.os,
                               Color.colorify("gef", "underline yellow"),
                               Color.colorify("gef config", "underline pink")))
 
