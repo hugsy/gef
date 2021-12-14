@@ -164,8 +164,9 @@ GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "ge
 GEF_MAX_STRING_LENGTH                  = 50
 
 GDB_MIN_VERSION                        = (8, 0)
-PYTHON_MIN_VERSION                     = (3, 6)
 GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
+
+PYTHON_MIN_VERSION                     = (3, 6)
 PYTHON_VERSION                         = sys.version_info[0:2]
 
 LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME      = "main_arena"
@@ -183,8 +184,6 @@ def reset_all_caches():
         obj = getattr(sys.modules["__main__"], mod)
         if hasattr(obj, "cache_clear"):
             obj.cache_clear()
-
-    gef.heap.selected_arena = None
     return
 
 
@@ -357,13 +356,15 @@ def only_if_gdb_target_local(f):
     return wrapper
 
 
-def deprecated(solution):
+def deprecated(solution=""):
     """Decorator to add a warning when a command is obsolete and will be removed."""
     def decorator(f):
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
-            warn("'{}' is deprecated and will be removed in a feature release.".format(f.__name__))
-            warn(solution)
+            msg = f"'{f.__name__}' is deprecated and will be removed in a feature release. "
+            if solution:
+                msg += solution
+            warn(msg)
             return f(*args, **kwargs)
         return wrapper
     return decorator
@@ -1357,7 +1358,6 @@ class GlibcChunk:
             current_chunk = next_chunk
         return
 
-
     def get_next_chunk(self, allow_unaligned=False):
         addr = self.get_next_chunk_addr()
         return GlibcChunk(addr, allow_unaligned=allow_unaligned)
@@ -1513,22 +1513,6 @@ def get_libc_version():
     return 0, 0
 
 
-# @lru_cache()
-# def get_glibc_arena(addr=None):
-#     try:
-#         addr = "*{}".format(addr) if addr else __gef_current_arena__
-#         return GlibcArena(addr)
-#     except Exception as e:
-#         err("Failed to get the glibc arena, heap commands may not work properly: {}".format(e))
-#         return None
-
-# def get_glibc_arenas(addr=None):
-#     return iter(  GlibcArena(addr) )
-
-# def get_first_arena(addr=None):
-#     return next( get_glibc_arenas(addr) )
-
-
 def titlify(text, color=None, msg_color=None):
     """Print a centered title."""
     cols = get_terminal_size()[1]
@@ -1551,6 +1535,7 @@ def ok(msg):    return gef_print("{} {}".format(Color.colorify("[+]", "bold gree
 def info(msg):  return gef_print("{} {}".format(Color.colorify("[+]", "bold blue"), msg))
 
 
+# TODO: move to gef.session.context
 def push_context_message(level, message):
     """Push the message to be displayed the next time the context is invoked."""
     global __context_messages__
@@ -1964,11 +1949,7 @@ def checksec(filename):
             "Partial RelRO": False,
         }
 
-    try:
-        readelf = which("readelf")
-    except IOError:
-        err("Missing `readelf`")
-        return
+    readelf = gef.session.constants["readelf"]
 
     def __check_security_property(opt, filename, pattern):
         cmd   = [readelf,]
@@ -2016,19 +1997,6 @@ def get_arch():
     return arch_str
 
 
-# @lru_cache()
-# def get_endian():
-#     """Return the binary endianness."""
-
-#     endian = gdb.execute("show endian", to_string=True).strip().lower()
-#     if "little endian" in endian:
-#         return Elf.LITTLE_ENDIAN
-#     if "big endian" in endian:
-#         return Elf.BIG_ENDIAN
-
-#     raise EnvironmentError("Invalid endianness")
-
-
 @lru_cache()
 def get_entry_point():
     """Return the binary entry point."""
@@ -2062,6 +2030,17 @@ def flags_to_human(reg_value, value_table):
         flags.append(flag_str)
     return "[{}]".format(" ".join(flags))
 
+
+@lru_cache()
+def get_section_base_address(name):
+    section = process_lookup_path(name)
+    return section.page_start if section else None
+
+
+@lru_cache()
+def get_zone_base_address(name):
+    zone = file_lookup_name_path(name, get_filepath())
+    return zone.zone_start if zone else None
 
 #
 # Architecture classes
@@ -3089,10 +3068,9 @@ def get_path_from_info_proc():
     return None
 
 
-@lru_cache()
+@deprecated("Use `gef.session.os`")
 def get_os():
-    """Return the current OS."""
-    return platform.system().lower()
+    return gef.session.os
 
 
 @lru_cache()
@@ -3118,14 +3096,9 @@ def is_qemu_system():
     response = gdb.execute('maintenance packet QOffsets', to_string=True, from_tty=False)
     return 'received: ""' in response
 
-
-@lru_cache()
+@deprecated("Use `gef.session.pid`")
 def get_pid():
-    """Return the PID of the target process."""
-    pid = gdb.selected_inferior().pid if not __gef_qemu_mode__ else gdb.selected_thread().ptid[1]
-    if not pid:
-        raise RuntimeError("cannot retrieve PID for target process")
-    return pid
+    return gef.session.pid
 
 
 @lru_cache()
@@ -3160,10 +3133,9 @@ def get_filepath():
         return get_path_from_info_proc()
 
 
-@lru_cache()
+@deprecated("Use `gef.session.file`")
 def get_filename():
-    """Return the full filename of the file currently debugged."""
-    return os.path.basename(gdb.current_progspace().filename)
+    return gef.session.file
 
 
 @lru_cache()
@@ -3178,7 +3150,7 @@ def inferior_is_macho():
 @lru_cache()
 def is_macho(filename):
     """Return True if the specified file is a Mach-O binary."""
-    file_bin = which("file")
+    file_bin = gef.session.constants["file"]
     cmd = [file_bin, filename]
     out = gef_execute_external(cmd)
     if "Mach-O" in out:
@@ -3472,6 +3444,7 @@ def hook_stop_handler(event):
 def new_objfile_handler(event):
     """GDB event handler for new object file cases."""
     reset_all_caches()
+    gef.initialize_managers()
     set_arch()
     load_libc_args()
     return
@@ -3733,15 +3706,6 @@ def get_elf_headers(filename=None):
     return Elf(filename)
 
 
-# def _ptr_width():
-#     void = cached_lookup_type("void")
-#     if void is None:
-#         uintptr_t = cached_lookup_type("uintptr_t")
-#         return uintptr_t.sizeof
-#     else:
-#         return void.pointer().sizeof
-
-
 @lru_cache()
 def is_64bit():
     """Checks if current target is 64bit."""
@@ -3909,6 +3873,7 @@ def align_address_to_page(address):
     a = align_address(address) >> DEFAULT_PAGE_ALIGN_SHIFT
     return a << DEFAULT_PAGE_ALIGN_SHIFT
 
+
 def malloc_align_address(address):
     """Align addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github"""
     __default_malloc_alignment = 0x10
@@ -3938,10 +3903,6 @@ def is_in_x86_kernel(address):
     address = align_address(address)
     memalign = gef.arch.ptrsize*8 - 1
     return (address >> memalign) == 0xF
-
-@deprecated("Use `str(gef.arch.endianness)` instead")
-def endian_str():
-    return str(gef.arch.endianness)
 
 
 @lru_cache()
@@ -4022,76 +3983,42 @@ def parse_string_range(s):
     return map(lambda x: int(x, 16), addrs)
 
 
-@lru_cache()
-def gef_get_auxiliary_values():
-    """Retrieve the ELF auxiliary values of the current execution. This
-    information is provided by the operating system to transfer some kernel
-    level information to the user process. Return None if not found, or a
-    dict() of values as: {aux_vect_name: int(aux_vect_value)}."""
-    if not is_alive():
-        return None
-
-    __auxiliary_vector = {}
-    auxv_info = gdb.execute("info auxv", to_string=True)
-    if "failed" in auxv_info:
-        err(auxv_info)  # print GDB error
-        return None
-    for line in auxv_info.splitlines():
-        line = line.split('"')[0].strip()  # remove the ending string (if any)
-        line = line.split()  # split the string by whitespace(s)
-        if len(line) < 4:
-            continue  # a valid entry should have at least 4 columns
-        __av_type = line[1]
-        __av_value = line[-1]
-        __auxiliary_vector[__av_type] = int(__av_value, base=0)
-    return __auxiliary_vector
-
-
-def gef_read_canary():
-    """Read the canary of a running process using Auxiliary Vector. Return a tuple of (canary, location)
-    if found, None otherwise."""
-    auxval = gef_get_auxiliary_values()
-    if not auxval:
-        return None
-
-    canary_location = auxval["AT_RANDOM"]
-    canary = gef.memory.read_integer(canary_location)
-    canary &= ~0xFF
-    return canary, canary_location
-
-
 def gef_get_pie_breakpoint(num):
     global __pie_breakpoints__
     return __pie_breakpoints__[num]
 
 
-@lru_cache()
-def gef_getpagesize():
-    """Get the page size from auxiliary values."""
-    auxval = gef_get_auxiliary_values()
-    if not auxval:
-        return DEFAULT_PAGE_SIZE
-    return auxval["AT_PAGESZ"]
 
 
 #
 # Deprecated API
 #
+@deprecated("Use `str(gef.arch.endianness)` instead")
+def endian_str():
+    return str(gef.arch.endianness)
 
 @deprecated("Use `gef.config[key]`")
 def get_gef_setting(name):
     return gef.config
+
 
 @deprecated("Use `gef.config[key] = value`")
 def set_gef_setting(name, value):
     gef.config[name] = value
     return
 
+@deprecated("Use `gef.session.pagesize`")
+def gef_getpagesize():
+    return gef.session.pagesize
+
+@deprecated("Use `gef.session.canary`")
+def gef_read_canary():
+    return gef.session.canary
+
 
 #
 # GDB event hooking
 #
-
 
 @only_if_events_supported("cont")
 def gef_on_continue_hook(func):
@@ -4576,7 +4503,7 @@ def register_external_context_pane(pane_name, display_pane_function, pane_title_
     def pane_title(): return "example:pane"
     register_external_context_pane("example_pane", display_pane, pane_title)
     """
-    gef.instance.add_context_pane(pane_name, display_pane_function, pane_title_function)
+    gef.gdb.add_context_pane(pane_name, display_pane_function, pane_title_function)
     return
 
 
@@ -4589,9 +4516,9 @@ def register_external_command(obj):
     global __commands__, gef
     cls = obj.__class__
     __commands__.append(cls)
-    gef.instance.load(initial=False)
-    gef.instance.doc.add_command_to_doc((cls._cmdline_, cls, None))
-    gef.instance.doc.refresh()
+    gef.gdb.load(initial=False)
+    gef.gdb.doc.add_command_to_doc((cls._cmdline_, cls, None))
+    gef.gdb.doc.refresh()
     return cls
 
 
@@ -4769,7 +4696,7 @@ class VersionCommand(GenericCommand):
         gef_print("GDB-Python: {}".format(py_ver, ))
 
         if "full" in argv:
-            gef_print("Loaded commands: {}".format(", ".join(gef.instance.loaded_command_names)))
+            gef_print("Loaded commands: {}".format(", ".join(gef.gdb.loaded_command_names)))
         return
 
 
@@ -5136,7 +5063,7 @@ class CanaryCommand(GenericCommand):
             warn("This binary was not compiled with SSP.")
             return
 
-        res = gef_read_canary()
+        res = gef.session.canary
         if not res:
             err("Failed to get the canary")
             return
@@ -5187,8 +5114,7 @@ class ProcessStatusCommand(GenericCommand):
         return os.readlink("/proc/{}/exe".format(pid))
 
     def get_children_pids(self, pid):
-        ps = which("ps")
-        cmd = [ps, "-o", "pid", "--ppid", "{}".format(pid), "--noheaders"]
+        cmd = [gef.session.constants["ps"], "-o", "pid", "--ppid", "{}".format(pid), "--noheaders"]
         try:
             return [int(x) for x in gef_execute_external(cmd, as_list=True)]
         except Exception:
@@ -7915,8 +7841,7 @@ class ProcessListingCommand(GenericCommand):
 
     def __init__(self):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
-        ps = which("ps")
-        self["ps_command"] = ( "{:s} auxww".format(ps), "`ps` command to get process information")
+        self["ps_command"] = ( "{:s} auxww".format(gef.session.constants["ps"]), "`ps` command to get process information")
         return
 
     @parse_arguments({"pattern": ""}, {"--attach": True, "--smart-scan": True})
@@ -10042,10 +9967,6 @@ class ChecksecCommand(GenericCommand):
         super().__init__(complete=gdb.COMPLETE_FILENAME)
         return
 
-    def pre_load(self):
-        which("readelf")
-        return
-
     def do_invoke(self, argv):
         argc = len(argv)
 
@@ -10104,10 +10025,6 @@ class GotCommand(GenericCommand):
                                                        "not been resolved")
         return
 
-    def pre_load(self):
-        which("readelf")
-        return
-
     def get_jmp_slots(self, readelf, filename):
         output = []
         cmd = [readelf, "--relocs", filename]
@@ -10121,7 +10038,7 @@ class GotCommand(GenericCommand):
     def do_invoke(self, argv):
 
         try:
-            readelf = which("readelf")
+            readelf = gef.session.constants["readelf"]
         except IOError:
             err("Missing `readelf`")
             return
@@ -10426,7 +10343,7 @@ class SyscallArgsCommand(GenericCommand):
 
     def __init__(self):
         super().__init__()
-        path = pathlib.Path(gef.config["gef.tempdir"]) / "syscall-tables"
+        path = pathlib.Path(self["path"]) / "syscall-tables"
         if not path.exists():
             raise EnvironmentError("Syscall tables directory not found")
         self["path"] = (str(path.absolute()), "Path to store/load the syscall tables files")
@@ -10497,22 +10414,10 @@ class SyscallArgsCommand(GenericCommand):
         return path if os.path.isdir(path) else None
 
 
-@lru_cache()
-def get_section_base_address(name):
-    section = process_lookup_path(name)
-    if section:
-        return section.page_start
 
-    return None
-
-@lru_cache()
-def get_zone_base_address(name):
-    zone = file_lookup_name_path(name, get_filepath())
-    if zone:
-        return zone.zone_start
-
-    return None
-
+#
+# GDB Function declaration
+#
 class GenericFunction(gdb.Function, metaclass=abc.ABCMeta):
     """This is an abstract class for invoking convenience functions, should not be instantiated."""
 
@@ -10549,7 +10454,11 @@ class StackOffsetFunction(GenericFunction):
     _function_ = "_stack"
 
     def do_invoke(self, args):
-        return self.arg_to_long(args, 0) + get_section_base_address("[stack]")
+        base = get_section_base_address("[stack]")
+        if not base:
+            raise gdb.GdbError("Stack not found")
+
+        return self.arg_to_long(args, 0) + base
 
 
 @register_function
@@ -10558,21 +10467,12 @@ class HeapBaseFunction(GenericFunction):
     _function_ = "_heap"
 
     def do_invoke(self, args):
-        base = HeapBaseFunction.heap_base()
+        base = gef.heap.base_address
         if not base:
-            raise gdb.GdbError("Heap not found")
-
+            base = get_section_base_address("[heap]")
+            if not base:
+                raise gdb.GdbError("Heap not found")
         return self.arg_to_long(args, 0) + base
-
-    @staticmethod
-    def heap_base():
-        try:
-            base = parse_address("mp_->sbrk_base")
-            if base != 0:
-                return base
-        except gdb.error:
-            pass
-        return get_section_base_address("[heap]")
 
 
 @register_function
@@ -10607,16 +10507,23 @@ class BssBaseFunction(GenericFunction):
     _example_ = "deref $_bss(0x20)"
 
     def do_invoke(self, args):
-        return self.arg_to_long(args, 0) + get_zone_base_address(".bss")
+        base = get_zone_base_address(".bss")
+        if not base:
+            raise gdb.GdbError("BSS not found")
+        return self.arg_to_long(args, 0) + base
 
 
 @register_function
 class GotBaseFunction(GenericFunction):
     """Return the current bss base address plus the given offset."""
     _function_ = "_got"
+    _example_ = "deref $_got(0x20)"
 
     def do_invoke(self, args):
-        return self.arg_to_long(args, 0) + get_zone_base_address(".got")
+        base = get_zone_base_address(".got")
+        if not base:
+            raise gdb.GdbError("GOT not found")
+        return base + self.arg_to_long(args, 0)
 
 
 @register_command
@@ -10633,7 +10540,7 @@ class GefFunctionsCommand(GenericCommand):
 
     def setup(self):
         global gef
-        for function in gef.instance.loaded_functions:
+        for function in gef.gdb.loaded_functions:
             self.add_function_to_doc(function)
         self.__doc__ = "\n".join(sorted(self.docs))
         return
@@ -10660,6 +10567,9 @@ class GefFunctionsCommand(GenericCommand):
         return
 
 
+#
+# GEF internal classes
+#
 class GefCommand(gdb.Command):
     """GEF main command: view all new commands by typing `gef`."""
 
@@ -10942,7 +10852,7 @@ class GefConfigCommand(gdb.Command):
             err("Invalid command format")
             return
 
-        loaded_commands = [ x[0] for x in gef.instance.loaded_commands ] + ["gef"]
+        loaded_commands = [ x[0] for x in gef.gdb.loaded_commands ] + ["gef"]
         plugin_name = key.split(".", 1)[0]
         if plugin_name not in loaded_commands:
             err("Unknown plugin '{:s}'".format(plugin_name))
@@ -11086,13 +10996,13 @@ class GefMissingCommand(gdb.Command):
 
     def invoke(self, args, from_tty):
         self.dont_repeat()
-        missing_commands = gef.instance.missing_commands.keys()
+        missing_commands = gef.gdb.missing_commands.keys()
         if not missing_commands:
             ok("No missing command")
             return
 
         for missing_command in missing_commands:
-            reason = gef.instance.missing_commands[missing_command]
+            reason = gef.gdb.missing_commands[missing_command]
             warn("Command `{}` is missing, reason {} {}".format(missing_command, RIGHT_ARROW, reason))
         return
 
@@ -11176,7 +11086,7 @@ class GefAlias(gdb.Command):
 
     def lookup_command(self, cmd):
         global gef
-        for _name, _class, _instance in gef.instance.loaded_commands:
+        for _name, _class, _instance in gef.gdb.loaded_commands:
             if cmd == _name:
                 return _name, _class, _instance
 
@@ -11389,7 +11299,7 @@ class GefMemoryManager:
         return None
 
 class GefHeapManager:
-
+    """Class managing session heap."""
     def __init__(self):
         self.__libc_main_arena = None
         self.__libc_selected_arena = None
@@ -11430,7 +11340,7 @@ class GefHeapManager:
     @property
     def base_address(self):
         if not self.__heap_base:
-            self.__heap_base = HeapBaseFunction.heap_base()
+            self.__heap_base = parse_address("mp_->sbrk_base")
         return self.__heap_base
 
     @property
@@ -11439,8 +11349,8 @@ class GefHeapManager:
             return []
         return iter( GlibcChunk(self.base_address, from_base=True) )
 
-
 class GefSetting:
+    """Basic class for storing gef settings as objects"""
     def __init__(self, value, cls = None, description = None):
         self.value = value
         self.type = cls or type(value)
@@ -11480,10 +11390,86 @@ class GefSettingsManager(dict):
     def raw_entry(self, name):
         return dict.__getitem__(self, name)
 
-
 class GefSessionManager:
+    """Class managing the runtime properties of GEF. """
     def __init__(self):
-        pass
+        self.__auxiliary_vector = None
+        self.__pagesize = None
+        self.__os = None
+        self.__pid = None
+        self.__file = None
+        self.__canary = None
+        self.constants = {} # a dict for runtime constants (like 3rd party file paths)
+        # add a few extra runtime constants to avoid lookups
+        # those must be found, otherwise IOError will be raised
+        for constant in ("python3", "readelf", "file", "ps"):
+            self.constants[constant] = which(constant)
+        return
+
+    @property
+    def auxiliary_vector(self):
+        if not is_alive():
+            return None
+
+        if not self.__auxiliary_vector:
+            auxiliary_vector = {}
+            auxv_info = gdb.execute("info auxv", to_string=True)
+            if "failed" in auxv_info:
+                err(auxv_info)  # print GDB error
+                return None
+            for line in auxv_info.splitlines():
+                line = line.split('"')[0].strip()  # remove the ending string (if any)
+                line = line.split()  # split the string by whitespace(s)
+                if len(line) < 4:
+                    continue  # a valid entry should have at least 4 columns
+                __av_type = line[1]
+                __av_value = line[-1]
+                auxiliary_vector[__av_type] = int(__av_value, base=0)
+            self.__auxiliary_vector = auxiliary_vector
+        return self.__auxiliary_vector
+
+    @property
+    def os(self):
+        """Return the current OS."""
+        if not self.__os:
+            self.__os = platform.system().lower()
+        return self.__os
+
+    @property
+    def pid(self):
+        """Return the PID of the target process."""
+        if not self.__pid:
+            pid = gdb.selected_inferior().pid if not __gef_qemu_mode__ else gdb.selected_thread().ptid[1]
+            if not pid:
+                raise RuntimeError("cannot retrieve PID for target process")
+            self.__pid = pid
+        return self.__pid
+
+    @property
+    def file(self):
+        """Return a Path object of the target process."""
+        return pathlib.Path(gdb.current_progspace().filename)
+
+    @property
+    def pagesize(self):
+        """Get the system page size"""
+        auxval = self.auxiliary_vector
+        if not auxval:
+            return DEFAULT_PAGE_SIZE
+        self.__pagesize = auxval["AT_PAGESZ"]
+        return self.__pagesize
+
+    @property
+    def canary(self):
+        """Returns a tuple of the canary address and value, read from the auxiliary vector."""
+        auxval = self.auxiliary_vector
+        if not auxval:
+            return None
+        canary_location = auxval["AT_RANDOM"]
+        canary = u64(canary_location)
+        canary &= ~0xFF
+        self.__canary = (canary, canary_location)
+        return self.__canary, canary_location
 
 class Gef:
     """The GEF root class"""
@@ -11493,20 +11479,23 @@ class Gef:
         self.config = GefSettingsManager()
         return
 
+    def initialize_managers(self):
+        self.memory = GefMemoryManager()
+        self.heap = GefHeapManager()
+        self.session = GefSessionManager()
+        return
+
     def setup(self):
         """
         Setup initialize the runtime setup, which may require for the `gef` to be not None
         """
-        self.memory = GefMemoryManager()
-        self.heap = GefHeapManager()
-        self.instance = GefCommand()
-        self.instance.setup()
+        self.initialize_managers()
+        self.gdb = GefCommand()
+        self.gdb.setup()
         tempdir = self.config["gef.tempdir"]
         gef_makedirs(tempdir)
         gdb.execute("save gdb-index {}".format(tempdir))
         return
-
-
 
 
 if __name__ == "__main__":
@@ -11545,7 +11534,7 @@ if __name__ == "__main__":
         gdb.prompt_hook = __gef_prompt__
 
         # setup config
-        gdb_initial_config = (
+        gdb_initial_settings = (
             "set confirm off",
             "set verbose off",
             "set pagination off",
@@ -11557,7 +11546,7 @@ if __name__ == "__main__":
             "set disassembly-flavor intel",
             "handle SIGALRM print nopass",
         )
-        for cmd in gdb_initial_config:
+        for cmd in gdb_initial_settings:
             try:
                 gdb.execute(cmd)
             except gdb.error:
@@ -11567,7 +11556,6 @@ if __name__ == "__main__":
         gef = Gef()
         gef.setup()
 
-        print(gef.arch)
         # gdb events configuration
         gef_on_continue_hook(continue_handler)
         gef_on_stop_hook(hook_stop_handler)
