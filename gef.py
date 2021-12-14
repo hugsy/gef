@@ -532,7 +532,7 @@ class Color:
     @staticmethod
     def colorify(text, attrs):
         """Color text according to the given attributes."""
-        if gef.config["gef.disable_color"] == True: return text
+        if gef.config["gef.disable_color"] is True: return text
 
         colors = Color.colors
         msg = [colors[attr] for attr in attrs.split() if attr in colors]
@@ -1684,7 +1684,7 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, show_symbol=True
 
 def is_debug():
     """Check if debug mode is enabled."""
-    return gef.config["gef.debug"] == True
+    return gef.config["gef.debug"] is True
 
 context_hidden = False
 
@@ -2121,12 +2121,12 @@ class GenericArchitecture(Architecture):
     nop_insn = b""
     flag_register = None
     flags_table = None
-    def flag_register_to_human(self, val=None):    raise NotImplemented
-    def is_call(self, insn):                       raise NotImplemented
-    def is_ret(self, insn):                        raise NotImplemented
-    def is_conditional_branch(self, insn):         raise NotImplemented
-    def is_branch_taken(self, insn):               raise NotImplemented
-    def get_ra(self, insn, frame):                 raise NotImplemented
+    def flag_register_to_human(self, val=None):    return ""
+    def is_call(self, insn):                       return False
+    def is_ret(self, insn):                        return False
+    def is_conditional_branch(self, insn):         return False
+    def is_branch_taken(self, insn):               return False
+    def get_ra(self, insn, frame):                 return 0
 
 
 class RISCV(Architecture):
@@ -3388,7 +3388,7 @@ def exit_handler(event):
 
     reset_all_caches()
     __gef_qemu_mode__ = False
-    if __gef_remote__ and gef.config["gef-remote.clean_on_exit"] == True:
+    if __gef_remote__ and gef.config["gef-remote.clean_on_exit"] is True:
         shutil.rmtree("/tmp/gef/{:d}".format(__gef_remote__))
         __gef_remote__ = None
     return
@@ -7306,10 +7306,10 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
             return
 
         arena = GlibcArena(f"*{argv[0]:s}") if len(argv) == 1 else gef.heap.selected_arena
-        gef_print(titlify("Small Bins for arena '{:s}'".format(arena_addr)))
+        gef_print(titlify("Small Bins for arena '{:s}'".format(arena)))
         bins = {}
         for i in range(1, 63):
-            nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, i, "small_")
+            nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena, i, "small_")
             if nb_chunk < 0:
                 break
             if nb_chunk > 0:
@@ -7853,11 +7853,6 @@ class ElfInfoCommand(GenericCommand):
         classes = {
             Elf.ELF_32_BITS     : "32-bit",
             Elf.ELF_64_BITS     : "64-bit",
-        }
-
-        endianness = {
-            Endianness.LITTLE_ENDIAN   : "Little-Endian",
-            Endianness.BIG_ENDIAN      : "Big-Endian",
         }
 
         osabi = {
@@ -11257,7 +11252,7 @@ class GefHeapManager:
     def selected_arena(self):
         if not self.__libc_selected_arena:
             # `selected_arena` must default to `main_arena`
-            self.__libc_selected_arena = self.__libc_default_arena
+            self.__libc_selected_arena = self.__libc_main_arena
         return self.__libc_selected_arena
 
     @selected_arena.setter
