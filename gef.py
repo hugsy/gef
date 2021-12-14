@@ -9968,7 +9968,7 @@ class GotCommand(GenericCommand):
 
         try:
             readelf = gef.session.constants["readelf"]
-        except IOError:
+        except OSError:
             err("Missing `readelf`")
             return
 
