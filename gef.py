@@ -1699,6 +1699,26 @@ def unhide_context():
     context_hidden = False
 
 
+class RedirectOutputContext():
+    def __init__(self, to="/dev/null"):
+        self.redirection_target_file = to
+        return
+
+    def __enter__(self):
+        """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
+        gdb.execute("set logging overwrite")
+        gdb.execute("set logging file {:s}".format(self.redirection_target_file))
+        gdb.execute("set logging redirect on")
+        gdb.execute("set logging on")
+        return
+
+    def __exit__(self):
+        """Disable the output redirection, if any."""
+        gdb.execute("set logging off")
+        gdb.execute("set logging redirect off")
+        return
+
+@deprecated("Use `RedirectOutputContext()` context manager")
 def enable_redirect_output(to_file="/dev/null"):
     """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
     gdb.execute("set logging overwrite")
@@ -1707,7 +1727,7 @@ def enable_redirect_output(to_file="/dev/null"):
     gdb.execute("set logging on")
     return
 
-
+@deprecated("Use `RedirectOutputContext()` context manager")
 def disable_redirect_output():
     """Disable the output redirection, if any."""
     gdb.execute("set logging off")
@@ -2065,17 +2085,47 @@ class Architecture(metaclass=abc.ABCMeta):
 
     special_registers = []
 
+    def __get_register(self, regname):
+        """Return a register's value."""
+        curframe = gdb.selected_frame()
+        key = curframe.pc() ^ int(curframe.read_register('sp')) # todo: check when/if gdb.Frame implements `level()`
+        return self.__get_register_for_selected_frame(regname, key)
+
+    @lru_cache()
+    def __get_register_for_selected_frame(self, regname, hash_key):
+        # 1st chance
+        try:
+            return parse_address(regname)
+        except gdb.error:
+            pass
+
+        # 2nd chance
+        try:
+            regname = regname.lstrip("$")
+            value = gdb.selected_frame().read_register(regname)
+            return int(value)
+        except (ValueError, gdb.error):
+            pass
+        return None
+
+    def register(self, name):
+        return self.__get_register(name)
+
+    @property
+    def registers(self):
+        yield from self.all_registers
+
     @property
     def pc(self):
-        return get_register("$pc")
+        return self.register("$pc")
 
     @property
     def sp(self):
-        return get_register("$sp")
+        return self.register("$sp")
 
     @property
     def fp(self):
-        return get_register("$fp")
+        return self.register("$fp")
 
     __ptrsize = None
     @property
@@ -2104,7 +2154,7 @@ class Architecture(metaclass=abc.ABCMeta):
     def get_ith_parameter(self, i, in_func=True):
         """Retrieves the correct parameter used for the current function call."""
         reg = self.function_parameters[i]
-        val = get_register(reg)
+        val = self.register(reg)
         key = reg
         return key, val
 
@@ -2191,13 +2241,13 @@ class RISCV(Architecture):
 
         if condition.endswith("z"):
             # r2 is the zero register if we are comparing to 0
-            rs1 = get_register(insn.operands[0])
-            rs2 = get_register("$zero")
+            rs1 = gef.arch.register(insn.operands[0])
+            rs2 = gef.arch.register("$zero")
             condition = condition[:-1]
         elif len(insn.operands) > 2:
             # r2 is populated with the second operand
-            rs1 = get_register(insn.operands[0])
-            rs2 = get_register(insn.operands[1])
+            rs1 = gef.arch.register(insn.operands[0])
+            rs2 = gef.arch.register(insn.operands[1])
         else:
             raise OSError("RISC-V: Failed to get rs1 and rs2 for instruction: `{}`".format(insn))
 
@@ -2229,7 +2279,7 @@ class RISCV(Architecture):
     def get_ra(self, insn, frame):
         ra = None
         if self.is_ret(insn):
-            ra = get_register("$ra")
+            ra = gef.arch.register("$ra")
         elif frame.older():
             ra = frame.older().pc()
         return ra
@@ -2261,11 +2311,11 @@ class ARM(Architecture):
 
     def is_thumb(self):
         """Determine if the machine is currently in THUMB mode."""
-        return is_alive() and get_register(self.flag_register) & (1 << 5)
+        return is_alive() and gef.arch.register(self.flag_register) & (1 << 5)
 
     @property
     def pc(self):
-        pc = get_register("$pc")
+        pc = gef.arch.register("$pc")
         if self.is_thumb():
             pc += 1
         return pc
@@ -2300,7 +2350,7 @@ class ARM(Architecture):
         # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
         if val is None:
             reg = self.flag_register
-            val = get_register(reg)
+            val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
     def is_conditional_branch(self, insn):
@@ -2311,7 +2361,7 @@ class ARM(Architecture):
         mnemo = insn.mnemonic
         # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
-        val = get_register(self.flag_register)
+        val = gef.arch.register(self.flag_register)
         taken, reason = False, ""
 
         if mnemo.endswith("eq"): taken, reason = bool(val&(1<<flags["zero"])), "Z"
@@ -2350,7 +2400,7 @@ class ARM(Architecture):
             elif insn.mnemonic == "ldr":
                 return to_unsigned_long(dereference(gef.arch.sp))
             else:  # 'bx lr' or 'add pc, lr, #0'
-                return get_register("$lr")
+                return gef.arch.register("$lr")
         elif frame.older():
             ra = frame.older().pc()
         return ra
@@ -2406,7 +2456,7 @@ class AARCH64(ARM):
         # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
         reg = self.flag_register
         if not val:
-            val = get_register(reg)
+            val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
     @classmethod
@@ -2446,7 +2496,7 @@ class AARCH64(ARM):
 
         if mnemo in {"cbnz", "cbz", "tbnz", "tbz"}:
             reg = "${}".format(operands[0])
-            op = get_register(reg)
+            op = gef.arch.register(reg)
             if mnemo == "cbnz":
                 if op!=0: taken, reason = True, "{}!=0".format(reg)
                 else: taken, reason = False, "{}==0".format(reg)
@@ -2503,7 +2553,7 @@ class X86(Architecture):
     def flag_register_to_human(self, val=None):
         reg = self.flag_register
         if not val:
-            val = get_register(reg)
+            val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn):
@@ -2528,7 +2578,7 @@ class X86(Architecture):
         mnemo = insn.mnemonic
         # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
-        val = get_register(self.flag_register)
+        val = gef.arch.register(self.flag_register)
 
         taken, reason = False, ""
 
@@ -2541,7 +2591,7 @@ class X86(Architecture):
         elif mnemo in ("jbe", "jna"):
             taken, reason = val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
         elif mnemo in ("jcxz", "jecxz", "jrcxz"):
-            cx = get_register("$rcx") if self.mode == 64 else get_register("$ecx")
+            cx = gef.arch.register("$rcx") if self.mode == 64 else gef.arch.register("$ecx")
             taken, reason = cx == 0, "!$CX"
         elif mnemo in ("je", "jz"):
             taken, reason = val&(1<<flags["zero"]), "Z"
@@ -2676,7 +2726,7 @@ class PowerPC(Architecture):
         # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
         if not val:
             reg = self.flag_register
-            val = get_register(reg)
+            val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn):
@@ -2693,7 +2743,7 @@ class PowerPC(Architecture):
     def is_branch_taken(self, insn):
         mnemo = insn.mnemonic
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
-        val = get_register(self.flag_register)
+        val = gef.arch.register(self.flag_register)
         taken, reason = False, ""
         if mnemo == "beq": taken, reason = val&(1<<flags["equal[7]"]), "E"
         elif mnemo == "bne": taken, reason = val&(1<<flags["equal[7]"]) == 0, "!E"
@@ -2706,7 +2756,7 @@ class PowerPC(Architecture):
     def get_ra(self, insn, frame):
         ra = None
         if self.is_ret(insn):
-            ra = get_register("$lr")
+            ra = gef.arch.register("$lr")
         elif frame.older():
             ra = frame.older().pc()
         return ra
@@ -2775,7 +2825,7 @@ class SPARC(Architecture):
         # http://www.gaisler.com/doc/sparcv8.pdf
         reg = self.flag_register
         if not val:
-            val = get_register(reg)
+            val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn):
@@ -2796,7 +2846,7 @@ class SPARC(Architecture):
     def is_branch_taken(self, insn):
         mnemo = insn.mnemonic
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
-        val = get_register(self.flag_register)
+        val = gef.arch.register(self.flag_register)
         taken, reason = False, ""
 
         if mnemo == "be": taken, reason = val&(1<<flags["zero"]), "Z"
@@ -2820,7 +2870,7 @@ class SPARC(Architecture):
     def get_ra(self, insn, frame):
         ra = None
         if self.is_ret(insn):
-            ra = get_register("$o7")
+            ra = gef.arch.register("$o7")
         elif frame.older():
             ra = frame.older().pc()
         return ra
@@ -2930,27 +2980,27 @@ class MIPS(Architecture):
         taken, reason = False, ""
 
         if mnemo == "beq":
-            taken, reason = get_register(ops[0]) == get_register(ops[1]), "{0[0]} == {0[1]}".format(ops)
+            taken, reason = gef.arch.register(ops[0]) == gef.arch.register(ops[1]), "{0[0]} == {0[1]}".format(ops)
         elif mnemo == "bne":
-            taken, reason = get_register(ops[0]) != get_register(ops[1]), "{0[0]} != {0[1]}".format(ops)
+            taken, reason = gef.arch.register(ops[0]) != gef.arch.register(ops[1]), "{0[0]} != {0[1]}".format(ops)
         elif mnemo == "beqz":
-            taken, reason = get_register(ops[0]) == 0, "{0[0]} == 0".format(ops)
+            taken, reason = gef.arch.register(ops[0]) == 0, "{0[0]} == 0".format(ops)
         elif mnemo == "bnez":
-            taken, reason = get_register(ops[0]) != 0, "{0[0]} != 0".format(ops)
+            taken, reason = gef.arch.register(ops[0]) != 0, "{0[0]} != 0".format(ops)
         elif mnemo == "bgtz":
-            taken, reason = get_register(ops[0]) > 0, "{0[0]} > 0".format(ops)
+            taken, reason = gef.arch.register(ops[0]) > 0, "{0[0]} > 0".format(ops)
         elif mnemo == "bgez":
-            taken, reason = get_register(ops[0]) >= 0, "{0[0]} >= 0".format(ops)
+            taken, reason = gef.arch.register(ops[0]) >= 0, "{0[0]} >= 0".format(ops)
         elif mnemo == "bltz":
-            taken, reason = get_register(ops[0]) < 0, "{0[0]} < 0".format(ops)
+            taken, reason = gef.arch.register(ops[0]) < 0, "{0[0]} < 0".format(ops)
         elif mnemo == "blez":
-            taken, reason = get_register(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
+            taken, reason = gef.arch.register(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
         return taken, reason
 
     def get_ra(self, insn, frame):
         ra = None
         if self.is_ret(insn):
-            ra = get_register("$ra")
+            ra = gef.arch.register("$ra")
         elif frame.older():
             ra = frame.older().pc()
         return ra
@@ -3021,31 +3071,6 @@ def to_unsigned_long(v):
     """Cast a gdb.Value to unsigned long."""
     mask = (1 << 64) - 1
     return int(v.cast(gdb.Value(mask).type)) & mask
-
-
-def get_register(regname):
-    """Return a register's value."""
-    curframe = gdb.selected_frame()
-    key = curframe.pc() ^ int(curframe.read_register('sp')) # todo: check when/if gdb.Frame implements `level()`
-    return __get_register_for_selected_frame(regname, key)
-
-
-@lru_cache()
-def __get_register_for_selected_frame(regname, hash_key):
-    # 1st chance
-    try:
-        return parse_address(regname)
-    except gdb.error:
-        pass
-
-    # 2nd chance
-    try:
-        regname = regname.lstrip("$")
-        value = gdb.selected_frame().read_register(regname)
-        return int(value)
-    except (ValueError, gdb.error):
-        pass
-    return None
 
 
 def get_path_from_info_proc():
@@ -3957,6 +3982,10 @@ def get_filename():
 @deprecated("Use `gef.heap.main_arena`")
 def get_glibc_arena():
     return gef.heap.main_arena
+
+@deprecated("Use `gef.arch.register(regname)`")
+def get_register(regname):
+    return gef.arch.register(regname)
 
 #
 # GDB event hooking
@@ -6092,7 +6121,7 @@ class FlagsCommand(GenericCommand):
 
             for off in gef.arch.flags_table:
                 if gef.arch.flags_table[off] == name:
-                    old_flag = get_register(gef.arch.flag_register)
+                    old_flag = gef.arch.register(gef.arch.flag_register)
                     if action == "+":
                         new_flags = old_flag | (1 << off)
                     elif action == "-":
@@ -6354,7 +6383,7 @@ def reset():
             info("Duplicating registers")
 
         for r in gef.arch.all_registers:
-            gregval = get_register(r)
+            gregval = gef.arch.register(r)
             content += "    emu.reg_write({}, {:#x})\n".format(unicorn_registers[r], gregval)
 
         vmmap = get_process_maps()
@@ -7437,7 +7466,7 @@ class DetailRegistersCommand(GenericCommand):
             # Special (e.g. segment) registers go on their own line
             if regname in gef.arch.special_registers:
                 special_line += "{}: ".format(Color.colorify(regname, color))
-                special_line += "0x{:04x} ".format(get_register(regname))
+                special_line += "0x{:04x} ".format(gef.arch.register(regname))
                 continue
 
             line = "{}: ".format(Color.colorify(padreg, color))
@@ -8313,7 +8342,7 @@ class ContextCommand(GenericCommand):
             except (gdb.MemoryError, gdb.error):
                 # If this exception is triggered, it means that the current register
                 # is corrupted. Just use the register "raw" value (not eval-ed)
-                new_value = get_register(reg)
+                new_value = gef.arch.register(reg)
                 new_value_type_flag = False
 
             except Exception:
@@ -8459,7 +8488,7 @@ class ContextCommand(GenericCommand):
         if insn.operands[-1].startswith(self.size2type[gef.arch.ptrsize]+" PTR"):
             target = "*" + insn.operands[-1].split()[-1]
         elif "$"+insn.operands[0] in gef.arch.all_registers:
-            target = "*{:#x}".format(get_register("$"+insn.operands[0]))
+            target = "*{:#x}".format(gef.arch.register("$"+insn.operands[0]))
         else:
             # is there a symbol?
             ops = " ".join(insn.operands)
@@ -8842,7 +8871,7 @@ class ContextCommand(GenericCommand):
     def update_registers(cls, event):
         for reg in gef.arch.all_registers:
             try:
-                cls.old_registers[reg] = get_register(reg)
+                cls.old_registers[reg] = gef.arch.register(reg)
             except Exception:
                 cls.old_registers[reg] = 0
         return
@@ -9328,7 +9357,7 @@ class DereferenceCommand(GenericCommand):
         register_hints = []
 
         for regname in gef.arch.all_registers:
-            regvalue = get_register(regname)
+            regvalue = gef.arch.register(regname)
             if current_address == regvalue:
                 register_hints.append(regname)
 
@@ -10135,13 +10164,15 @@ class FormatStringSearchCommand(GenericCommand):
             "vsnprintf": 2,
         }
 
-        enable_redirect_output("/dev/null")
+        nb_installed_breaks = 0
 
-        for func_name, num_arg in dangerous_functions.items():
-            FormatStringBreakpoint(func_name, num_arg)
+        with RedirectOutputContext("/dev/null") as ctx:
+            for function_name in dangerous_functions:
+                argument_number = dangerous_functions[function_name]
+                FormatStringBreakpoint(function_name, argument_number)
+                nb_installed_breaks += 1
 
-        disable_redirect_output()
-        ok("Enabled {:d} FormatStringBreakpoint".format(len(dangerous_functions)))
+        ok("Enabled {} FormatString breakpoint{}".format(nb_installed_breaks, "s" if nb_installed_breaks > 1 else ""))
         return
 
 
@@ -10289,7 +10320,7 @@ class SyscallArgsCommand(GenericCommand):
         arch = gef.arch.__class__.__name__
         syscall_table = self.get_syscall_table(arch)
 
-        reg_value = get_register(gef.arch.syscall_register)
+        reg_value = gef.arch.register(gef.arch.syscall_register)
         if reg_value not in syscall_table:
             warn("There is no system call for {:#x}".format(reg_value))
             return
@@ -10297,7 +10328,7 @@ class SyscallArgsCommand(GenericCommand):
 
         values = []
         for param in syscall_entry.params:
-            values.append(get_register(param.reg))
+            values.append(gef.arch.register(param.reg))
 
         parameters = [s.param for s in syscall_entry.params]
         registers = [s.reg for s in syscall_entry.params]
