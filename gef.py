@@ -675,6 +675,9 @@ class Section:
         # when in a `gef-remote` session, realpath returns the path to the binary on the local disk, not remote
         return self.path if __gef_remote__ is None else "/tmp/gef/{:d}/{:s}".format(__gef_remote__, self.path)
 
+    def __str__(self):
+        return f"Section({self.page_start:#x}, {self.page_end:#x}, {str(self.permission)})"
+
 
 Zone = collections.namedtuple("Zone", ["name", "zone_start", "zone_end", "filename"])
 
@@ -2091,7 +2094,6 @@ class Architecture(metaclass=abc.ABCMeta):
         key = curframe.pc() ^ int(curframe.read_register('sp')) # todo: check when/if gdb.Frame implements `level()`
         return self.__get_register_for_selected_frame(regname, key)
 
-    @lru_cache()
     def __get_register_for_selected_frame(self, regname, hash_key):
         # 1st chance
         try:
@@ -4122,7 +4124,7 @@ class FormatStringBreakpoint(gdb.Breakpoint):
         if not addr.valid:
             return False
 
-        if addr.section.permission.value & Permission.WRITE:
+        if addr.section.is_writable():
             content = gef.memory.read_cstring(addr.value)
             name = addr.info.name if addr.info else addr.section.path
             msg.append(Color.colorify("Format string helper", "yellow bold"))
@@ -10166,7 +10168,8 @@ class FormatStringSearchCommand(GenericCommand):
 
         nb_installed_breaks = 0
 
-        with RedirectOutputContext("/dev/null") as ctx:
+        # with RedirectOutputContext("/dev/null") as ctx:
+        if True:
             for function_name in dangerous_functions:
                 argument_number = dangerous_functions[function_name]
                 FormatStringBreakpoint(function_name, argument_number)
@@ -11416,7 +11419,9 @@ class GefSessionManager:
     @property
     def file(self):
         """Return a Path object of the target process."""
-        return pathlib.Path(gdb.current_progspace().filename)
+        if not self.__file:
+            self.__file = pathlib.Path(gdb.current_progspace().filename)
+        return self.__file
 
     @property
     def pagesize(self):
@@ -11439,6 +11444,7 @@ class GefSessionManager:
         self.__canary = (canary, canary_location)
         return self.__canary
 
+@lru_cache()
 class Gef:
     """The GEF root class"""
     def __init__(self):
@@ -11454,9 +11460,7 @@ class Gef:
         return
 
     def setup(self):
-        """
-        Setup initialize the runtime setup, which may require for the `gef` to be not None
-        """
+        """Setup initialize the runtime setup, which may require for the `gef` to be not None."""
         self.initialize_managers()
         self.gdb = GefCommand()
         self.gdb.setup()
