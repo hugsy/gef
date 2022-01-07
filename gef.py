@@ -153,6 +153,14 @@ except ImportError:
     sys.exit(0)
 
 gef                                    = None
+
+#
+# Those globals are required since the commands/functions registration happens *before* the
+# initialisation of GEF
+#
+__registered_commands__                = []
+__registered_functions__               = []
+
 __watches__                            = {}
 __gef_convenience_vars_index__         = 0
 __context_messages__                   = []
@@ -204,6 +212,7 @@ def highlight_text(text):
     within the specified string.
     """
     global gef
+
     if not gef.ui.highlight_table:
         return text
 
@@ -4397,9 +4406,8 @@ def register_external_context_pane(pane_name, display_pane_function, pane_title_
 
 def register_external_command(obj):
     """Registering function for new GEF (sub-)command to GDB."""
-    global gef
     cls = obj.__class__
-    gef.session.commands.append(cls)
+    __registered_commands__.append(cls)
     gef.gdb.load(initial=False)
     gef.gdb.doc.add_command_to_doc((cls._cmdline_, cls, None))
     gef.gdb.doc.refresh()
@@ -4408,23 +4416,20 @@ def register_external_command(obj):
 
 def register_command(cls):
     """Decorator for registering new GEF (sub-)command to GDB."""
-    global gef
-    gef.session.commands.append(cls)
+    __registered_commands__.append(cls)
     return cls
 
 
 def register_priority_command(cls):
     """Decorator for registering new command with priority, meaning that it must
     loaded before the other generic commands."""
-    global gef
-    gef.session.commands.insert(0, cls)
+    __registered_commands__.insert(0, cls)
     return cls
 
 
 def register_function(cls):
     """Decorator for registering a new convenience function to GDB."""
-    global gef
-    gef.session.functions.append(cls)
+    __registered_functions__.append(cls)
     return cls
 
 
@@ -10550,7 +10555,7 @@ class GefCommand(gdb.Command):
     def load(self, initial=False):
         """Load all the commands and functions defined by GEF into GDB."""
         nb_missing = 0
-        self.commands = [(x._cmdline_, x) for x in gef.session.commands]
+        self.commands = [(x._cmdline_, x) for x in __registered_commands__]
 
         # load all of the functions
         for function_class_name in gef.session.functions:
@@ -11378,8 +11383,6 @@ class GefSessionManager(GefManager):
         self.reset_caches()
         self.remote = None
         self.qemu_mode = False
-        self.commands = []
-        self.functions = []
         self.aliases = []
         return
 
@@ -11480,13 +11483,13 @@ class Gef:
         self.binary = None
         self.arch = GenericArchitecture() # see PR #516, will be reset by `new_objfile_handler`
         self.config = GefSettingsManager()
+        self.ui = GefUiManager()
         return
 
     def reinitialize_managers(self):
         self.memory = GefMemoryManager()
         self.heap = GefHeapManager()
         self.session = GefSessionManager()
-        self.ui = GefUiManager()
         return
 
     def setup(self):
