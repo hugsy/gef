@@ -10558,7 +10558,7 @@ class GefCommand(gdb.Command):
         self.commands = [(x._cmdline_, x) for x in __registered_commands__]
 
         # load all of the functions
-        for function_class_name in gef.session.functions:
+        for function_class_name in __registered_functions__:
             self.loaded_functions.append(function_class_name())
 
         def is_loaded(x):
@@ -11471,7 +11471,7 @@ class GefSessionManager(GefManager):
 class GefUiManager(GefManager):
     """Class managing UI settings."""
     def __init__(self):
-        self.output_fd = None
+        self.redirect_fd = None
         self.context_hidden = False
         self.stream_buffer = None
         self.highlight_table = {}
