@@ -137,8 +137,6 @@ except ImportError:
     sys.exit(0)
 
 gef                                    = None
-__functions__                          = []
-__aliases__                            = []
 __watches__                            = {}
 __gef_convenience_vars_index__         = 0
 __context_messages__                   = []
@@ -164,10 +162,7 @@ LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME      = "main_arena"
 
 libc_args_definitions = {}
 
-highlight_table = {}
 ANSI_SPLIT_RE = r"(\033\[[\d;]*m)"
-
-# idea: lru_cache wrapper that register back callback items for cache clearing
 
 def reset_all_caches():
     """Free all caches. If an object is cached, it will have a callable attribute `cache_clear`
@@ -200,26 +195,27 @@ def reset():
 
 def highlight_text(text):
     """
-    Highlight text using highlight_table { match -> color } settings.
+    Highlight text using gef.ui.highlight_table { match -> color } settings.
 
     If RegEx is enabled it will create a match group around all items in the
-    highlight_table and wrap the specified color in the highlight_table
+    gef.ui.highlight_table and wrap the specified color in the gef.ui.highlight_table
     around those matches.
 
     If RegEx is disabled, split by ANSI codes and 'colorify' each match found
     within the specified string.
     """
-    if not highlight_table:
+    global gef
+    if not gef.ui.highlight_table:
         return text
 
     if gef.config["highlight.regex"]:
-        for match, color in highlight_table.items():
+        for match, color in gef.ui.highlight_table.items():
             text = re.sub("(" + match + ")", Color.colorify("\\1", color), text)
         return text
 
     ansiSplit = re.split(ANSI_SPLIT_RE, text)
 
-    for match, color in highlight_table.items():
+    for match, color in gef.ui.highlight_table.items():
         for index, val in enumerate(ansiSplit):
             found = val.find(match)
             if found > -1:
@@ -4428,8 +4424,8 @@ def register_priority_command(cls):
 
 def register_function(cls):
     """Decorator for registering a new convenience function to GDB."""
-    global __functions__
-    __functions__.append(cls)
+    global gef
+    gef.session.functions.append(cls)
     return cls
 
 
@@ -9999,11 +9995,11 @@ class HighlightListCommand(GenericCommand):
     _syntax_ = _cmdline_
 
     def print_highlight_table(self):
-        if not highlight_table:
+        if not gef.ui.highlight_table:
             return err("no matches found")
 
-        left_pad = max(map(len, highlight_table.keys()))
-        for match, color in sorted(highlight_table.items()):
+        left_pad = max(map(len, gef.ui.highlight_table.keys()))
+        for match, color in sorted(gef.ui.highlight_table.items()):
             print("{} {} {}".format(Color.colorify(match.ljust(left_pad), color), VERTICAL_LINE, Color.colorify(color, color)))
         return
 
@@ -10019,7 +10015,7 @@ class HighlightClearCommand(GenericCommand):
     _syntax_ = _cmdline_
 
     def do_invoke(self, argv):
-        return highlight_table.clear()
+        return gef.ui.highlight_table.clear()
 
 
 @register_command
@@ -10035,7 +10031,7 @@ class HighlightAddCommand(GenericCommand):
             return self.usage()
 
         match, color = argv
-        highlight_table[match] = color
+        gef.ui.highlight_table[match] = color
         return
 
 
@@ -10057,7 +10053,7 @@ class HighlightRemoveCommand(GenericCommand):
         if not argv:
             return self.usage()
 
-        highlight_table.pop(argv[0], None)
+        gef.ui.highlight_table.pop(argv[0], None)
         return
 
 
@@ -10558,7 +10554,7 @@ class GefCommand(gdb.Command):
         self.commands = [(x._cmdline_, x) for x in gef.session.commands]
 
         # load all of the functions
-        for function_class_name in __functions__:
+        for function_class_name in gef.session.functions:
             self.loaded_functions.append(function_class_name())
 
         def is_loaded(x):
@@ -10795,7 +10791,7 @@ class GefSaveCommand(gdb.Command):
 
         # save the aliases
         cfg.add_section("aliases")
-        for alias in __aliases__:
+        for alias in gef.session.aliases:
             cfg.set("aliases", alias._alias, alias._command)
 
         with open(GEF_RC, "w") as fd:
@@ -10935,7 +10931,7 @@ class GefAlias(gdb.Command):
         if not p:
             return
 
-        if any(x for x in __aliases__ if x._alias == alias):
+        if any(x for x in gef.session.aliases if x._alias == alias):
             return
 
         self._command = command
@@ -10951,7 +10947,7 @@ class GefAlias(gdb.Command):
                 self.complete = _instance.complete
 
         super().__init__(alias, command_class, completer_class=completer_class)
-        __aliases__.append(self)
+        gef.session.aliases.append(self)
         return
 
     def invoke(self, args, from_tty):
@@ -11012,13 +11008,13 @@ class AliasesRmCommand(AliasesCommand):
         return
 
     def do_invoke(self, argv):
-        global __aliases__
+        global gef
         if len(argv) != 1:
             self.usage()
             return
         try:
-            alias_to_remove = next(filter(lambda x: x._alias == argv[0], __aliases__))
-            __aliases__.remove(alias_to_remove)
+            alias_to_remove = next(filter(lambda x: x._alias == argv[0], gef.session.aliases))
+            gef.session.aliases.remove(alias_to_remove)
         except (ValueError, StopIteration):
             err("{0} not found in aliases.".format(argv[0]))
             return
@@ -11038,7 +11034,7 @@ class AliasesListCommand(AliasesCommand):
 
     def do_invoke(self, argv):
         ok("Aliases defined:")
-        for a in __aliases__:
+        for a in gef.session.aliases:
             gef_print("{:30s} {} {}".format(a._alias, RIGHT_ARROW, a._command))
         return
 
@@ -11384,6 +11380,8 @@ class GefSessionManager(GefManager):
         self.remote = None
         self.qemu_mode = False
         self.commands = []
+        self.functions = []
+        self.aliases = []
         return
 
     def reset_caches(self):
@@ -11474,6 +11472,7 @@ class GefUiManager(GefManager):
         self.output_fd = None
         self.context_hidden = False
         self.stream_buffer = None
+        self.highlight_table = {}
         return
 
 class Gef:
