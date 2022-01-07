@@ -150,7 +150,6 @@ __heap_uaf_watchpoints__               = []
 __pie_breakpoints__                    = {}
 __pie_counter__                        = 1
 __gef_int_stream_buffer__              = None
-__gef_redirect_output_fd__             = None
 
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
@@ -248,7 +247,7 @@ def bufferize(f):
 
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        global __gef_int_stream_buffer__, __gef_redirect_output_fd__
+        global __gef_int_stream_buffer__, gef
 
         if __gef_int_stream_buffer__:
             return f(*args, **kwargs)
@@ -259,26 +258,26 @@ def bufferize(f):
         finally:
             redirect = gef.config["context.redirect"]
             if redirect.startswith("/dev/pts/"):
-                if not __gef_redirect_output_fd__:
+                if not gef.ui.redirect_fd:
                     # if the FD has never been open, open it
                     fd = open(redirect, "wt")
-                    __gef_redirect_output_fd__ = fd
-                elif redirect != __gef_redirect_output_fd__.name:
+                    gef.ui.redirect_fd = fd
+                elif redirect != gef.ui.redirect_fd.name:
                     # if the user has changed the redirect setting during runtime, update the state
-                    __gef_redirect_output_fd__.close()
+                    gef.ui.redirect_fd.close()
                     fd = open(redirect, "wt")
-                    __gef_redirect_output_fd__ = fd
+                    gef.ui.redirect_fd = fd
                 else:
                     # otherwise, keep using it
-                    fd = __gef_redirect_output_fd__
+                    fd = gef.ui.redirect_fd
             else:
                 fd = sys.stdout
-                __gef_redirect_output_fd__ = None
+                gef.ui.redirect_fd = None
 
-            if __gef_redirect_output_fd__ and fd.closed:
+            if gef.ui.redirect_fd and fd.closed:
                 # if the tty was closed, revert back to stdout
                 fd = sys.stdout
-                __gef_redirect_output_fd__ = None
+                gef.ui.redirect_fd = None
                 gef.config["context.redirect"] = ""
 
             fd.write(__gef_int_stream_buffer__.getvalue())
@@ -3703,7 +3702,7 @@ def get_memory_alignment(in_bits=False):
 
 def clear_screen(tty=""):
     """Clear the screen."""
-    global __gef_redirect_output_fd__
+    global gef
     if not tty:
         gdb.execute("shell clear -x")
         return
@@ -3714,7 +3713,7 @@ def clear_screen(tty=""):
         with open(tty, "wt") as f:
             f.write("\x1b[H\x1b[J")
     except PermissionError:
-        __gef_redirect_output_fd__ = None
+        gef.ui.redirect_fd = None
         gef.config["context.redirect"] = ""
     return
 
@@ -11479,6 +11478,12 @@ class GefSessionManager(GefManager):
         self.__canary = (canary, canary_location)
         return self.__canary
 
+class GefUiManager(GefManager):
+    """Class managing UI settings."""
+    def __init__(self):
+        self.output_fd = None
+        return
+
 class Gef:
     """The GEF root class"""
     def __init__(self):
@@ -11491,6 +11496,7 @@ class Gef:
         self.memory = GefMemoryManager()
         self.heap = GefHeapManager()
         self.session = GefSessionManager()
+        self.ui = GefUiManager()
         return
 
     def setup(self):
@@ -11504,7 +11510,7 @@ class Gef:
         return
 
     def reset_caches(self):
-        for mgr in (self.memory, self.heap, self.session):
+        for mgr in (self.memory, self.heap, self.session, self.ui):
             mgr.reset_caches()
         return
 
