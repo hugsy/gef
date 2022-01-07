@@ -149,7 +149,6 @@ __heap_freed_list__                    = []
 __heap_uaf_watchpoints__               = []
 __pie_breakpoints__                    = {}
 __pie_counter__                        = 1
-__gef_int_stream_buffer__              = None
 
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
@@ -237,8 +236,8 @@ def highlight_text(text):
 def gef_print(x="", *args, **kwargs):
     """Wrapper around print(), using string buffering feature."""
     x = highlight_text(x)
-    if __gef_int_stream_buffer__ and not is_debug():
-        return __gef_int_stream_buffer__.write(x + kwargs.get("end", "\n"))
+    if gef.ui.stream_buffer and not is_debug():
+        return gef.ui.stream_buffer.write(x + kwargs.get("end", "\n"))
     return print(x, *args, **kwargs)
 
 
@@ -247,12 +246,12 @@ def bufferize(f):
 
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        global __gef_int_stream_buffer__, gef
+        global gef
 
-        if __gef_int_stream_buffer__:
+        if gef.ui.stream_buffer:
             return f(*args, **kwargs)
 
-        __gef_int_stream_buffer__ = StringIO()
+        gef.ui.stream_buffer = StringIO()
         try:
             rv = f(*args, **kwargs)
         finally:
@@ -280,9 +279,9 @@ def bufferize(f):
                 gef.ui.redirect_fd = None
                 gef.config["context.redirect"] = ""
 
-            fd.write(__gef_int_stream_buffer__.getvalue())
+            fd.write(gef.ui.stream_buffer.getvalue())
             fd.flush()
-            __gef_int_stream_buffer__ = None
+            gef.ui.stream_buffer = None
         return rv
 
     return wrapper
@@ -1705,12 +1704,12 @@ def is_debug() -> bool:
 
 def hide_context() -> bool:
     """ Helper function to hide the context pane """
-    gef.session.context_hidden = True
+    gef.ui.context_hidden = True
     return True
 
 def unhide_context() -> bool:
     """ Helper function to unhide the context pane """
-    gef.session.context_hidden = False
+    gef.ui.context_hidden = False
     return True
 
 class RedirectOutputContext():
@@ -8166,7 +8165,7 @@ class ContextCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if not self["enable"] or gef.session.context_hidden:
+        if not self["enable"] or gef.ui.context_hidden:
             return
 
         if not all(_ in self.layout_mapping for _ in argv):
@@ -11391,7 +11390,6 @@ class GefSessionManager(GefManager):
     """Class managing the runtime properties of GEF. """
     def __init__(self):
         self.reset_caches()
-        self.context_hidden = False
         self.remote = None
         self.qemu_mode = False
         return
@@ -11482,6 +11480,8 @@ class GefUiManager(GefManager):
     """Class managing UI settings."""
     def __init__(self):
         self.output_fd = None
+        self.context_hidden = False
+        self.stream_buffer = None
         return
 
 class Gef:
