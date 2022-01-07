@@ -137,7 +137,6 @@ except ImportError:
     sys.exit(0)
 
 gef                                    = None
-__commands__                           = []
 __functions__                          = []
 __aliases__                            = []
 __watches__                            = {}
@@ -4403,9 +4402,9 @@ def register_external_context_pane(pane_name, display_pane_function, pane_title_
 
 def register_external_command(obj):
     """Registering function for new GEF (sub-)command to GDB."""
-    global __commands__, gef
+    global gef
     cls = obj.__class__
-    __commands__.append(cls)
+    gef.session.commands.append(cls)
     gef.gdb.load(initial=False)
     gef.gdb.doc.add_command_to_doc((cls._cmdline_, cls, None))
     gef.gdb.doc.refresh()
@@ -4414,16 +4413,16 @@ def register_external_command(obj):
 
 def register_command(cls):
     """Decorator for registering new GEF (sub-)command to GDB."""
-    global __commands__
-    __commands__.append(cls)
+    global gef
+    gef.session.commands.append(cls)
     return cls
 
 
 def register_priority_command(cls):
     """Decorator for registering new command with priority, meaning that it must
     loaded before the other generic commands."""
-    global __commands__
-    __commands__.insert(0, cls)
+    global gef
+    gef.session.commands.insert(0, cls)
     return cls
 
 
@@ -10556,7 +10555,7 @@ class GefCommand(gdb.Command):
     def load(self, initial=False):
         """Load all the commands and functions defined by GEF into GDB."""
         nb_missing = 0
-        self.commands = [(x._cmdline_, x) for x in __commands__]
+        self.commands = [(x._cmdline_, x) for x in gef.session.commands]
 
         # load all of the functions
         for function_class_name in __functions__:
@@ -11384,6 +11383,7 @@ class GefSessionManager(GefManager):
         self.reset_caches()
         self.remote = None
         self.qemu_mode = False
+        self.commands = []
         return
 
     def reset_caches(self):
