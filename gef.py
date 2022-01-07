@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-#
-#
 #######################################################################################
 # GEF - Multi-Architecture GDB Enhanced Features for Exploiters & Reverse-Engineers
 #
@@ -395,7 +392,7 @@ def only_if_gdb_version_higher_than(required_gdb_version):
                 f(*args, **kwargs)
             else:
                 reason = "GDB >= {} for this command".format(required_gdb_version)
-                raise EnvironmentError(reason)
+                raise OSError(reason)
         return inner_f
     return wrapper
 
@@ -411,7 +408,7 @@ def only_if_current_arch_in(valid_architectures):
                 f(*args, **kwargs)
             else:
                 reason = "This command cannot work for the '{}' architecture".format(gef.arch.arch)
-                raise EnvironmentError(reason)
+                raise OSError(reason)
         return inner_f
     return wrapper
 
@@ -2152,7 +2149,7 @@ class Architecture(metaclass=abc.ABCMeta):
             elif "big endian" in output:
                 self.__endianness = Endianness.BIG_ENDIAN
             else:
-                raise EnvironmentError(f"No valid endianess found in '{output}'")
+                raise OSError(f"No valid endianess found in '{output}'")
         return self.__endianness
 
     def get_ith_parameter(self, i, in_func=True):
@@ -3290,7 +3287,7 @@ def xor(data, key):
     """Return `data` xor-ed with `key`."""
     key = key.lstrip("0x")
     key = binascii.unhexlify(key)
-    return bytearray([x ^ y for x, y in zip(data, itertools.cycle(key))])
+    return bytearray(x ^ y for x, y in zip(data, itertools.cycle(key)))
 
 
 def is_hex(pattern):
@@ -3690,7 +3687,7 @@ def get_memory_alignment(in_bits=False):
     except:
         pass
 
-    raise EnvironmentError("GEF is running under an unsupported mode")
+    raise OSError("GEF is running under an unsupported mode")
 
 
 def clear_screen(tty=""):
@@ -3801,13 +3798,11 @@ def de_bruijn(alphabet, n):
                     yield alphabet[a[j]]
         else:
             a[t] = a[t - p]
-            for c in db(t + 1, p):
-                yield c
+            yield from db(t + 1, p)
 
             for j in range(a[t - p] + 1, k):
                 a[t] = j
-                for c in db(t + 1, t):
-                    yield c
+                yield from db(t + 1, t)
 
     return db(1, 1)
 
@@ -5612,7 +5607,7 @@ class IdaInteractCommand(GenericCommand):
             s.settimeout(1)
             s.connect((host, port))
             s.close()
-        except socket.error:
+        except OSError:
             return False
         return True
 
@@ -5705,7 +5700,7 @@ class IdaInteractCommand(GenericCommand):
                 jump = getattr(self.sock, "jump")
                 jump(hex(gef.arch.pc-main_base_address),)
 
-        except socket.error:
+        except OSError:
             self.disconnect()
         return
 
@@ -9920,7 +9915,7 @@ class GotCommand(GenericCommand):
 
         try:
             readelf = gef.session.constants["readelf"]
-        except IOError:
+        except OSError:
             err("Missing `readelf`")
             return
 
