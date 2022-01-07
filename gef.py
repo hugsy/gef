@@ -149,9 +149,6 @@ __heap_freed_list__                    = []
 __heap_uaf_watchpoints__               = []
 __pie_breakpoints__                    = {}
 __pie_counter__                        = 1
-__gef_remote__                         = None
-__gef_qemu_mode__                      = False
-# __gef_current_arena__                  = "main_arena"
 __gef_int_stream_buffer__              = None
 __gef_redirect_output_fd__             = None
 
@@ -675,7 +672,7 @@ class Section:
     @property
     def realpath(self):
         # when in a `gef-remote` session, realpath returns the path to the binary on the local disk, not remote
-        return self.path if __gef_remote__ is None else "/tmp/gef/{:d}/{:s}".format(__gef_remote__, self.path)
+        return self.path if gef.session.remote is None else "/tmp/gef/{:d}/{:s}".format(gef.session.remote, self.path)
 
     def __str__(self):
         return f"Section({self.page_start:#x}, {self.page_end:#x}, {str(self.permission)})"
@@ -3132,8 +3129,8 @@ def get_filepath():
             fname = filename[len(".gnu_debugdata for target:") :]
             return download_file(fname, use_cache=True, local_name=fname)
 
-        elif __gef_remote__ is not None:
-            return "/tmp/gef/{:d}/{:s}".format(__gef_remote__, get_path_from_info_proc())
+        elif gef.session.remote is not None:
+            return "/tmp/gef/{:d}/{:s}".format(gef.session.remote, get_path_from_info_proc())
         return filename
     else:
         if filename is not None:
@@ -3325,13 +3322,11 @@ def new_objfile_handler(event):
 
 def exit_handler(event):
     """GDB event handler for exit cases."""
-    global __gef_remote__, __gef_qemu_mode__
-
     reset_all_caches()
-    __gef_qemu_mode__ = False
-    if __gef_remote__ and gef.config["gef-remote.clean_on_exit"] is True:
-        shutil.rmtree("/tmp/gef/{:d}".format(__gef_remote__))
-        __gef_remote__ = None
+    gef.session.qemu_mode = False
+    if gef.session.remote and gef.config["gef-remote.clean_on_exit"] is True:
+        shutil.rmtree("/tmp/gef/{:d}".format(gef.session.remote))
+        gef.session.remote = None
     return
 
 
@@ -3783,7 +3778,7 @@ def is_in_x86_kernel(address):
 @lru_cache()
 def is_remote_debug():
     """"Return True is the current debugging session is running through GDB remote session."""
-    return __gef_remote__ is not None or "remote" in gdb.execute("maintenance print target-stack", to_string=True)
+    return gef.session.remote is not None or "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
 
 def de_bruijn(alphabet, n):
@@ -6411,9 +6406,7 @@ class RemoteCommand(GenericCommand):
          "--pid": 0,
          "--qemu-mode": True})
     def do_invoke(self, argv, *args, **kwargs):
-        global __gef_remote__
-
-        if __gef_remote__ is not None:
+        if gef.session.remote is not None:
             err("You already are in remote session. Close it first before opening a new one...")
             return
 
@@ -6483,7 +6476,7 @@ class RemoteCommand(GenericCommand):
 
         # refresh the architecture setting
         set_arch()
-        __gef_remote__ = pid
+        gef.session.remote = pid
         return
 
     def new_objfile_handler(self, event):
@@ -6564,7 +6557,7 @@ class RemoteCommand(GenericCommand):
         return
 
     def prepare_qemu_stub(self, target):
-        global gef, __gef_qemu_mode__
+        global gef
 
         reset_all_caches()
         arch = get_arch()
@@ -6600,7 +6593,7 @@ class RemoteCommand(GenericCommand):
         unhide_context()
 
         if gef.session.pid == 1 and "ENABLE=1" in gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False):
-            __gef_qemu_mode__ = True
+            gef.session.qemu_mode = True
             reset_all_caches()
             info("Note: By using Qemu mode, GEF will display the memory mapping of the Qemu process where the emulated binary resides")
             gef.memory.maps
@@ -7999,7 +7992,7 @@ class EntryPointBreakCommand(GenericCommand):
             warn("The file '{}' is not executable.".format(fpath))
             return
 
-        if is_alive() and not __gef_qemu_mode__:
+        if is_alive() and not gef.session.qemu_mode:
             warn("gdb is already running")
             return
 
@@ -11215,7 +11208,7 @@ class GefMemoryManager(GefManager):
         def open_file(path, use_cache=False):
             """Attempt to open the given file, if remote debugging is active, download
             it first to the mirror in /tmp/."""
-            if is_remote_debug() and not __gef_qemu_mode__:
+            if is_remote_debug() and not gef.session.qemu_mode:
                 lpath = download_file(path, use_cache)
                 if not lpath:
                     raise IOError("cannot open remote path {:s}".format(path))
@@ -11383,6 +11376,9 @@ class GefSessionManager(GefManager):
     """Class managing the runtime properties of GEF. """
     def __init__(self):
         self.reset_caches()
+        self.context_hidden = False
+        self.remote = None
+        self.qemu_mode = False
         return
 
     def reset_caches(self):
@@ -11393,7 +11389,6 @@ class GefSessionManager(GefManager):
         self.__pid = None
         self.__file = None
         self.__canary = None
-        self.context_hidden = False
         self.constants = {} # a dict for runtime constants (like 3rd party file paths)
         # add a few extra runtime constants to avoid lookups
         # those must be found, otherwise IOError will be raised
@@ -11434,7 +11429,7 @@ class GefSessionManager(GefManager):
     def pid(self):
         """Return the PID of the target process."""
         if not self.__pid:
-            pid = gdb.selected_inferior().pid if not __gef_qemu_mode__ else gdb.selected_thread().ptid[1]
+            pid = gdb.selected_inferior().pid if not gef.session.qemu_mode else gdb.selected_thread().ptid[1]
             if not pid:
                 raise RuntimeError("cannot retrieve PID for target process")
             self.__pid = pid
@@ -11467,7 +11462,6 @@ class GefSessionManager(GefManager):
         canary &= ~0xFF
         self.__canary = (canary, canary_location)
         return self.__canary
-
 
 class Gef:
     """The GEF root class"""
