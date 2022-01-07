@@ -175,16 +175,10 @@ _Side Note_: `GEF` fully relies on the GDB API and other Linux-specific sources 
 
 `gef` was created and maintained by myself, [`@_hugsy_`](https://twitter.com/_hugsy_), but kept fresh thanks to [all the contributors](https://github.com/hugsy/gef/graphs/contributors).
 
+[ ![contributors-img](https://contrib.rocks/image?repo=hugsy/gef) ](https://github.com/hugsy/gef/graphs/contributors)
+
+
 Or if you just like the tool, feel free to drop a simple *"thanks"* on Discord, Twitter or other, it is **always** very appreciated.
-
-
-### Sponsors ###
-
-We would like to thank in particular the following people who've been sponsoring GEF allowing us to dedicate more time and resources to the project:
-
- - [@nkaretnikov](https://github.com/nkaretnikov)
- - [@R3zk0n](https://github.com/r3zk0n)
- - [@merces](https://github.com/merces)
 
 
 ### Extra Credits ###
