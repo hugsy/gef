@@ -59,6 +59,7 @@ import codecs
 import collections
 import ctypes
 import enum
+from fcntl import F_DUPFD_CLOEXEC
 import functools
 import hashlib
 import importlib
@@ -176,14 +177,18 @@ libc_args_definitions = {}
 highlight_table = {}
 ANSI_SPLIT_RE = r"(\033\[[\d;]*m)"
 
+# idea: lru_cache wrapper that register back callback items for cache clearing
 
 def reset_all_caches():
     """Free all caches. If an object is cached, it will have a callable attribute `cache_clear`
     which will be invoked to purge the function cache."""
+
     for mod in dir(sys.modules["__main__"]):
         obj = getattr(sys.modules["__main__"], mod)
         if hasattr(obj, "cache_clear"):
             obj.cache_clear()
+
+    gef.reset_caches()
     return
 
 
@@ -1496,7 +1501,7 @@ pattern_libc_ver = re.compile(rb"glibc (\d+)\.(\d+)")
 
 @lru_cache()
 def get_libc_version():
-    sections = get_process_maps()
+    sections = gef.memory.maps
     for section in sections:
         match = re.search(r"libc6?[-_](\d+)\.(\d+)\.so", section.path)
         if match:
@@ -1685,22 +1690,19 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, show_symbol=True
     return "\n".join(result)
 
 
-def is_debug():
+def is_debug() -> bool:
     """Check if debug mode is enabled."""
-    return gef.config["gef.debug"] is True
+    return gef.config["gef.debug"] == True
 
-context_hidden = False
+def hide_context() -> bool:
+    """ Helper function to hide the context pane """
+    gef.session.context_hidden = True
+    return True
 
-
-def hide_context():
-    global context_hidden
-    context_hidden = True
-
-
-def unhide_context():
-    global context_hidden
-    context_hidden = False
-
+def unhide_context() -> bool:
+    """ Helper function to unhide the context pane """
+    gef.session.context_hidden = False
+    return True
 
 class RedirectOutputContext():
     def __init__(self, to="/dev/null"):
@@ -3177,97 +3179,12 @@ def download_file(target, use_cache=False, local_name=None):
     return local_name
 
 
-def open_file(path, use_cache=False):
-    """Attempt to open the given file, if remote debugging is active, download
-    it first to the mirror in /tmp/."""
-    if is_remote_debug() and not __gef_qemu_mode__:
-        lpath = download_file(path, use_cache)
-        if not lpath:
-            raise IOError("cannot open remote path {:s}".format(path))
-        path = lpath
-
-    return open(path, "r")
-
-
 def get_function_length(sym):
     """Attempt to get the length of the raw bytes of a function."""
     dis = gdb.execute("disassemble {:s}".format(sym), to_string=True).splitlines()
     start_addr = int(dis[1].split()[0], 16)
     end_addr = int(dis[-2].split()[0], 16)
     return end_addr - start_addr
-
-
-def get_process_maps_linux(proc_map_file):
-    """Parse the Linux process `/proc/pid/maps` file."""
-    with open_file(proc_map_file, use_cache=False) as f:
-        file = f.readlines()
-    for line in file:
-        line = line.strip()
-        addr, perm, off, _, rest = line.split(" ", 4)
-        rest = rest.split(" ", 1)
-        if len(rest) == 1:
-            inode = rest[0]
-            pathname = ""
-        else:
-            inode = rest[0]
-            pathname = rest[1].lstrip()
-
-        addr_start, addr_end = [int(x, 16) for x in addr.split("-")]
-        off = int(off, 16)
-        perm = Permission.from_process_maps(perm)
-
-        yield Section(page_start=addr_start,
-                      page_end=addr_end,
-                      offset=off,
-                      permission=perm,
-                      inode=inode,
-                      path=pathname)
-    return
-
-
-@lru_cache()
-def get_process_maps():
-    """Return the mapped memory sections"""
-
-    try:
-        pid = gef.session.pid
-        fpath = "/proc/{:d}/maps".format(pid)
-        return list(get_process_maps_linux(fpath))
-    except FileNotFoundError as e:
-        warn("Failed to read /proc/<PID>/maps, using GDB sections info: {}".format(e))
-        return list(get_info_sections())
-
-
-@lru_cache()
-def get_info_sections():
-    """Retrieve the debuggee sections."""
-    stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
-
-    for line in stream:
-        if not line:
-            break
-
-        try:
-            parts = [x for x in line.split()]
-            addr_start, addr_end = [int(x, 16) for x in parts[1].split("->")]
-            off = int(parts[3][:-1], 16)
-            path = parts[4]
-            inode = ""
-            perm = Permission.from_info_sections(parts[5:])
-
-            yield Section(page_start=addr_start,
-                          page_end=addr_end,
-                          offset=off,
-                          permission=perm,
-                          inode=inode,
-                          path=path)
-
-        except IndexError:
-            continue
-        except ValueError:
-            continue
-
-    return
 
 
 @lru_cache()
@@ -3315,7 +3232,7 @@ def process_lookup_address(address):
         if is_in_x86_kernel(address):
             return None
 
-    for sect in get_process_maps():
+    for sect in gef.memory.maps:
         if sect.page_start <= address < sect.page_end:
             return sect
 
@@ -3330,7 +3247,7 @@ def process_lookup_path(name, perm=Permission.ALL):
         err("Process is not running")
         return None
 
-    for sect in get_process_maps():
+    for sect in gef.memory.maps:
         if name in sect.path and sect.permission.value & perm:
             return sect
 
@@ -3403,7 +3320,7 @@ def hook_stop_handler(event):
 def new_objfile_handler(event):
     """GDB event handler for new object file cases."""
     reset_all_caches()
-    gef.initialize_managers()
+    gef.reinitialize_managers()
     set_arch()
     load_libc_args()
     return
@@ -3424,11 +3341,13 @@ def exit_handler(event):
 def memchanged_handler(event):
     """GDB event handler for mem changes cases."""
     reset_all_caches()
+    return
 
 
 def regchanged_handler(event):
     """GDB event handler for reg changes cases."""
     reset_all_caches()
+    return
 
 
 def load_libc_args():
@@ -3461,10 +3380,10 @@ def load_libc_args():
         with open(_libc_args_file) as _libc_args:
             libc_args_definitions[_arch_mode] = json.load(_libc_args)
     except FileNotFoundError:
-        del(libc_args_definitions[_arch_mode])
+        del libc_args_definitions[_arch_mode]
         warn("Config context.libc_args is set but definition cannot be loaded: file {} not found".format(_libc_args_file))
     except json.decoder.JSONDecodeError as e:
-        del(libc_args_definitions[_arch_mode])
+        del libc_args_definitions[_arch_mode]
         warn("Config context.libc_args is set but definition cannot be loaded from file {}: {}".format(_libc_args_file, e))
     return
 
@@ -3946,9 +3865,6 @@ def gef_get_pie_breakpoint(num):
     global __pie_breakpoints__
     return __pie_breakpoints__[num]
 
-
-
-
 #
 # Deprecated API
 #
@@ -3988,6 +3904,11 @@ def get_glibc_arena():
 @deprecated("Use `gef.arch.register(regname)`")
 def get_register(regname):
     return gef.arch.register(regname)
+
+@deprecated("Use `gef.memory.maps`")
+def get_process_maps():
+    return gef.memory.maps
+
 
 #
 # GDB event hooking
@@ -4790,7 +4711,7 @@ class PieBreakpointCommand(GenericCommand):
 
         # When the process is already on, set real breakpoints immediately
         if is_alive():
-            vmmap = get_process_maps()
+            vmmap = gef.memory.maps
             base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
             for bp_ins in __pie_breakpoints__.values():
                 bp_ins.instantiate(base_address)
@@ -4890,7 +4811,7 @@ class PieRunCommand(GenericCommand):
         gdb.execute("run {}".format(" ".join(argv)))
         unhide_context()
         gdb.execute("set stop-on-solib-events 0")
-        vmmap = get_process_maps()
+        vmmap = gef.memory.maps
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
         info("base address {}".format(hex(base_address)))
 
@@ -4921,7 +4842,7 @@ class PieAttachCommand(GenericCommand):
             return
         # after attach, we are stopped so that we can
         # get base address to modify our breakpoint
-        vmmap = get_process_maps()
+        vmmap = gef.memory.maps
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
 
         for bp_ins in __pie_breakpoints__.values():
@@ -4945,7 +4866,7 @@ class PieRemoteCommand(GenericCommand):
             return
         # after remote attach, we are stopped so that we can
         # get base address to modify our breakpoint
-        vmmap = get_process_maps()
+        vmmap = gef.memory.maps
         base_address = [x.page_start for x in vmmap if x.realpath == get_filepath()][0]
 
         for bp_ins in __pie_breakpoints__.values():
@@ -5622,7 +5543,7 @@ class ChangeFdCommand(GenericCommand):
 
             # fill in memory with sockaddr_in struct contents
             # we will do this in the stack, since connect() wants a pointer to a struct
-            vmmap = get_process_maps()
+            vmmap = gef.memory.maps
             stack_addr = [entry.page_start for entry in vmmap if entry.path == "[stack]"][0]
             original_contents = gef.memory.read(stack_addr, 8)
 
@@ -5760,7 +5681,7 @@ class IdaInteractCommand(GenericCommand):
         if not is_alive():
             main_base_address = main_end_address = 0
         else:
-            vmmap = get_process_maps()
+            vmmap = gef.memory.maps
             main_base_address = min([x.page_start for x in vmmap if x.realpath == get_filepath()])
             main_end_address = max([x.page_end for x in vmmap if x.realpath == get_filepath()])
 
@@ -5791,7 +5712,7 @@ class IdaInteractCommand(GenericCommand):
     def synchronize(self):
         """Submit all active breakpoint addresses to IDA/BN."""
         pc = gef.arch.pc
-        vmmap = get_process_maps()
+        vmmap = gef.memory.maps
         base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
         end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
         if not (base_address <= pc < end_address):
@@ -5935,7 +5856,7 @@ class ScanSectionCommand(GenericCommand):
             start, end = parse_string_range(needle)
             needle_sections.append((start, end))
 
-        for sect in get_process_maps():
+        for sect in gef.memory.maps:
             if haystack in sect.path:
                 haystack_sections.append((sect.page_start, sect.page_end, os.path.basename(sect.path)))
             if needle in sect.path:
@@ -6033,7 +5954,7 @@ class SearchPatternCommand(GenericCommand):
 
     def search_pattern(self, pattern, section_name):
         """Search a pattern within the whole userland memory."""
-        for section in get_process_maps():
+        for section in gef.memory.maps:
             if not section.permission & Permission.READ: continue
             if section.path == "[vvar]": continue
             if not section_name in section.path: continue
@@ -6388,7 +6309,7 @@ def reset():
             gregval = gef.arch.register(r)
             content += "    emu.reg_write({}, {:#x})\n".format(unicorn_registers[r], gregval)
 
-        vmmap = get_process_maps()
+        vmmap = gef.memory.maps
         if not vmmap:
             warn("An error occurred when reading memory map.")
             return
@@ -6541,7 +6462,7 @@ class RemoteCommand(GenericCommand):
             return
 
         if self.download_all_libs:
-            vmmap = get_process_maps()
+            vmmap = gef.memory.maps
             success = 0
             for sect in vmmap:
                 if sect.path.startswith("/"):
@@ -6687,7 +6608,7 @@ class RemoteCommand(GenericCommand):
             __gef_qemu_mode__ = True
             reset_all_caches()
             info("Note: By using Qemu mode, GEF will display the memory mapping of the Qemu process where the emulated binary resides")
-            get_process_maps()
+            gef.memory.maps
             gdb.execute("context")
         return
 
@@ -7641,7 +7562,7 @@ class RopperCommand(GenericCommand):
         ropper = sys.modules["ropper"]
         if "--file" not in argv:
             path = get_filepath()
-            sect = next(filter(lambda x: x.path == path, get_process_maps()))
+            sect = next(filter(lambda x: x.path == path, gef.memory.maps))
             argv.append("--file")
             argv.append(path)
             argv.append("-I")
@@ -8135,7 +8056,7 @@ class EntryPointBreakCommand(GenericCommand):
         gdb.execute("run {}".format(" ".join(argv)))
         unhide_context()
         gdb.execute("set stop-on-solib-events 0")
-        vmmap = get_process_maps()
+        vmmap = gef.memory.maps
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
         return self.set_init_tbreak(base_address + addr)
 
@@ -8242,7 +8163,7 @@ class ContextCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        if not self["enable"] or context_hidden:
+        if not self["enable"] or gef.session.context_hidden:
             return
 
         if not all(_ in self.layout_mapping for _ in argv):
@@ -9474,7 +9395,7 @@ class VMMapCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        vmmap = get_process_maps()
+        vmmap = gef.memory.maps
         if not vmmap:
             err("No address mapping information found")
             return
@@ -10010,7 +9931,7 @@ class GotCommand(GenericCommand):
 
         # getting vmmap to understand the boundaries of the main binary
         # we will use this info to understand if a function has been resolved or not.
-        vmmap = get_process_maps()
+        vmmap = gef.memory.maps
         base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
         end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
 
@@ -11209,14 +11130,35 @@ def __gef_prompt__(current_prompt):
     if is_alive(): return GEF_PROMPT_ON
     return GEF_PROMPT_OFF
 
-class GefMemoryManager:
+
+class GefManager(metaclass=abc.ABCMeta):
+    def reset_caches(self):
+        """Reset the LRU-cached attributes"""
+        for attr in dir(self):
+            try:
+                obj = getattr(self, attr)
+                if not hasattr(obj, "cache_clear"):
+                    continue
+                obj.cache_clear()
+            except: # we're reseeting the cache here, we don't care if (or which) exception triggers
+                continue
+        return
+
+class GefMemoryManager(GefManager):
     """Class that manages memory access for gef."""
+    def __init__(self):
+        self.reset_caches()
+        return
+
+    def reset_caches(self):
+        super().reset_caches()
+        self.__maps = None
+        return
 
     def write(self, address, buffer, length=0x10):
         """Write `buffer` at address `address`."""
         return gdb.selected_inferior().write_memory(address, buffer, length)
 
-    @lru_cache()
     def read(self, addr, length=0x10):
         """Return a `length` long byte array with the copy of the process memory at `addr`."""
         return gdb.selected_inferior().read_memory(addr, length).tobytes()
@@ -11251,7 +11193,6 @@ class GefMemoryManager:
         ustr = res.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
         if max_length and len(res) > max_length:
             return "{}[...]".format(ustr[:max_length])
-
         return ustr
 
     def read_ascii_string(self, address):
@@ -11261,9 +11202,91 @@ class GefMemoryManager:
             return cstr
         return None
 
-class GefHeapManager:
+    @property
+    def maps(self):
+        if not self.__maps:
+            self.__maps = self.__parse_maps()
+        return self.__maps
+
+    def __parse_maps(self):
+        """Return the mapped memory sections"""
+        try:
+            return list(self.__parse_procfs_maps())
+        except FileNotFoundError as e:
+            return list(self.__parse_gdb_info_sections())
+
+    def __parse_procfs_maps(self):
+        """Get the memory mapping from procfs."""
+        def open_file(path, use_cache=False):
+            """Attempt to open the given file, if remote debugging is active, download
+            it first to the mirror in /tmp/."""
+            if is_remote_debug() and not __gef_qemu_mode__:
+                lpath = download_file(path, use_cache)
+                if not lpath:
+                    raise IOError("cannot open remote path {:s}".format(path))
+                path = lpath
+            return open(path, "r")
+
+        __process_map_file = f"/proc/{gef.session.pid}/maps"
+        with open_file(__process_map_file, use_cache=False) as fd:
+            for line in fd:
+                line = line.strip()
+                addr, perm, off, _, rest = line.split(" ", 4)
+                rest = rest.split(" ", 1)
+                if len(rest) == 1:
+                    inode = rest[0]
+                    pathname = ""
+                else:
+                    inode = rest[0]
+                    pathname = rest[1].lstrip()
+
+                addr_start, addr_end = [int(x, 16) for x in addr.split("-")]
+                off = int(off, 16)
+                perm = Permission.from_process_maps(perm)
+                yield Section(page_start=addr_start,
+                            page_end=addr_end,
+                            offset=off,
+                            permission=perm,
+                            inode=inode,
+                            path=pathname)
+        return
+
+    def __parse_gdb_info_sections(self):
+        """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
+        stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
+
+        for line in stream:
+            if not line:
+                break
+
+            try:
+                parts = [x for x in line.split()]
+                addr_start, addr_end = [int(x, 16) for x in parts[1].split("->")]
+                off = int(parts[3][:-1], 16)
+                path = parts[4]
+                perm = Permission.from_info_sections(parts[5:])
+                yield Section(
+                    page_start=addr_start,
+                    page_end=addr_end,
+                    offset=off,
+                    permission=perm,
+                    inode="",
+                    path=path
+                )
+
+            except IndexError:
+                continue
+            except ValueError:
+                continue
+        return
+
+class GefHeapManager(GefManager):
     """Class managing session heap."""
     def __init__(self):
+        self.reset_caches()
+        return
+
+    def reset_caches(self):
         self.__libc_main_arena = None
         self.__libc_selected_arena = None
         self.__heap_base = None
@@ -11361,15 +11384,21 @@ class GefSettingsManager(dict):
     def raw_entry(self, name):
         return dict.__getitem__(self, name)
 
-class GefSessionManager:
+class GefSessionManager(GefManager):
     """Class managing the runtime properties of GEF. """
     def __init__(self):
+        self.reset_caches()
+        return
+
+    def reset_caches(self):
+        super().reset_caches()
         self.__auxiliary_vector = None
         self.__pagesize = None
         self.__os = None
         self.__pid = None
         self.__file = None
         self.__canary = None
+        self.context_hidden = False
         self.constants = {} # a dict for runtime constants (like 3rd party file paths)
         # add a few extra runtime constants to avoid lookups
         # those must be found, otherwise IOError will be raised
@@ -11444,7 +11473,7 @@ class GefSessionManager:
         self.__canary = (canary, canary_location)
         return self.__canary
 
-@lru_cache()
+
 class Gef:
     """The GEF root class"""
     def __init__(self):
@@ -11453,7 +11482,7 @@ class Gef:
         self.config = GefSettingsManager()
         return
 
-    def initialize_managers(self):
+    def reinitialize_managers(self):
         self.memory = GefMemoryManager()
         self.heap = GefHeapManager()
         self.session = GefSessionManager()
@@ -11461,12 +11490,17 @@ class Gef:
 
     def setup(self):
         """Setup initialize the runtime setup, which may require for the `gef` to be not None."""
-        self.initialize_managers()
+        self.reinitialize_managers()
         self.gdb = GefCommand()
         self.gdb.setup()
         tempdir = self.config["gef.tempdir"]
         gef_makedirs(tempdir)
         gdb.execute("save gdb-index {}".format(tempdir))
+        return
+
+    def reset_caches(self):
+        for mgr in (self.memory, self.heap, self.session):
+            mgr.reset_caches()
         return
 
 
