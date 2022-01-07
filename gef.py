@@ -141,7 +141,6 @@ __commands__                           = []
 __functions__                          = []
 __aliases__                            = []
 __watches__                            = {}
-__infos_files__                        = []
 __gef_convenience_vars_index__         = 0
 __context_messages__                   = []
 __heap_allocated_list__                = []
@@ -3199,13 +3198,9 @@ def get_function_length(sym):
 def get_info_files():
     """Retrieve all the files loaded by debuggee."""
     lines = gdb.execute("info files", to_string=True).splitlines()
-
-    if len(lines) < len(__infos_files__):
-        return __infos_files__
-
+    infos = []
     for line in lines:
         line = line.strip()
-
         if not line:
             break
 
@@ -3222,11 +3217,8 @@ def get_info_files():
         else:
             filename = get_filepath()
 
-        info = Zone(section_name, addr_start, addr_end, filename)
-
-        __infos_files__.append(info)
-
-    return __infos_files__
+        infos.append(Zone(section_name, addr_start, addr_end, filename))
+    return infos
 
 
 def process_lookup_address(address):
