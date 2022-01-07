@@ -85,17 +85,33 @@ from functools import lru_cache
 from io import StringIO
 from urllib.request import urlopen
 
-LEFT_ARROW = " \u2190 "
-RIGHT_ARROW = " \u2192 "
-DOWN_ARROW = "\u21b3"
-HORIZONTAL_LINE = "\u2500"
-VERTICAL_LINE = "\u2502"
-CROSS = "\u2718 "
-TICK = "\u2713 "
-BP_GLYPH = "\u25cf"
-GEF_PROMPT = "gef\u27a4  "
-GEF_PROMPT_ON = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
-GEF_PROMPT_OFF = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
+
+GDB_MIN_VERSION                        = (8, 0)
+GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
+PYTHON_MIN_VERSION                     = (3, 6)
+PYTHON_VERSION                         = sys.version_info[0:2]
+
+DEFAULT_PAGE_ALIGN_SHIFT               = 12
+DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
+
+GEF_RC                                 = os.getenv("GEF_RC") or os.path.join(os.getenv("HOME"), ".gef.rc")
+GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
+GEF_MAX_STRING_LENGTH                  = 50
+
+LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME      = "main_arena"
+ANSI_SPLIT_RE                          = r"(\033\[[\d;]*m)"
+
+LEFT_ARROW                             = " \u2190 "
+RIGHT_ARROW                            = " \u2192 "
+DOWN_ARROW                             = "\u21b3"
+HORIZONTAL_LINE                        = "\u2500"
+VERTICAL_LINE                          = "\u2502"
+CROSS                                  = "\u2718 "
+TICK                                   = "\u2713 "
+BP_GLYPH                               = "\u25cf"
+GEF_PROMPT                             = "gef\u27a4  "
+GEF_PROMPT_ON                          = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
+GEF_PROMPT_OFF                         = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
 
 
 def http_get(url):
@@ -146,23 +162,6 @@ __heap_uaf_watchpoints__               = []
 __pie_breakpoints__                    = {}
 __pie_counter__                        = 1
 
-DEFAULT_PAGE_ALIGN_SHIFT               = 12
-DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
-GEF_RC                                 = os.getenv("GEF_RC") or os.path.join(os.getenv("HOME"), ".gef.rc")
-GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
-GEF_MAX_STRING_LENGTH                  = 50
-
-GDB_MIN_VERSION                        = (8, 0)
-GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
-
-PYTHON_MIN_VERSION                     = (3, 6)
-PYTHON_VERSION                         = sys.version_info[0:2]
-
-LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME      = "main_arena"
-
-libc_args_definitions = {}
-
-ANSI_SPLIT_RE = r"(\033\[[\d;]*m)"
 
 def reset_all_caches():
     """Free all caches. If an object is cached, it will have a callable attribute `cache_clear`
@@ -3344,6 +3343,8 @@ def regchanged_handler(event):
 
 
 def load_libc_args():
+    global gef
+
     # load libc function arguments' definitions
     if not gef.config["context.libc_args"]:
         return
@@ -3362,21 +3363,19 @@ def load_libc_args():
     _arch_mode = "{}_{}".format(gef.arch.arch.lower(), gef.arch.mode)
     _libc_args_file = "{}/{}.json".format(path, _arch_mode)
 
-    global libc_args_definitions
-
     # current arch and mode already loaded
-    if _arch_mode in libc_args_definitions:
+    if _arch_mode in gef.session.highlight_table:
         return
 
-    libc_args_definitions[_arch_mode] = {}
+    gef.session.highlight_table[_arch_mode] = {}
     try:
         with open(_libc_args_file) as _libc_args:
-            libc_args_definitions[_arch_mode] = json.load(_libc_args)
+            gef.session.highlight_table[_arch_mode] = json.load(_libc_args)
     except FileNotFoundError:
-        del libc_args_definitions[_arch_mode]
+        del gef.session.highlight_table[_arch_mode]
         warn("Config context.libc_args is set but definition cannot be loaded: file {} not found".format(_libc_args_file))
     except json.decoder.JSONDecodeError as e:
-        del libc_args_definitions[_arch_mode]
+        del gef.session.highlight_table[_arch_mode]
         warn("Config context.libc_args is set but definition cannot be loaded from file {}: {}".format(_libc_args_file, e))
     return
 
@@ -8496,7 +8495,7 @@ class ContextCommand(GenericCommand):
         if function_name.endswith("@plt"):
             _function_name = function_name.split("@")[0]
             try:
-                nb_argument = len(libc_args_definitions[_arch_mode][_function_name])
+                nb_argument = len(gef.session.highlight_table[_arch_mode][_function_name])
             except KeyError:
                 pass
 
@@ -8514,7 +8513,7 @@ class ContextCommand(GenericCommand):
             _values = RIGHT_ARROW.join(dereference_from(_values))
             try:
                 args.append("{} = {} (def: {})".format(Color.colorify(_key, arg_key_color), _values,
-                                                       libc_args_definitions[_arch_mode][_function_name][_key]))
+                                                       gef.session.highlight_table[_arch_mode][_function_name][_key]))
             except KeyError:
                 args.append("{} = {}".format(Color.colorify(_key, arg_key_color), _values))
 
