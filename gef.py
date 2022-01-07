@@ -185,6 +185,22 @@ def reset_all_caches():
     gef.reset_caches()
     return
 
+def reset():
+    global gef
+
+    arch = None
+    if gef:
+        reset_all_caches()
+        arch = gef.arch
+        del gef
+
+    gef = None
+    gef = Gef()
+    gef.setup()
+
+    if arch:
+        gef.arch = arch
+    return
 
 def highlight_text(text):
     """
@@ -11548,8 +11564,7 @@ if __name__ == "__main__":
                 pass
 
         # load GEF
-        gef = Gef()
-        gef.setup()
+        reset()
 
         # gdb events configuration
         gef_on_continue_hook(continue_handler)
