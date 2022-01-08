@@ -157,7 +157,6 @@ __registered_commands__                = []
 __registered_functions__               = []
 
 __gef_convenience_vars_index__         = 0
-__context_messages__                   = []
 __heap_allocated_list__                = []
 __heap_freed_list__                    = []
 __heap_uaf_watchpoints__               = []
@@ -1544,14 +1543,12 @@ def ok(msg):    return gef_print("{} {}".format(Color.colorify("[+]", "bold gree
 def info(msg):  return gef_print("{} {}".format(Color.colorify("[+]", "bold blue"), msg))
 
 
-# TODO: move to gef.session.context
 def push_context_message(level, message):
     """Push the message to be displayed the next time the context is invoked."""
-    global __context_messages__
     if level not in ("error", "warn", "ok", "info"):
         err("Invalid level '{}', discarding message".format(level))
         return
-    __context_messages__.append((level, message))
+    gef.ui.context_messages.append((level, message))
     return
 
 
@@ -8748,11 +8745,11 @@ class ContextCommand(GenericCommand):
         return
 
     def context_additional_information(self):
-        if not __context_messages__:
+        if not gef.ui.context_messages:
             return
 
         self.context_title("extra")
-        for level, text in __context_messages__:
+        for level, text in gef.ui.context_messages:
             if level == "error": err(text)
             elif level == "warn": warn(text)
             elif level == "success": ok(text)
@@ -8785,8 +8782,7 @@ class ContextCommand(GenericCommand):
         return
 
     def empty_extra_messages(self, event):
-        global __context_messages__
-        __context_messages__ = []
+        gef.ui.context_messages.clear()
         return
 
 
@@ -11462,6 +11458,7 @@ class GefUiManager(GefManager):
         self.stream_buffer = None
         self.highlight_table = {}
         self.watches = {}
+        self.context_messages = []
         return
 
 class Gef:
