@@ -56,7 +56,6 @@ import codecs
 import collections
 import ctypes
 import enum
-from fcntl import F_DUPFD_CLOEXEC
 import functools
 import hashlib
 import importlib
@@ -1716,7 +1715,7 @@ class RedirectOutputContext():
         gdb.execute("set logging on")
         return
 
-    def __exit__(self):
+    def __exit__(self, *exc):
         """Disable the output redirection, if any."""
         gdb.execute("set logging off")
         gdb.execute("set logging redirect off")
@@ -3361,18 +3360,18 @@ def load_libc_args():
     _libc_args_file = "{}/{}.json".format(path, _arch_mode)
 
     # current arch and mode already loaded
-    if _arch_mode in gef.session.highlight_table:
+    if _arch_mode in gef.ui.highlight_table:
         return
 
-    gef.session.highlight_table[_arch_mode] = {}
+    gef.ui.highlight_table[_arch_mode] = {}
     try:
         with open(_libc_args_file) as _libc_args:
-            gef.session.highlight_table[_arch_mode] = json.load(_libc_args)
+            gef.ui.highlight_table[_arch_mode] = json.load(_libc_args)
     except FileNotFoundError:
-        del gef.session.highlight_table[_arch_mode]
+        del gef.ui.highlight_table[_arch_mode]
         warn("Config context.libc_args is set but definition cannot be loaded: file {} not found".format(_libc_args_file))
     except json.decoder.JSONDecodeError as e:
-        del gef.session.highlight_table[_arch_mode]
+        del gef.ui.highlight_table[_arch_mode]
         warn("Config context.libc_args is set but definition cannot be loaded from file {}: {}".format(_libc_args_file, e))
     return
 
@@ -8488,7 +8487,7 @@ class ContextCommand(GenericCommand):
         if function_name.endswith("@plt"):
             _function_name = function_name.split("@")[0]
             try:
-                nb_argument = len(gef.session.highlight_table[_arch_mode][_function_name])
+                nb_argument = len(gef.ui.highlight_table[_arch_mode][_function_name])
             except KeyError:
                 pass
 
@@ -8506,7 +8505,7 @@ class ContextCommand(GenericCommand):
             _values = RIGHT_ARROW.join(dereference_from(_values))
             try:
                 args.append("{} = {} (def: {})".format(Color.colorify(_key, arg_key_color), _values,
-                                                       gef.session.highlight_table[_arch_mode][_function_name][_key]))
+                                                       gef.ui.highlight_table[_arch_mode][_function_name][_key]))
             except KeyError:
                 args.append("{} = {}".format(Color.colorify(_key, arg_key_color), _values))
 
@@ -11185,7 +11184,7 @@ class GefMemoryManager(GefManager):
         """Return the mapped memory sections"""
         try:
             return list(self.__parse_procfs_maps())
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             return list(self.__parse_gdb_info_sections())
 
     def __parse_procfs_maps(self):
