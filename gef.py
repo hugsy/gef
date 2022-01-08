@@ -415,8 +415,8 @@ def only_if_current_arch_in(valid_architectures: List) -> Callable:
 
 def only_if_events_supported(event_type) -> Callable:
     """Checks if GDB supports events without crashing."""
-    def wrap(f: Callable) -> Callable:
-        def wrapped_f(*args: Tuple, **kwargs: Dict) -> Callable:
+    def wrap(f: Callable) -> Any:
+        def wrapped_f(*args: Tuple, **kwargs: Dict) -> Any:
             if getattr(gdb, "events") and getattr(gdb.events, event_type):
                 return f(*args, **kwargs)
             warn("GDB events cannot be set")
@@ -1239,7 +1239,7 @@ class GlibcArena:
         # You cannot have 2 arenas at the same address, so this check should be enough
         return self.__addr == int(other)
 
-    def fastbin(self, i: int):
+    def fastbin(self, i: int):  # -> Optional[GlibcChunk]
         """Return head chunk in fastbinsY[i]."""
         addr = int(self.fastbinsY[i])
         if addr == 0:
@@ -1361,7 +1361,7 @@ class GlibcChunk:
             current_chunk = next_chunk
         return
 
-    def get_next_chunk(self, allow_unaligned: bool = False):
+    def get_next_chunk(self, allow_unaligned: bool = False):  # -> GlibcChunk
         addr = self.get_next_chunk_addr()
         return GlibcChunk(addr, allow_unaligned=allow_unaligned)
 
@@ -1498,7 +1498,7 @@ pattern_libc_ver = re.compile(rb"glibc (\d+)\.(\d+)")
 
 
 @lru_cache()
-def get_libc_version() -> Union[Tuple[int, int], Tuple[int, ...]]:
+def get_libc_version() -> Tuple[int, ...]:
     sections = gef.memory.maps
     for section in sections:
         match = re.search(r"libc6?[-_](\d+)\.(\d+)\.so", section.path)
@@ -1532,10 +1532,20 @@ def titlify(text: str, color: Optional[str] = None, msg_color: Optional[str] = N
     return "".join(msg)
 
 
-def err(msg: str) -> Optional[int]:   return gef_print("{} {}".format(Color.colorify("[!]", "bold red"), msg))
-def warn(msg: str) -> Optional[int]:  return gef_print("{} {}".format(Color.colorify("[*]", "bold yellow"), msg))
-def ok(msg: str) -> Optional[int]:    return gef_print("{} {}".format(Color.colorify("[+]", "bold green"), msg))
-def info(msg: str) -> Optional[int]:  return gef_print("{} {}".format(Color.colorify("[+]", "bold blue"), msg))
+def err(msg: str) -> Optional[int]:
+    return gef_print("{} {}".format(Color.colorify("[!]", "bold red"), msg))
+
+
+def warn(msg: str) -> Optional[int]:
+    return gef_print("{} {}".format(Color.colorify("[*]", "bold yellow"), msg))
+
+
+def ok(msg: str) -> Optional[int]:
+    return gef_print("{} {}".format(Color.colorify("[+]", "bold green"), msg))
+
+
+def info(msg: str) -> Optional[int]:
+    return gef_print("{} {}".format(Color.colorify("[+]", "bold blue"), msg))
 
 
 def push_context_message(level: str, message: str) -> None:
@@ -1745,6 +1755,7 @@ def gef_makedirs(path: str, mode: int = 0o755) -> str:
 
     os.makedirs(abspath, mode=mode, exist_ok=True)
     return abspath
+
 
 @lru_cache()
 def gdb_lookup_symbol(sym: str):  # -> Optional[Tuple[Optional[str], Optional[Tuple[gdb.Symtab_and_line, ...]]]]
