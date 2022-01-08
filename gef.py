@@ -154,6 +154,7 @@ GEF_PROMPT_OFF                         = "\001\033[1;31m\002{0:s}\001\033[0m\002
 gef                                    = None
 __registered_commands__                = []
 __registered_functions__               = []
+__registered_architectures__           = {}
 
 
 def reset_all_caches():
@@ -2049,6 +2050,13 @@ def get_zone_base_address(name):
 #
 # Architecture classes
 #
+def register_architecture(cls):
+    """Class decorator for declaring an architecture to GEF."""
+    global __registered_architectures__
+    for key in cls.aliases:
+        __registered_architectures__[key] = cls
+    return cls
+
 
 class Architecture(metaclass=abc.ABCMeta):
     """Generic metaclass for the architecture supported by GEF."""
@@ -2080,6 +2088,7 @@ class Architecture(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_ra(self, insn, frame):                 pass
 
+    aliases = []
     special_registers = []
 
     def __get_register(self, regname):
@@ -2176,9 +2185,11 @@ class GenericArchitecture(Architecture):
     def get_ra(self, insn, frame):                 return 0
 
 
+@register_architecture
 class RISCV(Architecture):
     arch = "RISCV"
     mode = "RISCV"
+    aliases = ("RISCV")
 
     all_registers = ["$zero", "$ra", "$sp", "$gp", "$tp", "$t0", "$t1",
                      "$t2", "$fp", "$s1", "$a0", "$a1", "$a2", "$a3",
@@ -2282,9 +2293,10 @@ class RISCV(Architecture):
         return ra
 
 
+@register_architecture
 class ARM(Architecture):
+    aliases = ("ARM", Elf.ARM)
     arch = "ARM"
-
     all_registers = ["$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6",
                      "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$sp",
                      "$lr", "$pc", "$cpsr",]
@@ -2427,7 +2439,9 @@ class ARM(Architecture):
         return "; ".join(insns)
 
 
+@register_architecture
 class AARCH64(ARM):
+    aliases = ("ARM64", "AARCH64", Elf.AARCH64)
     arch = "ARM64"
     mode = ""
 
@@ -2526,7 +2540,9 @@ class AARCH64(ARM):
         return taken, reason
 
 
+@register_architecture
 class X86(Architecture):
+    aliases = ("X86", Elf.X86_32)
     arch = "X86"
     mode = "32"
 
@@ -2660,7 +2676,9 @@ class X86(Architecture):
         return key, val
 
 
+@register_architecture
 class X86_64(X86):
+    aliases = ("X86_64", Elf.X86_64, "i386:x86-64")
     arch = "X86"
     mode = "64"
 
@@ -2701,7 +2719,9 @@ class X86_64(X86):
         return "; ".join(insns)
 
 
+@register_architecture
 class PowerPC(Architecture):
+    aliases = ("PowerPC", Elf.POWERPC, "PPC")
     arch = "PPC"
     mode = "PPC32"
 
@@ -2795,15 +2815,19 @@ class PowerPC(Architecture):
         return ";".join(insns)
 
 
+@register_architecture
 class PowerPC64(PowerPC):
+    aliases = ("PowerPC64", Elf.POWERPC64, "PPC64")
     arch = "PPC"
     mode = "PPC64"
 
 
+@register_architecture
 class SPARC(Architecture):
     """ Refs:
     - http://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
     """
+    aliases = ("SPARC", Elf.SPARC)
     arch = "SPARC"
     mode = ""
 
@@ -2903,12 +2927,13 @@ class SPARC(Architecture):
         return "; ".join(insns)
 
 
+@register_architecture
 class SPARC64(SPARC):
     """Refs:
     - http://math-atlas.sourceforge.net/devel/assembly/abi_sysV_sparc.pdf
     - https://cr.yp.to/2005-590/sparcv9.pdf
     """
-
+    aliases = ("SPARC64", Elf.SPARC64)
     arch = "SPARC"
     mode = "V9"
 
@@ -2949,7 +2974,9 @@ class SPARC64(SPARC):
         return "; ".join(insns)
 
 
+@register_architecture
 class MIPS(Architecture):
+    aliases = ("MIPS", Elf.MIPS)
     arch = "MIPS"
     mode = "MIPS32"
 
@@ -3031,7 +3058,9 @@ class MIPS(Architecture):
         return "; ".join(insns)
 
 
+@register_architecture
 class MIPS64(MIPS):
+    aliases = ("MIPS64")
     arch = "MIPS"
     mode = "MIPS64"
     ptrsize = 8
@@ -3625,19 +3654,7 @@ def set_arch(arch=None, default=None):
     Return the selected arch, or raise an OSError.
     """
     global gef
-    arches = {
-        "ARM": ARM, Elf.ARM: ARM,
-        "AARCH64": AARCH64, "ARM64": AARCH64, Elf.AARCH64: AARCH64,
-        "X86": X86, Elf.X86_32: X86,
-        "X86_64": X86_64, Elf.X86_64: X86_64, "i386:x86-64": X86_64,
-        "PowerPC": PowerPC, "PPC": PowerPC, Elf.POWERPC: PowerPC,
-        "PowerPC64": PowerPC64, "PPC64": PowerPC64, Elf.POWERPC64: PowerPC64,
-        "RISCV": RISCV, Elf.RISCV: RISCV,
-        "SPARC": SPARC, Elf.SPARC: SPARC,
-        "SPARC64": SPARC64, Elf.SPARC64: SPARC64,
-        "MIPS": MIPS, Elf.MIPS: MIPS,
-        "MIPS64": MIPS64,
-    }
+    arches = __registered_architectures__
 
     if arch:
         try:
