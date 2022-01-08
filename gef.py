@@ -153,11 +153,6 @@ except ImportError:
     sys.exit(0)
 
 gef                                    = None
-
-#
-# Those globals are required since the commands/functions registration happens *before* the
-# initialisation of GEF
-#
 __registered_commands__                = []
 __registered_functions__               = []
 
@@ -3323,7 +3318,6 @@ def hook_stop_handler(event):
 def new_objfile_handler(event):
     """GDB event handler for new object file cases."""
     reset_all_caches()
-    gef.reinitialize_managers()
     set_arch()
     load_libc_args()
     return
@@ -11384,6 +11378,11 @@ class GefSessionManager(GefManager):
         self.remote = None
         self.qemu_mode = False
         self.aliases = []
+        self.constants = {} # a dict for runtime constants (like 3rd party file paths)
+        # add a few extra runtime constants to avoid lookups
+        # those must be found, otherwise IOError will be raised
+        for constant in ("python3", "readelf", "file", "ps"):
+            self.constants[constant] = which(constant)
         return
 
     def reset_caches(self):
@@ -11394,11 +11393,6 @@ class GefSessionManager(GefManager):
         self.__pid = None
         self.__file = None
         self.__canary = None
-        self.constants = {} # a dict for runtime constants (like 3rd party file paths)
-        # add a few extra runtime constants to avoid lookups
-        # those must be found, otherwise IOError will be raised
-        for constant in ("python3", "readelf", "file", "ps"):
-            self.constants[constant] = which(constant)
         return
 
     @property
@@ -11512,10 +11506,12 @@ if __name__ == "__main__":
     if sys.version_info[0] == 2:
         err("GEF has dropped Python2 support for GDB when it reached EOL on 2020/01/01.")
         err("If you require GEF for GDB+Python2, use https://github.com/hugsy/gef-legacy.")
+        exit(1)
 
-    elif GDB_VERSION < GDB_MIN_VERSION or PYTHON_VERSION < PYTHON_MIN_VERSION:
+    if GDB_VERSION < GDB_MIN_VERSION or PYTHON_VERSION < PYTHON_MIN_VERSION:
         err("You're using an old version of GDB. GEF will not work correctly. "
             "Consider updating to GDB {} or higher (with Python {} or higher).".format(".".join(map(str, GDB_MIN_VERSION)), ".".join(map(str, PYTHON_MIN_VERSION))))
+        exit(1)
 
     else:
         try:
