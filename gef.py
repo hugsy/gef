@@ -235,7 +235,7 @@ def bufferize(f: Callable) -> Callable:
     """Store the content to be printed for a function in memory, and flush it on function exit."""
 
     @functools.wraps(f)
-    def wrapper(*args: Tuple, **kwargs: Dict) -> Callable:
+    def wrapper(*args: Tuple, **kwargs: Dict) -> Any:
         global gef
 
         if gef.ui.stream_buffer:
@@ -336,7 +336,7 @@ def only_if_gdb_running(f: Callable) -> Callable:
     """Decorator wrapper to check if GDB is running."""
 
     @functools.wraps(f)
-    def wrapper(*args: Tuple, **kwargs: Dict) -> Callable:
+    def wrapper(*args: Tuple, **kwargs: Dict) -> Any:
         if is_alive():
             return f(*args, **kwargs)
         else:
@@ -349,7 +349,7 @@ def only_if_gdb_target_local(f: Callable) -> Callable:
     """Decorator wrapper to check if GDB is running locally (target not remote)."""
 
     @functools.wraps(f)
-    def wrapper(*args: Tuple, **kwargs: Dict) -> Callable:
+    def wrapper(*args: Tuple, **kwargs: Dict) -> Any:
         if not is_remote_debug():
             return f(*args, **kwargs)
         else:
@@ -362,7 +362,7 @@ def deprecated(solution: str = "") -> Callable:
     """Decorator to add a warning when a command is obsolete and will be removed."""
     def decorator(f: Callable) -> Callable:
         @functools.wraps(f)
-        def wrapper(*args: Tuple, **kwargs: Dict) -> Callable:
+        def wrapper(*args: Tuple, **kwargs: Dict) -> Any:
             msg = f"'{f.__name__}' is deprecated and will be removed in a feature release. "
             if solution:
                 msg += solution
@@ -376,7 +376,7 @@ def experimental_feature(f: Callable) -> Callable:
     """Decorator to add a warning when a feature is experimental."""
 
     @functools.wraps(f)
-    def wrapper(*args: Tuple, **kwargs: Dict) -> Callable:
+    def wrapper(*args: Tuple, **kwargs: Dict) -> Any:
         warn("This feature is under development, expect bugs and unstability...")
         return f(*args, **kwargs)
 
@@ -415,7 +415,7 @@ def only_if_current_arch_in(valid_architectures: List) -> Callable:
 
 def only_if_events_supported(event_type) -> Callable:
     """Checks if GDB supports events without crashing."""
-    def wrap(f: Callable) -> Any:
+    def wrap(f: Callable) -> Callable:
         def wrapped_f(*args: Tuple, **kwargs: Dict) -> Any:
             if getattr(gdb, "events") and getattr(gdb.events, event_type):
                 return f(*args, **kwargs)
