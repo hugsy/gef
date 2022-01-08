@@ -2305,6 +2305,7 @@ class ARM(Architecture):
     function_parameters = ["$r0", "$r1", "$r2", "$r3"]
     syscall_register = "$r7"
     syscall_instructions = ["swi 0x0", "swi NR"]
+    endianness = Endianness.LITTLE_ENDIAN
 
     def is_thumb(self):
         """Determine if the machine is currently in THUMB mode."""
@@ -2554,6 +2555,7 @@ class X86(Architecture):
     syscall_register = "$eax"
     syscall_instructions = ["sysenter", "int 0x80"]
     ptrsize = 4
+    endianness = Endianness.LITTLE_ENDIAN
 
     def flag_register_to_human(self, val=None):
         reg = self.flag_register
