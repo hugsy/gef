@@ -2160,6 +2160,7 @@ class GenericArchitecture(Architecture):
     mode = ""
     all_registers = ()
     instruction_length = 0
+    ptrsize = 0
     return_register = ""
     function_parameters = ()
     syscall_register = ""
@@ -2546,6 +2547,10 @@ class X86(Architecture):
     syscall_register = "$eax"
     syscall_instructions = ["sysenter", "int 0x80"]
 
+    @property
+    def ptrsize(self):
+        return 4
+
     def flag_register_to_human(self, val=None):
         reg = self.flag_register
         if not val:
@@ -2663,6 +2668,10 @@ class X86_64(X86):
     syscall_instructions = ["syscall"]
     # We don't want to inherit x86's stack based param getter
     get_ith_parameter = Architecture.get_ith_parameter
+
+    @property
+    def ptrsize(self):
+        return 8
 
     @classmethod
     def mprotect_asm(cls, addr, size, perm):
@@ -11450,7 +11459,8 @@ class GefUiManager(GefManager):
         return
 
 class Gef:
-    """The GEF root class"""
+    """The GEF root class, which serves as a base classe for all the attributes for the debugging session (architecture,
+    memory, settings, etc.)."""
     def __init__(self):
         self.binary = None
         self.arch = GenericArchitecture() # see PR #516, will be reset by `new_objfile_handler`
@@ -11459,6 +11469,7 @@ class Gef:
         return
 
     def reinitialize_managers(self):
+        """Reinitialize the managers. Avoid calling this function directly, using `pi reset()` is preferred"""
         self.memory = GefMemoryManager()
         self.heap = GefHeapManager()
         self.session = GefSessionManager()
@@ -11475,7 +11486,9 @@ class Gef:
         return
 
     def reset_caches(self):
-        for mgr in (self.memory, self.heap, self.session, self.ui):
+        """Recursively clean the cache of all the managers. Avoid calling this function directly, using `reset-cache`
+        is preferred"""
+        for mgr in (self.memory, self.heap, self.session):
             mgr.reset_caches()
         return
 
