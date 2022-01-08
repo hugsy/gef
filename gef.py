@@ -11554,5 +11554,3 @@ if __name__ == "__main__":
             new_objfile_handler(None)
 
         GefTmuxSetup()
-
-gef: Gef
