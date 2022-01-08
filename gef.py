@@ -86,34 +86,6 @@ from io import StringIO
 from urllib.request import urlopen
 
 
-GDB_MIN_VERSION                        = (8, 0)
-GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
-PYTHON_MIN_VERSION                     = (3, 6)
-PYTHON_VERSION                         = sys.version_info[0:2]
-
-DEFAULT_PAGE_ALIGN_SHIFT               = 12
-DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
-
-GEF_RC                                 = os.getenv("GEF_RC") or os.path.join(os.getenv("HOME"), ".gef.rc")
-GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
-GEF_MAX_STRING_LENGTH                  = 50
-
-LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME      = "main_arena"
-ANSI_SPLIT_RE                          = r"(\033\[[\d;]*m)"
-
-LEFT_ARROW                             = " \u2190 "
-RIGHT_ARROW                            = " \u2192 "
-DOWN_ARROW                             = "\u21b3"
-HORIZONTAL_LINE                        = "\u2500"
-VERTICAL_LINE                          = "\u2502"
-CROSS                                  = "\u2718 "
-TICK                                   = "\u2713 "
-BP_GLYPH                               = "\u25cf"
-GEF_PROMPT                             = "gef\u27a4  "
-GEF_PROMPT_ON                          = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
-GEF_PROMPT_OFF                         = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
-
-
 def http_get(url):
     """Basic HTTP wrapper for GET request. Return the body of the page if HTTP code is OK,
     otherwise return None."""
@@ -152,11 +124,38 @@ except ImportError:
     print("[-] gef cannot run as standalone")
     sys.exit(0)
 
+GDB_MIN_VERSION                        = (8, 0)
+GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
+PYTHON_MIN_VERSION                     = (3, 6)
+PYTHON_VERSION                         = sys.version_info[0:2]
+
+DEFAULT_PAGE_ALIGN_SHIFT               = 12
+DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
+
+GEF_RC                                 = os.getenv("GEF_RC") or os.path.join(os.getenv("HOME"), ".gef.rc")
+GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
+GEF_MAX_STRING_LENGTH                  = 50
+
+LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME      = "main_arena"
+ANSI_SPLIT_RE                          = r"(\033\[[\d;]*m)"
+
+LEFT_ARROW                             = " \u2190 "
+RIGHT_ARROW                            = " \u2192 "
+DOWN_ARROW                             = "\u21b3"
+HORIZONTAL_LINE                        = "\u2500"
+VERTICAL_LINE                          = "\u2502"
+CROSS                                  = "\u2718 "
+TICK                                   = "\u2713 "
+BP_GLYPH                               = "\u25cf"
+GEF_PROMPT                             = "gef\u27a4  "
+GEF_PROMPT_ON                          = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
+GEF_PROMPT_OFF                         = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
+
+
 gef                                    = None
 __registered_commands__                = []
 __registered_functions__               = []
 
-__gef_convenience_vars_index__         = 0
 __heap_allocated_list__                = []
 __heap_freed_list__                    = []
 __heap_uaf_watchpoints__               = []
@@ -1198,7 +1197,6 @@ class GlibcArena:
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671"""
 
     def __init__(self, addr):
-        # self.__name = name or __gef_current_arena__
         try:
             arena = gdb.parse_and_eval(addr)
             malloc_state_t = cached_lookup_type("struct malloc_state")
@@ -1693,7 +1691,7 @@ def hexdump(source, length=0x10, separator=".", show_raw=False, show_symbol=True
 
 def is_debug() -> bool:
     """Check if debug mode is enabled."""
-    return gef.config["gef.debug"] == True
+    return gef.config["gef.debug"] is True
 
 def hide_context() -> bool:
     """ Helper function to hide the context pane """
@@ -3837,9 +3835,9 @@ def dereference(addr):
 
 def gef_convenience(value):
     """Defines a new convenience value."""
-    global __gef_convenience_vars_index__
-    var_name = "$_gef{:d}".format(__gef_convenience_vars_index__)
-    __gef_convenience_vars_index__ += 1
+    global gef
+    var_name = "$_gef{:d}".format(gef.session.convenience_vars_index)
+    gef.session.convenience_vars_index += 1
     gdb.execute("""set {:s} = "{:s}" """.format(var_name, value))
     return var_name
 
@@ -11365,6 +11363,7 @@ class GefSessionManager(GefManager):
         self.reset_caches()
         self.remote = None
         self.qemu_mode = False
+        self.convenience_vars_index = 0
         self.aliases = []
         self.constants = {} # a dict for runtime constants (like 3rd party file paths)
         # add a few extra runtime constants to avoid lookups
