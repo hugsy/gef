@@ -3029,6 +3029,12 @@ class MIPS(Architecture):
         return "; ".join(insns)
 
 
+class MIPS64(MIPS):
+    arch = "MIPS"
+    mode = "MIPS64"
+    ptrsize = 8
+
+
 def copy_to_clipboard(data):
     """Helper function to submit data to the clipboard"""
     if sys.platform == "linux":
@@ -3628,6 +3634,7 @@ def set_arch(arch=None, default=None):
         "SPARC": SPARC, Elf.SPARC: SPARC,
         "SPARC64": SPARC64, Elf.SPARC64: SPARC64,
         "MIPS": MIPS, Elf.MIPS: MIPS,
+        "MIPS64": MIPS64,
     }
 
     if arch:
@@ -3642,6 +3649,10 @@ def set_arch(arch=None, default=None):
         gef.binary = elf if elf.is_valid() else None
 
     arch_name = gef.binary.e_machine if gef.binary else get_arch()
+
+    if arch_name == "MIPS" and gef.binary.e_class == Elf.ELF_64_BITS:
+        arch_name = "MIPS64"
+
     try:
         gef.arch = arches[arch_name]()
     except KeyError:
