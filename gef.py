@@ -2326,6 +2326,12 @@ class ARM(Architecture):
         # Thumb instructions have variable-length (2 or 4-byte)
         return None if self.is_thumb() else 4
 
+    @property
+    def ptrsize(self):
+        if not self.__ptrsize:
+            self.__ptrsize = 2 if self.is_thumb() else 4
+        return self.__ptrsize
+
     def is_call(self, insn):
         mnemo = insn.mnemonic
         call_mnemos = {"bl", "blx"}
@@ -2443,6 +2449,7 @@ class AARCH64(ARM):
     function_parameters = ["$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7"]
     syscall_register = "$x8"
     syscall_instructions = ["svc $x0"]
+    ptrsize = 8
 
     def is_call(self, insn):
         mnemo = insn.mnemonic
@@ -2546,10 +2553,7 @@ class X86(Architecture):
     }
     syscall_register = "$eax"
     syscall_instructions = ["sysenter", "int 0x80"]
-
-    @property
-    def ptrsize(self):
-        return 4
+    ptrsize = 4
 
     def flag_register_to_human(self, val=None):
         reg = self.flag_register
@@ -2668,10 +2672,7 @@ class X86_64(X86):
     syscall_instructions = ["syscall"]
     # We don't want to inherit x86's stack based param getter
     get_ith_parameter = Architecture.get_ith_parameter
-
-    @property
-    def ptrsize(self):
-        return 8
+    ptrsize = 8
 
     @classmethod
     def mprotect_asm(cls, addr, size, perm):
@@ -2958,6 +2959,7 @@ class MIPS(Architecture):
         "$t8", "$t9", "$k0", "$k1", "$s8", "$pc", "$sp", "$hi",
         "$lo", "$fir", "$ra", "$gp", ]
     instruction_length = 4
+    ptrsize = 4
     nop_insn = b"\x00\x00\x00\x00"  # sll $0,$0,0
     return_register = "$v0"
     flag_register = "$fcsr"
@@ -3025,9 +3027,6 @@ class MIPS(Architecture):
                  "lw $a3, 8($sp)", "lw $a3, 12($sp)",
                  "addi $sp, $sp, 16",]
         return "; ".join(insns)
-
-
-
 
 
 def copy_to_clipboard(data):
