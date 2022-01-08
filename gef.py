@@ -156,7 +156,6 @@ gef                                    = None
 __registered_commands__                = []
 __registered_functions__               = []
 
-__watches__                            = {}
 __gef_convenience_vars_index__         = 0
 __context_messages__                   = []
 __heap_allocated_list__                = []
@@ -8761,8 +8760,7 @@ class ContextCommand(GenericCommand):
         return
 
     def context_memory(self):
-        global __watches__
-        for address, opt in sorted(__watches__.items()):
+        for address, opt in sorted(gef.ui.watches.items()):
             sz, fmt = opt[0:2]
             self.context_title("memory:{:#x}".format(address))
             if fmt == "pointers":
@@ -8821,8 +8819,6 @@ class MemoryWatchCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        global __watches__
-
         if len(argv) not in (1, 2, 3):
             self.usage()
             return
@@ -8843,7 +8839,7 @@ class MemoryWatchCommand(GenericCommand):
             elif gef.arch.ptrsize == 8:
                 group = "qword"
 
-        __watches__[address] = (size, group)
+        gef.ui.watches[address] = (size, group)
         ok("Adding memwatch to {:#x}".format(address))
         return
 
@@ -8861,13 +8857,12 @@ class MemoryUnwatchCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        global __watches__
         if not argv:
             self.usage()
             return
 
         address = parse_address(argv[0])
-        res = __watches__.pop(address, None)
+        res = gef.ui.watches.pop(address, None)
         if not res:
             warn("You weren't watching {:#x}".format(address))
         else:
@@ -8883,8 +8878,7 @@ class MemoryWatchResetCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        global __watches__
-        __watches__.clear()
+        gef.ui.watches.clear()
         ok("Memory watches cleared")
         return
 
@@ -8897,14 +8891,12 @@ class MemoryWatchListCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv):
-        global __watches__
-
-        if not __watches__:
+        if not gef.ui.watches:
             info("No memory watches")
             return
 
         info("Memory watches:")
-        for address, opt in sorted(__watches__.items()):
+        for address, opt in sorted(gef.ui.watches.items()):
             gef_print("- {:#x} ({}, {})".format(address, opt[0], opt[1]))
         return
 
@@ -11469,6 +11461,7 @@ class GefUiManager(GefManager):
         self.context_hidden = False
         self.stream_buffer = None
         self.highlight_table = {}
+        self.watches = {}
         return
 
 class Gef:
