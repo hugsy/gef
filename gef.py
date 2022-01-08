@@ -155,12 +155,6 @@ gef                                    = None
 __registered_commands__                = []
 __registered_functions__               = []
 
-__heap_allocated_list__                = []
-__heap_freed_list__                    = []
-__heap_uaf_watchpoints__               = []
-__pie_breakpoints__                    = {}
-__pie_counter__                        = 1
-
 
 def reset_all_caches():
     """Free all caches. If an object is cached, it will have a callable attribute `cache_clear`
@@ -3848,8 +3842,7 @@ def parse_string_range(s):
 
 
 def gef_get_pie_breakpoint(num):
-    global __pie_breakpoints__
-    return __pie_breakpoints__[num]
+    return gef.session.pie_breakpoints[num]
 
 #
 # Deprecated API
@@ -4111,8 +4104,6 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         return
 
     def stop(self):
-        global __heap_uaf_watchpoints__, __heap_freed_list__, __heap_allocated_list__
-
         if self.return_value:
             loc = int(self.return_value)
         else:
@@ -4123,22 +4114,22 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         check_heap_overlap = gef.config["heap-analysis-helper.check_heap_overlap"]
 
         # pop from free-ed list if it was in it
-        if __heap_freed_list__:
+        if gef.session.heap_freed_chunks:
             idx = 0
-            for item in __heap_freed_list__:
+            for item in gef.session.heap_freed_chunks:
                 addr = item[0]
                 if addr == loc:
-                    __heap_freed_list__.remove(item)
+                    gef.session.heap_freed_chunks.remove(item)
                     continue
                 idx += 1
 
         # pop from uaf watchlist
-        if __heap_uaf_watchpoints__:
+        if gef.session.heap_uaf_watchpoints:
             idx = 0
-            for wp in __heap_uaf_watchpoints__:
+            for wp in gef.session.heap_uaf_watchpoints:
                 wp_addr = wp.address
                 if loc <= wp_addr < loc + size:
-                    __heap_uaf_watchpoints__.remove(wp)
+                    gef.session.heap_uaf_watchpoints.remove(wp)
                     wp.enabled = False
                     continue
                 idx += 1
@@ -4149,7 +4140,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
             # seek all the currently allocated chunks, read their effective size and check for overlap
             msg = []
             align = gef.arch.ptrsize
-            for chunk_addr, _ in __heap_allocated_list__:
+            for chunk_addr, _ in gef.session.heap_allocated_chunks:
                 current_chunk = GlibcChunk(chunk_addr)
                 current_chunk_size = current_chunk.get_chunk_size()
 
@@ -4167,7 +4158,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
                     return True
 
         # add it to alloc-ed list
-        __heap_allocated_list__.append(item)
+        gef.session.heap_allocated_chunks.append(item)
         return False
 
 
@@ -4197,8 +4188,6 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
         return
 
     def stop(self):
-        global __heap_uaf_watchpoints__, __heap_freed_list__, __heap_allocated_list__
-
         if self.return_value:
             newloc = int(self.return_value)
         else:
@@ -4217,15 +4206,15 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
 
         try:
             # check if item was in alloc-ed list
-            idx = [x for x, y in __heap_allocated_list__].index(self.ptr)
+            idx = [x for x, y in gef.session.heap_allocated_chunks].index(self.ptr)
             # if so pop it out
-            item = __heap_allocated_list__.pop(idx)
+            item = gef.session.heap_allocated_chunks.pop(idx)
         except ValueError:
             if is_debug():
                 warn("Chunk {:#x} was not in tracking list".format(self.ptr))
         finally:
             # add new item to alloc-ed list
-            __heap_allocated_list__.append(item)
+            gef.session.heap_allocated_chunks.append(item)
 
         return False
 
@@ -4257,7 +4246,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
                 return True
             return False
 
-        if addr in [x for (x, y) in __heap_freed_list__]:
+        if addr in [x for (x, y) in gef.session.heap_freed_chunks]:
             if check_double_free:
                 msg.append(Color.colorify("Heap-Analysis", "yellow bold"))
                 msg.append("Double-free detected {} free({:#x}) is called at {:#x} but is already in the free-ed list".format(RIGHT_ARROW, addr, gef.arch.pc))
@@ -4270,8 +4259,8 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
         # 1. move alloc-ed item to free list
         try:
             # pop from alloc-ed list
-            idx = [x for x, y in __heap_allocated_list__].index(addr)
-            item = __heap_allocated_list__.pop(idx)
+            idx = [x for x, y in gef.session.heap_allocated_chunks].index(addr)
+            item = gef.session.heap_allocated_chunks.pop(idx)
 
         except ValueError:
             if check_weird_free:
@@ -4283,7 +4272,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
             return False
 
         # 2. add it to free-ed list
-        __heap_freed_list__.append(item)
+        gef.session.heap_freed_chunks.append(item)
 
         self.retbp = None
         if check_uaf:
@@ -4304,7 +4293,7 @@ class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):
     def stop(self):
         reset_all_caches()
         wp = UafWatchpoint(self.addr)
-        __heap_uaf_watchpoints__.append(wp)
+        gef.session.heap_uaf_watchpoints.append(wp)
         return False
 
 
@@ -4682,7 +4671,6 @@ class PieBreakpointCommand(GenericCommand):
 
     @parse_arguments({"offset": ""}, {})
     def do_invoke(self, argv, *args, **kwargs):
-        global __pie_counter__, __pie_breakpoints__
         args = kwargs["arguments"]
         if not args.offset:
             self.usage()
@@ -4695,15 +4683,14 @@ class PieBreakpointCommand(GenericCommand):
         if is_alive():
             vmmap = gef.memory.maps
             base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
-            for bp_ins in __pie_breakpoints__.values():
+            for bp_ins in gef.session.pie_breakpoints.values():
                 bp_ins.instantiate(base_address)
         return
 
     @staticmethod
     def set_pie_breakpoint(set_func, addr):
-        global __pie_counter__, __pie_breakpoints__
-        __pie_breakpoints__[__pie_counter__] = PieVirtualBreakpoint(set_func, __pie_counter__, addr)
-        __pie_counter__ += 1
+        gef.session.pie_breakpoints[gef.session.pie_counter] = PieVirtualBreakpoint(set_func, gef.session.pie_counter, addr)
+        gef.session.pie_counter += 1
         return
 
 
@@ -4716,14 +4703,12 @@ class PieInfoCommand(GenericCommand):
 
     @parse_arguments({"breakpoints": [-1,]}, {})
     def do_invoke(self, argv, *args, **kwargs):
-        global __pie_breakpoints__
-
         args = kwargs["arguments"]
         if args.breakpoints[0] == -1:
             # No breakpoint info needed
-            bps = [__pie_breakpoints__[x] for x in __pie_breakpoints__]
+            bps = [gef.session.pie_breakpoints[x] for x in gef.session.pie_breakpoints]
         else:
-            bps = [__pie_breakpoints__[x] for x in args.breakpoints]
+            bps = [gef.session.pie_breakpoints[x] for x in args.breakpoints]
 
         lines = []
         lines.append("VNum\tNum\tAddr")
@@ -4743,26 +4728,26 @@ class PieDeleteCommand(GenericCommand):
 
     @parse_arguments({"breakpoints": [-1,]}, {})
     def do_invoke(self, argv, *args, **kwargs):
-        global __pie_breakpoints__
+        global gef
         args = kwargs["arguments"]
         if args.breakpoints[0] == -1:
             # no arg, delete all
-            to_delete = [__pie_breakpoints__[x] for x in __pie_breakpoints__]
+            to_delete = [gef.session.pie_breakpoints[x] for x in gef.session.pie_breakpoints]
             self.delete_bp(to_delete)
         else:
-            self.delete_bp([__pie_breakpoints__[x] for x in args.breakpoints])
+            self.delete_bp([gef.session.pie_breakpoints[x] for x in args.breakpoints])
         return
 
 
     @staticmethod
     def delete_bp(breakpoints):
-        global __pie_breakpoints__
+        global gef
         for bp in breakpoints:
             # delete current real breakpoints if exists
             if bp.bp_num:
                 gdb.execute("delete {}".format(bp.bp_num))
             # delete virtual breakpoints
-            del __pie_breakpoints__[bp.vbp_num]
+            del gef.session.pie_breakpoints[bp.vbp_num]
         return
 
 
@@ -4774,7 +4759,7 @@ class PieRunCommand(GenericCommand):
     _syntax_ = _cmdline_
 
     def do_invoke(self, argv):
-        global __pie_breakpoints__
+        global gef
         fpath = get_filepath()
         if fpath is None:
             warn("No executable to debug, use `file` to load a binary")
@@ -4798,7 +4783,7 @@ class PieRunCommand(GenericCommand):
         info("base address {}".format(hex(base_address)))
 
         # modify all breakpoints
-        for bp_ins in __pie_breakpoints__.values():
+        for bp_ins in gef.session.pie_breakpoints.values():
             bp_ins.instantiate(base_address)
 
         try:
@@ -4827,7 +4812,7 @@ class PieAttachCommand(GenericCommand):
         vmmap = gef.memory.maps
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
 
-        for bp_ins in __pie_breakpoints__.values():
+        for bp_ins in gef.session.pie_breakpoints.values():
             bp_ins.instantiate(base_address)
         gdb.execute("context")
         return
@@ -4851,7 +4836,7 @@ class PieRemoteCommand(GenericCommand):
         vmmap = gef.memory.maps
         base_address = [x.page_start for x in vmmap if x.realpath == get_filepath()][0]
 
-        for bp_ins in __pie_breakpoints__.values():
+        for bp_ins in gef.session.pie_breakpoints.values():
             bp_ins.instantiate(base_address)
         gdb.execute("context")
         return
@@ -10131,23 +10116,23 @@ class HeapAnalysisCommand(GenericCommand):
         return
 
     def dump_tracked_allocations(self):
-        global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
+        global gef
 
-        if __heap_allocated_list__:
+        if gef.session.heap_allocated_chunks:
             ok("Tracked as in-use chunks:")
-            for addr, sz in __heap_allocated_list__: gef_print("{} malloc({:d}) = {:#x}".format(CROSS, sz, addr))
+            for addr, sz in gef.session.heap_allocated_chunks: gef_print("{} malloc({:d}) = {:#x}".format(CROSS, sz, addr))
         else:
             ok("No malloc() chunk tracked")
 
-        if __heap_freed_list__:
+        if gef.session.heap_freed_chunks:
             ok("Tracked as free-ed chunks:")
-            for addr, sz in __heap_freed_list__: gef_print("{}  free({:d}) = {:#x}".format(TICK, sz, addr))
+            for addr, sz in gef.session.heap_freed_chunks: gef_print("{}  free({:d}) = {:#x}".format(TICK, sz, addr))
         else:
             ok("No free() chunk tracked")
         return
 
     def clean(self, event):
-        global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
+        global gef
 
         ok("{} - Cleaning up".format(Color.colorify("Heap-Analysis", "yellow bold"),))
         for bp in [self.bp_malloc, self.bp_calloc, self.bp_free, self.bp_realloc]:
@@ -10160,12 +10145,12 @@ class HeapAnalysisCommand(GenericCommand):
 
             bp.delete()
 
-        for wp in __heap_uaf_watchpoints__:
+        for wp in gef.session.heap_uaf_watchpoints:
             wp.delete()
 
-        __heap_allocated_list__ = []
-        __heap_freed_list__ = []
-        __heap_uaf_watchpoints__ = []
+        gef.session.heap_allocated_chunks = []
+        gef.session.heap_freed_chunks = []
+        gef.session.heap_uaf_watchpoints = []
 
         ok("{} - Re-enabling hardware watchpoints".format(Color.colorify("Heap-Analysis", "yellow bold"),))
         gdb.execute("set can-use-hw-watchpoints 1")
@@ -11363,6 +11348,11 @@ class GefSessionManager(GefManager):
         self.remote = None
         self.qemu_mode = False
         self.convenience_vars_index = 0
+        self.heap_allocated_chunks = []
+        self.heap_freed_chunks = []
+        self.heap_uaf_watchpoints = []
+        self.pie_breakpoints = {}
+        self.pie_counter = 1
         self.aliases = []
         self.constants = {} # a dict for runtime constants (like 3rd party file paths)
         # add a few extra runtime constants to avoid lookups
