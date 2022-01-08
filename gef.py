@@ -56,7 +56,6 @@ import codecs
 import collections
 import ctypes
 import enum
-from fcntl import F_DUPFD_CLOEXEC
 import functools
 import hashlib
 import importlib
@@ -87,18 +86,6 @@ from types import ModuleType
 from urllib.request import urlopen
 from typing import List, Dict, Tuple, Optional, Sequence, Union, Generator, Any, TextIO, Iterator, Callable, \
     ByteString, Set
-
-LEFT_ARROW = " \u2190 "
-RIGHT_ARROW = " \u2192 "
-DOWN_ARROW = "\u21b3"
-HORIZONTAL_LINE = "\u2500"
-VERTICAL_LINE = "\u2502"
-CROSS = "\u2718 "
-TICK = "\u2713 "
-BP_GLYPH = "\u25cf"
-GEF_PROMPT = "gef\u27a4  "
-GEF_PROMPT_ON = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
-GEF_PROMPT_OFF = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
 
 
 def http_get(url: str) -> Optional[bytes]:
@@ -139,46 +126,38 @@ except ImportError:
     print("[-] gef cannot run as standalone")
     sys.exit(0)
 
-
-gef                                    = None
-__commands__                           = []
-__functions__                          = []
-__aliases__                            = []
-__watches__                            = {}
-__infos_files__                        = []
-__gef_convenience_vars_index__         = 0
-__context_messages__: List[Tuple[str, str]] = []
-__heap_allocated_list__                = []
-__heap_freed_list__                    = []
-__heap_uaf_watchpoints__               = []
-__pie_breakpoints__                    = {}
-__pie_counter__                        = 1
-__gef_remote__: Optional[int]          = None
-__gef_qemu_mode__                      = False
-# __gef_current_arena__                  = "main_arena"
-__gef_int_stream_buffer__: Optional[StringIO]              = None
-__gef_redirect_output_fd__             = None
+GDB_MIN_VERSION                        = (8, 0)
+GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
+PYTHON_MIN_VERSION                     = (3, 6)
+PYTHON_VERSION                         = sys.version_info[0:2]
 
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
+
 GEF_RC                                 = os.getenv("GEF_RC") or os.path.join(os.getenv("HOME"), ".gef.rc")
 GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
 GEF_MAX_STRING_LENGTH                  = 50
 
-GDB_MIN_VERSION                        = (8, 0)
-GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
-
-PYTHON_MIN_VERSION                     = (3, 6)
-PYTHON_VERSION                         = sys.version_info[0:2]
-
 LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME      = "main_arena"
+ANSI_SPLIT_RE                          = r"(\033\[[\d;]*m)"
 
-libc_args_definitions = {}
+LEFT_ARROW                             = " \u2190 "
+RIGHT_ARROW                            = " \u2192 "
+DOWN_ARROW                             = "\u21b3"
+HORIZONTAL_LINE                        = "\u2500"
+VERTICAL_LINE                          = "\u2502"
+CROSS                                  = "\u2718 "
+TICK                                   = "\u2713 "
+BP_GLYPH                               = "\u25cf"
+GEF_PROMPT                             = "gef\u27a4  "
+GEF_PROMPT_ON                          = "\001\033[1;32m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
+GEF_PROMPT_OFF                         = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
 
-highlight_table = {}
-ANSI_SPLIT_RE = r"(\033\[[\d;]*m)"
 
-# idea: lru_cache wrapper that register back callback items for cache clearing
+gef                                    = None
+__registered_commands__                = []
+__registered_functions__               = []
+
 
 def reset_all_caches() -> None:
     """Free all caches. If an object is cached, it will have a callable attribute `cache_clear`
@@ -192,29 +171,47 @@ def reset_all_caches() -> None:
     gef.reset_caches()
     return
 
+def reset() -> None:
+    global gef
+
+    arch = None
+    if gef:
+        reset_all_caches()
+        arch = gef.arch
+        del gef
+
+    gef = None
+    gef = Gef()
+    gef.setup()
+
+    if arch:
+        gef.arch = arch
+    return
 
 def highlight_text(text: str) -> str:
     """
-    Highlight text using highlight_table { match -> color } settings.
+    Highlight text using gef.ui.highlight_table { match -> color } settings.
 
     If RegEx is enabled it will create a match group around all items in the
-    highlight_table and wrap the specified color in the highlight_table
+    gef.ui.highlight_table and wrap the specified color in the gef.ui.highlight_table
     around those matches.
 
     If RegEx is disabled, split by ANSI codes and 'colorify' each match found
     within the specified string.
     """
-    if not highlight_table:
+    global gef
+
+    if not gef.ui.highlight_table:
         return text
 
     if gef.config["highlight.regex"]:
-        for match, color in highlight_table.items():
+        for match, color in gef.ui.highlight_table.items():
             text = re.sub("(" + match + ")", Color.colorify("\\1", color), text)
         return text
 
     ansiSplit = re.split(ANSI_SPLIT_RE, text)
 
-    for match, color in highlight_table.items():
+    for match, color in gef.ui.highlight_table.items():
         for index, val in enumerate(ansiSplit):
             found = val.find(match)
             if found > -1:
@@ -229,9 +226,9 @@ def highlight_text(text: str) -> str:
 def gef_print(x: str = "", *args: Tuple, **kwargs: Dict) -> Optional[int]:
     """Wrapper around print(), using string buffering feature."""
     x = highlight_text(x)
-    if __gef_int_stream_buffer__ and not is_debug():
-        return __gef_int_stream_buffer__.write(x + kwargs.get("end", "\n"))
-    print(x, *args, **kwargs)
+    if gef.ui.stream_buffer and not is_debug():
+        return gef.ui.stream_buffer.write(x + kwargs.get("end", "\n"))
+    return print(x, *args, **kwargs)
 
 
 def bufferize(f: Callable) -> Callable:
@@ -239,42 +236,42 @@ def bufferize(f: Callable) -> Callable:
 
     @functools.wraps(f)
     def wrapper(*args: Tuple, **kwargs: Dict) -> Callable:
-        global __gef_int_stream_buffer__, __gef_redirect_output_fd__
+        global gef
 
-        if __gef_int_stream_buffer__:
+        if gef.ui.stream_buffer:
             return f(*args, **kwargs)
 
-        __gef_int_stream_buffer__ = StringIO()
+        gef.ui.stream_buffer = StringIO()
         try:
             rv = f(*args, **kwargs)
         finally:
             redirect = gef.config["context.redirect"]
             if redirect.startswith("/dev/pts/"):
-                if not __gef_redirect_output_fd__:
+                if not gef.ui.redirect_fd:
                     # if the FD has never been open, open it
                     fd = open(redirect, "wt")
-                    __gef_redirect_output_fd__ = fd
-                elif redirect != __gef_redirect_output_fd__.name:
+                    gef.ui.redirect_fd = fd
+                elif redirect != gef.ui.redirect_fd.name:
                     # if the user has changed the redirect setting during runtime, update the state
-                    __gef_redirect_output_fd__.close()
+                    gef.ui.redirect_fd.close()
                     fd = open(redirect, "wt")
-                    __gef_redirect_output_fd__ = fd
+                    gef.ui.redirect_fd = fd
                 else:
                     # otherwise, keep using it
-                    fd = __gef_redirect_output_fd__
+                    fd = gef.ui.redirect_fd
             else:
                 fd = sys.stdout
-                __gef_redirect_output_fd__ = None
+                gef.ui.redirect_fd = None
 
-            if __gef_redirect_output_fd__ and fd.closed:
+            if gef.ui.redirect_fd and fd.closed:
                 # if the tty was closed, revert back to stdout
                 fd = sys.stdout
-                __gef_redirect_output_fd__ = None
+                gef.ui.redirect_fd = None
                 gef.config["context.redirect"] = ""
 
-            fd.write(__gef_int_stream_buffer__.getvalue())
+            fd.write(gef.ui.stream_buffer.getvalue())
             fd.flush()
-            __gef_int_stream_buffer__ = None
+            gef.ui.stream_buffer = None
         return rv
 
     return wrapper
@@ -678,7 +675,7 @@ class Section:
     @property
     def realpath(self) -> str:
         # when in a `gef-remote` session, realpath returns the path to the binary on the local disk, not remote
-        return self.path if __gef_remote__ is None else "/tmp/gef/{:d}/{:s}".format(__gef_remote__, self.path)
+        return self.path if gef.session.remote is None else "/tmp/gef/{:d}/{:s}".format(gef.session.remote, self.path)
 
     def __str__(self):
         return f"Section({self.page_start:#x}, {self.page_end:#x}, {str(self.permission)})"
@@ -1197,7 +1194,6 @@ class GlibcArena:
     Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671"""
 
     def __init__(self, addr: str) -> None:
-        # self.__name = name or __gef_current_arena__
         try:
             arena = gdb.parse_and_eval(addr)
             malloc_state_t = cached_lookup_type("struct malloc_state")
@@ -1542,14 +1538,12 @@ def ok(msg: str) -> Optional[int]:    return gef_print("{} {}".format(Color.colo
 def info(msg: str) -> Optional[int]:  return gef_print("{} {}".format(Color.colorify("[+]", "bold blue"), msg))
 
 
-# TODO: move to gef.session.context
 def push_context_message(level: str, message: str) -> None:
     """Push the message to be displayed the next time the context is invoked."""
-    global __context_messages__
     if level not in ("error", "warn", "ok", "info"):
         err("Invalid level '{}', discarding message".format(level))
         return
-    __context_messages__.append((level, message))
+    gef.ui.context_messages.append((level, message))
     return
 
 
@@ -1693,16 +1687,16 @@ def hexdump(source: ByteString, length: int = 0x10, separator: str = ".", show_r
 
 def is_debug() -> bool:
     """Check if debug mode is enabled."""
-    return gef.config["gef.debug"] == True
+    return gef.config["gef.debug"] is True
 
 def hide_context() -> bool:
     """ Helper function to hide the context pane """
-    gef.session.context_hidden = True
+    gef.ui.context_hidden = True
     return True
 
 def unhide_context() -> bool:
     """ Helper function to unhide the context pane """
-    gef.session.context_hidden = False
+    gef.ui.context_hidden = False
     return True
 
 class RedirectOutputContext():
@@ -1718,7 +1712,7 @@ class RedirectOutputContext():
         gdb.execute("set logging on")
         return
 
-    def __exit__(self) -> None:
+    def __exit__(self, *exc) -> None:
         """Disable the output redirection, if any."""
         gdb.execute("set logging off")
         gdb.execute("set logging redirect off")
@@ -3134,8 +3128,8 @@ def get_filepath() -> Optional[str]:
             fname = filename[len(".gnu_debugdata for target:") :]
             return download_file(fname, use_cache=True, local_name=fname)
 
-        elif __gef_remote__ is not None:
-            return "/tmp/gef/{:d}/{:s}".format(__gef_remote__, get_path_from_info_proc())
+        elif gef.session.remote is not None:
+            return "/tmp/gef/{:d}/{:s}".format(gef.session.remote, get_path_from_info_proc())
         return filename
     else:
         if filename is not None:
@@ -3190,13 +3184,9 @@ def get_function_length(sym):
 def get_info_files():  # -> List[Zone]
     """Retrieve all the files loaded by debuggee."""
     lines = gdb.execute("info files", to_string=True).splitlines()
-
-    if len(lines) < len(__infos_files__):
-        return __infos_files__
-
+    infos = []
     for line in lines:
         line = line.strip()
-
         if not line:
             break
 
@@ -3213,11 +3203,8 @@ def get_info_files():  # -> List[Zone]
         else:
             filename = get_filepath()
 
-        info = Zone(section_name, addr_start, addr_end, filename)
-
-        __infos_files__.append(info)
-
-    return __infos_files__
+        infos.append(Zone(section_name, addr_start, addr_end, filename))
+    return infos
 
 
 def process_lookup_address(address: int):  # -> Optional[Section]
@@ -3319,7 +3306,6 @@ def hook_stop_handler(event) -> None:
 def new_objfile_handler(event) -> None:
     """GDB event handler for new object file cases."""
     reset_all_caches()
-    gef.reinitialize_managers()
     set_arch()
     load_libc_args()
     return
@@ -3327,13 +3313,11 @@ def new_objfile_handler(event) -> None:
 
 def exit_handler(event) -> None:
     """GDB event handler for exit cases."""
-    global __gef_remote__, __gef_qemu_mode__
-
     reset_all_caches()
-    __gef_qemu_mode__ = False
-    if __gef_remote__ and gef.config["gef-remote.clean_on_exit"] is True:
-        shutil.rmtree("/tmp/gef/{:d}".format(__gef_remote__))
-        __gef_remote__ = None
+    gef.session.qemu_mode = False
+    if gef.session.remote and gef.config["gef-remote.clean_on_exit"] is True:
+        shutil.rmtree("/tmp/gef/{:d}".format(gef.session.remote))
+        gef.session.remote = None
     return
 
 
@@ -3350,6 +3334,7 @@ def regchanged_handler(event) -> None:
 
 
 def load_libc_args() -> None:
+    global gef
     # load libc function arguments' definitions
     if not gef.config["context.libc_args"]:
         return
@@ -3368,21 +3353,19 @@ def load_libc_args() -> None:
     _arch_mode = "{}_{}".format(gef.arch.arch.lower(), gef.arch.mode)
     _libc_args_file = "{}/{}.json".format(path, _arch_mode)
 
-    global libc_args_definitions
-
     # current arch and mode already loaded
-    if _arch_mode in libc_args_definitions:
+    if _arch_mode in gef.ui.highlight_table:
         return
 
-    libc_args_definitions[_arch_mode] = {}
+    gef.ui.highlight_table[_arch_mode] = {}
     try:
         with open(_libc_args_file) as _libc_args:
-            libc_args_definitions[_arch_mode] = json.load(_libc_args)
+            gef.ui.highlight_table[_arch_mode] = json.load(_libc_args)
     except FileNotFoundError:
-        del libc_args_definitions[_arch_mode]
+        del gef.ui.highlight_table[_arch_mode]
         warn("Config context.libc_args is set but definition cannot be loaded: file {} not found".format(_libc_args_file))
     except json.decoder.JSONDecodeError as e:
-        del libc_args_definitions[_arch_mode]
+        del gef.ui.highlight_table[_arch_mode]
         warn("Config context.libc_args is set but definition cannot be loaded from file {}: {}".format(_libc_args_file, e))
     return
 
@@ -3693,7 +3676,7 @@ def get_memory_alignment(in_bits: bool = False) -> int:
 
 def clear_screen(tty: str = "") -> None:
     """Clear the screen."""
-    global __gef_redirect_output_fd__
+    global gef
     if not tty:
         gdb.execute("shell clear -x")
         return
@@ -3704,7 +3687,7 @@ def clear_screen(tty: str = "") -> None:
         with open(tty, "wt") as f:
             f.write("\x1b[H\x1b[J")
     except PermissionError:
-        __gef_redirect_output_fd__ = None
+        gef.ui.redirect_fd = None
         gef.config["context.redirect"] = ""
     return
 
@@ -3784,7 +3767,7 @@ def is_in_x86_kernel(address: int) -> bool:
 @lru_cache()
 def is_remote_debug() -> bool:
     """"Return True is the current debugging session is running through GDB remote session."""
-    return __gef_remote__ is not None or "remote" in gdb.execute("maintenance print target-stack", to_string=True)
+    return gef.session.remote is not None or "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
 
 def de_bruijn(alphabet: str, n: int) -> Generator[str, None, None]:
@@ -3844,9 +3827,9 @@ def dereference(addr: int):  # -> Optional[gdb.Value]
 
 def gef_convenience(value: str) -> str:
     """Defines a new convenience value."""
-    global __gef_convenience_vars_index__
-    var_name = "$_gef{:d}".format(__gef_convenience_vars_index__)
-    __gef_convenience_vars_index__ += 1
+    global gef
+    var_name = "$_gef{:d}".format(gef.session.convenience_vars_index)
+    gef.session.convenience_vars_index += 1
     gdb.execute("""set {:s} = "{:s}" """.format(var_name, value))
     return var_name
 
@@ -3858,8 +3841,7 @@ def parse_string_range(s: str) -> Iterator[int]:
 
 
 def gef_get_pie_breakpoint(num: int):  # -> PieVirtualBreakpoint
-    global __pie_breakpoints__
-    return __pie_breakpoints__[num]
+    return gef.session.pie_breakpoints[num]
 
 #
 # Deprecated API
@@ -4121,8 +4103,6 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         return
 
     def stop(self) -> bool:
-        global __heap_uaf_watchpoints__, __heap_freed_list__, __heap_allocated_list__
-
         if self.return_value:
             loc = int(self.return_value)
         else:
@@ -4133,22 +4113,22 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
         check_heap_overlap = gef.config["heap-analysis-helper.check_heap_overlap"]
 
         # pop from free-ed list if it was in it
-        if __heap_freed_list__:
+        if gef.session.heap_freed_chunks:
             idx = 0
-            for item in __heap_freed_list__:
+            for item in gef.session.heap_freed_chunks:
                 addr = item[0]
                 if addr == loc:
-                    __heap_freed_list__.remove(item)
+                    gef.session.heap_freed_chunks.remove(item)
                     continue
                 idx += 1
 
         # pop from uaf watchlist
-        if __heap_uaf_watchpoints__:
+        if gef.session.heap_uaf_watchpoints:
             idx = 0
-            for wp in __heap_uaf_watchpoints__:
+            for wp in gef.session.heap_uaf_watchpoints:
                 wp_addr = wp.address
                 if loc <= wp_addr < loc + size:
-                    __heap_uaf_watchpoints__.remove(wp)
+                    gef.session.heap_uaf_watchpoints.remove(wp)
                     wp.enabled = False
                     continue
                 idx += 1
@@ -4159,7 +4139,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
             # seek all the currently allocated chunks, read their effective size and check for overlap
             msg = []
             align = gef.arch.ptrsize
-            for chunk_addr, _ in __heap_allocated_list__:
+            for chunk_addr, _ in gef.session.heap_allocated_chunks:
                 current_chunk = GlibcChunk(chunk_addr)
                 current_chunk_size = current_chunk.get_chunk_size()
 
@@ -4177,7 +4157,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
                     return True
 
         # add it to alloc-ed list
-        __heap_allocated_list__.append(item)
+        gef.session.heap_allocated_chunks.append(item)
         return False
 
 
@@ -4207,8 +4187,6 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
         return
 
     def stop(self) -> bool:
-        global __heap_uaf_watchpoints__, __heap_freed_list__, __heap_allocated_list__
-
         if self.return_value:
             newloc = int(self.return_value)
         else:
@@ -4227,15 +4205,15 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
 
         try:
             # check if item was in alloc-ed list
-            idx = [x for x, y in __heap_allocated_list__].index(self.ptr)
+            idx = [x for x, y in gef.session.heap_allocated_chunks].index(self.ptr)
             # if so pop it out
-            item = __heap_allocated_list__.pop(idx)
+            item = gef.session.heap_allocated_chunks.pop(idx)
         except ValueError:
             if is_debug():
                 warn("Chunk {:#x} was not in tracking list".format(self.ptr))
         finally:
             # add new item to alloc-ed list
-            __heap_allocated_list__.append(item)
+            gef.session.heap_allocated_chunks.append(item)
 
         return False
 
@@ -4267,7 +4245,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
                 return True
             return False
 
-        if addr in [x for (x, y) in __heap_freed_list__]:
+        if addr in [x for (x, y) in gef.session.heap_freed_chunks]:
             if check_double_free:
                 msg.append(Color.colorify("Heap-Analysis", "yellow bold"))
                 msg.append("Double-free detected {} free({:#x}) is called at {:#x} but is already in the free-ed list".format(RIGHT_ARROW, addr, gef.arch.pc))
@@ -4280,8 +4258,8 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
         # 1. move alloc-ed item to free list
         try:
             # pop from alloc-ed list
-            idx = [x for x, y in __heap_allocated_list__].index(addr)
-            item = __heap_allocated_list__.pop(idx)
+            idx = [x for x, y in gef.session.heap_allocated_chunks].index(addr)
+            item = gef.session.heap_allocated_chunks.pop(idx)
 
         except ValueError:
             if check_weird_free:
@@ -4293,7 +4271,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
             return False
 
         # 2. add it to free-ed list
-        __heap_freed_list__.append(item)
+        gef.session.heap_freed_chunks.append(item)
 
         self.retbp = None
         if check_uaf:
@@ -4314,7 +4292,7 @@ class TraceFreeRetBreakpoint(gdb.FinishBreakpoint):
     def stop(self) -> bool:
         reset_all_caches()
         wp = UafWatchpoint(self.addr)
-        __heap_uaf_watchpoints__.append(wp)
+        gef.session.heap_uaf_watchpoints.append(wp)
         return False
 
 
@@ -4403,9 +4381,8 @@ def register_external_context_pane(pane_name: str, display_pane_function: Callab
 
 def register_external_command(obj):
     """Registering function for new GEF (sub-)command to GDB."""
-    global __commands__, gef
     cls = obj.__class__
-    __commands__.append(cls)
+    __registered_commands__.append(cls)
     gef.gdb.load(initial=False)
     gef.gdb.doc.add_command_to_doc((cls._cmdline_, cls, None))
     gef.gdb.doc.refresh()
@@ -4414,23 +4391,20 @@ def register_external_command(obj):
 
 def register_command(cls):
     """Decorator for registering new GEF (sub-)command to GDB."""
-    global __commands__
-    __commands__.append(cls)
+    __registered_commands__.append(cls)
     return cls
 
 
 def register_priority_command(cls):
     """Decorator for registering new command with priority, meaning that it must
     loaded before the other generic commands."""
-    global __commands__
-    __commands__.insert(0, cls)
+    __registered_commands__.insert(0, cls)
     return cls
 
 
 def register_function(cls):
     """Decorator for registering a new convenience function to GDB."""
-    global __functions__
-    __functions__.append(cls)
+    __registered_functions__.append(cls)
     return cls
 
 
@@ -4696,7 +4670,6 @@ class PieBreakpointCommand(GenericCommand):
 
     @parse_arguments({"offset": ""}, {})
     def do_invoke(self, argv: List, *args: Tuple[Any, ...], **kwargs: Dict[str, Any]) -> None:
-        global __pie_counter__, __pie_breakpoints__
         args = kwargs["arguments"]
         if not args.offset:
             self.usage()
@@ -4709,15 +4682,14 @@ class PieBreakpointCommand(GenericCommand):
         if is_alive():
             vmmap = gef.memory.maps
             base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
-            for bp_ins in __pie_breakpoints__.values():
+            for bp_ins in gef.session.pie_breakpoints.values():
                 bp_ins.instantiate(base_address)
         return
 
     @staticmethod
     def set_pie_breakpoint(set_func: Callable[[int], str], addr: int) -> None:
-        global __pie_counter__, __pie_breakpoints__
-        __pie_breakpoints__[__pie_counter__] = PieVirtualBreakpoint(set_func, __pie_counter__, addr)
-        __pie_counter__ += 1
+        gef.session.pie_breakpoints[gef.session.pie_counter] = PieVirtualBreakpoint(set_func, gef.session.pie_counter, addr)
+        gef.session.pie_counter += 1
         return
 
 
@@ -4730,14 +4702,12 @@ class PieInfoCommand(GenericCommand):
 
     @parse_arguments({"breakpoints": [-1,]}, {})
     def do_invoke(self, argv: List, *args: Tuple[Any, ...], **kwargs: Dict[str, Any]) -> None:
-        global __pie_breakpoints__
-
         args = kwargs["arguments"]
         if args.breakpoints[0] == -1:
             # No breakpoint info needed
-            bps = [__pie_breakpoints__[x] for x in __pie_breakpoints__]
+            bps = [gef.session.pie_breakpoints[x] for x in gef.session.pie_breakpoints]
         else:
-            bps = [__pie_breakpoints__[x] for x in args.breakpoints]
+            bps = [gef.session.pie_breakpoints[x] for x in args.breakpoints]
 
         lines = []
         lines.append("VNum\tNum\tAddr")
@@ -4757,26 +4727,26 @@ class PieDeleteCommand(GenericCommand):
 
     @parse_arguments({"breakpoints": [-1,]}, {})
     def do_invoke(self, argv: List, *args: Tuple[Any, ...], **kwargs: Dict[str, Any]) -> None:
-        global __pie_breakpoints__
+        global gef
         args = kwargs["arguments"]
         if args.breakpoints[0] == -1:
             # no arg, delete all
-            to_delete = [__pie_breakpoints__[x] for x in __pie_breakpoints__]
+            to_delete = [gef.session.pie_breakpoints[x] for x in gef.session.pie_breakpoints]
             self.delete_bp(to_delete)
         else:
-            self.delete_bp([__pie_breakpoints__[x] for x in args.breakpoints])
+            self.delete_bp([gef.session.pie_breakpoints[x] for x in args.breakpoints])
         return
 
 
     @staticmethod
     def delete_bp(breakpoints: List) -> None:
-        global __pie_breakpoints__
+        global gef
         for bp in breakpoints:
             # delete current real breakpoints if exists
             if bp.bp_num:
                 gdb.execute("delete {}".format(bp.bp_num))
             # delete virtual breakpoints
-            del __pie_breakpoints__[bp.vbp_num]
+            del gef.session.pie_breakpoints[bp.vbp_num]
         return
 
 
@@ -4788,7 +4758,7 @@ class PieRunCommand(GenericCommand):
     _syntax_ = _cmdline_
 
     def do_invoke(self, argv: List) -> None:
-        global __pie_breakpoints__
+        global gef
         fpath = get_filepath()
         if fpath is None:
             warn("No executable to debug, use `file` to load a binary")
@@ -4812,7 +4782,7 @@ class PieRunCommand(GenericCommand):
         info("base address {}".format(hex(base_address)))
 
         # modify all breakpoints
-        for bp_ins in __pie_breakpoints__.values():
+        for bp_ins in gef.session.pie_breakpoints.values():
             bp_ins.instantiate(base_address)
 
         try:
@@ -4841,7 +4811,7 @@ class PieAttachCommand(GenericCommand):
         vmmap = gef.memory.maps
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
 
-        for bp_ins in __pie_breakpoints__.values():
+        for bp_ins in gef.session.pie_breakpoints.values():
             bp_ins.instantiate(base_address)
         gdb.execute("context")
         return
@@ -4865,7 +4835,7 @@ class PieRemoteCommand(GenericCommand):
         vmmap = gef.memory.maps
         base_address = [x.page_start for x in vmmap if x.realpath == get_filepath()][0]
 
-        for bp_ins in __pie_breakpoints__.values():
+        for bp_ins in gef.session.pie_breakpoints.values():
             bp_ins.instantiate(base_address)
         gdb.execute("context")
         return
@@ -6412,9 +6382,7 @@ class RemoteCommand(GenericCommand):
          "--pid": 0,
          "--qemu-mode": True})
     def do_invoke(self, argv, *args, **kwargs) -> None:
-        global __gef_remote__
-
-        if __gef_remote__ is not None:
+        if gef.session.remote is not None:
             err("You already are in remote session. Close it first before opening a new one...")
             return
 
@@ -6484,7 +6452,7 @@ class RemoteCommand(GenericCommand):
 
         # refresh the architecture setting
         set_arch()
-        __gef_remote__ = pid
+        gef.session.remote = pid
         return
 
     def new_objfile_handler(self, event) -> None:
@@ -6565,7 +6533,7 @@ class RemoteCommand(GenericCommand):
         return
 
     def prepare_qemu_stub(self, target: str) -> None:
-        global gef, __gef_qemu_mode__
+        global gef
 
         reset_all_caches()
         arch = get_arch()
@@ -6601,7 +6569,7 @@ class RemoteCommand(GenericCommand):
         unhide_context()
 
         if gef.session.pid == 1 and "ENABLE=1" in gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False):
-            __gef_qemu_mode__ = True
+            gef.session.qemu_mode = True
             reset_all_caches()
             info("Note: By using Qemu mode, GEF will display the memory mapping of the Qemu process where the emulated binary resides")
             gef.memory.maps
@@ -8000,7 +7968,7 @@ class EntryPointBreakCommand(GenericCommand):
             warn("The file '{}' is not executable.".format(fpath))
             return
 
-        if is_alive() and not __gef_qemu_mode__:
+        if is_alive() and not gef.session.qemu_mode:
             warn("gdb is already running")
             return
 
@@ -8159,7 +8127,7 @@ class ContextCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv: List) -> None:
-        if not self["enable"] or gef.session.context_hidden:
+        if not self["enable"] or gef.ui.context_hidden:
             return
 
         if not all(_ in self.layout_mapping for _ in argv):
@@ -8503,7 +8471,7 @@ class ContextCommand(GenericCommand):
         if function_name.endswith("@plt"):
             _function_name = function_name.split("@")[0]
             try:
-                nb_argument = len(libc_args_definitions[_arch_mode][_function_name])
+                nb_argument = len(gef.ui.highlight_table[_arch_mode][_function_name])
             except KeyError:
                 pass
 
@@ -8521,7 +8489,7 @@ class ContextCommand(GenericCommand):
             _values = RIGHT_ARROW.join(dereference_from(_values))
             try:
                 args.append("{} = {} (def: {})".format(Color.colorify(_key, arg_key_color), _values,
-                                                       libc_args_definitions[_arch_mode][_function_name][_key]))
+                                                       gef.ui.highlight_table[_arch_mode][_function_name][_key]))
             except KeyError:
                 args.append("{} = {}".format(Color.colorify(_key, arg_key_color), _values))
 
@@ -8758,11 +8726,11 @@ class ContextCommand(GenericCommand):
         return
 
     def context_additional_information(self) -> None:
-        if not __context_messages__:
+        if not gef.ui.context_messages:
             return
 
         self.context_title("extra")
-        for level, text in __context_messages__:
+        for level, text in gef.ui.context_messages:
             if level == "error": err(text)
             elif level == "warn": warn(text)
             elif level == "success": ok(text)
@@ -8770,8 +8738,7 @@ class ContextCommand(GenericCommand):
         return
 
     def context_memory(self) -> None:
-        global __watches__
-        for address, opt in sorted(__watches__.items()):
+        for address, opt in sorted(gef.ui.watches.items()):
             sz, fmt = opt[0:2]
             self.context_title("memory:{:#x}".format(address))
             if fmt == "pointers":
@@ -8796,8 +8763,7 @@ class ContextCommand(GenericCommand):
         return
 
     def empty_extra_messages(self, _) -> None:
-        global __context_messages__
-        __context_messages__ = []
+        gef.ui.context_messages.clear()
         return
 
 
@@ -8830,8 +8796,6 @@ class MemoryWatchCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv: List) -> None:
-        global __watches__
-
         if len(argv) not in (1, 2, 3):
             self.usage()
             return
@@ -8852,7 +8816,7 @@ class MemoryWatchCommand(GenericCommand):
             elif gef.arch.ptrsize == 8:
                 group = "qword"
 
-        __watches__[address] = (size, group)
+        gef.ui.watches[address] = (size, group)
         ok("Adding memwatch to {:#x}".format(address))
         return
 
@@ -8870,13 +8834,12 @@ class MemoryUnwatchCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv: List) -> None:
-        global __watches__
         if not argv:
             self.usage()
             return
 
         address = parse_address(argv[0])
-        res = __watches__.pop(address, None)
+        res = gef.ui.watches.pop(address, None)
         if not res:
             warn("You weren't watching {:#x}".format(address))
         else:
@@ -8892,8 +8855,7 @@ class MemoryWatchResetCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv: List) -> None:
-        global __watches__
-        __watches__.clear()
+        gef.ui.watches.clear()
         ok("Memory watches cleared")
         return
 
@@ -8906,14 +8868,12 @@ class MemoryWatchListCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv: List) -> None:
-        global __watches__
-
-        if not __watches__:
+        if not gef.ui.watches:
             info("No memory watches")
             return
 
         info("Memory watches:")
-        for address, opt in sorted(__watches__.items()):
+        for address, opt in sorted(gef.ui.watches.items()):
             gef_print("- {:#x} ({}, {})".format(address, opt[0], opt[1]))
         return
 
@@ -10002,12 +9962,12 @@ class HighlightListCommand(GenericCommand):
     _syntax_ = _cmdline_
 
     def print_highlight_table(self) -> None:
-        if not highlight_table:
+        if not gef.ui.highlight_table:
             err("no matches found")
             return
 
-        left_pad = max(map(len, highlight_table.keys()))
-        for match, color in sorted(highlight_table.items()):
+        left_pad = max(map(len, gef.ui.highlight_table.keys()))
+        for match, color in sorted(gef.ui.highlight_table.items()):
             print("{} {} {}".format(Color.colorify(match.ljust(left_pad), color), VERTICAL_LINE, Color.colorify(color, color)))
         return
 
@@ -10023,7 +9983,7 @@ class HighlightClearCommand(GenericCommand):
     _syntax_ = _cmdline_
 
     def do_invoke(self, argv: List) -> None:
-        return highlight_table.clear()
+        return gef.ui.highlight_table.clear()
 
 
 @register_command
@@ -10039,7 +9999,7 @@ class HighlightAddCommand(GenericCommand):
             return self.usage()
 
         match, color = argv
-        highlight_table[match] = color
+        gef.ui.highlight_table[match] = color
         return
 
 
@@ -10061,7 +10021,7 @@ class HighlightRemoveCommand(GenericCommand):
         if not argv:
             return self.usage()
 
-        highlight_table.pop(argv[0], None)
+        gef.ui.highlight_table.pop(argv[0], None)
         return
 
 
@@ -10156,23 +10116,23 @@ class HeapAnalysisCommand(GenericCommand):
         return
 
     def dump_tracked_allocations(self) -> None:
-        global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
+        global gef
 
-        if __heap_allocated_list__:
+        if gef.session.heap_allocated_chunks:
             ok("Tracked as in-use chunks:")
-            for addr, sz in __heap_allocated_list__: gef_print("{} malloc({:d}) = {:#x}".format(CROSS, sz, addr))
+            for addr, sz in gef.session.heap_allocated_chunks: gef_print("{} malloc({:d}) = {:#x}".format(CROSS, sz, addr))
         else:
             ok("No malloc() chunk tracked")
 
-        if __heap_freed_list__:
+        if gef.session.heap_freed_chunks:
             ok("Tracked as free-ed chunks:")
-            for addr, sz in __heap_freed_list__: gef_print("{}  free({:d}) = {:#x}".format(TICK, sz, addr))
+            for addr, sz in gef.session.heap_freed_chunks: gef_print("{}  free({:d}) = {:#x}".format(TICK, sz, addr))
         else:
             ok("No free() chunk tracked")
         return
 
     def clean(self, _) -> None:
-        global __heap_allocated_list__, __heap_freed_list__, __heap_uaf_watchpoints__
+        global gef
 
         ok("{} - Cleaning up".format(Color.colorify("Heap-Analysis", "yellow bold"),))
         for bp in [self.bp_malloc, self.bp_calloc, self.bp_free, self.bp_realloc]:
@@ -10185,12 +10145,12 @@ class HeapAnalysisCommand(GenericCommand):
 
             bp.delete()
 
-        for wp in __heap_uaf_watchpoints__:
+        for wp in gef.session.heap_uaf_watchpoints:
             wp.delete()
 
-        __heap_allocated_list__ = []
-        __heap_freed_list__ = []
-        __heap_uaf_watchpoints__ = []
+        gef.session.heap_allocated_chunks = []
+        gef.session.heap_freed_chunks = []
+        gef.session.heap_uaf_watchpoints = []
 
         ok("{} - Re-enabling hardware watchpoints".format(Color.colorify("Heap-Analysis", "yellow bold"),))
         gdb.execute("set can-use-hw-watchpoints 1")
@@ -10559,10 +10519,10 @@ class GefCommand(gdb.Command):
     def load(self, initial: bool = False) -> None:
         """Load all the commands and functions defined by GEF into GDB."""
         nb_missing = 0
-        self.commands = [(x._cmdline_, x) for x in __commands__]
+        self.commands = [(x._cmdline_, x) for x in __registered_commands__]
 
         # load all of the functions
-        for function_class_name in __functions__:
+        for function_class_name in __registered_functions__:
             self.loaded_functions.append(function_class_name())
 
         def is_loaded(x) -> bool:
@@ -10799,7 +10759,7 @@ class GefSaveCommand(gdb.Command):
 
         # save the aliases
         cfg.add_section("aliases")
-        for alias in __aliases__:
+        for alias in gef.session.aliases:
             cfg.set("aliases", alias._alias, alias._command)
 
         with open(GEF_RC, "w") as fd:
@@ -10939,7 +10899,7 @@ class GefAlias(gdb.Command):
         if not p:
             return
 
-        if any(x for x in __aliases__ if x._alias == alias):
+        if any(x for x in gef.session.aliases if x._alias == alias):
             return
 
         self._command = command
@@ -10955,7 +10915,7 @@ class GefAlias(gdb.Command):
                 self.complete = _instance.complete
 
         super().__init__(alias, command_class, completer_class=completer_class)
-        __aliases__.append(self)
+        gef.session.aliases.append(self)
         return
 
     def invoke(self, args, from_tty) -> None:
@@ -11016,13 +10976,13 @@ class AliasesRmCommand(AliasesCommand):
         return
 
     def do_invoke(self, argv: List) -> None:
-        global __aliases__
+        global gef
         if len(argv) != 1:
             self.usage()
             return
         try:
-            alias_to_remove = next(filter(lambda x: x._alias == argv[0], __aliases__))
-            __aliases__.remove(alias_to_remove)
+            alias_to_remove = next(filter(lambda x: x._alias == argv[0], gef.session.aliases))
+            gef.session.aliases.remove(alias_to_remove)
         except (ValueError, StopIteration):
             err("{0} not found in aliases.".format(argv[0]))
             return
@@ -11042,7 +11002,7 @@ class AliasesListCommand(AliasesCommand):
 
     def do_invoke(self, argv: List) -> None:
         ok("Aliases defined:")
-        for a in __aliases__:
+        for a in gef.session.aliases:
             gef_print("{:30s} {} {}".format(a._alias, RIGHT_ARROW, a._command))
         return
 
@@ -11209,7 +11169,7 @@ class GefMemoryManager(GefManager):
         """Return the mapped memory sections"""
         try:
             return list(self.__parse_procfs_maps())
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             return list(self.__parse_gdb_info_sections())
 
     def __parse_procfs_maps(self):
@@ -11217,7 +11177,7 @@ class GefMemoryManager(GefManager):
         def open_file(path, use_cache=False):
             """Attempt to open the given file, if remote debugging is active, download
             it first to the mirror in /tmp/."""
-            if is_remote_debug() and not __gef_qemu_mode__:
+            if is_remote_debug() and not gef.session.qemu_mode:
                 lpath = download_file(path, use_cache)
                 if not lpath:
                     raise IOError("cannot open remote path {:s}".format(path))
@@ -11386,6 +11346,20 @@ class GefSessionManager(GefManager):
     """Class managing the runtime properties of GEF. """
     def __init__(self) -> None:
         self.reset_caches()
+        self.remote = None
+        self.qemu_mode = False
+        self.convenience_vars_index = 0
+        self.heap_allocated_chunks = []
+        self.heap_freed_chunks = []
+        self.heap_uaf_watchpoints = []
+        self.pie_breakpoints = {}
+        self.pie_counter = 1
+        self.aliases = []
+        self.constants = {} # a dict for runtime constants (like 3rd party file paths)
+        # add a few extra runtime constants to avoid lookups
+        # those must be found, otherwise IOError will be raised
+        for constant in ("python3", "readelf", "file", "ps"):
+            self.constants[constant] = which(constant)
         return
 
     def reset_caches(self):
@@ -11396,12 +11370,6 @@ class GefSessionManager(GefManager):
         self.__pid = None
         self.__file = None
         self.__canary = None
-        self.context_hidden = False
-        self.constants = {} # a dict for runtime constants (like 3rd party file paths)
-        # add a few extra runtime constants to avoid lookups
-        # those must be found, otherwise IOError will be raised
-        for constant in ("python3", "readelf", "file", "ps"):
-            self.constants[constant] = which(constant)
         return
 
     @property
@@ -11437,7 +11405,7 @@ class GefSessionManager(GefManager):
     def pid(self) -> int:
         """Return the PID of the target process."""
         if not self.__pid:
-            pid = gdb.selected_inferior().pid if not __gef_qemu_mode__ else gdb.selected_thread().ptid[1]
+            pid = gdb.selected_inferior().pid if not gef.session.qemu_mode else gdb.selected_thread().ptid[1]
             if not pid:
                 raise RuntimeError("cannot retrieve PID for target process")
             self.__pid = pid
@@ -11471,6 +11439,16 @@ class GefSessionManager(GefManager):
         self.__canary = (canary, canary_location)
         return self.__canary
 
+class GefUiManager(GefManager):
+    """Class managing UI settings."""
+    def __init__(self):
+        self.redirect_fd = None
+        self.context_hidden = False
+        self.stream_buffer = None
+        self.highlight_table = {}
+        self.watches = {}
+        self.context_messages = []
+        return
 
 class Gef:
     """The GEF root class"""
@@ -11478,6 +11456,7 @@ class Gef:
         self.binary: Optional[Elf] = None
         self.arch = GenericArchitecture() # see PR #516, will be reset by `new_objfile_handler`
         self.config: Dict[str, Any] = GefSettingsManager()
+        self.ui = GefUiManager()
         return
 
     def reinitialize_managers(self) -> None:
@@ -11497,7 +11476,7 @@ class Gef:
         return
 
     def reset_caches(self):
-        for mgr in (self.memory, self.heap, self.session):
+        for mgr in (self.memory, self.heap, self.session, self.ui):
             mgr.reset_caches()
         return
 
@@ -11506,10 +11485,12 @@ if __name__ == "__main__":
     if sys.version_info[0] == 2:
         err("GEF has dropped Python2 support for GDB when it reached EOL on 2020/01/01.")
         err("If you require GEF for GDB+Python2, use https://github.com/hugsy/gef-legacy.")
+        exit(1)
 
-    elif GDB_VERSION < GDB_MIN_VERSION or PYTHON_VERSION < PYTHON_MIN_VERSION:
+    if GDB_VERSION < GDB_MIN_VERSION or PYTHON_VERSION < PYTHON_MIN_VERSION:
         err("You're using an old version of GDB. GEF will not work correctly. "
             "Consider updating to GDB {} or higher (with Python {} or higher).".format(".".join(map(str, GDB_MIN_VERSION)), ".".join(map(str, PYTHON_MIN_VERSION))))
+        exit(1)
 
     else:
         try:
@@ -11557,8 +11538,7 @@ if __name__ == "__main__":
                 pass
 
         # load GEF
-        gef = Gef()
-        gef.setup()
+        reset()
 
         # gdb events configuration
         gef_on_continue_hook(continue_handler)
