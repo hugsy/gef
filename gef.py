@@ -84,7 +84,7 @@ from functools import lru_cache
 from io import StringIO
 from types import ModuleType
 from urllib.request import urlopen
-from typing import List, Dict, Tuple, Optional, Sequence, Union, Generator, Any, TextIO, Iterator, Callable, \
+from typing import List, Dict, Tuple, Optional, Sequence, Union, Generator, Any, Iterator, Callable, \
     ByteString, Set
 
 
