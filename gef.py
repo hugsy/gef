@@ -4482,20 +4482,20 @@ class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
         return
 
     @abc.abstractproperty
-    def _cmdline_(self): pass
+    def _cmdline_(self) -> Optional[str]: pass
 
     @abc.abstractproperty
-    def _syntax_(self): pass
+    def _syntax_(self) -> Optional[str]: pass
 
     @abc.abstractproperty
-    def _example_(self): return ""
+    def _example_(self) -> str: return ""
 
     @abc.abstractmethod
-    def do_invoke(self, argv: List): pass
+    def do_invoke(self, argv: List) -> None: pass
 
-    def pre_load(self): pass
+    def pre_load(self) -> None: pass
 
-    def post_load(self): pass
+    def post_load(self) -> None: pass
 
     def __get_setting_name(self, name: str) -> str:
         def __sanitize_class_name(clsname):
@@ -10320,7 +10320,7 @@ class GenericFunction(gdb.Function, metaclass=abc.ABCMeta):
             return default
 
     @abc.abstractmethod
-    def do_invoke(self, args): pass
+    def do_invoke(self, args) -> None: pass
 
 
 @register_function
