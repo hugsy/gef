@@ -22,7 +22,8 @@ from helpers import (
     include_for_architectures,
     ARCH,
     is_64b,
-    _target
+    _target,
+    start_gdbserver, stop_gdbserver,
 )
 
 BIN_LS = Path("/bin/ls")
@@ -197,18 +198,6 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_gef_remote(self):
-        def start_gdbserver(exe=_target("default"), port=1234):
-            return subprocess.Popen(["gdbserver", f":{port}", exe],
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-        def stop_gdbserver(gdbserver):
-            """Stops the gdbserver and waits until it is terminated if it was
-            still running. Needed to make the used port available again."""
-            if gdbserver.poll() is None:
-                gdbserver.kill()
-                gdbserver.wait()
-            return
-
         before = ["gef-remote :1234"]
         gdbserver = start_gdbserver()
         res = gdb_start_silent_cmd("vmmap", before=before)
@@ -898,6 +887,14 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
         func = "parse_address('meh')"
         res = gdb_test_python_method(func)
         self.assertException(res)
+        return
+
+    def test_func_download_file(self):
+        gdbsrv = start_gdbserver(BIN_LS)
+        func = f"download_file('{str(BIN_LS)}')"
+        res = gdb_test_python_method(func)
+        stop_gdbserver(gdbsrv)
+        self.assertNoException(res)
         return
 
 

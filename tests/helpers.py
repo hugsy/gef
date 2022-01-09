@@ -159,3 +159,16 @@ def _target(name: str, extension: str = ".out") -> Path:
     if not target.exists():
         raise FileNotFoundError(f"Could not find file '{target}'")
     return target
+
+
+def start_gdbserver(exe=_target("default"), port=1234):
+    return subprocess.Popen(["gdbserver", f":{port}", exe],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def stop_gdbserver(gdbserver):
+    """Stops the gdbserver and waits until it is terminated if it was
+    still running. Needed to make the used port available again."""
+    if gdbserver.poll() is None:
+        gdbserver.kill()
+        gdbserver.wait()
+    return
