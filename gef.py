@@ -54,6 +54,7 @@ import argparse
 import binascii
 import codecs
 import collections
+import configparser
 import ctypes
 import enum
 import functools
@@ -76,10 +77,8 @@ import sys
 import tempfile
 import time
 import traceback
-import configparser
-import xmlrpc.client as xmlrpclib
 import warnings
-
+import xmlrpc.client as xmlrpclib
 from functools import lru_cache
 from io import StringIO
 from types import ModuleType
@@ -10962,7 +10961,7 @@ class GefAlias(gdb.Command):
         gdb.execute("{} {}".format(self._command, args), from_tty=from_tty)
         return
 
-    def lookup_command(self, cmd: str) -> Optional[Tuple[str, Any, Any]]:
+    def lookup_command(self, cmd: str) -> Optional[Tuple[str, Type, Any]]:
         global gef
         for _name, _class, _instance in gef.gdb.loaded_commands:
             if cmd == _name:
@@ -11129,7 +11128,7 @@ def __gef_prompt__(current_prompt) -> str:
 
 
 class GefManager(metaclass=abc.ABCMeta):
-    def reset_caches(self):
+    def reset_caches(self) -> None:
         """Reset the LRU-cached attributes"""
         for attr in dir(self):
             try:
@@ -11143,16 +11142,16 @@ class GefManager(metaclass=abc.ABCMeta):
 
 class GefMemoryManager(GefManager):
     """Class that manages memory access for gef."""
-    def __init__(self):
+    def __init__(self) -> None:
         self.reset_caches()
         return
 
-    def reset_caches(self):
+    def reset_caches(self) -> None:
         super().reset_caches()
         self.__maps = None
         return
 
-    def write(self, address: int, buffer: ByteString, length: int = 0x10):
+    def write(self, address: int, buffer: ByteString, length: int = 0x10):  # -> memoryview object
         """Write `buffer` at address `address`."""
         return gdb.selected_inferior().write_memory(address, buffer, length)
 
@@ -11283,7 +11282,7 @@ class GefHeapManager(GefManager):
         self.reset_caches()
         return
 
-    def reset_caches(self):
+    def reset_caches(self) -> None:
         self.__libc_main_arena: Optional[GlibcArena] = None
         self.__libc_selected_arena: Optional[GlibcArena] = None
         self.__heap_base = None
@@ -11354,7 +11353,7 @@ class GefSettingsManager(dict):
     GefSettings acts as a dict where the global settings are stored and can be read, written or deleted as any other dict.
     For instance, to read a specific command setting: `gef.config[mycommand.mysetting]`
     """
-    def __getitem__(self, name: str):
+    def __getitem__(self, name: str) -> Any:
         try:
             return dict.__getitem__(self, name).value
         except KeyError:
@@ -11379,7 +11378,7 @@ class GefSettingsManager(dict):
         dict.__setitem__(self, name)
         return
 
-    def raw_entry(self, name: str):
+    def raw_entry(self, name: str) -> Any:
         return dict.__getitem__(self, name)
 
 class GefSessionManager(GefManager):
@@ -11402,7 +11401,7 @@ class GefSessionManager(GefManager):
             self.constants[constant] = which(constant)
         return
 
-    def reset_caches(self):
+    def reset_caches(self) -> None:
         super().reset_caches()
         self.__auxiliary_vector = None
         self.__pagesize = None
@@ -11519,7 +11518,7 @@ class Gef:
         gdb.execute("save gdb-index {}".format(tempdir))
         return
 
-    def reset_caches(self):
+    def reset_caches(self) -> None:
         """Recursively clean the cache of all the managers. Avoid calling this function directly, using `reset-cache`
         is preferred"""
         for mgr in (self.memory, self.heap, self.session):
