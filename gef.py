@@ -5257,12 +5257,12 @@ class PCustomCommand(GenericCommand):
         structname = structname.split(".", 1)[0] if "." in structname else structname
         return modname, structname
 
-    def deserialize(self, struct, data: bytes) -> None:
+    def deserialize(self, struct: ctypes.Structure, data: bytes) -> None:
         length = min(len(data), ctypes.sizeof(struct))
         ctypes.memmove(ctypes.addressof(struct), data, length)
         return
 
-    def get_structure_class(self, modname: str, classname: str) -> Tuple[Any, Any]:
+    def get_structure_class(self, modname: str, classname: str) -> Tuple[Type, ctypes.Structure]:
         """
         Returns a tuple of (class, instance) if modname!classname exists
         """
@@ -5786,7 +5786,7 @@ class IdaInteractCommand(GenericCommand):
             gef_print(self.sock.system.methodHelp(m))
         return
 
-    def import_structures(self, structs) -> None:
+    def import_structures(self, structs: Dict[str, List[Tuple[int, str, int]]]) -> None:
         if self.version[0] != "IDA Pro":
             return
 
