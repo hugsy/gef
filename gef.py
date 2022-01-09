@@ -133,7 +133,7 @@ PYTHON_VERSION                         = sys.version_info[0:2]
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
 
-GEF_RC                                 = os.getenv("GEF_RC") or os.path.join(os.getenv("HOME"), ".gef.rc")
+GEF_RC                                 = pathlib.Path(os.getenv("GEF_RC")).absolute() if os.getenv("GEF_RC") else pathlib.Path().home() / ".gef.rc"
 GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
 GEF_MAX_STRING_LENGTH                  = 50
 
@@ -153,10 +153,10 @@ GEF_PROMPT_ON                          = "\001\033[1;32m\002{0:s}\001\033[0m\002
 GEF_PROMPT_OFF                         = "\001\033[1;31m\002{0:s}\001\033[0m\002".format(GEF_PROMPT)
 
 
-gef                                    = None
-__registered_commands__                = []
-__registered_functions__               = []
-__registered_architectures__           = {}
+gef : "Gef"                                                           = None
+__registered_commands__ : List["GenericCommand"]                      = []
+__registered_functions__ : List["GenericFunction"]                    = []
+__registered_architectures__ : Dict[Union[int, str], "Architecture"]  = {}
 
 
 def reset_all_caches() -> None:
@@ -180,7 +180,6 @@ def reset() -> None:
         arch = gef.arch
         del gef
 
-    gef = None
     gef = Gef()
     gef.setup()
 
@@ -10799,10 +10798,10 @@ class GefSaveCommand(gdb.Command):
         for alias in gef.session.aliases:
             cfg.set("aliases", alias._alias, alias._command)
 
-        with open(GEF_RC, "w") as fd:
+        with GEF_RC.open("w") as fd:
             cfg.write(fd)
 
-        ok("Configuration saved to '{:s}'".format(GEF_RC))
+        ok("Configuration saved to '{:s}'".format(str(GEF_RC)))
         return
 
 
@@ -10853,7 +10852,7 @@ class GefRestoreCommand(gdb.Command):
         gef_makedirs(gef.config["gef.tempdir"])
 
         if not quiet:
-            ok("Configuration from '{:s}' restored".format(Color.colorify(GEF_RC, "bold blue")))
+            ok("Configuration from '{:s}' restored".format(Color.colorify(str(GEF_RC), "bold blue")))
         return
 
 
@@ -11494,7 +11493,7 @@ class Gef:
     memory, settings, etc.)."""
     def __init__(self) -> None:
         self.binary: Optional[Elf] = None
-        self.arch = GenericArchitecture() # see PR #516, will be reset by `new_objfile_handler`
+        self.arch: Architecture = GenericArchitecture() # see PR #516, will be reset by `new_objfile_handler`
         self.config: Dict[str, Any] = GefSettingsManager()
         self.ui = GefUiManager()
         return
