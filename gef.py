@@ -2121,29 +2121,29 @@ class Architecture(metaclass=abc.ABCMeta):
     def fp(self):
         return self.register("$fp")
 
-    __ptrsize = None
+    _ptrsize = None
     @property
     def ptrsize(self):
-        if not self.__ptrsize:
+        if not self._ptrsize:
             res = cached_lookup_type("size_t")
             if res is not None:
-                self.__ptrsize = res.sizeof
+                self._ptrsize = res.sizeof
             else:
-                self.__ptrsize = gdb.parse_and_eval("$pc").type.sizeof
-        return self.__ptrsize
+                self._ptrsize = gdb.parse_and_eval("$pc").type.sizeof
+        return self._ptrsize
 
-    __endianness = None
+    _endianness = None
     @property
     def endianness(self) -> Endianness:
-        if not self.__endianness:
+        if not self._endianness:
             output = gdb.execute("show endian", to_string=True).strip().lower()
             if "little endian" in output:
-                self.__endianness = Endianness.LITTLE_ENDIAN
+                self._endianness = Endianness.LITTLE_ENDIAN
             elif "big endian" in output:
-                self.__endianness = Endianness.BIG_ENDIAN
+                self._endianness = Endianness.BIG_ENDIAN
             else:
                 raise OSError(f"No valid endianess found in '{output}'")
-        return self.__endianness
+        return self._endianness
 
     def get_ith_parameter(self, i, in_func=True):
         """Retrieves the correct parameter used for the current function call."""
@@ -2330,9 +2330,7 @@ class ARM(Architecture):
 
     @property
     def ptrsize(self):
-        if not self.__ptrsize:
-            self.__ptrsize = 2 if self.is_thumb() else 4
-        return self.__ptrsize
+        return 2 if self.is_thumb() else 4
 
     def is_call(self, insn):
         mnemo = insn.mnemonic
