@@ -2306,7 +2306,7 @@ class GenericArchitecture(Architecture):
 class RISCV(Architecture):
     arch = "RISCV"
     mode = "RISCV"
-    aliases = ("RISCV",)
+    aliases = ("RISCV", Elf.Abi.RISCV)
 
     all_registers = ["$zero", "$ra", "$sp", "$gp", "$tp", "$t0", "$t1",
                      "$t2", "$fp", "$s1", "$a0", "$a1", "$a2", "$a3",
