@@ -677,7 +677,7 @@ class Section:
         # when in a `gef-remote` session, realpath returns the path to the binary on the local disk, not remote
         return self.path if gef.session.remote is None else "/tmp/gef/{:d}/{:s}".format(gef.session.remote, self.path)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Section({self.page_start:#x}, {self.page_end:#x}, {str(self.permission)})"
 
 
@@ -1021,7 +1021,6 @@ class MallocStateStruct:
     """GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
 
     def __init__(self, addr: str) -> None:
-        # TODO: parse_address returns int whereas search_for_main_arena returns string
         try:
             self.__addr = parse_address("&{}".format(addr))
         except gdb.error:
@@ -1564,7 +1563,7 @@ def show_last_exception() -> None:
         fname = os.path.expanduser(os.path.expandvars(fname))
         with open(fname, "r") as f:
             __data = f.readlines()
-        return __data[idx - 1] if 0 <= idx < len(__data) else ""
+        return __data[idx - 1] if 0 < idx < len(__data) else ""
 
     gef_print("")
     exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -2066,41 +2065,41 @@ class Architecture(metaclass=abc.ABCMeta):
     """Generic metaclass for the architecture supported by GEF."""
 
     @abc.abstractproperty
-    def all_registers(self):                       pass
+    def all_registers(self):                                            pass
     @abc.abstractproperty
-    def instruction_length(self) -> Optional[int]:                  pass
+    def instruction_length(self) -> Optional[int]:                      pass
     @abc.abstractproperty
-    def nop_insn(self):                            pass
+    def nop_insn(self):                                                 pass
     @abc.abstractproperty
-    def return_register(self):                     pass
+    def return_register(self):                                          pass
     @abc.abstractproperty
-    def flag_register(self):                       pass
+    def flag_register(self):                                            pass
     @abc.abstractproperty
-    def flags_table(self):                         pass
+    def flags_table(self):                                              pass
     @abc.abstractproperty
-    def function_parameters(self) -> List[str]:                 pass
+    def function_parameters(self) -> List[str]:                         pass
     @abc.abstractmethod
-    def flag_register_to_human(self, val: Optional[int] = None) -> str:    pass
+    def flag_register_to_human(self, val: Optional[int] = None) -> str: pass
     @abc.abstractmethod
-    def is_call(self, insn) -> bool:                       pass
+    def is_call(self, insn) -> bool:                                    pass
     @abc.abstractmethod
-    def is_ret(self, insn) -> Optional[bool]:                        pass
+    def is_ret(self, insn) -> Optional[bool]:                           pass
     @abc.abstractmethod
-    def is_conditional_branch(self, insn) -> bool:         pass
+    def is_conditional_branch(self, insn) -> bool:                      pass
     @abc.abstractmethod
-    def is_branch_taken(self, insn) -> Tuple[bool, str]:   pass
+    def is_branch_taken(self, insn) -> Tuple[bool, str]:                pass
     @abc.abstractmethod
-    def get_ra(self, insn, frame) -> Optional[int]:                  pass
+    def get_ra(self, insn, frame) -> Optional[int]:                     pass
 
     special_registers = []
 
-    def __get_register(self, regname):
+    def __get_register(self, regname: str) -> Optional[int]:
         """Return a register's value."""
         curframe = gdb.selected_frame()
         key = curframe.pc() ^ int(curframe.read_register('sp')) # todo: check when/if gdb.Frame implements `level()`
         return self.__get_register_for_selected_frame(regname, key)
 
-    def __get_register_for_selected_frame(self, regname, hash_key):
+    def __get_register_for_selected_frame(self, regname: str, hash_key) -> Optional[int]:
         # 1st chance
         try:
             return parse_address(regname)
@@ -2116,11 +2115,11 @@ class Architecture(metaclass=abc.ABCMeta):
             pass
         return None
 
-    def register(self, name):
+    def register(self, name: str) -> Optional[int]:
         return self.__get_register(name)
 
     @property
-    def registers(self):
+    def registers(self) -> Generator[str, None, None]:
         yield from self.all_registers
 
     @property
@@ -2180,11 +2179,11 @@ class GenericArchitecture(Architecture):
     flag_register = None
     flags_table = None
     def flag_register_to_human(self, val: Optional[int] = None) -> Optional[str]: return ""
-    def is_call(self, insn) -> bool:                                 return False
-    def is_ret(self, insn) -> bool:                                  return False
-    def is_conditional_branch(self, insn) -> bool:                   return False
-    def is_branch_taken(self, insn) -> Tuple[bool, str]:             return False, ""
-    def get_ra(self, insn, frame) -> Optional[int]:       return 0
+    def is_call(self, insn) -> bool:                                              return False
+    def is_ret(self, insn) -> bool:                                               return False
+    def is_conditional_branch(self, insn) -> bool:                                return False
+    def is_branch_taken(self, insn) -> Tuple[bool, str]:                          return False, ""
+    def get_ra(self, insn, frame) -> Optional[int]:                               return 0
 
 
 class RISCV(Architecture):
@@ -2319,7 +2318,7 @@ class ARM(Architecture):
 
     def is_thumb(self) -> bool:
         """Determine if the machine is currently in THUMB mode."""
-        return is_alive() and gef.arch.register(self.flag_register) & (1 << 5)  # TODO: get_register can return None
+        return is_alive() and gef.arch.register(self.flag_register) & (1 << 5)
 
     @property
     def pc(self) -> Optional[int]:
@@ -2358,7 +2357,7 @@ class ARM(Architecture):
         # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
         if val is None:
             reg = self.flag_register
-            val = gef.arch.register(reg)  # TODO: val can be None here
+            val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
     def is_conditional_branch(self, insn) -> bool:
@@ -2403,12 +2402,12 @@ class ARM(Architecture):
         if self.is_ret(insn):
             # If it's a pop, we have to peek into the stack, otherwise use lr
             if insn.mnemonic == "pop":
-                ra_addr = gef.arch.sp + (len(insn.operands)-1) * self.ptrsize # TODO: sp can be None
-                ra = to_unsigned_long(dereference(ra_addr)) # TODO: dereference can return None
+                ra_addr = gef.arch.sp + (len(insn.operands)-1) * self.ptrsize
+                ra = to_unsigned_long(dereference(ra_addr))
             elif insn.mnemonic == "ldr":
-                return to_unsigned_long(dereference(gef.arch.sp)) # TODO: sp or deref can return None
+                return to_unsigned_long(dereference(gef.arch.sp))
             else:  # 'bx lr' or 'add pc, lr, #0'
-                return gef.arch.register("$lr") # TODO: get_register can return None
+                return gef.arch.register("$lr")
         elif frame.older():
             ra = frame.older().pc()
         return ra
@@ -2464,7 +2463,7 @@ class AARCH64(ARM):
         # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
         reg = self.flag_register
         if not val:
-            val = gef.arch.register(reg) # TODO: val can still be None
+            val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
     @classmethod
@@ -2561,7 +2560,7 @@ class X86(Architecture):
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         reg = self.flag_register
         if not val:
-            val = gef.arch.register(reg)  # TODO: val can still be None
+            val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn) -> bool:
@@ -2734,7 +2733,7 @@ class PowerPC(Architecture):
         # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
         if not val:
             reg = self.flag_register
-            val = gef.arch.register(reg) # TODO: val can still be None
+            val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn) -> bool:
@@ -2833,7 +2832,7 @@ class SPARC(Architecture):
         # http://www.gaisler.com/doc/sparcv8.pdf
         reg = self.flag_register
         if not val:
-            val = gef.arch.register(reg) # TODO: val can still be None
+            val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
     def is_call(self, insn) -> bool:
@@ -2878,9 +2877,9 @@ class SPARC(Architecture):
     def get_ra(self, insn, frame) -> Optional[int]:
         ra = None
         if self.is_ret(insn):
-            ra = gef.arch.register("$o7") # TODO: can be None
+            ra = gef.arch.register("$o7")
         elif frame.older():
-            ra = frame.older().pc() # TODO: can be None?
+            ra = frame.older().pc()
         return ra
 
     @classmethod
@@ -3008,9 +3007,9 @@ class MIPS(Architecture):
     def get_ra(self, insn, frame) -> Optional[int]:
         ra = None
         if self.is_ret(insn):
-            ra = gef.arch.register("$ra") # TODO: get_register can be None
+            ra = gef.arch.register("$ra")
         elif frame.older():
-            ra = frame.older().pc() # TODO: pc can be None?
+            ra = frame.older().pc()
         return ra
 
     @classmethod
@@ -3149,7 +3148,7 @@ def get_filepath() -> Optional[str]:
         return get_path_from_info_proc()
 
 
-def download_file(target: str, use_cache: bool = False, local_name: str = None) -> Optional[str]:
+def download_file(target: str, use_cache: bool = False, local_name: Optional[str] = None) -> Optional[str]:
     """Download filename `target` inside the mirror tree inside the gef.config["gef.tempdir"].
     The tree architecture must be gef.config["gef.tempdir"]/gef/<local_pid>/<remote_filepath>.
     This allow a "chroot-like" tree format."""
@@ -3567,7 +3566,7 @@ def get_elf_headers(filename: Optional[str] = None):  # -> Optional[Elf]
     """Return an Elf object with info from `filename`. If not provided, will return
     the currently debugged file."""
     if filename is None:
-        filename = get_filepath()  # TODO: filename can still be None
+        filename = get_filepath()
 
     if filename.startswith("target:"):
         warn("Your file is remote, you should try using `gef-remote` instead")
