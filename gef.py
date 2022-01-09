@@ -83,9 +83,9 @@ import warnings
 from functools import lru_cache
 from io import StringIO
 from types import ModuleType
+from typing import (List, Dict, Tuple, Optional, Sequence, Union, Generator, Any, Iterator,
+                    Callable, ByteString, Set, Type)
 from urllib.request import urlopen
-from typing import List, Dict, Tuple, Optional, Sequence, Union, Generator, Any, Iterator, Callable, \
-    ByteString, Set
 
 
 def http_get(url: str) -> Optional[bytes]:
@@ -10540,18 +10540,21 @@ class GefCommand(gdb.Command):
 
     def add_context_pane(self, pane_name: str, display_pane_function: Callable, pane_title_function: Callable) -> None:
         """Add a new context pane to ContextCommand."""
-        for _, _, class_obj in self.loaded_commands:
-            if isinstance(class_obj, ContextCommand):
-                context_obj = class_obj
+        for _, _, class_instance in self.loaded_commands:
+            if isinstance(class_instance, ContextCommand):
+                context = class_instance
                 break
+        else:
+            err("Cannot find ContextCommand")
+            return
 
         # assure users can toggle the new context
         corrected_settings_name = pane_name.replace(" ", "_")
-        layout_settings = context_obj.get_setting("layout")
-        context_obj.update_setting("layout", "{} {}".format(layout_settings, corrected_settings_name))
+        layout_settings = context.get_setting("layout")
+        context.update_setting("layout", "{} {}".format(layout_settings, corrected_settings_name))
 
         # overload the printing of pane title
-        context_obj.layout_mapping[corrected_settings_name] = (display_pane_function, pane_title_function)
+        context.layout_mapping[corrected_settings_name] = (display_pane_function, pane_title_function)
 
     def load(self, initial: bool = False) -> None:
         """Load all the commands and functions defined by GEF into GDB."""
@@ -10565,15 +10568,15 @@ class GefCommand(gdb.Command):
         def is_loaded(x) -> bool:
             return any(u for u in self.loaded_commands if x == u[0])
 
-        for cmd, class_name in self.commands:
+        for cmd, class_obj in self.commands:
             if is_loaded(cmd):
                 continue
 
             try:
-                self.loaded_commands.append((cmd, class_name, class_name()))
+                self.loaded_commands.append((cmd, class_obj, class_obj()))
 
-                if hasattr(class_name, "_aliases_"):
-                    aliases = getattr(class_name, "_aliases_")
+                if hasattr(class_obj, "_aliases_"):
+                    aliases = getattr(class_obj, "_aliases_")
                     for alias in aliases:
                         GefAlias(alias, cmd)
 
@@ -10620,10 +10623,10 @@ class GefHelpCommand(gdb.Command):
     def invoke(self, args, from_tty) -> None:
         self.dont_repeat()
         gef_print(titlify("GEF - GDB Enhanced Features"))
-        gef_print(self.__doc__)
+        gef_print(self.__doc__ or "")
         return
 
-    def generate_help(self, commands: List[Tuple[str, Any, Any]]) -> None:
+    def generate_help(self, commands: List[Tuple[str, Type, Any]]) -> None:
         """Generate builtin commands documentation."""
         for command in commands:
             self.add_command_to_doc(command)
@@ -10631,13 +10634,13 @@ class GefHelpCommand(gdb.Command):
 
     def add_command_to_doc(self, command: Tuple[str, Any, Any]) -> None:
         """Add command to GEF documentation."""
-        cmd, class_name, _  = command
+        cmd, class_obj, _  = command
         if " " in cmd:
             # do not print subcommands in gef help
             return
-        doc = getattr(class_name, "__doc__", "").lstrip()
+        doc = getattr(class_obj, "__doc__", "").lstrip()
         doc = "\n                         ".join(doc.split("\n"))
-        aliases = " (alias: {:s})".format(", ".join(class_name._aliases_)) if hasattr(class_name, "_aliases_") else ""
+        aliases = " (alias: {:s})".format(", ".join(class_obj._aliases_)) if hasattr(class_obj, "_aliases_") else ""
         msg = "{cmd:<25s} -- {help:s}{aliases:s}".format(cmd=cmd, help=doc, aliases=aliases)
         self.docs.append(msg)
         return
@@ -11476,6 +11479,7 @@ class GefSessionManager(GefManager):
         self.__canary = (canary, canary_location)
         return self.__canary
 
+
 class GefUiManager(GefManager):
     """Class managing UI settings."""
     def __init__(self):
@@ -11486,6 +11490,7 @@ class GefUiManager(GefManager):
         self.watches = {}
         self.context_messages = []
         return
+
 
 class Gef:
     """The GEF root class, which serves as a base classe for all the attributes for the debugging session (architecture,
