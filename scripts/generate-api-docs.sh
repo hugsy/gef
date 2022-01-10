@@ -30,13 +30,14 @@ generate_doc()
 
 fixup_doc()
 {
+    # rename
     mv ${output_path}/__main__.md ${output_path}/gef.md
-    sed -i 's?# <kbd>module</kbd> `__main__`?# <kbd>module</kbd> `GEF`?' ${output_path}/gef.md
-    sed -i 's?<a href="../../~/code/gef/gef.py">?<a href="https://github.com/hugsy/gef/blob/master/gef.py">?g' ${output_path}/gef.md
 
-    # for item in ${output_path}/__main__.*.md; do
-    #     mv ${item} ${item/__main__./gef.}
-    # done
+    # replace the title
+    sed -i 's?# <kbd>module</kbd> `__main__`?# <kbd>module</kbd> `GEF`?' ${output_path}/gef.md
+
+    # fix the hrefs
+    sed -i -ze 's!<a href="\([^"]*\)[^`]*`\([^`]*\)`!<a href="https://cs.github.com/hugsy/gef?q=\2"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>\n\n## <kbd>function</kbd> `\2`!g' ./docs/api/gef.md
 }
 
 check
