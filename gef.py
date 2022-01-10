@@ -367,6 +367,10 @@ def deprecated(solution: str = "") -> Callable:
                 msg += solution
             warn(msg)
             return f(*args, **kwargs)
+
+        if not wrapper.__doc__:
+            wrapper.__doc__ = ""
+        wrapper.__doc__ += f"\r\n`{f.__name__}` is **DEPRECATED** and will be removed in the future.\r\n{solution}"
         return wrapper
     return decorator
 

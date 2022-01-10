@@ -189,7 +189,7 @@ Decorator to add a warning when a command is obsolete and will be removed.
 disable_redirect_output() → None
 ```
 
-Disable the output redirection, if any. 
+Disable the output redirection, if any. `disable_redirect_output` is **DEPRECATED** and will be removed in the future. Use `RedirectOutputContext()` context manager 
 
 
 ---
@@ -219,7 +219,7 @@ Download filename `remote_path` inside the mirror tree inside the gef.config["ge
 enable_redirect_output(to_file: str = '/dev/null') → None
 ```
 
-Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`. 
+Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`. `enable_redirect_output` is **DEPRECATED** and will be removed in the future. Use `RedirectOutputContext()` context manager 
 
 
 ---
@@ -232,9 +232,7 @@ Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects 
 endian_str() → str
 ```
 
-
-
-
+`endian_str` is **DEPRECATED** and will be removed in the future. Use `str(gef.arch.endianness)` instead 
 
 
 ---
@@ -468,9 +466,7 @@ gef_get_pie_breakpoint(num: int)
 gef_getpagesize() → int
 ```
 
-
-
-
+`gef_getpagesize` is **DEPRECATED** and will be removed in the future. Use `gef.session.pagesize` 
 
 
 ---
@@ -741,9 +737,7 @@ Returns a sanitized version as string of the bytes list given in input.
 gef_read_canary() → Union[Tuple[int, int], NoneType]
 ```
 
-
-
-
+`gef_read_canary` is **DEPRECATED** and will be removed in the future. Use `gef.session.canary` 
 
 
 ---
@@ -789,9 +783,7 @@ get_capstone_arch(
 get_filename() → str
 ```
 
-
-
-
+`get_filename` is **DEPRECATED** and will be removed in the future. Use `gef.session.file.name` 
 
 
 ---
@@ -817,9 +809,7 @@ Attempt to get the length of the raw bytes of a function.
 get_gef_setting(name: str) → Any
 ```
 
-
-
-
+`get_gef_setting` is **DEPRECATED** and will be removed in the future. Use `gef.config[key]` 
 
 
 ---
@@ -869,9 +859,7 @@ Retrieves architecture and mode from the current context.
 get_glibc_arena()
 ```
 
-
-
-
+`get_glibc_arena` is **DEPRECATED** and will be removed in the future. Use `gef.heap.main_arena` 
 
 
 ---
@@ -904,7 +892,7 @@ get_keystone_arch(
 get_memory_alignment(in_bits: bool = False) → int
 ```
 
-Try to determine the size of a pointer on this system. First, try to parse it out of the ELF header. Next, use the size of `size_t`. Finally, try the size of $pc. If `in_bits` is set to True, the result is returned in bits, otherwise in bytes. 
+Try to determine the size of a pointer on this system.  First, try to parse it out of the ELF header.  Next, use the size of `size_t`.  Finally, try the size of $pc.  If `in_bits` is set to True, the result is returned in bits, otherwise in  bytes. `get_memory_alignment` is **DEPRECATED** and will be removed in the future. Use `gef.arch.ptrsize` instead 
 
 
 ---
@@ -917,9 +905,7 @@ Try to determine the size of a pointer on this system. First, try to parse it ou
 get_os() → str
 ```
 
-
-
-
+`get_os` is **DEPRECATED** and will be removed in the future. Use `gef.session.os` 
 
 
 ---
@@ -947,9 +933,7 @@ get_path_from_info_proc()
 get_pid() → int
 ```
 
-
-
-
+`get_pid` is **DEPRECATED** and will be removed in the future. Use `gef.session.pid` 
 
 
 ---
@@ -962,9 +946,7 @@ get_pid() → int
 get_process_maps()
 ```
 
-
-
-
+`get_process_maps` is **DEPRECATED** and will be removed in the future. Use `gef.memory.maps` 
 
 
 ---
@@ -977,9 +959,7 @@ get_process_maps()
 get_register(regname)
 ```
 
-
-
-
+`get_register` is **DEPRECATED** and will be removed in the future. Use `gef.arch.register(regname)` 
 
 
 ---
@@ -1172,9 +1152,7 @@ Helper function to determine if the buffer pointed by `address` is an ASCII stri
 is_big_endian() → bool
 ```
 
-
-
-
+`is_big_endian` is **DEPRECATED** and will be removed in the future. Prefer `gef.arch.endianness == Endianness.BIG_ENDIAN` 
 
 
 ---
@@ -1228,9 +1206,7 @@ is_in_x86_kernel(address: int) → bool
 is_little_endian() → bool
 ```
 
-
-
-
+`is_little_endian` is **DEPRECATED** and will be removed in the future. gef.arch.endianness == Endianness.LITTLE_ENDIAN 
 
 
 ---
@@ -1682,9 +1658,7 @@ Sets the current architecture. If an arch is explicitly specified, use that one,
 set_gef_setting(name: str, value: Any) → None
 ```
 
-
-
-
+`set_gef_setting` is **DEPRECATED** and will be removed in the future. Use `gef.config[key] = value` 
 
 
 ---
@@ -2347,9 +2321,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2361,9 +2333,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2389,9 +2359,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2403,9 +2371,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2581,9 +2547,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2595,9 +2559,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2623,9 +2585,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2637,9 +2597,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2738,9 +2696,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2752,9 +2708,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2780,9 +2734,7 @@ do_invoke(argv) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2794,9 +2746,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2895,9 +2845,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2909,9 +2857,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2937,9 +2883,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -2951,9 +2895,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3052,9 +2994,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3066,9 +3006,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3094,9 +3032,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3108,9 +3044,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3379,9 +3313,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3393,9 +3325,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3421,9 +3351,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3435,9 +3363,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3613,9 +3539,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3627,9 +3551,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3655,9 +3577,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3669,9 +3589,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3770,9 +3688,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3798,9 +3714,7 @@ capstone_analyze_pc(insn, nb_insn: int) → Tuple[bool, str]
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3826,9 +3740,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3840,9 +3752,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3941,9 +3851,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3955,9 +3863,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -3997,9 +3903,7 @@ get_fd_from_result(res: str) → int
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4011,9 +3915,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4147,9 +4049,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4161,9 +4061,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4189,9 +4087,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4217,9 +4113,7 @@ get_stub_by_arch(addr: int, size: int, perm) → Union[str, bytearray, NoneType]
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4323,9 +4217,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4337,9 +4229,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4365,9 +4255,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4379,9 +4267,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4683,9 +4569,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4851,9 +4735,7 @@ context_trace() → None
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4907,9 +4789,7 @@ get_pc_context_info(pc: int, line: str) → str
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -4921,9 +4801,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5092,9 +4970,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5106,9 +4982,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5134,9 +5008,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5148,9 +5020,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5263,9 +5133,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5277,9 +5145,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5305,9 +5171,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5319,9 +5183,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5484,9 +5346,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5498,9 +5358,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5526,9 +5384,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5540,9 +5396,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5685,9 +5539,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5699,9 +5551,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5727,9 +5577,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5741,9 +5589,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5870,9 +5716,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5884,9 +5728,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5912,9 +5754,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -5926,9 +5766,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -6062,9 +5900,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -6076,9 +5912,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -6104,9 +5938,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -6118,9 +5950,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -6552,9 +6382,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -6566,9 +6394,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -6594,9 +6420,7 @@ do_invoke(argv) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -6608,9 +6432,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -7295,9 +7117,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -7309,9 +7129,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -7337,9 +7155,7 @@ do_invoke(args: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -7351,9 +7167,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -7708,9 +7522,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -7722,9 +7534,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -7750,9 +7560,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -7764,9 +7572,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8322,9 +8128,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8336,9 +8140,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8364,9 +8166,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8378,9 +8178,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8479,9 +8277,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8493,9 +8289,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8521,9 +8315,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8535,9 +8327,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8650,9 +8440,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8664,9 +8452,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8692,9 +8478,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8706,9 +8490,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8807,9 +8589,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8821,9 +8601,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8886,9 +8664,7 @@ dump_chunks_heap(
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -8900,9 +8676,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9001,9 +8775,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9015,9 +8787,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9043,9 +8813,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9057,9 +8825,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9158,9 +8924,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9172,9 +8936,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9200,9 +8962,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9214,9 +8974,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9408,9 +9166,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9422,9 +9178,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9450,9 +9204,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9464,9 +9216,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9565,9 +9315,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9579,9 +9327,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9607,9 +9353,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9621,9 +9365,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9722,9 +9464,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9736,9 +9476,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9764,9 +9502,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9778,9 +9514,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9879,9 +9613,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9905,9 +9637,7 @@ Check the validity, dedup, and return all valid tids.
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9945,9 +9675,7 @@ Return the location of the current thread's tcache.
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -9959,9 +9687,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10075,9 +9801,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10089,9 +9813,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10117,9 +9839,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10131,9 +9851,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10295,9 +10013,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10309,9 +10025,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10351,9 +10065,7 @@ get_jmp_slots(readelf: str, filename: str) → List[str]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10365,9 +10077,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10470,9 +10180,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10498,9 +10206,7 @@ clean(_) → None
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10540,9 +10246,7 @@ dump_tracked_allocations() → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10554,9 +10258,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10732,9 +10434,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10746,9 +10446,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10774,9 +10472,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10788,9 +10484,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10889,9 +10583,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10903,9 +10595,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10931,9 +10621,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -10945,9 +10633,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11046,9 +10732,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11060,9 +10744,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11088,9 +10770,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11102,9 +10782,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11203,9 +10881,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11217,9 +10893,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11245,9 +10919,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11259,9 +10931,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11360,9 +11030,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11374,9 +11042,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11402,9 +11068,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11416,9 +11080,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11517,9 +11179,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11531,9 +11191,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11559,9 +11217,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11573,9 +11229,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11674,9 +11328,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11688,9 +11340,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11716,9 +11366,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11730,9 +11378,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11831,9 +11477,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11845,9 +11489,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11873,9 +11515,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11887,9 +11527,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -11988,9 +11626,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12002,9 +11638,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12030,9 +11664,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12044,9 +11676,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12159,9 +11789,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12173,9 +11801,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12201,9 +11827,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12215,9 +11839,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12316,9 +11938,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12342,9 +11962,7 @@ Connect to the XML-RPC service.
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12370,9 +11988,7 @@ disconnect() → None
 do_invoke(argv: List) → None
 ```
 
-
-
-
+`do_invoke` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12384,9 +12000,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12398,9 +12012,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12574,9 +12186,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12588,9 +12198,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12616,9 +12224,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -12630,9 +12236,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13292,9 +12896,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13306,9 +12908,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13334,9 +12934,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13348,9 +12946,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13449,9 +13045,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13463,9 +13057,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13491,9 +13083,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13505,9 +13095,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13606,9 +13194,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13620,9 +13206,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13648,9 +13232,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13662,9 +13244,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13763,9 +13343,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13777,9 +13355,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13805,9 +13381,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13819,9 +13393,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13920,9 +13492,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13934,9 +13504,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13962,9 +13530,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -13976,9 +13542,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14112,9 +13676,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14126,9 +13688,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14154,9 +13714,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14168,9 +13726,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14269,9 +13825,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14283,9 +13837,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14325,9 +13877,7 @@ get_insn_size(addr: int) → int
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14339,9 +13889,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14454,9 +14002,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14487,9 +14033,7 @@ apply_structure_to_address(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14623,9 +14167,7 @@ get_pcustom_filepath_for_structure(structure_name: str) → str
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14652,9 +14194,7 @@ Returns a tuple of (class, instance) if modname!classname exists
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14779,9 +14319,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14812,9 +14350,7 @@ apply_structure_to_address(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14948,9 +14484,7 @@ get_pcustom_filepath_for_structure(structure_name: str) → str
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -14977,9 +14511,7 @@ Returns a tuple of (class, instance) if modname!classname exists
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15104,9 +14636,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15137,9 +14667,7 @@ apply_structure_to_address(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15273,9 +14801,7 @@ get_pcustom_filepath_for_structure(structure_name: str) → str
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15302,9 +14828,7 @@ Returns a tuple of (class, instance) if modname!classname exists
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15429,9 +14953,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15462,9 +14984,7 @@ apply_structure_to_address(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15598,9 +15118,7 @@ get_pcustom_filepath_for_structure(structure_name: str) → str
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15627,9 +15145,7 @@ Returns a tuple of (class, instance) if modname!classname exists
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15754,9 +15270,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15768,9 +15282,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15796,9 +15308,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15810,9 +15320,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15911,9 +15419,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15925,9 +15431,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15953,9 +15457,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -15967,9 +15469,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16068,9 +15568,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16082,9 +15580,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16110,9 +15606,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16124,9 +15618,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16225,9 +15717,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16239,9 +15729,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16267,9 +15755,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16281,9 +15767,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16382,9 +15866,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16396,9 +15878,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16424,9 +15904,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16438,9 +15916,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16539,9 +16015,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16553,9 +16027,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16581,9 +16053,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16595,9 +16065,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16696,9 +16164,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16710,9 +16176,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16738,9 +16202,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16752,9 +16214,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16853,9 +16313,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16867,9 +16325,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16895,9 +16351,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -16909,9 +16363,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17010,9 +16462,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17024,9 +16474,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17052,9 +16500,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17066,9 +16512,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17253,9 +16697,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17267,9 +16709,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17295,9 +16735,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17309,9 +16747,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17410,9 +16846,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17424,9 +16858,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17452,9 +16884,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17466,9 +16896,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17581,9 +17009,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17595,9 +17021,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17623,9 +17047,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17637,9 +17059,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17738,9 +17158,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17752,9 +17170,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17794,9 +17210,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17808,9 +17222,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17909,9 +17321,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17923,9 +17333,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17951,9 +17359,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -17965,9 +17371,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18066,9 +17470,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18080,9 +17482,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18108,9 +17508,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18122,9 +17520,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18223,9 +17619,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18237,9 +17631,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18265,9 +17657,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18279,9 +17669,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18809,9 +18197,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18823,9 +18209,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18851,9 +18235,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18865,9 +18247,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18966,9 +18346,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -18980,9 +18358,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19022,9 +18398,7 @@ get_processes() → Generator[Dict[str, str], Any, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19036,9 +18410,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19137,9 +18509,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19151,9 +18521,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19221,9 +18589,7 @@ get_process_path_of(pid: int) → str
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19249,9 +18615,7 @@ get_state_of(pid: int) → Dict[str, str]
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19651,9 +19015,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19677,9 +19039,7 @@ Connect to remote target and get symbols. To prevent `gef` from requesting infor
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19705,9 +19065,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19719,9 +19077,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19884,9 +19240,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19898,9 +19252,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19926,9 +19278,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -19940,9 +19290,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -20041,9 +19389,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -20055,9 +19401,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -20083,9 +19427,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -20097,9 +19439,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -20569,9 +19909,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -20583,9 +19921,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -20611,9 +19947,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -20625,9 +19959,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -20726,9 +20058,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -20740,9 +20070,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -20768,9 +20096,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -20782,9 +20108,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21104,9 +20428,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21118,9 +20440,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21146,9 +20466,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21160,9 +20478,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21261,9 +20577,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21275,9 +20589,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21303,9 +20615,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21331,9 +20641,7 @@ get_shellcode(sid: int) → None
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21432,9 +20740,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21446,9 +20752,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21474,9 +20778,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21488,9 +20790,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21603,9 +20903,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21617,9 +20915,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21673,9 +20969,7 @@ evaluate(expr: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21687,9 +20981,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21788,9 +21080,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21802,9 +21092,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21830,9 +21118,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -21844,9 +21130,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22043,9 +21327,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22057,9 +21339,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22085,9 +21365,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22099,9 +21377,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22200,9 +21476,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22214,9 +21488,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22270,9 +21542,7 @@ get_module(modname: str)
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22312,9 +21582,7 @@ get_syscall_table(modname: str)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22623,9 +21891,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22637,9 +21903,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22679,9 +21943,7 @@ get_frames_size() → int
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22693,9 +21955,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22855,9 +22115,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22869,9 +22127,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22897,9 +22153,7 @@ wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -22925,9 +22179,7 @@ get_unicorn_end_addr(start_addr: int, nb: int) → int
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23040,9 +22292,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23054,9 +22304,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23082,9 +22330,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23096,9 +22342,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23239,9 +22483,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23253,9 +22495,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23281,9 +22521,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23295,9 +22533,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23738,9 +22974,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23752,9 +22986,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23780,9 +23012,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23794,9 +23024,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23909,9 +23137,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23923,9 +23149,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23951,9 +23175,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -23965,9 +23187,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -24066,9 +23286,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -24080,9 +23298,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -24108,9 +23324,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -24122,9 +23336,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -24223,9 +23435,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -24237,9 +23447,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -24265,9 +23473,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -24279,9 +23485,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -24380,9 +23584,7 @@ add_setting(
 ) → None
 ```
 
-
-
-
+`add_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -24394,9 +23596,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -24422,9 +23622,7 @@ do_invoke(argv: List) → None
 get_setting(name)
 ```
 
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
@@ -24436,9 +23634,7 @@ get_setting(name)
 has_setting(name: str) → bool
 ```
 
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. 
 
 ---
 
