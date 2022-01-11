@@ -1010,8 +1010,10 @@ def search_for_main_arena(to_string: bool = False) -> Union[int, str]:
 
     if is_x86():
         addr = align_address_to_size(malloc_hook_addr + gef.arch.ptrsize, 0x20)
-    elif is_arch(Elf.AARCH64) or is_arch(Elf.ARM):
+    elif is_arch(Elf.AARCH64):
         addr = malloc_hook_addr - gef.arch.ptrsize*2 - MallocStateStruct("*0").struct_size
+    elif is_arch(Elf.ARM):
+        addr = malloc_hook_addr - gef.arch.ptrsize - MallocStateStruct("*0").struct_size
     else:
         raise OSError("Cannot find main_arena for {}".format(gef.arch.arch))
 
@@ -1205,14 +1207,12 @@ class GlibcArena:
         except:
             self.__arena = MallocStateStruct(addr)
             self.__addr = self.__arena.addr
-        try:
-            self.top             = int(self.top)
-            self.last_remainder  = int(self.last_remainder)
-            self.n               = int(self.next)
-            self.nfree           = int(self.next_free)
-            self.sysmem          = int(self.system_mem)
-        except gdb.error as e:
-            err("Glibc arena: {}".format(e))
+
+        self.top             = int(self.top)
+        self.last_remainder  = int(self.last_remainder)
+        self.n               = int(self.next)
+        self.nfree           = int(self.next_free)
+        self.sysmem          = int(self.system_mem)
         return
 
     def __getitem__(self, item):
@@ -1233,7 +1233,7 @@ class GlibcArena:
             if next_arena_address == int(gef.heap.main_arena):
                 break
 
-            current_arena = GlibcArena("*{:#x} ".format(next_arena_address))
+            current_arena = GlibcArena("*{:#x}".format(next_arena_address))
             yield current_arena
         return
 
@@ -1294,7 +1294,7 @@ class GlibcArena:
         fmt = "{:s}(base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
         return fmt.format(
             Color.colorify("Arena", "blue bold underline"),
-            self.__addr, self.top, self.last_remainder, self.n, self.nfree, self.sysmem
+            self.__addr, self.top, self.last_remainder, self.next, self.nfree, self.sysmem
         )
 
 
