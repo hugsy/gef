@@ -988,7 +988,8 @@ class Instruction:
         opcodes_text = "".join(f"{b:02x}" for b in self.opcodes[:opcodes_len])
         if opcodes_len < len(self.opcodes):
             opcodes_text += "..."
-        return f"{self.address:#10x} {opcodes_text:{opcodes_len * 2 + 3:d}s} {self.location:16} {self.mnemonic:6} {', '.join(self.operands)}"
+        return (f"{self.address:#10x} {opcodes_text:{opcodes_len * 2 + 3:d}s} {self.location:16} "
+                f"{self.mnemonic:6} {', '.join(self.operands)}")
 
     def __str__(self) -> str:
         return f"{self.address:#10x} {self.location:16} {self.mnemonic:6} {', '.join(self.operands)}"
@@ -1016,16 +1017,18 @@ def search_for_main_arena(to_string: bool = False) -> Union[int, str]:
 
 
 class MallocStateStruct:
-    """GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
+    """GEF representation of malloc_state
+    from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
 
     def __init__(self, addr: str) -> None:
         try:
             self.__addr = parse_address(f"&{addr}")
         except gdb.error:
-            warn(f"Could not parse address '&{addr}' when searching malloc_state struct, using '&main_arena' instead")
+            warn(f"Could not parse address '&{addr}' when searching malloc_state struct, "
+                 "using '&main_arena' instead")
             self.__addr = search_for_main_arena()
-            # if `search_for_main_arena` throws `gdb.error` on symbol lookup: it means the session is not started
-            # so just propagate the exception
+            # if `search_for_main_arena` throws `gdb.error` on symbol lookup:
+            # it means the session is not started, so just propagate the exception
 
         self.num_fastbins = 10
         self.num_bins = 254
@@ -1469,8 +1472,8 @@ class GlibcChunk:
         return "|".join(flags)
 
     def __str__(self):
-        return f"""{Color.colorify("Chunk", "yellow bold underline")}(addr={int(self.data_address):#x}, """\
-               f"""size={self.get_chunk_size():#x}, flags={self.flags_as_string()})"""
+        return (f"{Color.colorify('Chunk', 'yellow bold underline')}(addr={self.data_address:#x}, "
+                f"size={self.get_chunk_size():#x}, flags={self.flags_as_string()})")
 
     def psprint(self) -> str:
         msg = []
@@ -4067,10 +4070,9 @@ class StubBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self) -> bool:
-        m = f"Ignoring call to '{self.func}' "
-        m += f"(setting return value to {self.retval:#x})"
         gdb.execute(f"return (unsigned int){self.retval:#x}")
-        ok(m)
+        ok((f"Ignoring call to '{self.func}' "
+            f"(setting return value to {self.retval:#x})"))
         return False
 
 
@@ -4335,7 +4337,8 @@ class UafWatchpoint(gdb.Breakpoint):
         insn = gef_current_instruction(pc)
         msg = []
         msg.append(Color.colorify("Heap-Analysis", "yellow bold"))
-        msg.append(f"Possible Use-after-Free in '{get_filepath()}': pointer {self.address:#x} was freed, but is attempted to be used at {pc:#x}")
+        msg.append(f"Possible Use-after-Free in '{get_filepath()}': "
+                   f"pointer {self.address:#x} was freed, but is attempted to be used at {pc:#x}")
         msg.append(f"{insn.address:#x}   {insn.mnemonic} {Color.yellowify(', '.join(insn.operands))}")
         push_context_message("warn", "\n".join(msg))
         return True
@@ -5649,7 +5652,8 @@ class IdaInteractCommand(GenericCommand):
         method_name = argv[0].lower()
         if method_name == "version":
             self.version = self.sock.version()
-            info(f"Enhancing {Color.greenify('gef')} with {Color.redify(self.version[0])} (SDK {Color.yellowify(self.version[1])})")
+            info(f"Enhancing {Color.greenify('gef')} with {Color.redify(self.version[0])} "
+                 f"(SDK {Color.yellowify(self.version[1])})")
             return
 
         if not is_alive():
@@ -5810,7 +5814,8 @@ class ScanSectionCommand(GenericCommand):
         haystack = argv[0]
         needle = argv[1]
 
-        info(f"Searching for addresses in '{Color.yellowify(haystack)}' that point to '{Color.yellowify(needle)}'")
+        info(f"Searching for addresses in '{Color.yellowify(haystack)}' "
+             f"that point to '{Color.yellowify(needle)}'")
 
         if haystack == "binary":
             haystack = get_filepath()
@@ -6083,7 +6088,8 @@ class ChangePermissionCommand(GenericCommand):
         size = sect.page_end - sect.page_start
         original_pc = gef.arch.pc
 
-        info(f"Generating sys_mprotect({sect.page_start:#x}, {size:#x}, '{Permission(value=perm)!s}') stub for arch {get_arch()}")
+        info(f"Generating sys_mprotect({sect.page_start:#x}, {size:#x}, "
+             f"'{Permission(value=perm)!s}') stub for arch {get_arch()}")
         stub = self.get_stub_by_arch(sect.page_start, size, perm)
         if stub is None:
             err("Failed to generate mprotect opcodes")
@@ -6619,7 +6625,8 @@ class NopCommand(GenericCommand):
         nops = gef.arch.nop_insn
 
         if len(nops) > size:
-            m = f"Cannot patch instruction at {loc:#x} (nop_size is:{len(nops):d},insn_size is:{size:d})"
+            m = f"Cannot patch instruction at {loc:#x} "\
+                f"(nop_size is:{len(nops):d}, insn_size is:{size:d})"
             err(m)
             return
 
@@ -6627,7 +6634,8 @@ class NopCommand(GenericCommand):
             nops += gef.arch.nop_insn
 
         if len(nops) != size:
-            err(f"Cannot patch instruction at {loc:#x} (nop instruction does not evenly fit in requested size)")
+            err(f"Cannot patch instruction at {loc:#x} "
+                "(nop instruction does not evenly fit in requested size)")
             return
 
         ok(f"Patching {size:d} bytes from {format_address(loc)}")
@@ -8724,8 +8732,9 @@ class ContextCommand(GenericCommand):
                         sym_name, offset = sym_found
                         frame_name = f"<{sym_name}+{offset:x}>"
 
-                line += f" {Color.colorify(f'{frame.pc():#x}', 'blue')} in {Color.colorify(frame_name or '??', 'bold yellow')} ()"
-                line += f", reason: {Color.colorify(reason(), 'bold pink')}"
+                line += (f" {Color.colorify(f'{frame.pc():#x}', 'blue')} in "\
+                         f"{Color.colorify(frame_name or '??', 'bold yellow')} (), "
+                         f"reason: {Color.colorify(reason(), 'bold pink')}")
             elif thread.is_exited():
                 line += Color.colorify("exited", "bold yellow")
             gef_print(line)
@@ -9500,14 +9509,16 @@ class XAddressInfoCommand(GenericCommand):
         info = addr.info
 
         if sect:
-            gef_print(f"Page: {format_address(sect.page_start)} {RIGHT_ARROW} {format_address(sect.page_end)} (size={sect.page_end-sect.page_start:#x})")
+            gef_print(f"Page: {format_address(sect.page_start)} {RIGHT_ARROW} "
+                      f"{format_address(sect.page_end)} (size={sect.page_end-sect.page_start:#x})")
             gef_print(f"Permissions: {sect.permission}")
             gef_print(f"Pathname: {sect.path}")
             gef_print(f"Offset (from page): {addr.value-sect.page_start:#x}")
             gef_print(f"Inode: {sect.inode}")
 
         if info:
-            gef_print("Segment: {info.name} ({format_address(info.zone_start)}-{format_address(info.zone_end)})")
+            gef_print(f"Segment: {info.name} "
+                      f"({format_address(info.zone_start)}-{format_address(info.zone_end)})")
             gef_print(f"Offset (from segment): {addr.value-info.zone_start:#x}")
 
         sym = gdb_get_location_from_symbol(address)
@@ -9775,12 +9786,14 @@ class PatternSearchCommand(GenericCommand):
         found = False
         off = cyclic_pattern.find(pattern_le)
         if off >= 0:
-            ok(f"Found at offset {off:d} (little-endian search) {Color.colorify('likely', 'bold red') if is_little_endian() else ''}")
+            ok(f"Found at offset {off:d} (little-endian search) "
+               f"{Color.colorify('likely', 'bold red') if is_little_endian() else ''}")
             found = True
 
         off = cyclic_pattern.find(pattern_be)
         if off >= 0:
-            ok(f"Found at offset {off:d} (big-endian search) {Color.colorify('likely', 'bold green') if is_big_endian() else ''}")
+            ok(f"Found at offset {off:d} (big-endian search) "
+               f"{Color.colorify('likely', 'bold green') if is_big_endian() else ''}")
             found = True
 
         if not found:
@@ -9970,7 +9983,8 @@ class HighlightListCommand(GenericCommand):
 
         left_pad = max(map(len, gef.ui.highlight_table.keys()))
         for match, color in sorted(gef.ui.highlight_table.items()):
-            print(f"{Color.colorify(match.ljust(left_pad), color)} {VERTICAL_LINE} {Color.colorify(color, color)}")
+            print(f"{Color.colorify(match.ljust(left_pad), color)} {VERTICAL_LINE} "
+                  f"{Color.colorify(color, color)}")
         return
 
     def do_invoke(self, argv: List) -> None:
@@ -10055,7 +10069,8 @@ class FormatStringSearchCommand(GenericCommand):
                 FormatStringBreakpoint(function_name, argument_number)
                 nb_installed_breaks += 1
 
-        ok(f"Enabled {nb_installed_breaks} FormatString breakpoint{'s' if nb_installed_breaks > 1 else ''}")
+        ok(f"Enabled {nb_installed_breaks} FormatString "
+           f"breakpoint{'s' if nb_installed_breaks > 1 else ''}")
         return
 
 
@@ -10109,8 +10124,10 @@ class HeapAnalysisCommand(GenericCommand):
         ok("Disabling hardware watchpoints (this may increase the latency)")
         gdb.execute("set can-use-hw-watchpoints 0")
 
-        info("Dynamic breakpoints correctly setup, GEF will break execution if a possible vulnerabity is found.")
-        warn(f"{Color.colorify('Note', 'bold underline yellow')}: The heap analysis slows down the execution noticeably.")
+        info("Dynamic breakpoints correctly setup, "
+             "GEF will break execution if a possible vulnerabity is found.")
+        warn(f"{Color.colorify('Note', 'bold underline yellow')}: "
+             "The heap analysis slows down the execution noticeably.")
 
         # when inferior quits, we need to clean everything for a next execution
         gef_on_exit_hook(self.clean)
@@ -10121,13 +10138,15 @@ class HeapAnalysisCommand(GenericCommand):
 
         if gef.session.heap_allocated_chunks:
             ok("Tracked as in-use chunks:")
-            for addr, sz in gef.session.heap_allocated_chunks: gef_print(f"{CROSS} malloc({sz:d}) = {addr:#x}")
+            for addr, sz in gef.session.heap_allocated_chunks:
+                gef_print(f"{CROSS} malloc({sz:d}) = {addr:#x}")
         else:
             ok("No malloc() chunk tracked")
 
         if gef.session.heap_freed_chunks:
             ok("Tracked as free-ed chunks:")
-            for addr, sz in gef.session.heap_freed_chunks: gef_print(f"{TICK}  free({sz:d}) = {addr:#x}")
+            for addr, sz in gef.session.heap_freed_chunks:
+                gef_print(f"{TICK}  free({sz:d}) = {addr:#x}")
         else:
             ok("No free() chunk tracked")
         return
@@ -10141,7 +10160,8 @@ class HeapAnalysisCommand(GenericCommand):
                 try:
                     bp.retbp.delete()
                 except RuntimeError:
-                    # in some cases, gdb was found failing to correctly remove the retbp but they can be safely ignored since the debugging session is over
+                    # in some cases, gdb was found failing to correctly remove the retbp
+                    # but they can be safely ignored since the debugging session is over
                     pass
 
             bp.delete()
@@ -10486,7 +10506,8 @@ class GefCommand(gdb.Command):
                                 gdb.execute(f"source {fpath}")
             nb_added = len(self.loaded_commands) - nb_inital
             if nb_added > 0:
-                ok(f"{Color.colorify(nb_added, 'bold green')} extra commands added from '{Color.colorify(directories, 'bold blue')}'")
+                ok(f"{Color.colorify(nb_added, 'bold green')} extra commands added from "
+                   f"'{Color.colorify(directories, 'bold blue')}'")
         except gdb.error as e:
             err(f"failed: {e}")
         return nb_added
@@ -10556,11 +10577,14 @@ class GefCommand(gdb.Command):
 
             ver = f"{sys.version_info.major:d}.{sys.version_info.minor:d}"
             nb_cmds = len(self.loaded_commands)
-            gef_print(f"{Color.colorify(nb_cmds, 'bold green')} commands loaded for GDB {Color.colorify(gdb.VERSION, 'bold yellow')} "
+            gef_print(f"{Color.colorify(nb_cmds, 'bold green')} commands loaded for "
+                      f"GDB {Color.colorify(gdb.VERSION, 'bold yellow')} "
                       f"using Python engine {Color.colorify(ver, 'bold red')}")
 
             if nb_missing:
-                warn(f"{Color.colorify(nb_missing, 'bold red')} command{'s' if nb_missing > 1 else ''} could not be loaded, run `{Color.colorify('gef missing', 'underline pink')}` to know why.")
+                warn(f"{Color.colorify(nb_missing, 'bold red')} "
+                     f"command{'s' if nb_missing > 1 else ''} could not be loaded, "
+                     f"run `{Color.colorify('gef missing', 'underline pink')}` to know why.")
         return
 
 
