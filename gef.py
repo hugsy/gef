@@ -4071,8 +4071,8 @@ class StubBreakpoint(gdb.Breakpoint):
 
     def stop(self) -> bool:
         gdb.execute(f"return (unsigned int){self.retval:#x}")
-        ok((f"Ignoring call to '{self.func}' "
-            f"(setting return value to {self.retval:#x})"))
+        ok(f"Ignoring call to '{self.func}' "
+            f"(setting return value to {self.retval:#x})")
         return False
 
 
@@ -6625,9 +6625,8 @@ class NopCommand(GenericCommand):
         nops = gef.arch.nop_insn
 
         if len(nops) > size:
-            m = f"Cannot patch instruction at {loc:#x} "\
-                f"(nop_size is:{len(nops):d}, insn_size is:{size:d})"
-            err(m)
+            err(f"Cannot patch instruction at {loc:#x} "
+                f"(nop_size is:{len(nops):d}, insn_size is:{size:d})")
             return
 
         while len(nops) < size:
