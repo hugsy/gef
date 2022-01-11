@@ -1208,11 +1208,14 @@ class GlibcArena:
             self.__arena = MallocStateStruct(addr)
             self.__addr = self.__arena.addr
 
-        self.top             = int(self.top)
-        self.last_remainder  = int(self.last_remainder)
-        self.n               = int(self.next)
-        self.nfree           = int(self.next_free)
-        self.sysmem          = int(self.system_mem)
+        try:
+            self.top             = int(self.top)
+            self.last_remainder  = int(self.last_remainder)
+            self.n               = int(self.next)
+            self.nfree           = int(self.next_free)
+            self.sysmem          = int(self.system_mem)
+        except gdb.error as e:
+            err("Glibc arena: {}".format(e))
         return
 
     def __getitem__(self, item):
@@ -1294,7 +1297,7 @@ class GlibcArena:
         fmt = "{:s}(base={:#x}, top={:#x}, last_remainder={:#x}, next={:#x}, next_free={:#x}, system_mem={:#x})"
         return fmt.format(
             Color.colorify("Arena", "blue bold underline"),
-            self.__addr, self.top, self.last_remainder, self.next, self.nfree, self.sysmem
+            self.__addr, self.top, self.last_remainder, self.n, self.nfree, self.sysmem
         )
 
 
@@ -6789,7 +6792,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
     """Display information on a heap chunk."""
 
     _cmdline_ = "heap set-arena"
-    _syntax_  = "{:s} [address|symbol]".format(_cmdline_)
+    _syntax_  = "{:s} [address|&symbol]".format(_cmdline_)
     _example_ = "{:s} 0x001337001337".format(_cmdline_)
 
     def __init__(self) -> None:
