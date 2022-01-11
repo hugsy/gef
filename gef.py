@@ -6719,7 +6719,7 @@ class CapstoneDisassembleCommand(GenericCommand):
                     gef_print(reason)
                     break
             else:
-                msg = f"{' ' * 5} {text_insn}"
+                msg = f"      {text_insn}"
 
             gef_print(msg)
         return
@@ -8433,9 +8433,7 @@ class ContextCommand(GenericCommand):
             gef_print(f"{function_name} (<void>)")
             return
 
-        gef_print(f"{function_name} (")
-        gef_print("   " + ",\n   ".join(args))
-        gef_print(")")
+        gef_print(f"{function_name} (\n   "+",\n   ".join(args)+"\n)")
         return
 
     def print_guessed_arguments(self, function_name: str) -> None:
@@ -8732,7 +8730,7 @@ class ContextCommand(GenericCommand):
                         sym_name, offset = sym_found
                         frame_name = f"<{sym_name}+{offset:x}>"
 
-                line += (f" {Color.colorify(f'{frame.pc():#x}', 'blue')} in "\
+                line += (f" {Color.colorify(f'{frame.pc():#x}', 'blue')} in "
                          f"{Color.colorify(frame_name or '??', 'bold yellow')} (), "
                          f"reason: {Color.colorify(reason(), 'bold pink')}")
             elif thread.is_exited():
