@@ -699,7 +699,7 @@ class Elf:
     """Basic ELF parsing.
     Ref:
     - http://www.skyfree.org/linux/references/ELF_Format.pdf
-    - http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
+    - http://refspecs.linuxfoundation.org/elf/elfspec_ppc.pdf
     - http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
     """
     ELF_32_BITS       = 0x01
@@ -1203,11 +1203,14 @@ class GlibcArena:
             self.__arena = MallocStateStruct(addr)
             self.__addr = self.__arena.addr
 
-        self.top             = int(self.top)
-        self.last_remainder  = int(self.last_remainder)
-        self.n               = int(self.next)
-        self.nfree           = int(self.next_free)
-        self.sysmem          = int(self.system_mem)
+        try:
+            self.top             = int(self.top)
+            self.last_remainder  = int(self.last_remainder)
+            self.n               = int(self.next)
+            self.nfree           = int(self.next_free)
+            self.sysmem          = int(self.system_mem)
+        except gdb.error as e:
+            err("Glibc arena: {}".format(e))
         return
 
     def __getitem__(self, item):
@@ -1286,9 +1289,9 @@ class GlibcArena:
         return ptr & ~(heap_max_size - 1)
 
     def __str__(self):
-        return (f"""{Color.colorify("Arena", "blue bold underline")}(base={self.__addr:#x}, top={self.top:#x}, """
-               f"""last_remainder={self.last_remainder:#x}, next={self.n:#x}, next_free={self.nfree:#x}, """
-               f"""system_mem={self.sysmem:#x})""")
+        return (f"{Color.colorify('Arena', 'blue bold underline')}(base={self.__addr:#x}, top={self.top:#x}, "
+                f"last_remainder={self.last_remainder:#x}, next={self.n:#x}, next_free={self.nfree:#x}, "
+                f"system_mem={self.sysmem:#x})")
 
 
 class GlibcChunk:
@@ -6766,7 +6769,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
     """Display information on a heap chunk."""
 
     _cmdline_ = "heap set-arena"
-    _syntax_  = f"{_cmdline_} [address|symbol]"
+    _syntax_  = f"{_cmdline_} [address|&symbol]"
     _example_ = f"{_cmdline_} 0x001337001337"
 
     def __init__(self) -> None:

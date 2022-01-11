@@ -215,7 +215,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_heap_set_arena(self):
-        cmd = "heap set-arena main_arena"
+        cmd = "heap set-arena &main_arena"
         target = _target("heap")
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target, after=["heap arenas"])
