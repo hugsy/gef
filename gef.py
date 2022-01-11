@@ -699,7 +699,7 @@ class Elf:
     """Basic ELF parsing.
     Ref:
     - http://www.skyfree.org/linux/references/ELF_Format.pdf
-    - http://refspecs.freestandards.org/elf/elfspec_ppc.pdf
+    - http://refspecs.linuxfoundation.org/elf/elfspec_ppc.pdf
     - http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
     """
     ELF_32_BITS       = 0x01
