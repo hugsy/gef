@@ -319,7 +319,6 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("Chunk(addr=", res)
         self.assertIn("size=0x20", res)
 
-
     def test_cmd_heap_bins_tcache(self):
         cmd = "heap bins tcache"
         target = _target("heap-non-main")
