@@ -47,7 +47,7 @@ gef.arch=<__main__.X86_64 object at 0x7fd5583571c0>
 gef.arch.pc=0x55555555a7d0
 ```
 
-Yes, that's it! Check out [the complete API](docs/api/gef.md) to see what else GEF offers.
+Yes, that's it! Check out [the complete API](api/gef.md) to see what else GEF offers.
 
 ## Detailed explanation
 
@@ -163,7 +163,7 @@ The API also offers a number of decorators to simply the creation of new/existin
 
 ### Reference
 
-For a complete reference of the API offered by GEF, visit [docs/api/gef.md](docs/api/gef.md).
+For a complete reference of the API offered by GEF, visit [`docs/api/gef.md`](api/gef.md).
 
 
 ### Parsing command arguments
