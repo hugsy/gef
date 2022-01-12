@@ -83,7 +83,7 @@ from functools import lru_cache
 from io import StringIO
 from types import ModuleType
 from typing import (List, Dict, Tuple, Optional, Sequence, Union, Generator, Any, Iterator,
-                    Callable, ByteString, Set, Type)
+                    Callable, ByteString, Set, Type, NoReturn)
 from urllib.request import urlopen
 
 
@@ -153,10 +153,10 @@ GEF_PROMPT_ON                          = f"\001\033[1;32m\002{GEF_PROMPT}\001\03
 GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\033[0m\002"
 
 
-gef : "Gef"                                                           = None
-__registered_commands__ : List["GenericCommand"]                      = []
-__registered_functions__ : List["GenericFunction"]                    = []
-__registered_architectures__ : Dict[Union[int, str], "Architecture"]  = {}
+gef : "Gef"                                                                 = None
+__registered_commands__ : List[Type["GenericCommand"]]                      = []
+__registered_functions__ : List[Type["GenericFunction"]]                    = []
+__registered_architectures__ : Dict[Union[int, str], Type["Architecture"]]  = {}
 
 
 def reset_all_caches() -> None:
@@ -234,7 +234,7 @@ def bufferize(f: Callable) -> Callable:
     """Store the content to be printed for a function in memory, and flush it on function exit."""
 
     @functools.wraps(f)
-    def wrapper(*args: Tuple, **kwargs: Dict) -> Any:
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         global gef
 
         if gef.ui.stream_buffer:
@@ -335,7 +335,7 @@ def only_if_gdb_running(f: Callable) -> Callable:
     """Decorator wrapper to check if GDB is running."""
 
     @functools.wraps(f)
-    def wrapper(*args: Tuple, **kwargs: Dict) -> Any:
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         if is_alive():
             return f(*args, **kwargs)
         else:
@@ -348,7 +348,7 @@ def only_if_gdb_target_local(f: Callable) -> Callable:
     """Decorator wrapper to check if GDB is running locally (target not remote)."""
 
     @functools.wraps(f)
-    def wrapper(*args: Tuple, **kwargs: Dict) -> Any:
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         if not is_remote_debug():
             return f(*args, **kwargs)
         else:
@@ -427,7 +427,7 @@ def only_if_events_supported(event_type) -> Callable:
     return wrap
 
 
-def FakeExit(*args, **kwargs) -> None:
+def FakeExit(*args, **kwargs) -> NoReturn:
     raise RuntimeWarning
 
 sys.exit = FakeExit
@@ -438,7 +438,7 @@ def parse_arguments(required_arguments: Dict, optional_arguments: Dict) -> Optio
     def int_wrapper(x: str) -> int: return int(x, 0)
 
     def decorator(f: Callable) -> Optional[Callable]:
-        def wrapper(*args: Tuple, **kwargs: Dict) -> Optional[Callable]:
+        def wrapper(*args: Any, **kwargs: Any) -> Optional[Callable]:
             parser = argparse.ArgumentParser(prog=args[0]._cmdline_, add_help=True)
             for argname in required_arguments:
                 argvalue = required_arguments[argname]
@@ -455,10 +455,10 @@ def parse_arguments(required_arguments: Dict, optional_arguments: Dict) -> Optio
                         parser.add_argument(argname, type=argtype, required=True, default=argvalue)
                 else:
                     if argtype in (list, tuple):
-                        nargs = '*'
+                        nargs = "*"
                         argtype = type(argvalue[0])
                     else:
-                        nargs = '?'
+                        nargs = "?"
                     # positional args
                     parser.add_argument(argname, type=argtype, default=argvalue, nargs=nargs)
 
@@ -598,7 +598,7 @@ class Permission:
     EXECUTE   = 4
     ALL       = READ | WRITE | EXECUTE
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         self.value = kwargs.get("value", 0)
         return
 
@@ -625,7 +625,7 @@ class Permission:
         return perm_str
 
     @staticmethod
-    def from_info_sections(*args: List[str]):
+    def from_info_sections(*args: List[str]) -> "Permission":
         perm = Permission()
         for arg in args:
             if "READONLY" in arg:
@@ -637,7 +637,7 @@ class Permission:
         return perm
 
     @staticmethod
-    def from_process_maps(perm_str: str):
+    def from_process_maps(perm_str: str) -> "Permission":
         perm = Permission()
         if perm_str[0] == "r":
             perm.value += Permission.READ
@@ -681,7 +681,8 @@ class Section:
         return self.path if gef.session.remote is None else f"/tmp/gef/{gef.session.remote:d}/{self.path}"
 
     def __str__(self) -> str:
-        return f"Section({self.page_start:#x}, {self.page_end:#x}, {self.permission!s})"
+        return (f"Section(page_start={self.page_start:#x}, page_end={self.page_end:#x}, "
+                f"permissions={self.permission!s})")
 
 
 Zone = collections.namedtuple("Zone", ["name", "zone_start", "zone_end", "filename"])
@@ -934,7 +935,7 @@ class Shdr:
     sh_addralign = None
     sh_entsize   = None
 
-    def __init__(self, elf, off) -> None:
+    def __init__(self, elf: Optional[Elf], off: int) -> None:
         if elf is None:
             return
         elf.seek(off)
@@ -1001,16 +1002,22 @@ class Instruction:
 
 @lru_cache()
 def search_for_main_arena(to_string: bool = False) -> Union[int, str]:
-    malloc_hook_addr = parse_address("(void *)&__malloc_hook")
+    """A helper function to find the libc `main_arena` address, either from symbol or from its offset
+    from `__malloc_hook`."""
+    try:
+        addr = int(parse_address(f"&{LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME}"))
 
-    if is_x86():
-        addr = align_address_to_size(malloc_hook_addr + gef.arch.ptrsize, 0x20)
-    elif is_arch(Elf.AARCH64):
-        addr = malloc_hook_addr - gef.arch.ptrsize*2 - MallocStateStruct("*0").struct_size
-    elif is_arch(Elf.ARM):
-        addr = malloc_hook_addr - gef.arch.ptrsize - MallocStateStruct("*0").struct_size
-    else:
-        raise OSError(f"Cannot find main_arena for {gef.arch.arch}")
+    except gdb.error:
+        malloc_hook_addr = parse_address("(void *)&__malloc_hook")
+
+        if is_x86():
+            addr = align_address_to_size(malloc_hook_addr + gef.arch.ptrsize, 0x20)
+        elif is_arch(Elf.AARCH64):
+            addr = malloc_hook_addr - gef.arch.ptrsize*2 - MallocStateStruct("*0").struct_size
+        elif is_arch(Elf.ARM):
+            addr = malloc_hook_addr - gef.arch.ptrsize - MallocStateStruct("*0").struct_size
+        else:
+            raise OSError(f"Cannot find main_arena for {gef.arch.arch}")
 
     if to_string:
         addr = f"*{addr:#x}"
@@ -1679,12 +1686,12 @@ def is_debug() -> bool:
     return gef.config["gef.debug"] is True
 
 def hide_context() -> bool:
-    """ Helper function to hide the context pane """
+    """Helper function to hide the context pane."""
     gef.ui.context_hidden = True
     return True
 
 def unhide_context() -> bool:
-    """ Helper function to unhide the context pane """
+    """Helper function to unhide the context pane."""
     gef.ui.context_hidden = False
     return True
 
@@ -4590,7 +4597,7 @@ class VersionCommand(GenericCommand):
 class PrintFormatCommand(GenericCommand):
     """Print bytes format in commonly used formats, such as literals in high level languages."""
 
-    valid_formats = ("py", "c", "js", "asm")
+    valid_formats = ("py", "c", "js", "asm", "hex")
     valid_bitness = (8, 16, 32, 64)
 
     _cmdline_ = "print-format"
@@ -4655,7 +4662,7 @@ class PrintFormatCommand(GenericCommand):
             asm_type = self.format_matrix[args.bitlen][2]
             out = "buf {0} {1}".format(asm_type, sdata)
         elif args.lang == "hex":
-            out = binascii.hexlify(read_memory(start_addr, end_addr-start_addr)).decode()
+            out = binascii.hexlify(gef.memory.read(start_addr, end_addr-start_addr)).decode()
 
         if args.clip:
             if copy_to_clipboard(gef_pybytes(out)):

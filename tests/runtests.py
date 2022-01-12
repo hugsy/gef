@@ -248,7 +248,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("Chunk(addr=", res)
         self.assertIn("top chunk", res)
 
-        cmd = "python gdb.execute('heap chunks 0x{:x}'.format(int(list(gef.heap.arenas)[1])))"
+        cmd = "python gdb.execute(f'heap chunks {int(list(gef.heap.arenas)[1]):#x}')"
         target = _target("heap-non-main")
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
@@ -258,7 +258,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_heap_chunks_mult_heaps(self):
-        py_cmd = 'gdb.execute("heap set-arena 0x{:x}".format(int(list(gef.heap.arenas)[1])))'
+        py_cmd = 'gdb.execute(f"heap set-arena 0x{int(list(gef.heap.arenas)[1]):x}")'
         before = ['run', 'python ' + py_cmd]
         cmd = "heap chunks"
         target = _target("heap-multiple-heaps")
@@ -894,7 +894,7 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
 
     def test_func_download_file(self):
         gdbsrv = start_gdbserver(BIN_LS)
-        func = f"download_file('{str(BIN_LS)}')"
+        func = f"download_file('{BIN_LS!s}')"
         res = gdb_test_python_method(func)
         stop_gdbserver(gdbsrv)
         self.assertNoException(res)

@@ -20,14 +20,14 @@ Here is the most basic skeleton for creating a new `GEF` command named `newcmd`:
 class NewCommand(GenericCommand):
     """Dummy new command."""
     _cmdline_ = "newcmd"
-    _syntax_  = f"{_cmdline_:s}"
+    _syntax_  = f"{_cmdline_}"
 
     @only_if_gdb_running         # not required, ensures that the debug session is started
     def do_invoke(self, argv):
         # let's say we want to print some info about the architecture of the current binary
-        print(f"{gef.arch=}")
+        print(f"gef.arch={gef.arch}")
         # or showing the current $pc
-        print(f"{gef.arch.pc=:#x}")
+        print(f"gef.arch.pc={gef.arch.pc:#x}")
         return
 
 register_external_command(NewCommand())
@@ -154,11 +154,10 @@ gef ➤ pi print('\n'.join([ f"{x.page_start:#x} -> {x.page_end:#x}" for x in ge
 ```
 
 
-The API also offers a number of decorators to simply the creation of new/existing commands, such as:
+The API also offers a number of decorators to simplify the creation of new/existing commands, such as:
   - `@only_if_gdb_running` to execute only if a GDB session is running.
-  - `@only_if_gdb_target_local` to check if the current GDB session is local i.e. not debugging using GDB `remote`.
+  - `@only_if_gdb_target_local` to check if the target is local i.e. not debugging using GDB `remote`.
   - and many more...
-
 
 
 ### Reference
