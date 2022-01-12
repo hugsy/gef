@@ -291,6 +291,15 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("Chunk(addr=", res)
         return
 
+    def test_cmd_heap_bins_large(self):
+        cmd = "heap bins large"
+        target = _target("heap-bins")
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertIn("Found 1 chunks in 1 large non-empty bins", res)
+        self.assertIn("Chunk(addr=", res)
+        self.assertIn("size=0x420", res)
+
     def test_cmd_heap_bins_non_main(self):
         cmd = "python gdb.execute('heap bins fast {}'.format(get_glibc_arena().next))"
         before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
@@ -299,6 +308,17 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertIn("size=0x20", res)
         return
+
+    def test_cmd_heap_bins_small(self):
+        cmd = "heap bins small"
+        before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
+        target = _target("heap-bins")
+        res = gdb_run_silent_cmd(cmd, before=before, target=target)
+        self.assertNoException(res)
+        self.assertIn("Found 1 chunks in 1 small non-empty bins", res)
+        self.assertIn("Chunk(addr=", res)
+        self.assertIn("size=0x20", res)
+
 
     def test_cmd_heap_bins_tcache(self):
         cmd = "heap bins tcache"
@@ -318,6 +338,15 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         tcachebins_lines = [x for x in res.splitlines() if x.startswith("Tcachebins[idx=")]
         self.assertTrue(len(tcachebins_lines) == 2)
         return
+
+    def test_cmd_heap_bins_unsorted(self):
+        cmd = "heap bins unsorted"
+        target = _target("heap-bins")
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertIn("Found 1 chunks in unsorted bin", res)
+        self.assertIn("Chunk(addr=", res)
+        self.assertIn("size=0x430", res)
 
     def test_cmd_heap_analysis(self):
         cmd = "heap-analysis-helper"
