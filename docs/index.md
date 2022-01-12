@@ -177,8 +177,20 @@ _Side Note_: `GEF` fully relies on the GDB API and other Linux-specific sources 
 
 [ ![contributors-img](https://contrib.rocks/image?repo=hugsy/gef) ](https://github.com/hugsy/gef/graphs/contributors)
 
-
 Or if you just like the tool, feel free to drop a simple *"thanks"* on Discord, Twitter or other, it is **always** very appreciated.
+
+## Sponsors ##
+
+We would like to thank in particular the following people who've been sponsoring GEF allowing us to dedicate more time and resources to the project:
+
+[<img src="https://github.com/nkaretnikov.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/nkaretnikov)
+[<img src="https://github.com/R3zk0n.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/r3zk0n)
+[<img src="https://github.com/merces.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/merces)
+[<img src="https://github.com/nbars.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/nbars)
+[<img src="https://github.com/maycon.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/maycon)
+[<img src="https://github.com/jespinhara.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/jespinhara)
+[<img src="https://github.com/therealdreg.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/therealdreg)
+[<img src="https://github.com/mikesart.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/mikesart)
 
 
 ### Extra Credits ###

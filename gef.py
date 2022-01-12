@@ -717,6 +717,7 @@ class Elf:
     AARCH64           = 0xb7
     RISCV             = 0xf3
     IA64              = 0x32
+    M68K              = 0x04
 
     ET_RELOC          = 1
     ET_EXEC           = 2
@@ -4587,7 +4588,7 @@ class VersionCommand(GenericCommand):
 
 @register_command
 class PrintFormatCommand(GenericCommand):
-    """Print bytes format in high level languages."""
+    """Print bytes format in commonly used formats, such as literals in high level languages."""
 
     valid_formats = ("py", "c", "js", "asm")
     valid_bitness = (8, 16, 32, 64)
@@ -4601,7 +4602,6 @@ class PrintFormatCommand(GenericCommand):
                  "\t--clip The output data will be copied to clipboard"
                  "\tLOCATION specifies where the address of bytes is stored.")
     _example_ = f"{_cmdline_} --lang py -l 16 $rsp"
-
 
     def __init__(self) -> None:
         super().__init__(complete=gdb.COMPLETE_LOCATION)
@@ -4653,7 +4653,9 @@ class PrintFormatCommand(GenericCommand):
             out = f"var buf = [{sdata}]"
         elif args.lang == "asm":
             asm_type = self.format_matrix[args.bitlen][2]
-            out = f"buf {asm_type} {sdata}"
+            out = "buf {0} {1}".format(asm_type, sdata)
+        elif args.lang == "hex":
+            out = binascii.hexlify(read_memory(start_addr, end_addr-start_addr)).decode()
 
         if args.clip:
             if copy_to_clipboard(gef_pybytes(out)):
@@ -7109,7 +7111,10 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
     @staticmethod
     def tcachebin(tcache_base: int, i: int) -> Tuple[Optional[GlibcChunk], int]:
         """Return the head chunk in tcache[i] and the number of chunks in the bin."""
-        assert i <  GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS, "index should be less then TCACHE_MAX_BINS"
+        if i >= GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS:
+            err("Incorrect index value, index value must be between 0 and {}-1, given {}".format(GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS, i))
+            return None, 0
+
         tcache_chunk = GlibcChunk(tcache_base)
 
         # Glibc changed the size of the tcache in version 2.30; this fix has
@@ -7822,6 +7827,7 @@ class ElfInfoCommand(GenericCommand):
             Elf.AARCH64           : "AArch64",
             Elf.RISCV             : "RISC-V",
             Elf.IA64              : "IA-64",
+            Elf.M68K              : "M68K",
         }
 
         filename = args.filename or get_filepath()
@@ -8494,12 +8500,10 @@ class ContextCommand(GenericCommand):
                 pass
 
         if not nb_argument:
-            if not parameter_set:
-                nb_argument = 0
-            elif is_x86_32():
+            if is_x86_32():
                 nb_argument = len(parameter_set)
             else:
-                nb_argument = max(function_parameters.index(p)+1 for p in parameter_set)
+                nb_argument = max([function_parameters.index(p)+1 for p in parameter_set], default=0)
 
         args = []
         for i in range(nb_argument):
@@ -10374,7 +10378,7 @@ class BssBaseFunction(GenericFunction):
 
 @register_function
 class GotBaseFunction(GenericFunction):
-    """Return the current bss base address plus the given offset."""
+    """Return the current GOT base address plus the given offset."""
     _function_ = "_got"
     _example_ = "deref $_got(0x20)"
 

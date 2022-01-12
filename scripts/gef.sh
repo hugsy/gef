@@ -8,6 +8,9 @@ if [ "$1" = "dev" ]; then
     echo "set branch to dev"
 fi
 
+curl_found=0
+wget_found=0
+
 # check dependencies
 if [ `which curl` ]; then
 	curl_found=1

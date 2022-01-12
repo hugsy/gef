@@ -83,26 +83,11 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 
 ## Contribute ##
 
-[ ![contributors-img](https://contrib.rocks/image?repo=hugsy/gef) ](https://github.com/hugsy/gef/graphs/contributors)
-
 To get involved, refer to the [Contribution documentation](https://gef.readthedocs.io/en/master/#contribution) and the [guidelines](https://github.com/hugsy/gef/blob/dev/.github/CONTRIBUTING.md) to start.
-
 
 ## Sponsors ##
 
-We would like to thank in particular the following people who've been sponsoring GEF allowing us to dedicate more time and resources to the project:
-
-[<img src="https://github.com/nkaretnikov.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/nkaretnikov)
-[<img src="https://github.com/R3zk0n.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/r3zk0n)
-[<img src="https://github.com/merces.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/merces)
-[<img src="https://github.com/nbars.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/nbars)
-[<img src="https://github.com/maycon.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/maycon)
-[<img src="https://github.com/jespinhara.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/jespinhara)
-[<img src="https://github.com/therealdreg.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/therealdreg)
-[<img src="https://github.com/mikesart.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/mikesart)
-
-
-Want to be part of this list of amazing people? [Jump here!](https://github.com/sponsors/hugsy)
+Another way to contribute to keeping the project alive is by sponsoring it! Check out [the sponsoring documentation](https://gef.readthedocs.io/en/master/#sponsors) for details so you can be part of the list of those [awesome sponsors](https://github.com/sponsors/hugsy).
 
 
 ## Happy Hacking   ##
