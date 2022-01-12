@@ -5247,7 +5247,7 @@ usage() → None
 ## <kbd>class</kbd> `Elf`
 Basic ELF parsing. Ref: 
 - http://www.skyfree.org/linux/references/ELF_Format.pdf 
-- http://refspecs.freestandards.org/elf/elfspec_ppc.pdf 
+- http://refspecs.linuxfoundation.org/elf/elfspec_ppc.pdf 
 - http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html 
 
 <a href="https://cs.github.com/hugsy/gef?q=Elf.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
