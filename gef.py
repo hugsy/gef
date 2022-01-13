@@ -882,13 +882,12 @@ class Shdr:
     SHT_REL              = 9
     SHT_SHLIB            = 10
     SHT_DYNSYM           = 11
-    SHT_NUM              = 12
+    SHT_NUM	             = 12
     SHT_INIT_ARRAY       = 14
     SHT_FINI_ARRAY       = 15
     SHT_PREINIT_ARRAY    = 16
     SHT_GROUP            = 17
     SHT_SYMTAB_SHNDX     = 18
-    SHT_NUM              = 19
     SHT_LOOS             = 0x60000000
     SHT_GNU_ATTRIBUTES   = 0x6ffffff5
     SHT_GNU_HASH         = 0x6ffffff6
