@@ -7,7 +7,7 @@
 
 ## Instant Setup ##
 
-Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb) compiled with Python3 bindings, then:
+Simply make sure you have [GDB 8.0 or higher](https://www.gnu.org/s/gdb) compiled with Python3.6+ bindings, then:
 
 
 ```bash

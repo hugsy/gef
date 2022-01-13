@@ -45,7 +45,7 @@ Or [try it online](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 
 ### Quick install ###
 
-Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb).
+Simply make sure you have [GDB 8.0 or higher](https://www.gnu.org/s/gdb), compiled with Python 3.6 or higher.
 
 ```bash
 $ bash -c "$(curl -fsSL http://gef.blah.cat/sh)"
