@@ -28,8 +28,8 @@
 - **GEF_PROMPT**
 - **GEF_PROMPT_ON**
 - **GEF_PROMPT_OFF**
+- **PATTERN_LIBC_VERSION**
 - **gef**
-- **pattern_libc_ver**
 - **PREFIX**
 - **gdb_initial_settings**
 - **cmd**
@@ -41,7 +41,7 @@
 ## <kbd>function</kbd> `FakeExit`
 
 ```python
-FakeExit(*args, **kwargs) → None
+FakeExit(*args, **kwargs) → NoReturn
 ```
 
 
@@ -108,7 +108,11 @@ Store the content to be printed for a function in memory, and flush it on functi
 ## <kbd>function</kbd> `capstone_disassemble`
 
 ```python
-capstone_disassemble(location: int, nb_insn: int, **kwargs)
+capstone_disassemble(
+    location: int,
+    nb_insn: int,
+    **kwargs
+) → Generator[__main__.Instruction, NoneType, NoneType]
 ```
 
 Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr` using the Capstone-Engine disassembler, if available. Return an iterator of Instruction objects. 
@@ -189,7 +193,7 @@ Decorator to add a warning when a command is obsolete and will be removed.
 disable_redirect_output() → None
 ```
 
-Disable the output redirection, if any. `disable_redirect_output` is **DEPRECATED** and will be removed in the future. Use `RedirectOutputContext()` context manager 
+Disable the output redirection, if any. 
 
 
 ---
@@ -219,7 +223,7 @@ Download filename `remote_path` inside the mirror tree inside the gef.config["ge
 enable_redirect_output(to_file: str = '/dev/null') → None
 ```
 
-Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`. `enable_redirect_output` is **DEPRECATED** and will be removed in the future. Use `RedirectOutputContext()` context manager 
+Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`. 
 
 
 ---
@@ -322,7 +326,10 @@ Format the address according to its size, but with spaces instead of zeroes.
 ## <kbd>function</kbd> `gdb_disassemble`
 
 ```python
-gdb_disassemble(start_pc: int, **kwargs: int)
+gdb_disassemble(
+    start_pc: int,
+    **kwargs: int
+) → Generator[__main__.Instruction, NoneType, NoneType]
 ```
 
 Disassemble instructions from `start_pc` (Integer). Accepts the following named parameters: 
@@ -379,7 +386,7 @@ Defines a new convenience value.
 ## <kbd>function</kbd> `gef_current_instruction`
 
 ```python
-gef_current_instruction(addr: int)
+gef_current_instruction(addr: int) → Instruction
 ```
 
 Return the current instruction as an Instruction object. 
@@ -392,7 +399,11 @@ Return the current instruction as an Instruction object.
 ## <kbd>function</kbd> `gef_disassemble`
 
 ```python
-gef_disassemble(addr: int, nb_insn: int, nb_prev: int = 0)
+gef_disassemble(
+    addr: int,
+    nb_insn: int,
+    nb_prev: int = 0
+) → Generator[__main__.Instruction, NoneType, NoneType]
 ```
 
 Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`. Return an iterator of Instruction objects. 
@@ -435,7 +446,7 @@ Execute the parameter `source` as GDB command. This is done by writing `commands
 ## <kbd>function</kbd> `gef_get_instruction_at`
 
 ```python
-gef_get_instruction_at(addr: int)
+gef_get_instruction_at(addr: int) → Instruction
 ```
 
 Return the full Instruction found at the specified address. 
@@ -476,7 +487,7 @@ gef_getpagesize() → int
 ## <kbd>function</kbd> `gef_instruction_n`
 
 ```python
-gef_instruction_n(addr: int, n: int)
+gef_instruction_n(addr: int, n: int) → Instruction
 ```
 
 Return the `n`-th instruction after `addr` as an Instruction object. 
@@ -489,7 +500,7 @@ Return the `n`-th instruction after `addr` as an Instruction object.
 ## <kbd>function</kbd> `gef_makedirs`
 
 ```python
-gef_makedirs(path: str, mode: int = 493) → str
+gef_makedirs(path: str, mode: int = 493) → Path
 ```
 
 Recursive mkdir() creation. If successful, return the absolute path of the directory created. 
@@ -502,7 +513,7 @@ Recursive mkdir() creation. If successful, return the absolute path of the direc
 ## <kbd>function</kbd> `gef_next_instruction`
 
 ```python
-gef_next_instruction(addr: int)
+gef_next_instruction(addr: int) → Instruction
 ```
 
 Return the next instruction as an Instruction object. 
@@ -695,7 +706,11 @@ wrapped_f(*args: Tuple, **kwargs: Dict) → Any
 ## <kbd>function</kbd> `gef_print`
 
 ```python
-gef_print(x: str = '', *args: Tuple, **kwargs: Dict) → Union[int, NoneType]
+gef_print(
+    x: str = '',
+    *args: Tuple,
+    **kwargs: Dict[str, Any]
+) → Union[int, NoneType]
 ```
 
 Wrapper around print(), using string buffering feature. 
@@ -793,7 +808,7 @@ get_filename() → str
 ## <kbd>function</kbd> `get_function_length`
 
 ```python
-get_function_length(sym)
+get_function_length(sym) → int
 ```
 
 Attempt to get the length of the raw bytes of a function. 
@@ -915,7 +930,7 @@ get_os() → str
 ## <kbd>function</kbd> `get_path_from_info_proc`
 
 ```python
-get_path_from_info_proc()
+get_path_from_info_proc() → Union[str, NoneType]
 ```
 
 
@@ -1040,7 +1055,7 @@ Return the hexdump of `src` argument. @param source *MUST* be of type bytes or b
 hide_context() → bool
 ```
 
-Helper function to hide the context pane  
+Helper function to hide the context pane. 
 
 
 ---
@@ -1450,8 +1465,8 @@ Parse an address and return it as an Integer.
 
 ```python
 parse_arguments(
-    required_arguments: Dict,
-    optional_arguments: Dict
+    required_arguments: Dict[str, Any],
+    optional_arguments: Dict[str, Any]
 ) → Union[Callable, NoneType]
 ```
 
@@ -1478,7 +1493,7 @@ Parses an address range (e.g. 0x400000-0x401000)
 ## <kbd>function</kbd> `process_lookup_address`
 
 ```python
-process_lookup_address(address: int)
+process_lookup_address(address: int) → Union[__main__.Section, NoneType]
 ```
 
 Look up for an address in memory. Return an Address object if found, None otherwise. 
@@ -1517,7 +1532,9 @@ GDB event handler for reg changes cases.
 ## <kbd>function</kbd> `register_architecture`
 
 ```python
-register_architecture(cls)
+register_architecture(
+    cls: Type[ForwardRef('Architecture')]
+) → Type[ForwardRef('Architecture')]
 ```
 
 Class decorator for declaring an architecture to GEF. 
@@ -1642,7 +1659,7 @@ GEF wrapper for gdb.parse_and_eval(): this function returns None instead of rais
 ## <kbd>function</kbd> `set_arch`
 
 ```python
-set_arch(arch=None, default=None)
+set_arch(arch=None, default=None) → Architecture
 ```
 
 Sets the current architecture. If an arch is explicitly specified, use that one, otherwise try to parse it out of the current target. If that fails, and default is specified, select and set that arch. Return the selected arch, or raise an OSError. 
@@ -1713,7 +1730,7 @@ Print a centered title.
 ## <kbd>function</kbd> `to_unsigned_long`
 
 ```python
-to_unsigned_long(v) → int
+to_unsigned_long(v: gdb.Value) → int
 ```
 
 Cast a gdb.Value to unsigned long. 
@@ -1781,7 +1798,7 @@ Unpack one byte respecting the current architecture endianness.
 unhide_context() → bool
 ```
 
-Helper function to unhide the context pane  
+Helper function to unhide the context pane. 
 
 
 ---
@@ -3334,7 +3351,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `AssembleCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -3723,7 +3740,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `CapstoneDisassembleCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -4991,7 +5008,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `DereferenceCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -5154,7 +5171,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `DetailRegistersCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -5367,7 +5384,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ElfInfoCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -6051,7 +6068,7 @@ load_module(fullname)
 ---
 
 ## <kbd>class</kbd> `Gef`
-The GEF root class, which serves as a base classe for all the attributes for the debugging session (architecture, memory, settings, etc.). 
+The GEF root class, which serves as a entrypoint for all the debugging session attributes (architecture, memory, settings, etc.). 
 
 <a href="https://cs.github.com/hugsy/gef?q=Gef.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6619,7 +6636,7 @@ Add command to GEF documentation.
 ## <kbd>function</kbd> `GefHelpCommand.generate_help`
 
 ```python
-generate_help(commands: List[Tuple[str, Type, Any]]) → None
+generate_help(commands: List[Tuple[str, Any, Any]]) → None
 ```
 
 Generate builtin commands documentation. 
@@ -8461,7 +8478,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapChunkCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -8610,7 +8627,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapChunksCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -9913,7 +9930,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GotBaseFunction`
-Return the current bss base address plus the given offset. 
+Return the current GOT base address plus the given offset. 
 
 <a href="https://cs.github.com/hugsy/gef?q=GotBaseFunction.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -10455,7 +10472,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HexdumpByteCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -10604,7 +10621,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HexdumpCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -10753,7 +10770,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HexdumpDwordCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -10902,7 +10919,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HexdumpQwordCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -11051,7 +11068,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HexdumpWordCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -13697,7 +13714,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `NamedBreakpointCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -13846,7 +13863,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `NopCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -15291,7 +15308,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatchByteCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -15440,7 +15457,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatchCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -15589,7 +15606,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatchDwordCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -15738,7 +15755,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatchQwordCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -16036,7 +16053,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatchWordCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -16334,7 +16351,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatternCreateCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -16483,7 +16500,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatternSearchCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -16595,7 +16612,7 @@ GEF representation of Linux permission.
 ## <kbd>function</kbd> `Permission.__init__`
 
 ```python
-__init__(**kwargs) → None
+__init__(**kwargs: Any) → None
 ```
 
 
@@ -16612,7 +16629,7 @@ __init__(**kwargs) → None
 ## <kbd>function</kbd> `Permission.from_info_sections`
 
 ```python
-from_info_sections(*args: List[str])
+from_info_sections(*args: List[str]) → Permission
 ```
 
 
@@ -16626,7 +16643,7 @@ from_info_sections(*args: List[str])
 ## <kbd>function</kbd> `Permission.from_process_maps`
 
 ```python
-from_process_maps(perm_str: str)
+from_process_maps(perm_str: str) → Permission
 ```
 
 
@@ -16867,7 +16884,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PieBreakpointCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -17193,7 +17210,7 @@ delete_bp(breakpoints: List) → None
 ## <kbd>function</kbd> `PieDeleteCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -17342,7 +17359,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PieInfoCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -18152,7 +18169,7 @@ register(name: str) → Union[int, NoneType]
 ---
 
 ## <kbd>class</kbd> `PrintFormatCommand`
-Print bytes format in high level languages. 
+Print bytes format in commonly used formats, such as literals in high level languages. 
 
 <a href="https://cs.github.com/hugsy/gef?q=PrintFormatCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -18218,7 +18235,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PrintFormatCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -18367,7 +18384,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ProcessListingCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -19048,7 +19065,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `RemoteCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -20377,7 +20394,7 @@ invoke(*args) → int
 ## <kbd>function</kbd> `Shdr.__init__`
 
 ```python
-__init__(elf, off) → None
+__init__(elf: Optional[__main__.Elf], off: int) → None
 ```
 
 
@@ -21101,7 +21118,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `SolveKernelSymbolCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -21348,7 +21365,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `StubCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -21511,7 +21528,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `SyscallArgsCommand.get_filepath`
 
 ```python
-get_filepath(x: str) → Union[str, NoneType]
+get_filepath(x: str) → Union[pathlib.Path, NoneType]
 ```
 
 
@@ -21525,7 +21542,7 @@ get_filepath(x: str) → Union[str, NoneType]
 ## <kbd>function</kbd> `SyscallArgsCommand.get_module`
 
 ```python
-get_module(modname: str)
+get_module(modname: str) → Any
 ```
 
 
@@ -21565,7 +21582,7 @@ get_settings_path() → Union[pathlib.Path, NoneType]
 ## <kbd>function</kbd> `SyscallArgsCommand.get_syscall_table`
 
 ```python
-get_syscall_table(modname: str)
+get_syscall_table(modname: str) → Dict[str, Any]
 ```
 
 
@@ -22136,7 +22153,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `UnicornEmulateCommand.wrapper`
 
 ```python
-wrapper(*args: Tuple, **kwargs: Dict) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 

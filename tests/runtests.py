@@ -258,7 +258,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_heap_chunks_mult_heaps(self):
-        py_cmd = 'gdb.execute(f"heap set-arena 0x{int(list(gef.heap.arenas)[1]):x}")'
+        py_cmd = 'gdb.execute(f"heap set-arena {int(list(gef.heap.arenas)[1]):#x}")'
         before = ['run', 'python ' + py_cmd]
         cmd = "heap chunks"
         target = _target("heap-multiple-heaps")
@@ -281,7 +281,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_heap_bins_non_main(self):
-        cmd = "python gdb.execute('heap bins fast {}'.format(gef.heap.main_arena))"
+        cmd = "python gdb.execute(f'heap bins fast {gef.heap.main_arena}')"
         before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
         target = _target("heap-non-main")
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
@@ -525,9 +525,10 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("print-format --lang js $sp")
         self.assertNoException(res)
         self.assertTrue("var buf = [" in res)
-        res = gdb_start_silent_cmd("print-format --lang hex $sp")
+        res = gdb_start_silent_cmd("set *((int*)$sp) = 0x41414141",
+                                   after=["print-format --lang hex $sp"])
         self.assertNoException(res)
-        self.assertTrue("f7ff7f" in res)
+        self.assertTrue("41414141" in res, f"{res}")
         res = gdb_start_silent_cmd("print-format --lang iDontExist $sp")
         self.assertNoException(res)
         self.assertTrue("Language must be in:" in res)
@@ -894,7 +895,7 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
 
     def test_func_download_file(self):
         gdbsrv = start_gdbserver(BIN_LS)
-        func = f"download_file('{BIN_LS!s}')"
+        func = f"download_file('{BIN_LS}')"
         res = gdb_test_python_method(func)
         stop_gdbserver(gdbsrv)
         self.assertNoException(res)

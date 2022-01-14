@@ -161,7 +161,8 @@ def _target(name: str, extension: str = ".out") -> Path:
     return target
 
 
-def start_gdbserver(exe : Union[str, Path]=_target("default"), port : int=1234) -> subprocess.Popen:
+def start_gdbserver(exe: Union[str, Path] = _target("default"),
+                    port: int = 1234) -> subprocess.Popen:
     """Start a gdbserver on the target binary.
 
     Args:
@@ -176,7 +177,7 @@ def start_gdbserver(exe : Union[str, Path]=_target("default"), port : int=1234) 
 
 
 def stop_gdbserver(gdbserver: subprocess.Popen) -> None:
-    """Stop the gdbserver and waits until it is terminated if it was
+    """Stop the gdbserver and wait until it is terminated if it was
     still running. Needed to make the used port available again.
 
     Args:

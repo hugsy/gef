@@ -80,7 +80,7 @@ import traceback
 import warnings
 import xmlrpc.client as xmlrpclib
 from functools import lru_cache
-from io import StringIO
+from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (List, Dict, Tuple, Optional, Sequence, Union, Generator, Any, Iterator,
                     Callable, ByteString, Set, Type, NoReturn)
@@ -125,6 +125,7 @@ except ImportError:
     print("[-] gef cannot run as standalone")
     sys.exit(0)
 
+
 GDB_MIN_VERSION                        = (8, 0)
 GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
 PYTHON_MIN_VERSION                     = (3, 6)
@@ -133,7 +134,9 @@ PYTHON_VERSION                         = sys.version_info[0:2]
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
 
-GEF_RC                                 = pathlib.Path(os.getenv("GEF_RC")).absolute() if os.getenv("GEF_RC") else pathlib.Path().home() / ".gef.rc"
+GEF_RC                                 = (pathlib.Path(os.getenv("GEF_RC")).absolute()
+                                          if os.getenv("GEF_RC")
+                                          else pathlib.Path().home() / ".gef.rc")
 GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
 GEF_MAX_STRING_LENGTH                  = 50
 
@@ -151,6 +154,8 @@ BP_GLYPH                               = "\u25cf"
 GEF_PROMPT                             = "gef\u27a4  "
 GEF_PROMPT_ON                          = f"\001\033[1;32m\002{GEF_PROMPT}\001\033[0m\002"
 GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\033[0m\002"
+
+PATTERN_LIBC_VERSION                   = re.compile(rb"glibc (\d+)\.(\d+)")
 
 
 gef : "Gef"                                                                 = None
@@ -171,6 +176,7 @@ def reset_all_caches() -> None:
     gef.reset_caches()
     return
 
+
 def reset() -> None:
     global gef
 
@@ -186,6 +192,7 @@ def reset() -> None:
     if arch:
         gef.arch = arch
     return
+
 
 def highlight_text(text: str) -> str:
     """
@@ -222,7 +229,7 @@ def highlight_text(text: str) -> str:
     return "".join(ansiSplit)
 
 
-def gef_print(x: str = "", *args: Tuple, **kwargs: Dict) -> Optional[int]:
+def gef_print(x: str = "", *args: Tuple, **kwargs: Dict[str, Any]) -> Optional[int]:
     """Wrapper around print(), using string buffering feature."""
     x = highlight_text(x)
     if gef.ui.stream_buffer and not is_debug():
@@ -275,6 +282,7 @@ def bufferize(f: Callable) -> Callable:
 
     return wrapper
 
+
 #
 # Helpers
 #
@@ -283,29 +291,36 @@ def p8(x: int, s: bool = False) -> bytes:
     """Pack one byte respecting the current architecture endianness."""
     return struct.pack(f"{gef.arch.endianness}B", x) if not s else struct.pack(f"{gef.arch.endianness}b", x)
 
+
 def p16(x: int, s: bool = False) -> bytes:
     """Pack one word respecting the current architecture endianness."""
     return struct.pack(f"{gef.arch.endianness}H", x) if not s else struct.pack(f"{gef.arch.endianness}h", x)
+
 
 def p32(x: int, s: bool = False) -> bytes:
     """Pack one dword respecting the current architecture endianness."""
     return struct.pack(f"{gef.arch.endianness}I", x) if not s else struct.pack(f"{gef.arch.endianness}i", x)
 
+
 def p64(x: int, s: bool = False) -> bytes:
     """Pack one qword respecting the current architecture endianness."""
     return struct.pack(f"{gef.arch.endianness}Q", x) if not s else struct.pack(f"{gef.arch.endianness}q", x)
+
 
 def u8(x: bytes, s: bool = False) -> int:
     """Unpack one byte respecting the current architecture endianness."""
     return struct.unpack(f"{gef.arch.endianness}B", x)[0] if not s else struct.unpack(f"{gef.arch.endianness}b", x)[0]
 
+
 def u16(x: bytes, s: bool = False) -> int:
     """Unpack one word respecting the current architecture endianness."""
     return struct.unpack(f"{gef.arch.endianness}H", x)[0] if not s else struct.unpack(f"{gef.arch.endianness}h", x)[0]
 
+
 def u32(x: bytes, s: bool = False) -> int:
     """Unpack one dword respecting the current architecture endianness."""
     return struct.unpack(f"{gef.arch.endianness}I", x)[0] if not s else struct.unpack(f"{gef.arch.endianness}i", x)[0]
+
 
 def u64(x: bytes, s: bool = False) -> int:
     """Unpack one qword respecting the current architecture endianness."""
@@ -430,9 +445,11 @@ def only_if_events_supported(event_type) -> Callable:
 def FakeExit(*args, **kwargs) -> NoReturn:
     raise RuntimeWarning
 
+
 sys.exit = FakeExit
 
-def parse_arguments(required_arguments: Dict, optional_arguments: Dict) -> Optional[Callable]:
+
+def parse_arguments(required_arguments: Dict[str, Any], optional_arguments: Dict[str, Any]) -> Optional[Callable]:
     """Argument parsing decorator."""
 
     def int_wrapper(x: str) -> int: return int(x, 0)
@@ -599,7 +616,7 @@ class Permission:
     ALL       = READ | WRITE | EXECUTE
 
     def __init__(self, **kwargs: Any) -> None:
-        self.value = kwargs.get("value", 0)
+        self.value : int = kwargs.get("value", 0)
         return
 
     def __or__(self, value: int) -> int:
@@ -623,6 +640,9 @@ class Permission:
         perm_str += "w" if self & Permission.WRITE else "-"
         perm_str += "x" if self & Permission.EXECUTE else "-"
         return perm_str
+
+    def __int__(self) -> int:
+        return self.value
 
     @staticmethod
     def from_info_sections(*args: List[str]) -> "Permission":
@@ -652,22 +672,22 @@ class Section:
     """GEF representation of process memory sections."""
 
     def __init__(self, *args, **kwargs) -> None:
-        self.page_start: int = kwargs.get("page_start")
-        self.page_end: int = kwargs.get("page_end")
-        self.offset: int = kwargs.get("offset")
-        self.permission: Permission = kwargs.get("permission")
-        self.inode = kwargs.get("inode")
-        self.path: str = kwargs.get("path")
+        self.page_start: int = kwargs.get("page_start", 0)
+        self.page_end: int = kwargs.get("page_end", 0)
+        self.offset: int = kwargs.get("offset", 0)
+        self.permission: Permission = kwargs.get("permission", Permission())
+        self.inode = kwargs.get("inode", 0)
+        self.path: str = kwargs.get("path", "")
         return
 
     def is_readable(self) -> bool:
-        return self.permission.value and self.permission.value & Permission.READ
+        return (self.permission & Permission.READ) != 0
 
     def is_writable(self) -> bool:
-        return self.permission.value and self.permission.value & Permission.WRITE
+        return (self.permission & Permission.WRITE) != 0
 
     def is_executable(self) -> bool:
-        return self.permission.value and self.permission.value & Permission.EXECUTE
+        return (self.permission & Permission.EXECUTE) != 0
 
     @property
     def size(self) -> int:
@@ -695,6 +715,13 @@ class Endianness(enum.Enum):
         if self == Endianness.LITTLE_ENDIAN:
             return "<"
         return ">"
+
+    def __repr__(self) -> str:
+        return self.name
+
+    def __int__(self) -> int:
+        return self.value
+
 
 class Elf:
     """Basic ELF parsing.
@@ -735,26 +762,26 @@ class Elf:
     OSABI_FREEBSD     = 0x09
     OSABI_OPENBSD     = 0x0C
 
-    e_magic: int      = ELF_MAGIC
-    e_class: int      = ELF_32_BITS
-    e_endianness: int = Endianness.LITTLE_ENDIAN
-    e_eiversion       = None
-    e_osabi           = None
-    e_abiversion      = None
-    e_pad: int        = None
-    e_type: int       = ET_EXEC
-    e_machine: int    = X86_32
-    e_version         = None
-    e_entry: int      = 0x00
-    e_phoff           = None
-    e_shoff           = None
-    e_flags           = None
-    e_ehsize          = None
-    e_phentsize       = None
-    e_phnum           = None
-    e_shentsize       = None
-    e_shnum           = None
-    e_shstrndx        = None
+    e_magic: int             = ELF_MAGIC
+    e_class: int             = ELF_32_BITS
+    e_endianness: int        = int(Endianness.LITTLE_ENDIAN)
+    e_eiversion              = None
+    e_osabi                  = None
+    e_abiversion             = None
+    e_pad: Optional[bytes]   = None
+    e_type: int              = ET_EXEC
+    e_machine: int           = X86_32
+    e_version                = None
+    e_entry: int             = 0
+    e_phoff : int            = 0
+    e_shoff : int            = 0
+    e_flags                  = None
+    e_ehsize : int           = 0
+    e_phentsize : int        = 0
+    e_phnum : int            = 0
+    e_shentsize : int        = 0
+    e_shnum : int            = 0
+    e_shstrndx : int         = 0
 
     def __init__(self, elf: str = "", minimalist: bool = False) -> None:
         """
@@ -1004,7 +1031,7 @@ def search_for_main_arena(to_string: bool = False) -> Union[int, str]:
     """A helper function to find the libc `main_arena` address, either from symbol or from its offset
     from `__malloc_hook`."""
     try:
-        addr = int(parse_address(f"&{LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME}"))
+        addr = parse_address(f"&{LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME}")
 
     except gdb.error:
         malloc_hook_addr = parse_address("(void *)&__malloc_hook")
@@ -1496,9 +1523,6 @@ class GlibcChunk:
         return "\n".join(msg) + "\n"
 
 
-pattern_libc_ver = re.compile(rb"glibc (\d+)\.(\d+)")
-
-
 @lru_cache()
 def get_libc_version() -> Tuple[int, ...]:
     sections = gef.memory.maps
@@ -1512,7 +1536,7 @@ def get_libc_version() -> Tuple[int, ...]:
                     data = f.read()
             except OSError:
                 continue
-            match = re.search(pattern_libc_ver, data)
+            match = re.search(PATTERN_LIBC_VERSION, data)
             if match:
                 return tuple(int(_) for _ in match.groups())
     return 0, 0
@@ -1615,6 +1639,7 @@ def gef_pybytes(x: str) -> bytes:
     """Returns an immutable bytes list from the string given as input."""
     return bytes(str(x), encoding="utf-8")
 
+
 @lru_cache()
 def which(program: str) -> Optional[pathlib.Path]:
     """Locate a command on the filesystem."""
@@ -1684,10 +1709,12 @@ def is_debug() -> bool:
     """Check if debug mode is enabled."""
     return gef.config["gef.debug"] is True
 
+
 def hide_context() -> bool:
     """Helper function to hide the context pane."""
     gef.ui.context_hidden = True
     return True
+
 
 def unhide_context() -> bool:
     """Helper function to unhide the context pane."""
@@ -1713,7 +1740,7 @@ class RedirectOutputContext():
         gdb.execute("set logging redirect off")
         return
 
-@deprecated("Use `RedirectOutputContext()` context manager")
+
 def enable_redirect_output(to_file: str = "/dev/null") -> None:
     """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
     gdb.execute("set logging overwrite")
@@ -1722,7 +1749,7 @@ def enable_redirect_output(to_file: str = "/dev/null") -> None:
     gdb.execute("set logging on")
     return
 
-@deprecated("Use `RedirectOutputContext()` context manager")
+
 def disable_redirect_output() -> None:
     """Disable the output redirection, if any."""
     gdb.execute("set logging off")
@@ -1730,7 +1757,7 @@ def disable_redirect_output() -> None:
     return
 
 
-def gef_makedirs(path: str, mode: int = 0o755) -> str:
+def gef_makedirs(path: str, mode: int = 0o755) -> pathlib.Path:
     """Recursive mkdir() creation. If successful, return the absolute path of the directory created."""
     fpath = pathlib.Path(path)
     if not fpath.is_dir():
@@ -1739,7 +1766,7 @@ def gef_makedirs(path: str, mode: int = 0o755) -> str:
 
 
 @lru_cache()
-def gdb_lookup_symbol(sym: str):  # -> Optional[Tuple[Optional[str], Optional[Tuple[gdb.Symtab_and_line, ...]]]]
+def gdb_lookup_symbol(sym: str) -> Optional[Tuple[Optional[str], Optional[Tuple[gdb.Symtab_and_line, ...]]]]:
     """Fetch the proper symbol or None if not defined."""
     try:
         return gdb.decode_line(sym)[1]
@@ -1765,7 +1792,7 @@ def gdb_get_location_from_symbol(address: int) -> Optional[Tuple[str, int]]:
     return name, offset
 
 
-def gdb_disassemble(start_pc: int, **kwargs: int):  # -> Generator[Instruction]
+def gdb_disassemble(start_pc: int, **kwargs: int) -> Generator[Instruction, None, None]:
     """Disassemble instructions from `start_pc` (Integer). Accepts the following named parameters:
     - `end_pc` (Integer) only instructions whose start address fall in the interval from start_pc to end_pc are returned.
     - `count` (Integer) list at most this many disassembled instructions
@@ -1840,28 +1867,28 @@ def gdb_get_nth_next_instruction_address(addr: int, n: int) -> int:
     return insn.address
 
 
-def gef_instruction_n(addr: int, n: int):  # -> Instruction
+def gef_instruction_n(addr: int, n: int) -> Instruction:
     """Return the `n`-th instruction after `addr` as an Instruction object."""
     return list(gdb_disassemble(addr, count=n + 1))[n]
 
 
-def gef_get_instruction_at(addr: int):  # -> Instruction
+def gef_get_instruction_at(addr: int) -> Instruction:
     """Return the full Instruction found at the specified address."""
     insn = next(gef_disassemble(addr, 1))
     return insn
 
 
-def gef_current_instruction(addr: int):  # -> Instruction
+def gef_current_instruction(addr: int) -> Instruction:
     """Return the current instruction as an Instruction object."""
     return gef_instruction_n(addr, 0)
 
 
-def gef_next_instruction(addr: int):  # -> Instruction
+def gef_next_instruction(addr: int) -> Instruction:
     """Return the next instruction as an Instruction object."""
     return gef_instruction_n(addr, 1)
 
 
-def gef_disassemble(addr: int, nb_insn: int, nb_prev: int = 0):  # -> Generator[Instruction]
+def gef_disassemble(addr: int, nb_insn: int, nb_prev: int = 0) -> Generator[Instruction, None, None]:
     """Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`.
     Return an iterator of Instruction objects."""
     nb_insn = max(1, nb_insn)
@@ -1877,12 +1904,12 @@ def gef_disassemble(addr: int, nb_insn: int, nb_prev: int = 0):  # -> Generator[
         yield insn
 
 
-def capstone_disassemble(location: int, nb_insn: int, **kwargs):  # -> Generator[Instruction]
+def capstone_disassemble(location: int, nb_insn: int, **kwargs) -> Generator[Instruction, None, None]:
     """Disassemble `nb_insn` instructions after `addr` and `nb_prev` before
     `addr` using the Capstone-Engine disassembler, if available.
     Return an iterator of Instruction objects."""
 
-    def cs_insn_to_gef_insn(cs_insn):  # -> Instruction
+    def cs_insn_to_gef_insn(cs_insn) -> Instruction:
         sym_info = gdb_get_location_from_symbol(cs_insn.address)
         loc = "<{}+{}>".format(*sym_info) if sym_info else ""
         ops = [] + cs_insn.op_str.split(", ")
@@ -1903,9 +1930,7 @@ def capstone_disassemble(location: int, nb_insn: int, **kwargs):  # -> Generator
         location = gdb_get_nth_previous_instruction_address(pc, nb_prev)
         nb_insn += nb_prev
 
-    code = kwargs.get("code", gef.memory.read(location, gef_getpagesize() - offset - 1))
-    code = bytes(code)
-
+    code = kwargs.get("code", gef.memory.read(location, gef.session.pagesize - offset - 1))
     for insn in cs.disasm(code, location):
         if skip:
             skip -= 1
@@ -2044,7 +2069,7 @@ def get_zone_base_address(name: str) -> Optional[int]:
 #
 # Architecture classes
 #
-def register_architecture(cls):
+def register_architecture(cls: Type["Architecture"]) -> Type["Architecture"]:
     """Class decorator for declaring an architecture to GEF."""
     global __registered_architectures__
     for key in cls.aliases:
@@ -2082,6 +2107,8 @@ class Architecture(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_ra(self, insn, frame) -> Optional[int]:                     pass
 
+    arch = ""
+    mode = ""
     aliases = []
     special_registers = []
 
@@ -3100,13 +3127,13 @@ def use_rust_type() -> str:
     return "u16"
 
 
-def to_unsigned_long(v) -> int:
+def to_unsigned_long(v: gdb.Value) -> int:
     """Cast a gdb.Value to unsigned long."""
     mask = (1 << 64) - 1
     return int(v.cast(gdb.Value(mask).type)) & mask
 
 
-def get_path_from_info_proc():
+def get_path_from_info_proc() -> Optional[str]:
     for x in gdb.execute("info proc", to_string=True).splitlines():
         if x.startswith("exe = "):
             return x.split(" = ")[1].replace("'", "")
@@ -3208,7 +3235,7 @@ def download_file(remote_path: str, use_cache: bool = False, local_name: Optiona
     return local_path
 
 
-def get_function_length(sym):
+def get_function_length(sym) -> int:
     """Attempt to get the length of the raw bytes of a function."""
     dis = gdb.execute(f"disassemble {sym}", to_string=True).splitlines()
     start_addr = int(dis[1].split()[0], 16)
@@ -3217,7 +3244,7 @@ def get_function_length(sym):
 
 
 @lru_cache()
-def get_info_files():  # -> List[Zone]
+def get_info_files() -> List[Zone]:
     """Retrieve all the files loaded by debuggee."""
     lines = gdb.execute("info files", to_string=True).splitlines()
     infos = []
@@ -3243,7 +3270,7 @@ def get_info_files():  # -> List[Zone]
     return infos
 
 
-def process_lookup_address(address: int):  # -> Optional[Section]
+def process_lookup_address(address: int) -> Optional[Section]:
     """Look up for an address in memory.
     Return an Address object if found, None otherwise."""
     if not is_alive():
@@ -3262,7 +3289,7 @@ def process_lookup_address(address: int):  # -> Optional[Section]
 
 
 @lru_cache()
-def process_lookup_path(name: str, perm=Permission.ALL):  # -> Optional[Section]
+def process_lookup_path(name: str, perm=Permission.ALL) -> Optional[Section]:
     """Look up for a path in the process memory mapping.
     Return a Section object if found, None otherwise."""
     if not is_alive():
@@ -3277,7 +3304,7 @@ def process_lookup_path(name: str, perm=Permission.ALL):  # -> Optional[Section]
 
 
 @lru_cache()
-def file_lookup_name_path(name: str, path: str):  # -> Optional[Zone]
+def file_lookup_name_path(name: str, path: str) -> Optional[Zone]:
     """Look up a file by name and path.
     Return a Zone object if found, None otherwise."""
     for xfile in get_info_files():
@@ -3287,7 +3314,7 @@ def file_lookup_name_path(name: str, path: str):  # -> Optional[Zone]
 
 
 @lru_cache()
-def file_lookup_address(address: int):  # -> Optional[Zone]
+def file_lookup_address(address: int) -> Optional[Zone]:
     """Look up for a file by its address.
     Return a Zone object if found, None otherwise."""
     for info in get_info_files():
@@ -3297,7 +3324,7 @@ def file_lookup_address(address: int):  # -> Optional[Zone]
 
 
 @lru_cache()
-def lookup_address(address: int):  # -> Address
+def lookup_address(address: int) -> Address:
     """Try to find the address in the process address space.
     Return an Address object, with validity flag set based on success."""
     sect = process_lookup_address(address)
@@ -3445,7 +3472,7 @@ def get_generic_arch(module: ModuleType, prefix: str, arch: str, mode: Optional[
             mode = f"{module.__name__}.{prefix}_MODE_{mode}"
         else:
             mode = ""
-        if is_big_endian():
+        if gef.arch.endianness == Endianness.BIG_ENDIAN:
             mode += f" + {module.__name__}.{prefix}_MODE_BIG_ENDIAN"
         else:
             mode += f" + {module.__name__}.{prefix}_MODE_LITTLE_ENDIAN"
@@ -3477,7 +3504,7 @@ def get_generic_running_arch(module: ModuleType, prefix: str, to_string: bool = 
     else:
         raise OSError("Emulation not supported for your OS")
 
-    return get_generic_arch(module, prefix, arch, mode, is_big_endian(), to_string)
+    return get_generic_arch(module, prefix, arch, mode, gef.arch.endianness == Endianness.BIG_ENDIAN, to_string)
 
 
 def get_unicorn_arch(arch: Optional[str] = None, mode: Optional[str] = None, endian: Optional[bool] = None, to_string: bool = False) -> Union[Tuple[None, None], Tuple[str, Union[int, str]]]:
@@ -3499,11 +3526,11 @@ def get_capstone_arch(arch: Optional[str] = None, mode: Optional[str] = None, en
 
         arch = "PPC"
         mode = "32"
-        endian = is_big_endian()
+        endian = (gef.arch.endianness == Endianness.BIG_ENDIAN)
         return get_generic_arch(capstone, "CS",
                                 arch or gef.arch.arch,
                                 mode or gef.arch.mode,
-                                endian or is_big_endian(),
+                                endian,
                                 to_string)
 
     if (arch, mode, endian) == (None, None, None):
@@ -3511,7 +3538,7 @@ def get_capstone_arch(arch: Optional[str] = None, mode: Optional[str] = None, en
     return get_generic_arch(capstone, "CS",
                             arch or gef.arch.arch,
                             mode or gef.arch.mode,
-                            endian or is_big_endian(),
+                            endian or gef.arch.endianness == Endianness.BIG_ENDIAN,
                             to_string)
 
 
@@ -3562,6 +3589,7 @@ def get_unicorn_registers(to_string: bool = False) -> Union[Dict[str, int], Dict
             regs[reg] = getattr(const, regname)
     return regs
 
+
 def keystone_assemble(code: str, arch: int, mode: int, *args, **kwargs) -> Optional[Union[str, bytearray]]:
     """Assembly encoding function based on keystone."""
     keystone = sys.modules["keystone"]
@@ -3588,11 +3616,13 @@ def keystone_assemble(code: str, arch: int, mode: int, *args, **kwargs) -> Optio
 
 
 @lru_cache()
-def get_elf_headers(filename: Optional[str] = None):  # -> Optional[Elf]
+def get_elf_headers(filename: Optional[str] = None) -> Optional[Elf]:
     """Return an Elf object with info from `filename`. If not provided, will return
     the currently debugged file."""
-    if filename is None:
+    if not filename:
         filename = get_filepath()
+        if not filename:
+            raise Exception("No file provided")
 
     if filename.startswith("target:"):
         warn("Your file is remote, you should try using `gef-remote` instead")
@@ -3636,7 +3666,7 @@ def is_arch(arch: int) -> bool:
     return elf.e_machine == arch
 
 
-def set_arch(arch=None, default=None):  # -> Architecture
+def set_arch(arch=None, default=None) -> Architecture:
     """Sets the current architecture.
     If an arch is explicitly specified, use that one, otherwise try to parse it
     out of the current target. If that fails, and default is specified, select and
@@ -3676,7 +3706,7 @@ def set_arch(arch=None, default=None):  # -> Architecture
 
 
 @lru_cache()
-def cached_lookup_type(_type: str):  # -> Optional[gdb.Type]
+def cached_lookup_type(_type: str) -> Optional[gdb.Type]:
     try:
         return gdb.lookup_type(_type).strip_typedefs()
     except RuntimeError:
@@ -3879,38 +3909,47 @@ def gef_get_pie_breakpoint(num: int):  # -> PieVirtualBreakpoint
 def endian_str() -> str:
     return str(gef.arch.endianness)
 
+
 @deprecated("Use `gef.config[key]`")
 def get_gef_setting(name: str) -> Any:
     return gef.config[name]
+
 
 @deprecated("Use `gef.config[key] = value`")
 def set_gef_setting(name: str, value: Any) -> None:
     gef.config[name] = value
     return
 
+
 @deprecated("Use `gef.session.pagesize`")
 def gef_getpagesize() -> int:
     return gef.session.pagesize
+
 
 @deprecated("Use `gef.session.canary`")
 def gef_read_canary() -> Optional[Tuple[int, int]]:
     return gef.session.canary
 
+
 @deprecated("Use `gef.session.pid`")
 def get_pid() -> int:
     return gef.session.pid
+
 
 @deprecated("Use `gef.session.file.name`")
 def get_filename() -> str:
     return gef.session.file.name
 
+
 @deprecated("Use `gef.heap.main_arena`")
 def get_glibc_arena():  # -> GlibcArena
     return gef.heap.main_arena
 
+
 @deprecated("Use `gef.arch.register(regname)`")
 def get_register(regname):
     return gef.arch.register(regname)
+
 
 @deprecated("Use `gef.memory.maps`")
 def get_process_maps():
@@ -3984,7 +4023,6 @@ def gef_on_regchanged_unhook(func):
 #
 # Virtual breakpoints
 #
-
 
 class PieVirtualBreakpoint:
     """PIE virtual breakpoint (not real breakpoint)."""
@@ -4082,7 +4120,7 @@ class StubBreakpoint(gdb.Breakpoint):
     def stop(self) -> bool:
         gdb.execute(f"return (unsigned int){self.retval:#x}")
         ok(f"Ignoring call to '{self.func}' "
-            f"(setting return value to {self.retval:#x})")
+           f"(setting return value to {self.retval:#x})")
         return False
 
 
@@ -5127,23 +5165,23 @@ class GefThemeCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(self._cmdline_)
-        self["context_title_line"] = ( "gray", "Color of the borders in context window")
-        self["context_title_message"] = ( "cyan", "Color of the title in context window")
-        self["default_title_line"] = ( "gray", "Default color of borders")
-        self["default_title_message"] = ( "cyan", "Default color of title")
-        self["table_heading"] = ( "blue", "Color of the column headings to tables (e.g. vmmap)")
-        self["old_context"] = ( "gray", "Color to use to show things such as code that is not immediately relevant")
-        self["disassemble_current_instruction"] = ( "green", "Color to use to highlight the current $pc when disassembling")
-        self["dereference_string"] = ( "yellow", "Color of dereferenced string")
-        self["dereference_code"] = ( "gray", "Color of dereferenced code")
-        self["dereference_base_address"] = ( "cyan", "Color of dereferenced address")
-        self["dereference_register_value"] = ( "bold blue", "Color of dereferenced register")
-        self["registers_register_name"] = ( "blue", "Color of the register name in the register window")
-        self["registers_value_changed"] = ( "bold red", "Color of the changed register in the register window")
-        self["address_stack"] = ( "pink", "Color to use when a stack address is found")
-        self["address_heap"] = ( "green", "Color to use when a heap address is found")
-        self["address_code"] = ( "red", "Color to use when a code address is found")
-        self["source_current_line"] = ( "green", "Color to use for the current code line in the source window")
+        self["context_title_line"] = ("gray", "Color of the borders in context window")
+        self["context_title_message"] = ("cyan", "Color of the title in context window")
+        self["default_title_line"] = ("gray", "Default color of borders")
+        self["default_title_message"] = ("cyan", "Default color of title")
+        self["table_heading"] = ("blue", "Color of the column headings to tables (e.g. vmmap)")
+        self["old_context"] = ("gray", "Color to use to show things such as code that is not immediately relevant")
+        self["disassemble_current_instruction"] = ("green", "Color to use to highlight the current $pc when disassembling")
+        self["dereference_string"] = ("yellow", "Color of dereferenced string")
+        self["dereference_code"] = ("gray", "Color of dereferenced code")
+        self["dereference_base_address"] = ("cyan", "Color of dereferenced address")
+        self["dereference_register_value"] = ("bold blue", "Color of dereferenced register")
+        self["registers_register_name"] = ("blue", "Color of the register name in the register window")
+        self["registers_value_changed"] = ("bold red", "Color of the changed register in the register window")
+        self["address_stack"] = ("pink", "Color to use when a stack address is found")
+        self["address_heap"] = ("green", "Color to use when a heap address is found")
+        self["address_code"] = ("red", "Color to use when a code address is found")
+        self["source_current_line"] = ("green", "Color to use for the current code line in the source window")
         return
 
     def do_invoke(self, args: List) -> None:
@@ -5187,11 +5225,11 @@ class PCustomCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(prefix=True)
-        self["struct_path"] = ( os.sep.join( (gef.config["gef.tempdir"], "structs")), "Path to store/load the structure ctypes files")
-        self["max_depth"] = ( 4, "Maximum level of recursion supported")
-        self["structure_name"] = ( "bold blue", "Color of the structure name")
-        self["structure_type"] = ( "bold red", "Color of the attribute type")
-        self["structure_size"] = ( "green", "Color of the attribute size")
+        self["struct_path"] = (os.sep.join( (gef.config["gef.tempdir"], "structs")), "Path to store/load the structure ctypes files")
+        self["max_depth"] = (4, "Maximum level of recursion supported")
+        self["structure_name"] = ("bold blue", "Color of the structure name")
+        self["structure_type"] = ("bold red", "Color of the attribute type")
+        self["structure_size"] = ("green", "Color of the attribute size")
         return
 
 
@@ -5305,7 +5343,7 @@ class PCustomCommand(GenericCommand):
                 self.apply_structure_to_address(mod_name, _type.__name__, addr + _offset, depth + 1)
             elif _type.__name__.startswith("LP_"): # hack
                 __sub_type_name = _type.__name__.replace("LP_", "")
-                __deref = u64( gef.memory.read(addr + _offset, 8) )
+                __deref = u64(gef.memory.read(addr + _offset, 8))
                 self.apply_structure_to_address(mod_name, __sub_type_name, __deref, depth + 1)
         return
 
@@ -5586,10 +5624,9 @@ class IdaInteractCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(prefix=False)
-        host, port = "127.0.0.1", 1337
-        self["host"] = ( host, "IP address to use connect to IDA/Binary Ninja script")
-        self["port"] = ( port, "Port to use connect to IDA/Binary Ninja script")
-        self["sync_cursor"] = ( False, "Enable real-time $pc synchronisation")
+        self["host"] = ("127.0.0.1", "IP address to use connect to IDA/Binary Ninja script")
+        self["port"] = (1337, "Port to use connect to IDA/Binary Ninja script")
+        self["sync_cursor"] = (False, "Enable real-time $pc synchronization")
 
         self.sock = None
         self.version = ("", "")
@@ -6113,7 +6150,7 @@ class ChangePermissionCommand(GenericCommand):
         info(f"Setting a restore breakpoint at {bp_loc}")
         ChangePermissionBreakpoint(bp_loc, original_code, original_pc)
 
-        info(f"Overwriting current memory at {loc:#x} ({len(stub):d} bytes)")
+        info(f"Overwriting current memory at {loc:#x} ({len(stub)} bytes)")
         gef.memory.write(original_pc, stub, len(stub))
 
         info("Resuming execution")
@@ -6147,8 +6184,8 @@ class UnicornEmulateCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(complete=gdb.COMPLETE_LOCATION)
-        self["verbose"] = ( False, "Set unicorn-engine in verbose mode")
-        self["show_disassembly"] = ( False, "Show every instruction executed")
+        self["verbose"] = (False, "Set unicorn-engine in verbose mode")
+        self["show_disassembly"] = (False, "Show every instruction executed")
         return
 
     def pre_load(self) -> None:
@@ -6319,7 +6356,7 @@ def reset():
             perm       = sect.permission
 
             content += f"    # Mapping {sect.path}: {page_start:#x}-{page_end:#x}\n"
-            content += f"    emu.mem_map({page_start:#x}, {size:#x}, {oct(perm.value)})\n"
+            content += f"    emu.mem_map({page_start:#x}, {size:#x}, {perm.value:#o})\n"
 
             if perm & Permission.READ:
                 code = gef.memory.read(page_start, size)
@@ -6395,7 +6432,7 @@ class RemoteCommand(GenericCommand):
     def __init__(self) -> None:
         super().__init__(prefix=False)
         self.handler_connected = False
-        self["clean_on_exit"] = ( False, "Clean the temporary data downloaded when the session exits.")
+        self["clean_on_exit"] = (False, "Clean the temporary data downloaded when the session exits.")
         return
 
     @parse_arguments(
@@ -6514,7 +6551,7 @@ class RemoteCommand(GenericCommand):
 
         directory  = os.path.sep.join([gef.config["gef.tempdir"], str(gef.session.pid)])
         # gdb.execute(f"file {infos['exe']}")
-        self["root"] = ( directory, "Path to store the remote data")
+        self["root"] = (directory, "Path to store the remote data")
         ok(f"Remote information loaded to temporary path '{directory}'")
         return
 
@@ -6637,7 +6674,7 @@ class NopCommand(GenericCommand):
 
         if len(nops) > size:
             err(f"Cannot patch instruction at {loc:#x} "
-                f"(nop_size is:{len(nops):d}, insn_size is:{size:d})")
+                f"(nop_size is:{len(nops)}, insn_size is:{size})")
             return
 
         while len(nops) < size:
@@ -6880,7 +6917,7 @@ class GlibcHeapChunksCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(complete=gdb.COMPLETE_LOCATION)
-        self["peek_nb_byte"] = ( 16, "Hexdump N first byte(s) inside the chunk data (0 to disable)")
+        self["peek_nb_byte"] = (16, "Hexdump N first byte(s) inside the chunk data (0 to disable)")
         return
 
     @parse_arguments({"arena_address": ""}, {("--all", "-a"): True, "--allow-unaligned": True})
@@ -7208,6 +7245,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
             gef_print()
         return
 
+
 @register_command
 class GlibcHeapUnsortedBinsCommand(GenericCommand):
     """Display information on the Unsorted Bins of an arena (default: main_arena).
@@ -7222,7 +7260,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv: List) -> None:
-        if get_glibc_arena() is None:
+        if gef.heap.selected_arena is None:
             err("Invalid Glibc arena")
             return
 
@@ -7232,6 +7270,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
         if nb_chunk >= 0:
             info(f"Found {nb_chunk:d} chunks in unsorted bin.")
         return
+
 
 @register_command
 class GlibcHeapSmallBinsCommand(GenericCommand):
@@ -7261,6 +7300,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
                 bins[i] = nb_chunk
         info(f"Found {sum(bins.values()):d} chunks in {len(bins):d} small non-empty bins.")
         return
+
 
 @register_command
 class GlibcHeapLargeBinsCommand(GenericCommand):
@@ -7368,9 +7408,8 @@ class DetailRegistersCommand(GenericCommand):
             padreg = regname.ljust(widest, " ")
 
             if str(reg) == "<unavailable>":
-                line = f"{Color.colorify(padreg, unchanged_color)}: "
-                line += Color.colorify("no value", "yellow underline")
-                gef_print(line)
+                gef_print(f"{Color.colorify(padreg, unchanged_color)}: "
+                          f"{Color.colorify('no value', 'yellow underline')}")
                 continue
 
             value = align_address(int(reg))
@@ -7411,7 +7450,7 @@ class DetailRegistersCommand(GenericCommand):
                 last_addr = int(addrs[-1], 16)
                 val = gef_pystring(struct.pack(fmt, last_addr))
                 if all([_ in charset for _ in val]):
-                    line += f' ("{Color.colorify(val, string_color)}"?)'
+                    line += f" (\"{Color.colorify(val, string_color)}\"?)"
             except ValueError:
                 pass
 
@@ -7602,8 +7641,8 @@ class AssembleCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__()
-        self["default_architecture"] = ( "X86", "Specify the default architecture to use when assembling")
-        self["default_mode"] = ( "64", "Specify the default architecture to use when assembling")
+        self["default_architecture"] = ("X86", "Specify the default architecture to use when assembling")
+        self["default_mode"] = ("64", "Specify the default architecture to use when assembling")
         return
 
     def pre_load(self) -> None:
@@ -7650,7 +7689,7 @@ class AssembleCommand(GenericCommand):
 
         if is_alive():
             arch_s, mode_s = gef.arch.arch, gef.arch.mode
-            endian_s = "big" if is_big_endian() else ""
+            endian_s = "big" if gef.arch.endianness == Endianness.BIG_ENDIAN else ""
 
         if args.arch:
             arch_s = args.arch
@@ -7987,7 +8026,7 @@ class EntryPointBreakCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__()
-        self["entrypoint_symbols"] = ( "main _main __libc_start_main __uClibc_main start _start", "Possible symbols for entry points")
+        self["entrypoint_symbols"] = ("main _main __libc_start_main __uClibc_main start _start", "Possible symbols for entry points")
         return
 
     def do_invoke(self, argv: List) -> None:
@@ -8097,29 +8136,29 @@ class ContextCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__()
-        self["enable"] = ( True, "Enable/disable printing the context when breaking")
-        self["show_source_code_variable_values"] = ( True, "Show extra PC context info in the source code")
-        self["show_stack_raw"] = ( False, "Show the stack pane as raw hexdump (no dereference)")
-        self["show_registers_raw"] = ( False, "Show the registers pane with raw values (no dereference)")
-        self["show_opcodes_size"] = ( 0, "Number of bytes of opcodes to display next to the disassembly")
-        self["peek_calls"] = ( True, "Peek into calls")
-        self["peek_ret"] = ( True, "Peek at return address")
-        self["nb_lines_stack"] = ( 8, "Number of line in the stack pane")
-        self["grow_stack_down"] = ( False, "Order of stack downward starts at largest down to stack pointer")
-        self["nb_lines_backtrace"] = ( 10, "Number of line in the backtrace pane")
-        self["nb_lines_backtrace_before"] = ( 2, "Number of line in the backtrace pane before selected frame")
-        self["nb_lines_threads"] = ( -1, "Number of line in the threads pane")
-        self["nb_lines_code"] = ( 6, "Number of instruction after $pc")
-        self["nb_lines_code_prev"] = ( 3, "Number of instruction before $pc")
-        self["ignore_registers"] = ( "", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
-        self["clear_screen"] = ( True, "Clear the screen before printing the context")
-        self["layout"] = ( "legend regs stack code args source memory threads trace extra", "Change the order/presence of the context sections")
+        self["enable"] = (True, "Enable/disable printing the context when breaking")
+        self["show_source_code_variable_values"] = (True, "Show extra PC context info in the source code")
+        self["show_stack_raw"] = (False, "Show the stack pane as raw hexdump (no dereference)")
+        self["show_registers_raw"] = (False, "Show the registers pane with raw values (no dereference)")
+        self["show_opcodes_size"] = (0, "Number of bytes of opcodes to display next to the disassembly")
+        self["peek_calls"] = (True, "Peek into calls")
+        self["peek_ret"] = (True, "Peek at return address")
+        self["nb_lines_stack"] = (8, "Number of line in the stack pane")
+        self["grow_stack_down"] = (False, "Order of stack downward starts at largest down to stack pointer")
+        self["nb_lines_backtrace"] = (10, "Number of line in the backtrace pane")
+        self["nb_lines_backtrace_before"] = (2, "Number of line in the backtrace pane before selected frame")
+        self["nb_lines_threads"] = (-1, "Number of line in the threads pane")
+        self["nb_lines_code"] = (6, "Number of instruction after $pc")
+        self["nb_lines_code_prev"] = (3, "Number of instruction before $pc")
+        self["ignore_registers"] = ("", "Space-separated list of registers not to display (e.g. '$cs $ds $gs')")
+        self["clear_screen"] = (True, "Clear the screen before printing the context")
+        self["layout"] = ("legend regs stack code args source memory threads trace extra", "Change the order/presence of the context sections")
         self["redirect"] = ("", "Redirect the context information to another TTY")
-        self["libc_args"] = ( False, "Show libc function call args description")
-        self["libc_args_path"] = ( "", "Path to libc function call args json files, provided via gef-extras")
+        self["libc_args"] = (False, "Show libc function call args description")
+        self["libc_args_path"] = ("", "Path to libc function call args json files, provided via gef-extras")
 
         if "capstone" in list(sys.modules.keys()):
-            self["use_capstone"] = ( False, "Use capstone as disassembler in the code pane (instead of GDB)")
+            self["use_capstone"] = (False, "Use capstone as disassembler in the code pane (instead of GDB)")
 
         self.layout_mapping = {
             "legend": (self.show_legend, None),
@@ -8912,7 +8951,7 @@ class HexdumpCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(complete=gdb.COMPLETE_LOCATION, prefix=True)
-        self["always_show_ascii"] = ( False, "If true, hexdump will always display the ASCII dump")
+        self["always_show_ascii"] = (False, "If true, hexdump will always display the ASCII dump")
         self.format = None
         self.__last_target = "$sp"
         return
@@ -9162,6 +9201,7 @@ class PatchStringCommand(GenericCommand):
         gef.memory.write(addr, s, len(s))
         return
 
+
 @lru_cache()
 def dereference_from(addr: int) -> List[str]:
     if not is_alive():
@@ -9237,7 +9277,7 @@ class DereferenceCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(complete=gdb.COMPLETE_LOCATION)
-        self["max_recursion"] = ( 7, "Maximum level of pointer recursion")
+        self["max_recursion"] = (7, "Maximum level of pointer recursion")
         return
 
     @staticmethod
@@ -9409,11 +9449,11 @@ class VMMapCommand(GenericCommand):
         elif entry.permission.value & Permission.READ and entry.permission.value & Permission.EXECUTE:
             line_color = gef.config["theme.address_code"]
 
-        l = []
-        l.append(Color.colorify(format_address(entry.page_start), line_color))
-        l.append(Color.colorify(format_address(entry.page_end), line_color))
-        l.append(Color.colorify(format_address(entry.offset), line_color))
-
+        l = [
+            Color.colorify(format_address(entry.page_start), line_color),
+            Color.colorify(format_address(entry.page_end), line_color),
+            Color.colorify(format_address(entry.offset), line_color),
+        ]
         if entry.permission.value == (Permission.READ|Permission.WRITE|Permission.EXECUTE):
             l.append(Color.colorify(str(entry.permission), "underline " + line_color))
         else:
@@ -9471,11 +9511,12 @@ class XFilesCommand(GenericCommand):
                 if filter_by_name and filter_by_name not in xfile.name:
                     continue
 
-            l = []
-            l.append(format_address(xfile.zone_start))
-            l.append(format_address(xfile.zone_end))
-            l.append(f"{xfile.name:<21s}")
-            l.append(xfile.filename)
+            l = [
+                format_address(xfile.zone_start),
+                format_address(xfile.zone_end),
+                f"{xfile.name:<21s}",
+                xfile.filename,
+            ]
             gef_print(" ".join(l))
         return
 
@@ -9536,7 +9577,7 @@ class XAddressInfoCommand(GenericCommand):
             name, offset = sym
             msg = f"Symbol: {name}"
             if offset:
-                msg+= f"+{offset:d}"
+                msg += f"+{offset:d}"
             gef_print(msg)
 
         return
@@ -9625,8 +9666,8 @@ class TraceRunCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(self._cmdline_, complete=gdb.COMPLETE_LOCATION)
-        self["max_tracing_recursion"] = ( 1, "Maximum depth of tracing")
-        self["tracefile_prefix"] = ( "./gef-trace-", "Specify the tracing output file prefix")
+        self["max_tracing_recursion"] = (1, "Maximum depth of tracing")
+        self["tracefile_prefix"] = ("./gef-trace-", "Specify the tracing output file prefix")
         return
 
     @only_if_gdb_running
@@ -9661,11 +9702,10 @@ class TraceRunCommand(GenericCommand):
     def trace(self, loc_start: int, loc_end: int, depth: int) -> None:
         info(f"Tracing from {loc_start:#x} to {loc_end:#x} (max depth={depth:d})")
         logfile = f"{self['tracefile_prefix']}{loc_start:#x}-{loc_end:#x}.txt"
-        enable_redirect_output(to_file=logfile)
-        hide_context()
-        self.start_tracing(loc_start, loc_end, depth)
-        unhide_context()
-        disable_redirect_output()
+        with RedirectOutputContext(to=logfile):
+            hide_context()
+            self.start_tracing(loc_start, loc_end, depth)
+            unhide_context()
         ok(f"Done, logfile stored as '{logfile}'")
         info("Hint: import logfile with `ida_color_gdb_trace.py` script in IDA to visualize path")
         return
@@ -9715,7 +9755,7 @@ class PatternCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(prefix=True)
-        self["length"] = ( 1024, "Default length of a cyclic buffer to generate")
+        self["length"] = (1024, "Default length of a cyclic buffer to generate")
         return
 
     def do_invoke(self, argv: List) -> None:
@@ -9797,13 +9837,13 @@ class PatternSearchCommand(GenericCommand):
         off = cyclic_pattern.find(pattern_le)
         if off >= 0:
             ok(f"Found at offset {off:d} (little-endian search) "
-               f"{Color.colorify('likely', 'bold red') if is_little_endian() else ''}")
+               f"{Color.colorify('likely', 'bold red') if gef.arch.endianness == Endianness.LITTLE_ENDIAN else ''}")
             found = True
 
         off = cyclic_pattern.find(pattern_be)
         if off >= 0:
             ok(f"Found at offset {off:d} (big-endian search) "
-               f"{Color.colorify('likely', 'bold green') if is_big_endian() else ''}")
+               f"{Color.colorify('likely', 'bold green') if gef.arch.endianness == Endianness.BIG_ENDIAN else ''}")
             found = True
 
         if not found:
@@ -9857,8 +9897,8 @@ class ChecksecCommand(GenericCommand):
             val = sec[prop]
             msg = Color.greenify(Color.boldify(TICK)) if val is True else Color.redify(Color.boldify(CROSS))
             if val and prop == "Canary" and is_alive():
-                canary = gef_read_canary()[0]
-                msg+= f"(value: {canary:#x})"
+                canary = gef.session.canary[0] if gef.session.canary else 0
+                msg += f"(value: {canary:#x})"
 
             gef_print(f"{prop:<30s}: {msg}")
 
@@ -9881,24 +9921,19 @@ class GotCommand(GenericCommand):
 
     def __init__(self, *args, **kwargs):
         super().__init__()
-        self["function_resolved"] = ( "green", "Line color of the got command output if the function has "
-                                                       "been resolved")
-        self["function_not_resolved"] = ( "yellow", "Line color of the got command output if the function has "
-                                                       "not been resolved")
+        self["function_resolved"] = ("green",
+                                     "Line color of the got command output for resolved function")
+        self["function_not_resolved"] = ("yellow",
+                                         "Line color of the got command output for unresolved function")
         return
 
     def get_jmp_slots(self, readelf: str, filename: str) -> List[str]:
-        output = []
         cmd = [readelf, "--relocs", filename]
         lines = gef_execute_external(cmd, as_list=True)
-        for line in lines:
-            if "JUMP" in line:
-                output.append(line)
-        return output
+        return [line for line in lines if "JUMP" in line]
 
     @only_if_gdb_running
     def do_invoke(self, argv: List) -> None:
-
         try:
             readelf = gef.session.constants["readelf"]
         except OSError:
@@ -9913,8 +9948,8 @@ class GotCommand(GenericCommand):
         # getting vmmap to understand the boundaries of the main binary
         # we will use this info to understand if a function has been resolved or not.
         vmmap = gef.memory.maps
-        base_address = min([x.page_start for x in vmmap if x.path == get_filepath()])
-        end_address = max([x.page_end for x in vmmap if x.path == get_filepath()])
+        base_address = min(x.page_start for x in vmmap if x.path == get_filepath())
+        end_address = max(x.page_end for x in vmmap if x.path == get_filepath())
 
         # get the checksec output.
         checksec_status = checksec(get_filepath())
@@ -9953,9 +9988,9 @@ class GotCommand(GenericCommand):
 
             # for the swag: different colors if the function has been resolved or not.
             if base_address < got_address < end_address:
-                color = self["function_not_resolved"]  # function hasn't already been resolved
+                color = self["function_not_resolved"]
             else:
-                color = self["function_resolved"]      # function has already been resolved
+                color = self["function_resolved"]
 
             line = f"[{hex(address_val)}] "
             line += Color.colorify(f"{name} {RIGHT_ARROW} {hex(got_address)}", color)
@@ -9973,7 +10008,7 @@ class HighlightCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(prefix=True)
-        self["regex"] = ( False, "Enable regex highlighting")
+        self["regex"] = (False, "Enable regex highlighting")
 
     def do_invoke(self, argv: List) -> None:
         return self.usage()
@@ -10084,7 +10119,6 @@ class FormatStringSearchCommand(GenericCommand):
         return
 
 
-
 @register_command
 class HeapAnalysisCommand(GenericCommand):
     """Heap vulnerability analysis helper: this command aims to track dynamic heap allocation
@@ -10099,11 +10133,11 @@ class HeapAnalysisCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(complete=gdb.COMPLETE_NONE)
-        self["check_free_null"] = ( False, "Break execution when a free(NULL) is encountered")
-        self["check_double_free"] = ( True, "Break execution when a double free is encountered")
-        self["check_weird_free"] = ( True, "Break execution when free() is called against a non-tracked pointer")
-        self["check_uaf"] = ( True, "Break execution when a possible Use-after-Free condition is found")
-        self["check_heap_overlap"] = ( True, "Break execution when a possible overlap in allocation is found")
+        self["check_free_null"] = (False, "Break execution when a free(NULL) is encountered")
+        self["check_double_free"] = (True, "Break execution when a double free is encountered")
+        self["check_weird_free"] = (True, "Break execution when free() is called against a non-tracked pointer")
+        self["check_uaf"] = (True, "Break execution when a possible Use-after-Free condition is found")
+        self["check_heap_overlap"] = (True, "Break execution when a possible overlap in allocation is found")
 
         self.bp_malloc = None
         self.bp_calloc = None
@@ -10220,15 +10254,13 @@ class SyscallArgsCommand(GenericCommand):
         return
 
     def do_invoke(self, argv: List) -> None:
-        color = gef.config["theme.table_heading"]
-
         path = self.get_settings_path()
-        if path is None:
-            err("Cannot open '{0}': check directory and/or `gef config {0}` setting, "
-                "currently: '{1}'".format("syscall-args.path", self["path"]))
-            info("This setting can be configured by running gef-extras' install script.")
+        if not path:
+            err(f"Cannot open '{self['path']}': check directory and/or "
+                "`gef config syscall-args.path` setting.")
             return
 
+        color = gef.config["theme.table_heading"]
         arch = gef.arch.__class__.__name__
         syscall_table = self.get_syscall_table(arch)
 
@@ -10265,22 +10297,22 @@ class SyscallArgsCommand(GenericCommand):
 
         return
 
-    def get_filepath(self, x: str) -> Optional[str]:
-        p = self.get_settings_path()
-        if not p: return None
-        return os.path.join(p, f"{x}.py")
-
-    def get_module(self, modname: str):
-        _fullname = self.get_filepath(modname)
-        return importlib.machinery.SourceFileLoader(modname, _fullname).load_module(None)
-
-    def get_syscall_table(self, modname: str):
+    def get_syscall_table(self, modname: str) -> Dict[str, Any]:
         _mod = self.get_module(modname)
         return getattr(_mod, "syscall_table")
 
+    def get_module(self, modname: str) -> Any:
+        _fullname = self.get_filepath(modname).absolute()
+        return importlib.machinery.SourceFileLoader(modname, _fullname).load_module(None)
+
+    def get_filepath(self, x: str) -> Optional[pathlib.Path]:
+        p = self.get_settings_path()
+        if not p: return None
+        return p / f"{x}.py"
+
     def get_settings_path(self) -> Optional[pathlib.Path]:
-        path = pathlib.Path(os.path.expanduser(self["path"]))
-        return path if path.exists() and path.is_dir() else None
+        path = pathlib.Path(self["path"]).expanduser()
+        return path if path.is_dir() else None
 
 
 
@@ -10574,8 +10606,8 @@ class GefCommand(gdb.Command):
                         GefAlias(alias, cmd)
 
             except Exception as reason:
-               self.missing_commands[cmd] = reason
-               nb_missing += 1
+                self.missing_commands[cmd] = reason
+                nb_missing += 1
 
         # sort by command name
         self.loaded_commands = sorted(self.loaded_commands, key=lambda x: x[1]._cmdline_)
@@ -10616,7 +10648,7 @@ class GefHelpCommand(gdb.Command):
         gef_print(self.__doc__ or "")
         return
 
-    def generate_help(self, commands: List[Tuple[str, Type, Any]]) -> None:
+    def generate_help(self, commands: List[Tuple[str, Any, Any]]) -> None:
         """Generate builtin commands documentation."""
         for command in commands:
             self.add_command_to_doc(command)
@@ -10960,6 +10992,7 @@ class GefAlias(gdb.Command):
 
         return None
 
+
 @register_command
 class AliasesCommand(GenericCommand):
     """Base command to add, remove, or list aliases."""
@@ -10974,6 +11007,7 @@ class AliasesCommand(GenericCommand):
     def do_invoke(self, argv) -> None:
         self.usage()
         return
+
 
 @register_command
 class AliasesAddCommand(AliasesCommand):
@@ -10993,6 +11027,7 @@ class AliasesAddCommand(AliasesCommand):
             return
         GefAlias(argv[0], " ".join(argv[1:]))
         return
+
 
 @register_command
 class AliasesRmCommand(AliasesCommand):
@@ -11019,6 +11054,7 @@ class AliasesRmCommand(AliasesCommand):
         gef_print("You must reload GEF for alias removals to apply.")
         return
 
+
 @register_command
 class AliasesListCommand(AliasesCommand):
     """Command to list aliases."""
@@ -11035,6 +11071,7 @@ class AliasesListCommand(AliasesCommand):
         for a in gef.session.aliases:
             gef_print(f"{a._alias:30s} {RIGHT_ARROW} {a._command}")
         return
+
 
 class GefTmuxSetup(gdb.Command):
     """Setup a confortable tmux debugging environment."""
@@ -11092,7 +11129,7 @@ class GefTmuxSetup(gdb.Command):
             f.write(f"screen bash -c 'tty > {tty_path}; clear; cat'\n")
             f.write("focus left\n")
 
-        gdb.execute(f"""! {screen} -r {sty} -m -d -X source {script_path}""")
+        gdb.execute(f"! {screen} -r {sty} -m -d -X source {script_path}")
         # artificial delay to make sure `tty_path` is populated
         time.sleep(0.25)
         with open(tty_path, "r") as f:
@@ -11127,9 +11164,10 @@ class GefManager(metaclass=abc.ABCMeta):
                 if not hasattr(obj, "cache_clear"):
                     continue
                 obj.cache_clear()
-            except: # we're reseeting the cache here, we don't care if (or which) exception triggers
+            except: # we're reseting the cache here, we don't care if (or which) exception triggers
                 continue
         return
+
 
 class GefMemoryManager(GefManager):
     """Class that manages memory access for gef."""
@@ -11157,13 +11195,16 @@ class GefMemoryManager(GefManager):
         unpack = u32 if sz == 4 else u64
         return unpack(mem)
 
-    def read_cstring(self, address: int, max_length: int = GEF_MAX_STRING_LENGTH, encoding: Optional[str] = None) -> str:
+    def read_cstring(self,
+                     address: int,
+                     max_length: int = GEF_MAX_STRING_LENGTH,
+                     encoding: Optional[str] = None) -> str:
         """Return a C-string read from memory."""
         encoding = encoding or "unicode-escape"
         length = min(address | (DEFAULT_PAGE_SIZE-1), max_length+1)
 
         try:
-            res_bytes = bytes(self.read(address, length))
+            res_bytes = self.read(address, length)
         except gdb.error:
             err(f"Can't read memory at '{address}'")
             return ""
@@ -11185,24 +11226,24 @@ class GefMemoryManager(GefManager):
     def read_ascii_string(self, address: int) -> Optional[str]:
         """Read an ASCII string from memory"""
         cstr = self.read_cstring(address)
-        if isinstance(cstr, str) and cstr and all([x in string.printable for x in cstr]):
+        if isinstance(cstr, str) and cstr and all(x in string.printable for x in cstr):
             return cstr
         return None
 
     @property
-    def maps(self):
+    def maps(self) -> List[Section]:
         if not self.__maps:
             self.__maps = self.__parse_maps()
         return self.__maps
 
-    def __parse_maps(self):
+    def __parse_maps(self) -> Generator[Section, None, None]:
         """Return the mapped memory sections"""
         try:
             return list(self.__parse_procfs_maps())
         except FileNotFoundError:
             return list(self.__parse_gdb_info_sections())
 
-    def __parse_procfs_maps(self):
+    def __parse_procfs_maps(self) -> Generator[Section, None, None]:
         """Get the memory mapping from procfs."""
         def open_file(path, use_cache=False):
             """Attempt to open the given file, if remote debugging is active, download
@@ -11238,7 +11279,7 @@ class GefMemoryManager(GefManager):
                             path=pathname)
         return
 
-    def __parse_gdb_info_sections(self):
+    def __parse_gdb_info_sections(self) -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
         stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
 
@@ -11266,6 +11307,7 @@ class GefMemoryManager(GefManager):
             except ValueError:
                 continue
         return
+
 
 class GefHeapManager(GefManager):
     """Class managing session heap."""
@@ -11328,7 +11370,8 @@ class GefHeapManager(GefManager):
     def chunks(self) -> Union[List, Iterator]:
         if not self.base_address:
             return []
-        return iter( GlibcChunk(self.base_address, from_base=True) )
+        return iter(GlibcChunk(self.base_address, from_base=True))
+
 
 class GefSetting:
     """Basic class for storing gef settings as objects"""
@@ -11371,6 +11414,7 @@ class GefSettingsManager(dict):
 
     def raw_entry(self, name: str) -> Any:
         return dict.__getitem__(self, name)
+
 
 class GefSessionManager(GefManager):
     """Class managing the runtime properties of GEF. """
@@ -11473,9 +11517,9 @@ class GefSessionManager(GefManager):
 class GefUiManager(GefManager):
     """Class managing UI settings."""
     def __init__(self):
-        self.redirect_fd = None
+        self.redirect_fd : Optional[TextIOWrapper] = None
         self.context_hidden = False
-        self.stream_buffer = None
+        self.stream_buffer : Optional[StringIO] = None
         self.highlight_table = {}
         self.watches = {}
         self.context_messages = []
@@ -11483,7 +11527,7 @@ class GefUiManager(GefManager):
 
 
 class Gef:
-    """The GEF root class, which serves as a base classe for all the attributes for the debugging session (architecture,
+    """The GEF root class, which serves as a entrypoint for all the debugging session attributes (architecture,
     memory, settings, etc.)."""
     def __init__(self) -> None:
         self.binary: Optional[Elf] = None
