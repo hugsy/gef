@@ -1721,6 +1721,7 @@ def unhide_context() -> bool:
     gef.ui.context_hidden = False
     return True
 
+
 class RedirectOutputContext():
     def __init__(self, to="/dev/null") -> None:
         self.redirection_target_file = to
@@ -10107,8 +10108,7 @@ class FormatStringSearchCommand(GenericCommand):
 
         nb_installed_breaks = 0
 
-        # with RedirectOutputContext("/dev/null") as ctx:
-        if True:
+        with RedirectOutputContext(to="/dev/null"):
             for function_name in dangerous_functions:
                 argument_number = dangerous_functions[function_name]
                 FormatStringBreakpoint(function_name, argument_number)
