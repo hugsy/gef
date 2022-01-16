@@ -45,7 +45,7 @@ Or [try it online](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 
 ### Quick install ###
 
-Simply make sure you have [GDB 7.7 or higher](https://www.gnu.org/s/gdb).
+Simply make sure you have [GDB 8.0 or higher](https://www.gnu.org/s/gdb), compiled with Python 3.6 or higher.
 
 ```bash
 $ bash -c "$(curl -fsSL http://gef.blah.cat/sh)"
@@ -175,22 +175,22 @@ _Side Note_: `GEF` fully relies on the GDB API and other Linux-specific sources 
 
 `gef` was created and maintained by myself, [`@_hugsy_`](https://twitter.com/_hugsy_), but kept fresh thanks to [all the contributors](https://github.com/hugsy/gef/graphs/contributors).
 
-Or if you just like the tool, feel free to drop a simple *"thanks"* on Discord, Twitter or other, it is **always** very appreciated.
+[ ![contributors-img](https://contrib.rocks/image?repo=hugsy/gef) ](https://github.com/hugsy/gef/graphs/contributors)
 
+Or if you just like the tool, feel free to drop a simple *"thanks"* on Discord, Twitter or other, it is **always** very appreciated.
 
 ## Sponsors ##
 
 We would like to thank in particular the following people who've been sponsoring GEF allowing us to dedicate more time and resources to the project:
 
- - [@nkaretnikov](https://github.com/nkaretnikov)
- - [@R3zk0n](https://github.com/r3zk0n)
- - [@merces](https://github.com/merces)
- - [@nbars](https://github.com/nbars)
- - [@maycon](https://github.com/maycon)
- - [@jespinhara](https://github.com/jespinhara)
- - [@therealdreg](https://github.com/therealdreg)
-
-Want to be part of this list of amazing people? [Jump here!](https://github.com/sponsors/hugsy)
+[<img src="https://github.com/nkaretnikov.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/nkaretnikov)
+[<img src="https://github.com/R3zk0n.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/r3zk0n)
+[<img src="https://github.com/merces.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/merces)
+[<img src="https://github.com/nbars.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/nbars)
+[<img src="https://github.com/maycon.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/maycon)
+[<img src="https://github.com/jespinhara.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/jespinhara)
+[<img src="https://github.com/therealdreg.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/therealdreg)
+[<img src="https://github.com/mikesart.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/mikesart)
 
 
 ### Extra Credits ###

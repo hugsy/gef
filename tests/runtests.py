@@ -22,13 +22,14 @@ from helpers import (
     include_for_architectures,
     ARCH,
     is_64b,
-    _target
+    _target,
+    start_gdbserver, stop_gdbserver,
 )
 
 BIN_LS = Path("/bin/ls")
 BIN_SH = Path("/bin/sh")
 TMPDIR = Path(tempfile.gettempdir())
-
+GEF_DEFAULT_PROMPT = "gef➤  "
 
 class GdbAssertionError(AssertionError):
     pass
@@ -70,8 +71,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd("canary"))
         res = gdb_start_silent_cmd("canary", target=_target("canary"))
         self.assertNoException(res)
-        self.assertIn("Found AT_RANDOM at", res)
-        self.assertIn("The canary of process ", res)
+        self.assertIn("The canary of process", res)
         return
 
     def test_cmd_capstone_disassemble(self):
@@ -198,18 +198,6 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_gef_remote(self):
-        def start_gdbserver(exe=_target("default"), port=1234):
-            return subprocess.Popen(["gdbserver", f":{port}", exe],
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-        def stop_gdbserver(gdbserver):
-            """Stops the gdbserver and waits until it is terminated if it was
-            still running. Needed to make the used port available again."""
-            if gdbserver.poll() is None:
-                gdbserver.kill()
-                gdbserver.wait()
-            return
-
         before = ["gef-remote :1234"]
         gdbserver = start_gdbserver()
         res = gdb_start_silent_cmd("vmmap", before=before)
@@ -227,7 +215,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_heap_set_arena(self):
-        cmd = "heap set-arena main_arena"
+        cmd = "heap set-arena &main_arena"
         target = _target("heap")
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target, after=["heap arenas"])
@@ -260,7 +248,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("Chunk(addr=", res)
         self.assertIn("top chunk", res)
 
-        cmd = "python gdb.execute('heap chunks {}'.format(get_glibc_arena().next))"
+        cmd = "python gdb.execute(f'heap chunks {int(list(gef.heap.arenas)[1]):#x}')"
         target = _target("heap-non-main")
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
@@ -270,7 +258,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_heap_chunks_mult_heaps(self):
-        before = ['run', 'python gdb.execute("heap set-arena {}".format(get_glibc_arena().next))']
+        py_cmd = 'gdb.execute(f"heap set-arena {int(list(gef.heap.arenas)[1]):#x}")'
+        before = ['run', 'python ' + py_cmd]
         cmd = "heap chunks"
         target = _target("heap-multiple-heaps")
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
@@ -301,7 +290,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("size=0x420", res)
 
     def test_cmd_heap_bins_non_main(self):
-        cmd = "python gdb.execute('heap bins fast {}'.format(get_glibc_arena().next))"
+        cmd = "python gdb.execute(f'heap bins fast {gef.heap.main_arena}')"
         before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
         target = _target("heap-non-main")
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
@@ -564,9 +553,10 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("print-format --lang js $sp")
         self.assertNoException(res)
         self.assertTrue("var buf = [" in res)
-        res = gdb_start_silent_cmd("print-format --lang hex $sp")
+        res = gdb_start_silent_cmd("set *((int*)$sp) = 0x41414141",
+                                   after=["print-format --lang hex $sp"])
         self.assertNoException(res)
-        self.assertTrue("f7ff7f" in res)
+        self.assertTrue("41414141" in res, f"{res}")
         res = gdb_start_silent_cmd("print-format --lang iDontExist $sp")
         self.assertNoException(res)
         self.assertTrue("Language must be in:" in res)
@@ -870,13 +860,13 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
     """Tests GEF internal functions."""
 
     def test_func_get_memory_alignment(self):
-        res = gdb_test_python_method("get_memory_alignment(in_bits=False)")
+        res = gdb_test_python_method("gef.arch.ptrsize")
         self.assertIn(res.splitlines()[-1], ("4", "8"))
         return
 
     @include_for_architectures(["x86_64", "i686"])
     def test_func_set_arch(self):
-        res = gdb_test_python_method("current_arch.arch, current_arch.mode", before="set_arch()")
+        res = gdb_test_python_method("gef.arch.arch, gef.arch.mode", before="set_arch()")
         res = (res.splitlines()[-1])
         self.assertIn("X86", res)
         return
@@ -890,23 +880,23 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
         return
 
     def test_func_get_filepath(self):
-        res = gdb_test_python_method("get_filepath()", target=BIN_LS)
+        res = gdb_test_python_method("gef.session.file", target=BIN_LS)
         self.assertNoException(res)
         target = TMPDIR / "foo bar"
         subprocess.call(["cp", BIN_LS, target])
-        res = gdb_test_python_method("get_filepath()", target=target)
+        res = gdb_test_python_method("gef.session.file", target=target)
         self.assertNoException(res)
         subprocess.call(["rm", target])
         return
 
     def test_func_get_pid(self):
-        res = gdb_test_python_method("get_pid()", target=BIN_LS)
+        res = gdb_test_python_method("gef.session.pid", target=BIN_LS)
         self.assertNoException(res)
         self.assertTrue(int(res.splitlines()[-1]))
         return
 
-    def test_fun_gef_get_auxiliary_values(self):
-        func = "gef_get_auxiliary_values()"
+    def test_func_auxiliary_vector(self):
+        func = "gef.session.auxiliary_vector"
         res = gdb_test_python_method(func, target=BIN_LS)
         self.assertNoException(res)
         # we need at least ("AT_PLATFORM", "AT_EXECFN") right now
@@ -929,6 +919,14 @@ class TestGefFunctionsUnit(GefUnitTestGeneric):
         func = "parse_address('meh')"
         res = gdb_test_python_method(func)
         self.assertException(res)
+        return
+
+    def test_func_download_file(self):
+        gdbsrv = start_gdbserver(BIN_LS)
+        func = f"download_file('{BIN_LS}')"
+        res = gdb_test_python_method(func)
+        stop_gdbserver(gdbsrv)
+        self.assertNoException(res)
         return
 
 
