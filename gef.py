@@ -230,7 +230,7 @@ def highlight_text(text: str) -> str:
 
 
 def gef_print(x: str = "", *args: Tuple, **kwargs: Dict[str, Any]) -> Optional[int]:
-    """Wrapper around print(), using string buffering feature."""
+    """Wrapper around `print()`, using string buffering feature."""
     x = highlight_text(x)
     if gef.ui.stream_buffer and not is_debug():
         return gef.ui.stream_buffer.write(x + kwargs.get("end", "\n"))
@@ -1058,8 +1058,6 @@ class MallocStateStruct:
         try:
             self.__addr = parse_address(f"&{addr}")
         except gdb.error:
-            warn(f"Could not parse address '&{addr}' when searching malloc_state struct, "
-                 "using '&main_arena' instead")
             self.__addr = search_for_main_arena()
             # if `search_for_main_arena` throws `gdb.error` on symbol lookup:
             # it means the session is not started, so just propagate the exception
@@ -3203,23 +3201,22 @@ def get_filepath() -> Optional[str]:
 
 
 def download_file(remote_path: str, use_cache: bool = False, local_name: Optional[str] = None) -> Optional[str]:
-    """Download filename `remote_path` inside the mirror tree inside the gef.config["gef.tempdir"].
-    The tree architecture must be gef.config["gef.tempdir"]/gef/<local_pid>/<remote_filepath>.
+    """Download filename `remote_path` inside the mirror tree inside the `gef.config["gef.tempdir"]`.
+    The tree architecture must be `gef.config["gef.tempdir"]/gef/<local_pid>/<remote_filepath>`.
     This allow a "chroot-like" tree format."""
 
+    local_root = pathlib.Path(gef.config["gef.tempdir"]) / str(gef.session.pid)
+    if local_name is None:
+        local_path = local_root / remote_path.strip(os.sep)
+    else:
+        local_path = local_root / local_name.strip(os.sep)
+
+    if use_cache and local_path.exists():
+        return str(local_path.absolute())
+
     try:
-        local_root = pathlib.Path(gef.config["gef.tempdir"]) / str(gef.session.pid)
-        if local_name is None:
-            local_path = local_root / remote_path.strip(os.sep)
-        else:
-            local_path = local_root / local_name.strip(os.sep)
-
-        if use_cache and local_path.exists():
-            return str(local_path.absolute())
-
         local_path.parent.mkdir(parents=True, exist_ok=True)
         gdb.execute(f"remote get {remote_path} {local_path.absolute()}")
-
         local_path = str(local_path.absolute())
     except gdb.error:
         # fallback memory view
@@ -3231,7 +3228,7 @@ def download_file(remote_path: str, use_cache: bool = False, local_name: Optiona
 
     except Exception as e:
         err(f"download_file() failed: {e}")
-        local_name = None
+        local_path = None
 
     return local_path
 
@@ -3298,7 +3295,7 @@ def process_lookup_path(name: str, perm=Permission.ALL) -> Optional[Section]:
         return None
 
     for sect in gef.memory.maps:
-        if name in sect.path and sect.permission.value & perm:
+        if name in sect.path and sect.permission & perm:
             return sect
 
     return None
@@ -3338,14 +3335,13 @@ def lookup_address(address: int) -> Address:
 
 def xor(data: ByteString, key: str) -> bytearray:
     """Return `data` xor-ed with `key`."""
-    key = key.lstrip("0x")
-    key = binascii.unhexlify(key)
-    return bytearray(x ^ y for x, y in zip(data, itertools.cycle(key)))
+    key_raw = binascii.unhexlify(key.lstrip("0x"))
+    return bytearray(x ^ y for x, y in zip(data, itertools.cycle(key_raw)))
 
 
 def is_hex(pattern: str) -> bool:
     """Return whether provided string is a hexadecimal value."""
-    if not pattern.startswith("0x") and not pattern.startswith("0X"):
+    if not pattern.lower().startswith("0x"):
         return False
     return len(pattern) % 2 == 0 and all(c in string.hexdigits for c in pattern[2:])
 
@@ -7261,12 +7257,12 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv: List) -> None:
-        if gef.heap.selected_arena is None:
+        if gef.heap.main_arena is None:
             err("Invalid Glibc arena")
             return
 
         arena_addr = f"*{argv[0]}" if len(argv) == 1 else gef.heap.selected_arena
-        gef_print(titlify(f"Unsorted Bin for arena '{arena_addr:s}'"))
+        gef_print(titlify(f"Unsorted Bin for arena '{arena_addr!s}'"))
         nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, 0, "unsorted_")
         if nb_chunk >= 0:
             info(f"Found {nb_chunk:d} chunks in unsorted bin.")
@@ -7291,7 +7287,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
             return
 
         arena = GlibcArena(f"*{argv[0]}") if len(argv) == 1 else gef.heap.selected_arena
-        gef_print(titlify(f"Small Bins for arena '{arena:s}'"))
+        gef_print(titlify(f"Small Bins for arena '{arena!s}'"))
         bins = {}
         for i in range(1, 63):
             nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena, i, "small_")
@@ -7321,7 +7317,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
             return
 
         arena_addr = f"*{argv[0]}" if len(argv) == 1 else gef.heap.selected_arena
-        gef_print(titlify(f"Large Bins for arena '{arena_addr:s}'"))
+        gef_print(titlify(f"Large Bins for arena '{arena_addr!s}'"))
         bins = {}
         for i in range(63, 126):
             nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, i, "large_")
