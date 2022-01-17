@@ -727,8 +727,8 @@ class Elf:
     """Basic ELF parsing.
     Ref:
     - http://www.skyfree.org/linux/references/ELF_Format.pdf
-    - http://refspecs.linuxfoundation.org/elf/elfspec_ppc.pdf
-    - http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
+    - https://refspecs.linuxfoundation.org/elf/elfspec_ppc.pdf
+    - https://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
     """
     ELF_32_BITS       = 0x01
     ELF_64_BITS       = 0x02
@@ -2321,7 +2321,7 @@ class ARM(Architecture):
                      "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$sp",
                      "$lr", "$pc", "$cpsr",]
 
-    # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
+    # https://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
     nop_insn = b"\x01\x10\xa0\xe1" # mov r1, r1
     return_register = "$r0"
     flag_register = "$cpsr"
@@ -2381,7 +2381,7 @@ class ARM(Architecture):
         return
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
-        # http://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
+        # https://www.botskool.com/user-pages/tutorials/electronics/arm-7-tutorial-part-1
         if val is None:
             reg = self.flag_register
             val = gef.arch.register(reg)
@@ -2393,7 +2393,7 @@ class ARM(Architecture):
 
     def is_branch_taken(self, insn) -> Tuple[bool, str]:
         mnemo = insn.mnemonic
-        # ref: http://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
+        # ref: https://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = gef.arch.register(self.flag_register)
         taken, reason = False, ""
@@ -2490,7 +2490,7 @@ class AARCH64(ARM):
         return mnemo in call_mnemos
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
-        # http://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
+        # https://events.linuxfoundation.org/sites/events/files/slides/KoreaLinuxForum-2014.pdf
         reg = self.flag_register
         if not val:
             val = gef.arch.register(reg)
@@ -2750,7 +2750,7 @@ class PowerPC(Architecture):
         "$r24", "$r25", "$r26", "$r27", "$r28", "$r29", "$r30", "$r31",
         "$pc", "$msr", "$cr", "$lr", "$ctr", "$xer", "$trap",]
     instruction_length = 4
-    nop_insn = b"\x60\x00\x00\x00" # http://www.ibm.com/developerworks/library/l-ppc/index.html
+    nop_insn = b"\x60\x00\x00\x00" # https://developer.ibm.com/articles/l-ppc/
     return_register = "$r0"
     flag_register = "$cr"
     flags_table = {
@@ -2769,7 +2769,7 @@ class PowerPC(Architecture):
     syscall_instructions = ["sc"]
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
-        # http://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
+        # https://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
         if not val:
             reg = self.flag_register
             val = gef.arch.register(reg)
@@ -2809,7 +2809,7 @@ class PowerPC(Architecture):
 
     @classmethod
     def mprotect_asm(cls, addr: int, size: int, perm) -> str:
-        # Ref: http://www.ibm.com/developerworks/library/l-ppc/index.html
+        # Ref: https://developer.ibm.com/articles/l-ppc/
         _NR_mprotect = 125
         insns = [
             "addi 1, 1, -16",  # 1 = r1 = sp
@@ -2843,7 +2843,7 @@ class PowerPC64(PowerPC):
 @register_architecture
 class SPARC(Architecture):
     """ Refs:
-    - http://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
+    - https://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
     """
     aliases = ("SPARC", Elf.SPARC)
     arch = "SPARC"
@@ -2872,7 +2872,7 @@ class SPARC(Architecture):
     syscall_instructions = ["t 0x10"]
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
-        # http://www.gaisler.com/doc/sparcv8.pdf
+        # https://www.gaisler.com/doc/sparcv8.pdf
         reg = self.flag_register
         if not val:
             val = gef.arch.register(reg)
@@ -2998,7 +2998,7 @@ class MIPS(Architecture):
     arch = "MIPS"
     mode = "MIPS32"
 
-    # http://vhouten.home.xs4all.nl/mipsel/r3000-isa.html
+    # https://vhouten.home.xs4all.nl/mipsel/r3000-isa.html
     all_registers = [
         "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3",
         "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",
@@ -7570,7 +7570,7 @@ class ShellcodeGetCommand(GenericCommand):
 
 @register_command
 class RopperCommand(GenericCommand):
-    """Ropper (http://scoding.de/ropper) plugin."""
+    """Ropper (https://scoding.de/ropper/) plugin."""
 
     _cmdline_ = "ropper"
     _syntax_  = f"{_cmdline_} [ROPPER_OPTIONS]"
@@ -7832,7 +7832,7 @@ class ElfInfoCommand(GenericCommand):
             err("Unsupported")
             return
 
-        # http://www.sco.com/developers/gabi/latest/ch4.eheader.html
+        # https://www.sco.com/developers/gabi/latest/ch4.eheader.html
         classes = {
             Elf.ELF_32_BITS     : "32-bit",
             Elf.ELF_64_BITS     : "64-bit",
