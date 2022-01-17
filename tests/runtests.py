@@ -75,6 +75,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_capstone_disassemble(self):
+        self.assertNotIn("capstone", gdb_run_silent_cmd("gef missing"))
         self.assertFailIfInactiveSession(gdb_run_cmd("capstone-disassemble"))
         res = gdb_start_silent_cmd("capstone-disassemble")
         self.assertNoException(res)
@@ -421,7 +422,8 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_keystone_assemble(self):
-        valid_cmds = [
+        self.assertNotIn("keystone", gdb_run_silent_cmd("gef missing"))
+        cmds = [
             "assemble --arch arm   --mode arm                  add  r0, r1, r2",
             "assemble --arch arm   --mode arm     --endian big add  r0, r1, r2",
             "assemble --arch arm   --mode thumb                add  r0, r1, r2",
@@ -445,7 +447,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
             "assemble --arch x86   --mode 32                   mov eax, 0x42",
             "assemble --arch x86   --mode 64                   mov rax, 0x42",
         ]
-        for cmd in valid_cmds:
+        for cmd in cmds:
             res = gdb_start_silent_cmd(cmd)
             self.assertNoException(res)
             self.assertTrue(len(res.splitlines()) > 1)
