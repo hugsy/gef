@@ -3393,41 +3393,40 @@ def regchanged_handler(event) -> None:
     return
 
 
-def load_libc_args() -> None:
+def load_libc_args() -> bool:
+    """Load the LIBC function arguments. Returns `True` on success, `False` or an Exception otherwise."""
     global gef
     # load libc function arguments' definitions
     if not gef.config["context.libc_args"]:
-        return
+        return False
 
     path = gef.config["context.libc_args_path"]
-    if path is None:
-        warn("Config `context.libc_args_path` not set but `context.libc_args` is True. Make sure you have `gef-extras` installed")
-        return
+    if not path:
+        return False
 
-    path = os.path.realpath(os.path.expanduser(path))
-
-    if not os.path.isdir(path):
-        warn("Config `context.libc_args_path` set but it's not a directory")
-        return
+    path = pathlib.Path(path).expanduser().absolute()
+    if not path.exists():
+        raise RuntimeError("Config `context.libc_args_path` set but it's not a directory")
 
     _arch_mode = f"{gef.arch.arch.lower()}_{gef.arch.mode}"
-    _libc_args_file = f"{path}/{_arch_mode}.json"
+    _libc_args_file = path / f"{_arch_mode}.json"
 
     # current arch and mode already loaded
     if _arch_mode in gef.ui.highlight_table:
-        return
+        return True
 
     gef.ui.highlight_table[_arch_mode] = {}
     try:
-        with open(_libc_args_file) as _libc_args:
+        with _libc_args_file.open() as _libc_args:
             gef.ui.highlight_table[_arch_mode] = json.load(_libc_args)
+        return True
     except FileNotFoundError:
         del gef.ui.highlight_table[_arch_mode]
         warn(f"Config context.libc_args is set but definition cannot be loaded: file {_libc_args_file} not found")
     except json.decoder.JSONDecodeError as e:
         del gef.ui.highlight_table[_arch_mode]
         warn(f"Config context.libc_args is set but definition cannot be loaded from file {_libc_args_file}: {e}")
-    return
+    return False
 
 
 def get_terminal_size() -> Tuple[int, int]:
@@ -10807,7 +10806,6 @@ class GefSaveCommand(gdb.Command):
         for key in sorted(gef.config):
             sect, optname = key.split(".", 1)
             value = gef.config[key]
-            value = value[0] if value else None
 
             if old_sect != sect:
                 cfg.add_section(sect)
@@ -10860,15 +10858,14 @@ class GefRestoreCommand(gdb.Command):
             for optname in cfg.options(section):
                 try:
                     key = f"{section}.{optname}"
-                    _type = gef.config[key].type
                     new_value = cfg.get(section, optname)
+                    _type = gef.config.raw_entry(key).type
                     if _type == bool:
-                        new_value = True if new_value == "True" else False
-                    else:
-                        new_value = _type(new_value)
-                    gef.config[key][0] = new_value
-                except Exception:
-                    pass
+                        new_value = True if new_value.upper() in ("TRUE", "T", "1") else False
+                    new_value = _type(new_value)
+                    gef.config[key] = new_value
+                except Exception as e:
+                    warn(e)
 
         # ensure that the temporary directory always exists
         gef_makedirs(gef.config["gef.tempdir"])
@@ -11384,10 +11381,7 @@ class GefSettingsManager(dict):
     For instance, to read a specific command setting: `gef.config[mycommand.mysetting]`
     """
     def __getitem__(self, name: str) -> Any:
-        try:
-            return dict.__getitem__(self, name).value
-        except KeyError:
-            return None
+        return dict.__getitem__(self, name).value
 
     def __setitem__(self, name: str, value) -> None:
         # check if the key exists
@@ -11405,10 +11399,10 @@ class GefSettingsManager(dict):
         return
 
     def __delitem__(self, name: str) -> None:
-        dict.__setitem__(self, name)
+        dict.__delitem__(self, name)
         return
 
-    def raw_entry(self, name: str) -> Any:
+    def raw_entry(self, name: str) -> GefSetting:
         return dict.__getitem__(self, name)
 
 
