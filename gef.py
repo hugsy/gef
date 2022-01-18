@@ -377,10 +377,11 @@ def deprecated(solution: str = "") -> Callable:
     def decorator(f: Callable) -> Callable:
         @functools.wraps(f)
         def wrapper(*args: Tuple, **kwargs: Dict) -> Any:
-            msg = f"'{f.__name__}' is deprecated and will be removed in a feature release. "
-            if solution:
-                msg += solution
-            warn(msg)
+            if gef.config["gef.show_deprecated_warnings"] is True:
+                msg = f"'{f.__name__}' is deprecated and will be removed in a feature release. "
+                if solution:
+                    msg += solution
+                warn(msg)
             return f(*args, **kwargs)
 
         if not wrapper.__doc__:
@@ -10480,6 +10481,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.extra_plugins_dir"] = GefSetting("", str, "Autoload additional GEF commands from external directory")
         gef.config["gef.disable_color"] = GefSetting(False, bool, "Disable all colors in GEF")
         gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, str, "Directory to use for temporary/cache content")
+        gef.config["gef.show_deprecated_warnings"] = GefSetting(True, bool, "Toggle the display of the `deprecated` warnings")
         self.loaded_commands = []
         self.loaded_functions = []
         self.missing_commands = {}
