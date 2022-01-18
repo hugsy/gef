@@ -113,9 +113,14 @@ to run smoothly.
 
 ## I want to contribute, where should I head first? ##
 
-I would suggest thoroughly reading this documentation, just having a look to the [CONTRIBUTE](https://github.com/hugsy/gef/blob/master/.github/CONTRIBUTING.md) file of the project to give you pointers.
+I would suggest thoroughly reading this documentation, just having a look to
+the
+[CONTRIBUTE](https://github.com/hugsy/gef/blob/master/.github/CONTRIBUTING.md)
+file of the project to give you pointers.
 
-Also a good thing would be to join our [Discord channel](https://discord.gg/HCS8Hg7) to get in touch with the people involved/using it.
+Also a good thing would be to join our [Discord
+channel](https://discord.gg/HCS8Hg7) to get in touch with the people
+involved/using it.
 
 
 ## I think I've found a bug, how can I help fixing it? ##
@@ -127,13 +132,13 @@ In most locations, Python exceptions will be properly intercepted. If not, `gef`
 wraps all commands with a generic exception handler, to disturb as little as
 possible your debugging session. If it happens, you'll only get to see a message
 like this:
-![gef-exception](http://i.imgur.com/J7dUnXV.png)
+![gef-exception](https://i.imgur.com/J7dUnXV.png)
 
 By switching to debug mode, `gef` will give much more information:
 ```
 gef➤  gef config gef.debug 1
 ```
-![gef-debug](http://i.imgur.com/SGe8oFF.png)
+![gef-debug](https://i.imgur.com/SGe8oFF.png)
 
 If you think fixing it is in your skills, then send a [Pull
 Request](https://github.com/hugsy/gef/pulls) with your patched version,
@@ -146,14 +151,13 @@ will greatly help for solving the issue.
 
 ## I get weird issues/characters using GDB + Python3, what's up? ##
 
-Chances are you are not using UTF-8. Python3
-is [highly relying on UTF-8](http://www.diveintopython3.net/strings.html) to
-display correctly characters of any alphabet
-and
-[also some cool emojis](http://unicode.org/emoji/charts/full-emoji-list.html). When
-GDB is compiled with Python3, GEF will assume that your current charset is UTF-8
-(for instance, `en_US.UTF-8`). Use your `$LANG` environment variable to tweak
-this setting.
+Chances are you are not using UTF-8. Python3 is [highly relying on
+UTF-8](https://www.diveintopython3.net/strings.html) to display correctly
+characters of any alphabet and [also some cool
+emojis](https://unicode.org/emoji/charts/full-emoji-list.html). When GDB is
+compiled with Python3, GEF will assume that your current charset is UTF-8 (for
+instance, `en_US.UTF-8`). Use your `$LANG` environment variable to tweak this
+setting.
 
 In addition, some unexpected results were observed when your local is not set to
 English. If you aren't sure, simply run `gdb` like this:

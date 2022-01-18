@@ -2,7 +2,7 @@
 
 The `heap` command provides information on the heap chunk specified as argument. For
 the moment, it only supports GlibC heap format (see
-[this link](http://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_chunk)
+[this link](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_chunk)
 for `malloc` structure information). Syntax to the subcommands is straight forward:
 
 ```
