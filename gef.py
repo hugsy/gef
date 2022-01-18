@@ -5219,13 +5219,13 @@ class ExternalStructureManager:
         def pprint(self):
             res = []
             for _name, _type in self.class_type._fields_:
-                _size = ctypes.sizeof(_type)
-                __name = Color.colorify(_name, gef.config["pcustom.structure_name"])
-                __type = Color.colorify(_type.__name__, gef.config["pcustom.structure_type"])
-                __size = Color.colorify(hex(_size), gef.config["pcustom.structure_size"])
-                __offset = Color.boldify(f"{getattr(self.class_type, _name).offset:04x}")
-                res.append (f"{__offset}   {__name:32s}   {__type:16s}  /* size={__size} */")
-            print(os.linesep.join(res))
+                size = ctypes.sizeof(_type)
+                name = Color.colorify(_name, gef.config["pcustom.structure_name"])
+                type = Color.colorify(_type.__name__, gef.config["pcustom.structure_type"])
+                size = Color.colorify(hex(size), gef.config["pcustom.structure_size"])
+                offset = Color.boldify(f"{getattr(self.class_type, _name).offset:04x}")
+                res.append (f"{offset}   {name:32s}   {type:16s}  /* size={size} */")
+            gef_print(os.linesep.join(res))
             return
 
         def __get_structure_class(self) -> Type:
@@ -5272,7 +5272,7 @@ class ExternalStructureManager:
                     _value = RIGHT_ARROW.join(dereference_from(_value))
 
                 line = f"{'  ' * depth}"
-                line += (f"{address:#x}+{_offset:#04x} {_name} : ").ljust(40)
+                line += f"{address:#x}+{_offset:#04x} {_name} : ".ljust(40)
                 line += f"{_value} ({_type.__name__})"
                 parsed_value = self.__get_ctypes_value(_structure, _name, _value)
                 if parsed_value:
@@ -5281,7 +5281,7 @@ class ExternalStructureManager:
 
                 if issubclass(_type, ctypes.Structure):
                     self.apply_at(address + _offset, depth + 1, max_depth)
-                elif _type.__name__.startswith("LP_"): # hack
+                elif _type.__name__.startswith("LP_"):
                     __sub_type_name = _type.__name__.replace("LP_", "")
                     __deref = u64(gef.memory.read(address + _offset, 8))
                     self.apply_at(__deref, depth + 1, max_depth)
@@ -5289,7 +5289,7 @@ class ExternalStructureManager:
 
         def __get_ctypes_value(self, struct, item, value) -> str:
             if not hasattr(struct, "_values_"): return ""
-            values_list = getattr(struct, "_values_")
+            values_list = struct._values_
             default = ""
             for name, values in values_list:
                 if name != item: continue
@@ -5306,15 +5306,17 @@ class ExternalStructureManager:
     class Module:
         def __init__(self, path: pathlib.Path) -> None:
             self.path = path
+            self.name = path.stem
             self.raw = self.__load()
-            self.structures : List[ExternalStructureManager.Structure] = []
+            self.structures : Dict[str, ExternalStructureManager.Structure] = {}
 
             for entry in self:
-                self.structures.append(ExternalStructureManager.Structure(self.path, entry))
+                structure = ExternalStructureManager.Structure(self.path, entry)
+                self.structures[structure.name] = structure
             return
 
         def __load(self) -> ModuleType:
-            """Load a custom module, and return it"""
+            """Load a custom module, and return it."""
             fpath = self.path
             spec = importlib.util.spec_from_file_location(fpath.stem, fpath)
             module = importlib.util.module_from_spec(spec)
@@ -5323,7 +5325,7 @@ class ExternalStructureManager:
             return module
 
         def __str__(self) -> str:
-            return self.path.stem
+            return self.name
 
         def __iter__(self) -> Generator[str, None, None]:
             _invalid = {"BigEndianStructure", "LittleEndianStructure", "Structure"}
@@ -5335,66 +5337,72 @@ class ExternalStructureManager:
             return
 
         def __contains__(self, structure_name: str) -> bool:
-            for structure in self.structures:
-                if structure.name == structure_name:
-                    return True
-            return False
+            return structure_name in self.structures
 
         def __getitem__(self, structure_name: str) -> "ExternalStructureManager.Structure":
-            for structure in self.structures:
-                print(self.path, structure.name)
-                if structure.name == structure_name:
-                    return structure
-            raise KeyError(f"Structure {structure_name} not found")
+            return self.structures[structure_name]
 
     class Modules:
         def __init__(self, path: pathlib.Path) -> None:
-            self.modules: List[ExternalStructureManager.Module] = []
+            self.modules: Dict[str, ExternalStructureManager.Module] = {}
             self.root: pathlib.Path = path
 
             for entry in self.root.iterdir():
                 if not entry.is_file(): continue
                 if entry.suffix != ".py": continue
                 if entry.name == "__init__.py": continue
-                self.modules.append(ExternalStructureManager.Module(entry))
+                module = ExternalStructureManager.Module(entry)
+                self.modules[module.name] = module
             return
 
         def __contains__(self, structure_name: str) -> bool:
             """Return True if the structure name is found in any of the modules"""
             for module in self.modules:
-                if structure_name in [s.name for s in module.structures]:
+                if structure_name in module:
                     return True
             return False
 
         def __getitem__(self, module_name: str) -> "ExternalStructureManager.Module":
-            for module in self.modules:
-                if module_name == module.path.stem:
-                    return module
-            raise KeyError(f"Module {module_name} not found")
+            return self.modules[module_name]
 
         def __iter__(self):
             return iter(self.modules)
 
+    def __init__(self):
+        self.clear_caches()
+        return
+
+    def clear_caches(self):
+        self._path = None
+        self._modules = None
+        return
+
     @property
     def modules(self) -> "ExternalStructureManager.Modules":
-        return ExternalStructureManager.Modules(self.path)
+        if not self._modules:
+            self._modules = ExternalStructureManager.Modules(self.path)
+        return self._modules
 
     @property
     def path(self) -> pathlib.Path:
-        return pathlib.Path(gef.config["pcustom.struct_path"]).expanduser().absolute()
+        if not self._path:
+            self._path = pathlib.Path(gef.config["pcustom.struct_path"]).expanduser().absolute()
+        return self._path
 
     @property
     def structures(self) -> Generator[Tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"], None, None]:
-        for module in self.modules:
-            for structure in module.structures:
-                yield module, structure
+        for module_name in self.modules:
+            module = self.modules[module_name]
+            for structure_name in module.structures:
+                yield module, module.structures[structure_name]
         return
 
+    @lru_cache()
     def find(self, structure_name: str) -> Optional[Tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"]]:
-        for module in self.modules:
-            for structure in module.structures:
-                if structure.name == structure_name:
-                    return module, structure
+        for module_name in self.modules:
+            module = self.modules[module_name]
+            if structure_name in module.structures:
+                return module, module.structures[structure_name]
         return None
 
 
@@ -5420,7 +5428,7 @@ class PCustomCommand(GenericCommand):
         return
 
     @parse_arguments({"type": "", "address": ""}, {})
-    def do_invoke(self, *args: List, **kwargs: Dict[str, Any]) -> None:
+    def do_invoke(self, *args: Any, **kwargs: Dict[str, Any]) -> None:
         args = kwargs["arguments"]
         if not args.type:
             gdb.execute("pcustom list")
@@ -5428,7 +5436,7 @@ class PCustomCommand(GenericCommand):
 
         _, structname = self.explode_type(args.type)
 
-        if args.type and not args.address:
+        if not args.address:
             gdb.execute(f"pcustom show {structname}")
             return
 
@@ -5467,8 +5475,9 @@ class PCustomListCommand(PCustomCommand):
         info(f"Listing custom structures from '{manager.path}'")
         struct_color = gef.config["pcustom.structure_type"]
         filename_color = gef.config["pcustom.structure_name"]
-        for module in manager.modules:
-            __modules = ", ".join([Color.colorify(structure.name, struct_color) for structure in module.structures])
+        for module_name in manager.modules:
+            module = manager.modules[module_name]
+            __modules = ", ".join([Color.colorify(structure_name, struct_color) for structure_name in module.structures])
             __filename = Color.colorify(str(module.path), filename_color)
             gef_print(f"{RIGHT_ARROW} {__filename} ({__modules})")
         return
