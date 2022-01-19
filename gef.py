@@ -5224,7 +5224,7 @@ class ExternalStructureManager:
                 type = Color.colorify(_type.__name__, gef.config["pcustom.structure_type"])
                 size = Color.colorify(hex(size), gef.config["pcustom.structure_size"])
                 offset = Color.boldify(f"{getattr(self.class_type, _name).offset:04x}")
-                res.append (f"{offset}   {name:32s}   {type:16s}  /* size={size} */")
+                res.append(f"{offset}   {name:32s}   {type:16s}  /* size={size} */")
             gef_print(os.linesep.join(res))
             return
 
@@ -5357,7 +5357,7 @@ class ExternalStructureManager:
 
         def __contains__(self, structure_name: str) -> bool:
             """Return True if the structure name is found in any of the modules"""
-            for module in self.modules:
+            for module in self.modules.values():
                 if structure_name in module:
                     return True
             return False
@@ -5391,18 +5391,16 @@ class ExternalStructureManager:
 
     @property
     def structures(self) -> Generator[Tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"], None, None]:
-        for module_name in self.modules:
-            module = self.modules[module_name]
-            for structure_name in module.structures:
-                yield module, module.structures[structure_name]
+        for module in self.modules.values():
+            for structure in module.structures.values():
+                yield module, structure
         return
 
     @lru_cache()
     def find(self, structure_name: str) -> Optional[Tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"]]:
-        for module_name in self.modules:
-            module = self.modules[module_name]
-            if structure_name in module.structures:
-                return module, module.structures[structure_name]
+        for module in self.modules.values():
+            if structure in module.structures.values():
+                return module, structure
         return None
 
 
