@@ -5460,9 +5460,8 @@ class PCustomListCommand(PCustomCommand):
         info(f"Listing custom structures from '{manager.path}'")
         struct_color = gef.config["pcustom.structure_type"]
         filename_color = gef.config["pcustom.structure_name"]
-        for module_name in manager.modules:
-            module = manager.modules[module_name]
-            __modules = ", ".join([Color.colorify(structure_name, struct_color) for structure_name in module.structures])
+        for module in manager.modules.values():
+            __modules = ", ".join([Color.colorify(structure_name, struct_color) for structure_name in module.values()])
             __filename = Color.colorify(str(module.path), filename_color)
             gef_print(f"{RIGHT_ARROW} {__filename} ({__modules})")
         return
