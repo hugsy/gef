@@ -766,7 +766,7 @@ class Elf:
 
     e_magic: int                = ELF_MAGIC
     e_class: int                = ELF_32_BITS
-    e_endianness: int           = int(Endianness.LITTLE_ENDIAN)
+    e_endianness: int           = Endianness.LITTLE_ENDIAN.value
     e_eiversion: Optional[int]  = None
     e_osabi: Optional[int]      = None
     e_abiversion: Optional[int] = None
@@ -839,7 +839,7 @@ class Elf:
 
         return
 
-    def read(self, size: int) -> AnyStr:
+    def read(self, size: int) -> bytes:
         return self.fd.read(size)
 
     def seek(self, off: int) -> None:
@@ -3908,6 +3908,7 @@ def parse_string_range(s: str) -> Iterator[int]:
     return map(lambda x: int(x, 16), addrs)
 
 
+@deprecated("Use `gef.session.pie_breakpoints[num]`")
 def gef_get_pie_breakpoint(num: int) -> "PieVirtualBreakpoint":
     return gef.session.pie_breakpoints[num]
 
@@ -3952,7 +3953,7 @@ def get_filename() -> str:
 
 
 @deprecated("Use `gef.heap.main_arena`")
-def get_glibc_arena() -> GlibcArena:
+def get_glibc_arena() -> Optional[GlibcArena]:
     return gef.heap.main_arena
 
 
