@@ -5238,7 +5238,7 @@ class ExternalStructureManager:
             _class = getattr(module, self.name)
             return _class
 
-        def apply_at(self, address: int, depth: int = 0, max_depth: int = -1) -> None:
+        def apply_at(self, address: int, max_depth: int, depth: int = 0) -> None:
             """Apply (recursively if possible) the structure format to the given address."""
             if depth >= max_depth:
                 warn("maximum recursion level reached")
@@ -5265,9 +5265,9 @@ class ExternalStructureManager:
                 _value = getattr(_structure, _name)
                 _offset = getattr(self.class_type, _name).offset
 
-                if (ptrsize == 4 and _type is ctypes.c_uint32) \
-                or (ptrsize == 8 and _type is ctypes.c_uint64) \
-                or (ptrsize == ctypes.sizeof(ctypes.c_void_p) and _type is ctypes.c_void_p):
+                if ((ptrsize == 4 and _type is ctypes.c_uint32)
+                    or (ptrsize == 8 and _type is ctypes.c_uint64)
+                    or (ptrsize == ctypes.sizeof(ctypes.c_void_p) and _type is ctypes.c_void_p)):
                     # try to dereference pointers
                     _value = RIGHT_ARROW.join(dereference_from(_value))
 
@@ -5280,11 +5280,11 @@ class ExternalStructureManager:
                 gef_print(line)
 
                 if issubclass(_type, ctypes.Structure):
-                    self.apply_at(address + _offset, depth + 1, max_depth)
+                    self.apply_at(address + _offset, max_depth, depth + 1)
                 elif _type.__name__.startswith("LP_"):
                     __sub_type_name = _type.__name__.replace("LP_", "")
                     __deref = u64(gef.memory.read(address + _offset, 8))
-                    self.apply_at(__deref, depth + 1, max_depth)
+                    self.apply_at(__deref, max_depth, depth + 1)
             return
 
         def __get_ctypes_value(self, struct, item, value) -> str:
@@ -5365,7 +5365,7 @@ class ExternalStructureManager:
         def __getitem__(self, module_name: str) -> "ExternalStructureManager.Module":
             return self.modules[module_name]
 
-        def __iter__(self):
+        def __iter__(self) -> Iterator[str]:
             return iter(self.modules)
 
     def __init__(self):
@@ -5399,8 +5399,8 @@ class ExternalStructureManager:
     @lru_cache()
     def find(self, structure_name: str) -> Optional[Tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"]]:
         for module in self.modules.values():
-            if structure in module.structures.values():
-                return module, structure
+            if structure_name in module.structures.values():
+                return module, module.structures[structure_name]
         return None
 
 
@@ -5447,7 +5447,7 @@ class PCustomCommand(GenericCommand):
         result = manager.find(structname)
         if result:
             _, structure = result
-            structure.apply_at(address, max_depth=self["max_depth"])
+            structure.apply_at(address, self["max_depth"])
         return
 
     def explode_type(self, arg: str) -> Tuple[str, str]:
@@ -5473,8 +5473,7 @@ class PCustomListCommand(PCustomCommand):
         info(f"Listing custom structures from '{manager.path}'")
         struct_color = gef.config["pcustom.structure_type"]
         filename_color = gef.config["pcustom.structure_name"]
-        for module_name in manager.modules:
-            module = manager.modules[module_name]
+        for module in manager.modules.values():
             __modules = ", ".join([Color.colorify(structure_name, struct_color) for structure_name in module.structures])
             __filename = Color.colorify(str(module.path), filename_color)
             gef_print(f"{RIGHT_ARROW} {__filename} ({__modules})")
