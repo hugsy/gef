@@ -952,16 +952,16 @@ class Shdr:
     SHF_ORDERED          = 0x40000000
     SHF_EXCLUDE          = 0x80000000
 
-    sh_name: Optional[int]      = None
-    sh_type: Optional[int]      = None
-    sh_flags: Optional[int]     = None
-    sh_addr: Optional[int]      = None
-    sh_offset: Optional[int]    = None
-    sh_size: Optional[int]      = None
-    sh_link: Optional[int]      = None
-    sh_info: Optional[int]      = None
-    sh_addralign: Optional[int] = None
-    sh_entsize: Optional[int]   = None
+    sh_name: Union[int, str] = 0
+    sh_type: int             = 0
+    sh_flags: int            = 0
+    sh_addr: int             = 0
+    sh_offset: int           = 0
+    sh_size: int             = 0
+    sh_link: int             = 0
+    sh_info: int             = 0
+    sh_addralign: int        = 0
+    sh_entsize: int          = 0
 
     def __init__(self, elf: Optional[Elf], off: int) -> None:
         if elf is None:
