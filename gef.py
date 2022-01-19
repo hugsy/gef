@@ -5303,16 +5303,15 @@ class ExternalStructureManager:
                     err(f"Error while trying to obtain values from _values_[\"{name}\"]")
             return default
 
-    class Module:
+    class Module(dict):
         def __init__(self, path: pathlib.Path) -> None:
             self.path = path
             self.name = path.stem
             self.raw = self.__load()
-            self.structures : Dict[str, ExternalStructureManager.Structure] = {}
 
             for entry in self:
                 structure = ExternalStructureManager.Structure(self.path, entry)
-                self.structures[structure.name] = structure
+                self[structure.name] = structure
             return
 
         def __load(self) -> ModuleType:
@@ -5336,15 +5335,8 @@ class ExternalStructureManager:
                 yield entry
             return
 
-        def __contains__(self, structure_name: str) -> bool:
-            return structure_name in self.structures
-
-        def __getitem__(self, structure_name: str) -> "ExternalStructureManager.Structure":
-            return self.structures[structure_name]
-
-    class Modules:
+    class Modules(dict):
         def __init__(self, path: pathlib.Path) -> None:
-            self.modules: Dict[str, ExternalStructureManager.Module] = {}
             self.root: pathlib.Path = path
 
             for entry in self.root.iterdir():
@@ -5352,21 +5344,16 @@ class ExternalStructureManager:
                 if entry.suffix != ".py": continue
                 if entry.name == "__init__.py": continue
                 module = ExternalStructureManager.Module(entry)
-                self.modules[module.name] = module
+                self[module.name] = module
             return
 
         def __contains__(self, structure_name: str) -> bool:
             """Return True if the structure name is found in any of the modules"""
-            for module in self.modules:
+            for module in self.values():
                 if structure_name in module:
                     return True
             return False
 
-        def __getitem__(self, module_name: str) -> "ExternalStructureManager.Module":
-            return self.modules[module_name]
-
-        def __iter__(self) -> Iterator[str]:
-            return iter(self.modules)
 
     def __init__(self):
         self.clear_caches()
@@ -5391,18 +5378,16 @@ class ExternalStructureManager:
 
     @property
     def structures(self) -> Generator[Tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"], None, None]:
-        for module_name in self.modules:
-            module = self.modules[module_name]
-            for structure_name in module.structures:
-                yield module, module.structures[structure_name]
+        for module in self.modules.values():
+            for structure in module.values():
+                yield module, structure
         return
 
     @lru_cache()
     def find(self, structure_name: str) -> Optional[Tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"]]:
-        for module_name in self.modules:
-            module = self.modules[module_name]
-            if structure_name in module.structures:
-                return module, module.structures[structure_name]
+        for module in self.modules.values():
+            if structure_name in module:
+                return module, module[structure_name]
         return None
 
 
