@@ -962,6 +962,8 @@ class Shdr:
     sh_addralign = None
     sh_entsize   = None
 
+    __name       = ""
+
     def __init__(self, elf: Optional[Elf], off: int) -> None:
         if elf is None:
             return
@@ -987,13 +989,17 @@ class Shdr:
             elf.seek(stroff + 12 + 4)
             offset = struct.unpack(f"{endian}I", elf.read(4))[0]
         elf.seek(offset + self.sh_name)
-        self.sh_name = ""
+        self.__name = ""
         while True:
             c = ord(elf.read(1))
             if c == 0:
                 break
-            self.sh_name += chr(c)
+            self.__name += chr(c)
         return
+
+    @property
+    def name(self):
+        return self.__name
 
 
 class Instruction:
@@ -8007,7 +8013,7 @@ class ElfInfoCommand(GenericCommand):
             if s.sh_flags & Shdr.SHF_COMPRESSED:       sh_flags += "C"
 
             gef_print("  [{:2d}] {:20s} {:>15s} {:#10x} {:#8x} {:#8x} {:#8x} {:5s} {:#4x} {:#4x} {:#8x}".format(
-                i, s.sh_name, sh_type, s.sh_addr, s.sh_offset, s.sh_size, s.sh_entsize, sh_flags, s.sh_link, s.sh_info, s.sh_addralign))
+                i, s.name, sh_type, s.sh_addr, s.sh_offset, s.sh_size, s.sh_entsize, sh_flags, s.sh_link, s.sh_info, s.sh_addralign))
         return
 
 
