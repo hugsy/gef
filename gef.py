@@ -5224,8 +5224,8 @@ class ExternalStructureManager:
                 type = Color.colorify(_type.__name__, gef.config["pcustom.structure_type"])
                 size = Color.colorify(hex(size), gef.config["pcustom.structure_size"])
                 offset = Color.boldify(f"{getattr(self.class_type, _name).offset:04x}")
-                res.append (f"{offset}   {name:32s}   {type:16s}  /* size={size} */")
-            gef_print(os.linesep.join(res))
+                res.append(f"{offset}   {name:32s}   {type:16s}  /* size={size} */")
+            gef_print("\n".join(res))
             return
 
         def __get_structure_class(self) -> Type:
