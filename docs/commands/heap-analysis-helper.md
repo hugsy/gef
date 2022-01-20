@@ -72,4 +72,4 @@ subcommand:
 gef➤  heap-analysis-helper show
 ```
 
-![heap-analysis-helper-show](http://i.imgur.com/0I4jBWJ.png)
+![heap-analysis-helper-show](https://i.imgur.com/0I4jBWJ.png)
