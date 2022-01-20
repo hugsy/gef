@@ -3997,6 +3997,10 @@ def get_process_maps():
     return gef.memory.maps
 
 
+@deprecated("Use `reset_architecture`")
+def set_arch():
+    return reset_architecture()
+
 #
 # GDB event hooking
 #
