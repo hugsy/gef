@@ -615,32 +615,13 @@ class Address:
         return None if derefed is None else int(derefed)
 
 
-class Permission:
+class Permission(enum.Flag):
     """GEF representation of Linux permission."""
     NONE      = 0
     READ      = 1
     WRITE     = 2
     EXECUTE   = 4
-    ALL       = READ | WRITE | EXECUTE
-
-    def __init__(self, **kwargs: Any) -> None:
-        self.value: int = kwargs.get("value", 0)
-        return
-
-    def __or__(self, value: int) -> int:
-        return self.value | value
-
-    def __and__(self, value: int) -> int:
-        return self.value & value
-
-    def __xor__(self, value: int) -> int:
-        return self.value ^ value
-
-    def __eq__(self, value: int) -> int:
-        return self.value == value
-
-    def __ne__(self, value: int) -> int:
-        return self.value != value
+    ALL       = 7
 
     def __str__(self) -> str:
         perm_str = ""
@@ -649,30 +630,21 @@ class Permission:
         perm_str += "x" if self & Permission.EXECUTE else "-"
         return perm_str
 
-    def __int__(self) -> int:
-        return self.value
-
     @staticmethod
     def from_info_sections(*args: str) -> "Permission":
-        perm = Permission()
+        perm = Permission(0)
         for arg in args:
-            if "READONLY" in arg:
-                perm.value += Permission.READ
-            if "DATA" in arg:
-                perm.value += Permission.WRITE
-            if "CODE" in arg:
-                perm.value += Permission.EXECUTE
+            if "READONLY" in arg: perm |= Permission.READ
+            if "DATA" in arg: perm |= Permission.WRITE
+            if "CODE" in arg: perm |= Permission.EXECUTE
         return perm
 
     @staticmethod
     def from_process_maps(perm_str: str) -> "Permission":
-        perm = Permission()
-        if perm_str[0] == "r":
-            perm.value += Permission.READ
-        if perm_str[1] == "w":
-            perm.value += Permission.WRITE
-        if perm_str[2] == "x":
-            perm.value += Permission.EXECUTE
+        perm = Permission(0)
+        if perm_str[0] == "r": perm |= Permission.READ
+        if perm_str[1] == "w": perm |= Permission.WRITE
+        if perm_str[2] == "x": perm |= Permission.EXECUTE
         return perm
 
 
@@ -683,7 +655,7 @@ class Section:
         self.page_start: int = kwargs.get("page_start", 0)
         self.page_end: int = kwargs.get("page_end", 0)
         self.offset: int = kwargs.get("offset", 0)
-        self.permission: Permission = kwargs.get("permission", Permission())
+        self.permission: Permission = kwargs.get("permission", Permission(0))
         self.inode: int = kwargs.get("inode", 0)
         self.path: str = kwargs.get("path", "")
         return
@@ -855,7 +827,7 @@ class Elf:
     def read(self, size: int) -> bytes:
         return self.fd.read(size)
 
-    def read_and_unpack(self, fmt):
+    def read_and_unpack(self, fmt: str) -> Tuple[Any, ...]:
         size = struct.calcsize(fmt)
         data = self.fd.read(size)
         return struct.unpack(fmt, data)
@@ -2541,7 +2513,7 @@ class ARM(Architecture):
             "lsl r0, r0, 16",
             "add r0, r0, r1",
             f"mov r1, {size & 0xffff:d}",
-            f"mov r2, {perm & 0xff:d}",
+            f"mov r2, {perm.value & 0xff:d}",
             f"mov r7, {_NR_mprotect:d}",
             "svc 0",
             "pop {r0-r2, r7}",
@@ -2603,7 +2575,7 @@ class AARCH64(ARM):
             f"movk x0, {(addr >> 48) & 0xFFFF:#x}, lsl 48",
             f"movz x1, {size & 0xFFFF:#x}",
             f"movk x1, {(size >> 16) & 0xFFFF:#x}, lsl 16",
-            f"mov x2, {perm:d}",
+            f"mov x2, {perm.value:d}",
             "svc 0",
             "ldr x2, [sp], 16",
             "ldr x1, [sp], 16",
@@ -2769,7 +2741,7 @@ class X86(Architecture):
             f"mov eax, {_NR_mprotect:d}",
             f"mov ebx, {addr:d}",
             f"mov ecx, {size:d}",
-            f"mov edx, {perm:d}",
+            f"mov edx, {perm.value:d}",
             "int 0x80",
             "popad",
         ]
@@ -2817,7 +2789,7 @@ class X86_64(X86):
             f"mov rax, {_NR_mprotect:d}",
             f"mov rdi, {addr:d}",
             f"mov rsi, {size:d}",
-            f"mov rdx, {perm:d}",
+            f"mov rdx, {perm.value:d}",
             "syscall",
             "pop r11",
             "pop rcx",
@@ -2914,7 +2886,7 @@ class PowerPC(Architecture):
             f"ori 3, 3, {addr:#x}@l",
             f"lis 4, {size:#x}@h",
             f"ori 4, 4, {size:#x}@l",
-            f"li 5, {perm:d}",
+            f"li 5, {perm.value:d}",
             "sc",
             "lwz 0, 0(1)",
             "lwz 3, 4(1)",
@@ -3160,7 +3132,7 @@ class MIPS(Architecture):
                  f"li $v0, {_NR_mprotect:d}",
                  f"li $a0, {addr:d}",
                  f"li $a1, {size:d}",
-                 f"li $a2, {perm:d}",
+                 f"li $a2, {perm.value:d}",
                  "syscall",
                  "lw $v0, 0($sp)", "lw $a1, 4($sp)",
                  "lw $a3, 8($sp)", "lw $a3, 12($sp)",
@@ -3379,7 +3351,7 @@ def process_lookup_address(address: int) -> Optional[Section]:
 
 
 @lru_cache()
-def process_lookup_path(name: str, perm: int = Permission.ALL) -> Optional[Section]:
+def process_lookup_path(name: str, perm: Permission = Permission.ALL) -> Optional[Section]:
     """Look up for a path in the process memory mapping.
     Return a Section object if found, None otherwise."""
     if not is_alive():
@@ -3917,7 +3889,7 @@ def is_remote_debug() -> bool:
     return gef.session.remote is not None or "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
 
-def de_bruijn(alphabet: str, n: int) -> Generator[str, None, None]:
+def de_bruijn(alphabet: bytes, n: int) -> Generator[str, None, None]:
     """De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib)."""
     k = len(alphabet)
     a = [0] * k * n
@@ -6212,9 +6184,9 @@ class ChangePermissionCommand(GenericCommand):
             return
 
         if len(argv) == 2:
-            perm = int(argv[1])
+            perm = Permission(int(argv[1]))
         else:
-            perm = Permission.READ | Permission.WRITE | Permission.EXECUTE
+            perm = Permission.ALL
 
         loc = safe_parse_and_eval(argv[0])
         if loc is None:
@@ -6231,7 +6203,7 @@ class ChangePermissionCommand(GenericCommand):
         original_pc = gef.arch.pc
 
         info(f"Generating sys_mprotect({sect.page_start:#x}, {size:#x}, "
-             f"'{Permission(value=perm)!s}') stub for arch {get_arch()}")
+             f"'{perm!s}') stub for arch {get_arch()}")
         stub = self.get_stub_by_arch(sect.page_start, size, perm)
         if stub is None:
             err("Failed to generate mprotect opcodes")
@@ -6251,7 +6223,7 @@ class ChangePermissionCommand(GenericCommand):
         gdb.execute("continue")
         return
 
-    def get_stub_by_arch(self, addr: int, size: int, perm: Permission) -> Union[str, bytearray, None]:
+    def get_stub_by_arch(self, addr: int, size: int, perm: Permission) -> Optional[bytearray]:
         code = gef.arch.mprotect_asm(addr, size, perm)
         arch, mode = get_keystone_arch()
         raw_insns = keystone_assemble(code, arch, mode, raw=True)
@@ -9214,7 +9186,7 @@ def dereference_from(addr: int) -> List[str]:
                 msg.append(Color.colorify(insn_str, code_color))
                 break
 
-            elif addr.section.permission.value & Permission.READ:
+            elif addr.section.permission & Permission.READ:
                 if is_ascii_string(addr.value):
                     s = gef.memory.read_cstring(addr.value)
                     if len(s) < gef.arch.ptrsize:
@@ -9416,7 +9388,7 @@ class VMMapCommand(GenericCommand):
             line_color = gef.config["theme.address_stack"]
         elif entry.path == "[heap]":
             line_color = gef.config["theme.address_heap"]
-        elif entry.permission.value & Permission.READ and entry.permission.value & Permission.EXECUTE:
+        elif entry.permission & Permission.READ and entry.permission & Permission.EXECUTE:
             line_color = gef.config["theme.address_code"]
 
         l = [
@@ -9424,7 +9396,7 @@ class VMMapCommand(GenericCommand):
             Color.colorify(format_address(entry.page_end), line_color),
             Color.colorify(format_address(entry.offset), line_color),
         ]
-        if entry.permission.value == (Permission.READ|Permission.WRITE|Permission.EXECUTE):
+        if entry.permission == Permission.ALL:
             l.append(Color.colorify(str(entry.permission), "underline " + line_color))
         else:
             l.append(Color.colorify(str(entry.permission), line_color))
