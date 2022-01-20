@@ -618,9 +618,9 @@ class Address:
 class Permission(enum.Flag):
     """GEF representation of Linux permission."""
     NONE      = 0
-    READ      = 1
+    EXECUTE   = 1
     WRITE     = 2
-    EXECUTE   = 4
+    READ      = 4
     ALL       = 7
 
     def __str__(self) -> str:
@@ -885,7 +885,7 @@ class Elf:
 
 
 class Phdr:
-    class Type(enum.Enum):
+    class Type(enum.IntEnum):
         PT_NULL         = 0
         PT_LOAD         = 1
         PT_DYNAMIC      = 2
@@ -902,12 +902,18 @@ class Phdr:
         PT_LOSUNW       = 0x6ffffffa
         PT_SUNWBSS      = 0x6ffffffa
         PT_SUNWSTACK    = 0x6ffffffb
-        PT_HISUNW       = 0x6fffffff
-        PT_HIOS         = 0x6fffffff
+        PT_HISUNW       = PT_HIOS         = 0x6fffffff
         PT_LOPROC       = 0x70000000
+        PT_ARM_EIDX     = 0x70000001
+        PT_MIPS_ABIFLAGS= 0x70000003
         PT_HIPROC       = 0x7fffffff
+        UNKNOWN_PHDR    = 0xffffffff
 
-    class Flags(enum.Flag):
+        @classmethod
+        def _missing_(cls, _:int) -> Type:
+            return cls.UNKNOWN_PHDR
+
+    class Flags(enum.IntFlag):
         PF_X            = 1
         PF_W            = 2
         PF_R            = 4
@@ -946,7 +952,7 @@ class Phdr:
 
 
 class Shdr:
-    class Type(enum.Enum):
+    class Type(enum.IntEnum):
         SHT_NULL             = 0
         SHT_PROGBITS         = 1
         SHT_SYMTAB           = 2
@@ -970,21 +976,27 @@ class Shdr:
         SHT_GNU_HASH         = 0x6ffffff6
         SHT_GNU_LIBLIST      = 0x6ffffff7
         SHT_CHECKSUM         = 0x6ffffff8
-        SHT_LOSUNW           = 0x6ffffffa
-        SHT_SUNW_move        = 0x6ffffffa
+        SHT_LOSUNW           = SHT_SUNW_move       = 0x6ffffffa
         SHT_SUNW_COMDAT      = 0x6ffffffb
         SHT_SUNW_syminfo     = 0x6ffffffc
         SHT_GNU_verdef       = 0x6ffffffd
         SHT_GNU_verneed      = 0x6ffffffe
-        SHT_GNU_versym       = 0x6fffffff
-        SHT_HISUNW           = 0x6fffffff
-        SHT_HIOS             = 0x6fffffff
+        SHT_GNU_versym       = SHT_HISUNW          = SHT_HIOS       = 0x6fffffff
         SHT_LOPROC           = 0x70000000
+        SHT_ARM_EXIDX        = SHT_X86_64_UNWIND   = 0x70000001
+        SHT_ARM_ATTRIBUTES   = 0x70000003
+        SHT_MIPS_OPTIONS     = 0x7000000d
+        DT_MIPS_INTERFACE    = 0x7000002a
         SHT_HIPROC           = 0x7fffffff
         SHT_LOUSER           = 0x80000000
         SHT_HIUSER           = 0x8fffffff
+        UNKNOWN_SHDR         = 0xffffffff
 
-    class Flags(enum.Flag):
+        @classmethod
+        def _missing_(cls, _:int) -> Type:
+            return cls.UNKNOWN_SHDR
+
+    class Flags(enum.IntFlag):
         WRITE            = 1
         ALLOC            = 2
         EXECINSTR        = 4
@@ -1000,6 +1012,11 @@ class Shdr:
         RO_AFTER_INIT    = 0x00200000
         ORDERED          = 0x40000000
         EXCLUDE          = 0x80000000
+        UNKNOWN_FLAG     = 0xffffffff
+
+        @classmethod
+        def _missing_(cls, _:int):
+            return cls.UNKNOWN_FLAG
 
     sh_name : int
     sh_type : Type
