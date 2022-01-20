@@ -873,43 +873,43 @@ class Elf:
     # deprecated
     @classproperty
     @deprecated("use `Elf.Abi.X86_64`")
-    def X86_64(cls) -> int: return Elf.Abi.X86_64.value
+    def X86_64(cls) -> int: return Elf.Abi.X86_64.value # pylint: disable=no-self-argument
 
     @classproperty
     @deprecated("use `Elf.Abi.X86_32`")
-    def X86_32(cls) -> int : return Elf.Abi.X86_32.value
+    def X86_32(cls) -> int : return Elf.Abi.X86_32.value # pylint: disable=no-self-argument
 
     @classproperty
     @deprecated("use `Elf.Abi.ARM`")
-    def ARM(cls) -> int : return Elf.Abi.ARM.value
+    def ARM(cls) -> int : return Elf.Abi.ARM.value # pylint: disable=no-self-argument
 
     @classproperty
     @deprecated("use `Elf.Abi.MIPS`")
-    def MIPS(cls) -> int : return Elf.Abi.MIPS.value
+    def MIPS(cls) -> int : return Elf.Abi.MIPS.value # pylint: disable=no-self-argument
 
     @classproperty
     @deprecated("use `Elf.Abi.POWERPC`")
-    def POWERPC(cls) -> int : return Elf.Abi.POWERPC.value
+    def POWERPC(cls) -> int : return Elf.Abi.POWERPC.value # pylint: disable=no-self-argument
 
     @classproperty
     @deprecated("use `Elf.Abi.POWERPC64`")
-    def POWERPC64(cls) -> int : return Elf.Abi.POWERPC64.value
+    def POWERPC64(cls) -> int : return Elf.Abi.POWERPC64.value # pylint: disable=no-self-argument
 
     @classproperty
     @deprecated("use `Elf.Abi.SPARC`")
-    def SPARC(cls) -> int : return Elf.Abi.SPARC.value
+    def SPARC(cls) -> int : return Elf.Abi.SPARC.value # pylint: disable=no-self-argument
 
     @classproperty
     @deprecated("use `Elf.Abi.SPARC64`")
-    def SPARC64(cls) -> int : return Elf.Abi.SPARC64.value
+    def SPARC64(cls) -> int : return Elf.Abi.SPARC64.value # pylint: disable=no-self-argument
 
     @classproperty
     @deprecated("use `Elf.Abi.AARCH64`")
-    def AARCH64(cls) -> int : return Elf.Abi.AARCH64.value
+    def AARCH64(cls) -> int : return Elf.Abi.AARCH64.value  # pylint: disable=no-self-argument
 
     @classproperty
     @deprecated("use `Elf.Abi.RISCV`")
-    def RISCV(cls) -> int : return Elf.Abi.RISCV.value
+    def RISCV(cls) -> int : return Elf.Abi.RISCV.value # pylint: disable=no-self-argument
 
 
 class Phdr:
