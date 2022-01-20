@@ -443,6 +443,12 @@ def only_if_events_supported(event_type: str) -> Callable:
     return wrap
 
 
+class classproperty(property):
+    """Make the attribute a `classproperty`."""
+    def __get__(self, cls, owner):
+        return classmethod(self.fget).__get__(None, owner)()
+
+
 def FakeExit(*args: Any, **kwargs: Any) -> NoReturn:
     raise RuntimeWarning
 
@@ -801,7 +807,7 @@ class Elf:
 
         self.fpath = pathlib.Path(path).expanduser()
         if not os.access(self.fpath, os.R_OK):
-            raise FileNotFoundError(f"'{self.fpath}' not found/readable, most of gef features will not work")
+            raise FileNotFoundError(f"'{self.fpath}' not found/readable, most gef features will not work")
 
         with self.fpath.open("rb") as self.fd:
             # off 0x0
@@ -865,16 +871,46 @@ class Elf:
         return self.e_entry
 
     # deprecated
-    X86_64 : int = Abi.X86_64.value
-    X86_32 : int = Abi.X86_32.value
-    ARM : int = Abi.ARM.value
-    MIPS : int = Abi.MIPS.value
-    POWERPC : int = Abi.POWERPC.value
-    POWERPC64 : int = Abi.POWERPC64.value
-    SPARC : int = Abi.SPARC.value
-    SPARC64 : int = Abi.SPARC64.value
-    AARCH64 : int = Abi.AARCH64.value
-    RISCV : int = Abi.RISCV.value
+    @classproperty
+    @deprecated("use `Elf.Abi.X86_64`")
+    def X86_64(cls) -> int: return Elf.Abi.X86_64.value
+
+    @classproperty
+    @deprecated("use `Elf.Abi.X86_32`")
+    def X86_32(cls) -> int : return Elf.Abi.X86_32.value
+
+    @classproperty
+    @deprecated("use `Elf.Abi.ARM`")
+    def ARM(cls) -> int : return Elf.Abi.ARM.value
+
+    @classproperty
+    @deprecated("use `Elf.Abi.MIPS`")
+    def MIPS(cls) -> int : return Elf.Abi.MIPS.value
+
+    @classproperty
+    @deprecated("use `Elf.Abi.POWERPC`")
+    def POWERPC(cls) -> int : return Elf.Abi.POWERPC.value
+
+    @classproperty
+    @deprecated("use `Elf.Abi.POWERPC64`")
+    def POWERPC64(cls) -> int : return Elf.Abi.POWERPC64.value
+
+    @classproperty
+    @deprecated("use `Elf.Abi.SPARC`")
+    def SPARC(cls) -> int : return Elf.Abi.SPARC.value
+
+    @classproperty
+    @deprecated("use `Elf.Abi.SPARC64`")
+    def SPARC64(cls) -> int : return Elf.Abi.SPARC64.value
+
+    @classproperty
+    @deprecated("use `Elf.Abi.AARCH64`")
+    def AARCH64(cls) -> int : return Elf.Abi.AARCH64.value
+
+    @classproperty
+    @deprecated("use `Elf.Abi.RISCV`")
+    def RISCV(cls) -> int : return Elf.Abi.RISCV.value
+
 
 class Phdr:
     class Type(enum.Enum):
@@ -904,14 +940,14 @@ class Phdr:
         PF_W            = 2
         PF_R            = 4
 
-    p_type: Optional[int]   = None
-    p_flags: Optional[int]  = None
-    p_offset: Optional[int] = None
-    p_vaddr: Optional[int]  = None
-    p_paddr: Optional[int]  = None
-    p_filesz: Optional[int] = None
-    p_memsz: Optional[int]  = None
-    p_align: Optional[int]  = None
+    p_type: Optional["Phdr.Type"]     = None
+    p_flags: Optional["Phdr.Flags"]   = None
+    p_offset: int                     = 0
+    p_vaddr: int                      = 0
+    p_paddr: int                      = 0
+    p_filesz: int                     = 0
+    p_memsz: int                      = 0
+    p_align: int                      = 0
 
     def __init__(self, elf: Elf, off: int) -> None:
         if not elf:
@@ -932,7 +968,9 @@ class Phdr:
         return
 
     def __str__(self) -> str:
-        return f"Phdr(offset={self.offset}, type={self.p_type.name}, flags={self.p_flags.name}, vaddr={self.p_vaddr}, paddr={self.p_paddr}, filesz={self.p_filesz}, memsz={self.p_memsz}, align={self.p_align})"
+        return (f"Phdr(offset={self.offset}, type={self.p_type.name}, flags={self.p_flags.name}, "
+	            f"vaddr={self.p_vaddr}, paddr={self.p_paddr}, filesz={self.p_filesz}, "
+	            f"memsz={self.p_memsz}, align={self.p_align})")
 
 
 class Shdr:
@@ -991,18 +1029,17 @@ class Shdr:
         ORDERED          = 0x40000000
         EXCLUDE          = 0x80000000
 
-    sh_name      = 0
-    sh_type : Optional["Shdr.Type"] = None
-    sh_flags : Optional["Shdr.Flags"] = None
-    sh_addr      = 0
-    sh_offset    = 0
-    sh_size      = 0
-    sh_link      = 0
-    sh_info      = 0
-    sh_addralign = 0
-    sh_entsize   = 0
-
-    __name       = ""
+    sh_name : int                      = 0
+    sh_type : Optional["Shdr.Type"]    = None
+    sh_flags : Optional["Shdr.Flags"]  = None
+    sh_addr : int                      = 0
+    sh_offset : int                    = 0
+    sh_size : int                      = 0
+    sh_link : int                      = 0
+    sh_info : int                      = 0
+    sh_addralign : int                 = 0
+    sh_entsize : int                   = 0
+    name : str                         = ""
 
     def __init__(self, elf: Optional[Elf], off: int) -> None:
         if elf is None:
@@ -1031,20 +1068,17 @@ class Shdr:
             elf.seek(stroff + 12 + 4)
             offset = u32(elf.read(4))
         elf.seek(offset + self.sh_name)
-        self.__name = ""
         while True:
             c = u8(elf.read(1))
             if c == 0:
                 break
-            self.__name += chr(c)
+            self.name += chr(c)
         return
 
-    @property
-    def name(self) -> str:
-        return self.__name
-
     def __str__(self) -> str:
-        return f"Shdr(name={self.name}, type={self.sh_type.name}, flags={self.sh_flags.name}, addr={self.sh_addr:#x}, offset={self.sh_offset}, size={self.sh_size}, link={self.sh_link}, info={self.sh_info}, addralign={self.sh_addralign}, entsize={self.sh_entsize})"
+        return (f"Shdr(name={self.name}, type={self.sh_type.name}, flags={self.sh_flags.name}, "
+	            f"addr={self.sh_addr:#x}, offset={self.sh_offset}, size={self.sh_size}, link={self.sh_link}, "
+	            f"info={self.sh_info}, addralign={self.sh_addralign}, entsize={self.sh_entsize})")
 
 
 class Instruction:
@@ -3719,7 +3753,7 @@ def is_arch(arch: Elf.Abi) -> bool:
     return arch in gef.arch.aliases
 
 
-def reset_architecture(arch=None, default=None):
+def reset_architecture(arch: Optional[str] = None, default: Optional[str] = None) -> None:
     """Sets the current architecture.
     If an arch is explicitly specified, use that one, otherwise try to parse it
     out of the current target. If that fails, and default is specified, select and
@@ -4013,8 +4047,8 @@ def get_process_maps() -> List[Section]:
 
 
 @deprecated("Use `reset_architecture`")
-def set_arch():
-    return reset_architecture()
+def set_arch(arch: Optional[str] = None, default: Optional[str] = None) -> None:
+    return reset_architecture(arch, default)
 
 #
 # GDB event hooking
