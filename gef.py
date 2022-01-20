@@ -1233,11 +1233,11 @@ class GlibcArena:
         try:
             arena = gdb.parse_and_eval(addr)
             malloc_state_t = cached_lookup_type("struct malloc_state")
-            self.__arena = arena.cast(malloc_state_t)  # "gdb.Value"
+            self.__arena = arena.cast(malloc_state_t)  # here __arena becomes a "gdb.Value"
             self.__addr = int(arena.address)
             self.struct_size: int = malloc_state_t.sizeof
         except:
-            self.__arena = MallocStateStruct(addr)  # MallocStateStruct
+            self.__arena = MallocStateStruct(addr)  # here __arena becomes MallocStateStruct
             self.__addr = self.__arena.addr
 
         try:
@@ -2574,7 +2574,7 @@ class AARCH64(ARM):
 
 @register_architecture
 class X86(Architecture):
-    aliases: Tuple[Union[int, str], ...] = ("X86", Elf.X86_32)
+    aliases: Tuple[Union[str, int], ...] = ("X86", Elf.X86_32)
     arch = "X86"
     mode = "32"
 
