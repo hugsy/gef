@@ -751,23 +751,23 @@ class Elf:
     e_magic: int                = ELF_MAGIC
     e_class: Class              = Class.ELF_32_BITS
     e_endianness: Endianness    = Endianness.LITTLE_ENDIAN
-    e_eiversion: Optional[int]  = None
-    e_osabi: Optional[OsAbi]    = None
-    e_abiversion: Optional[int] = None
-    e_pad: Optional[bytes]      = None
+    e_eiversion: int
+    e_osabi: OsAbi
+    e_abiversion: int
+    e_pad: bytes
     e_type: Type                = Type.ET_EXEC
     e_machine: Abi              = Abi.X86_32
-    e_version: Optional[int]    = None
-    e_entry: int                = 0
-    e_phoff : int               = 0
-    e_shoff : int               = 0
-    e_flags: Optional[int]      = None
-    e_ehsize : int              = 0
-    e_phentsize : int           = 0
-    e_phnum : int               = 0
-    e_shentsize : int           = 0
-    e_shnum : int               = 0
-    e_shstrndx : int            = 0
+    e_version: int
+    e_entry: int
+    e_phoff : int
+    e_shoff : int
+    e_flags: int
+    e_ehsize : int
+    e_phentsize : int
+    e_phnum : int
+    e_shentsize : int
+    e_shnum : int
+    e_shstrndx : int
 
     path: Optional[pathlib.Path] = None
 
@@ -912,14 +912,14 @@ class Phdr:
         PF_W            = 2
         PF_R            = 4
 
-    p_type: Optional["Phdr.Type"]     = None
-    p_flags: Optional["Phdr.Flags"]   = None
-    p_offset: int                     = 0
-    p_vaddr: int                      = 0
-    p_paddr: int                      = 0
-    p_filesz: int                     = 0
-    p_memsz: int                      = 0
-    p_align: int                      = 0
+    p_type: Type
+    p_flags: Flags
+    p_offset: int
+    p_vaddr: int
+    p_paddr: int
+    p_filesz: int
+    p_memsz: int
+    p_align: int
 
     def __init__(self, elf: Elf, off: int) -> None:
         if not elf:
@@ -1001,17 +1001,17 @@ class Shdr:
         ORDERED          = 0x40000000
         EXCLUDE          = 0x80000000
 
-    sh_name : int                      = 0
-    sh_type : Optional["Shdr.Type"]    = None
-    sh_flags : Optional["Shdr.Flags"]  = None
-    sh_addr : int                      = 0
-    sh_offset : int                    = 0
-    sh_size : int                      = 0
-    sh_link : int                      = 0
-    sh_info : int                      = 0
-    sh_addralign : int                 = 0
-    sh_entsize : int                   = 0
-    name : str                         = ""
+    sh_name : int
+    sh_type : Type
+    sh_flags : Flags
+    sh_addr : int
+    sh_offset : int
+    sh_size : int
+    sh_link : int
+    sh_info : int
+    sh_addralign : int
+    sh_entsize : int
+    name : str
 
     def __init__(self, elf: Optional[Elf], off: int) -> None:
         if elf is None:
@@ -1040,6 +1040,7 @@ class Shdr:
             elf.seek(stroff + 12 + 4)
             offset = u32(elf.read(4))
         elf.seek(offset + self.sh_name)
+        self.name = ""
         while True:
             c = u8(elf.read(1))
             if c == 0:
