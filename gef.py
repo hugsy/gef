@@ -1574,7 +1574,7 @@ def warn(msg: str):
     return
 
 
-def ok(msg: str):
+def ok(msg: str) -> None:
     gef_print(f"{Color.colorify('[+]', 'bold green')} {msg}")
     return
 
