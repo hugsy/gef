@@ -1564,7 +1564,7 @@ def titlify(text: str, color: Optional[str] = None, msg_color: Optional[str] = N
     return "".join(msg)
 
 
-def err(msg: str):
+def err(msg: str) -> None:
     gef_print(f"{Color.colorify('[!]', 'bold red')} {msg}")
     return
 
