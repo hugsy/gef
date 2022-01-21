@@ -231,13 +231,12 @@ def highlight_text(text: str) -> str:
 
 def gef_print(*args: str, end="\n", sep=" ", **kwargs: Any) -> None:
     """Wrapper around print(), using string buffering feature."""
+    parts = [highlight_text(a) for a in args]
     if gef.ui.stream_buffer and not is_debug():
-        gef.ui.stream_buffer.write(
-            sep.join(highlight_text(a) for a in args) + end)
+        gef.ui.stream_buffer.write(sep.join(parts) + end)
         return
 
-    for a in args:
-        print(highlight_text(a), end=end, sep=sep, **kwargs)
+    print(*parts, sep=sep, end=end, **kwargs)
     return
 
 
