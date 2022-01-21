@@ -845,7 +845,6 @@ class Elf:
     def entry_point(self) -> int:
         return self.e_entry
 
-    # deprecated
     @classproperty
     @deprecated("use `Elf.Abi.X86_64`")
     def X86_64(cls) -> int: return Elf.Abi.X86_64.value # pylint: disable=no-self-argument
@@ -3755,7 +3754,8 @@ def reset_architecture(arch: Optional[str] = None, default: Optional[str] = None
     If an arch is explicitly specified, use that one, otherwise try to parse it
     out of the current target. If that fails, and default is specified, select and
     set that arch.
-    Does not return but raise an exception if the architecture cannot be set.
+    Raise an exception if the architecture cannot be set.
+	Does not return a value.
     """
     global gef
     arches = __registered_architectures__
