@@ -1569,7 +1569,7 @@ def err(msg: str) -> None:
     return
 
 
-def warn(msg: str):
+def warn(msg: str) -> None:
     gef_print(f"{Color.colorify('[*]', 'bold yellow')} {msg}")
     return
 
