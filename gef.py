@@ -229,7 +229,7 @@ def highlight_text(text: str) -> str:
     return "".join(ansiSplit)
 
 
-def gef_print(*args: str, end="\n", sep=" ", **kwargs: Any):
+def gef_print(*args: str, end="\n", sep=" ", **kwargs: Any) -> None:
     """Wrapper around print(), using string buffering feature."""
     if gef.ui.stream_buffer and not is_debug():
         gef.ui.stream_buffer.write(
