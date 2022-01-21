@@ -1579,7 +1579,7 @@ def ok(msg: str) -> None:
     return
 
 
-def info(msg: str):
+def info(msg: str) -> None:
     gef_print(f"{Color.colorify('[+]', 'bold blue')} {msg}")
     return
 
