@@ -229,12 +229,15 @@ def highlight_text(text: str) -> str:
     return "".join(ansiSplit)
 
 
-def gef_print(x: str = "", *args: Any, **kwargs: Any) -> Optional[int]:
-    """Wrapper around `print()`, using string buffering feature."""
-    x = highlight_text(x)
+def gef_print(*args: str, end="\n", sep=" ", **kwargs: Any) -> None:
+    """Wrapper around print(), using string buffering feature."""
+    parts = [highlight_text(a) for a in args]
     if gef.ui.stream_buffer and not is_debug():
-        return gef.ui.stream_buffer.write(x + kwargs.get("end", "\n"))
-    print(x, *args, **kwargs)
+        gef.ui.stream_buffer.write(sep.join(parts) + end)
+        return
+
+    print(*parts, sep=sep, end=end, **kwargs)
+    return
 
 
 def bufferize(f: Callable) -> Callable:
@@ -1560,20 +1563,24 @@ def titlify(text: str, color: Optional[str] = None, msg_color: Optional[str] = N
     return "".join(msg)
 
 
-def err(msg: str) -> Optional[int]:
-    return gef_print(f"{Color.colorify('[!]', 'bold red')} {msg}")
+def err(msg: str) -> None:
+    gef_print(f"{Color.colorify('[!]', 'bold red')} {msg}")
+    return
 
 
-def warn(msg: str) -> Optional[int]:
-    return gef_print(f"{Color.colorify('[*]', 'bold yellow')} {msg}")
+def warn(msg: str) -> None:
+    gef_print(f"{Color.colorify('[*]', 'bold yellow')} {msg}")
+    return
 
 
-def ok(msg: str) -> Optional[int]:
-    return gef_print(f"{Color.colorify('[+]', 'bold green')} {msg}")
+def ok(msg: str) -> None:
+    gef_print(f"{Color.colorify('[+]', 'bold green')} {msg}")
+    return
 
 
-def info(msg: str) -> Optional[int]:
-    return gef_print(f"{Color.colorify('[+]', 'bold blue')} {msg}")
+def info(msg: str) -> None:
+    gef_print(f"{Color.colorify('[+]', 'bold blue')} {msg}")
+    return
 
 
 def push_context_message(level: str, message: str) -> None:
@@ -5062,9 +5069,9 @@ class ProcessStatusCommand(GenericCommand):
         info("Process Information")
         pid = gef.session.pid
         cmdline = self.get_cmdline_of(pid)
-        gef_print(f"\tPID {RIGHT_ARROW} {pid}")
-        gef_print(f"\tExecutable {RIGHT_ARROW} {self.get_process_path_of(pid)}")
-        gef_print(f"\tCommand line {RIGHT_ARROW} '{cmdline}'")
+        gef_print(f"\tPID {RIGHT_ARROW} {pid}",
+                  f"\tExecutable {RIGHT_ARROW} {self.get_process_path_of(pid)}",
+                  f"\tCommand line {RIGHT_ARROW} '{cmdline}'", sep="\n")
         return
 
     def show_ancestor(self) -> None:
@@ -5072,8 +5079,8 @@ class ProcessStatusCommand(GenericCommand):
         ppid = int(self.get_state_of(gef.session.pid)["PPid"])
         state = self.get_state_of(ppid)
         cmdline = self.get_cmdline_of(ppid)
-        gef_print(f"\tParent PID {RIGHT_ARROW} {state['Pid']}")
-        gef_print(f"\tCommand line {RIGHT_ARROW} '{cmdline}'")
+        gef_print(f"\tParent PID {RIGHT_ARROW} {state['Pid']}",
+                  f"\tCommand line {RIGHT_ARROW} '{cmdline}'", sep="\n")
         return
 
     def show_descendants(self) -> None:
@@ -8022,7 +8029,8 @@ class ElfInfoCommand(GenericCommand):
             if s.sh_flags & Shdr.SHF_COMPRESSED:       sh_flags += "C"
 
             gef_print("  [{:2d}] {:20s} {:>15s} {:#10x} {:#8x} {:#8x} {:#8x} {:5s} {:#4x} {:#4x} {:#8x}".format(
-                i, s.sh_name, sh_type, s.sh_addr, s.sh_offset, s.sh_size, s.sh_entsize, sh_flags, s.sh_link, s.sh_info, s.sh_addralign))
+                i, s.sh_name, sh_type, s.sh_addr, s.sh_offset, s.sh_size,
+                s.sh_entsize, sh_flags, s.sh_link, s.sh_info, s.sh_addralign))
         return
 
 
@@ -8204,8 +8212,7 @@ class ContextCommand(GenericCommand):
                                                               Color.colorify("Code", code_addr_color),
                                                               Color.colorify("Heap", heap_addr_color),
                                                               Color.colorify("Stack", stack_addr_color),
-                                                              Color.colorify("String", str_color)
-        ))
+                                                              Color.colorify("String", str_color)))
         return
 
     @only_if_gdb_running
@@ -9573,16 +9580,16 @@ class XAddressInfoCommand(GenericCommand):
 
         if sect:
             gef_print(f"Page: {format_address(sect.page_start)} {RIGHT_ARROW} "
-                      f"{format_address(sect.page_end)} (size={sect.page_end-sect.page_start:#x})")
-            gef_print(f"Permissions: {sect.permission}")
-            gef_print(f"Pathname: {sect.path}")
-            gef_print(f"Offset (from page): {addr.value-sect.page_start:#x}")
-            gef_print(f"Inode: {sect.inode}")
+                      f"{format_address(sect.page_end)} (size={sect.page_end-sect.page_start:#x})"
+                      f"\nPermissions: {sect.permission}"
+                      f"\nPathname: {sect.path}"
+                      f"\nOffset (from page): {addr.value-sect.page_start:#x}"
+                      f"\nInode: {sect.inode}")
 
         if info:
             gef_print(f"Segment: {info.name} "
-                      f"({format_address(info.zone_start)}-{format_address(info.zone_end)})")
-            gef_print(f"Offset (from segment): {addr.value-info.zone_start:#x}")
+                      f"({format_address(info.zone_start)}-{format_address(info.zone_end)})"
+                      f"\nOffset (from segment): {addr.value-info.zone_start:#x}")
 
         sym = gdb_get_location_from_symbol(address)
         if sym:
@@ -9726,13 +9733,13 @@ class TraceRunCommand(GenericCommand):
         loc_cur = loc_start
         frame_count_init = self.get_frames_size()
 
-        gef_print("#")
-        gef_print(f"# Execution tracing of {get_filepath()}")
-        gef_print(f"# Start address: {format_address(loc_start)}")
-        gef_print(f"# End address: {format_address(loc_end)}")
-        gef_print(f"# Recursion level: {depth:d}")
-        gef_print("# automatically generated by gef.py")
-        gef_print("#\n")
+        gef_print("#",
+                  f"# Execution tracing of {get_filepath()}",
+                  f"# Start address: {format_address(loc_start)}",
+                  f"# End address: {format_address(loc_end)}",
+                  f"# Recursion level: {depth:d}",
+                  "# automatically generated by gef.py",
+                  "#\n", sep="\n")
 
         while loc_cur != loc_end:
             try:
@@ -9747,10 +9754,10 @@ class TraceRunCommand(GenericCommand):
                 gdb.flush()
 
             except gdb.error as e:
-                gef_print("#")
-                gef_print(f"# Execution interrupted at address {format_address(loc_cur)}")
-                gef_print(f"# Exception: {e}")
-                gef_print("#\n")
+                gef_print("#",
+                          f"# Execution interrupted at address {format_address(loc_cur)}",
+                          f"# Exception: {e}",
+                          "#\n", sep="\n")
                 break
 
         return
