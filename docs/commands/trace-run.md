@@ -14,8 +14,8 @@ gef> trace-run <address_of_last_instruction_to_trace>
 
 ![trace-run-1](https://i.imgur.com/yaOGste.png)
 
-By using the script `ida_color_gdb_trace.py` on the text file generated, it will
-color the path taken:
+By using the script `ida_color_gdb_trace.py` on the text file generated, it
+will color the path taken:
 
-![trace-run-2](http://i.imgur.com/oAGoSMQ.png)
+![trace-run-2](https://i.imgur.com/oAGoSMQ.png)
 

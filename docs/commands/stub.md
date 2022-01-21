@@ -26,8 +26,8 @@ Patching `fork()` calls:
 
 * Without stub:
 
-![fork execution](http://i.imgur.com/TjnTDot.png)
+![fork execution](https://i.imgur.com/TjnTDot.png)
 
 * With stub:
 
-![stubbed fork](http://i.imgur.com/CllTnRH.png)
+![stubbed fork](https://i.imgur.com/CllTnRH.png)

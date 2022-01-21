@@ -80,4 +80,4 @@ jobs:
     - name: Run linter
       run: |
         make lint
-        
+

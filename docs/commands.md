@@ -14,7 +14,7 @@ improve it.
 |`aslr`                      | View/modify GDB ASLR behavior.|
 |`assemble`                  | Inline code assemble. Architecture can be set in GEF runtime config (default is x86).  (alias: `asm`) |
 |`capstone-disassemble`      | Use capstone disassembly framework to disassemble code. (alias: `cs-dis`) |
-|`checksec`                  | Checksec.sh(http://www.trapkit.de/tools/checksec.html) port. |
+|`checksec`                  | Checksec.sh(https://www.trapkit.de/tools/checksec.html) port. |
 |`context`                   | Display execution context. (alias: `ctx`)|
 |`dereference`               | Dereference recursively an address and display information (alias: telescope, dps)|
 |`edit-flags`                | Edit flags in a human friendly way (alias: `flags`)|
@@ -43,7 +43,7 @@ improve it.
 |`process-status`            | Extends the info given by GDB `info proc`, by giving an exhaustive description of the process status.|
 |`registers`                 | Display full details on one, many or all registers value from current architecture.|
 |`reset-cache`               | Reset cache of all stored data.|
-|`ropper`                    | Ropper (http://scoding.de/ropper) plugin for GEF|
+|`ropper`                    | Ropper (https://scoding.de/ropper) plugin for GEF|
 |`scan`                      | Search for addresses that are located in a memory mapping (haystack) that belonging to another (needle). (alias: `lookup`)|
 |`search-pattern`            | SearchPatternCommand: search a pattern in memory. (alias: `grep`)|
 |`set-permission`            | Change a page permission. By default, it will change it to RWX. (alias: `mprotect`)|

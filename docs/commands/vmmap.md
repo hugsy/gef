@@ -13,6 +13,6 @@ sections set as Read/Write/Execute.
 `vmmap` accepts one argument, either a pattern to match again mapping names,
 or an address to determine which section it belongs to.
 
-![vmmap-grep](http://i.imgur.com/ZFF4QVf.png)
+![vmmap-grep](https://i.imgur.com/ZFF4QVf.png)
 
 ![vmmap-address](https://i.imgur.com/hfcs1jH.png)
