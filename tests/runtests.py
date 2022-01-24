@@ -857,6 +857,32 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertNotIn("alias_function_test", rm_res)
         return
 
+    def test_cmd_pcustom(self):
+        with tempfile.TemporaryDirectory(prefix="/tmp/gef/") as dd:
+            dirpath = Path(dd).absolute()
+            with tempfile.NamedTemporaryFile(dir = dirpath, suffix=".py") as fd:
+                fpath = Path(fd.name).absolute()
+                open("/tmp/meh.txt","w").write(str(fpath))
+                fd.write(b"""from ctypes import *
+class foo_t(Structure):
+    _fields_ = [("a", c_int32),("b", c_int32),]
+class goo_t(Structure):
+    _fields_ = [("a", c_int32), ("b", c_int32), ("c", POINTER(foo_t)), ("d", c_int32), ("e", c_int32),]
+""")
+                fd.seek(0)
+                fd.flush()
+
+                res = gdb_run_cmd("gef config pcustom.struct_path", before=[f"gef config pcustom.struct_path {dirpath}",])
+                self.assertNoException(res)
+                self.assertIn(f"pcustom.struct_path (str) = \"{dirpath}\"", res)
+
+                res = gdb_run_cmd("pcustom", before=[f"gef config pcustom.struct_path {dirpath}",])
+                self.assertNoException(res)
+                structline = [x for x in res.splitlines() if x.startswith(f" →  {dirpath}") ][0]
+                self.assertIn("goo_t", structline)
+                self.assertIn("foo_t", structline)
+        return
+
 
 class TestGefFunctionsUnit(GefUnitTestGeneric):
     """Tests GEF internal functions."""
