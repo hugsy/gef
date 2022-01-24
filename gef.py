@@ -5223,7 +5223,8 @@ class GefThemeCommand(GenericCommand):
 
 class ExternalStructureManager:
     class Structure:
-        def __init__(self, mod_path: pathlib.Path, struct_name: str) -> None:
+        def __init__(self, manager: "ExternalStructureManager", mod_path: pathlib.Path, struct_name: str) -> None:
+            self.manager = manager
             self.module_path = mod_path
             self.name = struct_name
             self.class_type = self.__get_structure_class()
@@ -5276,6 +5277,7 @@ class ExternalStructureManager:
 
             # pretty print all the fields (and call recursively if possible)
             ptrsize = gef.arch.ptrsize
+            unpack = u32 if ptrsize == 4 else u64
             for field in _structure._fields_:
                 _name, _type = field
                 _value = getattr(_structure, _name)
@@ -5299,8 +5301,11 @@ class ExternalStructureManager:
                     self.apply_at(address + _offset, max_depth, depth + 1)
                 elif _type.__name__.startswith("LP_"):
                     __sub_type_name = _type.__name__.replace("LP_", "")
-                    __deref = u64(gef.memory.read(address + _offset, 8))
-                    self.apply_at(__deref, max_depth, depth + 1)
+                    result = self.manager.find(__sub_type_name)
+                    if result:
+                        _, __structure = result
+                        __address = unpack(gef.memory.read(address + _offset, ptrsize))
+                        __structure.apply_at(__address, max_depth, depth + 1)
             return
 
         def __get_ctypes_value(self, struct, item, value) -> str:
@@ -5315,18 +5320,19 @@ class ExternalStructureManager:
                     for val, desc in values:
                         if value == val: return desc
                         if val is None: default = desc
-                except:
-                    err(f"Error while trying to obtain values from _values_[\"{name}\"]")
+                except Exception as e:
+                    err(f"Error parsing '{name}': {e}")
             return default
 
     class Module(dict):
-        def __init__(self, path: pathlib.Path) -> None:
+        def __init__(self, manager: "ExternalStructureManager", path: pathlib.Path) -> None:
+            self.manager = manager
             self.path = path
             self.name = path.stem
             self.raw = self.__load()
 
             for entry in self:
-                structure = ExternalStructureManager.Structure(self.path, entry)
+                structure = ExternalStructureManager.Structure(manager, self.path, entry)
                 self[structure.name] = structure
             return
 
@@ -5352,14 +5358,15 @@ class ExternalStructureManager:
             return
 
     class Modules(dict):
-        def __init__(self, path: pathlib.Path) -> None:
-            self.root: pathlib.Path = path
+        def __init__(self, manager: "ExternalStructureManager") -> None:
+            self.manager: "ExternalStructureManager" = manager
+            self.root: pathlib.Path = manager.path
 
             for entry in self.root.iterdir():
                 if not entry.is_file(): continue
                 if entry.suffix != ".py": continue
                 if entry.name == "__init__.py": continue
-                module = ExternalStructureManager.Module(entry)
+                module = ExternalStructureManager.Module(manager, entry)
                 self[module.name] = module
             return
 
@@ -5369,7 +5376,6 @@ class ExternalStructureManager:
                 if structure_name in module:
                     return True
             return False
-
 
     def __init__(self) -> None:
         self.clear_caches()
@@ -5383,7 +5389,7 @@ class ExternalStructureManager:
     @property
     def modules(self) -> "ExternalStructureManager.Modules":
         if not self._modules:
-            self._modules = ExternalStructureManager.Modules(self.path)
+            self._modules = ExternalStructureManager.Modules(self)
         return self._modules
 
     @property
@@ -5401,6 +5407,7 @@ class ExternalStructureManager:
 
     @lru_cache()
     def find(self, structure_name: str) -> Optional[Tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"]]:
+        """Return the module and structure for the given structure name; `None` if the structure name was not found."""
         for module in self.modules.values():
             if structure_name in module:
                 return module, module[structure_name]
@@ -5506,6 +5513,8 @@ class PCustomShowCommand(PCustomCommand):
         if result:
             _, structure = result
             structure.pprint()
+        else:
+            err(f"No structure named '{structname}' found")
         return
 
 
@@ -5543,17 +5552,15 @@ class PCustomEditCommand(PCustomCommand):
         return subprocess.call(cmd)
 
     def __create_template(self, structname: str, fpath: pathlib.Path) -> None:
-        template = [
-            "from ctypes import *",
-            "",
-            "class ", structname, "(Structure):",
-            "    _fields_ = []",
-            "",
-            "    _values_ = []",
-            ""
-        ]
+        template = f"""from ctypes import *
+
+class {structname}(Structure):
+    _fields_ = []
+
+    _values_ = []
+"""
         with fpath.open("w") as f:
-            f.write(os.linesep.join(template))
+            f.write(template)
         return
 
 
@@ -5594,7 +5601,7 @@ class ChangeFdCommand(GenericCommand):
             stack_addr = [entry.page_start for entry in vmmap if entry.path == "[stack]"][0]
             original_contents = gef.memory.read(stack_addr, 8)
 
-            gef.memory.write(stack_addr, "\x02\x00", 2)
+            gef.memory.write(stack_addr, b"\x02\x00", 2)
             gef.memory.write(stack_addr + 0x2, struct.pack("<H", socket.htons(port)), 2)
             gef.memory.write(stack_addr + 0x4, socket.inet_aton(address), 4)
 
