@@ -978,14 +978,16 @@ class Shdr:
         SHT_GNU_HASH         = 0x6ffffff6
         SHT_GNU_LIBLIST      = 0x6ffffff7
         SHT_CHECKSUM         = 0x6ffffff8
-        SHT_LOSUNW           = SHT_SUNW_move       = 0x6ffffffa
+        SHT_LOSUNW           = 0x6ffffffa
+        SHT_SUNW_move        = 0x6ffffffa
         SHT_SUNW_COMDAT      = 0x6ffffffb
         SHT_SUNW_syminfo     = 0x6ffffffc
         SHT_GNU_verdef       = 0x6ffffffd
         SHT_GNU_verneed      = 0x6ffffffe
-        SHT_GNU_versym       = SHT_HISUNW          = SHT_HIOS       = 0x6fffffff
+        SHT_GNU_versym       = 0x6fffffff
         SHT_LOPROC           = 0x70000000
-        SHT_ARM_EXIDX        = SHT_X86_64_UNWIND   = 0x70000001
+        SHT_ARM_EXIDX        = 0x70000001
+        SHT_X86_64_UNWIND    = 0x70000001
         SHT_ARM_ATTRIBUTES   = 0x70000003
         SHT_MIPS_OPTIONS     = 0x7000000d
         DT_MIPS_INTERFACE    = 0x7000002a
@@ -3773,7 +3775,7 @@ def reset_architecture(arch: Optional[str] = None, default: Optional[str] = None
     arch_name = gef.binary.e_machine if gef.binary else get_arch()
 
     if ((arch_name == "MIPS" or arch_name == Elf.Abi.MIPS)
-        and (gef.binary.e_class == Elf.Class.ELF_64_BITS)):
+        and (gef.binary is not None and gef.binary.e_class == Elf.Class.ELF_64_BITS)):
         # MIPS64 = arch(MIPS) + 64b flag
         arch_name = "MIPS64"
 
@@ -6248,7 +6250,7 @@ class ChangePermissionCommand(GenericCommand):
         gdb.execute("continue")
         return
 
-    def get_stub_by_arch(self, addr: int, size: int, perm: Permission) -> Optional[bytearray]:
+    def get_stub_by_arch(self, addr: int, size: int, perm: Permission) -> Union[str, bytearray, None]:
         code = gef.arch.mprotect_asm(addr, size, perm)
         arch, mode = get_keystone_arch()
         raw_insns = keystone_assemble(code, arch, mode, raw=True)
@@ -8033,9 +8035,7 @@ class EntryPointBreakCommand(GenericCommand):
             bp.delete()
 
         # break at entry point
-        entry = get_entry_point()
-        if entry is None:
-            return
+        entry = gef.binary.entry_point
 
         if is_pie(fpath):
             self.set_init_tbreak_pie(entry, argv)
