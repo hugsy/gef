@@ -5232,7 +5232,7 @@ class ExternalStructureManager:
         def __str__(self) -> str:
             return self.name
 
-        def pprint(self):
+        def pprint(self) -> None:
             res = []
             for _name, _type in self.class_type._fields_:
                 size = ctypes.sizeof(_type)
@@ -5371,11 +5371,11 @@ class ExternalStructureManager:
             return False
 
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.clear_caches()
         return
 
-    def clear_caches(self):
+    def clear_caches(self) -> None:
         self._path = None
         self._modules = None
         return
@@ -5429,7 +5429,7 @@ class PCustomCommand(GenericCommand):
         return
 
     @parse_arguments({"type": "", "address": ""}, {})
-    def do_invoke(self, *args: Any, **kwargs: Dict[str, Any]) -> None:
+    def do_invoke(self, _: Any, **kwargs: Dict[str, Any]) -> None:
         args = kwargs["arguments"]
         if not args.type:
             gdb.execute("pcustom list")
@@ -5470,7 +5470,7 @@ class PCustomListCommand(PCustomCommand):
         super().__init__()
         return
 
-    def do_invoke(self, argv: List) -> None:
+    def do_invoke(self, _: List) -> None:
         """Dump the list of all the structures and their respective."""
         manager = ExternalStructureManager()
         info(f"Listing custom structures from '{manager.path}'")
