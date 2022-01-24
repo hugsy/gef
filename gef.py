@@ -83,7 +83,7 @@ from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Dict, Generator, IO, Iterator, List,
-                    NoReturn, Optional, Sequence, Set, Tuple, Type, Union)
+                    NoReturn, Optional, Sequence, Tuple, Type, Union)
 from urllib.request import urlopen
 
 
@@ -5300,7 +5300,8 @@ class ExternalStructureManager:
                 if issubclass(_type, ctypes.Structure):
                     self.apply_at(address + _offset, max_depth, depth + 1)
                 elif _type.__name__.startswith("LP_"):
-                    __sub_type_name = _type.__name__.replace("LP_", "")
+                    # Pointer to a structure of a different type
+                    __sub_type_name = _type.__name__.lstrip("LP_")
                     result = self.manager.find(__sub_type_name)
                     if result:
                         _, __structure = result
@@ -5310,9 +5311,8 @@ class ExternalStructureManager:
 
         def __get_ctypes_value(self, struct, item, value) -> str:
             if not hasattr(struct, "_values_"): return ""
-            values_list = struct._values_
             default = ""
-            for name, values in values_list:
+            for name, values in struct._values_:
                 if name != item: continue
                 if callable(values):
                     return values(value)

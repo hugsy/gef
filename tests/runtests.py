@@ -11,6 +11,7 @@ import re
 import subprocess
 import tempfile
 import unittest
+import warnings
 from pathlib import Path
 
 from helpers import (
@@ -30,6 +31,7 @@ BIN_LS = Path("/bin/ls")
 BIN_SH = Path("/bin/sh")
 TMPDIR = Path(tempfile.gettempdir())
 GEF_DEFAULT_PROMPT = "gef➤  "
+GEF_DEFAULT_TEMPDIR = "/tmp/gef"
 
 class GdbAssertionError(AssertionError):
     pass
@@ -56,7 +58,15 @@ class GefUnitTestGeneric(unittest.TestCase):
                 or "'gdb.error'" in buf
                 or "Exception raised" in buf
                 or "failed to execute properly, reason:" in buf):
-            raise GdbAssertionError("Unexpected GDB Exception raised")
+            raise GdbAssertionError(f"Unexpected GDB Exception raised in {buf}")
+
+        if "is deprecated and will be removed in a feature release." in buf:
+            lines = [l for l in buf.splitlines()
+                     if "is deprecated and will be removed in a feature release." in l]
+            deprecated_api_names = [x[0] for x in lines]
+            warnings.warn(
+                UserWarning(f"Use of deprecated API(s): {', '.join(deprecated_api_names)}")
+            )
 
     @staticmethod
     def assertFailIfInactiveSession(buf):
@@ -858,11 +868,9 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         return
 
     def test_cmd_pcustom(self):
-        with tempfile.TemporaryDirectory(prefix="/tmp/gef/") as dd:
+        with tempfile.TemporaryDirectory(prefix=GEF_DEFAULT_TEMPDIR) as dd:
             dirpath = Path(dd).absolute()
             with tempfile.NamedTemporaryFile(dir = dirpath, suffix=".py") as fd:
-                fpath = Path(fd.name).absolute()
-                open("/tmp/meh.txt","w").write(str(fpath))
                 fd.write(b"""from ctypes import *
 class foo_t(Structure):
     _fields_ = [("a", c_int32),("b", c_int32),]
@@ -872,7 +880,8 @@ class goo_t(Structure):
                 fd.seek(0)
                 fd.flush()
 
-                res = gdb_run_cmd("gef config pcustom.struct_path", before=[f"gef config pcustom.struct_path {dirpath}",])
+                res = gdb_run_cmd("gef config pcustom.struct_path",
+                                  before=[f"gef config pcustom.struct_path {dirpath}",])
                 self.assertNoException(res)
                 self.assertIn(f"pcustom.struct_path (str) = \"{dirpath}\"", res)
 
@@ -881,6 +890,51 @@ class goo_t(Structure):
                 structline = [x for x in res.splitlines() if x.startswith(f" →  {dirpath}") ][0]
                 self.assertIn("goo_t", structline)
                 self.assertIn("foo_t", structline)
+        return
+
+    def test_cmd_pcustom_show(self):
+        with tempfile.TemporaryDirectory(prefix=GEF_DEFAULT_TEMPDIR) as dd:
+            dirpath = Path(dd).absolute()
+            with tempfile.NamedTemporaryFile(dir = dirpath, suffix=".py") as fd:
+                fd.write(b"""from ctypes import *
+class foo_t(Structure):
+    _fields_ = [("a", c_int32),("b", c_int32),]
+    def __repr__(self): return "foo_t"
+    def __str__(self): return "foo_t"
+class goo_t(Structure):
+    _fields_ = [("a", c_int32), ("b", c_int32), ("c", POINTER(foo_t)), ("d", c_int32), ("e", c_int32),]
+    def __repr__(self): return "goo_t"
+""")
+                fd.seek(0)
+                fd.flush()
+
+                # no address
+                res = gdb_run_cmd("pcustom foo_t",
+                                  before=[f"gef config pcustom.struct_path {dirpath}",])
+                self.assertNoException(res)
+                self.assertIn("0000   a                     c_int  /* size=0x4 */", res)
+                self.assertIn("0004   b                     c_int  /* size=0x4 */", res)
+
+                # with address
+                res = gdb_run_silent_cmd("pcustom goo_t 0x1337100", target=_target("pcustom"),
+                                           before=[f"gef config pcustom.struct_path {dirpath}",])
+                self.assertNoException(res)
+                if is_64b():
+                    self.assertIn(f"""0x1337100+0x00 a :                      3 (c_int)
+0x1337100+0x04 b :                      4 (c_int)
+0x1337100+0x08 c :                      """, res)
+                    self.assertIn(f"""  0x1337000+0x00 a :                      1 (c_int)
+  0x1337000+0x04 b :                      2 (c_int)
+0x1337100+0x10 d :                      12 (c_int)
+0x1337100+0x14 e :                      13 (c_int)""", res)
+                else:
+                    self.assertIn(f"""0x1337100+0x00 a :                      3 (c_int)
+0x1337100+0x04 b :                      4 (c_int)
+0x1337100+0x08 c :                      """, res)
+                    self.assertIn(f"""  0x1337000+0x00 a :                      1 (c_int)
+  0x1337000+0x04 b :                      2 (c_int)
+0x1337100+0x0c d :                      12 (c_int)
+0x1337100+0x10 e :                      13 (c_int)""", res)
         return
 
 
