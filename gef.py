@@ -161,7 +161,7 @@ PATTERN_LIBC_VERSION                   = re.compile(rb"glibc (\d+)\.(\d+)")
 gef : "Gef"                                                                 = None
 __registered_commands__ : List[Type["GenericCommand"]]                      = []
 __registered_functions__ : List[Type["GenericFunction"]]                    = []
-__registered_architectures__ : Dict[Union[int, str], Type["Architecture"]]  = {}
+__registered_architectures__ : Dict[Union["Elf.Abi", str], Type["Architecture"]]  = {}
 
 
 def reset_all_caches() -> None:
@@ -446,6 +446,12 @@ def only_if_events_supported(event_type: str) -> Callable:
     return wrap
 
 
+class classproperty(property):
+    """Make the attribute a `classproperty`."""
+    def __get__(self, cls, owner):
+        return classmethod(self.fget).__get__(None, owner)()
+
+
 def FakeExit(*args: Any, **kwargs: Any) -> NoReturn:
     raise RuntimeWarning
 
@@ -612,32 +618,13 @@ class Address:
         return None if derefed is None else int(derefed)
 
 
-class Permission:
+class Permission(enum.Flag):
     """GEF representation of Linux permission."""
     NONE      = 0
-    READ      = 1
+    EXECUTE   = 1
     WRITE     = 2
-    EXECUTE   = 4
-    ALL       = READ | WRITE | EXECUTE
-
-    def __init__(self, **kwargs: Any) -> None:
-        self.value: int = kwargs.get("value", 0)
-        return
-
-    def __or__(self, value: int) -> int:
-        return self.value | value
-
-    def __and__(self, value: int) -> int:
-        return self.value & value
-
-    def __xor__(self, value: int) -> int:
-        return self.value ^ value
-
-    def __eq__(self, value: int) -> int:
-        return self.value == value
-
-    def __ne__(self, value: int) -> int:
-        return self.value != value
+    READ      = 4
+    ALL       = 7
 
     def __str__(self) -> str:
         perm_str = ""
@@ -646,30 +633,21 @@ class Permission:
         perm_str += "x" if self & Permission.EXECUTE else "-"
         return perm_str
 
-    def __int__(self) -> int:
-        return self.value
-
     @staticmethod
     def from_info_sections(*args: str) -> "Permission":
-        perm = Permission()
+        perm = Permission(0)
         for arg in args:
-            if "READONLY" in arg:
-                perm.value += Permission.READ
-            if "DATA" in arg:
-                perm.value += Permission.WRITE
-            if "CODE" in arg:
-                perm.value += Permission.EXECUTE
+            if "READONLY" in arg: perm |= Permission.READ
+            if "DATA" in arg: perm |= Permission.WRITE
+            if "CODE" in arg: perm |= Permission.EXECUTE
         return perm
 
     @staticmethod
     def from_process_maps(perm_str: str) -> "Permission":
-        perm = Permission()
-        if perm_str[0] == "r":
-            perm.value += Permission.READ
-        if perm_str[1] == "w":
-            perm.value += Permission.WRITE
-        if perm_str[2] == "x":
-            perm.value += Permission.EXECUTE
+        perm = Permission(0)
+        if perm_str[0] == "r": perm |= Permission.READ
+        if perm_str[1] == "w": perm |= Permission.WRITE
+        if perm_str[2] == "x": perm |= Permission.EXECUTE
         return perm
 
 
@@ -680,7 +658,7 @@ class Section:
         self.page_start: int = kwargs.get("page_start", 0)
         self.page_end: int = kwargs.get("page_end", 0)
         self.offset: int = kwargs.get("offset", 0)
-        self.permission: Permission = kwargs.get("permission", Permission())
+        self.permission: Permission = kwargs.get("permission", Permission(0))
         self.inode: int = kwargs.get("inode", 0)
         self.path: str = kwargs.get("path", "")
         return
@@ -736,269 +714,365 @@ class Elf:
     - https://refspecs.linuxfoundation.org/elf/elfspec_ppc.pdf
     - https://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
     """
-    ELF_32_BITS       = 0x01
-    ELF_64_BITS       = 0x02
+    class Class(enum.Enum):
+        ELF_32_BITS       = 0x01
+        ELF_64_BITS       = 0x02
+
     ELF_MAGIC         = 0x7f454c46
 
-    X86_64            = 0x3e
-    X86_32            = 0x03
-    ARM               = 0x28
-    MIPS              = 0x08
-    POWERPC           = 0x14
-    POWERPC64         = 0x15
-    SPARC             = 0x02
-    SPARC64           = 0x2b
-    AARCH64           = 0xb7
-    RISCV             = 0xf3
-    IA64              = 0x32
-    M68K              = 0x04
+    class Abi(enum.Enum):
+        X86_64            = 0x3e
+        X86_32            = 0x03
+        ARM               = 0x28
+        MIPS              = 0x08
+        POWERPC           = 0x14
+        POWERPC64         = 0x15
+        SPARC             = 0x02
+        SPARC64           = 0x2b
+        AARCH64           = 0xb7
+        RISCV             = 0xf3
+        IA64              = 0x32
+        M68K              = 0x04
 
-    ET_RELOC          = 1
-    ET_EXEC           = 2
-    ET_DYN            = 3
-    ET_CORE           = 4
+    class Type(enum.Enum):
+        ET_RELOC          = 1
+        ET_EXEC           = 2
+        ET_DYN            = 3
+        ET_CORE           = 4
 
-    OSABI_SYSTEMV     = 0x00
-    OSABI_HPUX        = 0x01
-    OSABI_NETBSD      = 0x02
-    OSABI_LINUX       = 0x03
-    OSABI_SOLARIS     = 0x06
-    OSABI_AIX         = 0x07
-    OSABI_IRIX        = 0x08
-    OSABI_FREEBSD     = 0x09
-    OSABI_OPENBSD     = 0x0C
+    class OsAbi(enum.Enum):
+        SYSTEMV     = 0x00
+        HPUX        = 0x01
+        NETBSD      = 0x02
+        LINUX       = 0x03
+        SOLARIS     = 0x06
+        AIX         = 0x07
+        IRIX        = 0x08
+        FREEBSD     = 0x09
+        OPENBSD     = 0x0C
 
     e_magic: int                = ELF_MAGIC
-    e_class: int                = ELF_32_BITS
-    e_endianness: int           = Endianness.LITTLE_ENDIAN.value
-    e_eiversion: Optional[int]  = None
-    e_osabi: Optional[int]      = None
-    e_abiversion: Optional[int] = None
-    e_pad: Optional[bytes]      = None
-    e_type: int                 = ET_EXEC
-    e_machine: int              = X86_32
-    e_version: Optional[int]    = None
-    e_entry: int                = 0
-    e_phoff : int               = 0
-    e_shoff : int               = 0
-    e_flags: Optional[int]      = None
-    e_ehsize : int              = 0
-    e_phentsize : int           = 0
-    e_phnum : int               = 0
-    e_shentsize : int           = 0
-    e_shnum : int               = 0
-    e_shstrndx : int            = 0
+    e_class: Class              = Class.ELF_32_BITS
+    e_endianness: Endianness    = Endianness.LITTLE_ENDIAN
+    e_eiversion: int
+    e_osabi: OsAbi
+    e_abiversion: int
+    e_pad: bytes
+    e_type: Type                = Type.ET_EXEC
+    e_machine: Abi              = Abi.X86_32
+    e_version: int
+    e_entry: int
+    e_phoff: int
+    e_shoff: int
+    e_flags: int
+    e_ehsize: int
+    e_phentsize: int
+    e_phnum: int
+    e_shentsize: int
+    e_shnum: int
+    e_shstrndx: int
 
-    def __init__(self, elf: str = "", minimalist: bool = False) -> None:
-        """
-        Instantiate an ELF object. The default behavior is to create the object by parsing the ELF file.
+    path: Optional[pathlib.Path] = None
+
+    def __init__(self, path: str = "", minimalist: bool = False) -> None:
+        """Instantiate an ELF object. The default behavior is to create the object by parsing the ELF file.
         But in some cases (QEMU-stub), we may just want a simple minimal object with default values."""
         if minimalist:
             return
 
-        if not os.access(elf, os.R_OK):
-            err(f"'{elf}' not found/readable")
-            err("Failed to get file debug information, most of gef features will not work")
-            return
+        self.fpath = pathlib.Path(path).expanduser()
+        if not os.access(self.fpath, os.R_OK):
+            raise FileNotFoundError(f"'{self.fpath}' not found/readable, most gef features will not work")
 
-        self.fd: Optional[IO] = open(elf, "rb")
+        with self.fpath.open("rb") as self.fd:
+            # off 0x0
+            self.e_magic, e_class, e_endianness, self.e_eiversion = self.read_and_unpack(">IBBB")
+            if self.e_magic != Elf.ELF_MAGIC:
+                # The ELF is corrupted, GDB won't handle it, no point going further
+                raise RuntimeError("Not a valid ELF file (magic)")
 
-        # off 0x0
-        self.e_magic, self.e_class, self.e_endianness, self.e_eiversion = struct.unpack(">IBBB", self.read(7))
+            self.e_class, self.e_endianness = Elf.Class(e_class), Endianness(e_endianness)
 
-        # adjust endianness in bin reading
-        endian = gef.arch.endianness
+            if self.e_endianness != gef.arch.endianness:
+                warn("Unexpected endianness for architecture")
 
-        # off 0x7
-        self.e_osabi, self.e_abiversion = struct.unpack(f"{endian}BB", self.read(2))
+            endian = self.e_endianness
 
-        # off 0x9
-        self.e_pad = self.read(7)
+            # off 0x7
+            e_osabi, self.e_abiversion = self.read_and_unpack(f"{endian}BB")
+            self.e_osabi = Elf.OsAbi(e_osabi)
 
-        # off 0x10
-        self.e_type, self.e_machine, self.e_version = struct.unpack(f"{endian}HHI", self.read(8))
+            # off 0x9
+            self.e_pad = self.read(7)
 
-        # off 0x18
-        if self.e_class == Elf.ELF_64_BITS:
-            # if arch 64bits
-            self.e_entry, self.e_phoff, self.e_shoff = struct.unpack(f"{endian}QQQ", self.read(24))
-        else:
-            # else arch 32bits
-            self.e_entry, self.e_phoff, self.e_shoff = struct.unpack(f"{endian}III", self.read(12))
+            # off 0x10
+            e_type, e_machine, self.e_version = self.read_and_unpack(f"{endian}HHI")
+            self.e_type, self.e_machine = Elf.Type(e_type), Elf.Abi(e_machine)
 
-        self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = struct.unpack(f"{endian}IHHH", self.read(10))
-        self.e_shentsize, self.e_shnum, self.e_shstrndx = struct.unpack(f"{endian}HHH", self.read(6))
+            # off 0x18
+            if self.e_class == Elf.Class.ELF_64_BITS:
+                self.e_entry, self.e_phoff, self.e_shoff = self.read_and_unpack(f"{endian}QQQ")
+            else:
+                self.e_entry, self.e_phoff, self.e_shoff = self.read_and_unpack(f"{endian}III")
 
-        self.phdrs = []
-        for i in range(self.e_phnum):
-            self.phdrs.append(Phdr(self, self.e_phoff + self.e_phentsize * i))
+            self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = self.read_and_unpack(f"{endian}IHHH")
+            self.e_shentsize, self.e_shnum, self.e_shstrndx = self.read_and_unpack(f"{endian}HHH")
 
-        self.shdrs = []
-        for i in range(self.e_shnum):
-            self.shdrs.append(Shdr(self, self.e_shoff + self.e_shentsize * i))
+            self.phdrs : List["Phdr"] = []
+            for i in range(self.e_phnum):
+                self.phdrs.append(Phdr(self, self.e_phoff + self.e_phentsize * i))
 
-        if self.fd:
-            self.fd.close()
-            self.fd = None
-
+            self.shdrs : List["Shdr"] = []
+            for i in range(self.e_shnum):
+                self.shdrs.append(Shdr(self, self.e_shoff + self.e_shentsize * i))
         return
 
     def read(self, size: int) -> bytes:
         return self.fd.read(size)
 
+    def read_and_unpack(self, fmt: str) -> Tuple[Any, ...]:
+        size = struct.calcsize(fmt)
+        data = self.fd.read(size)
+        return struct.unpack(fmt, data)
+
     def seek(self, off: int) -> None:
         self.fd.seek(off, 0)
 
-    def is_valid(self) -> bool:
-        return self.e_magic == Elf.ELF_MAGIC
+    def __str__(self) -> str:
+        return f"ELF('{self.fpath.absolute()}', {self.e_class.name}, {self.e_machine.name})"
+
+    @property
+    def entry_point(self) -> int:
+        return self.e_entry
+
+    @classproperty
+    @deprecated("use `Elf.Abi.X86_64`")
+    def X86_64(cls) -> int: return Elf.Abi.X86_64.value # pylint: disable=no-self-argument
+
+    @classproperty
+    @deprecated("use `Elf.Abi.X86_32`")
+    def X86_32(cls) -> int : return Elf.Abi.X86_32.value # pylint: disable=no-self-argument
+
+    @classproperty
+    @deprecated("use `Elf.Abi.ARM`")
+    def ARM(cls) -> int : return Elf.Abi.ARM.value # pylint: disable=no-self-argument
+
+    @classproperty
+    @deprecated("use `Elf.Abi.MIPS`")
+    def MIPS(cls) -> int : return Elf.Abi.MIPS.value # pylint: disable=no-self-argument
+
+    @classproperty
+    @deprecated("use `Elf.Abi.POWERPC`")
+    def POWERPC(cls) -> int : return Elf.Abi.POWERPC.value # pylint: disable=no-self-argument
+
+    @classproperty
+    @deprecated("use `Elf.Abi.POWERPC64`")
+    def POWERPC64(cls) -> int : return Elf.Abi.POWERPC64.value # pylint: disable=no-self-argument
+
+    @classproperty
+    @deprecated("use `Elf.Abi.SPARC`")
+    def SPARC(cls) -> int : return Elf.Abi.SPARC.value # pylint: disable=no-self-argument
+
+    @classproperty
+    @deprecated("use `Elf.Abi.SPARC64`")
+    def SPARC64(cls) -> int : return Elf.Abi.SPARC64.value # pylint: disable=no-self-argument
+
+    @classproperty
+    @deprecated("use `Elf.Abi.AARCH64`")
+    def AARCH64(cls) -> int : return Elf.Abi.AARCH64.value  # pylint: disable=no-self-argument
+
+    @classproperty
+    @deprecated("use `Elf.Abi.RISCV`")
+    def RISCV(cls) -> int : return Elf.Abi.RISCV.value # pylint: disable=no-self-argument
 
 
 class Phdr:
-    PT_NULL         = 0
-    PT_LOAD         = 1
-    PT_DYNAMIC      = 2
-    PT_INTERP       = 3
-    PT_NOTE         = 4
-    PT_SHLIB        = 5
-    PT_PHDR         = 6
-    PT_TLS          = 7
-    PT_LOOS         = 0x60000000
-    PT_GNU_EH_FRAME = 0x6474e550
-    PT_GNU_STACK    = 0x6474e551
-    PT_GNU_RELRO    = 0x6474e552
-    PT_LOSUNW       = 0x6ffffffa
-    PT_SUNWBSS      = 0x6ffffffa
-    PT_SUNWSTACK    = 0x6ffffffb
-    PT_HISUNW       = 0x6fffffff
-    PT_HIOS         = 0x6fffffff
-    PT_LOPROC       = 0x70000000
-    PT_HIPROC       = 0x7fffffff
+    class Type(enum.IntEnum):
+        PT_NULL         = 0
+        PT_LOAD         = 1
+        PT_DYNAMIC      = 2
+        PT_INTERP       = 3
+        PT_NOTE         = 4
+        PT_SHLIB        = 5
+        PT_PHDR         = 6
+        PT_TLS          = 7
+        PT_LOOS         = 0x60000000
+        PT_GNU_EH_FRAME = 0x6474e550
+        PT_GNU_STACK    = 0x6474e551
+        PT_GNU_RELRO    = 0x6474e552
+        PT_GNU_PROPERTY = 0x6474e553
+        PT_LOSUNW       = 0x6ffffffa
+        PT_SUNWBSS      = 0x6ffffffa
+        PT_SUNWSTACK    = 0x6ffffffb
+        PT_HISUNW       = PT_HIOS         = 0x6fffffff
+        PT_LOPROC       = 0x70000000
+        PT_ARM_EIDX     = 0x70000001
+        PT_MIPS_ABIFLAGS= 0x70000003
+        PT_HIPROC       = 0x7fffffff
+        UNKNOWN_PHDR    = 0xffffffff
 
-    PF_X            = 1
-    PF_W            = 2
-    PF_R            = 4
+        @classmethod
+        def _missing_(cls, _:int) -> Type:
+            return cls.UNKNOWN_PHDR
 
-    p_type: Optional[int]   = None
-    p_flags: Optional[int]  = None
-    p_offset: Optional[int] = None
-    p_vaddr: Optional[int]  = None
-    p_paddr: Optional[int]  = None
-    p_filesz: Optional[int] = None
-    p_memsz: Optional[int]  = None
-    p_align: Optional[int]  = None
+    class Flags(enum.IntFlag):
+        PF_X            = 1
+        PF_W            = 2
+        PF_R            = 4
+
+    p_type: Type
+    p_flags: Flags
+    p_offset: int
+    p_vaddr: int
+    p_paddr: int
+    p_filesz: int
+    p_memsz: int
+    p_align: int
 
     def __init__(self, elf: Elf, off: int) -> None:
         if not elf:
             return
         elf.seek(off)
+        self.offset = off
         endian = gef.arch.endianness
-        if elf.e_class == Elf.ELF_64_BITS:
-            self.p_type, self.p_flags, self.p_offset = struct.unpack(f"{endian}IIQ", elf.read(16))
-            self.p_vaddr, self.p_paddr = struct.unpack(f"{endian}QQ", elf.read(16))
-            self.p_filesz, self.p_memsz, self.p_align = struct.unpack(f"{endian}QQQ", elf.read(24))
+        if elf.e_class == Elf.Class.ELF_64_BITS:
+            p_type, p_flags, self.p_offset = elf.read_and_unpack(f"{endian}IIQ")
+            self.p_vaddr, self.p_paddr = elf.read_and_unpack(f"{endian}QQ")
+            self.p_filesz, self.p_memsz, self.p_align = elf.read_and_unpack(f"{endian}QQQ")
         else:
-            self.p_type, self.p_offset = struct.unpack(f"{endian}II", elf.read(8))
-            self.p_vaddr, self.p_paddr = struct.unpack(f"{endian}II", elf.read(8))
-            self.p_filesz, self.p_memsz, self.p_flags, self.p_align = struct.unpack(f"{endian}IIII", elf.read(16))
+            p_type, self.p_offset = elf.read_and_unpack(f"{endian}II")
+            self.p_vaddr, self.p_paddr = elf.read_and_unpack(f"{endian}II")
+            self.p_filesz, self.p_memsz, p_flags, self.p_align = elf.read_and_unpack(f"{endian}IIII")
+
+        self.p_type, self.p_flags = Phdr.Type(p_type), Phdr.Flags(p_flags)
+        return
+
+    def __str__(self) -> str:
+        return (f"Phdr(offset={self.offset}, type={self.p_type.name}, flags={self.p_flags.name}, "
+	            f"vaddr={self.p_vaddr}, paddr={self.p_paddr}, filesz={self.p_filesz}, "
+	            f"memsz={self.p_memsz}, align={self.p_align})")
 
 
 class Shdr:
-    SHT_NULL             = 0
-    SHT_PROGBITS         = 1
-    SHT_SYMTAB           = 2
-    SHT_STRTAB           = 3
-    SHT_RELA             = 4
-    SHT_HASH             = 5
-    SHT_DYNAMIC          = 6
-    SHT_NOTE             = 7
-    SHT_NOBITS           = 8
-    SHT_REL              = 9
-    SHT_SHLIB            = 10
-    SHT_DYNSYM           = 11
-    SHT_NUM	             = 12
-    SHT_INIT_ARRAY       = 14
-    SHT_FINI_ARRAY       = 15
-    SHT_PREINIT_ARRAY    = 16
-    SHT_GROUP            = 17
-    SHT_SYMTAB_SHNDX     = 18
-    SHT_LOOS             = 0x60000000
-    SHT_GNU_ATTRIBUTES   = 0x6ffffff5
-    SHT_GNU_HASH         = 0x6ffffff6
-    SHT_GNU_LIBLIST      = 0x6ffffff7
-    SHT_CHECKSUM         = 0x6ffffff8
-    SHT_LOSUNW           = 0x6ffffffa
-    SHT_SUNW_move        = 0x6ffffffa
-    SHT_SUNW_COMDAT      = 0x6ffffffb
-    SHT_SUNW_syminfo     = 0x6ffffffc
-    SHT_GNU_verdef       = 0x6ffffffd
-    SHT_GNU_verneed      = 0x6ffffffe
-    SHT_GNU_versym       = 0x6fffffff
-    SHT_HISUNW           = 0x6fffffff
-    SHT_HIOS             = 0x6fffffff
-    SHT_LOPROC           = 0x70000000
-    SHT_HIPROC           = 0x7fffffff
-    SHT_LOUSER           = 0x80000000
-    SHT_HIUSER           = 0x8fffffff
+    class Type(enum.IntEnum):
+        SHT_NULL             = 0
+        SHT_PROGBITS         = 1
+        SHT_SYMTAB           = 2
+        SHT_STRTAB           = 3
+        SHT_RELA             = 4
+        SHT_HASH             = 5
+        SHT_DYNAMIC          = 6
+        SHT_NOTE             = 7
+        SHT_NOBITS           = 8
+        SHT_REL              = 9
+        SHT_SHLIB            = 10
+        SHT_DYNSYM           = 11
+        SHT_NUM	             = 12
+        SHT_INIT_ARRAY       = 14
+        SHT_FINI_ARRAY       = 15
+        SHT_PREINIT_ARRAY    = 16
+        SHT_GROUP            = 17
+        SHT_SYMTAB_SHNDX     = 18
+        SHT_LOOS             = 0x60000000
+        SHT_GNU_ATTRIBUTES   = 0x6ffffff5
+        SHT_GNU_HASH         = 0x6ffffff6
+        SHT_GNU_LIBLIST      = 0x6ffffff7
+        SHT_CHECKSUM         = 0x6ffffff8
+        SHT_LOSUNW           = 0x6ffffffa
+        SHT_SUNW_move        = 0x6ffffffa
+        SHT_SUNW_COMDAT      = 0x6ffffffb
+        SHT_SUNW_syminfo     = 0x6ffffffc
+        SHT_GNU_verdef       = 0x6ffffffd
+        SHT_GNU_verneed      = 0x6ffffffe
+        SHT_GNU_versym       = 0x6fffffff
+        SHT_LOPROC           = 0x70000000
+        SHT_ARM_EXIDX        = 0x70000001
+        SHT_X86_64_UNWIND    = 0x70000001
+        SHT_ARM_ATTRIBUTES   = 0x70000003
+        SHT_MIPS_OPTIONS     = 0x7000000d
+        DT_MIPS_INTERFACE    = 0x7000002a
+        SHT_HIPROC           = 0x7fffffff
+        SHT_LOUSER           = 0x80000000
+        SHT_HIUSER           = 0x8fffffff
+        UNKNOWN_SHDR         = 0xffffffff
 
-    SHF_WRITE            = 1
-    SHF_ALLOC            = 2
-    SHF_EXECINSTR        = 4
-    SHF_MERGE            = 0x10
-    SHF_STRINGS          = 0x20
-    SHF_INFO_LINK        = 0x40
-    SHF_LINK_ORDER       = 0x80
-    SHF_OS_NONCONFORMING = 0x100
-    SHF_GROUP            = 0x200
-    SHF_TLS              = 0x400
-    SHF_COMPRESSED       = 0x800
-    SHF_RELA_LIVEPATCH   = 0x00100000
-    SHF_RO_AFTER_INIT    = 0x00200000
-    SHF_ORDERED          = 0x40000000
-    SHF_EXCLUDE          = 0x80000000
+        @classmethod
+        def _missing_(cls, _:int) -> Type:
+            return cls.UNKNOWN_SHDR
 
-    sh_name: Union[int, str] = 0
-    sh_type: int             = 0
-    sh_flags: int            = 0
-    sh_addr: int             = 0
-    sh_offset: int           = 0
-    sh_size: int             = 0
-    sh_link: int             = 0
-    sh_info: int             = 0
-    sh_addralign: int        = 0
-    sh_entsize: int          = 0
+    class Flags(enum.IntFlag):
+        WRITE            = 1
+        ALLOC            = 2
+        EXECINSTR        = 4
+        MERGE            = 0x10
+        STRINGS          = 0x20
+        INFO_LINK        = 0x40
+        LINK_ORDER       = 0x80
+        OS_NONCONFORMING = 0x100
+        GROUP            = 0x200
+        TLS              = 0x400
+        COMPRESSED       = 0x800
+        RELA_LIVEPATCH   = 0x00100000
+        RO_AFTER_INIT    = 0x00200000
+        ORDERED          = 0x40000000
+        EXCLUDE          = 0x80000000
+        UNKNOWN_FLAG     = 0xffffffff
+
+        @classmethod
+        def _missing_(cls, _:int):
+            return cls.UNKNOWN_FLAG
+
+    sh_name: int
+    sh_type: Type
+    sh_flags: Flags
+    sh_addr: int
+    sh_offset: int
+    sh_size: int
+    sh_link: int
+    sh_info: int
+    sh_addralign: int
+    sh_entsize: int
+    name: str
 
     def __init__(self, elf: Optional[Elf], off: int) -> None:
         if elf is None:
             return
         elf.seek(off)
         endian = gef.arch.endianness
-        if elf.e_class == Elf.ELF_64_BITS:
-            self.sh_name, self.sh_type, self.sh_flags = struct.unpack(f"{endian}IIQ", elf.read(16))
-            self.sh_addr, self.sh_offset = struct.unpack(f"{endian}QQ", elf.read(16))
-            self.sh_size, self.sh_link, self.sh_info = struct.unpack(f"{endian}QII", elf.read(16))
-            self.sh_addralign, self.sh_entsize = struct.unpack(f"{endian}QQ", elf.read(16))
+        if elf.e_class == Elf.Class.ELF_64_BITS:
+            self.sh_name, sh_type, sh_flags = elf.read_and_unpack(f"{endian}IIQ")
+            self.sh_addr, self.sh_offset = elf.read_and_unpack(f"{endian}QQ")
+            self.sh_size, self.sh_link, self.sh_info = elf.read_and_unpack(f"{endian}QII")
+            self.sh_addralign, self.sh_entsize = elf.read_and_unpack(f"{endian}QQ")
         else:
-            self.sh_name, self.sh_type, self.sh_flags = struct.unpack(f"{endian}III", elf.read(12))
-            self.sh_addr, self.sh_offset = struct.unpack(f"{endian}II", elf.read(8))
-            self.sh_size, self.sh_link, self.sh_info = struct.unpack(f"{endian}III", elf.read(12))
-            self.sh_addralign, self.sh_entsize = struct.unpack(f"{endian}II", elf.read(8))
+            self.sh_name, sh_type, sh_flags = elf.read_and_unpack(f"{endian}III")
+            self.sh_addr, self.sh_offset = elf.read_and_unpack(f"{endian}II")
+            self.sh_size, self.sh_link, self.sh_info = elf.read_and_unpack(f"{endian}III")
+            self.sh_addralign, self.sh_entsize = elf.read_and_unpack(f"{endian}II")
 
+        self.sh_type = Shdr.Type(sh_type)
+        self.sh_flags = Shdr.Flags(sh_flags)
         stroff = elf.e_shoff + elf.e_shentsize * elf.e_shstrndx
 
-        if elf.e_class == Elf.ELF_64_BITS:
+        if elf.e_class == Elf.Class.ELF_64_BITS:
             elf.seek(stroff + 16 + 8)
-            offset = struct.unpack(f"{endian}Q", elf.read(8))[0]
+            offset = u64(elf.read(8))
         else:
             elf.seek(stroff + 12 + 4)
-            offset = struct.unpack(f"{endian}I", elf.read(4))[0]
+            offset = u32(elf.read(4))
         elf.seek(offset + self.sh_name)
-        self.sh_name = ""
+        self.name = ""
         while True:
-            c = ord(elf.read(1))
+            c = u8(elf.read(1))
             if c == 0:
                 break
-            self.sh_name += chr(c)
+            self.name += chr(c)
         return
+
+    def __str__(self) -> str:
+        return (f"Shdr(name={self.name}, type={self.sh_type.name}, flags={self.sh_flags.name}, "
+	            f"addr={self.sh_addr:#x}, offset={self.sh_offset}, size={self.sh_size}, link={self.sh_link}, "
+	            f"info={self.sh_info}, addralign={self.sh_addralign}, entsize={self.sh_entsize})")
 
 
 class Instruction:
@@ -1045,9 +1119,9 @@ def search_for_main_arena() -> int:
 
         if is_x86():
             addr = align_address_to_size(malloc_hook_addr + gef.arch.ptrsize, 0x20)
-        elif is_arch(Elf.AARCH64):
+        elif is_arch(Elf.Abi.AARCH64):
             addr = malloc_hook_addr - gef.arch.ptrsize*2 - MallocStateStruct("*0").struct_size
-        elif is_arch(Elf.ARM):
+        elif is_arch(Elf.Abi.ARM):
             addr = malloc_hook_addr - gef.arch.ptrsize - MallocStateStruct("*0").struct_size
         else:
             raise OSError(f"Cannot find main_arena for {gef.arch.arch}")
@@ -2030,15 +2104,10 @@ def get_arch() -> str:
     return arch_str
 
 
-@lru_cache()
+@deprecated("Use `gef.binary.entry_point` instead")
 def get_entry_point() -> Optional[int]:
     """Return the binary entry point."""
-
-    for line in gdb.execute("info target", to_string=True).split("\n"):
-        if "Entry point:" in line:
-            return int(line.strip().split(" ")[-1], 16)
-
-    return None
+    return gef.binary.entry_point if gef.binary else None
 
 
 def is_pie(fpath: str) -> bool:
@@ -2334,7 +2403,7 @@ class RISCV(Architecture):
 
 @register_architecture
 class ARM(Architecture):
-    aliases = ("ARM", Elf.ARM)
+    aliases = ("ARM", Elf.Abi.ARM)
     arch = "ARM"
     all_registers = ["$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6",
                      "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$sp",
@@ -2468,7 +2537,7 @@ class ARM(Architecture):
             "lsl r0, r0, 16",
             "add r0, r0, r1",
             f"mov r1, {size & 0xffff:d}",
-            f"mov r2, {perm & 0xff:d}",
+            f"mov r2, {perm.value & 0xff:d}",
             f"mov r7, {_NR_mprotect:d}",
             "svc 0",
             "pop {r0-r2, r7}",
@@ -2478,7 +2547,7 @@ class ARM(Architecture):
 
 @register_architecture
 class AARCH64(ARM):
-    aliases = ("ARM64", "AARCH64", Elf.AARCH64)
+    aliases = ("ARM64", "AARCH64", Elf.Abi.AARCH64)
     arch = "ARM64"
     mode = ""
 
@@ -2530,7 +2599,7 @@ class AARCH64(ARM):
             f"movk x0, {(addr >> 48) & 0xFFFF:#x}, lsl 48",
             f"movz x1, {size & 0xFFFF:#x}",
             f"movk x1, {(size >> 16) & 0xFFFF:#x}, lsl 16",
-            f"mov x2, {perm:d}",
+            f"mov x2, {perm.value:d}",
             "svc 0",
             "ldr x2, [sp], 16",
             "ldr x1, [sp], 16",
@@ -2579,7 +2648,7 @@ class AARCH64(ARM):
 
 @register_architecture
 class X86(Architecture):
-    aliases: Tuple[Union[str, int], ...] = ("X86", Elf.X86_32)
+    aliases: Tuple[Union[str, Elf.Abi], ...] = ("X86", Elf.Abi.X86_32)
     arch = "X86"
     mode = "32"
 
@@ -2696,7 +2765,7 @@ class X86(Architecture):
             f"mov eax, {_NR_mprotect:d}",
             f"mov ebx, {addr:d}",
             f"mov ecx, {size:d}",
-            f"mov edx, {perm:d}",
+            f"mov edx, {perm.value:d}",
             "int 0x80",
             "popad",
         ]
@@ -2715,7 +2784,7 @@ class X86(Architecture):
 
 @register_architecture
 class X86_64(X86):
-    aliases = ("X86_64", Elf.X86_64, "i386:x86-64")
+    aliases = ("X86_64", Elf.Abi.X86_64, "i386:x86-64")
     arch = "X86"
     mode = "64"
 
@@ -2744,7 +2813,7 @@ class X86_64(X86):
             f"mov rax, {_NR_mprotect:d}",
             f"mov rdi, {addr:d}",
             f"mov rsi, {size:d}",
-            f"mov rdx, {perm:d}",
+            f"mov rdx, {perm.value:d}",
             "syscall",
             "pop r11",
             "pop rcx",
@@ -2758,7 +2827,7 @@ class X86_64(X86):
 
 @register_architecture
 class PowerPC(Architecture):
-    aliases = ("PowerPC", Elf.POWERPC, "PPC")
+    aliases = ("PowerPC", Elf.Abi.POWERPC, "PPC")
     arch = "PPC"
     mode = "PPC32"
 
@@ -2841,7 +2910,7 @@ class PowerPC(Architecture):
             f"ori 3, 3, {addr:#x}@l",
             f"lis 4, {size:#x}@h",
             f"ori 4, 4, {size:#x}@l",
-            f"li 5, {perm:d}",
+            f"li 5, {perm.value:d}",
             "sc",
             "lwz 0, 0(1)",
             "lwz 3, 4(1)",
@@ -2854,7 +2923,7 @@ class PowerPC(Architecture):
 
 @register_architecture
 class PowerPC64(PowerPC):
-    aliases = ("PowerPC64", Elf.POWERPC64, "PPC64")
+    aliases = ("PowerPC64", Elf.Abi.POWERPC64, "PPC64")
     arch = "PPC"
     mode = "PPC64"
 
@@ -2864,7 +2933,7 @@ class SPARC(Architecture):
     """ Refs:
     - https://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
     """
-    aliases = ("SPARC", Elf.SPARC)
+    aliases = ("SPARC", Elf.Abi.SPARC)
     arch = "SPARC"
     mode = ""
 
@@ -2970,7 +3039,7 @@ class SPARC64(SPARC):
     - http://math-atlas.sourceforge.net/devel/assembly/abi_sysV_sparc.pdf
     - https://cr.yp.to/2005-590/sparcv9.pdf
     """
-    aliases = ("SPARC64", Elf.SPARC64)
+    aliases = ("SPARC64", Elf.Abi.SPARC64)
     arch = "SPARC"
     mode = "V9"
 
@@ -3013,7 +3082,7 @@ class SPARC64(SPARC):
 
 @register_architecture
 class MIPS(Architecture):
-    aliases: Tuple[Union[str, int], ...] = ("MIPS", Elf.MIPS)
+    aliases: Tuple[Union[str, Elf.Abi], ...] = ("MIPS", Elf.Abi.MIPS)
     arch = "MIPS"
     mode = "MIPS32"
 
@@ -3087,7 +3156,7 @@ class MIPS(Architecture):
                  f"li $v0, {_NR_mprotect:d}",
                  f"li $a0, {addr:d}",
                  f"li $a1, {size:d}",
-                 f"li $a2, {perm:d}",
+                 f"li $a2, {perm.value:d}",
                  "syscall",
                  "lw $v0, 0($sp)", "lw $a1, 4($sp)",
                  "lw $a3, 8($sp)", "lw $a3, 12($sp)",
@@ -3306,7 +3375,7 @@ def process_lookup_address(address: int) -> Optional[Section]:
 
 
 @lru_cache()
-def process_lookup_path(name: str, perm: int = Permission.ALL) -> Optional[Section]:
+def process_lookup_path(name: str, perm: Permission = Permission.ALL) -> Optional[Section]:
     """Look up for a path in the process memory mapping.
     Return a Section object if found, None otherwise."""
     if not is_alive():
@@ -3385,7 +3454,7 @@ def hook_stop_handler(_: "gdb.Event") -> None:
 def new_objfile_handler(_: "gdb.Event") -> None:
     """GDB event handler for new object file cases."""
     reset_all_caches()
-    set_arch()
+    reset_architecture()
     load_libc_args()
     return
 
@@ -3534,10 +3603,10 @@ def get_capstone_arch(arch: Optional[str] = None, mode: Optional[str] = None, en
 
     # hacky patch to unify capstone/ppc syntax with keystone & unicorn:
     # CS_MODE_PPC32 does not exist (but UC_MODE_32 & KS_MODE_32 do)
-    if is_arch(Elf.POWERPC64):
+    if is_arch(Elf.Abi.POWERPC64):
         raise OSError("Capstone not supported for PPC64 yet.")
 
-    if is_alive() and is_arch(Elf.POWERPC):
+    if is_alive() and is_arch(Elf.Abi.POWERPC):
 
         arch = "PPC"
         mode = "32"
@@ -3661,13 +3730,13 @@ def is_32bit() -> bool:
 @lru_cache()
 def is_x86_64() -> bool:
     """Checks if current target is x86-64"""
-    return get_arch() == "i386:x86-64"
+    return Elf.Abi.X86_64 in gef.arch.aliases
 
 
 @lru_cache()
 def is_x86_32():
     """Checks if current target is an x86-32"""
-    return get_arch() == "i386"
+    return Elf.Abi.X86_32 in gef.arch.aliases
 
 
 @lru_cache()
@@ -3676,17 +3745,17 @@ def is_x86() -> bool:
 
 
 @lru_cache()
-def is_arch(arch: int) -> bool:
-    elf = gef.binary or get_elf_headers()
-    return elf.e_machine == arch
+def is_arch(arch: Elf.Abi) -> bool:
+    return arch in gef.arch.aliases
 
 
-def set_arch(arch: Optional[str] = None, default: Optional[str] = None) -> Architecture:
+def reset_architecture(arch: Optional[str] = None, default: Optional[str] = None) -> None:
     """Sets the current architecture.
     If an arch is explicitly specified, use that one, otherwise try to parse it
     out of the current target. If that fails, and default is specified, select and
     set that arch.
-    Return the selected arch, or raise an OSError.
+    Raise an exception if the architecture cannot be set.
+	Does not return a value.
     """
     global gef
     arches = __registered_architectures__
@@ -3694,17 +3763,18 @@ def set_arch(arch: Optional[str] = None, default: Optional[str] = None) -> Archi
     if arch:
         try:
             gef.arch = arches[arch.upper()]()
-            return gef.arch
+            return
         except KeyError:
             raise OSError(f"Specified arch {arch.upper()} is not supported")
 
     if not gef.binary:
-        elf = get_elf_headers()
-        gef.binary = elf if elf.is_valid() else None
+        gef.binary = get_elf_headers()
 
     arch_name = gef.binary.e_machine if gef.binary else get_arch()
 
-    if arch_name == "MIPS" and gef.binary.e_class == Elf.ELF_64_BITS:
+    if ((arch_name == "MIPS" or arch_name == Elf.Abi.MIPS)
+        and (gef.binary is not None and gef.binary.e_class == Elf.Class.ELF_64_BITS)):
+        # MIPS64 = arch(MIPS) + 64b flag
         arch_name = "MIPS64"
 
     try:
@@ -3717,7 +3787,7 @@ def set_arch(arch: Optional[str] = None, default: Optional[str] = None) -> Archi
                 raise OSError(f"CPU not supported, neither is default {default.upper()}")
         else:
             raise OSError(f"CPU type is currently not supported: {get_arch()}")
-    return gef.arch
+    return
 
 
 @lru_cache()
@@ -3844,7 +3914,7 @@ def is_remote_debug() -> bool:
     return gef.session.remote is not None or "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
 
-def de_bruijn(alphabet: str, n: int) -> Generator[str, None, None]:
+def de_bruijn(alphabet: bytes, n: int) -> Generator[str, None, None]:
     """De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib)."""
     k = len(alphabet)
     a = [0] * k * n
@@ -3972,6 +4042,10 @@ def get_register(regname) -> Optional[int]:
 def get_process_maps() -> List[Section]:
     return gef.memory.maps
 
+
+@deprecated("Use `reset_architecture`")
+def set_arch(arch: Optional[str] = None, default: Optional[str] = None) -> None:
+    return reset_architecture(arch, default)
 
 #
 # GDB event hooking
@@ -6154,9 +6228,9 @@ class ChangePermissionCommand(GenericCommand):
             return
 
         if len(argv) == 2:
-            perm = int(argv[1])
+            perm = Permission(int(argv[1]))
         else:
-            perm = Permission.READ | Permission.WRITE | Permission.EXECUTE
+            perm = Permission.ALL
 
         loc = safe_parse_and_eval(argv[0])
         if loc is None:
@@ -6173,7 +6247,7 @@ class ChangePermissionCommand(GenericCommand):
         original_pc = gef.arch.pc
 
         info(f"Generating sys_mprotect({sect.page_start:#x}, {size:#x}, "
-             f"'{Permission(value=perm)!s}') stub for arch {get_arch()}")
+             f"'{perm!s}') stub for arch {get_arch()}")
         stub = self.get_stub_by_arch(sect.page_start, size, perm)
         if stub is None:
             err("Failed to generate mprotect opcodes")
@@ -6549,7 +6623,7 @@ class RemoteCommand(GenericCommand):
 
 
         # refresh the architecture setting
-        set_arch()
+        reset_architecture()
         gef.session.remote = pid
         return
 
@@ -6637,26 +6711,26 @@ class RemoteCommand(GenericCommand):
         arch = get_arch()
         gef.binary = Elf(minimalist=True)
         if arch.startswith("arm"):
-            gef.binary.e_machine = Elf.ARM
+            gef.binary.e_machine = Elf.Abi.ARM
             gef.arch = ARM()
         elif arch.startswith("aarch64"):
-            gef.binary.e_machine = Elf.AARCH64
+            gef.binary.e_machine = Elf.Abi.AARCH64
             gef.arch = AARCH64()
         elif arch.startswith("i386:intel"):
-            gef.binary.e_machine = Elf.X86_32
+            gef.binary.e_machine = Elf.Abi.X86_32
             gef.arch = X86()
         elif arch.startswith("i386:x86-64"):
-            gef.binary.e_machine = Elf.X86_64
-            gef.binary.e_class = Elf.ELF_64_BITS
+            gef.binary.e_machine = Elf.Abi.X86_64
+            gef.binary.e_class = Elf.Class.ELF_64_BITS
             gef.arch = X86_64()
         elif arch.startswith("mips"):
-            gef.binary.e_machine = Elf.MIPS
+            gef.binary.e_machine = Elf.Abi.MIPS
             gef.arch = MIPS()
         elif arch.startswith("powerpc"):
-            gef.binary.e_machine = Elf.POWERPC
+            gef.binary.e_machine = Elf.Abi.POWERPC
             gef.arch = PowerPC()
         elif arch.startswith("sparc"):
-            gef.binary.e_machine = Elf.SPARC
+            gef.binary.e_machine = Elf.Abi.SPARC
             gef.arch = SPARC()
         else:
             raise RuntimeError(f"unsupported architecture: {arch}")
@@ -7871,46 +7945,6 @@ class ElfInfoCommand(GenericCommand):
             err("Unsupported")
             return
 
-        # https://www.sco.com/developers/gabi/latest/ch4.eheader.html
-        classes = {
-            Elf.ELF_32_BITS     : "32-bit",
-            Elf.ELF_64_BITS     : "64-bit",
-        }
-
-        osabi = {
-            Elf.OSABI_SYSTEMV      : "System V",
-            Elf.OSABI_HPUX         : "HP-UX",
-            Elf.OSABI_NETBSD       : "NetBSD",
-            Elf.OSABI_LINUX        : "Linux",
-            Elf.OSABI_SOLARIS      : "Solaris",
-            Elf.OSABI_AIX          : "AIX",
-            Elf.OSABI_IRIX         : "IRIX",
-            Elf.OSABI_FREEBSD      : "FreeBSD",
-            Elf.OSABI_OPENBSD      : "OpenBSD",
-        }
-
-        types = {
-            Elf.ET_RELOC           : "Relocatable",
-            Elf.ET_EXEC            : "Executable",
-            Elf.ET_DYN             : "Shared",
-            Elf.ET_CORE            : "Core"
-        }
-
-        machines = {
-            Elf.X86_64            : "x86-64",
-            Elf.X86_32            : "x86",
-            Elf.ARM               : "ARM",
-            Elf.MIPS              : "MIPS",
-            Elf.POWERPC           : "PowerPC",
-            Elf.POWERPC64         : "PowerPC64",
-            Elf.SPARC             : "SPARC",
-            Elf.SPARC64           : "SPARC64",
-            Elf.AARCH64           : "AArch64",
-            Elf.RISCV             : "RISC-V",
-            Elf.IA64              : "IA-64",
-            Elf.M68K              : "M68K",
-        }
-
         filename = args.filename or get_filepath()
         if filename is None:
             return
@@ -7921,13 +7955,13 @@ class ElfInfoCommand(GenericCommand):
 
         data = [
             ("Magic", f"{hexdump(struct.pack('>I', elf.e_magic), show_raw=True)}"),
-            ("Class", f"{elf.e_class:#x} - {classes[elf.e_class]}"),
-            ("Endianness", f"{elf.e_endianness:#x} - {Endianness(elf.e_endianness).name}"),
+            ("Class", f"{elf.e_class.value:#x} - {elf.e_class.name}"),
+            ("Endianness", f"{elf.e_endianness.value:#x} - {Endianness(elf.e_endianness).name}"),
             ("Version", f"{elf.e_eiversion:#x}"),
-            ("OS ABI", f"{elf.e_osabi:#x} - {osabi[elf.e_osabi]}"),
+            ("OS ABI", f"{elf.e_osabi.value:#x} - {elf.e_osabi.name if elf.e_osabi else ''}"),
             ("ABI Version", f"{elf.e_abiversion:#x}"),
-            ("Type", f"{elf.e_type:#x} - {types[elf.e_type]}"),
-            ("Machine", f"{elf.e_machine:#x} - {machines[elf.e_machine]}"),
+            ("Type", f"{elf.e_type.value:#x} - {elf.e_type.name}"),
+            ("Machine", f"{elf.e_machine.value:#x} - {elf.e_machine.name}"),
             ("Program Header Table", f"{format_address(elf.e_phoff)}"),
             ("Section Header Table", f"{format_address(elf.e_shoff)}"),
             ("Header Table", f"{format_address(elf.e_phoff)}"),
@@ -7939,39 +7973,6 @@ class ElfInfoCommand(GenericCommand):
         for title, content in data:
             gef_print(f"{Color.boldify(f'{title:<22}')}: {content}")
 
-        ptype = {
-            Phdr.PT_NULL:         "NULL",
-            Phdr.PT_LOAD:         "LOAD",
-            Phdr.PT_DYNAMIC:      "DYNAMIC",
-            Phdr.PT_INTERP:       "INTERP",
-            Phdr.PT_NOTE:         "NOTE",
-            Phdr.PT_SHLIB:        "SHLIB",
-            Phdr.PT_PHDR:         "PHDR",
-            Phdr.PT_TLS:          "TLS",
-            Phdr.PT_LOOS:         "LOOS",
-            Phdr.PT_GNU_EH_FRAME: "GNU_EH_FLAME",
-            Phdr.PT_GNU_STACK:    "GNU_STACK",
-            Phdr.PT_GNU_RELRO:    "GNU_RELRO",
-            Phdr.PT_LOSUNW:       "LOSUNW",
-            Phdr.PT_SUNWBSS:      "SUNWBSS",
-            Phdr.PT_SUNWSTACK:    "SUNWSTACK",
-            Phdr.PT_HISUNW:       "HISUNW",
-            Phdr.PT_HIOS:         "HIOS",
-            Phdr.PT_LOPROC:       "LOPROC",
-            Phdr.PT_HIPROC:       "HIPROC",
-        }
-
-        pflags = {
-            0:                             Permission.NONE,
-            Phdr.PF_X:                     Permission.EXECUTE,
-            Phdr.PF_W:                     Permission.WRITE,
-            Phdr.PF_R:                     Permission.READ,
-            Phdr.PF_W|Phdr.PF_X:           Permission.WRITE|Permission.EXECUTE,
-            Phdr.PF_R|Phdr.PF_X:           Permission.READ|Permission.EXECUTE,
-            Phdr.PF_R|Phdr.PF_W:           Permission.READ|Permission.WRITE,
-            Phdr.PF_R|Phdr.PF_W|Phdr.PF_X: Permission.ALL,
-        }
-
         gef_print("")
         gef_print(titlify("Program Header"))
 
@@ -7979,50 +7980,11 @@ class ElfInfoCommand(GenericCommand):
             "#", "Type", "Offset", "Virtaddr", "Physaddr", "FileSiz", "MemSiz", "Flags", "Align"))
 
         for i, p in enumerate(elf.phdrs):
-            p_type = ptype[p.p_type] if p.p_type in ptype else "UNKNOWN"
-            p_flags = Permission(value=pflags[p.p_flags]) if p.p_flags in pflags else "???"
+            p_type = p.p_type.name if p.p_type else ""
+            p_flags = str(p.p_flags.name).lstrip("Flag.") if p.p_flags else "???"
 
             gef_print("  [{:2d}] {:12s} {:#8x} {:#10x} {:#10x} {:#8x} {:#8x} {:5s} {:#8x}".format(
-                i, p_type, p.p_offset, p.p_vaddr, p.p_paddr, p.p_filesz, p.p_memsz, str(p_flags), p.p_align))
-
-        stype = {
-            Shdr.SHT_NULL:          "NULL",
-            Shdr.SHT_PROGBITS:      "PROGBITS",
-            Shdr.SHT_SYMTAB:        "SYMTAB",
-            Shdr.SHT_STRTAB:        "STRTAB",
-            Shdr.SHT_RELA:          "RELA",
-            Shdr.SHT_HASH:          "HASH",
-            Shdr.SHT_DYNAMIC:       "DYNAMIC",
-            Shdr.SHT_NOTE:          "NOTE",
-            Shdr.SHT_NOBITS:        "NOBITS",
-            Shdr.SHT_REL:           "REL",
-            Shdr.SHT_SHLIB:         "SHLIB",
-            Shdr.SHT_DYNSYM:        "DYNSYM",
-            Shdr.SHT_NUM:           "NUM",
-            Shdr.SHT_INIT_ARRAY:    "INIT_ARRAY",
-            Shdr.SHT_FINI_ARRAY:    "FINI_ARRAY",
-            Shdr.SHT_PREINIT_ARRAY: "PREINIT_ARRAY",
-            Shdr.SHT_GROUP:         "GROUP",
-            Shdr.SHT_SYMTAB_SHNDX:  "SYMTAB_SHNDX",
-            Shdr.SHT_LOOS:          "LOOS",
-            Shdr.SHT_GNU_ATTRIBUTES:"GNU_ATTRIBUTES",
-            Shdr.SHT_GNU_HASH:      "GNU_HASH",
-            Shdr.SHT_GNU_LIBLIST:   "GNU_LIBLIST",
-            Shdr.SHT_CHECKSUM:      "CHECKSUM",
-            Shdr.SHT_LOSUNW:        "LOSUNW",
-            Shdr.SHT_SUNW_move:     "SUNW_move",
-            Shdr.SHT_SUNW_COMDAT:   "SUNW_COMDAT",
-            Shdr.SHT_SUNW_syminfo:  "SUNW_syminfo",
-            Shdr.SHT_GNU_verdef:    "GNU_verdef",
-            Shdr.SHT_GNU_verneed:   "GNU_verneed",
-            Shdr.SHT_GNU_versym:    "GNU_versym",
-            Shdr.SHT_HISUNW:        "HISUNW",
-            Shdr.SHT_HIOS:          "HIOS",
-            Shdr.SHT_LOPROC:        "LOPROC",
-            Shdr.SHT_HIPROC:        "HIPROC",
-            Shdr.SHT_LOUSER:        "LOUSER",
-            Shdr.SHT_HIUSER:        "HIUSER",
-        }
+                i, p_type, p.p_offset, p.p_vaddr, p.p_paddr, p.p_filesz, p.p_memsz, p_flags, p.p_align))
 
         gef_print("")
         gef_print(titlify("Section Header"))
@@ -8030,24 +7992,11 @@ class ElfInfoCommand(GenericCommand):
             "#", "Name", "Type", "Address", "Offset", "Size", "EntSiz", "Flags", "Link", "Info", "Align"))
 
         for i, s in enumerate(elf.shdrs):
-            sh_type = stype[s.sh_type] if s.sh_type in stype else "UNKNOWN"
-            sh_flags = ""
-            if s.sh_flags & Shdr.SHF_WRITE:            sh_flags += "W"
-            if s.sh_flags & Shdr.SHF_ALLOC:            sh_flags += "A"
-            if s.sh_flags & Shdr.SHF_EXECINSTR:        sh_flags += "X"
-            if s.sh_flags & Shdr.SHF_MERGE:            sh_flags += "M"
-            if s.sh_flags & Shdr.SHF_STRINGS:          sh_flags += "S"
-            if s.sh_flags & Shdr.SHF_INFO_LINK:        sh_flags += "I"
-            if s.sh_flags & Shdr.SHF_LINK_ORDER:       sh_flags += "L"
-            if s.sh_flags & Shdr.SHF_OS_NONCONFORMING: sh_flags += "O"
-            if s.sh_flags & Shdr.SHF_GROUP:            sh_flags += "G"
-            if s.sh_flags & Shdr.SHF_TLS:              sh_flags += "T"
-            if s.sh_flags & Shdr.SHF_EXCLUDE:          sh_flags += "E"
-            if s.sh_flags & Shdr.SHF_COMPRESSED:       sh_flags += "C"
+            sh_type = s.sh_type.name if s.sh_type else "UNKN"
+            sh_flags = str(s.sh_flags).lstrip("Flags.") if s.sh_flags else "UNKN"
 
-            gef_print("  [{:2d}] {:20s} {:>15s} {:#10x} {:#8x} {:#8x} {:#8x} {:5s} {:#4x} {:#4x} {:#8x}".format(
-                i, s.sh_name, sh_type, s.sh_addr, s.sh_offset, s.sh_size,
-                s.sh_entsize, sh_flags, s.sh_link, s.sh_info, s.sh_addralign))
+            gef_print(f"  [{i:2d}] {s.name:20s} {sh_type:>15s} {s.sh_addr:#10x} {s.sh_offset:#8x} "
+                      f"{s.sh_size:#8x} {s.sh_entsize:#8x} {sh_flags:5s} {s.sh_link:#4x} {s.sh_info:#4x} {s.sh_addralign:#8x}")
         return
 
 
@@ -8103,9 +8052,7 @@ class EntryPointBreakCommand(GenericCommand):
             bp.delete()
 
         # break at entry point
-        entry = get_entry_point()
-        if entry is None:
-            return
+        entry = gef.binary.entry_point
 
         if is_pie(fpath):
             self.set_init_tbreak_pie(entry, argv)
@@ -9280,7 +9227,7 @@ def dereference_from(addr: int) -> List[str]:
                 msg.append(Color.colorify(insn_str, code_color))
                 break
 
-            elif addr.section.permission.value & Permission.READ:
+            elif addr.section.permission & Permission.READ:
                 if is_ascii_string(addr.value):
                     s = gef.memory.read_cstring(addr.value)
                     if len(s) < gef.arch.ptrsize:
@@ -9482,7 +9429,7 @@ class VMMapCommand(GenericCommand):
             line_color = gef.config["theme.address_stack"]
         elif entry.path == "[heap]":
             line_color = gef.config["theme.address_heap"]
-        elif entry.permission.value & Permission.READ and entry.permission.value & Permission.EXECUTE:
+        elif entry.permission & Permission.READ and entry.permission & Permission.EXECUTE:
             line_color = gef.config["theme.address_code"]
 
         l = [
@@ -9490,7 +9437,7 @@ class VMMapCommand(GenericCommand):
             Color.colorify(format_address(entry.page_end), line_color),
             Color.colorify(format_address(entry.offset), line_color),
         ]
-        if entry.permission.value == (Permission.READ|Permission.WRITE|Permission.EXECUTE):
+        if entry.permission == Permission.ALL:
             l.append(Color.colorify(str(entry.permission), "underline " + line_color))
         else:
             l.append(Color.colorify(str(entry.permission), line_color))
