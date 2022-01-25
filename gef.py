@@ -83,7 +83,7 @@ from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Dict, Generator, IO, Iterator, List,
-                    NoReturn, Optional, Sequence, Set, Tuple, Type, Union)
+                    NoReturn, Optional, Sequence, Tuple, Type, Union)
 from urllib.request import urlopen
 
 
@@ -1034,7 +1034,7 @@ class Instruction:
 
 
 @lru_cache()
-def search_for_main_arena(to_string: bool = False) -> Union[int, str]:
+def search_for_main_arena() -> int:
     """A helper function to find the libc `main_arena` address, either from symbol or from its offset
     from `__malloc_hook`."""
     try:
@@ -1052,8 +1052,6 @@ def search_for_main_arena(to_string: bool = False) -> Union[int, str]:
         else:
             raise OSError(f"Cannot find main_arena for {gef.arch.arch}")
 
-    if to_string:
-        addr = f"*{addr:#x}"
     return addr
 
 
@@ -5230,6 +5228,199 @@ class GefThemeCommand(GenericCommand):
         return
 
 
+class ExternalStructureManager:
+    class Structure:
+        def __init__(self, manager: "ExternalStructureManager", mod_path: pathlib.Path, struct_name: str) -> None:
+            self.manager = manager
+            self.module_path = mod_path
+            self.name = struct_name
+            self.class_type = self.__get_structure_class()
+            return
+
+        def __str__(self) -> str:
+            return self.name
+
+        def pprint(self) -> None:
+            res = []
+            for _name, _type in self.class_type._fields_:
+                size = ctypes.sizeof(_type)
+                name = Color.colorify(_name, gef.config["pcustom.structure_name"])
+                type = Color.colorify(_type.__name__, gef.config["pcustom.structure_type"])
+                size = Color.colorify(hex(size), gef.config["pcustom.structure_size"])
+                offset = Color.boldify(f"{getattr(self.class_type, _name).offset:04x}")
+                res.append(f"{offset}   {name:32s}   {type:16s}  /* size={size} */")
+            gef_print("\n".join(res))
+            return
+
+        def __get_structure_class(self) -> Type:
+            """Returns a tuple of (class, instance) if modname!classname exists"""
+            fpath = self.module_path
+            spec = importlib.util.spec_from_file_location(fpath.stem, fpath)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[fpath.stem] = module
+            spec.loader.exec_module(module)
+            _class = getattr(module, self.name)
+            return _class
+
+        def apply_at(self, address: int, max_depth: int, depth: int = 0) -> None:
+            """Apply (recursively if possible) the structure format to the given address."""
+            if depth >= max_depth:
+                warn("maximum recursion level reached")
+                return
+
+            # read the data at the specified address
+            _structure = self.class_type()
+            _sizeof_structure = ctypes.sizeof(_structure)
+
+            try:
+                data = gef.memory.read(address, _sizeof_structure)
+            except gdb.MemoryError:
+                err(f"{' ' * depth}Cannot read memory {address:#x}")
+                return
+
+            # deserialize the data
+            length = min(len(data), _sizeof_structure)
+            ctypes.memmove(ctypes.addressof(_structure), data, length)
+
+            # pretty print all the fields (and call recursively if possible)
+            ptrsize = gef.arch.ptrsize
+            unpack = u32 if ptrsize == 4 else u64
+            for field in _structure._fields_:
+                _name, _type = field
+                _value = getattr(_structure, _name)
+                _offset = getattr(self.class_type, _name).offset
+
+                if ((ptrsize == 4 and _type is ctypes.c_uint32)
+                    or (ptrsize == 8 and _type is ctypes.c_uint64)
+                    or (ptrsize == ctypes.sizeof(ctypes.c_void_p) and _type is ctypes.c_void_p)):
+                    # try to dereference pointers
+                    _value = RIGHT_ARROW.join(dereference_from(_value))
+
+                line = f"{'  ' * depth}"
+                line += f"{address:#x}+{_offset:#04x} {_name} : ".ljust(40)
+                line += f"{_value} ({_type.__name__})"
+                parsed_value = self.__get_ctypes_value(_structure, _name, _value)
+                if parsed_value:
+                    line += f"{RIGHT_ARROW} {parsed_value}"
+                gef_print(line)
+
+                if issubclass(_type, ctypes.Structure):
+                    self.apply_at(address + _offset, max_depth, depth + 1)
+                elif _type.__name__.startswith("LP_"):
+                    # Pointer to a structure of a different type
+                    __sub_type_name = _type.__name__.lstrip("LP_")
+                    result = self.manager.find(__sub_type_name)
+                    if result:
+                        _, __structure = result
+                        __address = unpack(gef.memory.read(address + _offset, ptrsize))
+                        __structure.apply_at(__address, max_depth, depth + 1)
+            return
+
+        def __get_ctypes_value(self, struct, item, value) -> str:
+            if not hasattr(struct, "_values_"): return ""
+            default = ""
+            for name, values in struct._values_:
+                if name != item: continue
+                if callable(values):
+                    return values(value)
+                try:
+                    for val, desc in values:
+                        if value == val: return desc
+                        if val is None: default = desc
+                except Exception as e:
+                    err(f"Error parsing '{name}': {e}")
+            return default
+
+    class Module(dict):
+        def __init__(self, manager: "ExternalStructureManager", path: pathlib.Path) -> None:
+            self.manager = manager
+            self.path = path
+            self.name = path.stem
+            self.raw = self.__load()
+
+            for entry in self:
+                structure = ExternalStructureManager.Structure(manager, self.path, entry)
+                self[structure.name] = structure
+            return
+
+        def __load(self) -> ModuleType:
+            """Load a custom module, and return it."""
+            fpath = self.path
+            spec = importlib.util.spec_from_file_location(fpath.stem, fpath)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[fpath.stem] = module
+            spec.loader.exec_module(module)
+            return module
+
+        def __str__(self) -> str:
+            return self.name
+
+        def __iter__(self) -> Generator[str, None, None]:
+            _invalid = {"BigEndianStructure", "LittleEndianStructure", "Structure"}
+            _structs = {x for x in dir(self.raw) \
+                             if inspect.isclass(getattr(self.raw, x)) \
+                             and issubclass(getattr(self.raw, x), ctypes.Structure)}
+            for entry in (_structs - _invalid):
+                yield entry
+            return
+
+    class Modules(dict):
+        def __init__(self, manager: "ExternalStructureManager") -> None:
+            self.manager: "ExternalStructureManager" = manager
+            self.root: pathlib.Path = manager.path
+
+            for entry in self.root.iterdir():
+                if not entry.is_file(): continue
+                if entry.suffix != ".py": continue
+                if entry.name == "__init__.py": continue
+                module = ExternalStructureManager.Module(manager, entry)
+                self[module.name] = module
+            return
+
+        def __contains__(self, structure_name: str) -> bool:
+            """Return True if the structure name is found in any of the modules"""
+            for module in self.values():
+                if structure_name in module:
+                    return True
+            return False
+
+    def __init__(self) -> None:
+        self.clear_caches()
+        return
+
+    def clear_caches(self) -> None:
+        self._path = None
+        self._modules = None
+        return
+
+    @property
+    def modules(self) -> "ExternalStructureManager.Modules":
+        if not self._modules:
+            self._modules = ExternalStructureManager.Modules(self)
+        return self._modules
+
+    @property
+    def path(self) -> pathlib.Path:
+        if not self._path:
+            self._path = pathlib.Path(gef.config["pcustom.struct_path"]).expanduser().absolute()
+        return self._path
+
+    @property
+    def structures(self) -> Generator[Tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"], None, None]:
+        for module in self.modules.values():
+            for structure in module.values():
+                yield module, structure
+        return
+
+    @lru_cache()
+    def find(self, structure_name: str) -> Optional[Tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"]]:
+        """Return the module and structure for the given structure name; `None` if the structure name was not found."""
+        for module in self.modules.values():
+            if structure_name in module:
+                return module, module[structure_name]
+        return None
+
+
 @register_command
 class PCustomCommand(GenericCommand):
     """Dump user defined structure.
@@ -5244,185 +5435,45 @@ class PCustomCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(prefix=True)
-        self["struct_path"] = (os.sep.join( (gef.config["gef.tempdir"], "structs")), "Path to store/load the structure ctypes files")
+        self["struct_path"] = (str(pathlib.Path(gef.config["gef.tempdir"]) / "structs"), "Path to store/load the structure ctypes files")
         self["max_depth"] = (4, "Maximum level of recursion supported")
         self["structure_name"] = ("bold blue", "Color of the structure name")
         self["structure_type"] = ("bold red", "Color of the attribute type")
         self["structure_size"] = ("green", "Color of the attribute size")
         return
 
-
-    def do_invoke(self, argv: List[str]) -> None:
-        argc = len(argv)
-        if argc == 0:
+    @parse_arguments({"type": "", "address": ""}, {})
+    def do_invoke(self, *_: Any, **kwargs: Dict[str, Any]) -> None:
+        args = kwargs["arguments"]
+        if not args.type:
             gdb.execute("pcustom list")
             return
 
-        modname, structname = self.get_modulename_structname_from_arg(argv[0])
+        _, structname = self.explode_type(args.type)
 
-        if argc == 1:
+        if not args.address:
             gdb.execute(f"pcustom show {structname}")
-        else:
-            try:
-                address = parse_address(argv[1])
-            except gdb.error:
-                err(f"Failed to parse '{argv[1]}'")
-                return
+            return
 
-            self.apply_structure_to_address(modname, structname, address)
+        if not is_alive():
+            err("Session is not active")
+            return
+
+        manager = ExternalStructureManager()
+        address = parse_address(args.address)
+        result = manager.find(structname)
+        if not result:
+            err(f"No structure named '{structname}' found")
+            return
+
+        _, structure = result
+        structure.apply_at(address, self["max_depth"])
         return
 
-    def get_pcustom_absolute_root_path(self) -> Union[str, bytes]:
-        path = os.path.expanduser(gef.config["pcustom.struct_path"])
-        path = os.path.realpath(path)
-        if not os.path.isdir(path):
-            raise RuntimeError("setting `struct_path` must be set correctly")
-        return path
-
-    def get_pcustom_filepath_for_structure(self, structure_name: str) -> str:
-        structure_files = self.enumerate_structures()
-        fpath = None
-        for fname in structure_files:
-            if structure_name in structure_files[fname]:
-                fpath = fname
-                break
-        if not fpath:
-            raise FileNotFoundError(f"no file for structure '{structure_name}'")
-        return fpath
-
-    def is_valid_struct(self, structure_name: str) -> bool:
-        structure_files = self.enumerate_structures()
-        all_structures = set()
-        for fname in structure_files:
-            all_structures |= structure_files[fname]
-        return structure_name in all_structures
-
-    def get_modulename_structname_from_arg(self, arg: str) -> Tuple[str, str]:
+    def explode_type(self, arg: str) -> Tuple[str, str]:
         modname, structname = arg.split(":", 1) if ":" in arg else (arg, arg)
         structname = structname.split(".", 1)[0] if "." in structname else structname
         return modname, structname
-
-    def deserialize(self, struct: ctypes.Structure, data: bytes) -> None:
-        length = min(len(data), ctypes.sizeof(struct))
-        ctypes.memmove(ctypes.addressof(struct), data, length)
-        return
-
-    def get_structure_class(self, modname: str, classname: str) -> Tuple[Type, ctypes.Structure]:
-        """
-        Returns a tuple of (class, instance) if modname!classname exists
-        """
-        _fpath = self.get_pcustom_filepath_for_structure(modname)
-        _mod = self.load_module(_fpath)
-        _class = getattr(_mod, classname)
-        return _class, _class()
-
-
-    @only_if_gdb_running
-    def apply_structure_to_address(self, mod_name: str, struct_name: str, addr: int, depth: int = 0) -> None:
-        if not self.is_valid_struct(mod_name):
-            err(f"Invalid structure name '{struct_name}'")
-            return
-
-        if depth >= self["max_depth"]:
-            warn("maximum recursion level reached")
-            return
-
-        try:
-            _class, _struct = self.get_structure_class(mod_name, struct_name)
-            data = gef.memory.read(addr, ctypes.sizeof(_struct))
-        except gdb.MemoryError:
-            err(f"{' ' * depth}Cannot reach memory {addr:#x}")
-            return
-
-        self.deserialize(_struct, data)
-
-        _regsize = gef.arch.ptrsize
-
-        for field in _struct._fields_:
-            _name, _type = field
-            _value = getattr(_struct, _name)
-            _offset = getattr(_class, _name).offset
-
-            if (_regsize == 4 and _type is ctypes.c_uint32) \
-               or (_regsize == 8 and _type is ctypes.c_uint64) \
-               or (_regsize == ctypes.sizeof(ctypes.c_void_p) and _type is ctypes.c_void_p):
-                # try to dereference pointers
-                _value = RIGHT_ARROW.join(dereference_from(_value))
-
-            line = []
-            line += "  " * depth
-            line += (f"{addr:#x}+{_offset:#04x} {_name} : ").ljust(40)
-            line += f"{_value} ({_type.__name__})"
-            parsed_value = self.get_ctypes_value(_struct, _name, _value)
-            if parsed_value:
-                line += f" {RIGHT_ARROW} {parsed_value}"
-            gef_print("".join(line))
-
-            if issubclass(_type, ctypes.Structure):
-                self.apply_structure_to_address(mod_name, _type.__name__, addr + _offset, depth + 1)
-            elif _type.__name__.startswith("LP_"): # hack
-                __sub_type_name = _type.__name__.replace("LP_", "")
-                __deref = u64(gef.memory.read(addr + _offset, 8))
-                self.apply_structure_to_address(mod_name, __sub_type_name, __deref, depth + 1)
-        return
-
-    def get_ctypes_value(self, struct: ctypes.Structure, item: str, value: Any) -> str:
-        if not hasattr(struct, "_values_"): return ""
-        values_list = getattr(struct, "_values_")
-        default = ""
-        for name, values in values_list:
-            if name != item: continue
-            if callable(values):
-                return values(value)
-            try:
-                for val, desc in values:
-                    if value == val: return desc
-                    if val is None: default = desc
-            except:
-                err(f"Error while trying to obtain values from _values_[\"{name}\"]")
-
-        return default
-
-    def enumerate_structure_files(self) -> List[str]:
-        """
-        Return a list of all the files in the pcustom directory
-        """
-        module_files = []
-        root = self.get_pcustom_absolute_root_path()
-        for filen in os.listdir(root):
-            name, ext = os.path.splitext(filen)
-            if ext != ".py": continue
-            if name == "__init__": continue
-            fpath = os.sep.join([root, filen])
-            module_files.append( os.path.realpath(fpath) )
-        return module_files
-
-    def enumerate_structures(self) -> Dict[str, Set[str]]:
-        """
-        Return a hash of all the structures, with the key set the to filepath
-        """
-        structures = {}
-        files = self.enumerate_structure_files()
-        for module_path in files:
-            module = self.load_module(module_path)
-            structures[module_path] = self.enumerate_structures_from_module(module)
-        return structures
-
-    def load_module(self, file_path: str) -> ModuleType:
-        """Load a custom module, and return it"""
-        module_name = file_path.split(os.sep)[-1].replace(".py", "")
-        spec = importlib.util.spec_from_file_location(module_name, file_path)
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[module_name] = module
-        spec.loader.exec_module(module)
-        return module
-
-    def enumerate_structures_from_module(self, module: ModuleType) -> Set[str]:
-        _invalid = {"BigEndianStructure", "LittleEndianStructure", "Structure"}
-        _structs = {x for x in dir(module) \
-                         if inspect.isclass(getattr(module, x)) \
-                         and issubclass(getattr(module, x), ctypes.Structure)}
-        return _structs - _invalid
 
 
 @register_command
@@ -5436,20 +5487,15 @@ class PCustomListCommand(PCustomCommand):
         super().__init__()
         return
 
-    def do_invoke(self, argv: List[str]) -> None:
-        self.__list_custom_structures()
-        return
-
-    def __list_custom_structures(self) -> None:
+    def do_invoke(self, _: List) -> None:
         """Dump the list of all the structures and their respective."""
-        path = self.get_pcustom_absolute_root_path()
-        info(f"Listing custom structures from '{path}'")
-        structures = self.enumerate_structures()
+        manager = ExternalStructureManager()
+        info(f"Listing custom structures from '{manager.path}'")
         struct_color = gef.config["pcustom.structure_type"]
         filename_color = gef.config["pcustom.structure_name"]
-        for filename in structures:
-            __modules = ", ".join([Color.colorify(x, struct_color) for x in structures[filename]])
-            __filename = Color.colorify(filename, filename_color)
+        for module in manager.modules.values():
+            __modules = ", ".join([Color.colorify(structure_name, struct_color) for structure_name in module.values()])
+            __filename = Color.colorify(str(module.path), filename_color)
             gef_print(f"{RIGHT_ARROW} {__filename} ({__modules})")
         return
 
@@ -5471,35 +5517,14 @@ class PCustomShowCommand(PCustomCommand):
             self.usage()
             return
 
-        modname, structname = self.get_modulename_structname_from_arg(argv[0])
-        self.__dump_structure(modname, structname)
-        return
-
-    def __dump_structure(self, mod_name: str, struct_name: str) -> None:
-        # If it's a builtin or defined in the ELF use gdb's `ptype`
-        try:
-            gdb.execute(f"ptype struct {struct_name}")
-            return
-        except gdb.error:
-            pass
-
-        self.__dump_custom_structure(mod_name, struct_name)
-        return
-
-    def __dump_custom_structure(self, mod_name: str, struct_name: str) -> None:
-        if not self.is_valid_struct(mod_name):
-            err(f"Invalid structure name '{struct_name}'")
-            return
-
-        _class, _struct = self.get_structure_class(mod_name, struct_name)
-
-        for _name, _type in _struct._fields_:
-            _size = ctypes.sizeof(_type)
-            __name = Color.colorify(_name, gef.config["pcustom.structure_name"])
-            __type = Color.colorify(_type.__name__, gef.config["pcustom.structure_type"])
-            __size = Color.colorify(hex(_size), gef.config["pcustom.structure_size"])
-            __offset = Color.boldify(f"{getattr(_class, _name).offset:04x}")
-            gef_print(f"{__offset}   {__name:32s}   {__type:16s}  /* size={__size} */")
+        _, structname = self.explode_type(argv[0])
+        manager = ExternalStructureManager()
+        result = manager.find(structname)
+        if result:
+            _, structure = result
+            structure.pprint()
+        else:
+            err(f"No structure named '{structname}' found")
         return
 
 
@@ -5520,40 +5545,32 @@ class PCustomEditCommand(PCustomCommand):
             self.usage()
             return
 
-        modname, structname = self.get_modulename_structname_from_arg(argv[0])
+        modname, structname = self.explode_type(argv[0])
         self.__create_or_edit_structure(modname, structname)
         return
 
-    def __create_or_edit_structure(self, mod_name: str, struct_name: str) -> Optional[int]:
-        root = self.get_pcustom_absolute_root_path()
-        if root is None:
-            err("Invalid struct path")
-            return
-
-        try:
-            fullname = self.get_pcustom_filepath_for_structure(mod_name)
-            info(f"Editing '{fullname}'")
-        except FileNotFoundError:
-            fullname = os.sep.join([root, struct_name + ".py"])
-            ok(f"Creating '{fullname}' from template")
-            self.__create_new_structure_template(struct_name, fullname)
+    def __create_or_edit_structure(self, mod_name: str, struct_name: str) -> int:
+        path = pathlib.Path(gef.config["pcustom.struct_path"]).expanduser() / f"{mod_name}.py"
+        if path.is_file():
+            info(f"Editing '{path}'")
+        else:
+            ok(f"Creating '{path}' from template")
+            self.__create_template(struct_name, path)
 
         cmd = (os.getenv("EDITOR") or "nano").split()
-        cmd.append(fullname)
+        cmd.append(str(path.absolute()))
         return subprocess.call(cmd)
 
-    def __create_new_structure_template(self, structname: str, fullname: str) -> None:
-        template = [
-            "from ctypes import *",
-            "",
-            "class ", structname, "(Structure):",
-            "    _fields_ = []",
-            "",
-            "    _values_ = []",
-            ""
-        ]
-        with open(fullname, "w") as f:
-            f.write(os.sep.join(template))
+    def __create_template(self, structname: str, fpath: pathlib.Path) -> None:
+        template = f"""from ctypes import *
+
+class {structname}(Structure):
+    _fields_ = []
+
+    _values_ = []
+"""
+        with fpath.open("w") as f:
+            f.write(template)
         return
 
 
@@ -5594,7 +5611,7 @@ class ChangeFdCommand(GenericCommand):
             stack_addr = [entry.page_start for entry in vmmap if entry.path == "[stack]"][0]
             original_contents = gef.memory.read(stack_addr, 8)
 
-            gef.memory.write(stack_addr, "\x02\x00", 2)
+            gef.memory.write(stack_addr, b"\x02\x00", 2)
             gef.memory.write(stack_addr + 0x2, struct.pack("<H", socket.htons(port)), 2)
             gef.memory.write(stack_addr + 0x4, socket.inet_aton(address), 4)
 
@@ -11342,7 +11359,8 @@ class GefHeapManager(GefManager):
     def main_arena(self) -> Optional[GlibcArena]:
         if not self.__libc_main_arena:
             try:
-                self.__libc_main_arena = GlibcArena(search_for_main_arena(to_string=True))
+                __main_arena_addr = search_for_main_arena()
+                self.__libc_main_arena = GlibcArena(f"&{__main_arena_addr:#x}")
                 # the initialization of `main_arena` also defined `selected_arena`, so
                 # by default, `main_arena` == `selected_arena`
                 self.selected_arena = self.__libc_main_arena
