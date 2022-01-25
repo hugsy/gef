@@ -762,15 +762,15 @@ class Elf:
     e_machine: Abi              = Abi.X86_32
     e_version: int
     e_entry: int
-    e_phoff : int
-    e_shoff : int
+    e_phoff: int
+    e_shoff: int
     e_flags: int
-    e_ehsize : int
-    e_phentsize : int
-    e_phnum : int
-    e_shentsize : int
-    e_shnum : int
-    e_shstrndx : int
+    e_ehsize: int
+    e_phentsize: int
+    e_phnum: int
+    e_shentsize: int
+    e_shnum: int
+    e_shstrndx: int
 
     path: Optional[pathlib.Path] = None
 
@@ -1022,17 +1022,17 @@ class Shdr:
         def _missing_(cls, _:int):
             return cls.UNKNOWN_FLAG
 
-    sh_name : int
-    sh_type : Type
-    sh_flags : Flags
-    sh_addr : int
-    sh_offset : int
-    sh_size : int
-    sh_link : int
-    sh_info : int
-    sh_addralign : int
-    sh_entsize : int
-    name : str
+    sh_name: int
+    sh_type: Type
+    sh_flags: Flags
+    sh_addr: int
+    sh_offset: int
+    sh_size: int
+    sh_link: int
+    sh_info: int
+    sh_addralign: int
+    sh_entsize: int
+    name: str
 
     def __init__(self, elf: Optional[Elf], off: int) -> None:
         if elf is None:
