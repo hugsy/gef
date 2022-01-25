@@ -5455,9 +5455,12 @@ class PCustomCommand(GenericCommand):
         manager = ExternalStructureManager()
         address = parse_address(args.address)
         result = manager.find(structname)
-        if result:
-            _, structure = result
-            structure.apply_at(address, self["max_depth"])
+        if not result:
+            err(f"No structure named '{structname}' found")
+            return
+
+        _, structure = result
+        structure.apply_at(address, self["max_depth"])
         return
 
     def explode_type(self, arg: str) -> Tuple[str, str]:

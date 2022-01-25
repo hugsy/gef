@@ -890,6 +890,12 @@ class goo_t(Structure):
                 structline = [x for x in res.splitlines() if x.startswith(f" →  {dirpath}") ][0]
                 self.assertIn("goo_t", structline)
                 self.assertIn("foo_t", structline)
+
+                # bad structure name with address
+                res = gdb_run_cmd("pcustom meh_t 0x1337100",
+                                    before=[f"gef config pcustom.struct_path {dirpath}",])
+                self.assertNoException(res)
+                self.assertIn("Session is not active", res)
         return
 
     def test_cmd_pcustom_show(self):
@@ -935,6 +941,18 @@ class goo_t(Structure):
   0x1337000+0x04 b :                      2 (c_int)
 0x1337100+0x0c d :                      12 (c_int)
 0x1337100+0x10 e :                      13 (c_int)""", res)
+
+                # bad structure name
+                res = gdb_run_cmd("pcustom meh_t",
+                                    before=[f"gef config pcustom.struct_path {dirpath}",])
+                self.assertNoException(res)
+                self.assertIn("No structure named 'meh_t' found", res)
+
+                # bad structure name with address
+                res = gdb_run_silent_cmd("pcustom meh_t 0x1337100", target=_target("pcustom"),
+                                         before=[f"gef config pcustom.struct_path {dirpath}",])
+                self.assertNoException(res)
+                self.assertIn("No structure named 'meh_t' found", res)
         return
 
 
