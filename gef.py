@@ -5436,7 +5436,7 @@ class PCustomCommand(GenericCommand):
         return
 
     @parse_arguments({"type": "", "address": ""}, {})
-    def do_invoke(self, _: Any, **kwargs: Dict[str, Any]) -> None:
+    def do_invoke(self, *_: Any, **kwargs: Dict[str, Any]) -> None:
         args = kwargs["arguments"]
         if not args.type:
             gdb.execute("pcustom list")
