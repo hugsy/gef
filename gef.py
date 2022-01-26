@@ -92,9 +92,7 @@ def http_get(url: str) -> Optional[bytes]:
     otherwise return None."""
     try:
         http = urlopen(url)
-        if http.getcode() != 200:
-            return None
-        return http.read()
+        return http.read() if http.getcode() == 200 else None
     except Exception:
         return None
 
@@ -104,16 +102,14 @@ def update_gef(argv: List[str]) -> int:
     Return 0 on success, 1 on failure. """
     ver = "dev" if "--dev" in argv[2:] else "master"
     latest_gef_data = http_get(f"https://raw.githubusercontent.com/hugsy/gef/{ver}/scripts/gef.sh")
-    if latest_gef_data is None:
+    if not latest_gef_data:
         print("[-] Failed to get remote gef")
         return 1
-
-    fd, fname = tempfile.mkstemp(suffix=".sh")
-    os.write(fd, latest_gef_data)
-    os.close(fd)
-    retcode = subprocess.run(["bash", fname, ver], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
-    os.unlink(fname)
-    return retcode
+    with tempfile.TemporaryFile(suffix=".sh") as fd:
+        fd.write(latest_gef_data)
+        fd.flush()
+        fpath = pathlib.Path(fd.name)
+        return subprocess.run(["bash", fpath, ver], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
 
 
 try:
