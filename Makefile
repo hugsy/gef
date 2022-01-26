@@ -19,13 +19,10 @@ endif
 .PHONY: test test_% Test% testbins clean lint
 
 test: $(TMPDIR) testbins
-	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) tests/runtests.py
-
-Test%: $(TMPDIR) testbins
-	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) tests/runtests.py::$@
+	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS)
 
 test_%: $(TMPDIR) testbins
-	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) tests/runtests.py -k $@
+	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) -k $@
 
 testbins: $(TMPDIR) $(wildcard tests/binaries/*.c)
 	@TMPDIR=$(TMPDIR) $(MAKE) -j $(NB_CORES) -C tests/binaries TARGET=$(TARGET) all
@@ -36,7 +33,7 @@ clean:
 
 lint:
 	python3 -m pylint $(PYLINT_GEF_PARAMETERS) $(GEF_PATH)
-	python3 -m pylint $(PYLINT_TEST_PARAMETERS) $(wildcard tests/*.py)
+	python3 -m pylint $(PYLINT_TEST_PARAMETERS) $(wildcard tests/*.py tests/*/*.py)
 
 coverage:
 	@! ( [ -d $(COVERAGE_DIR) ] && echo "COVERAGE_DIR=$(COVERAGE_DIR) exists already")

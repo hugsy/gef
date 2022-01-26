@@ -1,7 +1,7 @@
 *.out
 *.pyc
 TAGS
-*/__pycache__/
+__pycache__
 tests/*.pyc
 tests/pylint.html
 tests/pylint.txt
