@@ -5,4 +5,5 @@ ropper
 unicorn
 pytest
 pytest-xdist
+pytest-benchmark
 coverage
