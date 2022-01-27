@@ -6765,6 +6765,7 @@ class NopCommand(GenericCommand):
         next_insn = gef_instruction_n(addr, 2)
         return next_insn.address - cur_insn.address
 
+    @only_if_gdb_running
     @parse_arguments({"address": "$pc"}, {"--nb": 0, })
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args = kwargs["arguments"]
@@ -6773,7 +6774,6 @@ class NopCommand(GenericCommand):
         self.nop_bytes(address, number_of_bytes)
         return
 
-    @only_if_gdb_running
     def nop_bytes(self, loc: int, num_bytes: int) -> None:
         size = self.get_insn_size(loc) if num_bytes == 0 else num_bytes
         nops = gef.arch.nop_insn
