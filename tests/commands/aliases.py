@@ -1,5 +1,5 @@
 """
-aliases command test module
+`aliases` command test module
 """
 
 

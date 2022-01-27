@@ -215,3 +215,43 @@ def stop_gdbserver(gdbserver: subprocess.Popen) -> None:
     if gdbserver.poll() is None:
         gdbserver.kill()
         gdbserver.wait()
+
+
+def findlines(substring: str, buffer: str) -> List[str]:
+    """Extract the lines from the buffer which contains the pattern
+    `substring`
+
+    Args:
+        substring (str): the pattern to look for
+        buffer (str): the buffer to look into
+
+    Returns:
+        List[str]
+    """
+    return [
+        line.strip()
+        for line in buffer.splitlines()
+        if substring in line.strip()
+    ]
+
+
+def removeuntil(substring: str, buffer: str, included: bool = False) -> str:
+    """Returns a copy of `buffer` truncated until `substring` is found. If
+    `included` is True, the result also includes the subtring.
+
+    Args:
+        substring (str)
+        buffer (str)
+        buffer (bool)
+
+    Returns:
+        str
+    """
+    idx = buffer.find(substring)
+    if idx < 0:
+        return buffer
+
+    if not included:
+        idx += len(substring)
+
+    return buffer[idx:]
