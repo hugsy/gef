@@ -4,7 +4,15 @@
 
 import pytest
 
-from tests.utils import ARCH, GefUnitTestGeneric, findlines, gdb_run_cmd, gdb_start_silent_cmd
+from tests.utils import (
+    ARCH,
+    GefUnitTestGeneric,
+    _target,
+    findlines,
+    gdb_run_cmd,
+    gdb_start_silent_cmd,
+    gdb_run_silent_cmd
+)
 
 
 class NopCommand(GefUnitTestGeneric):
@@ -48,3 +56,12 @@ class NopCommand(GefUnitTestGeneric):
         self.assertEqual(len(lines), 2)
         self.assertEqual(lines[1], "*** *sp=2425393296") # 4*nop -> 0x90909090 -> 2425393296
 
+
+    @pytest.mark.skipif(ARCH not in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
+    def test_cmd_nop_invalid_end_address(self):
+        res = gdb_run_silent_cmd(
+            f"{self.cmd} 0x1337000+0x1000-4 --nb 5",
+            target=_target("set-permission")
+        )
+        self.assertNoException(res)
+        self.assertIn("Cannot patch instruction at 0x1337ffc: reaching unmapped area", res)
