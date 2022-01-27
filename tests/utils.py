@@ -183,6 +183,17 @@ def gdb_test_python_method(meth: str, before: str = "", after: str = "",
     return gdb_start_silent_cmd(cmd, target=target, strip_ansi=strip_ansi)
 
 
+def gdb_time_python_method(meth: str, setup: str,
+                           py_before: str = "", py_after: str = "",
+                           before: CommandType = (), after: CommandType = (),
+                           target: pathlib.Path = DEFAULT_TARGET,
+                           strip_ansi: bool = STRIP_ANSI_DEFAULT, number: int = 1000) -> float:
+    brk = py_before + ";" if py_before else ""
+    cmd = f"""pi import timeit;{brk}print(timeit.timeit("{meth}", setup="{setup}", number={number}));{py_after}"""
+    lines = gdb_run_cmd(cmd, before=before, after=after, target=target, strip_ansi=strip_ansi).splitlines()
+    return float(lines[-1])
+
+
 def _target(name: str, extension: str = ".out") -> pathlib.Path:
     target = TMPDIR / f"{name}{extension}"
     if not target.exists():
