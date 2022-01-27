@@ -301,7 +301,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
         self.assertIn("size=0x420", res)
 
     def test_cmd_heap_bins_non_main(self):
-        cmd = "python gdb.execute(f'heap bins fast {gef.heap.main_arena}')"
+        cmd = "python gdb.execute(f'heap bins fast {gef.heap.main_arena.addr}')"
         before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
         target = _target("heap-non-main")
         res = gdb_run_silent_cmd(cmd, before=before, target=target)
