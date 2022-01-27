@@ -579,7 +579,6 @@ class Address:
         self.value: int = kwargs.get("value", 0)
         self.section: "Section" = kwargs.get("section", None)
         self.info: "Zone" = kwargs.get("info", None)
-        self.valid: bool = kwargs.get("valid", True)
         return
 
     def __str__(self) -> str:
@@ -612,6 +611,10 @@ class Address:
         addr = align_address(int(self.value))
         derefed = dereference(addr)
         return None if derefed is None else int(derefed)
+
+    @property
+    def valid(self) -> bool:
+        return any(map(lambda x: x.page_start <= self.value < x.page_end, gef.memory.maps))
 
 
 class Permission(enum.Flag):
@@ -692,9 +695,7 @@ class Endianness(enum.Enum):
     BIG_ENDIAN        = 2
 
     def __str__(self) -> str:
-        if self == Endianness.LITTLE_ENDIAN:
-            return "<"
-        return ">"
+        return "<" if self == Endianness.LITTLE_ENDIAN else ">"
 
     def __repr__(self) -> str:
         return self.name
@@ -1074,7 +1075,7 @@ class Shdr:
 class Instruction:
     """GEF representation of a CPU instruction."""
 
-    def __init__(self, address: int, location: str, mnemo: str, operands: List[str], opcodes: bytearray) -> None:
+    def __init__(self, address: int, location: str, mnemo: str, operands: List[str], opcodes: bytes) -> None:
         self.address, self.location, self.mnemonic, self.operands, self.opcodes = \
             address, location, mnemo, operands, opcodes
         return
@@ -1101,6 +1102,9 @@ class Instruction:
 
     def is_valid(self) -> bool:
         return "(bad)" not in self.mnemonic
+
+    def size(self) -> int:
+        return len(self.opcodes)
 
 
 @lru_cache()
@@ -6760,40 +6764,26 @@ class NopCommand(GenericCommand):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
-    def get_insn_size(self, addr: int) -> int:
-        cur_insn = gef_current_instruction(addr)
-        next_insn = gef_instruction_n(addr, 2)
-        return next_insn.address - cur_insn.address
-
     @only_if_gdb_running
     @parse_arguments({"address": "$pc"}, {"--nb": 0, })
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args = kwargs["arguments"]
-        address = parse_address(args.address) if args.address else gef.arch.pc
+        address = parse_address(args.address)
+        nop = gef.arch.nop_insn
         number_of_bytes = args.nb or 1
-        self.nop_bytes(address, number_of_bytes)
-        return
+        insn = gef_get_instruction_at(address)
 
-    def nop_bytes(self, loc: int, num_bytes: int) -> None:
-        size = self.get_insn_size(loc) if num_bytes == 0 else num_bytes
-        nops = gef.arch.nop_insn
+        if insn.size() != number_of_bytes:
+            warn(f"Patching {number_of_bytes} bytes at {address:#x} might result in corruption")
 
-        if len(nops) > size:
-            err(f"Cannot patch instruction at {loc:#x} "
-                f"(nop_size is:{len(nops)}, insn_size is:{size})")
+        nops = bytearray(nop * number_of_bytes)
+        end_address = Address(value=address + len(nops))
+        if not end_address.valid:
+            err(f"Cannot patch instruction at {address:#x}: reaching unmapped area")
             return
 
-        while len(nops) < size:
-            nops += gef.arch.nop_insn
-
-        if len(nops) != size:
-            err(f"Cannot patch instruction at {loc:#x} "
-                "(nop instruction does not evenly fit in requested size)")
-            return
-
-        ok(f"Patching {size:d} bytes from {format_address(loc)}")
-        gef.memory.write(loc, nops, size)
-
+        ok(f"Patching {len(nops)} bytes from {address:#x}")
+        gef.memory.write(address, nops, len(nops))
         return
 
 
