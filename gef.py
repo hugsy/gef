@@ -749,13 +749,13 @@ class Elf:
         OPENBSD     = 0x0C
 
     e_magic: int                = ELF_MAGIC
-    e_class: Class              = Class.ELF_32_BITS
+    e_class: "Elf.Class"        = Class.ELF_32_BITS
     e_endianness: Endianness    = Endianness.LITTLE_ENDIAN
     e_eiversion: int
-    e_osabi: OsAbi
+    e_osabi: "Elf.OsAbi"
     e_abiversion: int
     e_pad: bytes
-    e_type: Type                = Type.ET_EXEC
+    e_type: "Elf.Type"          = Type.ET_EXEC
     e_machine: Abi              = Abi.X86_32
     e_version: int
     e_entry: int
@@ -769,7 +769,9 @@ class Elf:
     e_shnum: int
     e_shstrndx: int
 
-    path: Optional[pathlib.Path] = None
+    path: pathlib.Path
+    phdrs : List["Phdr"]
+    shdrs : List["Shdr"]
 
     def __init__(self, path: str = "", minimalist: bool = False) -> None:
         """Instantiate an ELF object. The default behavior is to create the object by parsing the ELF file.
@@ -777,11 +779,11 @@ class Elf:
         if minimalist:
             return
 
-        self.fpath = pathlib.Path(path).expanduser()
-        if not os.access(self.fpath, os.R_OK):
-            raise FileNotFoundError(f"'{self.fpath}' not found/readable, most gef features will not work")
+        self.path = pathlib.Path(path).expanduser()
+        if not os.access(self.path, os.R_OK):
+            raise FileNotFoundError(f"'{self.path}' not found/readable, most gef features will not work")
 
-        with self.fpath.open("rb") as self.fd:
+        with self.path.open("rb") as self.fd:
             # off 0x0
             self.e_magic, e_class, e_endianness, self.e_eiversion = self.read_and_unpack(">IBBB")
             if self.e_magic != Elf.ELF_MAGIC:
@@ -815,11 +817,11 @@ class Elf:
             self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = self.read_and_unpack(f"{endian}IHHH")
             self.e_shentsize, self.e_shnum, self.e_shstrndx = self.read_and_unpack(f"{endian}HHH")
 
-            self.phdrs : List["Phdr"] = []
+            self.phdrs = []
             for i in range(self.e_phnum):
                 self.phdrs.append(Phdr(self, self.e_phoff + self.e_phentsize * i))
 
-            self.shdrs : List["Shdr"] = []
+            self.shdrs = []
             for i in range(self.e_shnum):
                 self.shdrs.append(Shdr(self, self.e_shoff + self.e_shentsize * i))
         return
@@ -836,7 +838,7 @@ class Elf:
         self.fd.seek(off, 0)
 
     def __str__(self) -> str:
-        return f"ELF('{self.fpath.absolute()}', {self.e_class.name}, {self.e_machine.name})"
+        return f"ELF('{self.path.absolute()}', {self.e_class.name}, {self.e_machine.name})"
 
     @property
     def entry_point(self) -> int:
@@ -917,8 +919,8 @@ class Phdr:
         PF_W            = 2
         PF_R            = 4
 
-    p_type: Type
-    p_flags: Flags
+    p_type: "Phdr.Type"
+    p_flags: "Phdr.Flags"
     p_offset: int
     p_vaddr: int
     p_paddr: int
@@ -931,7 +933,7 @@ class Phdr:
             return
         elf.seek(off)
         self.offset = off
-        endian = gef.arch.endianness
+        endian = elf.e_endianness
         if elf.e_class == Elf.Class.ELF_64_BITS:
             p_type, p_flags, self.p_offset = elf.read_and_unpack(f"{endian}IIQ")
             self.p_vaddr, self.p_paddr = elf.read_and_unpack(f"{endian}QQ")
@@ -1020,8 +1022,8 @@ class Shdr:
             return cls.UNKNOWN_FLAG
 
     sh_name: int
-    sh_type: Type
-    sh_flags: Flags
+    sh_type: "Shdr.Type"
+    sh_flags: "Shdr.Flags"
     sh_addr: int
     sh_offset: int
     sh_size: int
@@ -1035,7 +1037,7 @@ class Shdr:
         if elf is None:
             return
         elf.seek(off)
-        endian = gef.arch.endianness
+        endian = elf.e_endianness
         if elf.e_class == Elf.Class.ELF_64_BITS:
             self.sh_name, sh_type, sh_flags = elf.read_and_unpack(f"{endian}IIQ")
             self.sh_addr, self.sh_offset = elf.read_and_unpack(f"{endian}QQ")
