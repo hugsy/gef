@@ -1334,8 +1334,8 @@ class GlibcArena:
                 f"system_mem={self.sysmem:#x})")
 
     @property
-    def addr(self) -> str:
-        return hex(self.__addr)
+    def addr(self) -> int:
+        return int(self)
 
 
 class GlibcChunk:
@@ -7240,7 +7240,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
             err("Invalid Glibc arena")
             return
 
-        gef_print(titlify(f"Fastbins for arena at {arena.addr}"))
+        gef_print(titlify(f"Fastbins for arena at {arena.addr:#x}"))
         for i in range(NFASTBINS):
             gef_print(f"Fastbins[idx={i:d}, size={(i+2)*SIZE_SZ*2:#x}] ", end="")
             chunk = arena.fastbin(i)
@@ -7293,7 +7293,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
         if gef.heap.main_arena is None:
             err("Heap not initialized")
             return
-        arena_addr = args.arena_address if args.arena_address else gef.heap.selected_arena.addr
+        arena_addr = args.arena_address if args.arena_address else f"{gef.heap.selected_arena.addr:#x}"
         gef_print(titlify(f"Unsorted Bin for arena at {arena_addr}"))
         nb_chunk = GlibcHeapBinsCommand.pprint_bin(f"*{arena_addr}", 0, "unsorted_")
         if nb_chunk >= 0:
@@ -7320,7 +7320,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
             err("Heap not initialized")
             return
 
-        arena_addr = args.arena_address if args.arena_address else gef.heap.selected_arena.addr
+        arena_addr = args.arena_address if args.arena_address else f"{gef.heap.selected_arena.addr:#x}"
         gef_print(titlify(f"Small Bins for arena at {arena_addr}"))
         bins = {}
         for i in range(1, 63):
@@ -7352,7 +7352,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
             err("Heap not initialized")
             return
 
-        arena_addr = args.arena_address if args.arena_address else gef.heap.selected_arena.addr
+        arena_addr = args.arena_address if args.arena_address else f"{gef.heap.selected_arena.addr:#x}"
         gef_print(titlify(f"Large Bins for arena at {arena_addr}"))
         bins = {}
         for i in range(63, 126):
