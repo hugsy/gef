@@ -130,7 +130,10 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         tcachelines = findlines("Tcachebins[idx=", res)
         self.assertEqual(len(tcachelines), 1)
-        self.assertIn("Tcachebins[idx=0, size=0x20] count=1", tcachelines[0])
+        if is_64b:
+            self.assertIn("Tcachebins[idx=0, size=0x20] count=1", tcachelines[0])
+        else:
+            self.assertIn("Tcachebins[idx=1, size=0x20] count=1", tcachelines[0])
 
 
     def test_cmd_heap_bins_tcache_all(self):
@@ -141,9 +144,12 @@ class HeapCommand(GefUnitTestGeneric):
         # ensure there's 2 tcachebins
         tcachelines = findlines("Tcachebins[idx=", res)
         self.assertEqual(len(tcachelines), 2)
-        self.assertIn("Tcachebins[idx=0, size=0x20] count=3", tcachelines[0])
-        self.assertIn("Tcachebins[idx=1, size=0x30] count=3", tcachelines[1])
-
+        if is_64b():
+            self.assertIn("Tcachebins[idx=0, size=0x20] count=3", tcachelines[0])
+            self.assertIn("Tcachebins[idx=1, size=0x30] count=3", tcachelines[1])
+        else:
+            self.assertIn("Tcachebins[idx=1, size=0x20] count=3", tcachelines[0])
+            self.assertIn("Tcachebins[idx=2, size=0x30] count=3", tcachelines[1])
 
     def test_cmd_heap_bins_unsorted(self):
         cmd = "heap bins unsorted"
