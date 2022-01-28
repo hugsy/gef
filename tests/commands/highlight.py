@@ -4,15 +4,14 @@
 
 
 import pytest
-from tests.utils import ARCH, GefUnitTestGeneric, gdb_start_silent_cmd
+from tests.utils import ARCH, GefUnitTestGeneric, gdb_start_silent_cmd, Color
 
 
 class HighlightCommand(GefUnitTestGeneric):
     """`highlight` command test module"""
 
 
-    @pytest.mark.skipif(ARCH not in ["x86_64", "aarch64"], reason=f"Skipped for {ARCH}")
-    def test_cmd_highlight_64bit(self):
+    def test_cmd_highlight(self):
         cmds = [
             "highlight add 41414141 yellow",
             "highlight add 42424242 blue",
@@ -25,7 +24,7 @@ class HighlightCommand(GefUnitTestGeneric):
         res = gdb_start_silent_cmd('', after=cmds, strip_ansi=False)
 
         self.assertNoException(res)
-        self.assertIn("\x1b[33m41414141\x1b[0m", res)
-        self.assertIn("\x1b[34m42424242\x1b[0m", res)
-        self.assertIn("\x1b[32m43434343\x1b[0m", res)
-        self.assertIn("\x1b[35m44444444\x1b[0m", res)
+        self.assertIn(f"{Color.YELLOW.value}41414141{Color.NORMAL.value}", res)
+        self.assertIn(f"{Color.BLUE.value}42424242{Color.NORMAL.value}", res)
+        self.assertIn(f"{Color.GREEN.value}43434343{Color.NORMAL.value}", res)
+        self.assertIn(f"{Color.PINK.value}44444444{Color.NORMAL.value}", res)
