@@ -28,13 +28,15 @@ class PatternCommand(GefUnitTestGeneric):
         self.assertIn("aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
 
 
-    @pytest.mark.skipif(ARCH not in ("x86_64", "aarch64"), reason=f"Skipped for {ARCH}")
+    @pytest.mark.skipif(ARCH not in ("x86_64", "aarch64", "i686"), reason=f"Skipped for {ARCH}")
     def test_cmd_pattern_search(self):
         target = _target("pattern")
         if ARCH == "aarch64":
             r = "$x30"
         elif ARCH == "x86_64":
             r = "$rbp"
+        elif ARCH == "i686":
+            r = "$ebp"
         else:
             raise ValueError("Invalid architecture")
 
@@ -42,22 +44,25 @@ class PatternCommand(GefUnitTestGeneric):
         before = ["set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run"]
         res = gdb_run_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        self.assertIn("Found at offset", res)
+        self.assertIn("Found at offset 8 (little-endian search) likely", res)
 
         cmd = f"pattern search -n 8 {r}"
         before = ["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"]
         res = gdb_run_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        self.assertIn("Found at offset", res)
+        self.assertIn("Found at offset 8 (little-endian search) likely", res)
 
         res = gdb_start_silent_cmd("pattern search -n 4 caaaaaaa")
         self.assertNoException(res)
-        self.assertNotIn("Found at offset", res)
+        self.assertNotIn("Found at offset 9 (little-endian search) likely", res)
 
         res = gdb_start_silent_cmd("pattern search -n 8 caaaaaaa")
         self.assertNoException(res)
-        self.assertIn("Found at offset", res)
+        self.assertIn("Found at offset 9 (little-endian search) likely", res)
 
-        res = gdb_start_silent_cmd("pattern search -n 8 0x6261616161616161")
+        if ARCH in ("x86_64", "aarch64",):
+            res = gdb_start_silent_cmd("pattern search -n 8 0x6261616161616161")
+        else:
+            res = gdb_start_silent_cmd("pattern search -n 4 0x62616161")
         self.assertNoException(res)
-        self.assertIn("Found at offset", res)
+        self.assertIn("Found at offset 1 (little-endian search) likely", res)

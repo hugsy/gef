@@ -4,7 +4,7 @@
 
 import random
 
-from tests.utils import ARCH, gdb_test_python_method, is_64b
+from tests.utils import gdb_test_python_method, is_64b
 from tests.utils import GefUnitTestGeneric
 
 
