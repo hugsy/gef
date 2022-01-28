@@ -100,24 +100,25 @@ def http_get(url: str) -> Optional[bytes]:
 def update_gef(argv: List[str]) -> int:
     """Try to update `gef` to the latest version pushed on GitHub master branch.
     Return 0 on success, 1 on failure. """
-    ver = "dev" if "--dev" in argv[2:] else "master"
+    ver = "dev" if "--dev" in argv else "master"
     latest_gef_data = http_get(f"https://raw.githubusercontent.com/hugsy/gef/{ver}/scripts/gef.sh")
     if not latest_gef_data:
         print("[-] Failed to get remote gef")
         return 1
-    with tempfile.TemporaryFile(suffix=".sh") as fd:
+    with tempfile.NamedTemporaryFile(suffix=".sh") as fd:
         fd.write(latest_gef_data)
         fd.flush()
         fpath = pathlib.Path(fd.name)
-        return subprocess.run(["bash", fpath, ver], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+        return subprocess.run(["bash", fpath, ver], stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL).returncode
 
 
 try:
     import gdb # pylint: disable=
 except ImportError:
     # if out of gdb, the only action allowed is to update gef.py
-    if len(sys.argv) == 2 and sys.argv[1].lower() in ("--update", "--upgrade"):
-        sys.exit(update_gef(sys.argv))
+    if len(sys.argv) >= 2 and sys.argv[1].lower() in ("--update", "--upgrade"):
+        sys.exit(update_gef(sys.argv[2:]))
     print("[-] gef cannot run as standalone")
     sys.exit(0)
 
