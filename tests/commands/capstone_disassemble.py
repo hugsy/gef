@@ -2,6 +2,9 @@
 capstone-disassemble command test module
 """
 
+import pytest
+
+
 from tests.utils import (
     gdb_start_silent_cmd,
     gdb_run_silent_cmd,
@@ -12,6 +15,14 @@ from tests.utils import (
 
 class CapstoneDisassembleCommand(GefUnitTestGeneric):
     """`capstone-disassemble` command test module"""
+
+    def setUp(self) -> None:
+        try:
+            import capstone
+        except ImportError:
+            pytest.skip("capstone-engine not available", allow_module_level=True)
+        return super().setUp()
+
 
 
     def test_cmd_capstone_disassemble(self):

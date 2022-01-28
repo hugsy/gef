@@ -11,6 +11,13 @@ from tests.utils import ARCH, GefUnitTestGeneric, gdb_run_cmd, gdb_run_silent_cm
 class RopperCommand(GefUnitTestGeneric):
     """`ropper` command test module"""
 
+    def setUp(self) -> None:
+        try:
+            import ropper
+        except ImportError:
+            pytest.skip("ropper not available", allow_module_level=True)
+        return super().setUp()
+
 
     @pytest.mark.skipif(ARCH not in ["x86_64", "i686"], reason=f"Skipped for {ARCH}")
     def test_cmd_ropper(self):
