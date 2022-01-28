@@ -3,11 +3,13 @@ Heap commands test module
 """
 
 from tests.utils import (
+    findlines,
     gdb_run_cmd,
     gdb_run_silent_cmd,
     gdb_start_silent_cmd,
     _target,
-    GefUnitTestGeneric
+    GefUnitTestGeneric,
+    is_64b
 )
 
 
@@ -32,7 +34,7 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertIn("Arena(base=", res)
 
 
-    def test_cmd_heap_chunk(self):
+    def test_cmd_heap_chunk_no_arg(self):
         cmd = "heap chunk p1"
         target = _target("heap")
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
@@ -40,12 +42,15 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertIn("NON_MAIN_ARENA flag: ", res)
 
+
+    def test_cmd_heap_chunk_with_number(self):
+        target = _target("heap")
         cmd = "heap chunk --number 2 p1"
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        heap_lines = [x for x in res.splitlines() if x.startswith("Chunk(addr=")]
-        self.assertTrue(len(heap_lines) == 2)
+        chunklines = findlines("Chunk(addr=", res)
+        self.assertEqual(len(chunklines), 2)
 
 
     def test_cmd_heap_chunks(self):
@@ -117,13 +122,15 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertIn("Chunk(addr=", res)
         self.assertIn("size=0x20", res)
 
+
     def test_cmd_heap_bins_tcache(self):
         cmd = "heap bins tcache"
         target = _target("heap-non-main")
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        # ensure tcachebins is populated
-        self.assertIn("Tcachebins[idx=", res)
+        tcachelines = findlines("Tcachebins[idx=", res)
+        self.assertEqual(len(tcachelines), 1)
+        self.assertIn("Tcachebins[idx=0, size=0x20] count=1", tcachelines[0])
 
 
     def test_cmd_heap_bins_tcache_all(self):
@@ -132,8 +139,10 @@ class HeapCommand(GefUnitTestGeneric):
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
         # ensure there's 2 tcachebins
-        tcachebins_lines = [x for x in res.splitlines() if x.startswith("Tcachebins[idx=")]
-        self.assertTrue(len(tcachebins_lines) == 2)
+        tcachelines = findlines("Tcachebins[idx=", res)
+        self.assertEqual(len(tcachelines), 2)
+        self.assertIn("Tcachebins[idx=0, size=0x20] count=3", tcachelines[0])
+        self.assertIn("Tcachebins[idx=1, size=0x30] count=3", tcachelines[1])
 
 
     def test_cmd_heap_bins_unsorted(self):
