@@ -19,7 +19,7 @@ def time_cmd_context(benchmark):
     benchmark(gdb_start_silent_cmd, "context")
 
 
-def time_elf_parsing_using_timeit():
+def _time_elf_parsing_using_timeit():
     with pytest.raises(ValueError):
         res = gdb_time_python_method(
             "Elf('/bin/ls')",
@@ -28,7 +28,7 @@ def time_elf_parsing_using_timeit():
         pytest.fail(f"execution_time={res}s")
 
 
-def time_cmd_context_using_timeit():
+def _time_cmd_context_using_timeit():
     with pytest.raises(ValueError):
         res = gdb_time_python_method(
             "gdb.execute('context')",
