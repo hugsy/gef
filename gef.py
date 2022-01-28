@@ -7212,8 +7212,9 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                 if msg:
                     tcache_empty = False
                     tidx = gef.heap.csize2tidx(chunk_size)
-                    size = gef.heap.tidx2size(i)
-                    gef_print(f"Tcachebins[idx={tidx:d}, size={size:#x}] count={count:d} {chunk_size=:x}", end="")
+                    size = gef.heap.tidx2size(tidx)
+                    count = len(chunks)
+                    gef_print(f"Tcachebins[idx={tidx:d}, size={size:#x}, count={count}]", end="")
                     gef_print("".join(msg))
 
             if tcache_empty:
