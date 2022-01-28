@@ -7178,6 +7178,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                 chunk, count = self.tcachebin(tcache_addr, i)
                 chunks = set()
                 msg = []
+                chunk_size = 0
 
                 # Only print the entry if there are valid chunks. Don't trust count
                 while True:
@@ -7186,6 +7187,9 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
                     try:
                         msg.append(f"{LEFT_ARROW} {chunk!s} ")
+                        if not chunk_size:
+                            chunk_size = chunk.usable_size
+
                         if chunk.data_address in chunks:
                             msg.append(f"{RIGHT_ARROW} [loop detected]")
                             break
@@ -7203,7 +7207,9 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
                 if msg:
                     tcache_empty = False
-                    gef_print(f"Tcachebins[idx={i:d}, size={(i+2)*(gef.arch.ptrsize)*2:#x}] count={count:d} ", end="")
+                    tidx = gef.heap.csize2tidx(chunk_size)
+                    size = gef.heap.tidx2size(i)
+                    gef_print(f"Tcachebins[idx={tidx:d}, size={size:#x}] count={count:d} {chunk_size=:x}", end="")
                     gef_print("".join(msg))
 
             if tcache_empty:
@@ -11342,6 +11348,20 @@ class GefHeapManager(GefManager):
             return []
         return iter(GlibcChunk(self.base_address, from_base=True))
 
+    @property
+    def min_chunk_size(self) -> int:
+        return 4 * gef.arch.ptrsize
+
+    @property
+    def malloc_alignment(self) -> int:
+        if get_libc_version() > (2, 25) and is_32bit(): return 0x10
+        return 2 * gef.arch.ptrsize
+
+    def csize2tidx(self, size: int) -> int:
+        return abs((size - self.min_chunk_size + self.malloc_alignment - 1)) // self.malloc_alignment
+
+    def tidx2size(self, idx: int) -> int:
+        return idx * self.malloc_alignment + self.min_chunk_size
 
 class GefSetting:
     """Basic class for storing gef settings as objects"""
