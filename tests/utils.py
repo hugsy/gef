@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import unittest
 import warnings
+import enum
 
 from typing import Iterable, Union, List
 
@@ -30,6 +31,25 @@ STRIP_ANSI_DEFAULT = True
 
 
 CommandType = Union[str, Iterable[str]]
+
+class Color(enum.Enum):
+    """Used to colorify terminal output."""
+    NORMAL         = "\x1b[0m"
+    GRAY           = "\x1b[1;38;5;240m"
+    LIGHT_GRAY     = "\x1b[0;37m"
+    RED            = "\x1b[31m"
+    GREEN          = "\x1b[32m"
+    YELLOW         = "\x1b[33m"
+    BLUE           = "\x1b[34m"
+    PINK           = "\x1b[35m"
+    CYAN           = "\x1b[36m"
+    BOLD           = "\x1b[1m"
+    UNDERLINE      = "\x1b[4m"
+    UNDERLINE_OFF  = "\x1b[24m"
+    HIGHLIGHT      = "\x1b[3m"
+    HIGHLIGHT_OFF  = "\x1b[23m"
+    BLINK          = "\x1b[5m"
+    BLINK_OFF      = "\x1b[25m"
 
 
 class GdbAssertionError(AssertionError):
@@ -189,8 +209,10 @@ def gdb_time_python_method(meth: str, setup: str,
                            target: pathlib.Path = DEFAULT_TARGET,
                            strip_ansi: bool = STRIP_ANSI_DEFAULT, number: int = 1000) -> float:
     brk = py_before + ";" if py_before else ""
-    cmd = f"""pi import timeit;{brk}print(timeit.timeit("{meth}", setup="{setup}", number={number}));{py_after}"""
-    lines = gdb_run_cmd(cmd, before=before, after=after, target=target, strip_ansi=strip_ansi).splitlines()
+    cmd = f"""pi import timeit;{brk}print(timeit.timeit("{meth}", """\
+          f"""setup="{setup}", number={number}));{py_after}"""
+    lines = gdb_run_cmd(cmd, before=before, after=after,
+                        target=target, strip_ansi=strip_ansi).splitlines()
     return float(lines[-1])
 
 
