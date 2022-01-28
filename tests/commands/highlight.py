@@ -3,8 +3,7 @@
 """
 
 
-import pytest
-from tests.utils import ARCH, GefUnitTestGeneric, gdb_start_silent_cmd, Color
+from tests.utils import GefUnitTestGeneric, gdb_start_silent_cmd, Color
 
 
 class HighlightCommand(GefUnitTestGeneric):
