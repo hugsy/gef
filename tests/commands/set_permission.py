@@ -2,13 +2,21 @@
 set_permission command test module
 """
 
-
+import pytest
 import re
 from tests.utils import GefUnitTestGeneric, _target, gdb_run_cmd, gdb_start_silent_cmd
 
 
 class SetPermissionCommand(GefUnitTestGeneric):
     """`set_permission` command test module"""
+
+    def setUp(self) -> None:
+        try:
+            import keystone
+        except ImportError:
+            pytest.skip("keystone-engine not available", allow_module_level=True)
+        return super().setUp()
+
 
     def test_cmd_set_permission(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("set-permission"))

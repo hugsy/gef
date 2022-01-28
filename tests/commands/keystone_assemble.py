@@ -2,12 +2,20 @@
 keystone-assemble command test module
 """
 
+import pytest
 
 from tests.utils import GefUnitTestGeneric, gdb_run_silent_cmd, gdb_start_silent_cmd
 
 
 class KeystoneAssembleCommand(GefUnitTestGeneric):
     """`keystone-assemble` command test module"""
+
+    def setUp(self) -> None:
+        try:
+            import keystone
+        except ImportError:
+            pytest.skip("keystone-engine not available", allow_module_level=True)
+        return super().setUp()
 
 
     def test_cmd_keystone_assemble(self):

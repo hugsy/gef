@@ -10,6 +10,13 @@ from tests.utils import ARCH, GefUnitTestGeneric, _target, gdb_run_silent_cmd
 class UnicornEmulateCommand(GefUnitTestGeneric):
     """`unicorn-emulate` command test module"""
 
+    def setUp(self) -> None:
+        try:
+            import unicorn
+        except ImportError:
+            pytest.skip("unicorn-engine not available", allow_module_level=True)
+        return super().setUp()
+
 
     @pytest.mark.skipif(ARCH not in ["x86_64"], reason=f"Skipped for {ARCH}")
     def test_cmd_unicorn_emulate(self):
