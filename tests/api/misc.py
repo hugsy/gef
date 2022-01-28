@@ -2,6 +2,11 @@
 Tests GEF internal functions.
 """
 
+import pathlib
+import tempfile
+import subprocess
+import os
+import pytest
 
 from tests.utils import BIN_LS, gdb_test_python_method, start_gdbserver, stop_gdbserver
 from tests.utils import GefUnitTestGeneric
@@ -40,3 +45,21 @@ class MiscFunctionTest(GefUnitTestGeneric):
         res = gdb_test_python_method(func)
         stop_gdbserver(gdbsrv)
         self.assertNoException(res)
+
+
+    @pytest.mark.slow
+    @pytest.mark.online
+    def test_func_update_gef(self):
+        for branch in ("master", "dev"):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                dirpath = pathlib.Path(tmpdir)
+                os.environ["HOME"] = str(dirpath.absolute())
+                ref = subprocess.check_output(f"""wget -q -O- https://api.github.com/repos/hugsy/gef/git/ref/heads/{branch} | grep '"sha"' | tr -s ' ' | cut -d ' ' -f 3 | tr -d ',' | tr -d '"' """, shell=True).decode("utf-8").strip()
+                res = gdb_test_python_method(f"update_gef(['--{branch}'])")
+                self.assertNoException(res)
+                retcode = int(res.splitlines()[-1])
+                self.assertEqual(retcode, 0)
+                home = pathlib.Path().home()
+                self.assertEqual(open(f"{home}/.gdbinit", "r").read(), f"source ~/.gef-{ref}.py\n")
+                fpath = home / f".gef-{ref}.py"
+                self.assertTrue(fpath.exists())
