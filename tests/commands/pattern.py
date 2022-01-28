@@ -9,7 +9,8 @@ from tests.utils import (
     _target,
 
     ARCH,
-    GefUnitTestGeneric
+    GefUnitTestGeneric,
+    is_64b
 )
 
 
@@ -44,14 +45,19 @@ class PatternCommand(GefUnitTestGeneric):
         before = ["set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run"]
         res = gdb_run_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        self.assertIn("Found at offset 8 (little-endian search) likely", res)
+        if is_64b():
+            self.assertIn("Found at offset 8 (little-endian search) likely", res)
+        else:
+            self.assertIn("Found at offset 16 (little-endian search) likely", res)
 
         cmd = f"pattern search -n 8 {r}"
         before = ["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"]
         res = gdb_run_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        self.assertIn("Found at offset 8 (little-endian search) likely", res)
-
+        if is_64b():
+            self.assertIn("Found at offset 8 (little-endian search) likely", res)
+        else:
+            self.assertIn("Found at offset 16 (little-endian search) likely", res)
         res = gdb_start_silent_cmd("pattern search -n 4 caaaaaaa")
         self.assertNoException(res)
         self.assertNotIn("Found at offset 9 (little-endian search) likely", res)
@@ -60,7 +66,7 @@ class PatternCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertIn("Found at offset 9 (little-endian search) likely", res)
 
-        if ARCH in ("x86_64", "aarch64",):
+        if is_64b():
             res = gdb_start_silent_cmd("pattern search -n 8 0x6261616161616161")
         else:
             res = gdb_start_silent_cmd("pattern search -n 4 0x62616161")
