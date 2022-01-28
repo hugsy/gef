@@ -1407,6 +1407,10 @@ class GlibcArena:
                 f"last_remainder={self.last_remainder:#x}, next={self.n:#x}, next_free={self.nfree:#x}, "
                 f"system_mem={self.sysmem:#x})")
 
+    @property
+    def addr(self) -> int:
+        return int(self)
+
 
 class GlibcChunk:
     """Glibc chunk class. The default behavior (from_base=False) is to interpret the data starting at the memory
@@ -7301,22 +7305,27 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
+    @parse_arguments({"arena_address": ""}, {})
     @only_if_gdb_running
-    def do_invoke(self, argv: List[str]) -> None:
+    def do_invoke(self, *_: Any, **kwargs: Any) -> None:
         def fastbin_index(sz: int) -> int:
             return (sz >> 4) - 2 if SIZE_SZ == 8 else (sz >> 3) - 2
+
+        args = kwargs["arguments"]
+        if not gef.heap.main_arena:
+            err("Heap not initialized")
+            return
 
         SIZE_SZ = gef.arch.ptrsize
         MAX_FAST_SIZE = 80 * SIZE_SZ // 4
         NFASTBINS = fastbin_index(MAX_FAST_SIZE) - 1
 
-        arena = GlibcArena(f"*{argv[0]}") if len(argv) == 1 else gef.heap.main_arena
-
+        arena = GlibcArena(f"*{args.arena_address}") if args.arena_address else gef.heap.selected_arena
         if arena is None:
             err("Invalid Glibc arena")
             return
 
-        gef_print(titlify(f"Fastbins for arena {int(arena):#x}"))
+        gef_print(titlify(f"Fastbins for arena at {arena.addr:#x}"))
         for i in range(NFASTBINS):
             gef_print(f"Fastbins[idx={i:d}, size={(i+2)*SIZE_SZ*2:#x}] ", end="")
             chunk = arena.fastbin(i)
@@ -7362,15 +7371,16 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
+    @parse_arguments({"arena_address": ""}, {})
     @only_if_gdb_running
-    def do_invoke(self, argv: List[str]) -> None:
+    def do_invoke(self, *_: Any, **kwargs: Any) -> None:
+        args = kwargs["arguments"]
         if gef.heap.main_arena is None:
-            err("Invalid Glibc arena")
+            err("Heap not initialized")
             return
-
-        arena_addr = f"*{argv[0]}" if len(argv) == 1 else gef.heap.selected_arena
-        gef_print(titlify(f"Unsorted Bin for arena '{arena_addr!s}'"))
-        nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, 0, "unsorted_")
+        arena_addr = args.arena_address if args.arena_address else f"{gef.heap.selected_arena.addr:#x}"
+        gef_print(titlify(f"Unsorted Bin for arena at {arena_addr}"))
+        nb_chunk = GlibcHeapBinsCommand.pprint_bin(f"*{arena_addr}", 0, "unsorted_")
         if nb_chunk >= 0:
             info(f"Found {nb_chunk:d} chunks in unsorted bin.")
         return
@@ -7387,17 +7397,19 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
+    @parse_arguments({"arena_address": ""}, {})
     @only_if_gdb_running
-    def do_invoke(self, argv: List[str]) -> None:
+    def do_invoke(self, *_: Any, **kwargs: Any) -> None:
+        args = kwargs["arguments"]
         if not gef.heap.main_arena:
             err("Heap not initialized")
             return
 
-        arena = GlibcArena(f"*{argv[0]}") if len(argv) == 1 else gef.heap.selected_arena
-        gef_print(titlify(f"Small Bins for arena '{arena!s}'"))
+        arena_addr = args.arena_address if args.arena_address else f"{gef.heap.selected_arena.addr:#x}"
+        gef_print(titlify(f"Small Bins for arena at {arena_addr}"))
         bins = {}
         for i in range(1, 63):
-            nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena, i, "small_")
+            nb_chunk = GlibcHeapBinsCommand.pprint_bin(f"*{arena_addr}", i, "small_")
             if nb_chunk < 0:
                 break
             if nb_chunk > 0:
@@ -7417,17 +7429,19 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
+    @parse_arguments({"arena_address": ""}, {})
     @only_if_gdb_running
-    def do_invoke(self, argv: List[str]) -> None:
-        if gef.heap.main_arena  is None:
-            err("Invalid Glibc arena")
+    def do_invoke(self, *_: Any, **kwargs: Any) -> None:
+        args = kwargs["arguments"]
+        if gef.heap.main_arena is None:
+            err("Heap not initialized")
             return
 
-        arena_addr = f"*{argv[0]}" if len(argv) == 1 else gef.heap.selected_arena
-        gef_print(titlify(f"Large Bins for arena '{arena_addr!s}'"))
+        arena_addr = args.arena_address if args.arena_address else f"{gef.heap.selected_arena.addr:#x}"
+        gef_print(titlify(f"Large Bins for arena at {arena_addr}"))
         bins = {}
         for i in range(63, 126):
-            nb_chunk = GlibcHeapBinsCommand.pprint_bin(arena_addr, i, "large_")
+            nb_chunk = GlibcHeapBinsCommand.pprint_bin(f"*{arena_addr}", i, "large_")
             if nb_chunk < 0:
                 break
             if nb_chunk > 0:
