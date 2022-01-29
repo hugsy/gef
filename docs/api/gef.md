@@ -36,1026 +36,56 @@
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=FakeExit"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=http_get"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `FakeExit`
+## <kbd>function</kbd> `http_get`
 
 ```python
-FakeExit(*args, **kwargs) → NoReturn
+http_get(url: str) → Union[bytes, NoneType]
 ```
 
+Basic HTTP wrapper for GET request. Return the body of the page if HTTP code is OK, otherwise return None. 
 
 
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=align_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `align_address`
-
-```python
-align_address(address: int) → int
-```
-
-Align the provided address to the process's native length. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=align_address_to_page"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `align_address_to_page`
-
-```python
-align_address_to_page(address: int) → int
-```
-
-Align the address to a page. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=align_address_to_size"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `align_address_to_size`
-
-```python
-align_address_to_size(address: int, align: int) → int
-```
-
-Align the address to the given size. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=bufferize"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `bufferize`
-
-```python
-bufferize(f: Callable) → Callable
-```
-
-Store the content to be printed for a function in memory, and flush it on function exit. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=capstone_disassemble"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `capstone_disassemble`
-
-```python
-capstone_disassemble(
-    location: int,
-    nb_insn: int,
-    **kwargs
-) → Generator[__main__.Instruction, NoneType, NoneType]
-```
-
-Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr` using the Capstone-Engine disassembler, if available. Return an iterator of Instruction objects. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=clear_screen"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `clear_screen`
-
-```python
-clear_screen(tty: str = '') → None
-```
-
-Clear the screen. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=continue_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `continue_handler`
-
-```python
-continue_handler(event) → None
-```
-
-GDB event handler for new object continue cases. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=copy_to_clipboard"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `copy_to_clipboard`
-
-```python
-copy_to_clipboard(data: str) → None
-```
-
-Helper function to submit data to the clipboard 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=de_bruijn"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `de_bruijn`
-
-```python
-de_bruijn(alphabet: str, n: int) → Generator[str, NoneType, NoneType]
-```
-
-De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib). 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=deprecated"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `deprecated`
-
-```python
-deprecated(solution: str = '') → Callable
-```
-
-Decorator to add a warning when a command is obsolete and will be removed. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=disable_redirect_output"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `disable_redirect_output`
-
-```python
-disable_redirect_output() → None
-```
-
-Disable the output redirection, if any. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=download_file"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `download_file`
-
-```python
-download_file(
-    remote_path: str,
-    use_cache: bool = False,
-    local_name: Optional[str] = None
-) → Union[str, NoneType]
-```
-
-Download filename `remote_path` inside the mirror tree inside the gef.config["gef.tempdir"]. The tree architecture must be gef.config["gef.tempdir"]/gef/<local_pid>/<remote_filepath>. This allow a "chroot-like" tree format. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=enable_redirect_output"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `enable_redirect_output`
-
-```python
-enable_redirect_output(to_file: str = '/dev/null') → None
-```
-
-Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=endian_str"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `endian_str`
-
-```python
-endian_str() → str
-```
-
-`endian_str` is **DEPRECATED** and will be removed in the future. Use `str(gef.arch.endianness)` instead 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=err"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `err`
-
-```python
-err(msg: str) → Union[int, NoneType]
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=exit_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `exit_handler`
-
-```python
-exit_handler(event) → None
-```
-
-GDB event handler for exit cases. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=experimental_feature"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `experimental_feature`
-
-```python
-experimental_feature(f: Callable) → Callable
-```
-
-Decorator to add a warning when a feature is experimental. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=flags_to_human"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `flags_to_human`
-
-```python
-flags_to_human(reg_value: int, value_table: Dict[int, str]) → str
-```
-
-Return a human readable string showing the flag states. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=format_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `format_address`
-
-```python
-format_address(addr: int) → str
-```
-
-Format the address according to its size. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=format_address_spaces"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `format_address_spaces`
-
-```python
-format_address_spaces(addr: int, left: bool = True) → str
-```
-
-Format the address according to its size, but with spaces instead of zeroes. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gdb_disassemble"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gdb_disassemble`
-
-```python
-gdb_disassemble(
-    start_pc: int,
-    **kwargs: int
-) → Generator[__main__.Instruction, NoneType, NoneType]
-```
-
-Disassemble instructions from `start_pc` (Integer). Accepts the following named parameters: 
-- `end_pc` (Integer) only instructions whose start address fall in the interval from start_pc to end_pc are returned. 
-- `count` (Integer) list at most this many disassembled instructions If `end_pc` and `count` are not provided, the function will behave as if `count=1`. Return an iterator of Instruction objects 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gdb_get_nth_next_instruction_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gdb_get_nth_next_instruction_address`
-
-```python
-gdb_get_nth_next_instruction_address(addr: int, n: int) → int
-```
-
-Return the address (Integer) of the `n`-th instruction after `addr`. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gdb_get_nth_previous_instruction_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gdb_get_nth_previous_instruction_address`
-
-```python
-gdb_get_nth_previous_instruction_address(
-    addr: int,
-    n: int
-) → Union[int, NoneType]
-```
-
-Return the address (Integer) of the `n`-th instruction before `addr`. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_convenience"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_convenience`
-
-```python
-gef_convenience(value: str) → str
-```
-
-Defines a new convenience value. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_current_instruction"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_current_instruction`
-
-```python
-gef_current_instruction(addr: int) → Instruction
-```
-
-Return the current instruction as an Instruction object. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_disassemble"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_disassemble`
-
-```python
-gef_disassemble(
-    addr: int,
-    nb_insn: int,
-    nb_prev: int = 0
-) → Generator[__main__.Instruction, NoneType, NoneType]
-```
-
-Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`. Return an iterator of Instruction objects. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_execute_external"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_execute_external`
-
-```python
-gef_execute_external(
-    command: Sequence[str],
-    as_list: bool = False,
-    **kwargs
-) → Union[str, List[str]]
-```
-
-Execute an external command and return the result. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_execute_gdb_script"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_execute_gdb_script`
-
-```python
-gef_execute_gdb_script(commands: str) → None
-```
-
-Execute the parameter `source` as GDB command. This is done by writing `commands` to a temporary file, which is then executed via GDB `source` command. The tempfile is then deleted. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_get_instruction_at"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_get_instruction_at`
-
-```python
-gef_get_instruction_at(addr: int) → Instruction
-```
-
-Return the full Instruction found at the specified address. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_get_pie_breakpoint"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_get_pie_breakpoint`
-
-```python
-gef_get_pie_breakpoint(num: int)
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_getpagesize"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_getpagesize`
-
-```python
-gef_getpagesize() → int
-```
-
-`gef_getpagesize` is **DEPRECATED** and will be removed in the future. Use `gef.session.pagesize` 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_instruction_n"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_instruction_n`
-
-```python
-gef_instruction_n(addr: int, n: int) → Instruction
-```
-
-Return the `n`-th instruction after `addr` as an Instruction object. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_makedirs"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_makedirs`
-
-```python
-gef_makedirs(path: str, mode: int = 493) → Path
-```
-
-Recursive mkdir() creation. If successful, return the absolute path of the directory created. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_next_instruction"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_next_instruction`
-
-```python
-gef_next_instruction(addr: int) → Instruction
-```
-
-Return the next instruction as an Instruction object. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `wrapped_f`
-
-```python
-wrapped_f(*args: Tuple, **kwargs: Dict) → Any
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `wrapped_f`
-
-```python
-wrapped_f(*args: Tuple, **kwargs: Dict) → Any
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `wrapped_f`
-
-```python
-wrapped_f(*args: Tuple, **kwargs: Dict) → Any
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `wrapped_f`
-
-```python
-wrapped_f(*args: Tuple, **kwargs: Dict) → Any
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `wrapped_f`
-
-```python
-wrapped_f(*args: Tuple, **kwargs: Dict) → Any
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `wrapped_f`
-
-```python
-wrapped_f(*args: Tuple, **kwargs: Dict) → Any
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `wrapped_f`
-
-```python
-wrapped_f(*args: Tuple, **kwargs: Dict) → Any
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `wrapped_f`
-
-```python
-wrapped_f(*args: Tuple, **kwargs: Dict) → Any
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `wrapped_f`
-
-```python
-wrapped_f(*args: Tuple, **kwargs: Dict) → Any
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `wrapped_f`
-
-```python
-wrapped_f(*args: Tuple, **kwargs: Dict) → Any
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `wrapped_f`
-
-```python
-wrapped_f(*args: Tuple, **kwargs: Dict) → Any
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `wrapped_f`
-
-```python
-wrapped_f(*args: Tuple, **kwargs: Dict) → Any
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_print"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_print`
-
-```python
-gef_print(
-    x: str = '',
-    *args: Tuple,
-    **kwargs: Dict[str, Any]
-) → Union[int, NoneType]
-```
-
-Wrapper around print(), using string buffering feature. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_pybytes"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_pybytes`
-
-```python
-gef_pybytes(x: str) → bytes
-```
-
-Returns an immutable bytes list from the string given as input. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_pystring"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_pystring`
-
-```python
-gef_pystring(x: bytes) → str
-```
-
-Returns a sanitized version as string of the bytes list given in input. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=gef_read_canary"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `gef_read_canary`
-
-```python
-gef_read_canary() → Union[Tuple[int, int], NoneType]
-```
-
-`gef_read_canary` is **DEPRECATED** and will be removed in the future. Use `gef.session.canary` 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=generate_cyclic_pattern"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `generate_cyclic_pattern`
-
-```python
-generate_cyclic_pattern(length: int, cycle: int = 4) → bytearray
-```
-
-Create a `length` byte bytearray of a de Bruijn cyclic pattern. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_capstone_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_capstone_arch`
-
-```python
-get_capstone_arch(
-    arch: Optional[str] = None,
-    mode: Optional[str] = None,
-    endian: Optional[bool] = None,
-    to_string: bool = False
-) → Union[Tuple[NoneType, NoneType], Tuple[str, Union[int, str]]]
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_filename"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_filename`
-
-```python
-get_filename() → str
-```
-
-`get_filename` is **DEPRECATED** and will be removed in the future. Use `gef.session.file.name` 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_function_length"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_function_length`
-
-```python
-get_function_length(sym) → int
-```
-
-Attempt to get the length of the raw bytes of a function. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_gef_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_gef_setting`
-
-```python
-get_gef_setting(name: str) → Any
-```
-
-`get_gef_setting` is **DEPRECATED** and will be removed in the future. Use `gef.config[key]` 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_generic_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_generic_arch`
-
-```python
-get_generic_arch(
-    module: module,
-    prefix: str,
-    arch: str,
-    mode: Optional[str],
-    big_endian: Optional[bool],
-    to_string: bool = False
-) → Tuple[str, Union[int, str]]
-```
-
-Retrieves architecture and mode from the arguments for use for the holy {cap,key}stone/unicorn trinity. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_generic_running_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_generic_running_arch`
-
-```python
-get_generic_running_arch(
-    module: module,
-    prefix: str,
-    to_string: bool = False
-) → Union[Tuple[NoneType, NoneType], Tuple[str, Union[int, str]]]
-```
-
-Retrieves architecture and mode from the current context. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_glibc_arena"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_glibc_arena`
-
-```python
-get_glibc_arena()
-```
-
-`get_glibc_arena` is **DEPRECATED** and will be removed in the future. Use `gef.heap.main_arena` 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_keystone_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_keystone_arch`
-
-```python
-get_keystone_arch(
-    arch: Optional[str] = None,
-    mode: Optional[str] = None,
-    endian: Optional[bool] = None,
-    to_string: bool = False
-) → Union[Tuple[NoneType, NoneType], Tuple[str, Union[int, str]]]
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_memory_alignment"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_memory_alignment`
-
-```python
-get_memory_alignment(in_bits: bool = False) → int
-```
-
-Try to determine the size of a pointer on this system.  First, try to parse it out of the ELF header.  Next, use the size of `size_t`.  Finally, try the size of $pc.  If `in_bits` is set to True, the result is returned in bits, otherwise in  bytes. `get_memory_alignment` is **DEPRECATED** and will be removed in the future. Use `gef.arch.ptrsize` instead 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_os"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_os`
-
-```python
-get_os() → str
-```
-
-`get_os` is **DEPRECATED** and will be removed in the future. Use `gef.session.os` 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_path_from_info_proc"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_path_from_info_proc`
-
-```python
-get_path_from_info_proc() → Union[str, NoneType]
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_pid"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_pid`
-
-```python
-get_pid() → int
-```
-
-`get_pid` is **DEPRECATED** and will be removed in the future. Use `gef.session.pid` 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_process_maps"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_process_maps`
-
-```python
-get_process_maps()
-```
-
-`get_process_maps` is **DEPRECATED** and will be removed in the future. Use `gef.memory.maps` 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_register"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_register`
-
-```python
-get_register(regname)
-```
-
-`get_register` is **DEPRECATED** and will be removed in the future. Use `gef.arch.register(regname)` 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_terminal_size"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_terminal_size`
-
-```python
-get_terminal_size() → Tuple[int, int]
-```
-
-Return the current terminal size. 
-
-
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=get_unicorn_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=update_gef"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `get_unicorn_arch`
+## <kbd>function</kbd> `update_gef`
 
 ```python
-get_unicorn_arch(
-    arch: Optional[str] = None,
-    mode: Optional[str] = None,
-    endian: Optional[bool] = None,
-    to_string: bool = False
-) → Union[Tuple[NoneType, NoneType], Tuple[str, Union[int, str]]]
+update_gef(argv: List[str]) → int
 ```
 
+Try to update `gef` to the latest version pushed on GitHub master branch. Return 0 on success, 1 on failure.  
 
 
-
-
-
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=get_unicorn_registers"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=reset_all_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `get_unicorn_registers`
+## <kbd>function</kbd> `reset_all_caches`
 
 ```python
-get_unicorn_registers(
-    to_string: bool = False
-) → Union[Dict[str, int], Dict[str, str]]
+reset_all_caches() → None
 ```
 
-Return a dict matching the Unicorn identifier for a specific register. 
+Free all caches. If an object is cached, it will have a callable attribute `cache_clear` which will be invoked to purge the function cache. 
 
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=hexdump"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=reset"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `hexdump`
+## <kbd>function</kbd> `reset`
 
 ```python
-hexdump(
-    source: ByteString,
-    length: int = 16,
-    separator: str = '.',
-    show_raw: bool = False,
-    show_symbol: bool = True,
-    base: int = 0
-) → str
+reset() → None
 ```
-
-Return the hexdump of `src` argument. @param source *MUST* be of type bytes or bytearray @param length is the length of items per line @param separator is the default character to use if one byte is not printable @param show_raw if True, do not add the line nor the text translation @param base is the start address of the block being hexdump @return a string with the hexdump 
 
 
----
-
-<a href="https://cs.github.com/hugsy/gef?q=hide_context"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `hide_context`
-
-```python
-hide_context() → bool
-```
 
-Helper function to hide the context pane. 
 
 
 ---
@@ -1077,319 +107,41 @@ If RegEx is disabled, split by ANSI codes and 'colorify' each match found within
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=hook_stop_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=gef_print"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `hook_stop_handler`
+## <kbd>function</kbd> `gef_print`
 
 ```python
-hook_stop_handler(event) → None
+gef_print(*args: str, end='\n', sep=' ', **kwargs: Any) → None
 ```
 
-GDB event handler for stop cases. 
+Wrapper around print(), using string buffering feature. 
 
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=http_get"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=bufferize"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `http_get`
+## <kbd>function</kbd> `bufferize`
 
 ```python
-http_get(url: str) → Union[bytes, NoneType]
+bufferize(f: Callable) → Callable
 ```
 
-Basic HTTP wrapper for GET request. Return the body of the page if HTTP code is OK, otherwise return None. 
+Store the content to be printed for a function in memory, and flush it on function exit. 
 
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=ida_synchronize_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=p8"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `ida_synchronize_handler`
-
-```python
-ida_synchronize_handler(event)
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=info"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `info`
+## <kbd>function</kbd> `p8`
 
 ```python
-info(msg: str) → Union[int, NoneType]
+p8(x: int, s: bool = False) → bytes
 ```
 
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=is_alive"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `is_alive`
-
-```python
-is_alive() → bool
-```
-
-Check if GDB is running. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=is_ascii_string"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `is_ascii_string`
-
-```python
-is_ascii_string(address: int) → bool
-```
-
-Helper function to determine if the buffer pointed by `address` is an ASCII string (in GDB) 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=is_big_endian"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `is_big_endian`
-
-```python
-is_big_endian() → bool
-```
-
-`is_big_endian` is **DEPRECATED** and will be removed in the future. Prefer `gef.arch.endianness == Endianness.BIG_ENDIAN` 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=is_debug"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `is_debug`
-
-```python
-is_debug() → bool
-```
-
-Check if debug mode is enabled. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=is_hex"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `is_hex`
-
-```python
-is_hex(pattern: str) → bool
-```
-
-Return whether provided string is a hexadecimal value. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=is_in_x86_kernel"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `is_in_x86_kernel`
-
-```python
-is_in_x86_kernel(address: int) → bool
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=is_little_endian"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `is_little_endian`
-
-```python
-is_little_endian() → bool
-```
-
-`is_little_endian` is **DEPRECATED** and will be removed in the future. gef.arch.endianness == Endianness.LITTLE_ENDIAN 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=is_pie"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `is_pie`
-
-```python
-is_pie(fpath: str) → bool
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=keystone_assemble"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `keystone_assemble`
-
-```python
-keystone_assemble(
-    code: str,
-    arch: int,
-    mode: int,
-    *args,
-    **kwargs
-) → Union[str, bytearray, NoneType]
-```
-
-Assembly encoding function based on keystone. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=load_libc_args"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `load_libc_args`
-
-```python
-load_libc_args() → None
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=malloc_align_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `malloc_align_address`
-
-```python
-malloc_align_address(address: int) → int
-```
-
-Align addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=memchanged_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `memchanged_handler`
-
-```python
-memchanged_handler(event) → None
-```
-
-GDB event handler for mem changes cases. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=new_objfile_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `new_objfile_handler`
-
-```python
-new_objfile_handler(event) → None
-```
-
-GDB event handler for new object file cases. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=ok"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ok`
-
-```python
-ok(msg: str) → Union[int, NoneType]
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=only_if_current_arch_in"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `only_if_current_arch_in`
-
-```python
-only_if_current_arch_in(valid_architectures: List) → Callable
-```
-
-Decorator to allow commands for only a subset of the architectured supported by GEF. This decorator is to use lightly, as it goes against the purpose of GEF to support all architectures GDB does. However in some cases, it is necessary. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=only_if_events_supported"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `only_if_events_supported`
-
-```python
-only_if_events_supported(event_type) → Callable
-```
-
-Checks if GDB supports events without crashing. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=only_if_gdb_running"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `only_if_gdb_running`
-
-```python
-only_if_gdb_running(f: Callable) → Callable
-```
-
-Decorator wrapper to check if GDB is running. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=only_if_gdb_target_local"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `only_if_gdb_target_local`
-
-```python
-only_if_gdb_target_local(f: Callable) → Callable
-```
-
-Decorator wrapper to check if GDB is running locally (target not remote). 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=only_if_gdb_version_higher_than"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `only_if_gdb_version_higher_than`
-
-```python
-only_if_gdb_version_higher_than(required_gdb_version) → Callable
-```
-
-Decorator to check whether current GDB version requirements. 
+Pack one byte respecting the current architecture endianness. 
 
 
 ---
@@ -1433,307 +185,15 @@ Pack one qword respecting the current architecture endianness.
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=p8"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=u8"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `p8`
-
-```python
-p8(x: int, s: bool = False) → bytes
-```
-
-Pack one byte respecting the current architecture endianness. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=parse_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `parse_address`
+## <kbd>function</kbd> `u8`
 
 ```python
-parse_address(address: str) → int
+u8(x: bytes, s: bool = False) → int
 ```
 
-Parse an address and return it as an Integer. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=parse_arguments"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `parse_arguments`
-
-```python
-parse_arguments(
-    required_arguments: Dict[str, Any],
-    optional_arguments: Dict[str, Any]
-) → Union[Callable, NoneType]
-```
-
-Argument parsing decorator. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=parse_string_range"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `parse_string_range`
-
-```python
-parse_string_range(s: str) → Iterator[int]
-```
-
-Parses an address range (e.g. 0x400000-0x401000) 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=process_lookup_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `process_lookup_address`
-
-```python
-process_lookup_address(address: int) → Union[__main__.Section, NoneType]
-```
-
-Look up for an address in memory. Return an Address object if found, None otherwise. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=push_context_message"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `push_context_message`
-
-```python
-push_context_message(level: str, message: str) → None
-```
-
-Push the message to be displayed the next time the context is invoked. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=regchanged_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `regchanged_handler`
-
-```python
-regchanged_handler(event) → None
-```
-
-GDB event handler for reg changes cases. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=register_architecture"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `register_architecture`
-
-```python
-register_architecture(
-    cls: Type[ForwardRef('Architecture')]
-) → Type[ForwardRef('Architecture')]
-```
-
-Class decorator for declaring an architecture to GEF. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=register_command"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `register_command`
-
-```python
-register_command(cls)
-```
-
-Decorator for registering new GEF (sub-)command to GDB. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=register_external_command"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `register_external_command`
-
-```python
-register_external_command(obj)
-```
-
-Registering function for new GEF (sub-)command to GDB. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=register_external_context_pane"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `register_external_context_pane`
-
-```python
-register_external_context_pane(
-    pane_name: str,
-    display_pane_function: Callable[[], NoneType],
-    pane_title_function: Callable[[], Optional[str]]
-) → None
-```
-
-Registering function for new GEF Context View. pane_name: a string that has no spaces (used in settings) display_pane_function: a function that uses gef_print() to print strings pane_title_function: a function that returns a string or None, which will be displayed as the title. If None, no title line is displayed. 
-
-Example Usage: def display_pane(): gef_print("Wow, I am a context pane!") def pane_title(): return "example:pane" register_external_context_pane("example_pane", display_pane, pane_title) 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=register_function"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `register_function`
-
-```python
-register_function(cls)
-```
-
-Decorator for registering a new convenience function to GDB. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=register_priority_command"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `register_priority_command`
-
-```python
-register_priority_command(cls)
-```
-
-Decorator for registering new command with priority, meaning that it must loaded before the other generic commands. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=reset"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `reset`
-
-```python
-reset() → None
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=reset_all_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `reset_all_caches`
-
-```python
-reset_all_caches() → None
-```
-
-Free all caches. If an object is cached, it will have a callable attribute `cache_clear` which will be invoked to purge the function cache. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=safe_parse_and_eval"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `safe_parse_and_eval`
-
-```python
-safe_parse_and_eval(value: str)
-```
-
-GEF wrapper for gdb.parse_and_eval(): this function returns None instead of raising gdb.error if the eval failed. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=set_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `set_arch`
-
-```python
-set_arch(arch=None, default=None) → Architecture
-```
-
-Sets the current architecture. If an arch is explicitly specified, use that one, otherwise try to parse it out of the current target. If that fails, and default is specified, select and set that arch. Return the selected arch, or raise an OSError. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=set_gef_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `set_gef_setting`
-
-```python
-set_gef_setting(name: str, value: Any) → None
-```
-
-`set_gef_setting` is **DEPRECATED** and will be removed in the future. Use `gef.config[key] = value` 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=show_last_exception"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `show_last_exception`
-
-```python
-show_last_exception() → None
-```
-
-Display the last Python exception. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=style_byte"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `style_byte`
-
-```python
-style_byte(b: int, color: bool = True) → str
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=titlify"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `titlify`
-
-```python
-titlify(
-    text: str,
-    color: Optional[str] = None,
-    msg_color: Optional[str] = None
-) → str
-```
-
-Print a centered title. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=to_unsigned_long"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `to_unsigned_long`
-
-```python
-to_unsigned_long(v: gdb.Value) → int
-```
-
-Cast a gdb.Value to unsigned long. 
+Unpack one byte respecting the current architecture endianness. 
 
 
 ---
@@ -1777,15 +237,524 @@ Unpack one qword respecting the current architecture endianness.
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=u8"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=is_ascii_string"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `u8`
+## <kbd>function</kbd> `is_ascii_string`
 
 ```python
-u8(x: bytes, s: bool = False) → int
+is_ascii_string(address: int) → bool
 ```
 
-Unpack one byte respecting the current architecture endianness. 
+Helper function to determine if the buffer pointed by `address` is an ASCII string (in GDB) 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=is_alive"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `is_alive`
+
+```python
+is_alive() → bool
+```
+
+Check if GDB is running. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=only_if_gdb_running"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `only_if_gdb_running`
+
+```python
+only_if_gdb_running(f: Callable) → Callable
+```
+
+Decorator wrapper to check if GDB is running. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=only_if_gdb_target_local"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `only_if_gdb_target_local`
+
+```python
+only_if_gdb_target_local(f: Callable) → Callable
+```
+
+Decorator wrapper to check if GDB is running locally (target not remote). 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=deprecated"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `deprecated`
+
+```python
+deprecated(solution: str = '') → Callable
+```
+
+Decorator to add a warning when a command is obsolete and will be removed. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=experimental_feature"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `experimental_feature`
+
+```python
+experimental_feature(f: Callable) → Callable
+```
+
+Decorator to add a warning when a feature is experimental. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=only_if_gdb_version_higher_than"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `only_if_gdb_version_higher_than`
+
+```python
+only_if_gdb_version_higher_than(
+    required_gdb_version: Tuple[int, ...]
+) → Callable
+```
+
+Decorator to check whether current GDB version requirements. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=only_if_current_arch_in"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `only_if_current_arch_in`
+
+```python
+only_if_current_arch_in(
+    valid_architectures: List[ForwardRef('Architecture')]
+) → Callable
+```
+
+Decorator to allow commands for only a subset of the architectured supported by GEF. This decorator is to use lightly, as it goes against the purpose of GEF to support all architectures GDB does. However in some cases, it is necessary. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=only_if_events_supported"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `only_if_events_supported`
+
+```python
+only_if_events_supported(event_type: str) → Callable
+```
+
+Checks if GDB supports events without crashing. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wrapped_f`
+
+```python
+wrapped_f(*args: Any, **kwargs: Any) → Any
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wrapped_f`
+
+```python
+wrapped_f(*args: Any, **kwargs: Any) → Any
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wrapped_f`
+
+```python
+wrapped_f(*args: Any, **kwargs: Any) → Any
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wrapped_f`
+
+```python
+wrapped_f(*args: Any, **kwargs: Any) → Any
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wrapped_f`
+
+```python
+wrapped_f(*args: Any, **kwargs: Any) → Any
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wrapped_f`
+
+```python
+wrapped_f(*args: Any, **kwargs: Any) → Any
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wrapped_f`
+
+```python
+wrapped_f(*args: Any, **kwargs: Any) → Any
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wrapped_f`
+
+```python
+wrapped_f(*args: Any, **kwargs: Any) → Any
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wrapped_f`
+
+```python
+wrapped_f(*args: Any, **kwargs: Any) → Any
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wrapped_f`
+
+```python
+wrapped_f(*args: Any, **kwargs: Any) → Any
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wrapped_f`
+
+```python
+wrapped_f(*args: Any, **kwargs: Any) → Any
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=wrapped_f"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `wrapped_f`
+
+```python
+wrapped_f(*args: Any, **kwargs: Any) → Any
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=FakeExit"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `FakeExit`
+
+```python
+FakeExit(*args: Any, **kwargs: Any) → NoReturn
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=parse_arguments"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `parse_arguments`
+
+```python
+parse_arguments(
+    required_arguments: Dict[Union[str, Tuple[str, str]], Any],
+    optional_arguments: Dict[Union[str, Tuple[str, str]], Any]
+) → Union[Callable, NoneType]
+```
+
+Argument parsing decorator. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=titlify"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `titlify`
+
+```python
+titlify(
+    text: str,
+    color: Optional[str] = None,
+    msg_color: Optional[str] = None
+) → str
+```
+
+Print a centered title. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=err"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `err`
+
+```python
+err(msg: str) → None
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=warn"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `warn`
+
+```python
+warn(msg: str) → None
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=ok"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `ok`
+
+```python
+ok(msg: str) → None
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=info"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `info`
+
+```python
+info(msg: str) → None
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=push_context_message"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `push_context_message`
+
+```python
+push_context_message(level: str, message: str) → None
+```
+
+Push the message to be displayed the next time the context is invoked. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=show_last_exception"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `show_last_exception`
+
+```python
+show_last_exception() → None
+```
+
+Display the last Python exception. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_pystring"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_pystring`
+
+```python
+gef_pystring(x: bytes) → str
+```
+
+Returns a sanitized version as string of the bytes list given in input. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_pybytes"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_pybytes`
+
+```python
+gef_pybytes(x: str) → bytes
+```
+
+Returns an immutable bytes list from the string given as input. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=style_byte"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `style_byte`
+
+```python
+style_byte(b: int, color: bool = True) → str
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=hexdump"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `hexdump`
+
+```python
+hexdump(
+    source: ByteString,
+    length: int = 16,
+    separator: str = '.',
+    show_raw: bool = False,
+    show_symbol: bool = True,
+    base: int = 0
+) → str
+```
+
+Return the hexdump of `src` argument. @param source *MUST* be of type bytes or bytearray @param length is the length of items per line @param separator is the default character to use if one byte is not printable @param show_raw if True, do not add the line nor the text translation @param base is the start address of the block being hexdump @return a string with the hexdump 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=is_debug"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `is_debug`
+
+```python
+is_debug() → bool
+```
+
+Check if debug mode is enabled. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=hide_context"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `hide_context`
+
+```python
+hide_context() → bool
+```
+
+Helper function to hide the context pane. 
 
 
 ---
@@ -1803,15 +772,314 @@ Helper function to unhide the context pane.
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=update_gef"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=enable_redirect_output"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `update_gef`
+## <kbd>function</kbd> `enable_redirect_output`
 
 ```python
-update_gef(argv: List[str]) → int
+enable_redirect_output(to_file: str = '/dev/null') → None
 ```
 
-Try to update `gef` to the latest version pushed on GitHub master branch. Return 0 on success, 1 on failure.  
+Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=disable_redirect_output"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `disable_redirect_output`
+
+```python
+disable_redirect_output() → None
+```
+
+Disable the output redirection, if any. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_makedirs"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_makedirs`
+
+```python
+gef_makedirs(path: str, mode: int = 493) → Path
+```
+
+Recursive mkdir() creation. If successful, return the absolute path of the directory created. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gdb_disassemble"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gdb_disassemble`
+
+```python
+gdb_disassemble(
+    start_pc: int,
+    **kwargs: int
+) → Generator[__main__.Instruction, NoneType, NoneType]
+```
+
+Disassemble instructions from `start_pc` (Integer). Accepts the following named parameters: 
+- `end_pc` (Integer) only instructions whose start address fall in the interval from start_pc to end_pc are returned. 
+- `count` (Integer) list at most this many disassembled instructions If `end_pc` and `count` are not provided, the function will behave as if `count=1`. Return an iterator of Instruction objects 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gdb_get_nth_previous_instruction_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gdb_get_nth_previous_instruction_address`
+
+```python
+gdb_get_nth_previous_instruction_address(
+    addr: int,
+    n: int
+) → Union[int, NoneType]
+```
+
+Return the address (Integer) of the `n`-th instruction before `addr`. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gdb_get_nth_next_instruction_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gdb_get_nth_next_instruction_address`
+
+```python
+gdb_get_nth_next_instruction_address(addr: int, n: int) → int
+```
+
+Return the address (Integer) of the `n`-th instruction after `addr`. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_instruction_n"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_instruction_n`
+
+```python
+gef_instruction_n(addr: int, n: int) → Instruction
+```
+
+Return the `n`-th instruction after `addr` as an Instruction object. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_get_instruction_at"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_get_instruction_at`
+
+```python
+gef_get_instruction_at(addr: int) → Instruction
+```
+
+Return the full Instruction found at the specified address. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_current_instruction"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_current_instruction`
+
+```python
+gef_current_instruction(addr: int) → Instruction
+```
+
+Return the current instruction as an Instruction object. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_next_instruction"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_next_instruction`
+
+```python
+gef_next_instruction(addr: int) → Instruction
+```
+
+Return the next instruction as an Instruction object. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_disassemble"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_disassemble`
+
+```python
+gef_disassemble(
+    addr: int,
+    nb_insn: int,
+    nb_prev: int = 0
+) → Generator[__main__.Instruction, NoneType, NoneType]
+```
+
+Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`. Return an iterator of Instruction objects. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=capstone_disassemble"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `capstone_disassemble`
+
+```python
+capstone_disassemble(
+    location: int,
+    nb_insn: int,
+    **kwargs: Any
+) → Generator[__main__.Instruction, NoneType, NoneType]
+```
+
+Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr` using the Capstone-Engine disassembler, if available. Return an iterator of Instruction objects. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_execute_external"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_execute_external`
+
+```python
+gef_execute_external(
+    command: Sequence[str],
+    as_list: bool = False,
+    **kwargs: Any
+) → Union[str, List[str]]
+```
+
+Execute an external command and return the result. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_execute_gdb_script"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_execute_gdb_script`
+
+```python
+gef_execute_gdb_script(commands: str) → None
+```
+
+Execute the parameter `source` as GDB command. This is done by writing `commands` to a temporary file, which is then executed via GDB `source` command. The tempfile is then deleted. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_entry_point"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_entry_point`
+
+```python
+get_entry_point() → Union[int, NoneType]
+```
+
+Return the binary entry point. `get_entry_point` is **DEPRECATED** and will be removed in the future. Use `gef.binary.entry_point` instead 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=is_pie"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `is_pie`
+
+```python
+is_pie(fpath: str) → bool
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=is_big_endian"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `is_big_endian`
+
+```python
+is_big_endian() → bool
+```
+
+`is_big_endian` is **DEPRECATED** and will be removed in the future. Prefer `gef.arch.endianness == Endianness.BIG_ENDIAN` 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=is_little_endian"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `is_little_endian`
+
+```python
+is_little_endian() → bool
+```
+
+`is_little_endian` is **DEPRECATED** and will be removed in the future. gef.arch.endianness == Endianness.LITTLE_ENDIAN 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=flags_to_human"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `flags_to_human`
+
+```python
+flags_to_human(reg_value: int, value_table: Dict[int, str]) → str
+```
+
+Return a human readable string showing the flag states. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=register_architecture"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `register_architecture`
+
+```python
+register_architecture(
+    cls: Type[ForwardRef('Architecture')]
+) → Type[ForwardRef('Architecture')]
+```
+
+Class decorator for declaring an architecture to GEF. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=copy_to_clipboard"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `copy_to_clipboard`
+
+```python
+copy_to_clipboard(data: str) → None
+```
+
+Helper function to submit data to the clipboard 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=use_stdtype"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `use_stdtype`
+
+```python
+use_stdtype() → str
+```
+
+
+
+
 
 
 ---
@@ -1861,12 +1129,25 @@ use_rust_type() → str
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=use_stdtype"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=to_unsigned_long"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `use_stdtype`
+## <kbd>function</kbd> `to_unsigned_long`
 
 ```python
-use_stdtype() → str
+to_unsigned_long(v: gdb.Value) → int
+```
+
+Cast a gdb.Value to unsigned long. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_path_from_info_proc"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_path_from_info_proc`
+
+```python
+get_path_from_info_proc() → Union[str, NoneType]
 ```
 
 
@@ -1876,17 +1157,58 @@ use_stdtype() → str
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=warn"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=get_os"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `warn`
+## <kbd>function</kbd> `get_os`
 
 ```python
-warn(msg: str) → Union[int, NoneType]
+get_os() → str
 ```
 
+`get_os` is **DEPRECATED** and will be removed in the future. Use `gef.session.os` 
 
 
+---
 
+<a href="https://cs.github.com/hugsy/gef?q=download_file"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `download_file`
+
+```python
+download_file(
+    remote_path: str,
+    use_cache: bool = False,
+    local_name: Optional[str] = None
+) → Union[str, NoneType]
+```
+
+Download filename `remote_path` inside the mirror tree inside the `gef.config["gef.tempdir"]`. The tree architecture must be `gef.config["gef.tempdir"]/gef/<local_pid>/<remote_filepath>`. This allow a "chroot-like" tree format. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_function_length"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_function_length`
+
+```python
+get_function_length(sym: str) → int
+```
+
+Attempt to get the length of the raw bytes of a function. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=process_lookup_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `process_lookup_address`
+
+```python
+process_lookup_address(address: int) → Union[__main__.Section, NoneType]
+```
+
+Look up for an address in memory. Return an Address object if found, None otherwise. 
 
 
 ---
@@ -1900,6 +1222,716 @@ xor(data: ByteString, key: str) → bytearray
 ```
 
 Return `data` xor-ed with `key`. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=is_hex"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `is_hex`
+
+```python
+is_hex(pattern: str) → bool
+```
+
+Return whether provided string is a hexadecimal value. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=ida_synchronize_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `ida_synchronize_handler`
+
+```python
+ida_synchronize_handler(_: 'gdb.Event') → None
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=continue_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `continue_handler`
+
+```python
+continue_handler(_: 'gdb.Event') → None
+```
+
+GDB event handler for new object continue cases. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=hook_stop_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `hook_stop_handler`
+
+```python
+hook_stop_handler(_: 'gdb.Event') → None
+```
+
+GDB event handler for stop cases. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=new_objfile_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `new_objfile_handler`
+
+```python
+new_objfile_handler(_: 'gdb.Event') → None
+```
+
+GDB event handler for new object file cases. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=exit_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `exit_handler`
+
+```python
+exit_handler(_: 'gdb.Event') → None
+```
+
+GDB event handler for exit cases. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=memchanged_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `memchanged_handler`
+
+```python
+memchanged_handler(_: 'gdb.Event') → None
+```
+
+GDB event handler for mem changes cases. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=regchanged_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `regchanged_handler`
+
+```python
+regchanged_handler(_: 'gdb.Event') → None
+```
+
+GDB event handler for reg changes cases. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=load_libc_args"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `load_libc_args`
+
+```python
+load_libc_args() → bool
+```
+
+Load the LIBC function arguments. Returns `True` on success, `False` or an Exception otherwise. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_terminal_size"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_terminal_size`
+
+```python
+get_terminal_size() → Tuple[int, int]
+```
+
+Return the current terminal size. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_generic_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_generic_arch`
+
+```python
+get_generic_arch(
+    module: module,
+    prefix: str,
+    arch: str,
+    mode: Optional[str],
+    big_endian: Optional[bool],
+    to_string: bool = False
+) → Tuple[str, Union[int, str]]
+```
+
+Retrieves architecture and mode from the arguments for use for the holy {cap,key}stone/unicorn trinity. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_generic_running_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_generic_running_arch`
+
+```python
+get_generic_running_arch(
+    module: module,
+    prefix: str,
+    to_string: bool = False
+) → Union[Tuple[NoneType, NoneType], Tuple[str, Union[int, str]]]
+```
+
+Retrieves architecture and mode from the current context. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_unicorn_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_unicorn_arch`
+
+```python
+get_unicorn_arch(
+    arch: Optional[str] = None,
+    mode: Optional[str] = None,
+    endian: Optional[bool] = None,
+    to_string: bool = False
+) → Union[Tuple[NoneType, NoneType], Tuple[str, Union[int, str]]]
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_capstone_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_capstone_arch`
+
+```python
+get_capstone_arch(
+    arch: Optional[str] = None,
+    mode: Optional[str] = None,
+    endian: Optional[bool] = None,
+    to_string: bool = False
+) → Union[Tuple[NoneType, NoneType], Tuple[str, Union[int, str]]]
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_keystone_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_keystone_arch`
+
+```python
+get_keystone_arch(
+    arch: Optional[str] = None,
+    mode: Optional[str] = None,
+    endian: Optional[bool] = None,
+    to_string: bool = False
+) → Union[Tuple[NoneType, NoneType], Tuple[str, Union[int, str]]]
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_unicorn_registers"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_unicorn_registers`
+
+```python
+get_unicorn_registers(
+    to_string: bool = False
+) → Union[Dict[str, int], Dict[str, str]]
+```
+
+Return a dict matching the Unicorn identifier for a specific register. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=keystone_assemble"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `keystone_assemble`
+
+```python
+keystone_assemble(
+    code: str,
+    arch: int,
+    mode: int,
+    **kwargs: Any
+) → Union[str, bytearray, NoneType]
+```
+
+Assembly encoding function based on keystone. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=reset_architecture"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `reset_architecture`
+
+```python
+reset_architecture(
+    arch: Optional[str] = None,
+    default: Optional[str] = None
+) → None
+```
+
+Sets the current architecture. If an arch is explicitly specified, use that one, otherwise try to parse it out of the current target. If that fails, and default is specified, select and set that arch. Raise an exception if the architecture cannot be set.  Does not return a value. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_memory_alignment"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_memory_alignment`
+
+```python
+get_memory_alignment(in_bits: bool = False) → int
+```
+
+Try to determine the size of a pointer on this system.  First, try to parse it out of the ELF header.  Next, use the size of `size_t`.  Finally, try the size of $pc.  If `in_bits` is set to True, the result is returned in bits, otherwise in  bytes. `get_memory_alignment` is **DEPRECATED** and will be removed in the future. Use `gef.arch.ptrsize` instead 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=clear_screen"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `clear_screen`
+
+```python
+clear_screen(tty: str = '') → None
+```
+
+Clear the screen. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=format_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `format_address`
+
+```python
+format_address(addr: int) → str
+```
+
+Format the address according to its size. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=format_address_spaces"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `format_address_spaces`
+
+```python
+format_address_spaces(addr: int, left: bool = True) → str
+```
+
+Format the address according to its size, but with spaces instead of zeroes. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=align_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `align_address`
+
+```python
+align_address(address: int) → int
+```
+
+Align the provided address to the process's native length. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=align_address_to_size"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `align_address_to_size`
+
+```python
+align_address_to_size(address: int, align: int) → int
+```
+
+Align the address to the given size. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=align_address_to_page"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `align_address_to_page`
+
+```python
+align_address_to_page(address: int) → int
+```
+
+Align the address to a page. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=malloc_align_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `malloc_align_address`
+
+```python
+malloc_align_address(address: int) → int
+```
+
+Align addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=parse_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `parse_address`
+
+```python
+parse_address(address: str) → int
+```
+
+Parse an address and return it as an Integer. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=is_in_x86_kernel"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `is_in_x86_kernel`
+
+```python
+is_in_x86_kernel(address: int) → bool
+```
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=de_bruijn"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `de_bruijn`
+
+```python
+de_bruijn(alphabet: bytes, n: int) → Generator[str, NoneType, NoneType]
+```
+
+De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib). 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=generate_cyclic_pattern"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `generate_cyclic_pattern`
+
+```python
+generate_cyclic_pattern(length: int, cycle: int = 4) → bytearray
+```
+
+Create a `length` byte bytearray of a de Bruijn cyclic pattern. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=safe_parse_and_eval"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `safe_parse_and_eval`
+
+```python
+safe_parse_and_eval(value: str) → Union[ForwardRef('gdb.Value'), NoneType]
+```
+
+GEF wrapper for gdb.parse_and_eval(): this function returns None instead of raising gdb.error if the eval failed. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_convenience"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_convenience`
+
+```python
+gef_convenience(value: str) → str
+```
+
+Defines a new convenience value. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=parse_string_range"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `parse_string_range`
+
+```python
+parse_string_range(s: str) → Iterator[int]
+```
+
+Parses an address range (e.g. 0x400000-0x401000) 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_get_pie_breakpoint"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_get_pie_breakpoint`
+
+```python
+gef_get_pie_breakpoint(num: int) → PieVirtualBreakpoint
+```
+
+`gef_get_pie_breakpoint` is **DEPRECATED** and will be removed in the future. Use `gef.session.pie_breakpoints[num]` 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=endian_str"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `endian_str`
+
+```python
+endian_str() → str
+```
+
+`endian_str` is **DEPRECATED** and will be removed in the future. Use `str(gef.arch.endianness)` instead 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_gef_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_gef_setting`
+
+```python
+get_gef_setting(name: str) → Any
+```
+
+`get_gef_setting` is **DEPRECATED** and will be removed in the future. Use `gef.config[key]` 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=set_gef_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `set_gef_setting`
+
+```python
+set_gef_setting(name: str, value: Any) → None
+```
+
+`set_gef_setting` is **DEPRECATED** and will be removed in the future. Use `gef.config[key] = value` 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_getpagesize"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_getpagesize`
+
+```python
+gef_getpagesize() → int
+```
+
+`gef_getpagesize` is **DEPRECATED** and will be removed in the future. Use `gef.session.pagesize` 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=gef_read_canary"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `gef_read_canary`
+
+```python
+gef_read_canary() → Union[Tuple[int, int], NoneType]
+```
+
+`gef_read_canary` is **DEPRECATED** and will be removed in the future. Use `gef.session.canary` 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_pid"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_pid`
+
+```python
+get_pid() → int
+```
+
+`get_pid` is **DEPRECATED** and will be removed in the future. Use `gef.session.pid` 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_filename"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_filename`
+
+```python
+get_filename() → str
+```
+
+`get_filename` is **DEPRECATED** and will be removed in the future. Use `gef.session.file.name` 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_glibc_arena"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_glibc_arena`
+
+```python
+get_glibc_arena() → Union[__main__.GlibcArena, NoneType]
+```
+
+`get_glibc_arena` is **DEPRECATED** and will be removed in the future. Use `gef.heap.main_arena` 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_register"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_register`
+
+```python
+get_register(regname) → Union[int, NoneType]
+```
+
+`get_register` is **DEPRECATED** and will be removed in the future. Use `gef.arch.register(regname)` 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=get_process_maps"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `get_process_maps`
+
+```python
+get_process_maps() → List[__main__.Section]
+```
+
+`get_process_maps` is **DEPRECATED** and will be removed in the future. Use `gef.memory.maps` 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=set_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `set_arch`
+
+```python
+set_arch(arch: Optional[str] = None, default: Optional[str] = None) → None
+```
+
+`set_arch` is **DEPRECATED** and will be removed in the future. Use `reset_architecture` 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=register_external_context_pane"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `register_external_context_pane`
+
+```python
+register_external_context_pane(
+    pane_name: str,
+    display_pane_function: Callable[[], NoneType],
+    pane_title_function: Callable[[], Optional[str]]
+) → None
+```
+
+Registering function for new GEF Context View. pane_name: a string that has no spaces (used in settings) display_pane_function: a function that uses gef_print() to print strings pane_title_function: a function that returns a string or None, which will be displayed as the title. If None, no title line is displayed. 
+
+Example Usage: def display_pane(): gef_print("Wow, I am a context pane!") def pane_title(): return "example:pane" register_external_context_pane("example_pane", display_pane, pane_title) 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=register_external_command"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `register_external_command`
+
+```python
+register_external_command(
+    obj: 'GenericCommand'
+) → Type[ForwardRef('GenericCommand')]
+```
+
+Registering function for new GEF (sub-)command to GDB. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=register_command"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `register_command`
+
+```python
+register_command(
+    cls: Type[ForwardRef('GenericCommand')]
+) → Type[ForwardRef('GenericCommand')]
+```
+
+Decorator for registering new GEF (sub-)command to GDB. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=register_priority_command"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `register_priority_command`
+
+```python
+register_priority_command(
+    cls: Type[ForwardRef('GenericCommand')]
+) → Type[ForwardRef('GenericCommand')]
+```
+
+Decorator for registering new command with priority, meaning that it must loaded before the other generic commands. 
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=register_function"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `register_function`
+
+```python
+register_function(
+    cls: Type[ForwardRef('GenericFunction')]
+) → Type[ForwardRef('GenericFunction')]
+```
+
+Decorator for registering a new convenience function to GDB. 
 
 
 ---
@@ -1988,7 +2020,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `AARCH64.get_ra`
 
 ```python
-get_ra(insn, frame) → int
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → int
 ```
 
 
@@ -2002,7 +2034,7 @@ get_ra(insn, frame) → int
 ## <kbd>function</kbd> `AARCH64.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -2016,7 +2048,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `AARCH64.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -2030,7 +2062,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `AARCH64.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -2044,7 +2076,7 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `AARCH64.is_ret`
 
 ```python
-is_ret(insn) → Union[bool, NoneType]
+is_ret(insn: __main__.Instruction) → bool
 ```
 
 
@@ -2070,7 +2102,7 @@ Determine if the machine is currently in THUMB mode.
 ## <kbd>function</kbd> `AARCH64.mprotect_asm`
 
 ```python
-mprotect_asm(addr: int, size: int, perm) → str
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -2194,7 +2226,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `ARM.get_ra`
 
 ```python
-get_ra(insn, frame) → int
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → int
 ```
 
 
@@ -2208,7 +2240,7 @@ get_ra(insn, frame) → int
 ## <kbd>function</kbd> `ARM.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -2222,7 +2254,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `ARM.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -2236,7 +2268,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `ARM.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -2250,7 +2282,7 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `ARM.is_ret`
 
 ```python
-is_ret(insn) → Union[bool, NoneType]
+is_ret(insn: __main__.Instruction) → bool
 ```
 
 
@@ -2276,7 +2308,7 @@ Determine if the machine is currently in THUMB mode.
 ## <kbd>function</kbd> `ARM.mprotect_asm`
 
 ```python
-mprotect_asm(addr: int, size: int, perm) → str
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -2308,7 +2340,7 @@ View/modify the ASLR setting of GDB. By default, GDB will disable ASLR when it s
 ## <kbd>function</kbd> `ASLRCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -2359,7 +2391,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ASLRCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -2373,7 +2405,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `ASLRCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -2457,7 +2489,7 @@ GEF representation of memory addresses.
 ## <kbd>function</kbd> `Address.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(**kwargs: Any) → None
 ```
 
 
@@ -2585,7 +2617,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `AliasesAddCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -2599,7 +2631,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `AliasesAddCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -2734,7 +2766,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `AliasesCommand.do_invoke`
 
 ```python
-do_invoke(argv) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -2748,7 +2780,7 @@ do_invoke(argv) → None
 ## <kbd>function</kbd> `AliasesCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -2883,7 +2915,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `AliasesListCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -2897,7 +2929,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `AliasesListCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -3032,7 +3064,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `AliasesRmCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -3046,7 +3078,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `AliasesRmCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -3212,7 +3244,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `Architecture.get_ra`
 
 ```python
-get_ra(insn, frame) → Union[int, NoneType]
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → Union[int, NoneType]
 ```
 
 
@@ -3226,7 +3258,7 @@ get_ra(insn, frame) → Union[int, NoneType]
 ## <kbd>function</kbd> `Architecture.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -3240,7 +3272,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `Architecture.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -3254,7 +3286,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `Architecture.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -3268,7 +3300,21 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `Architecture.is_ret`
 
 ```python
-is_ret(insn) → Union[bool, NoneType]
+is_ret(insn: __main__.Instruction) → bool
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=Architecture.mprotect_asm"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `Architecture.mprotect_asm`
+
+```python
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -3365,7 +3411,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `AssembleCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -3508,7 +3554,7 @@ do_invoke(args: List) → int
 ## <kbd>function</kbd> `BssBaseFunction.invoke`
 
 ```python
-invoke(*args) → int
+invoke(*args: Any) → int
 ```
 
 
@@ -3526,7 +3572,7 @@ Shows the canary value of the current process.
 ## <kbd>function</kbd> `CanaryCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -3577,7 +3623,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `CanaryCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -3591,7 +3637,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `CanaryCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -3675,7 +3721,7 @@ Use capstone disassembly framework to disassemble code.
 ## <kbd>function</kbd> `CapstoneDisassembleCommand.__init__`
 
 ```python
-__init__()
+__init__() → None
 ```
 
 
@@ -3714,7 +3760,7 @@ add_setting(
 ## <kbd>function</kbd> `CapstoneDisassembleCommand.capstone_analyze_pc`
 
 ```python
-capstone_analyze_pc(insn, nb_insn: int) → Tuple[bool, str]
+capstone_analyze_pc(insn: __main__.Instruction, nb_insn: int) → Tuple[bool, str]
 ```
 
 
@@ -3754,7 +3800,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `CapstoneDisassembleCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -3838,7 +3884,7 @@ ChangeFdCommand: redirect file descriptor during runtime.
 ## <kbd>function</kbd> `ChangeFdCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -3889,7 +3935,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ChangeFdCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -3917,7 +3963,7 @@ get_fd_from_result(res: str) → int
 ## <kbd>function</kbd> `ChangeFdCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -4087,7 +4133,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ChangePermissionCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -4101,7 +4147,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `ChangePermissionCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -4113,7 +4159,11 @@ get_setting(name)
 ## <kbd>function</kbd> `ChangePermissionCommand.get_stub_by_arch`
 
 ```python
-get_stub_by_arch(addr: int, size: int, perm) → Union[str, bytearray, NoneType]
+get_stub_by_arch(
+    addr: int,
+    size: int,
+    perm: __main__.Permission
+) → Union[str, bytearray, NoneType]
 ```
 
 
@@ -4255,7 +4305,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ChecksecCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -4269,7 +4319,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `ChecksecCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -4761,7 +4811,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ContextCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -4803,7 +4853,7 @@ get_pc_context_info(pc: int, line: str) → str
 ## <kbd>function</kbd> `ContextCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -4887,7 +4937,7 @@ pre_load() → None
 ## <kbd>function</kbd> `ContextCommand.print_arguments_from_symbol`
 
 ```python
-print_arguments_from_symbol(function_name: str, symbol) → None
+print_arguments_from_symbol(function_name: str, symbol: 'gdb.Symbol') → None
 ```
 
 If symbols were found, parse them and print the argument adequately. 
@@ -5022,7 +5072,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `DereferenceCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -5120,7 +5170,7 @@ Display full details on one, many or all registers value from current architectu
 ## <kbd>function</kbd> `DetailRegistersCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -5185,7 +5235,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `DetailRegistersCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -5264,31 +5314,25 @@ usage() → None
 ## <kbd>class</kbd> `Elf`
 Basic ELF parsing. Ref: 
 - http://www.skyfree.org/linux/references/ELF_Format.pdf 
-- http://refspecs.linuxfoundation.org/elf/elfspec_ppc.pdf 
-- http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html 
+- https://refspecs.linuxfoundation.org/elf/elfspec_ppc.pdf 
+- https://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html 
 
 <a href="https://cs.github.com/hugsy/gef?q=Elf.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `Elf.__init__`
 
 ```python
-__init__(elf: str = '', minimalist: bool = False) → None
+__init__(path: str = '', minimalist: bool = False) → None
 ```
 
 Instantiate an ELF object. The default behavior is to create the object by parsing the ELF file. But in some cases (QEMU-stub), we may just want a simple minimal object with default values. 
 
 
-
-
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=Elf.is_valid"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+#### <kbd>property</kbd> Elf.entry_point
 
-## <kbd>function</kbd> `Elf.is_valid`
 
-```python
-is_valid() → bool
-```
 
 
 
@@ -5301,7 +5345,21 @@ is_valid() → bool
 ## <kbd>function</kbd> `Elf.read`
 
 ```python
-read(size)
+read(size: int) → bytes
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=Elf.read_and_unpack"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `Elf.read_and_unpack`
+
+```python
+read_and_unpack(fmt: str) → Tuple[Any, ...]
 ```
 
 
@@ -5398,7 +5456,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `ElfInfoCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -5577,7 +5635,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `EntryPointBreakCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -5591,7 +5649,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `EntryPointBreakCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -5695,6 +5753,71 @@ usage() → None
 
 ---
 
+## <kbd>class</kbd> `ExternalStructureManager`
+
+
+
+
+<a href="https://cs.github.com/hugsy/gef?q=ExternalStructureManager.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `ExternalStructureManager.__init__`
+
+```python
+__init__() → None
+```
+
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> ExternalStructureManager.modules
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> ExternalStructureManager.path
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> ExternalStructureManager.structures
+
+
+
+
+
+
+---
+
+#### <kbd>handler</kbd> ExternalStructureManager.find
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=ExternalStructureManager.clear_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `ExternalStructureManager.clear_caches`
+
+```python
+clear_caches() → None
+```
+
+
+
+
+
+
+---
+
 ## <kbd>class</kbd> `FlagsCommand`
 Edit flags in a human friendly way. 
 
@@ -5703,7 +5826,7 @@ Edit flags in a human friendly way.
 ## <kbd>function</kbd> `FlagsCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -5754,7 +5877,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `FlagsCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -5768,7 +5891,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `FlagsCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -5887,7 +6010,7 @@ Exploitable format-string helper: this command will set up specific breakpoints 
 ## <kbd>function</kbd> `FormatStringSearchCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -5938,7 +6061,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `FormatStringSearchCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -5952,7 +6075,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `FormatStringSearchCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -6132,7 +6255,12 @@ Simple aliasing wrapper because GDB doesn't do what it should.
 ## <kbd>function</kbd> `GefAlias.__init__`
 
 ```python
-__init__(alias, command, completer_class=0, command_class=-1) → None
+__init__(
+    alias: str,
+    command: str,
+    completer_class: int = 0,
+    command_class: int = -1
+) → None
 ```
 
 
@@ -6149,7 +6277,7 @@ __init__(alias, command, completer_class=0, command_class=-1) → None
 ## <kbd>function</kbd> `GefAlias.invoke`
 
 ```python
-invoke(args, from_tty) → None
+invoke(args: Any, from_tty: bool) → None
 ```
 
 
@@ -6222,7 +6350,7 @@ Add a new context pane to ContextCommand.
 ## <kbd>function</kbd> `GefCommand.invoke`
 
 ```python
-invoke(args, from_tty) → None
+invoke(args: Any, from_tty: bool) → None
 ```
 
 
@@ -6266,7 +6394,7 @@ GEF configuration sub-command This command will help set/view GEF settings for t
 ## <kbd>function</kbd> `GefConfigCommand.__init__`
 
 ```python
-__init__(loaded_commands, *args, **kwargs) → None
+__init__(loaded_commands: List[str]) → None
 ```
 
 
@@ -6297,7 +6425,7 @@ complete(text: str, word: str) → List[str]
 ## <kbd>function</kbd> `GefConfigCommand.invoke`
 
 ```python
-invoke(args: str, from_tty) → None
+invoke(args: str, from_tty: bool) → None
 ```
 
 
@@ -6434,7 +6562,7 @@ do_invoke(argv) → None
 ## <kbd>function</kbd> `GefFunctionsCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -6607,7 +6735,7 @@ GEF help sub-command.
 ## <kbd>function</kbd> `GefHelpCommand.__init__`
 
 ```python
-__init__(commands: List[Tuple[str, Any, Any]], *args, **kwargs) → None
+__init__(commands: List[Tuple[str, Any, Any]]) → None
 ```
 
 
@@ -6624,7 +6752,9 @@ __init__(commands: List[Tuple[str, Any, Any]], *args, **kwargs) → None
 ## <kbd>function</kbd> `GefHelpCommand.add_command_to_doc`
 
 ```python
-add_command_to_doc(command: Tuple[str, Any, Any]) → None
+add_command_to_doc(
+    command: Tuple[str, Type[__main__.GenericCommand], Any]
+) → None
 ```
 
 Add command to GEF documentation. 
@@ -6636,7 +6766,9 @@ Add command to GEF documentation.
 ## <kbd>function</kbd> `GefHelpCommand.generate_help`
 
 ```python
-generate_help(commands: List[Tuple[str, Any, Any]]) → None
+generate_help(
+    commands: List[Tuple[str, Type[__main__.GenericCommand], Any]]
+) → None
 ```
 
 Generate builtin commands documentation. 
@@ -6648,7 +6780,7 @@ Generate builtin commands documentation.
 ## <kbd>function</kbd> `GefHelpCommand.invoke`
 
 ```python
-invoke(args, from_tty) → None
+invoke(args: Any, from_tty: bool) → None
 ```
 
 
@@ -6792,7 +6924,7 @@ reset_caches() → None
 ## <kbd>function</kbd> `GefMemoryManager.write`
 
 ```python
-write(address: int, buffer: ByteString, length: int = 16)
+write(address: int, buffer: ByteString, length: int = 16) → None
 ```
 
 Write `buffer` at address `address`. 
@@ -6808,7 +6940,7 @@ GEF missing sub-command Display the GEF commands that could not be loaded, along
 ## <kbd>function</kbd> `GefMissingCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__() → None
 ```
 
 
@@ -6825,7 +6957,7 @@ __init__(*args, **kwargs) → None
 ## <kbd>function</kbd> `GefMissingCommand.invoke`
 
 ```python
-invoke(args, from_tty) → None
+invoke(args: Any, from_tty: bool) → None
 ```
 
 
@@ -6843,7 +6975,7 @@ GEF restore sub-command. Loads settings from file '~/.gef.rc' and apply them to 
 ## <kbd>function</kbd> `GefRestoreCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__() → None
 ```
 
 
@@ -6860,7 +6992,7 @@ __init__(*args, **kwargs) → None
 ## <kbd>function</kbd> `GefRestoreCommand.invoke`
 
 ```python
-invoke(args: str, from_tty) → None
+invoke(args: str, from_tty: bool) → None
 ```
 
 
@@ -6878,7 +7010,7 @@ Override GDB run commands with the context from GEF. Simple wrapper for GDB run 
 ## <kbd>function</kbd> `GefRunCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__() → None
 ```
 
 
@@ -6895,7 +7027,7 @@ __init__(*args, **kwargs) → None
 ## <kbd>function</kbd> `GefRunCommand.invoke`
 
 ```python
-invoke(args, from_tty) → None
+invoke(args: Any, from_tty: bool) → None
 ```
 
 
@@ -6913,7 +7045,7 @@ GEF save sub-command. Saves the current configuration of GEF to disk (by default
 ## <kbd>function</kbd> `GefSaveCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__() → None
 ```
 
 
@@ -6930,7 +7062,7 @@ __init__(*args, **kwargs) → None
 ## <kbd>function</kbd> `GefSaveCommand.invoke`
 
 ```python
-invoke(args, from_tty) → None
+invoke(args: Any, from_tty: bool) → None
 ```
 
 
@@ -7021,7 +7153,7 @@ Override GDB set commands with the context from GEF.
 ## <kbd>function</kbd> `GefSetCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__() → None
 ```
 
 
@@ -7038,7 +7170,7 @@ __init__(*args, **kwargs) → None
 ## <kbd>function</kbd> `GefSetCommand.invoke`
 
 ```python
-invoke(args, from_tty) → None
+invoke(args: Any, from_tty: bool) → None
 ```
 
 
@@ -7086,7 +7218,7 @@ GefSettings acts as a dict where the global settings are stored and can be read,
 ## <kbd>function</kbd> `GefSettingsManager.raw_entry`
 
 ```python
-raw_entry(name: str) → Any
+raw_entry(name: str) → GefSetting
 ```
 
 
@@ -7104,7 +7236,7 @@ Customize GEF appearance.
 ## <kbd>function</kbd> `GefThemeCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__() → None
 ```
 
 
@@ -7155,7 +7287,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GefThemeCommand.do_invoke`
 
 ```python
-do_invoke(args: List) → None
+do_invoke(args: List[str]) → None
 ```
 
 
@@ -7169,7 +7301,7 @@ do_invoke(args: List) → None
 ## <kbd>function</kbd> `GefThemeCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -7270,7 +7402,7 @@ __init__() → None
 ## <kbd>function</kbd> `GefTmuxSetup.invoke`
 
 ```python
-invoke(args, from_tty) → None
+invoke(args: Any, from_tty: bool) → None
 ```
 
 
@@ -7312,7 +7444,7 @@ Class managing UI settings.
 ## <kbd>function</kbd> `GefUiManager.__init__`
 
 ```python
-__init__()
+__init__() → None
 ```
 
 
@@ -7392,7 +7524,7 @@ Reset the LRU-cached attributes
 ## <kbd>function</kbd> `GenericArchitecture.flag_register_to_human`
 
 ```python
-flag_register_to_human(val: Optional[int] = None) → Union[str, NoneType]
+flag_register_to_human(val: Optional[int] = None) → str
 ```
 
 
@@ -7421,7 +7553,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `GenericArchitecture.get_ra`
 
 ```python
-get_ra(insn, frame) → Union[int, NoneType]
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → Union[int, NoneType]
 ```
 
 
@@ -7435,7 +7567,7 @@ get_ra(insn, frame) → Union[int, NoneType]
 ## <kbd>function</kbd> `GenericArchitecture.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -7449,7 +7581,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `GenericArchitecture.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -7463,7 +7595,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `GenericArchitecture.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -7477,7 +7609,21 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `GenericArchitecture.is_ret`
 
 ```python
-is_ret(insn) → bool
+is_ret(insn: __main__.Instruction) → bool
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=GenericArchitecture.mprotect_asm"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `GenericArchitecture.mprotect_asm`
+
+```python
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -7509,7 +7655,7 @@ This is an abstract class for invoking commands, should not be instantiated.
 ## <kbd>function</kbd> `GenericCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -7560,7 +7706,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GenericCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -7574,7 +7720,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `GenericCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -7689,7 +7835,7 @@ arg_to_long(args: List, index: int, default: int = 0) → int
 ## <kbd>function</kbd> `GenericFunction.do_invoke`
 
 ```python
-do_invoke(args) → None
+do_invoke(args: List) → int
 ```
 
 
@@ -7703,7 +7849,7 @@ do_invoke(args) → None
 ## <kbd>function</kbd> `GenericFunction.invoke`
 
 ```python
-invoke(*args) → int
+invoke(*args: Any) → int
 ```
 
 
@@ -7724,6 +7870,14 @@ Glibc arena class Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/m
 __init__(addr: str) → None
 ```
 
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> GlibcArena.addr
 
 
 
@@ -7752,7 +7906,7 @@ bin(i: int) → Tuple[int, int]
 ## <kbd>function</kbd> `GlibcArena.fastbin`
 
 ```python
-fastbin(i: int)
+fastbin(i: int) → Union[ForwardRef('GlibcChunk'), NoneType]
 ```
 
 Return head chunk in fastbinsY[i]. 
@@ -7776,7 +7930,7 @@ Find the corresponding heap for a given pointer (int). See https://github.com/bm
 ## <kbd>function</kbd> `GlibcArena.get_heap_info_list`
 
 ```python
-get_heap_info_list()
+get_heap_info_list() → Union[List[__main__.GlibcHeapInfo], NoneType]
 ```
 
 
@@ -7822,7 +7976,11 @@ Glibc chunk class. The default behavior (from_base=False) is to interpret the da
 ## <kbd>function</kbd> `GlibcChunk.__init__`
 
 ```python
-__init__(addr, from_base=False, allow_unaligned=True)
+__init__(
+    addr: int,
+    from_base: bool = False,
+    allow_unaligned: bool = True
+) → None
 ```
 
 
@@ -7929,7 +8087,7 @@ get_chunk_size() → int
 ## <kbd>function</kbd> `GlibcChunk.get_fwd_ptr`
 
 ```python
-get_fwd_ptr(sll) → int
+get_fwd_ptr(sll: bool) → int
 ```
 
 
@@ -7943,7 +8101,7 @@ get_fwd_ptr(sll) → int
 ## <kbd>function</kbd> `GlibcChunk.get_next_chunk`
 
 ```python
-get_next_chunk(allow_unaligned: bool = False)
+get_next_chunk(allow_unaligned: bool = False) → GlibcChunk
 ```
 
 
@@ -8115,7 +8273,7 @@ Display information on a heap chunk.
 ## <kbd>function</kbd> `GlibcHeapArenaCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -8166,7 +8324,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapArenaCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -8180,7 +8338,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `GlibcHeapArenaCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -8315,7 +8473,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapBinsCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -8329,7 +8487,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `GlibcHeapBinsCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -8492,7 +8650,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `GlibcHeapChunkCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -8678,7 +8836,7 @@ dump_chunks_heap(
 ## <kbd>function</kbd> `GlibcHeapChunksCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -8813,7 +8971,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -8827,7 +8985,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `GlibcHeapCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -8957,12 +9115,12 @@ del_setting(name: str) → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=GlibcHeapFastbinsYCommand.do_invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=GlibcHeapFastbinsYCommand.wrapper"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `GlibcHeapFastbinsYCommand.do_invoke`
+## <kbd>function</kbd> `GlibcHeapFastbinsYCommand.wrapper`
 
 ```python
-do_invoke(argv: List) → None
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -8976,7 +9134,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `GlibcHeapFastbinsYCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -9060,7 +9218,7 @@ Glibc heap_info struct See https://github.com/bminor/glibc/blob/glibc-2.34/mallo
 ## <kbd>function</kbd> `GlibcHeapInfo.__init__`
 
 ```python
-__init__(addr) → None
+__init__(addr: Union[int, str]) → None
 ```
 
 
@@ -9199,12 +9357,12 @@ del_setting(name: str) → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=GlibcHeapLargeBinsCommand.do_invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=GlibcHeapLargeBinsCommand.wrapper"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `GlibcHeapLargeBinsCommand.do_invoke`
+## <kbd>function</kbd> `GlibcHeapLargeBinsCommand.wrapper`
 
 ```python
-do_invoke(argv: List) → None
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -9218,7 +9376,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `GlibcHeapLargeBinsCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -9353,7 +9511,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapSetArenaCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -9367,7 +9525,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `GlibcHeapSetArenaCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -9497,12 +9655,12 @@ del_setting(name: str) → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=GlibcHeapSmallBinsCommand.do_invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=GlibcHeapSmallBinsCommand.wrapper"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `GlibcHeapSmallBinsCommand.do_invoke`
+## <kbd>function</kbd> `GlibcHeapSmallBinsCommand.wrapper`
 
 ```python
-do_invoke(argv: List) → None
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -9516,7 +9674,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `GlibcHeapSmallBinsCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -9663,7 +9821,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapTcachebinsCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -9689,7 +9847,7 @@ Return the location of the current thread's tcache.
 ## <kbd>function</kbd> `GlibcHeapTcachebinsCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -9834,12 +9992,12 @@ del_setting(name: str) → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=GlibcHeapUnsortedBinsCommand.do_invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=GlibcHeapUnsortedBinsCommand.wrapper"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `GlibcHeapUnsortedBinsCommand.do_invoke`
+## <kbd>function</kbd> `GlibcHeapUnsortedBinsCommand.wrapper`
 
 ```python
-do_invoke(argv: List) → None
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -9853,7 +10011,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `GlibcHeapUnsortedBinsCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -9982,7 +10140,7 @@ do_invoke(args: List) → int
 ## <kbd>function</kbd> `GotBaseFunction.invoke`
 
 ```python
-invoke(*args) → int
+invoke(*args: Any) → int
 ```
 
 
@@ -10000,7 +10158,7 @@ Display current status of the got inside the process.
 ## <kbd>function</kbd> `GotCommand.__init__`
 
 ```python
-__init__(*args, **kwargs)
+__init__()
 ```
 
 
@@ -10051,7 +10209,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GotCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -10079,7 +10237,7 @@ get_jmp_slots(readelf: str, filename: str) → List[str]
 ## <kbd>function</kbd> `GotCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -10206,7 +10364,7 @@ add_setting(
 ## <kbd>function</kbd> `HeapAnalysisCommand.clean`
 
 ```python
-clean(_) → None
+clean(_: 'gdb.Event') → None
 ```
 
 
@@ -10232,7 +10390,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HeapAnalysisCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -10260,7 +10418,7 @@ dump_tracked_allocations() → None
 ## <kbd>function</kbd> `HeapAnalysisCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -10403,7 +10561,7 @@ do_invoke(args: List) → int
 ## <kbd>function</kbd> `HeapBaseFunction.invoke`
 
 ```python
-invoke(*args) → int
+invoke(*args: Any) → int
 ```
 
 
@@ -10486,7 +10644,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `HexdumpByteCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -10635,7 +10793,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `HexdumpCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -10784,7 +10942,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `HexdumpDwordCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -10933,7 +11091,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `HexdumpQwordCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -11082,7 +11240,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `HexdumpWordCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -11166,7 +11324,7 @@ Add a match to the highlight table.
 ## <kbd>function</kbd> `HighlightAddCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -11217,7 +11375,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HighlightAddCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -11231,7 +11389,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `HighlightAddCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -11315,7 +11473,7 @@ Clear the highlight table, remove all matches.
 ## <kbd>function</kbd> `HighlightClearCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -11366,7 +11524,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HighlightClearCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -11380,7 +11538,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `HighlightClearCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -11515,7 +11673,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HighlightCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -11529,7 +11687,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `HighlightCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -11613,7 +11771,7 @@ Show the current highlight table with matches to colors.
 ## <kbd>function</kbd> `HighlightListCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -11664,7 +11822,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HighlightListCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -11678,7 +11836,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `HighlightListCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -11776,7 +11934,7 @@ Remove a match in the highlight table.
 ## <kbd>function</kbd> `HighlightRemoveCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -11827,7 +11985,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HighlightRemoveCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -11841,7 +11999,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `HighlightRemoveCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -12002,7 +12160,7 @@ disconnect() → None
 ## <kbd>function</kbd> `IdaInteractCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 `do_invoke` is **DEPRECATED** and will be removed in the future. 
@@ -12014,7 +12172,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `IdaInteractCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -12138,7 +12296,13 @@ GEF representation of a CPU instruction.
 ## <kbd>function</kbd> `Instruction.__init__`
 
 ```python
-__init__(address: int, location, mnemo: str, operands, opcodes) → None
+__init__(
+    address: int,
+    location: str,
+    mnemo: str,
+    operands: List[str],
+    opcodes: bytearray
+) → None
 ```
 
 
@@ -12173,7 +12337,7 @@ Tells whether the next instruction is a system call.
 ## <kbd>function</kbd> `IsSyscallCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -12224,7 +12388,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `IsSyscallCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -12238,7 +12402,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `IsSyscallCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -12276,7 +12440,10 @@ invoke(args: str, from_tty: bool) → None
 ## <kbd>function</kbd> `IsSyscallCommand.is_syscall`
 
 ```python
-is_syscall(arch, instruction: __main__.Instruction) → bool
+is_syscall(
+    arch: __main__.Architecture,
+    instruction: __main__.Instruction
+) → bool
 ```
 
 
@@ -12412,7 +12579,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `MIPS.get_ra`
 
 ```python
-get_ra(insn, frame) → Union[int, NoneType]
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → Union[int, NoneType]
 ```
 
 
@@ -12426,7 +12593,7 @@ get_ra(insn, frame) → Union[int, NoneType]
 ## <kbd>function</kbd> `MIPS.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -12440,7 +12607,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `MIPS.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -12454,7 +12621,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `MIPS.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -12468,7 +12635,7 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `MIPS.is_ret`
 
 ```python
-is_ret(insn) → bool
+is_ret(insn: __main__.Instruction) → bool
 ```
 
 
@@ -12482,7 +12649,7 @@ is_ret(insn) → bool
 ## <kbd>function</kbd> `MIPS.mprotect_asm`
 
 ```python
-mprotect_asm(addr: int, size: int, perm) → str
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -12590,7 +12757,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `MIPS64.get_ra`
 
 ```python
-get_ra(insn, frame) → Union[int, NoneType]
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → Union[int, NoneType]
 ```
 
 
@@ -12604,7 +12771,7 @@ get_ra(insn, frame) → Union[int, NoneType]
 ## <kbd>function</kbd> `MIPS64.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -12618,7 +12785,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `MIPS64.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -12632,7 +12799,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `MIPS64.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -12646,7 +12813,7 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `MIPS64.is_ret`
 
 ```python
-is_ret(insn) → bool
+is_ret(insn: __main__.Instruction) → bool
 ```
 
 
@@ -12660,7 +12827,7 @@ is_ret(insn) → bool
 ## <kbd>function</kbd> `MIPS64.mprotect_asm`
 
 ```python
-mprotect_asm(addr: int, size: int, perm) → str
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -12837,7 +13004,7 @@ __init__(addr: str) → None
 ## <kbd>function</kbd> `MallocStateStruct.get_size_t`
 
 ```python
-get_size_t(addr)
+get_size_t(addr: int) → gdb.Value
 ```
 
 
@@ -12851,7 +13018,7 @@ get_size_t(addr)
 ## <kbd>function</kbd> `MallocStateStruct.get_size_t_array`
 
 ```python
-get_size_t_array(addr, length)
+get_size_t_array(addr: int, length: int) → gdb.Value
 ```
 
 
@@ -12865,7 +13032,7 @@ get_size_t_array(addr, length)
 ## <kbd>function</kbd> `MallocStateStruct.get_size_t_pointer`
 
 ```python
-get_size_t_pointer(addr)
+get_size_t_pointer(addr: int) → gdb.Value
 ```
 
 
@@ -12934,7 +13101,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `MemoryCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -12948,7 +13115,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `MemoryCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -13083,7 +13250,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `MemoryUnwatchCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -13097,7 +13264,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `MemoryUnwatchCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -13232,7 +13399,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `MemoryWatchCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -13246,7 +13413,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `MemoryWatchCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -13330,7 +13497,7 @@ Lists all watchpoints to display in context layout.
 ## <kbd>function</kbd> `MemoryWatchListCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -13381,7 +13548,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `MemoryWatchListCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -13395,7 +13562,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `MemoryWatchListCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -13479,7 +13646,7 @@ Removes all watchpoints.
 ## <kbd>function</kbd> `MemoryWatchResetCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -13530,7 +13697,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `MemoryWatchResetCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -13544,7 +13711,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `MemoryWatchResetCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -13728,7 +13895,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `NamedBreakpointCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -13891,7 +14058,7 @@ get_insn_size(addr: int) → int
 ## <kbd>function</kbd> `NopCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -14023,25 +14190,6 @@ add_setting(
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.apply_structure_to_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomCommand.apply_structure_to_address`
-
-```python
-apply_structure_to_address(
-    mod_name: str,
-    struct_name: str,
-    addr: int,
-    depth: int = 0
-) → None
-```
-
-
-
-
-
----
-
 <a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.del_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `PCustomCommand.del_setting`
@@ -14054,12 +14202,12 @@ del_setting(name: str) → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.deserialize"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.wrapper"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `PCustomCommand.deserialize`
+## <kbd>function</kbd> `PCustomCommand.wrapper`
 
 ```python
-deserialize(struct: _ctypes.Structure, data: bytes) → None
+wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ```
 
 
@@ -14068,106 +14216,12 @@ deserialize(struct: _ctypes.Structure, data: bytes) → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.do_invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.explode_type"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `PCustomCommand.do_invoke`
-
-```python
-do_invoke(argv: List) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.enumerate_structure_files"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomCommand.enumerate_structure_files`
+## <kbd>function</kbd> `PCustomCommand.explode_type`
 
 ```python
-enumerate_structure_files() → List[str]
-```
-
-Return a list of all the files in the pcustom directory 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.enumerate_structures"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomCommand.enumerate_structures`
-
-```python
-enumerate_structures() → Dict[str, Set[str]]
-```
-
-Return a hash of all the structures, with the key set the to filepath 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.enumerate_structures_from_module"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomCommand.enumerate_structures_from_module`
-
-```python
-enumerate_structures_from_module(module: module) → Set[str]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.get_ctypes_value"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomCommand.get_ctypes_value`
-
-```python
-get_ctypes_value(struct, item, value) → str
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.get_modulename_structname_from_arg"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomCommand.get_modulename_structname_from_arg`
-
-```python
-get_modulename_structname_from_arg(arg: str) → Tuple[str, str]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.get_pcustom_absolute_root_path"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomCommand.get_pcustom_absolute_root_path`
-
-```python
-get_pcustom_absolute_root_path() → Union[str, bytes]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.get_pcustom_filepath_for_structure"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomCommand.get_pcustom_filepath_for_structure`
-
-```python
-get_pcustom_filepath_for_structure(structure_name: str) → str
+explode_type(arg: str) → Tuple[str, str]
 ```
 
 
@@ -14181,25 +14235,10 @@ get_pcustom_filepath_for_structure(structure_name: str) → str
 ## <kbd>function</kbd> `PCustomCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.get_structure_class"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomCommand.get_structure_class`
-
-```python
-get_structure_class(
-    modname: str,
-    classname: str
-) → Tuple[Type, _ctypes.Structure]
-```
-
-Returns a tuple of (class, instance) if modname!classname exists 
 
 ---
 
@@ -14226,32 +14265,6 @@ invoke(args: str, from_tty: bool) → None
 
 
 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.is_valid_struct"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomCommand.is_valid_struct`
-
-```python
-is_valid_struct(structure_name: str) → bool
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.load_module"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomCommand.load_module`
-
-```python
-load_module(file_path: str) → module
-```
-
-Load a custom module, and return it 
 
 ---
 
@@ -14340,25 +14353,6 @@ add_setting(
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.apply_structure_to_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomEditCommand.apply_structure_to_address`
-
-```python
-apply_structure_to_address(
-    mod_name: str,
-    struct_name: str,
-    addr: int,
-    depth: int = 0
-) → None
-```
-
-
-
-
-
----
-
 <a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.del_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `PCustomEditCommand.del_setting`
@@ -14371,26 +14365,12 @@ del_setting(name: str) → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.deserialize"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomEditCommand.deserialize`
-
-```python
-deserialize(struct: _ctypes.Structure, data: bytes) → None
-```
-
-
-
-
-
----
-
 <a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.do_invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `PCustomEditCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -14399,92 +14379,12 @@ do_invoke(argv: List) → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.enumerate_structure_files"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.explode_type"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `PCustomEditCommand.enumerate_structure_files`
-
-```python
-enumerate_structure_files() → List[str]
-```
-
-Return a list of all the files in the pcustom directory 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.enumerate_structures"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomEditCommand.enumerate_structures`
+## <kbd>function</kbd> `PCustomEditCommand.explode_type`
 
 ```python
-enumerate_structures() → Dict[str, Set[str]]
-```
-
-Return a hash of all the structures, with the key set the to filepath 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.enumerate_structures_from_module"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomEditCommand.enumerate_structures_from_module`
-
-```python
-enumerate_structures_from_module(module: module) → Set[str]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.get_ctypes_value"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomEditCommand.get_ctypes_value`
-
-```python
-get_ctypes_value(struct, item, value) → str
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.get_modulename_structname_from_arg"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomEditCommand.get_modulename_structname_from_arg`
-
-```python
-get_modulename_structname_from_arg(arg: str) → Tuple[str, str]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.get_pcustom_absolute_root_path"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomEditCommand.get_pcustom_absolute_root_path`
-
-```python
-get_pcustom_absolute_root_path() → Union[str, bytes]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.get_pcustom_filepath_for_structure"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomEditCommand.get_pcustom_filepath_for_structure`
-
-```python
-get_pcustom_filepath_for_structure(structure_name: str) → str
+explode_type(arg: str) → Tuple[str, str]
 ```
 
 
@@ -14498,25 +14398,10 @@ get_pcustom_filepath_for_structure(structure_name: str) → str
 ## <kbd>function</kbd> `PCustomEditCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.get_structure_class"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomEditCommand.get_structure_class`
-
-```python
-get_structure_class(
-    modname: str,
-    classname: str
-) → Tuple[Type, _ctypes.Structure]
-```
-
-Returns a tuple of (class, instance) if modname!classname exists 
 
 ---
 
@@ -14543,32 +14428,6 @@ invoke(args: str, from_tty: bool) → None
 
 
 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.is_valid_struct"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomEditCommand.is_valid_struct`
-
-```python
-is_valid_struct(structure_name: str) → bool
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.load_module"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomEditCommand.load_module`
-
-```python
-load_module(file_path: str) → module
-```
-
-Load a custom module, and return it 
 
 ---
 
@@ -14657,25 +14516,6 @@ add_setting(
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.apply_structure_to_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomListCommand.apply_structure_to_address`
-
-```python
-apply_structure_to_address(
-    mod_name: str,
-    struct_name: str,
-    addr: int,
-    depth: int = 0
-) → None
-```
-
-
-
-
-
----
-
 <a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.del_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `PCustomListCommand.del_setting`
@@ -14688,120 +14528,24 @@ del_setting(name: str) → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.deserialize"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomListCommand.deserialize`
-
-```python
-deserialize(struct: _ctypes.Structure, data: bytes) → None
-```
-
-
-
-
-
----
-
 <a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.do_invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `PCustomListCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List) → None
 ```
 
-
-
-
+Dump the list of all the structures and their respective. 
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.enumerate_structure_files"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.explode_type"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `PCustomListCommand.enumerate_structure_files`
-
-```python
-enumerate_structure_files() → List[str]
-```
-
-Return a list of all the files in the pcustom directory 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.enumerate_structures"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomListCommand.enumerate_structures`
+## <kbd>function</kbd> `PCustomListCommand.explode_type`
 
 ```python
-enumerate_structures() → Dict[str, Set[str]]
-```
-
-Return a hash of all the structures, with the key set the to filepath 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.enumerate_structures_from_module"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomListCommand.enumerate_structures_from_module`
-
-```python
-enumerate_structures_from_module(module: module) → Set[str]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.get_ctypes_value"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomListCommand.get_ctypes_value`
-
-```python
-get_ctypes_value(struct, item, value) → str
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.get_modulename_structname_from_arg"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomListCommand.get_modulename_structname_from_arg`
-
-```python
-get_modulename_structname_from_arg(arg: str) → Tuple[str, str]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.get_pcustom_absolute_root_path"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomListCommand.get_pcustom_absolute_root_path`
-
-```python
-get_pcustom_absolute_root_path() → Union[str, bytes]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.get_pcustom_filepath_for_structure"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomListCommand.get_pcustom_filepath_for_structure`
-
-```python
-get_pcustom_filepath_for_structure(structure_name: str) → str
+explode_type(arg: str) → Tuple[str, str]
 ```
 
 
@@ -14815,25 +14559,10 @@ get_pcustom_filepath_for_structure(structure_name: str) → str
 ## <kbd>function</kbd> `PCustomListCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.get_structure_class"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomListCommand.get_structure_class`
-
-```python
-get_structure_class(
-    modname: str,
-    classname: str
-) → Tuple[Type, _ctypes.Structure]
-```
-
-Returns a tuple of (class, instance) if modname!classname exists 
 
 ---
 
@@ -14860,32 +14589,6 @@ invoke(args: str, from_tty: bool) → None
 
 
 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.is_valid_struct"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomListCommand.is_valid_struct`
-
-```python
-is_valid_struct(structure_name: str) → bool
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.load_module"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomListCommand.load_module`
-
-```python
-load_module(file_path: str) → module
-```
-
-Load a custom module, and return it 
 
 ---
 
@@ -14974,25 +14677,6 @@ add_setting(
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.apply_structure_to_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomShowCommand.apply_structure_to_address`
-
-```python
-apply_structure_to_address(
-    mod_name: str,
-    struct_name: str,
-    addr: int,
-    depth: int = 0
-) → None
-```
-
-
-
-
-
----
-
 <a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.del_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `PCustomShowCommand.del_setting`
@@ -15005,26 +14689,12 @@ del_setting(name: str) → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.deserialize"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomShowCommand.deserialize`
-
-```python
-deserialize(struct: _ctypes.Structure, data: bytes) → None
-```
-
-
-
-
-
----
-
 <a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.do_invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `PCustomShowCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -15033,92 +14703,12 @@ do_invoke(argv: List) → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.enumerate_structure_files"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.explode_type"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-## <kbd>function</kbd> `PCustomShowCommand.enumerate_structure_files`
-
-```python
-enumerate_structure_files() → List[str]
-```
-
-Return a list of all the files in the pcustom directory 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.enumerate_structures"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomShowCommand.enumerate_structures`
+## <kbd>function</kbd> `PCustomShowCommand.explode_type`
 
 ```python
-enumerate_structures() → Dict[str, Set[str]]
-```
-
-Return a hash of all the structures, with the key set the to filepath 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.enumerate_structures_from_module"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomShowCommand.enumerate_structures_from_module`
-
-```python
-enumerate_structures_from_module(module: module) → Set[str]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.get_ctypes_value"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomShowCommand.get_ctypes_value`
-
-```python
-get_ctypes_value(struct, item, value) → str
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.get_modulename_structname_from_arg"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomShowCommand.get_modulename_structname_from_arg`
-
-```python
-get_modulename_structname_from_arg(arg: str) → Tuple[str, str]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.get_pcustom_absolute_root_path"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomShowCommand.get_pcustom_absolute_root_path`
-
-```python
-get_pcustom_absolute_root_path() → Union[str, bytes]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.get_pcustom_filepath_for_structure"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomShowCommand.get_pcustom_filepath_for_structure`
-
-```python
-get_pcustom_filepath_for_structure(structure_name: str) → str
+explode_type(arg: str) → Tuple[str, str]
 ```
 
 
@@ -15132,25 +14722,10 @@ get_pcustom_filepath_for_structure(structure_name: str) → str
 ## <kbd>function</kbd> `PCustomShowCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.get_structure_class"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomShowCommand.get_structure_class`
-
-```python
-get_structure_class(
-    modname: str,
-    classname: str
-) → Tuple[Type, _ctypes.Structure]
-```
-
-Returns a tuple of (class, instance) if modname!classname exists 
 
 ---
 
@@ -15177,32 +14752,6 @@ invoke(args: str, from_tty: bool) → None
 
 
 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.is_valid_struct"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomShowCommand.is_valid_struct`
-
-```python
-is_valid_struct(structure_name: str) → bool
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.load_module"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `PCustomShowCommand.load_module`
-
-```python
-load_module(file_path: str) → module
-```
-
-Load a custom module, and return it 
 
 ---
 
@@ -15322,7 +14871,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `PatchByteCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -15471,7 +15020,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `PatchCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -15620,7 +15169,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `PatchDwordCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -15769,7 +15318,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `PatchQwordCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -15853,7 +15402,7 @@ Write specified string to the specified memory location pointed by ADDRESS.
 ## <kbd>function</kbd> `PatchStringCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -15904,7 +15453,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatchStringCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -15918,7 +15467,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `PatchStringCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -16067,7 +15616,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `PatchWordCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -16202,7 +15751,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatternCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -16216,7 +15765,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `PatternCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -16300,7 +15849,7 @@ Generate a De Bruijn Sequence of unique substrings of length N and a total lengt
 ## <kbd>function</kbd> `PatternCreateCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -16365,7 +15914,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `PatternCreateCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -16449,7 +15998,7 @@ Search a De Bruijn Sequence of unique substrings of length N and a maximum total
 ## <kbd>function</kbd> `PatternSearchCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -16514,7 +16063,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `PatternSearchCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -16607,46 +16156,6 @@ usage() → None
 ## <kbd>class</kbd> `Permission`
 GEF representation of Linux permission. 
 
-<a href="https://cs.github.com/hugsy/gef?q=Permission.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `Permission.__init__`
-
-```python
-__init__(**kwargs: Any) → None
-```
-
-
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=Permission.from_info_sections"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `Permission.from_info_sections`
-
-```python
-from_info_sections(*args: List[str]) → Permission
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=Permission.from_process_maps"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `Permission.from_process_maps`
-
-```python
-from_process_maps(perm_str: str) → Permission
-```
-
-
 
 
 
@@ -16684,7 +16193,7 @@ Do attach with PIE breakpoint support.
 ## <kbd>function</kbd> `PieAttachCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -16735,7 +16244,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PieAttachCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -16749,7 +16258,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `PieAttachCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -16833,7 +16342,7 @@ Set a PIE breakpoint at an offset from the target binaries base address.
 ## <kbd>function</kbd> `PieBreakpointCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -16898,7 +16407,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `PieBreakpointCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -17047,7 +16556,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PieCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -17061,7 +16570,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `PieCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -17145,7 +16654,7 @@ Delete a PIE breakpoint.
 ## <kbd>function</kbd> `PieDeleteCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -17224,7 +16733,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `PieDeleteCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -17308,7 +16817,7 @@ Display breakpoint info.
 ## <kbd>function</kbd> `PieInfoCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -17373,7 +16882,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `PieInfoCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -17457,7 +16966,7 @@ Attach to a remote connection with PIE breakpoint support.
 ## <kbd>function</kbd> `PieRemoteCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -17508,7 +17017,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PieRemoteCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -17522,7 +17031,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `PieRemoteCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -17606,7 +17115,7 @@ Run process with PIE breakpoint support.
 ## <kbd>function</kbd> `PieRunCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -17657,7 +17166,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PieRunCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -17671,7 +17180,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `PieRunCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -17888,7 +17397,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `PowerPC.get_ra`
 
 ```python
-get_ra(insn, frame) → Union[int, NoneType]
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → Union[int, NoneType]
 ```
 
 
@@ -17902,7 +17411,7 @@ get_ra(insn, frame) → Union[int, NoneType]
 ## <kbd>function</kbd> `PowerPC.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -17916,7 +17425,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `PowerPC.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -17930,7 +17439,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `PowerPC.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -17944,7 +17453,7 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `PowerPC.is_ret`
 
 ```python
-is_ret(insn) → bool
+is_ret(insn: __main__.Instruction) → bool
 ```
 
 
@@ -17958,7 +17467,7 @@ is_ret(insn) → bool
 ## <kbd>function</kbd> `PowerPC.mprotect_asm`
 
 ```python
-mprotect_asm(addr: int, size: int, perm) → str
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -18074,7 +17583,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `PowerPC64.get_ra`
 
 ```python
-get_ra(insn, frame) → Union[int, NoneType]
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → Union[int, NoneType]
 ```
 
 
@@ -18088,7 +17597,7 @@ get_ra(insn, frame) → Union[int, NoneType]
 ## <kbd>function</kbd> `PowerPC64.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -18102,7 +17611,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `PowerPC64.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -18116,7 +17625,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `PowerPC64.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -18130,7 +17639,7 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `PowerPC64.is_ret`
 
 ```python
-is_ret(insn) → bool
+is_ret(insn: __main__.Instruction) → bool
 ```
 
 
@@ -18144,7 +17653,7 @@ is_ret(insn) → bool
 ## <kbd>function</kbd> `PowerPC64.mprotect_asm`
 
 ```python
-mprotect_asm(addr: int, size: int, perm) → str
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -18249,7 +17758,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `PrintFormatCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -18398,7 +17907,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `ProcessListingCommand.get_processes`
 
 ```python
-get_processes() → Generator[Dict[str, str], Any, NoneType]
+get_processes() → Generator[Dict[str, str], NoneType, NoneType]
 ```
 
 
@@ -18412,7 +17921,7 @@ get_processes() → Generator[Dict[str, str], Any, NoneType]
 ## <kbd>function</kbd> `ProcessListingCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -18547,7 +18056,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ProcessStatusCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -18603,7 +18112,7 @@ get_process_path_of(pid: int) → str
 ## <kbd>function</kbd> `ProcessStatusCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -18877,7 +18386,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `RISCV.get_ra`
 
 ```python
-get_ra(insn, frame) → int
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → int
 ```
 
 
@@ -18891,7 +18400,7 @@ get_ra(insn, frame) → int
 ## <kbd>function</kbd> `RISCV.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -18905,7 +18414,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `RISCV.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -18919,7 +18428,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `RISCV.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -18933,7 +18442,7 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `RISCV.is_ret`
 
 ```python
-is_ret(insn) → bool
+is_ret(insn: __main__.Instruction) → bool
 ```
 
 
@@ -18947,7 +18456,7 @@ is_ret(insn) → bool
 ## <kbd>function</kbd> `RISCV.mprotect_asm`
 
 ```python
-mprotect_asm(addr: int, size: int, perm)
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -18981,7 +18490,7 @@ register(name: str) → Union[int, NoneType]
 ## <kbd>function</kbd> `RedirectOutputContext.__init__`
 
 ```python
-__init__(to='/dev/null') → None
+__init__(to: str = '/dev/null') → None
 ```
 
 
@@ -19079,7 +18588,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `RemoteCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -19129,7 +18638,7 @@ Download one item from /proc/pid.
 ## <kbd>function</kbd> `RemoteCommand.new_objfile_handler`
 
 ```python
-new_objfile_handler(event) → None
+new_objfile_handler(event: 'gdb.Event') → None
 ```
 
 Hook that handles new_objfile events, will update remote environment accordingly. 
@@ -19227,7 +18736,7 @@ Reset cache of all stored data. This command is here for debugging and test purp
 ## <kbd>function</kbd> `ResetCacheCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -19278,7 +18787,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ResetCacheCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -19292,7 +18801,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `ResetCacheCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -19369,7 +18878,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `RopperCommand`
-Ropper (http://scoding.de/ropper) plugin. 
+Ropper (https://scoding.de/ropper/) plugin. 
 
 <a href="https://cs.github.com/hugsy/gef?q=RopperCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -19427,7 +18936,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `RopperCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -19441,7 +18950,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `RopperCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -19519,7 +19028,7 @@ usage() → None
 
 ## <kbd>class</kbd> `SPARC`
 Refs: 
-- http://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf 
+- https://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf 
 
 
 ---
@@ -19608,7 +19117,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `SPARC.get_ra`
 
 ```python
-get_ra(insn, frame) → Union[int, NoneType]
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → Union[int, NoneType]
 ```
 
 
@@ -19622,7 +19131,7 @@ get_ra(insn, frame) → Union[int, NoneType]
 ## <kbd>function</kbd> `SPARC.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -19636,7 +19145,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `SPARC.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -19650,7 +19159,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `SPARC.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -19664,7 +19173,7 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `SPARC.is_ret`
 
 ```python
-is_ret(insn) → bool
+is_ret(insn: __main__.Instruction) → bool
 ```
 
 
@@ -19678,7 +19187,7 @@ is_ret(insn) → bool
 ## <kbd>function</kbd> `SPARC.mprotect_asm`
 
 ```python
-mprotect_asm(addr: int, size: int, perm) → str
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -19794,7 +19303,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `SPARC64.get_ra`
 
 ```python
-get_ra(insn, frame) → Union[int, NoneType]
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → Union[int, NoneType]
 ```
 
 
@@ -19808,7 +19317,7 @@ get_ra(insn, frame) → Union[int, NoneType]
 ## <kbd>function</kbd> `SPARC64.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -19822,7 +19331,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `SPARC64.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -19836,7 +19345,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `SPARC64.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -19850,7 +19359,7 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `SPARC64.is_ret`
 
 ```python
-is_ret(insn) → bool
+is_ret(insn: __main__.Instruction) → bool
 ```
 
 
@@ -19864,7 +19373,7 @@ is_ret(insn) → bool
 ## <kbd>function</kbd> `SPARC64.mprotect_asm`
 
 ```python
-mprotect_asm(addr: int, size: int, perm) → str
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -19896,7 +19405,7 @@ Search for addresses that are located in a memory mapping (haystack) that belong
 ## <kbd>function</kbd> `ScanSectionCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -19947,7 +19456,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ScanSectionCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -19961,7 +19470,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `ScanSectionCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -20045,7 +19554,7 @@ SearchPatternCommand: search a pattern in memory. If given an hex value (startin
 ## <kbd>function</kbd> `SearchPatternCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -20096,7 +19605,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `SearchPatternCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -20110,7 +19619,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `SearchPatternCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -20176,7 +19685,7 @@ pre_load() → None
 ## <kbd>function</kbd> `SearchPatternCommand.print_loc`
 
 ```python
-print_loc(loc) → None
+print_loc(loc: Tuple[int, int, str]) → None
 ```
 
 
@@ -20190,7 +19699,7 @@ print_loc(loc) → None
 ## <kbd>function</kbd> `SearchPatternCommand.print_section`
 
 ```python
-print_section(section) → None
+print_section(section: __main__.Section) → None
 ```
 
 
@@ -20250,7 +19759,7 @@ GEF representation of process memory sections.
 ## <kbd>function</kbd> `Section.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(**kwargs: Any) → None
 ```
 
 
@@ -20374,7 +19883,7 @@ do_invoke(args: List) → int
 ## <kbd>function</kbd> `SectionBaseFunction.invoke`
 
 ```python
-invoke(*args) → int
+invoke(*args: Any) → int
 ```
 
 
@@ -20466,7 +19975,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ShellcodeCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -20480,7 +19989,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `ShellcodeCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -20564,7 +20073,7 @@ Download shellcode from shell-storm's shellcode database.
 ## <kbd>function</kbd> `ShellcodeGetCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -20615,7 +20124,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ShellcodeGetCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -20629,7 +20138,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `ShellcodeGetCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -20727,7 +20236,7 @@ Search pattern in shell-storm's shellcode database.
 ## <kbd>function</kbd> `ShellcodeSearchCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -20778,7 +20287,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ShellcodeSearchCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -20792,7 +20301,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `ShellcodeSearchCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -20890,7 +20399,7 @@ SmartEval: Smart eval (vague approach to mimic WinDBG `?`).
 ## <kbd>function</kbd> `SmartEvalCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -20941,7 +20450,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `SmartEvalCommand.distance`
 
 ```python
-distance(args: Tuple[str, str])
+distance(args: Tuple[str, str]) → None
 ```
 
 
@@ -20955,7 +20464,7 @@ distance(args: Tuple[str, str])
 ## <kbd>function</kbd> `SmartEvalCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -20969,7 +20478,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `SmartEvalCommand.evaluate`
 
 ```python
-evaluate(expr: List) → None
+evaluate(expr: List[str]) → None
 ```
 
 
@@ -20983,7 +20492,7 @@ evaluate(expr: List) → None
 ## <kbd>function</kbd> `SmartEvalCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -21067,7 +20576,7 @@ Solve kernel symbols from kallsyms table.
 ## <kbd>function</kbd> `SolveKernelSymbolCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -21132,7 +20641,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `SolveKernelSymbolCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -21261,7 +20770,7 @@ do_invoke(args: List) → int
 ## <kbd>function</kbd> `StackOffsetFunction.invoke`
 
 ```python
-invoke(*args) → int
+invoke(*args: Any) → int
 ```
 
 
@@ -21379,7 +20888,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `StubCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -21514,7 +21023,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `SyscallArgsCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -21556,7 +21065,7 @@ get_module(modname: str) → Any
 ## <kbd>function</kbd> `SyscallArgsCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -21929,7 +21438,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `TraceRunCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -21957,7 +21466,7 @@ get_frames_size() → int
 ## <kbd>function</kbd> `TraceRunCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -22167,7 +21676,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 ## <kbd>function</kbd> `UnicornEmulateCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -22247,7 +21756,7 @@ pre_load() → None
 ## <kbd>function</kbd> `UnicornEmulateCommand.run_unicorn`
 
 ```python
-run_unicorn(start_insn_addr: int, end_insn_addr: int, *args, **kwargs) → None
+run_unicorn(start_insn_addr: int, end_insn_addr: int, **kwargs: Any) → None
 ```
 
 
@@ -22279,7 +21788,7 @@ Display a comprehensive layout of the virtual memory mapping. If a filter argume
 ## <kbd>function</kbd> `VMMapCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -22330,7 +21839,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `VMMapCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -22344,7 +21853,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `VMMapCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -22470,7 +21979,7 @@ Display GEF version info.
 ## <kbd>function</kbd> `VersionCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -22521,7 +22030,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `VersionCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -22535,7 +22044,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `VersionCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -22689,7 +22198,7 @@ get_ith_parameter(
 ## <kbd>function</kbd> `X86.get_ra`
 
 ```python
-get_ra(insn, frame) → Union[int, NoneType]
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → Union[int, NoneType]
 ```
 
 
@@ -22703,7 +22212,7 @@ get_ra(insn, frame) → Union[int, NoneType]
 ## <kbd>function</kbd> `X86.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -22717,7 +22226,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `X86.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -22731,7 +22240,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `X86.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -22745,7 +22254,7 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `X86.is_ret`
 
 ```python
-is_ret(insn) → bool
+is_ret(insn: __main__.Instruction) → bool
 ```
 
 
@@ -22759,7 +22268,7 @@ is_ret(insn) → bool
 ## <kbd>function</kbd> `X86.mprotect_asm`
 
 ```python
-mprotect_asm(addr: int, size: int, perm) → str
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -22859,7 +22368,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `X86_64.get_ra`
 
 ```python
-get_ra(insn, frame) → Union[int, NoneType]
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → Union[int, NoneType]
 ```
 
 
@@ -22873,7 +22382,7 @@ get_ra(insn, frame) → Union[int, NoneType]
 ## <kbd>function</kbd> `X86_64.is_branch_taken`
 
 ```python
-is_branch_taken(insn) → Tuple[bool, str]
+is_branch_taken(insn: __main__.Instruction) → Tuple[bool, str]
 ```
 
 
@@ -22887,7 +22396,7 @@ is_branch_taken(insn) → Tuple[bool, str]
 ## <kbd>function</kbd> `X86_64.is_call`
 
 ```python
-is_call(insn) → bool
+is_call(insn: __main__.Instruction) → bool
 ```
 
 
@@ -22901,7 +22410,7 @@ is_call(insn) → bool
 ## <kbd>function</kbd> `X86_64.is_conditional_branch`
 
 ```python
-is_conditional_branch(insn) → bool
+is_conditional_branch(insn: __main__.Instruction) → bool
 ```
 
 
@@ -22915,7 +22424,7 @@ is_conditional_branch(insn) → bool
 ## <kbd>function</kbd> `X86_64.is_ret`
 
 ```python
-is_ret(insn) → bool
+is_ret(insn: __main__.Instruction) → bool
 ```
 
 
@@ -22929,7 +22438,7 @@ is_ret(insn) → bool
 ## <kbd>function</kbd> `X86_64.mprotect_asm`
 
 ```python
-mprotect_asm(addr: int, size: int, perm) → str
+mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ```
 
 
@@ -23012,7 +22521,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `XAddressInfoCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -23026,7 +22535,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `XAddressInfoCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -23124,7 +22633,7 @@ Shows all libraries (and sections) loaded by binary. This command extends the GD
 ## <kbd>function</kbd> `XFilesCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -23175,7 +22684,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `XFilesCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -23189,7 +22698,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `XFilesCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -23324,7 +22833,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `XorMemoryCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(_: List[str]) → None
 ```
 
 
@@ -23338,7 +22847,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `XorMemoryCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -23422,7 +22931,7 @@ Display a block of memory pointed by ADDRESS by xor-ing each byte with KEY. The 
 ## <kbd>function</kbd> `XorMemoryDisplayCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -23473,7 +22982,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `XorMemoryDisplayCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -23487,7 +22996,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `XorMemoryDisplayCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -23571,7 +23080,7 @@ Patch a block of memory pointed by ADDRESS by xor-ing each byte with KEY. The ke
 ## <kbd>function</kbd> `XorMemoryPatchCommand.__init__`
 
 ```python
-__init__(*args, **kwargs) → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -23622,7 +23131,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `XorMemoryPatchCommand.do_invoke`
 
 ```python
-do_invoke(argv: List) → None
+do_invoke(argv: List[str]) → None
 ```
 
 
@@ -23636,7 +23145,7 @@ do_invoke(argv: List) → None
 ## <kbd>function</kbd> `XorMemoryPatchCommand.get_setting`
 
 ```python
-get_setting(name)
+get_setting(name: str) → Any
 ```
 
 `get_setting` is **DEPRECATED** and will be removed in the future. 
@@ -23714,6 +23223,15 @@ usage() → None
 
 ## <kbd>class</kbd> `Zone`
 Zone(name, zone_start, zone_end, filename) 
+
+
+
+
+
+---
+
+## <kbd>class</kbd> `classproperty`
+Make the attribute a `classproperty`. 
 
 
 
