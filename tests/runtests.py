@@ -742,7 +742,7 @@ class TestGefCommandsUnit(GefUnitTestGeneric):
             "default_title_message",
             "default_title_line",
             "dereference_register_value",
-            "xinfo_title_message",
+            "xinfo_title_message"
         ]
         for t in possible_themes:
             # testing command viewing
