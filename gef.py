@@ -2204,6 +2204,7 @@ class Architecture(metaclass=abc.ABCMeta):
         key = curframe.pc() ^ int(curframe.read_register('sp')) # todo: check when/if gdb.Frame implements `level()`
         return self.__get_register_for_selected_frame(regname, key)
 
+    @lru_cache()
     def __get_register_for_selected_frame(self, regname: str, hash_key: int) -> Optional[int]:
         # 1st chance
         try:
