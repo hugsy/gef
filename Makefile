@@ -11,7 +11,7 @@ TARGET := $(shell lscpu | head -1 | sed -e 's/Architecture:\s*//g')
 COVERAGE_DIR ?= /tmp/cov
 GEF_PATH ?= $(shell readlink -f gef.py)
 TMPDIR ?= /tmp
-PYTEST_PARAMETERS := --verbose -n $(NB_CORES)
+PYTEST_PARAMETERS := --verbose --forked --numprocesses=$(NB_CORES)
 ifdef DEBUG
 	PYTEST_PARAMETERS += --pdb
 endif
@@ -19,7 +19,7 @@ endif
 .PHONY: test test_% Test% testbins clean lint
 
 test: $(TMPDIR) testbins
-	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS)
+	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) -k "not benchmark"
 
 test_%: $(TMPDIR) testbins
 	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) -k $@

@@ -15,7 +15,6 @@ from tests.utils import GefUnitTestGeneric
 class MiscFunctionTest(GefUnitTestGeneric):
     """Tests GEF internal functions."""
 
-
     def test_func_which(self):
         res = gdb_test_python_method("which('gdb')")
         lines = res.splitlines()
@@ -50,6 +49,7 @@ class MiscFunctionTest(GefUnitTestGeneric):
     @pytest.mark.slow
     @pytest.mark.online
     def test_func_update_gef(self):
+        bkp_home = os.environ["HOME"]
         for branch in ("master", "dev"):
             with tempfile.TemporaryDirectory() as tmpdir:
                 dirpath = pathlib.Path(tmpdir)
@@ -63,3 +63,4 @@ class MiscFunctionTest(GefUnitTestGeneric):
                 self.assertEqual(open(f"{home}/.gdbinit", "r").read(), f"source ~/.gef-{ref}.py\n")
                 fpath = home / f".gef-{ref}.py"
                 self.assertTrue(fpath.exists())
+        os.environ["HOME"] = bkp_home
