@@ -4623,7 +4623,7 @@ class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
     def post_load(self) -> None: pass
 
     def __get_setting_name(self, name: str) -> str:
-        clsname = self.__class__._cmdline_.replace(" ", "_")
+        clsname = self.__class__._cmdline_.replace(" ", "-")
         return f"{clsname}.{name}"
 
     def __iter__(self) -> Generator[str, None, None]:
@@ -10854,16 +10854,16 @@ class GefRestoreCommand(gdb.Command):
 
             # load the other options
             for optname in cfg.options(section):
+                key = f"{section}.{optname}"
                 try:
-                    key = f"{section}.{optname}"
-                    new_value = cfg.get(section, optname)
-                    _type = gef.config.raw_entry(key).type
-                    if _type == bool:
-                        new_value = True if new_value.upper() in ("TRUE", "T", "1") else False
-                    new_value = _type(new_value)
-                    gef.config[key] = new_value
+                    setting = gef.config.raw_entry(key)
                 except Exception as e:
-                    warn(e)
+                    warn(f"Invalid setting '{key}': {e}")
+                    continue
+                new_value = cfg.get(section, optname)
+                if setting.type == bool:
+                    new_value = True if new_value.upper() in ("TRUE", "T", "1") else False
+                setting.value = setting.type(new_value)
 
         # ensure that the temporary directory always exists
         gef_makedirs(gef.config["gef.tempdir"])
