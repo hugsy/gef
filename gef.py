@@ -4872,14 +4872,15 @@ class PieInfoCommand(GenericCommand):
         args = kwargs["arguments"]
         if args.breakpoints[0] == -1:
             # No breakpoint info needed
-            bps = [gef.session.pie_breakpoints[x] for x in gef.session.pie_breakpoints]
+            bps = gef.session.pie_breakpoints.values()
         else:
-            bps = [gef.session.pie_breakpoints[x] for x in args.breakpoints]
+            bps = [gef.session.pie_breakpoints[x]
+                   for x in args.breakpoints
+                   if x in gef.session.pie_breakpoints]
 
-        lines = []
-        lines.append("VNum\tNum\tAddr")
+        lines = ["{:6s}  {:6s}  {:18s}".format("VNum","Num","Addr")]
         lines += [
-            f"{x.vbp_num}\t{x.bp_num if x.bp_num else 'N/A'}\t{x.addr}" for x in bps
+            f"{x.vbp_num:6d}  {str(x.bp_num) if x.bp_num else 'N/A':6s}  {x.addr:18s}" for x in bps
         ]
         gef_print("\n".join(lines))
         return
@@ -4898,15 +4899,17 @@ class PieDeleteCommand(GenericCommand):
         args = kwargs["arguments"]
         if args.breakpoints[0] == -1:
             # no arg, delete all
-            to_delete = [gef.session.pie_breakpoints[x] for x in gef.session.pie_breakpoints]
+            to_delete = list(gef.session.pie_breakpoints.values())
             self.delete_bp(to_delete)
         else:
-            self.delete_bp([gef.session.pie_breakpoints[x] for x in args.breakpoints])
+            self.delete_bp([gef.session.pie_breakpoints[x]
+                            for x in args.breakpoints
+                            if x in gef.session.pie_breakpoints])
         return
 
 
     @staticmethod
-    def delete_bp(breakpoints: List) -> None:
+    def delete_bp(breakpoints: List[PieVirtualBreakpoint]) -> None:
         global gef
         for bp in breakpoints:
             # delete current real breakpoints if exists
