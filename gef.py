@@ -2198,6 +2198,10 @@ class Architecture(metaclass=abc.ABCMeta):
     aliases: Tuple[Union[str, int], ...] = []
     special_registers: List[str] = []
 
+    def reset_caches(self) -> None:
+        self.__get_register_for_selected_frame.cache_clear()
+        return
+
     def __get_register(self, regname: str) -> Optional[int]:
         """Return a register's value."""
         curframe = gdb.selected_frame()
@@ -11546,7 +11550,7 @@ class Gef:
     def reset_caches(self) -> None:
         """Recursively clean the cache of all the managers. Avoid calling this function directly, using `reset-cache`
         is preferred"""
-        for mgr in (self.memory, self.heap, self.session):
+        for mgr in (self.memory, self.heap, self.session, self.arch):
             mgr.reset_caches()
         return
 
