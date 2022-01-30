@@ -196,10 +196,10 @@ def reset() -> None:
 
 def highlight_text(text: str) -> str:
     """
-    Highlight text using gef.ui.highlight_table { match -> color } settings.
+    Highlight text using `gef.ui.highlight_table` { match -> color } settings.
 
     If RegEx is enabled it will create a match group around all items in the
-    gef.ui.highlight_table and wrap the specified color in the gef.ui.highlight_table
+    `gef.ui.highlight_table` and wrap the specified color in the `gef.ui.highlight_table`
     around those matches.
 
     If RegEx is disabled, split by ANSI codes and 'colorify' each match found
@@ -4623,12 +4623,8 @@ class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
     def post_load(self) -> None: pass
 
     def __get_setting_name(self, name: str) -> str:
-        def __sanitize_class_name(clsname: str) -> str:
-            if " " not in clsname:
-                return clsname
-            return "-".join(clsname.split())
-        class_name = __sanitize_class_name(self.__class__._cmdline_)
-        return f"{class_name}.{name}"
+        clsname = self.__class__._cmdline_.replace(" ", "_")
+        return f"{clsname}.{name}"
 
     def __iter__(self) -> Generator[str, None, None]:
         for key in gef.config.keys():
@@ -4665,7 +4661,8 @@ class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
             return
         key = self.__get_setting_name(name)
         if key in gef.config:
-            gef.config[key].value = value
+            setting = gef.config.raw_entry(key)
+            setting.value = value
         else:
             if len(value) == 1:
                 gef.config[key] = GefSetting(value[0])
@@ -5291,19 +5288,18 @@ class GefThemeCommand(GenericCommand):
                 gef_print(f"{key:40s}: {value}")
             return
 
-        setting = args[0]
-        if not setting in self:
+        setting_name = args[0]
+        if not setting_name in self:
             err("Invalid key")
             return
 
         if argc == 1:
-            value = self[setting]
-            value = Color.colorify(value, value)
-            gef_print(f"{setting:40s}: {value}")
+            value = self[setting_name]
+            gef_print(f"{setting_name:40s}: {Color.colorify(value, value)}")
             return
 
-        val = [x for x in args[1:] if x in Color.colors]
-        self[setting] = " ".join(val)
+        colors = [color for color in args[1:] if color in Color.colors]
+        self[setting_name] = " ".join(colors)
         return
 
 
@@ -11514,9 +11510,9 @@ class GefUiManager(GefManager):
         self.redirect_fd : Optional[TextIOWrapper] = None
         self.context_hidden = False
         self.stream_buffer : Optional[StringIO] = None
-        self.highlight_table = {}
-        self.watches = {}
-        self.context_messages = []
+        self.highlight_table: Dict[str, str] = {}
+        self.watches: Dict[int, Tuple[int, str]] = {}
+        self.context_messages: List[str] = []
         return
 
 
@@ -11526,7 +11522,7 @@ class Gef:
     def __init__(self) -> None:
         self.binary: Optional[Elf] = None
         self.arch: Architecture = GenericArchitecture() # see PR #516, will be reset by `new_objfile_handler`
-        self.config: Dict[str, Any] = GefSettingsManager()
+        self.config = GefSettingsManager()
         self.ui = GefUiManager()
         return
 
