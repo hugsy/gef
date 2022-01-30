@@ -54,7 +54,7 @@ class PatternCommand(GefUnitTestGeneric):
         before = ["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"]
         res = gdb_run_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        if ARCH in ("x86_64", "i686"):
+        if ARCH in ("x86_64",):
             self.assertIn("Found at offset 8 (little-endian search) likely", res)
         elif ARCH in ("aarch64", "i686"):
             self.assertIn("Found at offset 16 (little-endian search) likely", res)
