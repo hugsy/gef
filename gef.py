@@ -4643,7 +4643,7 @@ class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
         """Return the list of settings for this command."""
         return list(iter(self))
 
-    @deprecated("")
+    @deprecated(f"Use `self[setting_name]` instead")
     def get_setting(self, name: str) -> Any:
         return self.__getitem__(name)
 
@@ -4651,14 +4651,14 @@ class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
         key = self.__get_setting_name(name)
         return gef.config[key]
 
-    @deprecated("")
+    @deprecated(f"Use `setting_name in self` instead")
     def has_setting(self, name: str) -> bool:
         return self.__contains__(name)
 
     def __contains__(self, name: str) -> bool:
         return self.__get_setting_name(name) in gef.config
 
-    @deprecated("")
+    @deprecated(f"Use `self[setting_name] = value` instead")
     def add_setting(self, name: str, value: Tuple[Any, type, str], description: str = "") -> None:
         return self.__setitem__(name, (value, type(value), description))
 
@@ -4677,7 +4677,7 @@ class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
                 gef.config[key] = GefSetting(value[0], description=value[1])
         return
 
-    @deprecated("")
+    @deprecated(f"Use `del self[setting_name]` instead")
     def del_setting(self, name: str) -> None:
         return self.__delitem__(name)
 
