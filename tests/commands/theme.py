@@ -29,9 +29,14 @@ class ThemeCommand(GefUnitTestGeneric):
             # testing command viewing
             res = gdb_run_cmd(f"theme {t}")
             self.assertNoException(res)
+            self.assertNotIn("Invalid key", res)
 
             # testing command setting
             v = "blue blah 10 -1 0xfff bold"
             res = gdb_run_cmd(f"theme {t} {v}")
             self.assertNoException(res)
+
+        res = gdb_run_cmd(f"theme ___I_DONT_EXIST___")
+        self.assertNoException(res)
+        self.assertIn("Invalid key", res)
         return
