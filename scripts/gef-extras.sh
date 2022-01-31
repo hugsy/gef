@@ -15,8 +15,8 @@ git clone https://github.com/hugsy/gef-extras.git ${DIR}
 gdb -q -ex "gef config gef.extra_plugins_dir '${DIR}/scripts'" \
        -ex "gef config pcustom.struct_path '${DIR}/structs'" \
        -ex "gef config syscall-args.path '${DIR}/syscall-tables'" \
-       -ex "gef config libc_args True" \
-       -ex "gef config libc_args_path '${DIR}/glibc-function-args'" \
+       -ex "gef config context.libc_args True" \
+       -ex "gef config context.libc_args_path '${DIR}/glibc-function-args'" \
        -ex 'gef save' \
        -ex quit
 
