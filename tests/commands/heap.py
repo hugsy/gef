@@ -3,18 +3,28 @@ Heap commands test module
 """
 
 from tests.utils import (
+    ARCH,
     findlines,
     gdb_run_cmd,
     gdb_run_silent_cmd,
     gdb_start_silent_cmd,
     _target,
     GefUnitTestGeneric,
-    is_64b
+    is_64b,
+    is_32b
 )
 
 
 class HeapCommand(GefUnitTestGeneric):
     """Generic class for command testing, that defines all helpers"""
+    def setUp(self) -> None:
+        # ensure those values reflects the allocations in the C source
+        self.expected_tcache_bin_size = 0x20 if ARCH in ("i686", "x86_64", "aarch64") else 0x18
+        self.expected_small_bin_size = 0x20 if ARCH in ("i686", "x86_64", "aarch64") else 0x18
+        self.expected_large_bin_size = 0x420 if ARCH in ("i686", "x86_64", "aarch64") else 0x418
+        self.expected_unsorted_bin_size = 0x430 if ARCH in ("i686", "x86_64", "aarch64") else 0x428
+        return super().setUp()
+
 
     def test_cmd_heap_arenas(self):
         cmd = "heap arenas"
@@ -101,7 +111,7 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertIn("Found 1 chunks in 1 large non-empty bins", res)
         self.assertIn("Chunk(addr=", res)
-        self.assertIn("size=0x420", res)
+        self.assertIn(f"size={self.expected_large_bin_size:#x}", res)
 
     def test_cmd_heap_bins_non_main(self):
         cmd = "python gdb.execute(f'heap bins fast {gef.heap.main_arena.addr:#x}')"
@@ -120,7 +130,7 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertIn("Found 1 chunks in 1 small non-empty bins", res)
         self.assertIn("Chunk(addr=", res)
-        self.assertIn("size=0x20", res)
+        self.assertIn(f"size={self.expected_small_bin_size:#x}", res)
 
 
     def test_cmd_heap_bins_tcache(self):
@@ -130,10 +140,12 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         tcachelines = findlines("Tcachebins[idx=", res)
         self.assertEqual(len(tcachelines), 1)
-        if is_64b():
-            self.assertIn("Tcachebins[idx=0, size=0x20, count=1]", tcachelines[0])
-        else:
+        if ARCH in ("i686",):
             self.assertIn("Tcachebins[idx=1, size=0x20, count=1]", tcachelines[0])
+        elif is_32b():
+            self.assertIn("Tcachebins[idx=2, size=0x20, count=1]", tcachelines[0])
+        else:
+            self.assertIn("Tcachebins[idx=0, size=0x20, count=1]", tcachelines[0])
 
 
     def test_cmd_heap_bins_tcache_all(self):
@@ -144,12 +156,15 @@ class HeapCommand(GefUnitTestGeneric):
         # ensure there's 2 tcachebins
         tcachelines = findlines("Tcachebins[idx=", res)
         self.assertEqual(len(tcachelines), 2)
-        if is_64b():
-            self.assertIn("Tcachebins[idx=0, size=0x20, count=3]", tcachelines[0])
-            self.assertIn("Tcachebins[idx=1, size=0x30, count=3]", tcachelines[1])
-        else:
+        if ARCH in ("i686",):
             self.assertIn("Tcachebins[idx=1, size=0x20, count=3]", tcachelines[0])
             self.assertIn("Tcachebins[idx=2, size=0x30, count=3]", tcachelines[1])
+        elif is_32b():
+            self.assertIn("Tcachebins[idx=1, size=0x18, count=3]", tcachelines[0])
+            self.assertIn("Tcachebins[idx=4, size=0x30, count=3]", tcachelines[1])
+        else:
+            self.assertIn("Tcachebins[idx=0, size=0x20, count=3]", tcachelines[0])
+            self.assertIn("Tcachebins[idx=1, size=0x30, count=3]", tcachelines[1])
 
     def test_cmd_heap_bins_unsorted(self):
         cmd = "heap bins unsorted"
@@ -158,5 +173,5 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertIn("Found 1 chunks in unsorted bin", res)
         self.assertIn("Chunk(addr=", res)
-        self.assertIn("size=0x430", res)
+        self.assertIn(f"size={self.expected_unsorted_bin_size:#x}", res)
 

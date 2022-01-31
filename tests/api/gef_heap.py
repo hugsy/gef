@@ -2,9 +2,10 @@
 `gef.heap` test module.
 """
 
+import pytest
 import random
 
-from tests.utils import gdb_test_python_method, is_64b
+from tests.utils import ARCH, gdb_test_python_method, is_64b
 from tests.utils import GefUnitTestGeneric
 
 
@@ -54,4 +55,17 @@ class GefHeapApi(GefUnitTestGeneric):
             size = random.randint(0, 1024)
             idx = result_as_int(f"gef.heap.csize2tidx({size})")
             self.assertIn(idx, range(TCACHE_BINS), f"size={size}")
+
+
+    @pytest.mark.skipif(ARCH not in ("x86_64",), reason=f"Skipped for {ARCH}")
+    def test_func_gef_heap_malloc_align_address(self):
+        values = (
+            (0x08, 0x10),
+            (0x11, 0x20),
+            (0x23, 0x30),
+            (0x13371337, 0x13371340),
+        )
+        for x, y in values:
+            res = result_as_int(f"gef.heap.malloc_align_address({x})")
+            self.assertEqual(res, y)
 
