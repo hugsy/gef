@@ -10178,6 +10178,7 @@ class IsSyscallCommand(GenericCommand):
     _cmdline_ = "is-syscall"
     _syntax_ = _cmdline_
 
+    @only_if_gdb_running
     def do_invoke(self, _: List[str]) -> None:
         insn = gef_current_instruction(gef.arch.pc)
         ok(f"Current instruction is{' ' if self.is_syscall(gef.arch, insn) else ' not '}a syscall")
@@ -10201,16 +10202,16 @@ class SyscallArgsCommand(GenericCommand):
         self["path"] = (str(path.absolute()), "Path to store/load the syscall tables files")
         return
 
+    @only_if_gdb_running
     def do_invoke(self, _: List[str]) -> None:
-        path = self.get_settings_path()
-        if not path:
+        if not self["path"]:
             err(f"Cannot open '{self['path']}': check directory and/or "
                 "`gef config syscall-args.path` setting.")
             return
 
         color = gef.config["theme.table_heading"]
         arch = gef.arch.__class__.__name__
-        syscall_table = self.get_syscall_table(arch)
+        syscall_table = self.__get_syscall_table(arch)
 
         reg_value = gef.arch.register(gef.arch.syscall_register)
         if reg_value not in syscall_table:
@@ -10218,10 +10219,7 @@ class SyscallArgsCommand(GenericCommand):
             return
         syscall_entry = syscall_table[reg_value]
 
-        values = []
-        for param in syscall_entry.params:
-            values.append(gef.arch.register(param.reg))
-
+        values = [gef.arch.register(param.reg) for param in syscall_entry.params]
         parameters = [s.param for s in syscall_entry.params]
         registers = [s.reg for s in syscall_entry.params]
 
@@ -10233,34 +10231,28 @@ class SyscallArgsCommand(GenericCommand):
         info(Color.colorify("{:<20} {:<20} {}".format(*headers), color))
         for name, register, value in zip(param_names, registers, values):
             line = f"    {name:<20} {register:<20} {value:#x}"
-
             addrs = dereference_from(value)
-
             if len(addrs) > 1:
-                sep = f" {RIGHT_ARROW} "
-                line += sep
-                line += sep.join(addrs[1:])
-
+                line += RIGHT_ARROW + RIGHT_ARROW.join(addrs[1:])
             gef_print(line)
-
         return
 
-    def get_syscall_table(self, modname: str) -> Dict[str, Any]:
-        _mod = self.get_module(modname)
+    def __get_syscall_table(self, modname: str) -> Dict[str, Any]:
+        def get_filepath(x: str) -> Optional[pathlib.Path]:
+            path = pathlib.Path(self["path"]).expanduser()
+            if not path.is_dir():
+                return None
+            return path / f"{x}.py"
+
+        def load_module(modname: str) -> Any:
+            _fpath = get_filepath(modname)
+            if not _fpath:
+                raise FileNotFoundError
+            _fullname = str(_fpath.absolute())
+            return importlib.machinery.SourceFileLoader(modname, _fullname).load_module(None)
+
+        _mod = load_module(modname)
         return getattr(_mod, "syscall_table")
-
-    def get_module(self, modname: str) -> Any:
-        _fullname = self.get_filepath(modname).absolute()
-        return importlib.machinery.SourceFileLoader(modname, _fullname).load_module(None)
-
-    def get_filepath(self, x: str) -> Optional[pathlib.Path]:
-        p = self.get_settings_path()
-        if not p: return None
-        return p / f"{x}.py"
-
-    def get_settings_path(self) -> Optional[pathlib.Path]:
-        path = pathlib.Path(self["path"]).expanduser()
-        return path if path.is_dir() else None
 
 
 #
