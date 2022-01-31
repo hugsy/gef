@@ -64,3 +64,9 @@ class MiscFunctionTest(GefUnitTestGeneric):
                 fpath = home / f".gef-{ref}.py"
                 self.assertTrue(fpath.exists())
         os.environ["HOME"] = bkp_home
+
+
+    def test_func_show_last_exception(self):
+        func = "show_last_exception()"
+        res = gdb_test_python_method(func, before=("raise Exception('foo')"))
+        self.assertException(res)

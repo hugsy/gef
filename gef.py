@@ -402,36 +402,6 @@ def experimental_feature(f: Callable) -> Callable:
     return wrapper
 
 
-def only_if_gdb_version_higher_than(required_gdb_version: Tuple[int, ...]) -> Callable:
-    """Decorator to check whether current GDB version requirements."""
-
-    def wrapper(f: Callable) -> Callable:
-        def inner_f(*args: Any, **kwargs: Any) -> None:
-            if GDB_VERSION >= required_gdb_version:
-                f(*args, **kwargs)
-            else:
-                reason = f"GDB >= {required_gdb_version} for this command"
-                raise OSError(reason)
-        return inner_f
-    return wrapper
-
-
-def only_if_current_arch_in(valid_architectures: List["Architecture"]) -> Callable:
-    """Decorator to allow commands for only a subset of the architectured supported by GEF.
-    This decorator is to use lightly, as it goes against the purpose of GEF to support all
-    architectures GDB does. However in some cases, it is necessary."""
-
-    def wrapper(f: Callable) -> Callable:
-        def inner_f(*args: Any, **kwargs: Any) -> None:
-            if gef.arch in valid_architectures:
-                f(*args, **kwargs)
-            else:
-                reason = f"This command cannot work for the '{gef.arch.arch}' architecture"
-                raise OSError(reason)
-        return inner_f
-    return wrapper
-
-
 def only_if_events_supported(event_type: str) -> Callable:
     """Checks if GDB supports events without crashing."""
     def wrap(f: Callable) -> Callable:
