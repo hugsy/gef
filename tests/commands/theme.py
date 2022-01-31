@@ -14,14 +14,14 @@ class ThemeCommand(GefUnitTestGeneric):
         res = gdb_run_cmd("theme")
         self.assertNoException(res)
         possible_themes = [
-            "context_title_line"
-            "dereference_base_address"
-            "context_title_message"
-            "disable_color"
-            "dereference_code"
-            "dereference_string"
+            "context_title_line",
+            "dereference_base_address",
+            "context_title_message",
+            "disable_color",
+            "dereference_code",
+            "dereference_string",
             "default_title_message",
-            "default_title_line"
+            "default_title_line",
             "dereference_register_value",
             "xinfo_title_message",
         ]
