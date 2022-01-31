@@ -23,13 +23,11 @@ class GefHeapApi(GefUnitTestGeneric):
    # idx 1   bytes 25..40 or 13..20
    # idx 2   bytes 41..56 or 21..28
    # etc.
-
-    valid_sizes_32b = [16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224,
-                       240, 256, 272, 288, 304, 320, 336, 352, 368, 384, 400, 416, 432,
-                       448, 464, 480, 496, 512, 528, 544, 560, 576, 592, 608, 624, 640,
-                       656, 672, 688, 704, 720, 736, 752, 768, 784, 800, 816, 832, 848,
-                       864, 880, 896, 912, 928, 944, 960, 976, 992, 1008, 1024,]
-
+    valid_sizes_32b = [16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120,
+                      128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216,
+                      224, 232, 240, 248, 256, 264, 272, 280, 288, 296, 304, 312, 320,
+                      328, 336, 344, 352, 360, 368, 376, 384, 392, 400, 408, 416, 424,
+                      432, 440, 448, 456, 464, 472, 480, 488, 496, 504, 512, 520, ]
 
     valid_sizes_64b = [32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240,
                   256, 272, 288, 304, 320, 336, 352, 368, 384, 400, 416, 432, 448,
@@ -40,19 +38,21 @@ class GefHeapApi(GefUnitTestGeneric):
 
     @property
     def valid_sizes(self):
-        return self.valid_sizes_64b if is_64b() else self.valid_sizes_32b
+        if ARCH == "i686" or is_64b():
+            return self.valid_sizes_64b
+        return self.valid_sizes_32b
 
 
     def test_func_gef_heap_tidx2size(self):
-        for _ in range(10): # run 10 random tests
+        for _ in range(5):
             idx = random.choice(range(TCACHE_BINS))
             size = result_as_int(f"gef.heap.tidx2size({idx})")
             self.assertIn(size, self.valid_sizes, f"idx={idx}")
 
 
     def test_func_gef_heap_csize2tidx(self):
-        for _ in range(10):
-            size = random.randint(0, 1024)
+        for _ in range(5):
+            size = random.randint(0, 1032 if ARCH == "i686" or is_64b() else 516)
             idx = result_as_int(f"gef.heap.csize2tidx({size})")
             self.assertIn(idx, range(TCACHE_BINS), f"size={size}")
 

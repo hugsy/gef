@@ -11303,7 +11303,7 @@ class GefHeapManager(GefManager):
         if not self.__libc_main_arena:
             try:
                 __main_arena_addr = search_for_main_arena()
-                self.__libc_main_arena = GlibcArena(f"&{__main_arena_addr:#x}")
+                self.__libc_main_arena = GlibcArena(f"*{__main_arena_addr:#x}")
                 # the initialization of `main_arena` also defined `selected_arena`, so
                 # by default, `main_arena` == `selected_arena`
                 self.selected_arena = self.__libc_main_arena

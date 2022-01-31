@@ -113,6 +113,7 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertIn("Chunk(addr=", res)
         self.assertIn(f"size={self.expected_large_bin_size:#x}", res)
 
+
     def test_cmd_heap_bins_non_main(self):
         cmd = "python gdb.execute(f'heap bins fast {gef.heap.main_arena.addr:#x}')"
         before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
