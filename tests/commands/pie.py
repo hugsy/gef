@@ -15,7 +15,7 @@ class PieCommand(GefUnitTestGeneric):
         # we assume `_target` is `default.out` and is (should be) a PIE binary
         res = gdb_run_cmd("disassemble main")
         start_str = "Dump of assembler code for function main:\n"
-        end_str = "End of assembler dump.\n"
+        end_str = "End of assembler dump."
         lines = removeuntil(start_str, res[:res.find(end_str)]).splitlines()
         self.assertGreater(len(lines), 1)
         idx = random.randint(0, len(lines)-1)

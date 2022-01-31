@@ -5,12 +5,12 @@
 import pytest
 import random
 
-from tests.utils import ARCH, gdb_test_python_method, is_64b
+from tests.utils import ARCH, _target, gdb_test_python_method, is_64b
 from tests.utils import GefUnitTestGeneric
 
 
 def result_as_int(res: str) -> int:
-    return int(gdb_test_python_method(res).splitlines()[-1])
+    return int(gdb_test_python_method(res, target=_target("heap")).splitlines()[-1])
 
 TCACHE_BINS = 64
 
@@ -68,4 +68,12 @@ class GefHeapApi(GefUnitTestGeneric):
         for x, y in values:
             res = result_as_int(f"gef.heap.malloc_align_address({x})")
             self.assertEqual(res, y)
+
+
+    def test_class_glibcarena_main_arena(self):
+        addr1 = result_as_int("GlibcArena('main_arena').addr")
+        addr2 = result_as_int("search_for_main_arena()")
+        addr3 = result_as_int("int(gef.heap.main_arena)")
+        self.assertEqual(addr1, addr2)
+        self.assertEqual(addr2, addr3)
 
