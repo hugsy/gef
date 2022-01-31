@@ -1379,7 +1379,7 @@ class GlibcArena:
         _addr = int(self) + self.struct_size
         if allow_unaligned:
             return _addr
-        return malloc_align_address(_addr)
+        return gef.heap.malloc_align_address(_addr)
 
     def get_heap_info_list(self) -> Optional[List[GlibcHeapInfo]]:
         if self.is_main_arena():
@@ -1425,7 +1425,7 @@ class GlibcChunk:
         else:
             self.data_address = addr
         if not allow_unaligned:
-            self.data_address = malloc_align_address(self.data_address)
+            self.data_address = gef.heap.malloc_align_address(self.data_address)
         self.base_address = addr - 2 * self.ptrsize
 
         self.size_addr = int(self.data_address - self.ptrsize)
@@ -3887,24 +3887,6 @@ def align_address_to_page(address: int) -> int:
     """Align the address to a page."""
     a = align_address(address) >> DEFAULT_PAGE_ALIGN_SHIFT
     return a << DEFAULT_PAGE_ALIGN_SHIFT
-
-
-def malloc_align_address(address: int) -> int:
-    """Align addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github"""
-    __default_malloc_alignment = 0x10
-    if is_x86_32() and get_libc_version() >= (2, 26):
-        # Special case introduced in Glibc 2.26:
-        # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
-        malloc_alignment = __default_malloc_alignment
-    else:
-        # Generic case:
-        # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/generic/malloc-alignment.h#L22
-        __alignof__long_double = int(safe_parse_and_eval("_Alignof(long double)") or __default_malloc_alignment) # fallback to default if the expression fails to evaluate
-        malloc_alignment = max(__alignof__long_double, 2 * gef.arch.ptrsize)
-
-    ceil = lambda n: int(-1 * n // 1 * -1)
-    # align address to nearest next multiple of malloc_alignment
-    return malloc_alignment * ceil((address / malloc_alignment))
 
 
 def parse_address(address: str) -> int:
@@ -11374,7 +11356,13 @@ class GefHeapManager(GefManager):
 
     @property
     def malloc_alignment(self) -> int:
-        if get_libc_version() > (2, 25) and is_32bit(): return 0x10
+        __default_malloc_alignment = 0x10
+        if get_libc_version() > (2, 25) and is_x86_32():
+            # Special case introduced in Glibc 2.26:
+            # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
+            return __default_malloc_alignment
+        # Generic case:
+        # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/generic/malloc-alignment.h#L22
         return 2 * gef.arch.ptrsize
 
     def csize2tidx(self, size: int) -> int:
@@ -11382,6 +11370,12 @@ class GefHeapManager(GefManager):
 
     def tidx2size(self, idx: int) -> int:
         return idx * self.malloc_alignment + self.min_chunk_size
+
+    def malloc_align_address(self, address: int) -> int:
+        """Align addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github"""
+        malloc_alignment = self.malloc_alignment
+        ceil = lambda n: int(-1 * n // 1 * -1)
+        return malloc_alignment * ceil((address / malloc_alignment))
 
 class GefSetting:
     """Basic class for storing gef settings as objects"""
@@ -11616,6 +11610,7 @@ if __name__ == "__main__":
         "set print pretty on",
         "set disassembly-flavor intel",
         "handle SIGALRM print nopass",
+        "set print asm-demangle on",
     )
     for cmd in gdb_initial_settings:
         try:

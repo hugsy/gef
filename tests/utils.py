@@ -97,6 +97,10 @@ def is_64b() -> bool:
     return ARCH in CI_VALID_ARCHITECTURES_64B
 
 
+def is_32b() -> bool:
+    return ARCH in CI_VALID_ARCHITECTURES_32B
+
+
 def ansi_clean(s: str) -> str:
     ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
     return ansi_escape.sub("", s)
