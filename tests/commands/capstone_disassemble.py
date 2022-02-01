@@ -6,6 +6,7 @@ import pytest
 
 
 from tests.utils import (
+    ARCH,
     gdb_start_silent_cmd,
     gdb_run_silent_cmd,
     gdb_run_cmd,
@@ -13,6 +14,7 @@ from tests.utils import (
 )
 
 
+@pytest.mark.skipif(ARCH in ("mips64el", "ppc64le", "riscv64"), reason=f"Skipped for {ARCH}")
 class CapstoneDisassembleCommand(GefUnitTestGeneric):
     """`capstone-disassemble` command test module"""
 

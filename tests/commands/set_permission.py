@@ -4,9 +4,17 @@ set_permission command test module
 
 import pytest
 import re
-from tests.utils import GefUnitTestGeneric, _target, gdb_run_cmd, gdb_start_silent_cmd
+
+from tests.utils import (
+    ARCH,
+    GefUnitTestGeneric,
+    _target,
+    gdb_run_cmd,
+    gdb_start_silent_cmd,
+)
 
 
+@pytest.mark.skipif(ARCH in ("mips64el", "ppc64le", "riscv64"), reason=f"Skipped for {ARCH}")
 class SetPermissionCommand(GefUnitTestGeneric):
     """`set_permission` command test module"""
 

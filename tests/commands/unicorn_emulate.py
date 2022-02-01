@@ -4,9 +4,15 @@ unicorn-emulate command test module
 
 
 import pytest
-from tests.utils import ARCH, GefUnitTestGeneric, _target, gdb_run_silent_cmd
+from tests.utils import (
+    ARCH,
+    GefUnitTestGeneric,
+    _target,
+    gdb_run_silent_cmd,
+)
 
 
+@pytest.mark.skipif(ARCH in ("mips64el", "ppc64le", "riscv64"), reason=f"Skipped for {ARCH}")
 class UnicornEmulateCommand(GefUnitTestGeneric):
     """`unicorn-emulate` command test module"""
 
