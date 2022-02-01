@@ -14,11 +14,15 @@ from tests.utils import (
 )
 
 
+@pytest.mark.skipif(ARCH not in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
 class SyscallArgsCommand(GefUnitTestGeneric):
     """`syscall-args` command test module"""
 
     @pytest.mark.online
     def setUp(self) -> None:
+        #
+        # `syscall-args.out` only work for x86_64 and i686 architectures
+        #
         self.tempdirfd = tempfile.TemporaryDirectory(prefix=GEF_DEFAULT_TEMPDIR)
         self.tempdirpath = pathlib.Path(self.tempdirfd.name).absolute()
         # download some syscall tables from gef-extras
