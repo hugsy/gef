@@ -14,7 +14,7 @@ STRIP_ANSI_DEFAULT = True
 DEFAULT_CONTEXT = "-code -stack"
 ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()
 CI_VALID_ARCHITECTURES_32B = ("i686", "armv7l")
-CI_VALID_ARCHITECTURES_64B = ("x86_64", "aarch64", "mips64el", "ppc64le")
+CI_VALID_ARCHITECTURES_64B = ("x86_64", "aarch64", "mips64el", "ppc64le", "riscv64")
 CI_VALID_ARCHITECTURES = CI_VALID_ARCHITECTURES_64B + CI_VALID_ARCHITECTURES_32B
 COVERAGE_DIR = os.getenv("COVERAGE_DIR", "")
 
