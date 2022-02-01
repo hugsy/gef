@@ -37,6 +37,10 @@
 // #elif defined(__sparc) || defined(__sparc64__) || defined(__sparc__)
 // #define DebugBreak() { raise( SIGINT ) ; }
 
+/* RISC V */
+#elif defined(__riscv)
+#define DebugBreak() { raise( SIGINT ) ; }
+
 /* the rest */
 #else
 #error "Unsupported architecture"
