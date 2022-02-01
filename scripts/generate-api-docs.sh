@@ -16,7 +16,7 @@ check()
 
 clean_doc()
 {
-    rm -fr -- ${output_path}/*.md
+    rm -fr -- "${output_path}/*.md"
 }
 
 
@@ -33,13 +33,13 @@ generate_doc()
 fixup_doc()
 {
     # rename
-    mv ${output_path}/__main__.md ${full_doc_path}
+    mv "${output_path}/__main__.md" "${full_doc_path}"
 
     # replace the title
-    sed -i 's?# <kbd>module</kbd> `__main__`?# <kbd>module</kbd> `GEF`?' ${full_doc_path}
+    sed -i 's?# <kbd>module</kbd> `__main__`?# <kbd>module</kbd> `GEF`?' "${full_doc_path}"
 
     # fix the hrefs
-    sed -i -ze 's!<a href="\([^"]*\)[^`]*`\([^`]*\)`!<a href="https://cs.github.com/hugsy/gef?q=\2"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>\n\n## <kbd>function</kbd> `\2`!g' ${full_doc_path}
+    sed -i -ze 's!<a href="\([^"]*\)[^`]*`\([^`]*\)`!<a href="https://cs.github.com/hugsy/gef?q=\2"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>\n\n## <kbd>function</kbd> `\2`!g' "${full_doc_path}"
 }
 
 check
