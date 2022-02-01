@@ -4,6 +4,7 @@
 
 
 import pytest
+
 from tests.utils import ARCH, gdb_test_python_method
 from tests.utils import GefUnitTestGeneric
 
