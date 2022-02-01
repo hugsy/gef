@@ -9,10 +9,11 @@ import re
 import subprocess
 import tempfile
 import unittest
+from urllib.request import urlopen
 import warnings
 import enum
 
-from typing import Iterable, Union, List
+from typing import Iterable, Union, List, Optional
 
 TMPDIR = pathlib.Path(tempfile.gettempdir())
 ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()
@@ -292,3 +293,20 @@ def removeuntil(substring: str, buffer: str, included: bool = False) -> str:
         idx += len(substring)
 
     return buffer[idx:]
+
+
+
+def download_file(url: str) -> Optional[bytes]:
+    """Download a file from the internet.
+
+    Args:
+        url (str)
+
+    Returns:
+        Optional[bytes]
+    """
+    try:
+        http = urlopen(url)
+        return http.read() if http.getcode() == 200 else None
+    except Exception:
+        return None

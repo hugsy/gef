@@ -2,19 +2,46 @@
 `syscall-args` command test module
 """
 
-
+import pathlib
+import tempfile
 import pytest
-from tests.utils import ARCH, GefUnitTestGeneric, gdb_run_cmd, gdb_start_silent_cmd, _target, removeuntil
+
+from tests.utils import (
+    ARCH, GEF_DEFAULT_TEMPDIR,
+    GefUnitTestGeneric, gdb_run_cmd,
+    gdb_start_silent_cmd, _target, removeuntil, download_file
+)
 
 
 class SyscallArgsCommand(GefUnitTestGeneric):
     """`syscall-args` command test module"""
+
+    @pytest.mark.online
+    def setUp(self) -> None:
+        self.tempdirfd = tempfile.TemporaryDirectory(prefix=GEF_DEFAULT_TEMPDIR)
+        self.tempdirpath = pathlib.Path(self.tempdirfd.name).absolute()
+        # download some syscall tables from gef-extras
+        base = "https://raw.githubusercontent.com/hugsy/gef-extras/master/syscall-tables"
+        for arch in ("ARM", "ARM_OABI", "X86", "X86_64"): # "PowerPC", "PowerPC64", "SPARC", "SPARC64"
+            url = f"{base}/{arch}.py"
+            data = download_file(url)
+            if not data:
+                raise Exception(f"Failed to download {arch}.py ({url})")
+            fpath = self.tempdirpath / f"{arch}.py"
+            with fpath.open("wb") as fd:
+                fd.write(data)
+        return super().setUp()
+
+    def tearDown(self) -> None:
+        self.tempdirfd.cleanup()
+        return
 
 
     def test_cmd_syscall_args(self):
         self.assertFailIfInactiveSession(gdb_run_cmd("syscall-args"))
 
         res = gdb_start_silent_cmd("catch syscall openat",
+                                   before=(f"gef config syscall-args.path {self.tempdirpath.absolute()}",),
                                    after=("continue", "syscall-args"),
                                    target=_target("syscall-args"),)
         self.assertNoException(res)
