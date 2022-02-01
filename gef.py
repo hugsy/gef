@@ -11598,7 +11598,6 @@ if __name__ == "__main__":
         "set print pretty on",
         "set disassembly-flavor intel",
         "handle SIGALRM print nopass",
-        "set print asm-demangle on",
     )
     for cmd in gdb_initial_settings:
         try:

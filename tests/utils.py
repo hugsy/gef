@@ -17,7 +17,6 @@ from typing import Iterable, Union, List, Optional
 
 TMPDIR = pathlib.Path(tempfile.gettempdir())
 ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()
-BIN_LS = pathlib.Path("/bin/ls")
 BIN_SH = pathlib.Path("/bin/sh")
 CI_VALID_ARCHITECTURES_32B = ("i686", "armv7l")
 CI_VALID_ARCHITECTURES_64B = ("x86_64", "aarch64", "mips64el", "ppc64le", "riscv64")

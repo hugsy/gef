@@ -9,7 +9,7 @@ import os
 import pytest
 
 from tests.utils import (
-    BIN_LS,
+    _target,
     gdb_start_silent_cmd,
     gdb_test_python_method,
     start_gdbserver,
@@ -31,7 +31,7 @@ class MiscFunctionTest(GefUnitTestGeneric):
 
     def test_func_gef_convenience(self):
         func = "gef_convenience('meh')"
-        res = gdb_test_python_method(func, target=BIN_LS)
+        res = gdb_test_python_method(func, target=_target("default"))
         self.assertNoException(res)
 
     def test_func_parse_address(self):
@@ -45,8 +45,8 @@ class MiscFunctionTest(GefUnitTestGeneric):
 
 
     def test_func_download_file(self):
-        gdbsrv = start_gdbserver(BIN_LS)
-        func = f"download_file('{BIN_LS}')"
+        gdbsrv = start_gdbserver(_target("default"))
+        func = f"download_file('{_target('default')}')"
         res = gdb_test_python_method(func)
         stop_gdbserver(gdbsrv)
         self.assertNoException(res)
