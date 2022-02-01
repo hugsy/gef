@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
@@ -12,9 +12,9 @@ curl_found=0
 wget_found=0
 
 # check dependencies
-if [ `which curl` ]; then
+if [ "$(which curl)" ]; then
 	curl_found=1
-elif [ `which wget` ]; then
+elif [ "$(which wget)" ]; then
 	wget_found=1
 else
 	echo "Please install cURL or wget and run again"
