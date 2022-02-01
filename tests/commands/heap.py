@@ -10,7 +10,8 @@ from tests.utils import (
     gdb_start_silent_cmd,
     _target,
     GefUnitTestGeneric,
-    is_32b
+    is_32b,
+    is_64b,
 )
 
 
@@ -18,10 +19,10 @@ class HeapCommand(GefUnitTestGeneric):
     """Generic class for command testing, that defines all helpers"""
     def setUp(self) -> None:
         # ensure those values reflects the allocations in the C source
-        self.expected_tcache_bin_size = 0x20 if ARCH in ("i686", "x86_64", "aarch64") else 0x18
-        self.expected_small_bin_size = 0x20 if ARCH in ("i686", "x86_64", "aarch64") else 0x18
-        self.expected_large_bin_size = 0x420 if ARCH in ("i686", "x86_64", "aarch64") else 0x418
-        self.expected_unsorted_bin_size = 0x430 if ARCH in ("i686", "x86_64", "aarch64") else 0x428
+        self.expected_tcache_bin_size = 0x20 if ARCH == "i686" or is_64b() else 0x18
+        self.expected_small_bin_size = 0x20 if ARCH == "i686" or is_64b() else 0x18
+        self.expected_large_bin_size = 0x420 if ARCH == "i686" or is_64b() else 0x418
+        self.expected_unsorted_bin_size = 0x430 if ARCH == "i686" or is_64b() else 0x428
         return super().setUp()
 
 
