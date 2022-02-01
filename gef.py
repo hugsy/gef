@@ -3948,14 +3948,25 @@ def parse_string_range(s: str) -> Iterator[int]:
     return map(lambda x: int(x, 16), addrs)
 
 
-@deprecated("Use `gef.session.pie_breakpoints[num]`")
-def gef_get_pie_breakpoint(num: int) -> "PieVirtualBreakpoint":
-    return gef.session.pie_breakpoints[num]
+@lru_cache()
+def is_syscall(instruction: Union[Instruction,int]) -> bool:
+    """Checks whether an instruction or address points to a system call."""
+    if isinstance(instruction, int):
+        instruction = gef_current_instruction(instruction)
+    insn_str = instruction.mnemonic + " " + ", ".join(instruction.operands)
+    return insn_str.strip() in gef.arch.syscall_instructions
+
 
 
 #
 # Deprecated API
 #
+
+@deprecated("Use `gef.session.pie_breakpoints[num]`")
+def gef_get_pie_breakpoint(num: int) -> "PieVirtualBreakpoint":
+    return gef.session.pie_breakpoints[num]
+
+
 @deprecated("Use `str(gef.arch.endianness)` instead")
 def endian_str() -> str:
     return str(gef.arch.endianness)
@@ -10180,14 +10191,8 @@ class IsSyscallCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, _: List[str]) -> None:
-        insn = gef_current_instruction(gef.arch.pc)
-        ok(f"Current instruction is{' ' if self.is_syscall(gef.arch, insn) else ' not '}a syscall")
-
+        ok(f"Current instruction is{' ' if is_syscall(gef.arch.pc) else ' not '}a syscall")
         return
-
-    def is_syscall(self, arch: Architecture, instruction: Instruction) -> bool:
-        insn_str = instruction.mnemonic + " " + ", ".join(instruction.operands)
-        return insn_str.strip() in arch.syscall_instructions
 
 
 @register_command
@@ -10213,7 +10218,17 @@ class SyscallArgsCommand(GenericCommand):
         arch = gef.arch.__class__.__name__
         syscall_table = self.__get_syscall_table(arch)
 
-        reg_value = gef.arch.register(gef.arch.syscall_register)
+        if is_syscall(gef.arch.pc):
+            # if $pc is before the `syscall` instruction is executed:
+            reg_value = gef.arch.register(gef.arch.syscall_register)
+        else:
+            # otherwise, try the previous instruction (case of using `catch syscall`)
+            previous_insn_addr = gdb_get_nth_previous_instruction_address(gef.arch.pc, 1)
+            if not is_syscall(previous_insn_addr):
+                err("No syscall found")
+                return
+            reg_value = gef.arch.register(f"$orig_{gef.arch.syscall_register.lstrip('$')}")
+
         if reg_value not in syscall_table:
             warn(f"There is no system call for {reg_value:#x}")
             return
