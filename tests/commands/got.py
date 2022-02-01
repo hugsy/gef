@@ -2,11 +2,18 @@
 `got` command test module
 """
 
+import pytest
 
-from tests.utils import _target, gdb_run_cmd, gdb_start_silent_cmd
-from tests.utils import GefUnitTestGeneric
+from tests.utils import (
+    ARCH,
+    _target,
+    gdb_run_cmd,
+    gdb_start_silent_cmd,
+    GefUnitTestGeneric,
+)
 
 
+@pytest.mark.skipif(ARCH in ("ppc64le",), reason=f"Skipped for {ARCH}")
 class GotCommand(GefUnitTestGeneric):
     """`got` command test module"""
 

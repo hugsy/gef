@@ -2846,6 +2846,7 @@ class PowerPC(Architecture):
     function_parameters = ["$i0", "$i1", "$i2", "$i3", "$i4", "$i5"]
     syscall_register = "$r0"
     syscall_instructions = ["sc"]
+    ptrsize = 4
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         # https://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
@@ -2917,6 +2918,7 @@ class PowerPC64(PowerPC):
     aliases = ("PowerPC64", Elf.Abi.POWERPC64, "PPC64")
     arch = "PPC"
     mode = "PPC64"
+    ptrsize = 8
 
 
 @register_architecture
