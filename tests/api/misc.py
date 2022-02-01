@@ -8,7 +8,7 @@ import subprocess
 import os
 import pytest
 
-from tests.utils import BIN_LS, gdb_test_python_method, start_gdbserver, stop_gdbserver
+from tests.utils import BIN_LS, gdb_start_silent_cmd, gdb_test_python_method, start_gdbserver, stop_gdbserver
 from tests.utils import GefUnitTestGeneric
 
 
@@ -67,6 +67,6 @@ class MiscFunctionTest(GefUnitTestGeneric):
 
 
     def test_func_show_last_exception(self):
-        func = "show_last_exception()"
-        res = gdb_test_python_method(func, before=("raise Exception('foo')"))
+        cmd = "hexdump byte *0"
+        res = gdb_start_silent_cmd(cmd, before=("gef config gef.debug 1",))
         self.assertException(res)
