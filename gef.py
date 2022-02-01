@@ -2345,6 +2345,15 @@ class RISCV(Architecture):
     def mprotect_asm(cls, addr: int, size: int, perm: Permission) -> str:
         raise OSError(f"Architecture {cls.arch} not supported yet")
 
+    @property
+    def ptrsize(self) -> int:
+        if self._ptrsize is not None:
+            return self._ptrsize
+        if is_alive():
+            self._ptrsize = gdb.parse_and_eval("$pc").type.sizeof
+            return self._ptrsize
+        return 4
+
     def is_conditional_branch(self, insn: Instruction) -> bool:
         return insn.mnemonic.startswith("b")
 
