@@ -11,7 +11,7 @@ else
   DIR="${HOME}/.gef-extras"
 fi
 
-git clone https://github.com/hugsy/gef-extras.git ${DIR}
+git clone https://github.com/hugsy/gef-extras.git "${DIR}"
 gdb -q -ex "gef config gef.extra_plugins_dir '${DIR}/scripts'" \
        -ex "gef config pcustom.struct_path '${DIR}/structs'" \
        -ex "gef config syscall-args.path '${DIR}/syscall-tables'" \
