@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Bash script to automate running the tests running from any remote machine
 # (assumes GDB+Python3, requires sudo NOPASSWD)
