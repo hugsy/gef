@@ -12,7 +12,7 @@ class UnicornEmulateCommand(GefUnitTestGeneric):
 
     def setUp(self) -> None:
         try:
-            import unicorn
+            import unicorn # pylint: disable=W0611
         except ImportError:
             pytest.skip("unicorn-engine not available", allow_module_level=True)
         return super().setUp()

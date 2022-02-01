@@ -8,8 +8,14 @@ import subprocess
 import os
 import pytest
 
-from tests.utils import BIN_LS, gdb_start_silent_cmd, gdb_test_python_method, start_gdbserver, stop_gdbserver
-from tests.utils import GefUnitTestGeneric
+from tests.utils import (
+    BIN_LS,
+    gdb_start_silent_cmd,
+    gdb_test_python_method,
+    start_gdbserver,
+    stop_gdbserver,
+    GefUnitTestGeneric,
+)
 
 
 class MiscFunctionTest(GefUnitTestGeneric):
@@ -55,7 +61,10 @@ class MiscFunctionTest(GefUnitTestGeneric):
             with tempfile.TemporaryDirectory() as tmpdir:
                 dirpath = pathlib.Path(tmpdir)
                 os.environ["HOME"] = str(dirpath.absolute())
-                ref = subprocess.check_output(f"""wget -q -O- https://api.github.com/repos/hugsy/gef/git/ref/heads/{branch} | grep '"sha"' | tr -s ' ' | cut -d ' ' -f 3 | tr -d ',' | tr -d '"' """, shell=True).decode("utf-8").strip()
+                url = f"https://api.github.com/repos/hugsy/gef/git/ref/heads/{branch}"
+                cmd = f"""wget -q -O- {url} | grep '"sha"' | tr -s ' ' | """ \
+                       """cut -d ' ' -f 3 | tr -d ',' | tr -d '"' """
+                ref = subprocess.check_output(cmd, shell=True).decode("utf-8").strip()
                 res = gdb_test_python_method(f"update_gef(['--{branch}'])")
                 retcode = int(res.splitlines()[-1])
                 self.assertEqual(retcode, 0)

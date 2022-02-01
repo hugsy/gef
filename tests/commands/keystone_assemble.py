@@ -12,7 +12,7 @@ class KeystoneAssembleCommand(GefUnitTestGeneric):
 
     def setUp(self) -> None:
         try:
-            import keystone
+            import keystone # pylint: disable=W0611
         except ImportError:
             pytest.skip("keystone-engine not available", allow_module_level=True)
         return super().setUp()

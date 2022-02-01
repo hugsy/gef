@@ -10,7 +10,6 @@ from tests.utils import (
     gdb_start_silent_cmd,
     _target,
     GefUnitTestGeneric,
-    is_64b,
     is_32b
 )
 

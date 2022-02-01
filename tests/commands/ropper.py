@@ -13,7 +13,7 @@ class RopperCommand(GefUnitTestGeneric):
 
     def setUp(self) -> None:
         try:
-            import ropper
+            import ropper # pylint: disable=W0611
         except ImportError:
             pytest.skip("ropper not available", allow_module_level=True)
         return super().setUp()

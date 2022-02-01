@@ -41,9 +41,13 @@ class GefCommand(GefUnitTestGeneric):
 
 
     def test_cmd_gef_set(self):
-        res = gdb_run_cmd("gef set args $_gef0", before=("pattern create -n 4", ), after=("show args"))
+        res = gdb_run_cmd("gef set args $_gef0",
+                          before=("pattern create -n 4", ),
+                          after=("show args"))
         self.assertNoException(res)
         self.assertIn("aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaan", res)
 
-        res = gdb_run_cmd("gef set args $_gef42", before=("pattern create -n 4", ), after=("show args"))
+        res = gdb_run_cmd("gef set args $_gef42",
+                          before=("pattern create -n 4", ),
+                          after=("show args"))
         self.assertException(res)

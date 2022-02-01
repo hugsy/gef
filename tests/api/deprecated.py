@@ -4,9 +4,10 @@ test module for deprecated functions
 
 import pytest
 
-from tests.utils import gdb_start_silent_cmd, gdb_test_python_method
-from tests.utils import GefUnitTestGeneric
-
+from tests.utils import (
+    gdb_test_python_method,
+    GefUnitTestGeneric,
+)
 
 class GefFuncDeprecatedApi(GefUnitTestGeneric):
     """"""

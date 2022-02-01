@@ -10,7 +10,6 @@ from tests.utils import (
 
     ARCH,
     GefUnitTestGeneric,
-    is_64b
 )
 
 

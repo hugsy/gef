@@ -5,7 +5,12 @@
 
 import pytest
 
-from tests.utils import ARCH, GefUnitTestGeneric, gdb_start_silent_cmd_last_line, gdb_start_silent_cmd
+from tests.utils import (
+    ARCH,
+    GefUnitTestGeneric,
+    gdb_start_silent_cmd_last_line,
+    gdb_start_silent_cmd,
+)
 
 
 class EditFlagsCommand(GefUnitTestGeneric):
