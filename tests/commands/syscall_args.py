@@ -70,7 +70,7 @@ class IsSyscallCommand(GefUnitTestGeneric):
             if ARCH == "x86_64" and parts[2] == "syscall":
                 self.syscall_location = parts[1].lstrip('<').rstrip('>:')
                 break
-            if ARCH == "i686" and parts[2] == "int 0x80":
+            if ARCH == "i686" and parts[2] == "int" and parts[3] == "0x80":
                 self.syscall_location = parts[1].lstrip('<').rstrip('>:')
                 break
         return super().setUp()
