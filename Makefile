@@ -1,6 +1,6 @@
 NB_CORES := $(shell grep --count '^processor' /proc/cpuinfo)
 PYLINT_DISABLE:= all
-PYLINT_ENABLE := F,E,unreachable,duplicate-key,unnecessary-semicolon,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode,dangerous-default-value,trailing-whitespace,unneeded-not,singleton-comparison,unused-import
+PYLINT_ENABLE := F,E,unreachable,duplicate-key,unnecessary-semicolon,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode,dangerous-default-value,trailing-whitespace,unneeded-not,singleton-comparison,unused-import,trailing-newlines,missing-final-newline,wrong-import-order,f-string-without-interpolation,import-outside-toplevel
 PYLINT_TEST_ENABLE := $(PYLINT_ENABLE),line-too-long,multiple-statements,consider-using-f-string,global-variable-not-assigned
 PYLINT_JOBS := $(NB_CORES)
 PYLINT_SUGGEST_FIX := y
