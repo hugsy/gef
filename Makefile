@@ -12,9 +12,6 @@ COVERAGE_DIR ?= /tmp/cov
 GEF_PATH ?= $(shell readlink -f gef.py)
 TMPDIR ?= /tmp
 PYTEST_PARAMETERS := --verbose --forked --numprocesses=$(NB_CORES)
-ifdef DEBUG
-	PYTEST_PARAMETERS += --pdb
-endif
 
 .PHONY: test test_% Test% testbins clean lint
 
