@@ -4545,9 +4545,8 @@ def register_external_context_pane(pane_name: str, display_pane_function: Callab
 # Commands
 #
 
-def register_external_command(obj: "GenericCommand") -> Type["GenericCommand"]:
+def register_external_command(cls: Type["GenericCommand"]) -> Type["GenericCommand"]:
     """Registering function for new GEF (sub-)command to GDB."""
-    cls = obj.__class__
     __registered_commands__.append(cls)
     gef.gdb.load(initial=False)
     gef.gdb.doc.add_command_to_doc((cls._cmdline_, cls, None))
@@ -10536,14 +10535,14 @@ class GefCommand(gdb.Command):
             directories = gef.config["gef.extra_plugins_dir"]
             if directories:
                 for directory in directories.split(";"):
-                    directory = os.path.realpath(os.path.expanduser(directory))
-                    if os.path.isdir(directory):
-                        sys.path.append(directory)
-                        for fname in os.listdir(directory):
-                            if not fname.endswith(".py"): continue
-                            fpath = f"{directory}/{fname}"
-                            if os.path.isfile(fpath):
-                                gdb.execute(f"source {fpath}")
+                    directory = pathlib.Path(directory).expanduser()
+                    if not directory.is_dir():
+                        continue
+                    for entry in directory.iterdir():
+                        if not entry.is_file(): continue
+                        if entry.suffix != ".py": continue
+                        if entry.name == "__init__.py": continue
+                        gdb.execute(f"source {entry}")
             nb_added = len(self.loaded_commands) - nb_inital
             if nb_added > 0:
                 ok(f"{Color.colorify(nb_added, 'bold green')} extra commands added from "
