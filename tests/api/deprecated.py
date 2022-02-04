@@ -28,7 +28,7 @@ class GefFuncDeprecatedApi(GefUnitTestGeneric):
 
         for cmd in old_stuff:
             with pytest.warns(Warning) as record:
-                res = gdb_test_python_method(f"{cmd}")
+                res = gdb_test_python_method(cmd)
                 self.assertNoException(res)
                 if not record:
                     pytest.fail("Expected a warning!")
