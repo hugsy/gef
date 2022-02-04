@@ -3964,9 +3964,10 @@ def is_syscall(instruction: Union[Instruction,int]) -> bool:
     """Checks whether an instruction or address points to a system call."""
     if isinstance(instruction, int):
         instruction = gef_current_instruction(instruction)
-    insn_str = f"{instruction.mnemonic} {', '.join(instruction.operands).strip()}"
+    insn_str = instruction.mnemonic
+    if len(instruction.operands):
+        insn_str += f" {', '.join(instruction.operands)}"
     return insn_str in gef.arch.syscall_instructions
-
 
 
 #
