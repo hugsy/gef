@@ -217,7 +217,11 @@ def highlight_text(text: str) -> str:
 
     ansiSplit = re.split(ANSI_SPLIT_RE, text)
 
+    _arch_mode = f"{gef.arch.arch.lower()}_{gef.arch.mode}"
+
     for match, color in gef.ui.highlight_table.items():
+        if match == _arch_mode:
+            continue
         for index, val in enumerate(ansiSplit):
             found = val.find(match)
             if found > -1:
