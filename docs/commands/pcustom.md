@@ -50,11 +50,11 @@ gef➤  pcustom edit elf32_t
 [+] Editing '/home/hugsy/code/gef-extras/structs/elf32_t.py'
 ```
 
-
+#### Static `ctypes.Structure`-like classes
 
 The code can be defined just as any Python (using `ctypes`) code.
 
-```
+```python
 from ctypes import *
 
 '''
@@ -118,6 +118,57 @@ gef➤  ida ImportStructs
 Which will become:
 
 ![ida-structure-imported](https://i.imgur.com/KVhyopO.png)
+
+
+#### Dynamic `ctypes.Structure`-like classes
+
+`pcustom` also supports the use of class factory to create a `ctypes.Structure` class whose structure will be adjusted based on the runtime information we can provide (information about the currently debugged binary, the architecture, the size of a pointer and more).
+
+The syntax is relatively close to the way we use to create static classes (see above), but instead we will define a method that will generate the class.
+
+To continue the `person_t` class we defined in the example above, we could redefine the static class as a dynamic one very easily as such:
+
+```python
+import ctypes
+
+def person_t(gef = None):
+    fields = [
+        ("age",  ctypes.c_int),
+        ("name", ctypes.c_char * 256),
+        ("id", ctypes.c_int),
+    ]
+
+    class person_cls(ctypes.Structure):
+      _fields_ = fields
+
+    return person_cls
+```
+
+Thanks to the `gef` parameter, the structure can be transparently adjusted so that GEF will parse it differently with its runtime information. For example, we can add constraints to the example above:
+
+```python
+import ctypes
+
+def person_t(gef = None):
+    fields = [
+        ("age",  ctypes.c_uint8),
+        ("name", ctypes.c_char * 256),
+        ("id", ctypes.c_uint8),
+    ]
+
+    # constraint on the libc version
+    if gef.libc.version > (2, 27):
+      # or on the pointer size
+      pointer_type = ctypes.c_uint64 if gef.arch.ptrsize == 8 else ctypes.c_uint32
+      fields += [
+        ("new_field", pointer_size)
+      ]
+
+    class person_cls(ctypes.Structure):
+      _fields_ = fields
+
+    return person_cls
+```
 
 
 ### Public repository of structures
