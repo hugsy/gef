@@ -10,7 +10,8 @@ from tests.utils import (
 )
 
 class GefFuncDeprecatedApi(GefUnitTestGeneric):
-    """"""
+    """Test class for deprecated functions and variables. Each of those tests expect to receive a
+    deprecation warning."""
 
     def test_deprecated_elf_values(self):
         old_stuff = (
