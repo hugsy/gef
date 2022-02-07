@@ -7,7 +7,7 @@ from tests.utils import _target, gdb_run_cmd
 from tests.utils import GefUnitTestGeneric
 
 
-class format_string_helperCommand(GefUnitTestGeneric):
+class FormatStringHelperCommand(GefUnitTestGeneric):
     """`format-string-helper` command test module"""
 
 
@@ -20,4 +20,3 @@ class format_string_helperCommand(GefUnitTestGeneric):
                           target=target)
         self.assertNoException(res)
         self.assertIn("Possible insecure format string:", res)
-
