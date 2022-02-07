@@ -5324,7 +5324,7 @@ class ExternalStructureManager:
             self.name = struct_name
             self.class_type = self.__get_structure_class()
             # if the symbol points to a class factory method and not a class
-            if not hasattr(self.class_type, "_fields_"):
+            if not hasattr(self.class_type, "_fields_") and callable(self.class_type):
                 self.class_type = self.class_type(gef)
             return
 
