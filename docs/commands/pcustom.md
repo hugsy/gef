@@ -124,14 +124,17 @@ Which will become:
 
 `pcustom` also supports the use of class factories to create a `ctypes.Structure` class whose structure will be adjusted based on the runtime information we provide (information about the currently debugged binary, the architecture, the size of a pointer and more).
 
-The syntax is relatively close to the way we use to create static classes (see above), but instead we will define a method that will generate the class.
+The syntax is relatively close to the way we use to create static classes (see above), but instead we will define a method that will generate the class. The requirements for this class factory method to be valid are:
+   - have one positional argument of type [`Gef`](https://github.com/hugsy/gef/blob/dev/docs/api/gef.md#class-gef)
+   - the name of the method itself **must** end with `_t`
 
 To continue the `person_t` function we defined in the example above, we could modify the static class as a dynamic one very easily:
 
 ```python
 import ctypes
+from typing import Optional
 
-def person_t(gef=None):
+def person_t(gef: Optional["Gef"]=None):
     fields = [
         ("age",  ctypes.c_int),
         ("name", ctypes.c_char * 256),
@@ -148,8 +151,9 @@ Thanks to the `gef` parameter, the structure can be transparently adjusted so th
 
 ```python
 import ctypes
+from typing import Optional
 
-def person_t(gef=None):
+def person_t(gef: Optional["Gef"]==None):
     fields = [
         ("age",  ctypes.c_uint8),
         ("name", ctypes.c_char * 256),
