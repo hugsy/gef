@@ -10317,8 +10317,8 @@ class GefCommand(gdb.Command):
             if directories:
                 for directory in directories.split(";"):
                     directory = pathlib.Path(directory).expanduser()
-                    if not directory.is_dir():
-                        continue
+                    if not directory.is_dir(): continue
+                    sys.path.append(str(directory))
                     for entry in directory.iterdir():
                         if not entry.is_file(): continue
                         if entry.suffix != ".py": continue
