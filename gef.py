@@ -5729,6 +5729,7 @@ class ChangeFdCommand(GenericCommand):
 
 @register_command
 class IdaInteractCommand(GenericCommand):
+    """**REMOVED** a better version of `ida-interact` is now hosted on `gef-extras`"""
     _cmdline_ = "ida-interact"
     _syntax_ = f"{_cmdline_} METHOD [ARGS]"
 
