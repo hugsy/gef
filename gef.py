@@ -3512,19 +3512,19 @@ def load_libc_args() -> bool:
     _libc_args_file = path / f"{_arch_mode}.json"
 
     # current arch and mode already loaded
-    if _arch_mode in gef.ui.highlight_table:
+    if _arch_mode in gef.ui.libc_args_table:
         return True
 
-    gef.ui.highlight_table[_arch_mode] = {}
+    gef.ui.libc_args_table[_arch_mode] = {}
     try:
         with _libc_args_file.open() as _libc_args:
-            gef.ui.highlight_table[_arch_mode] = json.load(_libc_args)
+            gef.ui.libc_args_table[_arch_mode] = json.load(_libc_args)
         return True
     except FileNotFoundError:
-        del gef.ui.highlight_table[_arch_mode]
+        del gef.ui.libc_args_table[_arch_mode]
         warn(f"Config context.libc_args is set but definition cannot be loaded: file {_libc_args_file} not found")
     except json.decoder.JSONDecodeError as e:
-        del gef.ui.highlight_table[_arch_mode]
+        del gef.ui.libc_args_table[_arch_mode]
         warn(f"Config context.libc_args is set but definition cannot be loaded from file {_libc_args_file}: {e}")
     return False
 
@@ -8318,7 +8318,7 @@ class ContextCommand(GenericCommand):
         if function_name.endswith("@plt"):
             _function_name = function_name.split("@")[0]
             try:
-                nb_argument = len(gef.ui.highlight_table[_arch_mode][_function_name])
+                nb_argument = len(gef.ui.libc_args_table[_arch_mode][_function_name])
             except KeyError:
                 pass
 
@@ -11295,6 +11295,7 @@ class GefUiManager(GefManager):
         self.context_hidden = False
         self.stream_buffer : Optional[StringIO] = None
         self.highlight_table: Dict[str, str] = {}
+        self.libc_args_table: Dict[str, Dict[str, Dict[str, str]]] = {}
         self.watches: Dict[int, Tuple[int, str]] = {}
         self.context_messages: List[str] = []
         return
