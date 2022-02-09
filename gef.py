@@ -8562,7 +8562,7 @@ class ContextCommand(GenericCommand):
             _values = RIGHT_ARROW.join(dereference_from(_values))
             try:
                 args.append("{} = {} (def: {})".format(Color.colorify(_key, arg_key_color), _values,
-                                                       gef.ui.highlight_table[_arch_mode][_function_name][_key]))
+                                                       gef.ui.libc_args_table[_arch_mode][_function_name][_key]))
             except KeyError:
                 args.append(f"{Color.colorify(_key, arg_key_color)} = {_values}")
 
