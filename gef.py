@@ -10250,6 +10250,7 @@ class GefCommand(gdb.Command):
         GefMissingCommand()
         GefSetCommand()
         GefRunCommand()
+        GefInstallExtraScriptCommand()
 
         # load the saved settings
         gdb.execute("gef restore")
@@ -10887,6 +10888,64 @@ class GefTmuxSetup(gdb.Command):
         os.unlink(script_path)
         os.unlink(tty_path)
         return
+
+
+class GefInstallExtraScriptCommand(gdb.Command):
+    """`gef install` command: installs one or more scripts from the `gef-extras` script repo. Note that the command
+    doesn't check for external dependencies the script(s) might require."""
+    _cmdline_ = "gef install"
+    _syntax_  = f"{_cmdline_} SCRIPTNAME [SCRIPTNAME [SCRIPTNAME...]]"
+
+    def __init__(self) -> None:
+        super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, False)
+        self.branch = gef.config.get("gef.default_branch", "master")
+        return
+
+    def invoke(self, args: str, from_tty: bool) -> None:
+        self.dont_repeat()
+        if not args:
+            err("No script name provided")
+            return
+
+        if "--list" in args:
+            subprocess.run(["xdg-open", f"https://github.com/hugsy/gef-extras/{self.branch}/"])
+            return
+
+        self.dirpath = pathlib.Path(gef.config["gef.extra_plugins_dir"]).expanduser().absolute()
+        if not self.dirpath.is_dir():
+            err("'gef.extra_plugins_dir' is not a valid directory")
+            return
+
+        for script in args.split():
+            script = script.lower()
+            if not self.__install_extras_script(script):
+                warn(f"Failed to install '{script}', skipping...")
+        return
+
+
+    def __install_extras_script(self, script: str) -> bool:
+        fpath = self.dirpath / f"{script}.py"
+        if fpath.exists():
+            err(f"'{fpath}' already exists")
+            return False
+
+        url = f"https://raw.githubusercontent.com/hugsy/gef-extras/{self.branch}/scripts/{script}.py"
+        info(f"Searching for '{script}.py' in `gef-extras@{self.branch}`...")
+        data = http_get(url)
+        if not data:
+            warn("Not found")
+            return False
+
+        with fpath.open("wb") as fd:
+            fd.write(data)
+            fd.flush()
+
+        old_command_set = set(gef.gdb.commands)
+        gdb.execute(f"source {fpath}")
+        new_command_set = set(gef.gdb.commands)
+        new_commands = [f"`{c[0]}`" for c in (new_command_set - old_command_set)]
+        ok(f"Installed file '{fpath}', new command(s) available: {', '.join(new_commands)}")
+        return True
 
 
 #
