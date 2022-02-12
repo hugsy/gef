@@ -161,7 +161,7 @@ PATTERN_LIBC_VERSION                   = re.compile(rb"glibc (\d+)\.(\d+)")
 gef : "Gef"                                                                 = None
 __registered_commands__ : List[Type["GenericCommand"]]                      = []
 __registered_functions__ : List[Type["GenericFunction"]]                    = []
-__registered_architectures__ : Dict[Union["Elf.Abi", str], Type["Architecture"]]  = {}
+__registered_architectures__ : Dict[Union["Elf.Abi", str], Type["ArchitectureBase"]]  = {}
 
 
 def reset_all_caches() -> None:
@@ -460,13 +460,13 @@ sys.exit = FakeExit
 
 
 def parse_arguments(required_arguments: Dict[Union[str, Tuple[str, str]], Any],
-                    optional_arguments: Dict[Union[str, Tuple[str, str]], Any]) -> Optional[Callable]:
+                    optional_arguments: Dict[Union[str, Tuple[str, str]], Any]) -> Callable:
     """Argument parsing decorator."""
 
     def int_wrapper(x: str) -> int: return int(x, 0)
 
     def decorator(f: Callable) -> Optional[Callable]:
-        def wrapper(*args: Any, **kwargs: Any) -> Optional[Callable]:
+        def wrapper(*args: Any, **kwargs: Any) -> Callable:
             parser = argparse.ArgumentParser(prog=args[0]._cmdline_, add_help=True)
             for argname in required_arguments:
                 argvalue = required_arguments[argname]
@@ -506,10 +506,7 @@ def parse_arguments(required_arguments: Dict[Union[str, Tuple[str, str]], Any],
                 else:
                     parser.add_argument(*argname, type=argtype, default=argvalue)
 
-            try:
-                parsed_args = parser.parse_args(*(args[1:]))
-            except RuntimeWarning:
-                return
+            parsed_args = parser.parse_args(*(args[1:]))
             kwargs["arguments"] = parsed_args
             return f(*args, **kwargs)
         return wrapper
@@ -2152,80 +2149,100 @@ def get_zone_base_address(name: str) -> Optional[int]:
 #
 # Architecture classes
 #
+@deprecated("Using the decorator `register_architecture` is unecessary")
 def register_architecture(cls: Type["Architecture"]) -> Type["Architecture"]:
-    """Class decorator for declaring an architecture to GEF."""
-    global __registered_architectures__
-    for key in cls.aliases:
-        __registered_architectures__[key] = cls
     return cls
 
+class ArchitectureBase:
+    """Class decorator for declaring an architecture to GEF."""
+    aliases: Union[Tuple[()], Tuple[Union[str, Elf.Abi], ...]] = ()
 
-class Architecture(metaclass=abc.ABCMeta):
+    def __init_subclass__(cls: Type["ArchitectureBase"], **kwargs):
+        global __registered_architectures__
+        super().__init_subclass__(**kwargs)
+        for key in getattr(cls, "aliases"):
+            __registered_architectures__[key] = cls
+        return
+
+
+class Architecture(ArchitectureBase):
     """Generic metaclass for the architecture supported by GEF."""
 
-    @abc.abstractproperty
-    def all_registers(self) -> List[str]:                                     pass
-    @abc.abstractproperty
-    def instruction_length(self) -> Optional[int]:                            pass
-    @abc.abstractproperty
-    def nop_insn(self) -> bytes:                                              pass
-    @abc.abstractproperty
-    def return_register(self) -> str:                                         pass
-    @abc.abstractproperty
-    def flag_register(self) -> Optional[str]:                                 pass
-    @abc.abstractproperty
-    def flags_table(self) -> Optional[Dict[int, str]]:                        pass
-    @abc.abstractproperty
-    def function_parameters(self) -> List[str]:                               pass
-    @abc.abstractmethod
-    def flag_register_to_human(self, val: Optional[int] = None) -> str:       pass
-    @abc.abstractmethod
-    def is_call(self, insn: Instruction) -> bool:                             pass
-    @abc.abstractmethod
-    def is_ret(self, insn: Instruction) -> bool:                              pass
-    @abc.abstractmethod
-    def is_conditional_branch(self, insn: Instruction) -> bool:               pass
-    @abc.abstractmethod
-    def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:         pass
-    @abc.abstractmethod
-    def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> Optional[int]: pass
-    @classmethod
-    @abc.abstractmethod
-    def mprotect_asm(cls, addr: int, size: int, perm: Permission) -> str:     pass
+    # Mandatory defined attributes by inheriting classes
+    arch: str
+    mode: str
+    all_registers: Union[Tuple[()], Tuple[str, ...]]
+    nop_insn: bytes
+    return_register: str
+    flag_register: Optional[str]
+    instruction_length: Optional[int]
+    flags_table: Dict[int, str]
+    syscall_register: Optional[str]
+    syscall_instructions: Union[Tuple[()], Tuple[str, ...]]
+    function_parameters: Union[Tuple[()], Tuple[str, ...]]
 
-    arch = ""
-    mode = ""
-    aliases: Tuple[Union[str, int], ...] = []
-    special_registers: List[str] = []
+    # Optionally defined attributes
+    _ptrsize: Optional[int] = None
+    _endianness: Optional[Endianness] = None
+    special_registers: Union[Tuple[()], Tuple[str, ...]] = ()
+
+    def __init_subclass__(cls, /, **kwargs):
+        super().__init_subclass__(**kwargs)
+        attributes = ("arch", "mode", "aliases", "all_registers", "nop_insn",
+             "return_register", "flag_register", "instruction_length", "flags_table",
+             "function_parameters",)
+        if not all(map(lambda x: hasattr(cls, x), attributes)):
+            raise NotImplementedError
+
+
+    def flag_register_to_human(self, val: Optional[int] = None) -> str:
+        raise NotImplementedError
+
+    def is_call(self, insn: Instruction) -> bool:
+        raise NotImplementedError
+
+    def is_ret(self, insn: Instruction) -> bool:
+        raise NotImplementedError
+
+    def is_conditional_branch(self, insn: Instruction) -> bool:
+        raise NotImplementedError
+
+    def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:
+        raise NotImplementedError
+
+    def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> Optional[int]:
+        raise NotImplementedError
+
+    @classmethod
+    def mprotect_asm(cls, addr: int, size: int, perm: Permission) -> str:
+        raise NotImplementedError
 
     def reset_caches(self) -> None:
         self.__get_register_for_selected_frame.cache_clear()
         return
 
-    def __get_register(self, regname: str) -> Optional[int]:
+    def __get_register(self, regname: str) -> int:
         """Return a register's value."""
         curframe = gdb.selected_frame()
         key = curframe.pc() ^ int(curframe.read_register('sp')) # todo: check when/if gdb.Frame implements `level()`
         return self.__get_register_for_selected_frame(regname, key)
 
     @lru_cache()
-    def __get_register_for_selected_frame(self, regname: str, hash_key: int) -> Optional[int]:
+    def __get_register_for_selected_frame(self, regname: str, hash_key: int) -> int:
         # 1st chance
         try:
             return parse_address(regname)
         except gdb.error:
             pass
 
-        # 2nd chance
-        try:
-            regname = regname.lstrip("$")
-            value = gdb.selected_frame().read_register(regname)
-            return int(value)
-        except (ValueError, gdb.error):
-            pass
-        return None
+        # 2nd chance - if an exception, propagate it
+        regname = regname.lstrip("$")
+        value = gdb.selected_frame().read_register(regname)
+        return int(value)
 
-    def register(self, name: str) -> Optional[int]:
+    def register(self, name: str) -> int:
+        if not is_alive():
+            raise gdb.error("No debugging session active")
         return self.__get_register(name)
 
     @property
@@ -2233,18 +2250,17 @@ class Architecture(metaclass=abc.ABCMeta):
         yield from self.all_registers
 
     @property
-    def pc(self) -> Optional[int]:
+    def pc(self) -> int:
         return self.register("$pc")
 
     @property
-    def sp(self) -> Optional[int]:
+    def sp(self) -> int:
         return self.register("$sp")
 
     @property
-    def fp(self) -> Optional[int]:
+    def fp(self) -> int:
         return self.register("$fp")
 
-    _ptrsize = None
     @property
     def ptrsize(self) -> int:
         if not self._ptrsize:
@@ -2255,7 +2271,6 @@ class Architecture(metaclass=abc.ABCMeta):
                 self._ptrsize = gdb.parse_and_eval("$pc").type.sizeof
         return self._ptrsize
 
-    _endianness = None
     @property
     def endianness(self) -> Endianness:
         if not self._endianness:
@@ -2277,12 +2292,11 @@ class Architecture(metaclass=abc.ABCMeta):
 
 
 class GenericArchitecture(Architecture):
-
     arch = "Generic"
     mode = ""
+    aliases = ("GenericArchitecture",)
     all_registers = ()
     instruction_length = 0
-    ptrsize = 0
     return_register = ""
     function_parameters = ()
     syscall_register = ""
@@ -2290,38 +2304,25 @@ class GenericArchitecture(Architecture):
     nop_insn = b""
     flag_register = None
     flags_table = None
-    def flag_register_to_human(self, val: Optional[int] = None) -> str:       return ""
-    def is_call(self, insn: Instruction) -> bool:                             return False
-    def is_ret(self, insn: Instruction) -> bool:                              return False
-    def is_conditional_branch(self, insn: Instruction) -> bool:               return False
-    def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:         return False, ""
-    def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> Optional[int]: return 0
-
-    @classmethod
-    def mprotect_asm(cls, addr: int, size: int, perm: Permission) -> str:
-        raise OSError(f"Architecture {cls.arch} not supported")
 
 
-@register_architecture
 class RISCV(Architecture):
     arch = "RISCV"
     mode = "RISCV"
     aliases = ("RISCV", Elf.Abi.RISCV)
-
-    all_registers = ["$zero", "$ra", "$sp", "$gp", "$tp", "$t0", "$t1",
+    all_registers = ("$zero", "$ra", "$sp", "$gp", "$tp", "$t0", "$t1",
                      "$t2", "$fp", "$s1", "$a0", "$a1", "$a2", "$a3",
                      "$a4", "$a5", "$a6", "$a7", "$s2", "$s3", "$s4",
                      "$s5", "$s6", "$s7", "$s8", "$s9", "$s10", "$s11",
-                     "$t3", "$t4", "$t5", "$t6",]
+                     "$t3", "$t4", "$t5", "$t6",)
     return_register = "$a0"
-    function_parameters = ["$a0", "$a1", "$a2", "$a3", "$a4", "$a5", "$a6", "$a7"]
+    function_parameters = ("$a0", "$a1", "$a2", "$a3", "$a4", "$a5", "$a6", "$a7")
     syscall_register = "$a7"
-    syscall_instructions = ["ecall"]
+    syscall_instructions = ("ecall",)
     nop_insn = b"\x00\x00\x00\x13"
     # RISC-V has no flags registers
     flag_register = None
-    flag_register_to_human = None
-    flags_table = None
+    flags_table = {}
 
     @property
     def instruction_length(self) -> int:
@@ -2410,7 +2411,7 @@ class RISCV(Architecture):
 
         return taken, reason
 
-    def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> int:
+    def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> Optional[int]:
         ra = None
         if self.is_ret(insn):
             ra = gef.arch.register("$ra")
@@ -2419,18 +2420,17 @@ class RISCV(Architecture):
         return ra
 
 
-@register_architecture
 class ARM(Architecture):
     aliases = ("ARM", Elf.Abi.ARM)
     arch = "ARM"
-    all_registers = ["$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6",
+    all_registers = ("$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6",
                      "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$sp",
-                     "$lr", "$pc", "$cpsr",]
+                     "$lr", "$pc", "$cpsr",)
 
     # https://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
     nop_insn = b"\x01\x10\xa0\xe1" # mov r1, r1
     return_register = "$r0"
-    flag_register = "$cpsr"
+    flag_register: str = "$cpsr"
     flags_table = {
         31: "negative",
         30: "zero",
@@ -2440,10 +2440,10 @@ class ARM(Architecture):
         6: "fast",
         5: "thumb",
     }
-    function_parameters = ["$r0", "$r1", "$r2", "$r3"]
+    function_parameters = ("$r0", "$r1", "$r2", "$r3")
     syscall_register = "$r7"
-    syscall_instructions = ["swi 0x0", "swi NR"]
-    endianness = Endianness.LITTLE_ENDIAN
+    syscall_instructions = ("swi 0x0", "swi NR")
+    _endianness = Endianness.LITTLE_ENDIAN
 
     def is_thumb(self) -> bool:
         """Determine if the machine is currently in THUMB mode."""
@@ -2504,15 +2504,15 @@ class ARM(Architecture):
         val = gef.arch.register(self.flag_register)
         taken, reason = False, ""
 
-        if mnemo.endswith("eq"): taken, reason = bool(val&(1<<flags["zero"])), "Z"
-        elif mnemo.endswith("ne"): taken, reason = not val&(1<<flags["zero"]), "!Z"
+        if mnemo.endswith("eq"): taken, reason = bool(bool(val&(1<<flags["zero"]))), "Z"
+        elif mnemo.endswith("ne"): taken, reason = not bool(val&(1<<flags["zero"])), "!Z"
         elif mnemo.endswith("lt"):
             taken, reason = bool(val&(1<<flags["negative"])) != bool(val&(1<<flags["overflow"])), "N!=V"
         elif mnemo.endswith("le"):
-            taken, reason = val&(1<<flags["zero"]) or \
+            taken, reason = bool(val&(1<<flags["zero"])) or \
                 bool(val&(1<<flags["negative"])) != bool(val&(1<<flags["overflow"])), "Z || N!=V"
         elif mnemo.endswith("gt"):
-            taken, reason = val&(1<<flags["zero"]) == 0 and \
+            taken, reason = bool(val&(1<<flags["zero"])) == 0 and \
                 bool(val&(1<<flags["negative"])) == bool(val&(1<<flags["overflow"])), "!Z && N==V"
         elif mnemo.endswith("ge"):
             taken, reason = bool(val&(1<<flags["negative"])) == bool(val&(1<<flags["overflow"])), "N==V"
@@ -2523,9 +2523,9 @@ class ARM(Architecture):
         elif mnemo.endswith("pl"):
             taken, reason = not val&(1<<flags["negative"]), "N==0"
         elif mnemo.endswith("hi"):
-            taken, reason = val&(1<<flags["carry"]) and not val&(1<<flags["zero"]), "C && !Z"
+            taken, reason = val&(1<<flags["carry"]) and not bool(val&(1<<flags["zero"])), "C && !Z"
         elif mnemo.endswith("ls"):
-            taken, reason = not val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "!C || Z"
+            taken, reason = not val&(1<<flags["carry"]) or bool(val&(1<<flags["zero"])), "!C || Z"
         elif mnemo.endswith("cs"): taken, reason = bool(val&(1<<flags["carry"])), "C"
         elif mnemo.endswith("cc"): taken, reason = not val&(1<<flags["carry"]), "!C"
         return taken, reason
@@ -2563,18 +2563,17 @@ class ARM(Architecture):
         return "; ".join(insns)
 
 
-@register_architecture
 class AARCH64(ARM):
     aliases = ("ARM64", "AARCH64", Elf.Abi.AARCH64)
     arch = "ARM64"
     mode = ""
 
-    all_registers = [
+    all_registers = (
         "$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7",
         "$x8", "$x9", "$x10", "$x11", "$x12", "$x13", "$x14","$x15",
         "$x16", "$x17", "$x18", "$x19", "$x20", "$x21", "$x22", "$x23",
         "$x24", "$x25", "$x26", "$x27", "$x28", "$x29", "$x30", "$sp",
-        "$pc", "$cpsr", "$fpsr", "$fpcr",]
+        "$pc", "$cpsr", "$fpsr", "$fpcr",)
     return_register = "$x0"
     flag_register = "$cpsr"
     flags_table = {
@@ -2585,10 +2584,11 @@ class AARCH64(ARM):
         7: "interrupt",
         6: "fast",
     }
-    function_parameters = ["$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7"]
+    function_parameters = ("$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7",)
     syscall_register = "$x8"
-    syscall_instructions = ["svc $x0"]
-    ptrsize = 8
+    syscall_instructions = ("svc $x0",)
+
+    _ptrsize = 8
 
     def is_call(self, insn: Instruction) -> bool:
         mnemo = insn.mnemonic
@@ -2664,20 +2664,19 @@ class AARCH64(ARM):
         return taken, reason
 
 
-@register_architecture
 class X86(Architecture):
     aliases: Tuple[Union[str, Elf.Abi], ...] = ("X86", Elf.Abi.X86_32)
     arch = "X86"
     mode = "32"
 
     nop_insn = b"\x90"
-    flag_register = "$eflags"
-    special_registers = ["$cs", "$ss", "$ds", "$es", "$fs", "$gs", ]
-    gpr_registers = ["$eax", "$ebx", "$ecx", "$edx", "$esp", "$ebp", "$esi", "$edi", "$eip", ]
-    all_registers = gpr_registers + [ flag_register, ] + special_registers
+    flag_register: str = "$eflags"
+    special_registers = ("$cs", "$ss", "$ds", "$es", "$fs", "$gs", )
+    gpr_registers = ("$eax", "$ebx", "$ecx", "$edx", "$esp", "$ebp", "$esi", "$edi", "$eip", )
+    all_registers = gpr_registers + ( flag_register,) + special_registers
     instruction_length = None
     return_register = "$eax"
-    function_parameters = ["$esp", ]
+    function_parameters = ("$esp", )
     flags_table = {
         6: "zero",
         0: "carry",
@@ -2693,9 +2692,9 @@ class X86(Architecture):
         21: "identification",
     }
     syscall_register = "$eax"
-    syscall_instructions = ["sysenter", "int 0x80"]
-    ptrsize = 4
-    endianness = Endianness.LITTLE_ENDIAN
+    syscall_instructions = ("sysenter", "int 0x80")
+    _ptrsize = 4
+    _endianness = Endianness.LITTLE_ENDIAN
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         reg = self.flag_register
@@ -2730,38 +2729,38 @@ class X86(Architecture):
         taken, reason = False, ""
 
         if mnemo in ("ja", "jnbe"):
-            taken, reason = not val&(1<<flags["carry"]) and not val&(1<<flags["zero"]), "!C && !Z"
+            taken, reason = not val&(1<<flags["carry"]) and not bool(val&(1<<flags["zero"])), "!C && !Z"
         elif mnemo in ("jae", "jnb", "jnc"):
             taken, reason = not val&(1<<flags["carry"]), "!C"
         elif mnemo in ("jb", "jc", "jnae"):
-            taken, reason = val&(1<<flags["carry"]), "C"
+            taken, reason = bool(val&(1<<flags["carry"])) != 0, "C"
         elif mnemo in ("jbe", "jna"):
-            taken, reason = val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+            taken, reason = bool(val&(1<<flags["carry"])) or bool(val&(1<<flags["zero"])), "C || Z"
         elif mnemo in ("jcxz", "jecxz", "jrcxz"):
-            cx = gef.arch.register("$rcx") if self.mode == 64 else gef.arch.register("$ecx")
+            cx = gef.arch.register("$rcx") if is_x86_64() else gef.arch.register("$ecx")
             taken, reason = cx == 0, "!$CX"
         elif mnemo in ("je", "jz"):
-            taken, reason = val&(1<<flags["zero"]), "Z"
+            taken, reason = bool(val&(1<<flags["zero"])), "Z"
         elif mnemo in ("jne", "jnz"):
-            taken, reason = not val&(1<<flags["zero"]), "!Z"
+            taken, reason = not bool(val&(1<<flags["zero"])), "!Z"
         elif mnemo in ("jg", "jnle"):
-            taken, reason = not val&(1<<flags["zero"]) and bool(val&(1<<flags["overflow"])) == bool(val&(1<<flags["sign"])), "!Z && S==O"
+            taken, reason = not bool(val&(1<<flags["zero"])) and bool(val&(1<<flags["overflow"])) == bool(val&(1<<flags["sign"])), "!Z && S==O"
         elif mnemo in ("jge", "jnl"):
             taken, reason = bool(val&(1<<flags["sign"])) == bool(val&(1<<flags["overflow"])), "S==O"
         elif mnemo in ("jl", "jnge"):
-            taken, reason = val&(1<<flags["overflow"]) != val&(1<<flags["sign"]), "S!=O"
+            taken, reason = bool(val&(1<<flags["overflow"]) != val&(1<<flags["sign"])), "S!=O"
         elif mnemo in ("jle", "jng"):
-            taken, reason = val&(1<<flags["zero"]) or bool(val&(1<<flags["overflow"])) != bool(val&(1<<flags["sign"])), "Z || S!=O"
+            taken, reason = bool(val&(1<<flags["zero"])) or bool(val&(1<<flags["overflow"])) != bool(val&(1<<flags["sign"])), "Z || S!=O"
         elif mnemo in ("jo",):
-            taken, reason = val&(1<<flags["overflow"]), "O"
+            taken, reason = bool(val&(1<<flags["overflow"])), "O"
         elif mnemo in ("jno",):
             taken, reason = not val&(1<<flags["overflow"]), "!O"
         elif mnemo in ("jpe", "jp"):
-            taken, reason = val&(1<<flags["parity"]), "P"
+            taken, reason = bool(val&(1<<flags["parity"])), "P"
         elif mnemo in ("jnp", "jpo"):
             taken, reason = not val&(1<<flags["parity"]), "!P"
         elif mnemo in ("js",):
-            taken, reason = val&(1<<flags["sign"]), "S"
+            taken, reason = bool(val&(1<<flags["sign"])) != 0, "S"
         elif mnemo in ("jns",):
             taken, reason = not val&(1<<flags["sign"]), "!S"
         return taken, reason
@@ -2800,23 +2799,22 @@ class X86(Architecture):
         return key, val
 
 
-@register_architecture
 class X86_64(X86):
     aliases = ("X86_64", Elf.Abi.X86_64, "i386:x86-64")
     arch = "X86"
     mode = "64"
 
-    gpr_registers = [
+    gpr_registers = (
         "$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip",
-        "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", ]
-    all_registers = gpr_registers + [ X86.flag_register, ] + X86.special_registers
+        "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", )
+    all_registers = gpr_registers + ( X86.flag_register, ) + X86.special_registers
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
     syscall_register = "$rax"
     syscall_instructions = ["syscall"]
     # We don't want to inherit x86's stack based param getter
     get_ith_parameter = Architecture.get_ith_parameter
-    ptrsize = 8
+    _ptrsize = 8
 
     @classmethod
     def mprotect_asm(cls, addr: int, size: int, perm: Permission) -> str:
@@ -2843,22 +2841,21 @@ class X86_64(X86):
         return "; ".join(insns)
 
 
-@register_architecture
 class PowerPC(Architecture):
     aliases = ("PowerPC", Elf.Abi.POWERPC, "PPC")
     arch = "PPC"
     mode = "PPC32"
 
-    all_registers = [
+    all_registers = (
         "$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6", "$r7",
         "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15",
         "$r16", "$r17", "$r18", "$r19", "$r20", "$r21", "$r22", "$r23",
         "$r24", "$r25", "$r26", "$r27", "$r28", "$r29", "$r30", "$r31",
-        "$pc", "$msr", "$cr", "$lr", "$ctr", "$xer", "$trap",]
+        "$pc", "$msr", "$cr", "$lr", "$ctr", "$xer", "$trap",)
     instruction_length = 4
     nop_insn = b"\x60\x00\x00\x00" # https://developer.ibm.com/articles/l-ppc/
     return_register = "$r0"
-    flag_register = "$cr"
+    flag_register: str = "$cr"
     flags_table = {
         3: "negative[0]",
         2: "positive[0]",
@@ -2870,9 +2867,9 @@ class PowerPC(Architecture):
         29: "equal[7]",
         28: "overflow[7]",
     }
-    function_parameters = ["$i0", "$i1", "$i2", "$i3", "$i4", "$i5"]
+    function_parameters = ("$i0", "$i1", "$i2", "$i3", "$i4", "$i5")
     syscall_register = "$r0"
-    syscall_instructions = ["sc"]
+    syscall_instructions = ("sc",)
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         # https://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
@@ -2897,12 +2894,12 @@ class PowerPC(Architecture):
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = gef.arch.register(self.flag_register)
         taken, reason = False, ""
-        if mnemo == "beq": taken, reason = val&(1<<flags["equal[7]"]), "E"
+        if mnemo == "beq":   taken, reason = bool(val&(1<<flags["equal[7]"])), "E"
         elif mnemo == "bne": taken, reason = val&(1<<flags["equal[7]"]) == 0, "!E"
-        elif mnemo == "ble": taken, reason = val&(1<<flags["equal[7]"]) or val&(1<<flags["less[7]"]), "E || L"
-        elif mnemo == "blt": taken, reason = val&(1<<flags["less[7]"]), "L"
-        elif mnemo == "bge": taken, reason = val&(1<<flags["equal[7]"]) or val&(1<<flags["greater[7]"]), "E || G"
-        elif mnemo == "bgt": taken, reason = val&(1<<flags["greater[7]"]), "G"
+        elif mnemo == "ble": taken, reason = bool(val&(1<<flags["equal[7]"])) or bool(val&(1<<flags["less[7]"])), "E || L"
+        elif mnemo == "blt": taken, reason = bool(val&(1<<flags["less[7]"])), "L"
+        elif mnemo == "bge": taken, reason = bool(val&(1<<flags["equal[7]"])) or bool(val&(1<<flags["greater[7]"])), "E || G"
+        elif mnemo == "bgt": taken, reason = bool(val&(1<<flags["greater[7]"])), "G"
         return taken, reason
 
     def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> Optional[int]:
@@ -2939,14 +2936,12 @@ class PowerPC(Architecture):
         return ";".join(insns)
 
 
-@register_architecture
 class PowerPC64(PowerPC):
     aliases = ("PowerPC64", Elf.Abi.POWERPC64, "PPC64")
     arch = "PPC"
     mode = "PPC64"
 
 
-@register_architecture
 class SPARC(Architecture):
     """ Refs:
     - https://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
@@ -2955,16 +2950,16 @@ class SPARC(Architecture):
     arch = "SPARC"
     mode = ""
 
-    all_registers = [
+    all_registers = (
         "$g0", "$g1", "$g2", "$g3", "$g4", "$g5", "$g6", "$g7",
         "$o0", "$o1", "$o2", "$o3", "$o4", "$o5", "$o7",
         "$l0", "$l1", "$l2", "$l3", "$l4", "$l5", "$l6", "$l7",
         "$i0", "$i1", "$i2", "$i3", "$i4", "$i5", "$i7",
-        "$pc", "$npc", "$sp ", "$fp ", "$psr",]
+        "$pc", "$npc", "$sp ", "$fp ", "$psr",)
     instruction_length = 4
     nop_insn = b"\x00\x00\x00\x00"  # sethi 0, %g0
     return_register = "$i0"
-    flag_register = "$psr"
+    flag_register: str = "$psr"
     flags_table = {
         23: "negative",
         22: "zero",
@@ -2973,9 +2968,9 @@ class SPARC(Architecture):
         7: "supervisor",
         5: "trap",
     }
-    function_parameters = ["$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",]
+    function_parameters = ("$o0 ", "$o1 ", "$o2 ", "$o3 ", "$o4 ", "$o5 ", "$o7 ",)
     syscall_register = "%g1"
-    syscall_instructions = ["t 0x10"]
+    syscall_instructions = ("t 0x10",)
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         # https://www.gaisler.com/doc/sparcv8.pdf
@@ -3005,16 +3000,16 @@ class SPARC(Architecture):
         val = gef.arch.register(self.flag_register)
         taken, reason = False, ""
 
-        if mnemo == "be": taken, reason = val&(1<<flags["zero"]), "Z"
-        elif mnemo == "bne": taken, reason = val&(1<<flags["zero"]) == 0, "!Z"
-        elif mnemo == "bg": taken, reason = val&(1<<flags["zero"]) == 0 and (val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0), "!Z && (!N || !O)"
+        if mnemo == "be": taken, reason = bool(val&(1<<flags["zero"])), "Z"
+        elif mnemo == "bne": taken, reason = bool(val&(1<<flags["zero"])) == 0, "!Z"
+        elif mnemo == "bg": taken, reason = bool(val&(1<<flags["zero"])) == 0 and (val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0), "!Z && (!N || !O)"
         elif mnemo == "bge": taken, reason = val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0, "!N || !O"
-        elif mnemo == "bgu": taken, reason = val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
+        elif mnemo == "bgu": taken, reason = val&(1<<flags["carry"]) == 0 and bool(val&(1<<flags["zero"])) == 0, "!C && !Z"
         elif mnemo == "bgeu": taken, reason = val&(1<<flags["carry"]) == 0, "!C"
         elif mnemo == "bl": taken, reason = val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
         elif mnemo == "blu": taken, reason = val&(1<<flags["carry"]), "C"
-        elif mnemo == "ble": taken, reason = val&(1<<flags["zero"]) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
-        elif mnemo == "bleu": taken, reason = val&(1<<flags["carry"]) or val&(1<<flags["zero"]), "C || Z"
+        elif mnemo == "ble": taken, reason = bool(val&(1<<flags["zero"])) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
+        elif mnemo == "bleu": taken, reason = val&(1<<flags["carry"]) or bool(val&(1<<flags["zero"])), "C || Z"
         elif mnemo == "bneg": taken, reason = val&(1<<flags["negative"]), "N"
         elif mnemo == "bpos": taken, reason = val&(1<<flags["negative"]) == 0, "!N"
         elif mnemo == "bvs": taken, reason = val&(1<<flags["overflow"]), "O"
@@ -3051,7 +3046,6 @@ class SPARC(Architecture):
         return "; ".join(insns)
 
 
-@register_architecture
 class SPARC64(SPARC):
     """Refs:
     - http://math-atlas.sourceforge.net/devel/assembly/abi_sysV_sparc.pdf
@@ -3098,28 +3092,27 @@ class SPARC64(SPARC):
         return "; ".join(insns)
 
 
-@register_architecture
 class MIPS(Architecture):
     aliases: Tuple[Union[str, Elf.Abi], ...] = ("MIPS", Elf.Abi.MIPS)
     arch = "MIPS"
     mode = "MIPS32"
 
     # https://vhouten.home.xs4all.nl/mipsel/r3000-isa.html
-    all_registers = [
+    all_registers = (
         "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3",
         "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",
         "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
         "$t8", "$t9", "$k0", "$k1", "$s8", "$pc", "$sp", "$hi",
-        "$lo", "$fir", "$ra", "$gp", ]
+        "$lo", "$fir", "$ra", "$gp", )
     instruction_length = 4
-    ptrsize = 4
+    _ptrsize = 4
     nop_insn = b"\x00\x00\x00\x00"  # sll $0,$0,0
     return_register = "$v0"
     flag_register = "$fcsr"
     flags_table = {}
-    function_parameters = ["$a0", "$a1", "$a2", "$a3"]
+    function_parameters = ("$a0", "$a1", "$a2", "$a3")
     syscall_register = "$v0"
-    syscall_instructions = ["syscall"]
+    syscall_instructions = ("syscall",)
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         return Color.colorify("No flag register", "yellow underline")
@@ -3182,12 +3175,11 @@ class MIPS(Architecture):
         return "; ".join(insns)
 
 
-@register_architecture
 class MIPS64(MIPS):
     aliases = ("MIPS64",)
     arch = "MIPS"
     mode = "MIPS64"
-    ptrsize = 8
+    _ptrsize = 8
 
 
 def copy_to_clipboard(data: str) -> None:
@@ -4770,7 +4762,7 @@ class PrintFormatCommand(GenericCommand):
     @parse_arguments({"location": "$pc", }, {("--length", "-l"): 256, "--bitlen": 0, "--lang": "py", "--clip": True,})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         """Default value for print-format command."""
-        args = kwargs["arguments"]
+        args: argparse.Namespace = kwargs["arguments"]
         args.bitlen = args.bitlen or gef.arch.ptrsize * 2
 
         valid_bitlens = self.format_matrix.keys()
