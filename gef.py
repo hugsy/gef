@@ -380,8 +380,10 @@ def deprecated(solution: str = "") -> Callable:
     def decorator(f: Callable) -> Callable:
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            if gef.config["gef.show_deprecation_warnings"] is True:
-                msg = f"'{f.__name__}' is deprecated and will be removed in a feature release. "
+            msg = f"'{f.__name__}' is deprecated and will be removed in a feature release. "
+            if not gef:
+                print(msg)
+            elif gef.config["gef.show_deprecation_warnings"] is True:
                 if solution:
                     msg += solution
                 warn(msg)
@@ -4560,11 +4562,6 @@ def register_command(cls: Type["GenericCommand"]) -> Type["GenericCommand"]:
 def register_priority_command(cls: Type["GenericCommand"]) -> Type["GenericCommand"]:
     """Decorator for registering new command with priority, meaning that it must
     loaded before the other generic commands."""
-    return cls
-
-def register_function(cls: Type["GenericFunction"]) -> Type["GenericFunction"]:
-    """Decorator for registering a new convenience function to GDB."""
-    __registered_functions__.append(cls)
     return cls
 
 
@@ -10240,17 +10237,33 @@ class SyscallArgsCommand(GenericCommand):
 #
 # GDB Function declaration
 #
-class GenericFunction(gdb.Function, metaclass=abc.ABCMeta):
+@deprecated("")
+def register_function(cls: Type["GenericFunction"]) -> Type["GenericFunction"]:
+    """Decorator for registering a new convenience function to GDB."""
+    return cls
+
+
+class GenericFunctionBase:
+    def __init_subclass__(cls: Type["GenericFunctionBase"], **kwargs):
+        global __registered_functions__
+        super().__init_subclass__(**kwargs)
+        if hasattr(cls, "_function_") and issubclass(cls, GenericFunction):
+            __registered_functions__.append(cls)
+        return
+
+
+class GenericFunction(gdb.Function, GenericFunctionBase):
     """This is an abstract class for invoking convenience functions, should not be instantiated."""
 
-    _example_ = ""
+    _function_ : str
+    _syntax_: str = ""
+    _example_ : str = ""
 
-    @abc.abstractproperty
-    def _function_(self) -> str: pass
-
-    @property
-    def _syntax_(self) -> str:
-        return f"${self._function_}([offset])"
+    def __init_subclass__(cls, /, **kwargs):
+        super().__init_subclass__(**kwargs)
+        attributes = ("_function_", "_example_", "_syntax_")
+        if not all(map(lambda x: hasattr(cls, x), attributes)):
+            raise NotImplementedError
 
     def __init__(self) -> None:
         super().__init__(self._function_)
@@ -10267,11 +10280,10 @@ class GenericFunction(gdb.Function, metaclass=abc.ABCMeta):
         except IndexError:
             return default
 
-    @abc.abstractmethod
-    def do_invoke(self, args: List) -> int: pass
+    def do_invoke(self, args: List) -> int:
+        raise NotImplementedError
 
 
-@register_function
 class StackOffsetFunction(GenericFunction):
     """Return the current stack base address plus an optional offset."""
     _function_ = "_stack"
@@ -10284,7 +10296,6 @@ class StackOffsetFunction(GenericFunction):
         return self.arg_to_long(args, 0) + base
 
 
-@register_function
 class HeapBaseFunction(GenericFunction):
     """Return the current heap base address plus an optional offset."""
     _function_ = "_heap"
@@ -10298,7 +10309,6 @@ class HeapBaseFunction(GenericFunction):
         return self.arg_to_long(args, 0) + base
 
 
-@register_function
 class SectionBaseFunction(GenericFunction):
     """Return the matching file's base address plus an optional offset.
     Defaults to current file. Note that quotes need to be escaped"""
@@ -10323,7 +10333,6 @@ class SectionBaseFunction(GenericFunction):
         return addr
 
 
-@register_function
 class BssBaseFunction(GenericFunction):
     """Return the current bss base address plus the given offset."""
     _function_ = "_bss"
@@ -10336,7 +10345,6 @@ class BssBaseFunction(GenericFunction):
         return self.arg_to_long(args, 0) + base
 
 
-@register_function
 class GotBaseFunction(GenericFunction):
     """Return the current GOT base address plus the given offset."""
     _function_ = "_got"
