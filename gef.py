@@ -5316,6 +5316,9 @@ class ExternalStructureManager:
             self.module_path = mod_path
             self.name = struct_name
             self.class_type = self.__get_structure_class()
+            # if the symbol points to a class factory method and not a class
+            if not hasattr(self.class_type, "_fields_") and callable(self.class_type):
+                self.class_type = self.class_type(gef)
             return
 
         def __str__(self) -> str:
@@ -5438,11 +5441,19 @@ class ExternalStructureManager:
 
         def __iter__(self) -> Generator[str, None, None]:
             _invalid = {"BigEndianStructure", "LittleEndianStructure", "Structure"}
-            _structs = {x for x in dir(self.raw) \
-                             if inspect.isclass(getattr(self.raw, x)) \
-                             and issubclass(getattr(self.raw, x), ctypes.Structure)}
-            for entry in (_structs - _invalid):
-                yield entry
+            for x in dir(self.raw):
+                if x in _invalid: continue
+                _attr = getattr(self.raw, x)
+
+                # if it's a ctypes.Structure class, add it
+                if inspect.isclass(_attr) and issubclass(_attr, ctypes.Structure):
+                    yield x
+                    continue
+
+                # also accept class factory functions
+                if callable(_attr) and _attr.__module__ == self.name and x.endswith("_t"):
+                    yield x
+                    continue
             return
 
     class Modules(dict):
@@ -11301,6 +11312,21 @@ class GefUiManager(GefManager):
         return
 
 
+class GefLibcManager(GefManager):
+    """Class managing everything libc-related (except heap)."""
+    def __init__(self) -> None:
+        self._version : Optional[Tuple[int, int]] = None
+        return
+
+    @property
+    def version(self) -> Optional[Tuple[int, int]]:
+        if not is_alive():
+            return None
+        if not self._version:
+            self._version = get_libc_version()
+        return self._version
+
+
 class Gef:
     """The GEF root class, which serves as a entrypoint for all the debugging session attributes (architecture,
     memory, settings, etc.)."""
@@ -11309,6 +11335,7 @@ class Gef:
         self.arch: Architecture = GenericArchitecture() # see PR #516, will be reset by `new_objfile_handler`
         self.config = GefSettingsManager()
         self.ui = GefUiManager()
+        self.libc = GefLibcManager()
         return
 
     def reinitialize_managers(self) -> None:
