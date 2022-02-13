@@ -27,10 +27,10 @@ class GefFuncDeprecatedApi(GefUnitTestGeneric):
             "Elf.RISCV",
         )
 
-        for cmd in old_stuff:
+        for item in old_stuff:
             with pytest.warns(Warning) as record:
-                res = gdb_test_python_method(cmd)
+                res = gdb_test_python_method(item)
                 self.assertNoException(res)
                 if not record:
-                    pytest.fail("Expected a warning!")
+                    pytest.fail(f"Expected a warning for '{item}'!")
 

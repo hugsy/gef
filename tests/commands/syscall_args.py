@@ -64,9 +64,10 @@ class IsSyscallCommand(GefUnitTestGeneric):
         res = gdb_run_cmd("disassemble openfile", target=_target("syscall-args"))
         start_str = "Dump of assembler code for function main:\n"
         end_str = "End of assembler dump."
-        lines = removeuntil(start_str, res[:res.find(end_str)]).splitlines()
+        lines = removeafter(end_str).removeuntil(start_str).splitlines()
         for line in lines:
             parts = [x.strip() for x in line.split(maxsplit=3)]
+            self.assertEqual(len(parts), 3)
             if ARCH == "x86_64" and parts[2] == "syscall":
                 self.syscall_location = parts[1].lstrip('<').rstrip('>:')
                 break

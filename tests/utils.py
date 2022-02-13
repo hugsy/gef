@@ -82,7 +82,7 @@ class GefUnitTestGeneric(unittest.TestCase):
         if "is deprecated and will be removed in a feature release." in buf:
             lines = [l for l in buf.splitlines()
                      if "is deprecated and will be removed in a feature release." in l]
-            deprecated_api_names = set([x.split()[1] for x in lines])
+            deprecated_api_names = {x.split()[1] for x in lines}
             warnings.warn(
                 UserWarning(f"Use of deprecated API(s): {', '.join(deprecated_api_names)}")
             )
@@ -270,6 +270,28 @@ def findlines(substring: str, buffer: str) -> List[str]:
         for line in buffer.splitlines()
         if substring in line.strip()
     ]
+
+
+def removeafter(substring: str, buffer: str, included: bool = False) -> str:
+    """Returns a copy of `buffer` truncated after `substring` is found. If
+    `included` is True, the result also includes the subtring.
+
+    Args:
+        substring (str)
+        buffer (str)
+        buffer (bool)
+
+    Returns:
+        str
+    """
+    idx = buffer.find(substring)
+    if idx < 0:
+        return buffer
+
+    if not included:
+        idx += len(substring)
+
+    return buffer[:idx]
 
 
 def removeuntil(substring: str, buffer: str, included: bool = False) -> str:

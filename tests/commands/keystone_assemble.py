@@ -54,4 +54,4 @@ class KeystoneAssembleCommand(GefUnitTestGeneric):
         for cmd in cmds:
             res = gdb_start_silent_cmd(cmd)
             self.assertNoException(res)
-            self.assertTrue(len(res.splitlines()) > 1)
+            self.assertGreater(len(res.splitlines()), 1)
