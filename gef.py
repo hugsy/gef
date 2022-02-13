@@ -161,7 +161,7 @@ PATTERN_LIBC_VERSION                   = re.compile(rb"glibc (\d+)\.(\d+)")
 gef : "Gef"                                                                 = None
 __registered_commands__ : List[Type["GenericCommand"]]                      = []
 __registered_functions__ : List[Type["GenericFunction"]]                    = []
-__registered_architectures__ : Dict[Union["Elf.Abi", str], Type["ArchitectureBase"]]  = {}
+__registered_architectures__ : Dict[Union["Elf.Abi", str], Type["Architecture"]]  = {}
 
 
 def reset_all_caches() -> None:
@@ -2161,7 +2161,8 @@ class ArchitectureBase:
         global __registered_architectures__
         super().__init_subclass__(**kwargs)
         for key in getattr(cls, "aliases"):
-            __registered_architectures__[key] = cls
+            if issubclass(cls, Architecture):
+                __registered_architectures__[key] = cls
         return
 
 
@@ -3182,7 +3183,7 @@ class MIPS64(MIPS):
     _ptrsize = 8
 
 
-def copy_to_clipboard(data: str) -> None:
+def copy_to_clipboard(data: bytes) -> None:
     """Helper function to submit data to the clipboard"""
     if sys.platform == "linux":
         xclip = which("xclip")
@@ -3684,10 +3685,10 @@ def get_unicorn_registers(to_string: bool = False) -> Union[Dict[str, int], Dict
     return regs
 
 
-def keystone_assemble(code: str, arch: int, mode: int, **kwargs: Any) -> Optional[Union[str, bytearray]]:
+def keystone_assemble(code_str: str, arch: int, mode: int, **kwargs: Any) -> Optional[Union[str, bytearray]]:
     """Assembly encoding function based on keystone."""
     keystone = sys.modules["keystone"]
-    code = gef_pybytes(code)
+    code = gef_pybytes(code_str)
     addr = kwargs.get("addr", 0x1000)
 
     try:
@@ -4545,28 +4546,21 @@ def register_external_context_pane(pane_name: str, display_pane_function: Callab
 #
 # Commands
 #
-
+@deprecated("")
 def register_external_command(cls: Type["GenericCommand"]) -> Type["GenericCommand"]:
     """Registering function for new GEF (sub-)command to GDB."""
-    __registered_commands__.append(cls)
-    gef.gdb.load(initial=False)
-    gef.gdb.doc.add_command_to_doc((cls._cmdline_, cls, None))
-    gef.gdb.doc.refresh()
     return cls
 
-
+@deprecated("")
 def register_command(cls: Type["GenericCommand"]) -> Type["GenericCommand"]:
     """Decorator for registering new GEF (sub-)command to GDB."""
-    __registered_commands__.append(cls)
     return cls
 
-
+@deprecated("")
 def register_priority_command(cls: Type["GenericCommand"]) -> Type["GenericCommand"]:
     """Decorator for registering new command with priority, meaning that it must
     loaded before the other generic commands."""
-    __registered_commands__.insert(0, cls)
     return cls
-
 
 def register_function(cls: Type["GenericFunction"]) -> Type["GenericFunction"]:
     """Decorator for registering a new convenience function to GDB."""
@@ -4574,8 +4568,35 @@ def register_function(cls: Type["GenericFunction"]) -> Type["GenericFunction"]:
     return cls
 
 
-class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
+class GenericCommandBase:
+    def __init_subclass__(cls: Type["GenericCommandBase"], **kwargs):
+        global __registered_commands__
+        super().__init_subclass__(**kwargs)
+        if hasattr(cls, "_cmdline_") and issubclass(cls, GenericCommand):
+            __registered_commands__.append(cls)
+        return
+
+class GenericExternalCommandBase:
+    def __init_subclass__(cls: Type["GenericExternalCommandBase"], **kwargs):
+        super().__init_subclass__(**kwargs)
+        if hasattr(cls, "_cmdline_") and issubclass(cls, GenericCommand):
+            gef.gdb.load(initial=False)
+            gef.gdb.doc.add_command_to_doc((cls._cmdline_, cls, None))
+            gef.gdb.doc.refresh()
+        return
+
+class GenericCommand(gdb.Command, GenericCommandBase):
     """This is an abstract class for invoking commands, should not be instantiated."""
+
+    _cmdline_: str
+    _syntax_: str
+    _example_: str = ""
+
+    def __init_subclass__(cls, /, **kwargs):
+        super().__init_subclass__(**kwargs)
+        attributes = ("_cmdline_", "_syntax_", )
+        if not all(map(lambda x: hasattr(cls, x), attributes)):
+            raise NotImplementedError
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.pre_load()
@@ -4610,21 +4631,14 @@ class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
         err(f"Syntax\n{self._syntax_}")
         return
 
-    @abc.abstractproperty
-    def _cmdline_(self) -> Optional[str]: pass
+    def do_invoke(self, argv: List[str]) -> None:
+        raise NotImplementedError
 
-    @abc.abstractproperty
-    def _syntax_(self) -> Optional[str]: pass
+    def pre_load(self) -> None:
+        return
 
-    @abc.abstractproperty
-    def _example_(self) -> str: return ""
-
-    @abc.abstractmethod
-    def do_invoke(self, argv: List[str]) -> None: pass
-
-    def pre_load(self) -> None: pass
-
-    def post_load(self) -> None: pass
+    def post_load(self) -> None:
+        return
 
     def __get_setting_name(self, name: str) -> str:
         clsname = self.__class__._cmdline_.replace(" ", "-")
@@ -4695,7 +4709,6 @@ class GenericCommand(gdb.Command, metaclass=abc.ABCMeta):
         return
 
 
-@register_command
 class VersionCommand(GenericCommand):
     """Display GEF version info."""
 
@@ -4727,7 +4740,6 @@ class VersionCommand(GenericCommand):
         return
 
 
-@register_command
 class PrintFormatCommand(GenericCommand):
     """Print bytes format in commonly used formats, such as literals in high level languages."""
 
@@ -4797,6 +4809,8 @@ class PrintFormatCommand(GenericCommand):
             out = "buf {0} {1}".format(asm_type, sdata)
         elif args.lang == "hex":
             out = binascii.hexlify(gef.memory.read(start_addr, end_addr-start_addr)).decode()
+        else:
+            raise ValueError(f"Invalid format: {args.lang}")
 
         if args.clip:
             if copy_to_clipboard(gef_pybytes(out)):
@@ -4808,7 +4822,6 @@ class PrintFormatCommand(GenericCommand):
         return
 
 
-@register_command
 class PieCommand(GenericCommand):
     """PIE breakpoint support."""
 
@@ -4825,7 +4838,6 @@ class PieCommand(GenericCommand):
         return
 
 
-@register_command
 class PieBreakpointCommand(GenericCommand):
     """Set a PIE breakpoint at an offset from the target binaries base address."""
 
@@ -4857,7 +4869,6 @@ class PieBreakpointCommand(GenericCommand):
         return
 
 
-@register_command
 class PieInfoCommand(GenericCommand):
     """Display breakpoint info."""
 
@@ -4882,7 +4893,6 @@ class PieInfoCommand(GenericCommand):
         return
 
 
-@register_command
 class PieDeleteCommand(GenericCommand):
     """Delete a PIE breakpoint."""
 
@@ -4914,7 +4924,6 @@ class PieDeleteCommand(GenericCommand):
         return
 
 
-@register_command
 class PieRunCommand(GenericCommand):
     """Run process with PIE breakpoint support."""
 
@@ -4957,7 +4966,6 @@ class PieRunCommand(GenericCommand):
         return
 
 
-@register_command
 class PieAttachCommand(GenericCommand):
     """Do attach with PIE breakpoint support."""
 
@@ -4981,7 +4989,6 @@ class PieAttachCommand(GenericCommand):
         return
 
 
-@register_command
 class PieRemoteCommand(GenericCommand):
     """Attach to a remote connection with PIE breakpoint support."""
 
@@ -5005,7 +5012,6 @@ class PieRemoteCommand(GenericCommand):
         return
 
 
-@register_command
 class SmartEvalCommand(GenericCommand):
     """SmartEval: Smart eval (vague approach to mimic WinDBG `?`)."""
 
@@ -5071,7 +5077,6 @@ class SmartEvalCommand(GenericCommand):
         return
 
 
-@register_command
 class CanaryCommand(GenericCommand):
     """Shows the canary value of the current process."""
 
@@ -5097,7 +5102,6 @@ class CanaryCommand(GenericCommand):
         return
 
 
-@register_command
 class ProcessStatusCommand(GenericCommand):
     """Extends the info given by GDB `info proc`, by giving an exhaustive description of the
     process status (file descriptors, ancestor, descendants, etc.)."""
@@ -5253,7 +5257,6 @@ class ProcessStatusCommand(GenericCommand):
         return
 
 
-@register_priority_command
 class GefThemeCommand(GenericCommand):
     """Customize GEF appearance."""
 
@@ -5500,7 +5503,6 @@ class ExternalStructureManager:
         return None
 
 
-@register_command
 class PCustomCommand(GenericCommand):
     """Dump user defined structure.
     This command attempts to reproduce WinDBG awesome `dt` command for GDB and allows
@@ -5555,7 +5557,6 @@ class PCustomCommand(GenericCommand):
         return modname, structname
 
 
-@register_command
 class PCustomListCommand(PCustomCommand):
     """PCustom: list available structures"""
 
@@ -5579,7 +5580,6 @@ class PCustomListCommand(PCustomCommand):
         return
 
 
-@register_command
 class PCustomShowCommand(PCustomCommand):
     """PCustom: show the content of a given structure"""
 
@@ -5607,7 +5607,6 @@ class PCustomShowCommand(PCustomCommand):
         return
 
 
-@register_command
 class PCustomEditCommand(PCustomCommand):
     """PCustom: edit the content of a given structure"""
 
@@ -5653,7 +5652,6 @@ class {structname}(Structure):
         return
 
 
-@register_command
 class ChangeFdCommand(GenericCommand):
     """ChangeFdCommand: redirect file descriptor during runtime."""
 
@@ -5725,7 +5723,6 @@ class ChangeFdCommand(GenericCommand):
         res = int(res.split()[2], 0)
         return res
 
-@register_command
 class IdaInteractCommand(GenericCommand):
     """IDA Interact: set of commands to interact with IDA via a XML RPC service
     deployed via the IDA script `ida_gef.py`. It should be noted that this command
@@ -5958,7 +5955,6 @@ class IdaInteractCommand(GenericCommand):
         return
 
 
-@register_command
 class ScanSectionCommand(GenericCommand):
     """Search for addresses that are located in a memory mapping (haystack) that belonging
     to another (needle)."""
@@ -6026,7 +6022,6 @@ class ScanSectionCommand(GenericCommand):
         return
 
 
-@register_command
 class SearchPatternCommand(GenericCommand):
     """SearchPatternCommand: search a pattern in memory. If given an hex value (starting with 0x)
     the command will also try to look for upwards cross-references to this address."""
@@ -6160,7 +6155,6 @@ class SearchPatternCommand(GenericCommand):
         return
 
 
-@register_command
 class FlagsCommand(GenericCommand):
     """Edit flags in a human friendly way."""
 
@@ -6202,7 +6196,6 @@ class FlagsCommand(GenericCommand):
         return
 
 
-@register_command
 class ChangePermissionCommand(GenericCommand):
     """Change a page permission. By default, it will change it to 7 (RWX)."""
 
@@ -6279,7 +6272,6 @@ class ChangePermissionCommand(GenericCommand):
         return raw_insns
 
 
-@register_command
 class UnicornEmulateCommand(GenericCommand):
     """Use Unicorn-Engine to emulate the behavior of the binary, without affecting the GDB runtime.
     By default the command will emulate only the next instruction, but location and number of
@@ -6532,7 +6524,6 @@ emulate(uc, {start:#x}, {end:#x})
         return
 
 
-@register_command
 class RemoteCommand(GenericCommand):
     """gef wrapper for the `target remote` command. This command will automatically
     download the target binary in the local temporary directory (defaut /tmp) and then
@@ -6754,7 +6745,6 @@ class RemoteCommand(GenericCommand):
         return
 
 
-@register_command
 class NopCommand(GenericCommand):
     """Patch the instruction(s) pointed by parameters with NOP. Note: this command is architecture
     aware."""
@@ -6806,7 +6796,6 @@ class NopCommand(GenericCommand):
         return
 
 
-@register_command
 class StubCommand(GenericCommand):
     """Stub out the specified function. This function is useful when needing to skip one
     function to be called and disrupt your runtime flow (ex. fork)."""
@@ -6830,7 +6819,6 @@ class StubCommand(GenericCommand):
         return
 
 
-@register_command
 class CapstoneDisassembleCommand(GenericCommand):
     """Use capstone disassembly framework to disassemble code."""
 
@@ -6907,7 +6895,6 @@ class CapstoneDisassembleCommand(GenericCommand):
         return (False, "")
 
 
-@register_command
 class GlibcHeapCommand(GenericCommand):
     """Base command to get information about the Glibc heap structure."""
 
@@ -6924,7 +6911,6 @@ class GlibcHeapCommand(GenericCommand):
         return
 
 
-@register_command
 class GlibcHeapSetArenaCommand(GenericCommand):
     """Display information on a heap chunk."""
 
@@ -6962,7 +6948,6 @@ class GlibcHeapSetArenaCommand(GenericCommand):
         return
 
 
-@register_command
 class GlibcHeapArenaCommand(GenericCommand):
     """Display information on a heap chunk."""
 
@@ -6976,7 +6961,6 @@ class GlibcHeapArenaCommand(GenericCommand):
         return
 
 
-@register_command
 class GlibcHeapChunkCommand(GenericCommand):
     """Display information on a heap chunk.
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
@@ -7020,7 +7004,6 @@ class GlibcHeapChunkCommand(GenericCommand):
         return
 
 
-@register_command
 class GlibcHeapChunksCommand(GenericCommand):
     """Display all heap chunks for the current arena. As an optional argument
     the base address of a different arena can be passed"""
@@ -7086,7 +7069,6 @@ class GlibcHeapChunksCommand(GenericCommand):
         return
 
 
-@register_command
 class GlibcHeapBinsCommand(GenericCommand):
     """Display information on the bins on an arena (default: main_arena).
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
@@ -7142,7 +7124,6 @@ class GlibcHeapBinsCommand(GenericCommand):
         return nb_chunk
 
 
-@register_command
 class GlibcHeapTcachebinsCommand(GenericCommand):
     """Display information on the Tcachebins on an arena (default: main_arena).
     See https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=d5c3fafc4307c9b7a4c7d5cb381fcdbfad340bcc."""
@@ -7300,7 +7281,6 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         return chunk, count
 
 
-@register_command
 class GlibcHeapFastbinsYCommand(GenericCommand):
     """Display information on the fastbinsY on an arena (default: main_arena).
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
@@ -7366,7 +7346,6 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         return
 
 
-@register_command
 class GlibcHeapUnsortedBinsCommand(GenericCommand):
     """Display information on the Unsorted Bins of an arena (default: main_arena).
     See: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1689."""
@@ -7393,7 +7372,6 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
         return
 
 
-@register_command
 class GlibcHeapSmallBinsCommand(GenericCommand):
     """Convenience command for viewing small bins."""
 
@@ -7425,7 +7403,6 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
         return
 
 
-@register_command
 class GlibcHeapLargeBinsCommand(GenericCommand):
     """Convenience command for viewing large bins."""
 
@@ -7457,7 +7434,6 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         return
 
 
-@register_command
 class SolveKernelSymbolCommand(GenericCommand):
     """Solve kernel symbols from kallsyms table."""
 
@@ -7492,7 +7468,6 @@ class SolveKernelSymbolCommand(GenericCommand):
         return
 
 
-@register_command
 class DetailRegistersCommand(GenericCommand):
     """Display full details on one, many or all registers value from current architecture."""
 
@@ -7586,7 +7561,6 @@ class DetailRegistersCommand(GenericCommand):
         return
 
 
-@register_command
 class ShellcodeCommand(GenericCommand):
     """ShellcodeCommand uses @JonathanSalwan simple-yet-awesome shellcode API to
     download shellcodes."""
@@ -7604,7 +7578,6 @@ class ShellcodeCommand(GenericCommand):
         return
 
 
-@register_command
 class ShellcodeSearchCommand(GenericCommand):
     """Search pattern in shell-storm's shellcode database."""
 
@@ -7653,7 +7626,6 @@ class ShellcodeSearchCommand(GenericCommand):
         return
 
 
-@register_command
 class ShellcodeGetCommand(GenericCommand):
     """Download shellcode from shell-storm's shellcode database."""
 
@@ -7696,7 +7668,6 @@ class ShellcodeGetCommand(GenericCommand):
         return
 
 
-@register_command
 class RopperCommand(GenericCommand):
     """Ropper (https://scoding.de/ropper/) plugin."""
 
@@ -7739,7 +7710,6 @@ class RopperCommand(GenericCommand):
         return
 
 
-@register_command
 class AssembleCommand(GenericCommand):
     """Inline code assemble. Architecture can be set in GEF runtime config. """
 
@@ -7874,7 +7844,6 @@ class AssembleCommand(GenericCommand):
         return
 
 
-@register_command
 class ProcessListingCommand(GenericCommand):
     """List and filter process. If a PATTERN is given as argument, results shown will be grepped
     by this pattern."""
@@ -7939,7 +7908,6 @@ class ProcessListingCommand(GenericCommand):
         return
 
 
-@register_command
 class ElfInfoCommand(GenericCommand):
     """Display a limited subset of ELF header information. If no argument is provided, the command will
     show information about the current ELF being debugged."""
@@ -8015,7 +7983,6 @@ class ElfInfoCommand(GenericCommand):
         return
 
 
-@register_command
 class EntryPointBreakCommand(GenericCommand):
     """Tries to find best entry point and sets a temporary breakpoint on it. The command will test for
     well-known symbols for entry points, such as `main`, `_main`, `__libc_start_main`, etc. defined by
@@ -8095,7 +8062,6 @@ class EntryPointBreakCommand(GenericCommand):
         return self.set_init_tbreak(base_address + addr)
 
 
-@register_command
 class NamedBreakpointCommand(GenericCommand):
     """Sets a breakpoint and assigns a name to it, which will be shown, when it's hit."""
 
@@ -8120,7 +8086,6 @@ class NamedBreakpointCommand(GenericCommand):
         return
 
 
-@register_command
 class ContextCommand(GenericCommand):
     """Displays a comprehensive and modular summary of runtime context. Unless setting `enable` is
     set to False, this command will be spawned automatically every time GDB hits a breakpoint, a
@@ -8826,7 +8791,6 @@ class ContextCommand(GenericCommand):
         return
 
 
-@register_command
 class MemoryCommand(GenericCommand):
     """Add or remove address ranges to the memory view."""
     _cmdline_ = "memory"
@@ -8842,7 +8806,6 @@ class MemoryCommand(GenericCommand):
         return
 
 
-@register_command
 class MemoryWatchCommand(GenericCommand):
     """Adds address ranges to the memory view."""
     _cmdline_ = "memory watch"
@@ -8881,7 +8844,6 @@ class MemoryWatchCommand(GenericCommand):
         return
 
 
-@register_command
 class MemoryUnwatchCommand(GenericCommand):
     """Removes address ranges to the memory view."""
     _cmdline_ = "memory unwatch"
@@ -8908,7 +8870,6 @@ class MemoryUnwatchCommand(GenericCommand):
         return
 
 
-@register_command
 class MemoryWatchResetCommand(GenericCommand):
     """Removes all watchpoints."""
     _cmdline_ = "memory reset"
@@ -8921,7 +8882,6 @@ class MemoryWatchResetCommand(GenericCommand):
         return
 
 
-@register_command
 class MemoryWatchListCommand(GenericCommand):
     """Lists all watchpoints to display in context layout."""
     _cmdline_ = "memory list"
@@ -8939,7 +8899,6 @@ class MemoryWatchListCommand(GenericCommand):
         return
 
 
-@register_command
 class HexdumpCommand(GenericCommand):
     """Display SIZE lines of hexdump from the memory location pointed by LOCATION."""
 
@@ -9017,7 +8976,6 @@ class HexdumpCommand(GenericCommand):
         return lines
 
 
-@register_command
 class HexdumpQwordCommand(HexdumpCommand):
     """Display SIZE lines of hexdump as QWORD from the memory location pointed by ADDRESS."""
 
@@ -9031,7 +8989,6 @@ class HexdumpQwordCommand(HexdumpCommand):
         return
 
 
-@register_command
 class HexdumpDwordCommand(HexdumpCommand):
     """Display SIZE lines of hexdump as DWORD from the memory location pointed by ADDRESS."""
 
@@ -9045,7 +9002,6 @@ class HexdumpDwordCommand(HexdumpCommand):
         return
 
 
-@register_command
 class HexdumpWordCommand(HexdumpCommand):
     """Display SIZE lines of hexdump as WORD from the memory location pointed by ADDRESS."""
 
@@ -9059,7 +9015,6 @@ class HexdumpWordCommand(HexdumpCommand):
         return
 
 
-@register_command
 class HexdumpByteCommand(HexdumpCommand):
     """Display SIZE lines of hexdump as BYTE from the memory location pointed by ADDRESS."""
 
@@ -9073,7 +9028,6 @@ class HexdumpByteCommand(HexdumpCommand):
         return
 
 
-@register_command
 class PatchCommand(GenericCommand):
     """Write specified values to the specified address."""
 
@@ -9116,7 +9070,6 @@ class PatchCommand(GenericCommand):
         return
 
 
-@register_command
 class PatchQwordCommand(PatchCommand):
     """Write specified QWORD to the specified address."""
 
@@ -9130,7 +9083,6 @@ class PatchQwordCommand(PatchCommand):
         return
 
 
-@register_command
 class PatchDwordCommand(PatchCommand):
     """Write specified DWORD to the specified address."""
 
@@ -9144,7 +9096,6 @@ class PatchDwordCommand(PatchCommand):
         return
 
 
-@register_command
 class PatchWordCommand(PatchCommand):
     """Write specified WORD to the specified address."""
 
@@ -9158,7 +9109,6 @@ class PatchWordCommand(PatchCommand):
         return
 
 
-@register_command
 class PatchByteCommand(PatchCommand):
     """Write specified WORD to the specified address."""
 
@@ -9172,7 +9122,6 @@ class PatchByteCommand(PatchCommand):
         return
 
 
-@register_command
 class PatchStringCommand(GenericCommand):
     """Write specified string to the specified memory location pointed by ADDRESS."""
 
@@ -9263,7 +9212,6 @@ def dereference_from(addr: int) -> List[str]:
     return msg
 
 
-@register_command
 class DereferenceCommand(GenericCommand):
     """Dereference recursively from an address and display information. This acts like WinDBG `dps`
     command."""
@@ -9347,7 +9295,6 @@ class DereferenceCommand(GenericCommand):
         return
 
 
-@register_command
 class ASLRCommand(GenericCommand):
     """View/modify the ASLR setting of GDB. By default, GDB will disable ASLR when it starts the process. (i.e. not
     attached). This command allows to change that setting."""
@@ -9389,7 +9336,6 @@ class ASLRCommand(GenericCommand):
         return
 
 
-@register_command
 class ResetCacheCommand(GenericCommand):
     """Reset cache of all stored data. This command is here for debugging and test purposes, GEF
     handles properly the cache reset under "normal" scenario."""
@@ -9402,7 +9348,6 @@ class ResetCacheCommand(GenericCommand):
         return
 
 
-@register_command
 class VMMapCommand(GenericCommand):
     """Display a comprehensive layout of the virtual memory mapping. If a filter argument, GEF will
     filter out the mapping whose pathname do not match that filter."""
@@ -9482,7 +9427,6 @@ class VMMapCommand(GenericCommand):
         return True
 
 
-@register_command
 class XFilesCommand(GenericCommand):
     """Shows all libraries (and sections) loaded by binary. This command extends the GDB command
     `info files`, by retrieving more information from extra sources, and providing a better
@@ -9519,7 +9463,6 @@ class XFilesCommand(GenericCommand):
         return
 
 
-@register_command
 class XAddressInfoCommand(GenericCommand):
     """Retrieve and display runtime information for the location(s) given as parameter."""
 
@@ -9581,7 +9524,6 @@ class XAddressInfoCommand(GenericCommand):
         return
 
 
-@register_command
 class XorMemoryCommand(GenericCommand):
     """XOR a block of memory. The command allows to simply display the result, or patch it
     runtime at runtime."""
@@ -9598,7 +9540,6 @@ class XorMemoryCommand(GenericCommand):
         return
 
 
-@register_command
 class XorMemoryDisplayCommand(GenericCommand):
     """Display a block of memory pointed by ADDRESS by xor-ing each byte with KEY. The key must be
     provided in hexadecimal format."""
@@ -9627,7 +9568,6 @@ class XorMemoryDisplayCommand(GenericCommand):
         return
 
 
-@register_command
 class XorMemoryPatchCommand(GenericCommand):
     """Patch a block of memory pointed by ADDRESS by xor-ing each byte with KEY. The key must be
     provided in hexadecimal format."""
@@ -9652,7 +9592,6 @@ class XorMemoryPatchCommand(GenericCommand):
         return
 
 
-@register_command
 class TraceRunCommand(GenericCommand):
     """Create a runtime trace of all instructions executed from $pc to LOCATION specified. The
     trace is stored in a text file that can be next imported in IDA Pro to visualize the runtime
@@ -9742,7 +9681,6 @@ class TraceRunCommand(GenericCommand):
         return
 
 
-@register_command
 class PatternCommand(GenericCommand):
     """Generate or Search a De Bruijn Sequence of unique substrings of length N
     and a total length of LENGTH. The default value of N is set to match the
@@ -9761,7 +9699,6 @@ class PatternCommand(GenericCommand):
         return
 
 
-@register_command
 class PatternCreateCommand(GenericCommand):
     """Generate a De Bruijn Sequence of unique substrings of length N and a
     total length of LENGTH. The default value of N is set to match the currently
@@ -9783,7 +9720,6 @@ class PatternCreateCommand(GenericCommand):
         return
 
 
-@register_command
 class PatternSearchCommand(GenericCommand):
     """Search a De Bruijn Sequence of unique substrings of length N and a
     maximum total length of MAX_LENGTH. The default value of N is set to match
@@ -9849,7 +9785,6 @@ class PatternSearchCommand(GenericCommand):
         return
 
 
-@register_command
 class ChecksecCommand(GenericCommand):
     """Checksec the security properties of the current executable or passed as argument. The
     command checks for the following protections:
@@ -9909,7 +9844,6 @@ class ChecksecCommand(GenericCommand):
         return
 
 
-@register_command
 class GotCommand(GenericCommand):
     """Display current status of the got inside the process."""
 
@@ -9997,7 +9931,6 @@ class GotCommand(GenericCommand):
         return
 
 
-@register_command
 class HighlightCommand(GenericCommand):
     """Highlight user-defined text matches in GEF output universally."""
     _cmdline_ = "highlight"
@@ -10012,7 +9945,6 @@ class HighlightCommand(GenericCommand):
         return self.usage()
 
 
-@register_command
 class HighlightListCommand(GenericCommand):
     """Show the current highlight table with matches to colors."""
     _cmdline_ = "highlight list"
@@ -10034,7 +9966,6 @@ class HighlightListCommand(GenericCommand):
         return self.print_highlight_table()
 
 
-@register_command
 class HighlightClearCommand(GenericCommand):
     """Clear the highlight table, remove all matches."""
     _cmdline_ = "highlight clear"
@@ -10045,7 +9976,6 @@ class HighlightClearCommand(GenericCommand):
         return gef.ui.highlight_table.clear()
 
 
-@register_command
 class HighlightAddCommand(GenericCommand):
     """Add a match to the highlight table."""
     _cmdline_ = "highlight add"
@@ -10062,7 +9992,6 @@ class HighlightAddCommand(GenericCommand):
         return
 
 
-@register_command
 class HighlightRemoveCommand(GenericCommand):
     """Remove a match in the highlight table."""
     _cmdline_ = "highlight remove"
@@ -10084,7 +10013,6 @@ class HighlightRemoveCommand(GenericCommand):
         return
 
 
-@register_command
 class FormatStringSearchCommand(GenericCommand):
     """Exploitable format-string helper: this command will set up specific breakpoints
     at well-known dangerous functions (printf, snprintf, etc.), and check if the pointer
@@ -10116,7 +10044,6 @@ class FormatStringSearchCommand(GenericCommand):
         return
 
 
-@register_command
 class HeapAnalysisCommand(GenericCommand):
     """Heap vulnerability analysis helper: this command aims to track dynamic heap allocation
     done through malloc()/free() to provide some insights on possible heap vulnerabilities. The
@@ -10221,7 +10148,6 @@ class HeapAnalysisCommand(GenericCommand):
         return
 
 
-@register_command
 class IsSyscallCommand(GenericCommand):
     """Tells whether the next instruction is a system call."""
     _cmdline_ = "is-syscall"
@@ -10238,7 +10164,6 @@ class IsSyscallCommand(GenericCommand):
         return insn_str.strip() in arch.syscall_instructions
 
 
-@register_command
 class SyscallArgsCommand(GenericCommand):
     """Gets the syscall name and arguments based on the register values in the current state."""
     _cmdline_ = "syscall-args"
@@ -10424,7 +10349,6 @@ class GotBaseFunction(GenericFunction):
         return base + self.arg_to_long(args, 0)
 
 
-@register_command
 class GefFunctionsCommand(GenericCommand):
     """List the convenience functions provided by GEF."""
     _cmdline_ = "functions"
@@ -10988,7 +10912,6 @@ class GefAlias(gdb.Command):
         return None
 
 
-@register_command
 class AliasesCommand(GenericCommand):
     """Base command to add, remove, or list aliases."""
 
@@ -11004,7 +10927,6 @@ class AliasesCommand(GenericCommand):
         return
 
 
-@register_command
 class AliasesAddCommand(AliasesCommand):
     """Command to add aliases."""
 
@@ -11024,7 +10946,6 @@ class AliasesAddCommand(AliasesCommand):
         return
 
 
-@register_command
 class AliasesRmCommand(AliasesCommand):
     """Command to remove aliases."""
 
@@ -11050,7 +10971,6 @@ class AliasesRmCommand(AliasesCommand):
         return
 
 
-@register_command
 class AliasesListCommand(AliasesCommand):
     """Command to list aliases."""
 
