@@ -2138,6 +2138,10 @@ def register_architecture(cls: Type["Architecture"]) -> Type["Architecture"]:
 class Architecture(metaclass=abc.ABCMeta):
     """Generic metaclass for the architecture supported by GEF."""
 
+    @staticmethod
+    def supports_gdb_arch(gdb_arch: str) -> Optional[bool]:
+        return None
+
     @abc.abstractproperty
     def all_registers(self) -> List[str]:                                     pass
     @abc.abstractproperty
@@ -3760,12 +3764,17 @@ def reset_architecture(arch: Optional[str] = None, default: Optional[str] = None
     if not gef.binary:
         gef.binary = get_elf_headers()
 
-    arch_name = gef.binary.e_machine if gef.binary else get_arch()
+    gdb_arch = get_arch()
+    arch_name = gef.binary.e_machine if gef.binary else gdb_arch
 
     if ((arch_name == "MIPS" or arch_name == Elf.Abi.MIPS)
         and (gef.binary is not None and gef.binary.e_class == Elf.Class.ELF_64_BITS)):
         # MIPS64 = arch(MIPS) + 64b flag
         arch_name = "MIPS64"
+
+    preciser_arch = next((a for a in arches.values() if a.supports_gdb_arch(gdb_arch)), None)
+    if preciser_arch:
+        arch_name = preciser_arch.arch
 
     try:
         gef.arch = arches[arch_name]()
