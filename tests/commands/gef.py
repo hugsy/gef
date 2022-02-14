@@ -110,7 +110,7 @@ class GefCommand(GefUnitTestGeneric):
 
     @pytest.mark.online
     def test_cmd_gef_install(self):
-        res = gdb_run_cmd("gef install remote windbg stack")
+        res = gdb_run_cmd("gef install skel windbg stack")
         self.assertNoException(res)
         # we install 3 plugins, the pattern must be found 3 times
         pattern = "Installed file"
