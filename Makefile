@@ -11,21 +11,15 @@ TARGET := $(shell lscpu | head -1 | sed -e 's/Architecture:\s*//g')
 COVERAGE_DIR ?= /tmp/cov
 GEF_PATH ?= $(shell readlink -f gef.py)
 TMPDIR ?= /tmp
-PYTEST_PARAMETERS := --verbose -n $(NB_CORES)
-ifdef DEBUG
-	PYTEST_PARAMETERS += --pdb
-endif
+PYTEST_PARAMETERS := --verbose --forked --numprocesses=$(NB_CORES)
 
 .PHONY: test test_% Test% testbins clean lint
 
 test: $(TMPDIR) testbins
-	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) tests/runtests.py
-
-Test%: $(TMPDIR) testbins
-	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) tests/runtests.py::$@
+	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) -k "not benchmark"
 
 test_%: $(TMPDIR) testbins
-	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) tests/runtests.py -k $@
+	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) -k $@
 
 testbins: $(TMPDIR) $(wildcard tests/binaries/*.c)
 	@TMPDIR=$(TMPDIR) $(MAKE) -j $(NB_CORES) -C tests/binaries TARGET=$(TARGET) all
@@ -36,7 +30,7 @@ clean:
 
 lint:
 	python3 -m pylint $(PYLINT_GEF_PARAMETERS) $(GEF_PATH)
-	python3 -m pylint $(PYLINT_TEST_PARAMETERS) $(wildcard tests/*.py)
+	python3 -m pylint $(PYLINT_TEST_PARAMETERS) $(wildcard tests/*.py tests/*/*.py)
 
 coverage:
 	@! ( [ -d $(COVERAGE_DIR) ] && echo "COVERAGE_DIR=$(COVERAGE_DIR) exists already")

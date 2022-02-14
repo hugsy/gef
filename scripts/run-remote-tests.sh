@@ -21,6 +21,5 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
 sudo pip3 install -U ropper cryptography
 git clone https://github.com/hugsy/gef.git
 cd gef
-tests/runtests.py
-
+make test && make lint
 popd
