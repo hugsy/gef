@@ -2073,7 +2073,10 @@ def get_arch() -> str:
         arch_str = arch_str.replace("The target architecture is assumed to be ", "")
     elif "The target architecture is set to " in arch_str:
         # GDB version >= 10.1
-        arch_str = re.findall(r"\"(.+)\"", arch_str)[0]
+        if "\"auto\"" in arch_str:
+            arch_str = re.findall(r"currently \"(.+)\"", arch_str)[0]
+        else:
+            arch_str = re.findall(r"\"(.+)\"", arch_str)[0]
     else:
         # Unknown, we throw an exception to be safe
         raise RuntimeError(f"Unknown architecture: {arch_str}")
