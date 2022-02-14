@@ -10613,7 +10613,7 @@ class GefRestoreCommand(gdb.Command):
                 key = f"{section}.{optname}"
                 try:
                     setting = gef.config.raw_entry(key)
-                except Exception as e:
+                except Exception:
                     continue
                 new_value = cfg.get(section, optname)
                 if setting.type == bool:
