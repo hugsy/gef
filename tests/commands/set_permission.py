@@ -14,7 +14,8 @@ from tests.utils import (
 )
 
 
-@pytest.mark.skipif(ARCH in ("mips64el", "ppc64le", "riscv64"), reason=f"Skipped for {ARCH}")
+@pytest.mark.skipif(ARCH not in ("i686", "x86_64", "armv7l", "aarch64"),
+                    reason=f"Skipped for {ARCH}")
 class SetPermissionCommand(GefUnitTestGeneric):
     """`set_permission` command test module"""
 
@@ -63,11 +64,11 @@ class SetPermissionCommand(GefUnitTestGeneric):
         ]
         res = gdb_run_cmd("set-permission $sp", before=before, after=after, target=target)
         matches = re.match(r"(?:.*match_before)(.+)(?:match_before.*)", res, flags=re.DOTALL)
-        if not matches or len(matches) < 2:
+        if not matches:
             raise Exception("Unexpected output")
         regs_before = matches[1]
         matches = re.match(r"(?:.*match_after)(.+)(?:match_after.*)", res, flags=re.DOTALL)
-        if not matches or len(matches) < 2:
+        if not matches:
             raise Exception("Unexpected output")
         regs_after = matches[1]
         self.assertEqual(regs_before, regs_after)

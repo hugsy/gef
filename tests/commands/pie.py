@@ -53,7 +53,7 @@ class PieCommand(GefUnitTestGeneric):
         res = gdb_run_cmd("pie run", before=(f"pie breakpoint {self.pie_offset}",))
         self.assertNoException(res)
         # check we stopped for a breakpoint
-        res = removeuntil("[#0] Id 1, Name: \"default.out\", stopped ", res).splitlines()[0]
+        res = removeuntil("Name: \"default.out\", stopped ", res).splitlines()[0]
         self.assertIn("in main (), reason: BREAKPOINT", res)
         # check the mask of the breakpoint address
         address = int(res.split()[0], 16)

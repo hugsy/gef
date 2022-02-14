@@ -5,7 +5,6 @@ import pytest
 
 from tests.utils import (
     gdb_run_cmd,
-    gdb_start_silent_cmd,
     _target,
 
     ARCH,
@@ -28,46 +27,47 @@ class PatternCommand(GefUnitTestGeneric):
         self.assertIn("aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", res)
 
 
-    @pytest.mark.skipif(ARCH not in ("x86_64", "aarch64", "i686"), reason=f"Skipped for {ARCH}")
+    @pytest.mark.skipif(ARCH not in ("x86_64", "aarch64", "i686", "armv7l"),
+                        reason=f"Skipped for {ARCH}")
     def test_cmd_pattern_search(self):
         target = _target("pattern")
         if ARCH == "aarch64":
-            r = "$x30"
+            lookup_register = "$x30"
+            expected_offsets = (16, 16, 5, 9)
         elif ARCH == "x86_64":
-            r = "$rbp"
+            lookup_register = "$rbp"
+            expected_offsets = (8, 8, 5, 9)
         elif ARCH == "i686":
-            r = "$ebp"
+            lookup_register = "$ebp"
+            expected_offsets = (16, 16, 5, 9)
         else:
             raise ValueError("Invalid architecture")
 
-        cmd = f"pattern search -n 4 {r}"
-        before = ["set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run"]
+        #0
+        cmd = f"pattern search -n 4 {lookup_register}"
+        before = ("set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run")
         res = gdb_run_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        if ARCH in ("x86_64", ):
-            self.assertIn("Found at offset 8 (little-endian search) likely", res)
-        elif ARCH in ("aarch64", "i686"):
-            self.assertIn("Found at offset 16 (little-endian search) likely", res)
+        self.assertIn(f"Found at offset {expected_offsets[0]} (little-endian search) likely", res)
 
-        cmd = f"pattern search -n 8 {r}"
-        before = ["set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run"]
+        #1
+        cmd = f"pattern search -n 8 {lookup_register}"
+        before = ("set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run")
         res = gdb_run_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        if ARCH in ("x86_64",):
-            self.assertIn("Found at offset 8 (little-endian search) likely", res)
-        elif ARCH in ("aarch64", "i686"):
-            self.assertIn("Found at offset 16 (little-endian search) likely", res)
-        res = gdb_start_silent_cmd("pattern search -n 4 caaaaaaa")
-        self.assertNoException(res)
-        self.assertNotIn("Found at offset 9 (little-endian search) likely", res)
+        self.assertIn(f"Found at offset {expected_offsets[1]} (little-endian search) likely", res)
 
-        res = gdb_start_silent_cmd("pattern search -n 8 caaaaaaa")
+        #2
+        cmd = "pattern search -n 4 caaa"
+        before = ("set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run")
+        res = gdb_run_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        self.assertIn("Found at offset 9 (little-endian search) likely", res)
+        self.assertIn(f"Found at offset {expected_offsets[2]} (little-endian search) likely", res)
 
-        if ARCH in ("x86_64", "aarch64"):
-            res = gdb_start_silent_cmd("pattern search -n 8 0x6261616161616161")
-        elif ARCH in ("i686",):
-            res = gdb_start_silent_cmd("pattern search -n 4 0x62616161")
+        #3
+        cmd = "pattern search -n 8 caaaaaaa"
+        before = ("set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run")
+        res = gdb_run_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        self.assertIn("Found at offset 1 (little-endian search) likely", res)
+        self.assertIn(f"Found at offset {expected_offsets[3]} (little-endian search) likely", res)
+

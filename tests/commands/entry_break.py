@@ -16,4 +16,4 @@ class EntryBreakCommand(GefUnitTestGeneric):
 
         res = gdb_run_cmd("entry-break", after=("entry-break",))
         self.assertNoException(res)
-        self.assertIn("gdb is already running")
+        self.assertIn("gdb is already running", res)

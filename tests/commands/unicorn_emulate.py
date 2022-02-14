@@ -12,7 +12,8 @@ from tests.utils import (
 )
 
 
-@pytest.mark.skipif(ARCH not in ("i686", "x86_64", "armv7l", "aarch64"), reason=f"Skipped for {ARCH}")
+@pytest.mark.skipif(ARCH not in ("i686", "x86_64", "armv7l", "aarch64"),
+                    reason=f"Skipped for {ARCH}")
 class UnicornEmulateCommand(GefUnitTestGeneric):
     """`unicorn-emulate` command test module"""
 

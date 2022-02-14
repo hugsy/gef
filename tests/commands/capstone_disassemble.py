@@ -10,7 +10,8 @@ from tests.utils import (
     gdb_start_silent_cmd,
     gdb_run_silent_cmd,
     gdb_run_cmd,
-    GefUnitTestGeneric
+    GefUnitTestGeneric,
+    removeuntil,
 )
 
 
@@ -38,7 +39,7 @@ class CapstoneDisassembleCommand(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("cs --show-opcodes --length 5 $pc")
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) >= 5)
-        res = res[res.find("→  "):] # jump to the output buffer
+        res = removeuntil("→  ", res, included=True) # jump to the output buffer
         addr, opcode, symbol, *_ = [x.strip() for x in res.splitlines()[2].strip().split()]
         # match the correct output format: <addr> <opcode> [<symbol>] mnemonic [operands,]
         # gef➤  cs --show-opcodes --length 5 $pc

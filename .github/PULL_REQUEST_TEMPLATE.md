@@ -27,5 +27,5 @@
 - [] My PR was done against the `dev` branch, not `master`.
 - [] My code follows the code style of this project.
 - [] My change includes a change to the documentation, if required.
-- [] If my change adds new code, [adequate tests](docs/testing.md) must be added.
+- [] If my change adds new code, [adequate tests](docs/testing.md) have been added.
 - [] I have read and agree to the **CONTRIBUTING** document.
