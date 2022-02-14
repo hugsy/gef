@@ -10911,7 +10911,8 @@ class GefInstallExtraScriptCommand(gdb.Command):
             subprocess.run(["xdg-open", f"https://github.com/hugsy/gef-extras/{self.branch}/"])
             return
 
-        self.dirpath = pathlib.Path(gef.config["gef.extra_plugins_dir"]).expanduser().absolute()
+        dir_setting = gef.config.get("gef.extra_plugins_dir", GEF_TEMP_DIR)
+        self.dirpath = pathlib.Path(dir_setting).expanduser().absolute()
         if not self.dirpath.is_dir():
             err("'gef.extra_plugins_dir' is not a valid directory")
             return
@@ -10925,20 +10926,17 @@ class GefInstallExtraScriptCommand(gdb.Command):
 
     def __install_extras_script(self, script: str) -> bool:
         fpath = self.dirpath / f"{script}.py"
-        if fpath.exists():
-            err(f"'{fpath}' already exists")
-            return False
+        if not fpath.exists():
+            url = f"https://raw.githubusercontent.com/hugsy/gef-extras/{self.branch}/scripts/{script}.py"
+            info(f"Searching for '{script}.py' in `gef-extras@{self.branch}`...")
+            data = http_get(url)
+            if not data:
+                warn("Not found")
+                return False
 
-        url = f"https://raw.githubusercontent.com/hugsy/gef-extras/{self.branch}/scripts/{script}.py"
-        info(f"Searching for '{script}.py' in `gef-extras@{self.branch}`...")
-        data = http_get(url)
-        if not data:
-            warn("Not found")
-            return False
-
-        with fpath.open("wb") as fd:
-            fd.write(data)
-            fd.flush()
+            with fpath.open("wb") as fd:
+                fd.write(data)
+                fd.flush()
 
         old_command_set = set(gef.gdb.commands)
         gdb.execute(f"source {fpath}")
