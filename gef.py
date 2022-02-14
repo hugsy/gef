@@ -10614,7 +10614,6 @@ class GefRestoreCommand(gdb.Command):
                 try:
                     setting = gef.config.raw_entry(key)
                 except Exception as e:
-                    warn(f"Invalid setting '{key}': {e}")
                     continue
                 new_value = cfg.get(section, optname)
                 if setting.type == bool:
