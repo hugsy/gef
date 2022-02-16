@@ -134,7 +134,7 @@ PYTHON_VERSION                         = sys.version_info[0:2]
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
 
-GEF_RC                                 = (pathlib.Path(os.getenv("GEF_RC")).absolute()
+GEF_RC                                 = (pathlib.Path(os.getenv("GEF_RC", "")).absolute()
                                           if os.getenv("GEF_RC")
                                           else pathlib.Path().home() / ".gef.rc")
 GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
@@ -158,7 +158,7 @@ GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\03
 PATTERN_LIBC_VERSION                   = re.compile(rb"glibc (\d+)\.(\d+)")
 
 
-gef : "Gef"                                                                 = None
+gef : "Gef"
 __registered_commands__ : List[Type["GenericCommand"]]                      = []
 __registered_functions__ : List[Type["GenericFunction"]]                    = []
 __registered_architectures__ : Dict[Union["Elf.Abi", str], Type["Architecture"]]  = {}
@@ -476,7 +476,7 @@ def parse_arguments(required_arguments: Dict[Union[str, Tuple[str, str]], Any],
                 if argtype is int:
                     argtype = int_wrapper
 
-                argname_is_list = isinstance(argname, list) or isinstance(argname, tuple)
+                argname_is_list = not isinstance(argname, str)
                 if not argname_is_list and argname.startswith("-"):
                     # optional args
                     if argtype is bool:
@@ -493,13 +493,12 @@ def parse_arguments(required_arguments: Dict[Union[str, Tuple[str, str]], Any],
                     parser.add_argument(argname, type=argtype, default=argvalue, nargs=nargs)
 
             for argname in optional_arguments:
-                argname_is_list = isinstance(argname, list) or isinstance(argname, tuple)
-                if not argname_is_list and not argname.startswith("-"):
+                if isinstance(argname, str) and not argname.startswith("-"):
                     # refuse positional arguments
                     continue
                 argvalue = optional_arguments[argname]
                 argtype = type(argvalue)
-                if not argname_is_list:
+                if isinstance(argname, str):
                     argname = [argname,]
                 if argtype is int:
                     argtype = int_wrapper
@@ -1726,7 +1725,7 @@ def gef_pybytes(x: str) -> bytes:
 
 
 @lru_cache()
-def which(program: str) -> Optional[pathlib.Path]:
+def which(program: str) -> pathlib.Path:
     """Locate a command on the filesystem."""
     for path in os.environ["PATH"].split(os.pathsep):
         dirname = pathlib.Path(path)
@@ -10259,12 +10258,6 @@ class GenericFunction(gdb.Function, GenericFunctionBase):
     _syntax_: str = ""
     _example_ : str = ""
 
-    def __init_subclass__(cls, /, **kwargs):
-        super().__init_subclass__(**kwargs)
-        attributes = ("_function_", "_example_", "_syntax_")
-        if not all(map(lambda x: hasattr(cls, x), attributes)):
-            raise NotImplementedError
-
     def __init__(self) -> None:
         super().__init__(self._function_)
 
@@ -10280,13 +10273,14 @@ class GenericFunction(gdb.Function, GenericFunctionBase):
         except IndexError:
             return default
 
-    def do_invoke(self, args: List) -> int:
+    def do_invoke(self, args: Any) -> int:
         raise NotImplementedError
 
 
 class StackOffsetFunction(GenericFunction):
     """Return the current stack base address plus an optional offset."""
     _function_ = "_stack"
+    _syntax_   = f"${_function_}()"
 
     def do_invoke(self, args: List) -> int:
         base = get_section_base_address("[stack]")
@@ -10299,6 +10293,7 @@ class StackOffsetFunction(GenericFunction):
 class HeapBaseFunction(GenericFunction):
     """Return the current heap base address plus an optional offset."""
     _function_ = "_heap"
+    _syntax_   = f"${_function_}()"
 
     def do_invoke(self, args: List) -> int:
         base = gef.heap.base_address
@@ -10317,6 +10312,7 @@ class SectionBaseFunction(GenericFunction):
     _example_  = "p $_base(\\\"/usr/lib/ld-2.33.so\\\")"
 
     def do_invoke(self, args: List) -> int:
+        addr = 0
         try:
             name = args[0].string()
         except IndexError:
@@ -10326,7 +10322,9 @@ class SectionBaseFunction(GenericFunction):
             return 0
 
         try:
-            addr = int(get_section_base_address(name))
+            base = get_section_base_address(name)
+            if base:
+                addr = int(base)
         except TypeError:
             err(f"Cannot find section {name}")
             return 0
@@ -10336,6 +10334,7 @@ class SectionBaseFunction(GenericFunction):
 class BssBaseFunction(GenericFunction):
     """Return the current bss base address plus the given offset."""
     _function_ = "_bss"
+    _syntax_   = f"${_function_}([OFFSET])"
     _example_ = "deref $_bss(0x20)"
 
     def do_invoke(self, args: List) -> int:
@@ -10348,6 +10347,7 @@ class BssBaseFunction(GenericFunction):
 class GotBaseFunction(GenericFunction):
     """Return the current GOT base address plus the given offset."""
     _function_ = "_got"
+    _syntax_   = f"${_function_}([OFFSET])"
     _example_ = "deref $_got(0x20)"
 
     def do_invoke(self, args: List) -> int:
@@ -11540,6 +11540,7 @@ if __name__ == "__main__":
             pass
 
     # load GEF
+    gef = None
     reset()
 
     # gdb events configuration
