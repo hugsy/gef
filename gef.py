@@ -1878,14 +1878,14 @@ def gdb_disassemble(start_pc: int, **kwargs: int) -> Generator[Instruction, None
         yield Instruction(address, location, mnemo, operands, opcodes)
 
 
-def gdb_get_nth_previous_instruction_address(addr: int, n: int) -> Optional[int]:
+def _get_nth_previous_instruction_addr_from(addr: int, n: int) -> Optional[int]:
     """Return the address (Integer) of the `n`-th instruction before `addr`."""
     # fixed-length ABI
     if gef.arch.instruction_length:
         return max(0, addr - n * gef.arch.instruction_length)
 
     # variable-length ABI
-    cur_insn_addr = gef_current_instruction(addr).address
+    cur_insn_addr = get_instruction_at(addr).address
 
     # we try to find a good set of previous instructions by "guessing" disassembling backwards
     # the 15 comes from the longest instruction valid size
@@ -1912,39 +1912,43 @@ def gdb_get_nth_previous_instruction_address(addr: int, n: int) -> Optional[int]
         if all(insn.is_valid() for insn in insns):
             return insns[0].address
 
+    warn(f"Could not find the {n}th instruction address before {addr:#x}")
     return None
 
 
-def gdb_get_nth_next_instruction_address(addr: int, n: int) -> int:
-    """Return the address (Integer) of the `n`-th instruction after `addr`."""
+def get_nth_instruction_addr_from(addr: int, n: int) -> int:
+    """Return the address (Integer) of the `n`-th instruction after `addr`. n can also be negative."""
     # fixed-length ABI
     if gef.arch.instruction_length:
         return addr + n * gef.arch.instruction_length
 
     # variable-length ABI
+    if n < 0:
+        prev_addr = _get_nth_previous_instruction_addr_from(addr, abs(n))
+        if prev_addr is None:
+            # hack to avoid optional return value
+            warn("Returning the current instruction address instead")
+            return addr
+        return prev_addr
     insn = list(gdb_disassemble(addr, count=n))[-1]
     return insn.address
 
 
-def gef_instruction_n(addr: int, n: int) -> Instruction:
-    """Return the `n`-th instruction after `addr` as an Instruction object."""
+def get_nth_instruction_from(addr: int, n: int) -> Instruction:
+    """Return the `n`-th instruction after `addr` as an Instruction object. n can also be negative."""
+    if n < 0:
+        prev_addr = get_nth_instruction_addr_from(addr, n)
+        if prev_addr is None:
+            # hack to avoid optional return value
+            warn("Returning the current instruction instead")
+            return get_instruction_at(addr)
+        return get_instruction_at(prev_addr)
     return list(gdb_disassemble(addr, count=n + 1))[n]
 
 
-def gef_get_instruction_at(addr: int) -> Instruction:
+def get_instruction_at(addr: int) -> Instruction:
     """Return the full Instruction found at the specified address."""
-    insn = next(gef_disassemble(addr, 1))
-    return insn
-
-
-def gef_current_instruction(addr: int) -> Instruction:
-    """Return the current instruction as an Instruction object."""
-    return gef_instruction_n(addr, 0)
-
-
-def gef_next_instruction(addr: int) -> Instruction:
-    """Return the next instruction as an Instruction object."""
-    return gef_instruction_n(addr, 1)
+    return get_nth_instruction_from(addr, 0)
 
 
 def gef_disassemble(addr: int, nb_insn: int, nb_prev: int = 0) -> Generator[Instruction, None, None]:
@@ -1953,7 +1957,7 @@ def gef_disassemble(addr: int, nb_insn: int, nb_prev: int = 0) -> Generator[Inst
     nb_insn = max(1, nb_insn)
 
     if nb_prev:
-        start_addr = gdb_get_nth_previous_instruction_address(addr, nb_prev)
+        start_addr = get_nth_instruction_addr_from(addr, -nb_prev)
         if start_addr:
             for insn in gdb_disassemble(start_addr, count=nb_prev):
                 if insn.address == addr: break
@@ -1986,7 +1990,7 @@ def capstone_disassemble(location: int, nb_insn: int, **kwargs: Any) -> Generato
     skip       = int(kwargs.get("skip", 0))
     nb_prev    = int(kwargs.get("nb_prev", 0))
     if nb_prev > 0:
-        location = gdb_get_nth_previous_instruction_address(pc, nb_prev)
+        location = get_nth_instruction_addr_from(pc, -nb_prev)
         nb_insn += nb_prev
 
     code = kwargs.get("code", gef.memory.read(location, gef.session.pagesize - offset - 1))
@@ -3954,10 +3958,11 @@ def parse_string_range(s: str) -> Iterator[int]:
 
 
 @lru_cache()
-def is_syscall(instruction: Union[Instruction,int]) -> bool:
+def is_syscall(instruction: Union[Instruction, int]) -> bool:
     """Checks whether an instruction or address points to a system call."""
     if isinstance(instruction, int):
-        instruction = gef_current_instruction(instruction)
+        addr = instruction
+        instruction = get_instruction_at(addr)
     insn_str = instruction.mnemonic
     if len(instruction.operands):
         insn_str += f" {', '.join(instruction.operands)}"
@@ -4453,8 +4458,8 @@ class UafWatchpoint(gdb.Breakpoint):
 
         # software watchpoints stop after the next statement (see
         # https://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html)
-        pc = gdb_get_nth_previous_instruction_address(gef.arch.pc, 2)
-        insn = gef_current_instruction(pc)
+        pc = get_nth_instruction_addr_from(gef.arch.pc, -2)
+        insn = get_instruction_at(pc)
         msg = []
         msg.append(Color.colorify("Heap-Analysis", "yellow bold"))
         msg.append(f"Possible Use-after-Free in '{get_filepath()}': "
@@ -6539,7 +6544,7 @@ class NopCommand(GenericCommand):
         address = parse_address(args.address)
         nop = gef.arch.nop_insn
         number_of_bytes = args.nb or 1
-        insn = gef_get_instruction_at(address)
+        insn = get_instruction_at(address)
 
         if insn.size() != number_of_bytes:
             warn(f"Patching {number_of_bytes} bytes at {address:#x} might result in corruption")
@@ -8186,7 +8191,7 @@ class ContextCommand(GenericCommand):
         return
 
     def context_args(self) -> None:
-        insn = gef_current_instruction(gef.arch.pc)
+        insn = get_instruction_at(gef.arch.pc)
         if not gef.arch.is_call(insn):
             return
 
@@ -8250,9 +8255,9 @@ class ContextCommand(GenericCommand):
             pc = gef.arch.pc
             try:
                 block = gdb.block_for_pc(pc)
-                block_start = block.start if block else gdb_get_nth_previous_instruction_address(pc, 5)
+                block_start = block.start if block else get_nth_instruction_addr_from(pc, -5)
             except RuntimeError:
-                block_start = gdb_get_nth_previous_instruction_address(pc, 5)
+                block_start = get_nth_instruction_addr_from(pc, -5)
             return block_start
 
         parameter_set = set()
@@ -8993,7 +8998,7 @@ def dereference_from(addr: int) -> List[str]:
         # -- Otherwise try to parse the value
         if addr.section:
             if addr.section.is_executable() and addr.is_in_text_segment() and not is_ascii_string(addr.value):
-                insn = gef_current_instruction(addr.value)
+                insn = get_instruction_at(addr.value)
                 insn_str = f"{insn.location} {insn.mnemonic} {', '.join(insn.operands)}"
                 msg.append(Color.colorify(insn_str, code_color))
                 break
@@ -10017,7 +10022,7 @@ class SyscallArgsCommand(GenericCommand):
             reg_value = gef.arch.register(gef.arch.syscall_register)
         else:
             # otherwise, try the previous instruction (case of using `catch syscall`)
-            previous_insn_addr = gdb_get_nth_previous_instruction_address(gef.arch.pc, 1)
+            previous_insn_addr = get_nth_instruction_addr_from(gef.arch.pc, -1)
             if not is_syscall(previous_insn_addr):
                 err("No syscall found")
                 return
