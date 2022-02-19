@@ -29,7 +29,7 @@ clean:
 
 lint:
 	python3 -m pylint $(PYLINT_PARAMETERS) $(GEF_PATH)
-	python3 -m pylint $(PYLINT_PARAMETERS) $(wildcard tests/*.py)
+	python3 -m pylint $(PYLINT_PARAMETERS) $(wildcard tests/*/*.py)
 
 coverage:
 	@! ( [ -d $(COVERAGE_DIR) ] && echo "COVERAGE_DIR=$(COVERAGE_DIR) exists already")
