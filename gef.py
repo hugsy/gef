@@ -3522,11 +3522,10 @@ def load_libc_args() -> bool:
             gef.ui.libc_args_table[_arch_mode] = json.load(_libc_args)
         return True
     except FileNotFoundError:
-        del gef.ui.libc_args_table[_arch_mode]
         warn(f"Config context.libc_args is set but definition cannot be loaded: file {_libc_args_file} not found")
     except json.decoder.JSONDecodeError as e:
-        del gef.ui.libc_args_table[_arch_mode]
         warn(f"Config context.libc_args is set but definition cannot be loaded from file {_libc_args_file}: {e}")
+    gef.ui.libc_args_table[_arch_mode] = {}
     return False
 
 
@@ -3713,17 +3712,17 @@ def keystone_assemble(code_str: str, arch: int, mode: int, **kwargs: Any) -> Opt
 
 
 @lru_cache()
-def get_elf_headers(filename: Optional[str] = None) -> Optional[Elf]:
-    """Return an Elf object with info from `filename`. If not provided, will return
-    the currently debugged file."""
+def get_elf_headers(filename: Optional[str] = None) -> Elf:
+    """Return an `Elf` object of the currently debugged target. If no `filename` provided, it will
+    be determined from the current GDB session."""
     if not filename:
         filename = get_filepath()
-        if not filename:
-            raise Exception("No file provided")
+
+    if not filename:
+        raise FileNotFoundError("No file provided")
 
     if filename.startswith("target:"):
-        warn("Your file is remote, you should try using `gef-remote` instead")
-        return
+        raise RuntimeError("Your file is remote, you should try using `gef-remote` instead")
 
     return Elf(filename)
 
@@ -3762,28 +3761,29 @@ def is_arch(arch: Elf.Abi) -> bool:
     return arch in gef.arch.aliases
 
 
-def reset_architecture(arch: Optional[str] = None, default: Optional[str] = None) -> None:
+def reset_architecture(arch: Optional[str] = None) -> None:
     """Sets the current architecture.
-    If an arch is explicitly specified, use that one, otherwise try to parse it
-    out of the current target. If that fails, and default is specified, select and
-    set that arch.
-    Raise an exception if the architecture cannot be set.
-	Does not return a value.
+    If an architecture is explicitly specified by parameter, try to use that one. If this fails, an `OSError`
+    exception will occur.
+    If no architecture is specified, then GEF will attempt to determine automatically based on the current
+    ELF target. If this fails, an `OSError` exception will occur.
     """
     global gef
     arches = __registered_architectures__
 
     if arch:
         try:
-            gef.arch = arches[arch.upper()]()
-            return
+            gef.arch = arches[arch]()
         except KeyError:
-            raise OSError(f"Specified arch {arch.upper()} is not supported")
+            valid_arch_names = (x.arch for x in arches.values())
+            raise OSError(f"No class '{arch}' in the list of supported architectures ('{ ', '.join(valid_arch_names) }'")
+        return
 
     if not gef.binary:
         gef.binary = get_elf_headers()
-
-    arch_name = gef.binary.e_machine if gef.binary else get_arch()
+        arch_name = gef.binary.e_machine
+    else:
+        arch_name = get_arch()
 
     if ((arch_name == "MIPS" or arch_name == Elf.Abi.MIPS)
         and (gef.binary is not None and gef.binary.e_class == Elf.Class.ELF_64_BITS)):
@@ -3793,13 +3793,7 @@ def reset_architecture(arch: Optional[str] = None, default: Optional[str] = None
     try:
         gef.arch = arches[arch_name]()
     except KeyError:
-        if default:
-            try:
-                gef.arch = arches[default.upper()]()
-            except KeyError:
-                raise OSError(f"CPU not supported, neither is default {default.upper()}")
-        else:
-            raise OSError(f"CPU type is currently not supported: {get_arch()}")
+        raise OSError(f"CPU type is currently not supported: {get_arch()}")
     return
 
 
@@ -4057,8 +4051,8 @@ def get_process_maps() -> List[Section]:
 
 
 @deprecated("Use `reset_architecture`")
-def set_arch(arch: Optional[str] = None, default: Optional[str] = None) -> None:
-    return reset_architecture(arch, default)
+def set_arch(arch: Optional[str] = None, _: Optional[str] = None) -> None:
+    return reset_architecture(arch)
 
 #
 # GDB event hooking
@@ -6652,7 +6646,7 @@ class RemoteCommand(GenericCommand):
 
         exepath = get_path_from_info_proc()
         infos["exe"] = download_file(f"/proc/{pid:d}/exe", use_cache=False, local_name=exepath)
-        if not os.access(infos["exe"], os.R_OK):
+        if not infos["exe"] or not os.access(infos["exe"], os.R_OK):
             err("Source binary is not readable")
             return
 
@@ -6864,8 +6858,8 @@ class CapstoneDisassembleCommand(GenericCommand):
 
             if insn.address == gef.arch.pc:
                 msg = Color.colorify(f"{RIGHT_ARROW}   {text_insn}", "bold red")
-                reason = self.capstone_analyze_pc(insn, length)[0]
-                if reason:
+                valid, reason = self.capstone_analyze_pc(insn, length)
+                if valid:
                     gef_print(msg)
                     gef_print(reason)
                     break
@@ -7692,13 +7686,16 @@ class RopperCommand(GenericCommand):
         ropper = sys.modules["ropper"]
         if "--file" not in argv:
             path = get_filepath()
+            if not path:
+                err("No file provided")
+                return
             sect = next(filter(lambda x: x.path == path, gef.memory.maps))
             argv.append("--file")
             argv.append(path)
             argv.append("-I")
             argv.append(f"{sect.page_start:#x}")
 
-        import readline
+        readline = __import__("readline")
         # ropper set up own autocompleter after which gdb/gef autocomplete don't work
         old_completer_delims = readline.get_completer_delims()
         old_completer = readline.get_completer()
