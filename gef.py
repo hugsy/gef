@@ -1218,7 +1218,7 @@ class GlibcHeapInfo:
     See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L64"""
 
     def __init__(self, addr: Union[int, str]) -> None:
-        self.__addr = addr if type(addr) is int else parse_address(addr)
+        self.__addr = parse_address(addr) if isinstance(addr, str) else addr
         self.size_t = cached_lookup_type("size_t")
         if not self.size_t:
             ptr_type = "unsigned long" if gef.arch.ptrsize == 8 else "unsigned int"
@@ -4547,7 +4547,7 @@ class GenericCommand(gdb.Command, GenericCommandBase):
     _syntax_: str
     _example_: str = ""
 
-    def __init_subclass__(cls, /, **kwargs):
+    def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         attributes = ("_cmdline_", "_syntax_", )
         if not all(map(lambda x: hasattr(cls, x), attributes)):
