@@ -10898,7 +10898,7 @@ class GefInstallExtraScriptCommand(gdb.Command):
 
     def __init__(self) -> None:
         super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, False)
-        self.branch = gef.config.get("gef.default_branch", "master")
+        self.branch = gef.config.get("gef.extras_default_branch", "master")
         return
 
     def invoke(self, args: str, from_tty: bool) -> None:
@@ -10907,7 +10907,9 @@ class GefInstallExtraScriptCommand(gdb.Command):
             err("No script name provided")
             return
 
-        if "--list" in args:
+        args = args.split()
+
+        if "--list" in args or "-l" in args:
             subprocess.run(["xdg-open", f"https://github.com/hugsy/gef-extras/{self.branch}/"])
             return
 
@@ -10917,7 +10919,7 @@ class GefInstallExtraScriptCommand(gdb.Command):
             err("'gef.extra_plugins_dir' is not a valid directory")
             return
 
-        for script in args.split():
+        for script in args:
             script = script.lower()
             if not self.__install_extras_script(script):
                 warn(f"Failed to install '{script}', skipping...")
