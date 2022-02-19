@@ -2305,7 +2305,7 @@ class GenericArchitecture(Architecture):
     syscall_instructions = ()
     nop_insn = b""
     flag_register = None
-    flags_table = None
+    flags_table = {}
 
 
 class RISCV(Architecture):
@@ -2506,7 +2506,7 @@ class ARM(Architecture):
         val = gef.arch.register(self.flag_register)
         taken, reason = False, ""
 
-        if mnemo.endswith("eq"): taken, reason = bool(bool(val&(1<<flags["zero"]))), "Z"
+        if mnemo.endswith("eq"): taken, reason = bool(val&(1<<flags["zero"])), "Z"
         elif mnemo.endswith("ne"): taken, reason = not bool(val&(1<<flags["zero"])), "!Z"
         elif mnemo.endswith("lt"):
             taken, reason = bool(val&(1<<flags["negative"])) != bool(val&(1<<flags["overflow"])), "N!=V"
@@ -2525,7 +2525,7 @@ class ARM(Architecture):
         elif mnemo.endswith("pl"):
             taken, reason = not val&(1<<flags["negative"]), "N==0"
         elif mnemo.endswith("hi"):
-            taken, reason = val&(1<<flags["carry"]) and not bool(val&(1<<flags["zero"])), "C && !Z"
+            taken, reason = bool(val&(1<<flags["carry"])) and not bool(val&(1<<flags["zero"])), "C && !Z"
         elif mnemo.endswith("ls"):
             taken, reason = not val&(1<<flags["carry"]) or bool(val&(1<<flags["zero"])), "!C || Z"
         elif mnemo.endswith("cs"): taken, reason = bool(val&(1<<flags["carry"])), "C"
@@ -2568,7 +2568,7 @@ class ARM(Architecture):
 class AARCH64(ARM):
     aliases = ("ARM64", "AARCH64", Elf.Abi.AARCH64)
     arch = "ARM64"
-    mode = ""
+    mode: str = ""
 
     all_registers = (
         "$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7",
@@ -3006,17 +3006,17 @@ class SPARC(Architecture):
         elif mnemo == "bne": taken, reason = bool(val&(1<<flags["zero"])) == 0, "!Z"
         elif mnemo == "bg": taken, reason = bool(val&(1<<flags["zero"])) == 0 and (val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0), "!Z && (!N || !O)"
         elif mnemo == "bge": taken, reason = val&(1<<flags["negative"]) == 0 or val&(1<<flags["overflow"]) == 0, "!N || !O"
-        elif mnemo == "bgu": taken, reason = val&(1<<flags["carry"]) == 0 and bool(val&(1<<flags["zero"])) == 0, "!C && !Z"
+        elif mnemo == "bgu": taken, reason = val&(1<<flags["carry"]) == 0 and val&(1<<flags["zero"]) == 0, "!C && !Z"
         elif mnemo == "bgeu": taken, reason = val&(1<<flags["carry"]) == 0, "!C"
-        elif mnemo == "bl": taken, reason = val&(1<<flags["negative"]) and val&(1<<flags["overflow"]), "N && O"
-        elif mnemo == "blu": taken, reason = val&(1<<flags["carry"]), "C"
-        elif mnemo == "ble": taken, reason = bool(val&(1<<flags["zero"])) or (val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
-        elif mnemo == "bleu": taken, reason = val&(1<<flags["carry"]) or bool(val&(1<<flags["zero"])), "C || Z"
-        elif mnemo == "bneg": taken, reason = val&(1<<flags["negative"]), "N"
+        elif mnemo == "bl": taken, reason = bool(val&(1<<flags["negative"])) and bool(val&(1<<flags["overflow"])), "N && O"
+        elif mnemo == "blu": taken, reason = bool(val&(1<<flags["carry"])), "C"
+        elif mnemo == "ble": taken, reason = bool(val&(1<<flags["zero"])) or bool(val&(1<<flags["negative"]) or val&(1<<flags["overflow"])), "Z || (N || O)"
+        elif mnemo == "bleu": taken, reason = bool(val&(1<<flags["carry"])) or bool(val&(1<<flags["zero"])), "C || Z"
+        elif mnemo == "bneg": taken, reason = bool(val&(1<<flags["negative"])), "N"
         elif mnemo == "bpos": taken, reason = val&(1<<flags["negative"]) == 0, "!N"
-        elif mnemo == "bvs": taken, reason = val&(1<<flags["overflow"]), "O"
+        elif mnemo == "bvs": taken, reason = bool(val&(1<<flags["overflow"])), "O"
         elif mnemo == "bvc": taken, reason = val&(1<<flags["overflow"]) == 0, "!O"
-        elif mnemo == "bcs": taken, reason = val&(1<<flags["carry"]), "C"
+        elif mnemo == "bcs": taken, reason = bool(val&(1<<flags["carry"])), "C"
         elif mnemo == "bcc": taken, reason = val&(1<<flags["carry"]) == 0, "!C"
         return taken, reason
 
@@ -3320,11 +3320,12 @@ def download_file(remote_path: str, use_cache: bool = False, local_name: Optiona
         local_path = str(local_path.absolute())
     except gdb.error:
         # fallback memory view
-        with open(local_path, "w") as f:
+        with local_path.open("w") as f:
             if is_32bit():
                 f.write(f"00000000-ffffffff rwxp 00000000 00:00 0                    {get_filepath()}\n")
             else:
                 f.write(f"0000000000000000-ffffffffffffffff rwxp 00000000 00:00 0                    {get_filepath()}\n")
+        local_path = str(local_path.absolute())
 
     except Exception as e:
         err(f"download_file() failed: {e}")
@@ -3551,7 +3552,7 @@ def get_terminal_size() -> Tuple[int, int]:
         import fcntl
         import termios
         try:
-            tty_rows, tty_columns = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, "1234"))
+            tty_rows, tty_columns = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, "1234")) # type: ignore
             return tty_rows, tty_columns
         except OSError:
             return 600, 100
@@ -6075,7 +6076,7 @@ class SearchPatternCommand(GenericCommand):
             for match in re.finditer(_pattern, mem):
                 start = chunk_addr + match.start()
                 if is_ascii_string(start):
-                    ustr = gef.memory.read_ascii_string(start)
+                    ustr = gef.memory.read_ascii_string(start) or ""
                     end = start + len(ustr)
                 else:
                     ustr = gef_pystring(_pattern) + "[...]"
@@ -6142,7 +6143,7 @@ class SearchPatternCommand(GenericCommand):
             else:
                 section_name = argv[2]
                 if section_name == "binary":
-                    section_name = get_filepath()
+                    section_name = get_filepath() or ""
 
                 self.search_pattern(pattern, section_name)
         else:
@@ -6161,6 +6162,10 @@ class FlagsCommand(GenericCommand):
                  f"\n{_cmdline_} +zero # sets ZERO flag")
 
     def do_invoke(self, argv: List[str]) -> None:
+        if not gef.arch.flag_register:
+            warn(f"The architecture {gef.arch.arch}:{gef.arch.mode} doesn't have flag register.")
+            return
+
         for flag in argv:
             if len(flag) < 2:
                 continue
