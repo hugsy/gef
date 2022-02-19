@@ -1938,10 +1938,6 @@ def get_nth_instruction_from(addr: int, n: int) -> Instruction:
     """Return the `n`-th instruction after `addr` as an Instruction object. n can also be negative."""
     if n < 0:
         prev_addr = get_nth_instruction_addr_from(addr, n)
-        if prev_addr is None:
-            # hack to avoid optional return value
-            warn("Returning the current instruction instead")
-            return get_instruction_at(addr)
         return get_instruction_at(prev_addr)
     return list(gdb_disassemble(addr, count=n + 1))[n]
 
