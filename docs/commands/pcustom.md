@@ -50,11 +50,11 @@ gef➤  pcustom edit elf32_t
 [+] Editing '/home/hugsy/code/gef-extras/structs/elf32_t.py'
 ```
 
-
+#### Static `ctypes.Structure`-like classes
 
 The code can be defined just as any Python (using `ctypes`) code.
 
-```
+```python
 from ctypes import *
 
 '''
@@ -118,6 +118,61 @@ gef➤  ida ImportStructs
 Which will become:
 
 ![ida-structure-imported](https://i.imgur.com/KVhyopO.png)
+
+
+#### Dynamic `ctypes.Structure`-like classes
+
+`pcustom` also supports the use of class factories to create a `ctypes.Structure` class whose structure will be adjusted based on the runtime information we provide (information about the currently debugged binary, the architecture, the size of a pointer and more).
+
+The syntax is relatively close to the way we use to create static classes (see above), but instead we define a function that will generate the class. The requirements for this class factory are:
+   - take a single [`Gef`](https://github.com/hugsy/gef/blob/dev/docs/api/gef.md#class-gef) positional argument
+   - End the function name with `_t`
+
+To continue the `person_t` function we defined in the example above, we could modify the static class as a dynamic one very easily:
+
+```python
+import ctypes
+from typing import Optional
+
+def person_t(gef: Optional["Gef"]=None):
+    fields = [
+        ("age",  ctypes.c_int),
+        ("name", ctypes.c_char * 256),
+        ("id", ctypes.c_int),
+    ]
+
+    class person_cls(ctypes.Structure):
+      _fields_ = fields
+
+    return person_cls
+```
+
+Thanks to the `gef` parameter, the structure can be transparently adjusted so that GEF will parse it differently with its runtime information. For example, we can add constraints to the example above:
+
+```python
+import ctypes
+from typing import Optional
+
+def person_t(gef: Optional["Gef"]==None):
+    fields = [
+        ("age",  ctypes.c_uint8),
+        ("name", ctypes.c_char * 256),
+        ("id", ctypes.c_uint8),
+    ]
+
+    # constraint on the libc version
+    if gef.libc.version > (2, 27):
+      # or on the pointer size
+      pointer_type = ctypes.c_uint64 if gef.arch.ptrsize == 8 else ctypes.c_uint32
+      fields += [
+        ("new_field", pointer_size)
+      ]
+
+    class person_cls(ctypes.Structure):
+      _fields_ = fields
+
+    return person_cls
+```
 
 
 ### Public repository of structures
