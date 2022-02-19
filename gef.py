@@ -2160,7 +2160,7 @@ class Architecture(ArchitectureBase):
     _endianness: Optional[Endianness] = None
     special_registers: Union[Tuple[()], Tuple[str, ...]] = ()
 
-    def __init_subclass__(cls, /, **kwargs):
+    def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         attributes = ("arch", "mode", "aliases", "all_registers", "nop_insn",
              "return_register", "flag_register", "instruction_length", "flags_table",
