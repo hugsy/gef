@@ -147,9 +147,9 @@ VERTICAL_LINE                          = "\u2502"
 CROSS                                  = "\u2718 "
 TICK                                   = "\u2713 "
 BP_GLYPH                               = "\u25cf"
-GEF_PROMPT                             = "gef\u27a4  "
-GEF_PROMPT_ON                          = f"\001\033[1;32m\002{GEF_PROMPT}\001\033[0m\002"
-GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\033[0m\002"
+GEF_BASIC_PROMPT                       = "gef\u27a4  "
+GEF_PROMPT_ON                          = f"\001\033[1;32m\002{GEF_BASIC_PROMPT}\001\033[0m\002"
+GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_BASIC_PROMPT}\001\033[0m\002"
 
 PATTERN_LIBC_VERSION                   = re.compile(rb"glibc (\d+)\.(\d+)")
 
@@ -743,13 +743,14 @@ class Elf:
     phdrs : List["Phdr"]
     shdrs : List["Shdr"]
 
-    def __init__(self, path: str = "", minimalist: bool = False) -> None:
+    def __init__(self, path: Union[str, pathlib.Path] = "", minimalist: bool = False) -> None:
         """Instantiate an ELF object. The default behavior is to create the object by parsing the ELF file.
         But in some cases (QEMU-stub), we may just want a simple minimal object with default values."""
         if minimalist:
             return
 
-        self.path = pathlib.Path(path).expanduser()
+        self.path = pathlib.Path(path).expanduser() if isinstance(path, str) else path
+
         if not os.access(self.path, os.R_OK):
             raise FileNotFoundError(f"'{self.path}' not found/readable, most gef features will not work")
 
@@ -1780,7 +1781,17 @@ def unhide_context() -> bool:
     return True
 
 
-class RedirectOutputContext():
+class DisableContextOutputContext:
+    def __enter__(self) -> None:
+        hide_context()
+        return
+
+    def __exit__(self, *exc: Any) -> None:
+        unhide_context()
+        return
+
+
+class RedirectOutputContext:
     def __init__(self, to: str = "/dev/null") -> None:
         self.redirection_target_file = to
         return
@@ -3263,66 +3274,11 @@ def is_qemu_system() -> bool:
 @lru_cache()
 def get_filepath() -> Optional[str]:
     """Return the local absolute path of the file currently debugged."""
-    filename = gdb.current_progspace().filename
-
-    if is_remote_debug():
-        # if no filename specified, try downloading target from /proc
-        if filename is None:
-            pid = gef.session.pid
-            if pid > 0:
-                return download_file(f"/proc/{pid:d}/exe", use_cache=True)
-            return None
-
-        # if target is remote file, download
-        elif filename.startswith("target:"):
-            fname = filename[len("target:") :]
-            return download_file(fname, use_cache=True, local_name=fname)
-
-        elif filename.startswith(".gnu_debugdata for target:"):
-            fname = filename[len(".gnu_debugdata for target:") :]
-            return download_file(fname, use_cache=True, local_name=fname)
-
-        elif gef.session.remote is not None:
-            return f"/tmp/gef/{gef.session.remote:d}/{get_path_from_info_proc()}"
-        return filename
-    else:
-        if filename is not None:
-            return filename
-        # inferior probably did not have name, extract cmdline from info proc
-        return get_path_from_info_proc()
-
-
-def download_file(remote_path: str, use_cache: bool = False, local_name: Optional[str] = None) -> Optional[str]:
-    """Download filename `remote_path` inside the mirror tree inside the `gef.config["gef.tempdir"]`.
-    The tree architecture must be `gef.config["gef.tempdir"]/gef/<local_pid>/<remote_filepath>`.
-    This allow a "chroot-like" tree format."""
-
-    local_root = pathlib.Path(gef.config["gef.tempdir"]) / str(gef.session.pid)
-    if local_name is None:
-        local_path = local_root / remote_path.strip(os.sep)
-    else:
-        local_path = local_root / local_name.strip(os.sep)
-
-    if use_cache and local_path.exists():
-        return str(local_path.absolute())
-
-    try:
-        local_path.parent.mkdir(parents=True, exist_ok=True)
-        gdb.execute(f"remote get {remote_path} {local_path.absolute()}")
-        local_path = str(local_path.absolute())
-    except gdb.error:
-        # fallback memory view
-        with open(local_path, "w") as f:
-            if is_32bit():
-                f.write(f"00000000-ffffffff rwxp 00000000 00:00 0                    {get_filepath()}\n")
-            else:
-                f.write(f"0000000000000000-ffffffffffffffff rwxp 00000000 00:00 0                    {get_filepath()}\n")
-
-    except Exception as e:
-        err(f"download_file() failed: {e}")
-        local_path = None
-
-    return local_path
+    if gef.session.remote:
+        return str(gef.session.remote.lfile.absolute())
+    if not gef.session.file:
+        return None
+    return str(gef.session.file.absolute())
 
 
 def get_function_length(sym: str) -> int:
@@ -3443,38 +3399,47 @@ def continue_handler(_: "gdb.Event") -> None:
     return
 
 
-def hook_stop_handler(_: "gdb.Event") -> None:
+def hook_stop_handler(_: "gdb.StopEvent") -> None:
     """GDB event handler for stop cases."""
     reset_all_caches()
     gdb.execute("context")
     return
 
 
-def new_objfile_handler(_: "gdb.Event") -> None:
+def new_objfile_handler(evt: "gdb.NewObjFileEvent") -> None:
     """GDB event handler for new object file cases."""
     reset_all_caches()
-    reset_architecture()
-    load_libc_args()
+    if not evt:
+        return
+    filename: str = evt.new_objfile.filename
+    if not filename.startswith("target:"):
+        # not in a remote session
+        fpath = pathlib.Path(filename)
+        if fpath.is_file():
+            gef.binary = Elf(fpath)
+            reset_architecture()
+            load_libc_args()
     return
 
 
-def exit_handler(_: "gdb.Event") -> None:
+def exit_handler(_: "gdb.ExitedEvent") -> None:
     """GDB event handler for exit cases."""
     reset_all_caches()
     gef.session.qemu_mode = False
-    if gef.session.remote and gef.config["gef-remote.clean_on_exit"] is True:
-        shutil.rmtree(f"/tmp/gef/{gef.session.remote:d}")
+    if gef.session.remote:
+        # make sure the tempdir is trashed
+        del(gef.session.remote)
         gef.session.remote = None
     return
 
 
-def memchanged_handler(_: "gdb.Event") -> None:
+def memchanged_handler(_: "gdb.MemoryChangedEvent") -> None:
     """GDB event handler for mem changes cases."""
     reset_all_caches()
     return
 
 
-def regchanged_handler(_: "gdb.Event") -> None:
+def regchanged_handler(_: "gdb.RegisterChangedEvent") -> None:
     """GDB event handler for reg changes cases."""
     reset_all_caches()
     return
@@ -3699,22 +3664,6 @@ def keystone_assemble(code: str, arch: int, mode: int, **kwargs: Any) -> Optiona
 
 
 @lru_cache()
-def get_elf_headers(filename: Optional[str] = None) -> Optional[Elf]:
-    """Return an Elf object with info from `filename`. If not provided, will return
-    the currently debugged file."""
-    if not filename:
-        filename = get_filepath()
-        if not filename:
-            raise Exception("No file provided")
-
-    if filename.startswith("target:"):
-        warn("Your file is remote, you should try using `gef-remote` instead")
-        return
-
-    return Elf(filename)
-
-
-@lru_cache()
 def is_64bit() -> bool:
     """Checks if current target is 64bit."""
     return gef.arch.ptrsize == 8
@@ -3766,11 +3715,7 @@ def reset_architecture(arch: Optional[str] = None, default: Optional[str] = None
         except KeyError:
             raise OSError(f"Specified arch {arch.upper()} is not supported")
 
-    if not gef.binary:
-        gef.binary = get_elf_headers()
-
     gdb_arch = get_arch()
-    arch_name = gef.binary.e_machine if gef.binary else gdb_arch
 
     preciser_arch = next((a for a in arches.values() if a.supports_gdb_arch(gdb_arch)), None)
     if preciser_arch:
@@ -3778,6 +3723,7 @@ def reset_architecture(arch: Optional[str] = None, default: Optional[str] = None
         return
 
     try:
+        arch_name = gef.binary.e_machine if gef.binary else gdb_arch
         gef.arch = arches[arch_name]()
     except KeyError:
         if default:
@@ -4046,62 +3992,72 @@ def set_arch(arch: Optional[str] = None, default: Optional[str] = None) -> None:
 #
 
 @only_if_events_supported("cont")
-def gef_on_continue_hook(func: Callable[["gdb.Event"], None]) -> None:
+def gef_on_continue_hook(func: Callable[["gdb.ThreadEvent"], None]) -> None:
     gdb.events.cont.connect(func)
 
 
 @only_if_events_supported("cont")
-def gef_on_continue_unhook(func: Callable[["gdb.Event"], None]) -> None:
+def gef_on_continue_unhook(func: Callable[["gdb.ThreadEvent"], None]) -> None:
     gdb.events.cont.disconnect(func)
 
 
 @only_if_events_supported("stop")
-def gef_on_stop_hook(func: Callable[["gdb.Event"], None]) -> None:
+def gef_on_stop_hook(func: Callable[["gdb.StopEvent"], None]) -> None:
     gdb.events.stop.connect(func)
 
 
 @only_if_events_supported("stop")
-def gef_on_stop_unhook(func: Callable[["gdb.Event"], None]) -> None:
+def gef_on_stop_unhook(func: Callable[["gdb.StopEvent"], None]) -> None:
     gdb.events.stop.disconnect(func)
 
 
 @only_if_events_supported("exited")
-def gef_on_exit_hook(func: Callable[["gdb.Event"], None]) -> None:
+def gef_on_exit_hook(func: Callable[["gdb.ExitedEvent"], None]) -> None:
     gdb.events.exited.connect(func)
 
 
 @only_if_events_supported("exited")
-def gef_on_exit_unhook(func: Callable[["gdb.Event"], None]) -> None:
+def gef_on_exit_unhook(func: Callable[["gdb.ExitedEvent"], None]) -> None:
     gdb.events.exited.disconnect(func)
 
 
 @only_if_events_supported("new_objfile")
-def gef_on_new_hook(func: Callable[["gdb.Event"], None]) -> None:
+def gef_on_new_hook(func: Callable[["gdb.NewObjFileEvent"], None]) -> None:
     gdb.events.new_objfile.connect(func)
 
 
 @only_if_events_supported("new_objfile")
-def gef_on_new_unhook(func: Callable[["gdb.Event"], None]) -> None:
+def gef_on_new_unhook(func: Callable[["gdb.NewObjFileEvent"], None]) -> None:
     gdb.events.new_objfile.disconnect(func)
 
 
+@only_if_events_supported("clear_objfiles")
+def gef_on_unload_objfile_hook(func: Callable[["gdb.ClearObjFilesEvent"], None]) -> None:
+    gdb.events.clear_objfiles.connect(func)
+
+
+@only_if_events_supported("clear_objfiles")
+def gef_on_unload_objfile_unhook(func: Callable[["gdb.ClearObjFilesEvent"], None]) -> None:
+    gdb.events.clear_objfiles.disconnect(func)
+
+
 @only_if_events_supported("memory_changed")
-def gef_on_memchanged_hook(func: Callable[["gdb.Event"], None]) -> None:
+def gef_on_memchanged_hook(func: Callable[["gdb.MemoryChangedEvent"], None]) -> None:
     gdb.events.memory_changed.connect(func)
 
 
 @only_if_events_supported("memory_changed")
-def gef_on_memchanged_unhook(func: Callable[["gdb.Event"], None]) -> None:
+def gef_on_memchanged_unhook(func: Callable[["gdb.MemoryChangedEvent"], None]) -> None:
     gdb.events.memory_changed.disconnect(func)
 
 
 @only_if_events_supported("register_changed")
-def gef_on_regchanged_hook(func: Callable[["gdb.Event"], None]) -> None:
+def gef_on_regchanged_hook(func: Callable[["gdb.RegisterChangedEvent"], None]) -> None:
     gdb.events.register_changed.connect(func)
 
 
 @only_if_events_supported("register_changed")
-def gef_on_regchanged_unhook(func: Callable[["gdb.Event"], None]) -> None:
+def gef_on_regchanged_unhook(func: Callable[["gdb.RegisterChangedEvent"], None]) -> None:
     gdb.events.register_changed.disconnect(func)
 
 
@@ -6322,18 +6278,9 @@ class RemoteCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(prefix=False)
-        self.handler_connected = False
-        self["clean_on_exit"] = (False, "Clean the temporary data downloaded when the session exits.")
         return
 
-    @parse_arguments(
-        {"target": ""},
-        {"--update-solib": True,
-         "--download-everything": True,
-         "--download-lib": "",
-         "--is-extended-remote": True,
-         "--pid": 0,
-         "--qemu-mode": True})
+    @parse_arguments({"host": "", "port": 0}, {"--pid": -1,})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         if gef.session.remote is not None:
             err("You already are in remote session. Close it first before opening a new one...")
@@ -6341,192 +6288,12 @@ class RemoteCommand(GenericCommand):
 
         # argument check
         args = kwargs["arguments"]
-        if not args.target or ":" not in args.target:
-            err("A target (HOST:PORT) must always be provided.")
+        if not args.host or not args.port:
+            err("Missing parameters")
             return
 
-        if args.is_extended_remote and not args.pid:
-            err("A PID (--pid) is required for extended remote debugging")
-            return
-
-        target = args.target
-        self.download_all_libs = args.download_everything
-
-        if args.qemu_mode:
-            # compat layer for qemu-user
-            self.prepare_qemu_stub(target)
-            return
-
-        # lazily install handler on first use
-        if not self.handler_connected:
-            gef_on_new_hook(self.new_objfile_handler)
-            self.handler_connected = True
-
-        if not self.connect_target(target, args.is_extended_remote):
-            return
-
-        pid = args.pid if args.is_extended_remote and args.pid else gef.session.pid
-        if args.is_extended_remote:
-            ok(f"Attaching to {pid:d}")
-            hide_context()
-            gdb.execute(f"attach {pid:d}")
-            unhide_context()
-
-        self.setup_remote_environment(pid, args.update_solib)
-
-        if not is_remote_debug():
-            err("Failed to establish remote target environment.")
-            return
-
-        if self.download_all_libs:
-            vmmap = gef.memory.maps
-            success = 0
-            for sect in vmmap:
-                if sect.path.startswith("/"):
-                    _file = download_file(sect.path)
-                    if _file is None:
-                        err(f"Failed to download {sect.path}")
-                    else:
-                        success += 1
-
-            ok(f"Downloaded {success:d} files")
-
-        elif args.download_lib:
-            _file = download_file(args.download_lib)
-            if _file is None:
-                err("Failed to download remote file")
-                return
-
-            ok(f"Download success: {args.download_lib} {RIGHT_ARROW} {_file}")
-
-        if args.update_solib:
-            self.refresh_shared_library_path()
-
-
-        # refresh the architecture setting
-        reset_architecture()
-        gef.session.remote = pid
-        return
-
-    def new_objfile_handler(self, event: "gdb.Event") -> None:
-        """Hook that handles new_objfile events, will update remote environment accordingly."""
-        if not is_remote_debug():
-            return
-
-        if self.download_all_libs and event.new_objfile.filename.startswith("target:"):
-            remote_lib = event.new_objfile.filename[len("target:"):]
-            local_lib = download_file(remote_lib, use_cache=True)
-            if local_lib:
-                ok(f"Download success: {remote_lib} {RIGHT_ARROW} {local_lib}")
-        return
-
-    def setup_remote_environment(self, pid: int, update_solib: bool = False) -> None:
-        """Clone the remote environment locally in the temporary directory.
-        The command will duplicate the entries in the /proc/<pid> locally and then
-        source those information into the current gdb context to allow gef to use
-        all the extra commands as it was local debugging."""
-        gdb.execute("reset-cache")
-
-        infos = {}
-        for i in ("maps", "environ", "cmdline",):
-            infos[i] = self.load_from_remote_proc(pid, i)
-            if infos[i] is None:
-                err(f"Failed to load memory map of '{i}'")
-                return
-
-        exepath = get_path_from_info_proc()
-        infos["exe"] = download_file(f"/proc/{pid:d}/exe", use_cache=False, local_name=exepath)
-        if not os.access(infos["exe"], os.R_OK):
-            err("Source binary is not readable")
-            return
-
-        directory  = os.path.sep.join([gef.config["gef.tempdir"], str(gef.session.pid)])
-        # gdb.execute(f"file {infos['exe']}")
-        self["root"] = (directory, "Path to store the remote data")
-        ok(f"Remote information loaded to temporary path '{directory}'")
-        return
-
-    def connect_target(self, target: str, is_extended_remote: bool) -> bool:
-        """Connect to remote target and get symbols. To prevent `gef` from requesting information
-        not fetched just yet, we disable the context disable when connection was successful."""
-        hide_context()
-        try:
-            cmd = f"target {'extended-remote' if is_extended_remote else 'remote'} {target}"
-            gdb.execute(cmd)
-            ok(f"Connected to '{target}'")
-            ret = True
-        except Exception as e:
-            err(f"Failed to connect to {target}: {e}")
-            ret = False
-        unhide_context()
-        return ret
-
-    def load_from_remote_proc(self, pid: int, info: str) -> Optional[str]:
-        """Download one item from /proc/pid."""
-        remote_name = f"/proc/{pid:d}/{info}"
-        return download_file(remote_name, use_cache=False)
-
-    def refresh_shared_library_path(self) -> None:
-        dirs = [r for r, d, f in os.walk(self["root"])]
-        path = ":".join(dirs)
-        gdb.execute(f"set solib-search-path {path}")
-        return
-
-    def usage(self) -> None:
-        h = self._syntax_
-        h += "\n\t   TARGET (mandatory) specifies the host:port, serial port or tty to connect to.\n"
-        h += "\t-U will update gdb `solib-search-path` attribute to include the files downloaded from server (default: False).\n"
-        h += "\t-A will download *ALL* the remote shared libraries and store them in the new environment. " \
-             "This command can take a few minutes to complete (default: False).\n"
-        h += "\t-D LIB will download the remote library called LIB.\n"
-        h += "\t-E Use 'extended-remote' to connect to the target.\n"
-        h += "\t-p PID (mandatory if -E is used) specifies PID of the debugged process on gdbserver's end.\n"
-        h += "\t-q Uses this option when connecting to a Qemu GDBserver.\n"
-        info(h)
-        return
-
-    def prepare_qemu_stub(self, target: str) -> None:
-        global gef
-
-        reset_all_caches()
-        arch = get_arch()
-        gef.binary = Elf(minimalist=True)
-        if arch.startswith("arm"):
-            gef.binary.e_machine = Elf.Abi.ARM
-            gef.arch = ARM()
-        elif arch.startswith("aarch64"):
-            gef.binary.e_machine = Elf.Abi.AARCH64
-            gef.arch = AARCH64()
-        elif arch.startswith("i386:intel"):
-            gef.binary.e_machine = Elf.Abi.X86_32
-            gef.arch = X86()
-        elif arch.startswith("i386:x86-64"):
-            gef.binary.e_machine = Elf.Abi.X86_64
-            gef.binary.e_class = Elf.Class.ELF_64_BITS
-            gef.arch = X86_64()
-        elif arch.startswith("mips"):
-            gef.binary.e_machine = Elf.Abi.MIPS
-            gef.arch = MIPS()
-        elif arch.startswith("powerpc"):
-            gef.binary.e_machine = Elf.Abi.POWERPC
-            gef.arch = PowerPC()
-        elif arch.startswith("sparc"):
-            gef.binary.e_machine = Elf.Abi.SPARC
-            gef.arch = SPARC()
-        else:
-            raise RuntimeError(f"unsupported architecture: {arch}")
-
-        ok(f"Setting Qemu-user stub for '{gef.arch.arch}' (memory mapping may be wrong)")
-        hide_context()
-        gdb.execute(f"target remote {target}")
-        unhide_context()
-
-        if gef.session.pid == 1 and "ENABLE=1" in gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False):
-            gef.session.qemu_mode = True
-            reset_all_caches()
-            info("Note: By using Qemu mode, GEF will display the memory mapping of the Qemu process where the emulated binary resides")
-            gef.memory.maps
-            gdb.execute("context")
+        # try to establish the remote session, throw on error
+        gef.session.remote = GefRemoteSessionManager(args.host, args.port, args.pid)
         return
 
 
@@ -7733,7 +7500,7 @@ class ElfInfoCommand(GenericCommand):
         if filename is None:
             return
 
-        elf = get_elf_headers(filename)
+        elf = Elf(filename)
         if elf is None:
             return
 
@@ -10905,13 +10672,15 @@ class GefTmuxSetup(gdb.Command):
 # GEF internal  classes
 #
 
-def __gef_prompt__(current_prompt: Any) -> str:
+def __gef_prompt__(_: str) -> str:
     """GEF custom prompt function."""
-
-    if gef.config["gef.readline_compat"] is True: return GEF_PROMPT
-    if gef.config["gef.disable_color"] is True: return GEF_PROMPT
-    if is_alive(): return GEF_PROMPT_ON
-    return GEF_PROMPT_OFF
+    if gef.config["gef.readline_compat"] is True or gef.config["gef.disable_color"] is True:
+        return GEF_BASIC_PROMPT
+    prompt = ""
+    if gef.session.remote:
+        prompt += Color.boldify("(remote) ")
+    prompt += GEF_PROMPT_ON if is_alive() else GEF_PROMPT_OFF
+    return prompt
 
 
 class GefManager(metaclass=abc.ABCMeta):
@@ -11004,18 +10773,10 @@ class GefMemoryManager(GefManager):
 
     def __parse_procfs_maps(self) -> Generator[Section, None, None]:
         """Get the memory mapping from procfs."""
-        def open_file(path: str, use_cache: bool = False) -> IO:
-            """Attempt to open the given file, if remote debugging is active, download
-            it first to the mirror in /tmp/."""
-            if is_remote_debug() and not gef.session.qemu_mode:
-                lpath = download_file(path, use_cache)
-                if not lpath:
-                    raise IOError(f"cannot open remote path {path}")
-                path = lpath
-            return open(path, "r")
-
-        __process_map_file = f"/proc/{gef.session.pid}/maps"
-        with open_file(__process_map_file, use_cache=False) as fd:
+        __process_map_file = gef.session.remote.maps if gef.session.remote else gef.session.maps
+        if not __process_map_file:
+            return
+        with __process_map_file.open("r") as fd:
             for line in fd:
                 line = line.strip()
                 addr, perm, off, _, rest = line.split(" ", 4)
@@ -11027,7 +10788,7 @@ class GefMemoryManager(GefManager):
                     inode = rest[0]
                     pathname = rest[1].lstrip()
 
-                addr_start, addr_end = [int(x, 16) for x in addr.split("-")]
+                addr_start, addr_end = parse_string_range(addr)
                 off = int(off, 16)
                 perm = Permission.from_process_maps(perm)
                 inode = int(inode)
@@ -11204,30 +10965,29 @@ class GefSessionManager(GefManager):
     """Class managing the runtime properties of GEF. """
     def __init__(self) -> None:
         self.reset_caches()
-        self.remote = None
-        self.qemu_mode = False
-        self.convenience_vars_index = 0
+        self.remote: Optional["GefRemoteSessionManager"] = None
+        self.qemu_mode: bool = False
+        self.convenience_vars_index: int = 0
         self.heap_allocated_chunks: List[Tuple[int, int]] = []
         self.heap_freed_chunks: List[Tuple[int, int]] = []
         self.heap_uaf_watchpoints: List[UafWatchpoint] = []
         self.pie_breakpoints: Dict[int, PieVirtualBreakpoint] = {}
-        self.pie_counter = 1
+        self.pie_counter: int = 1
         self.aliases: List[GefAlias] = []
         self.constants = {} # a dict for runtime constants (like 3rd party file paths)
-        # add a few extra runtime constants to avoid lookups
-        # those must be found, otherwise IOError will be raised
         for constant in ("python3", "readelf", "file", "ps"):
             self.constants[constant] = which(constant)
         return
 
     def reset_caches(self) -> None:
         super().reset_caches()
-        self.__auxiliary_vector = None
-        self.__pagesize = None
-        self.__os = None
-        self.__pid = None
-        self.__file = None
-        self.__canary = None
+        self._auxiliary_vector = None
+        self._pagesize = None
+        self._os = None
+        self._pid = None
+        self._file = None
+        self._canary = None
+        self._maps: Optional[pathlib.Path] = None
         return
 
     @property
@@ -11235,46 +10995,51 @@ class GefSessionManager(GefManager):
         if not is_alive():
             return None
 
-        if not self.__auxiliary_vector:
+        if not self._auxiliary_vector:
             auxiliary_vector = {}
             auxv_info = gdb.execute("info auxv", to_string=True)
             if "failed" in auxv_info:
-                err(auxv_info)  # print GDB error
+                err(auxv_info)
                 return None
             for line in auxv_info.splitlines():
                 line = line.split('"')[0].strip()  # remove the ending string (if any)
                 line = line.split()  # split the string by whitespace(s)
                 if len(line) < 4:
-                    continue  # a valid entry should have at least 4 columns
+                    continue
                 __av_type = line[1]
                 __av_value = line[-1]
                 auxiliary_vector[__av_type] = int(__av_value, base=0)
-            self.__auxiliary_vector = auxiliary_vector
-        return self.__auxiliary_vector
+            self._auxiliary_vector = auxiliary_vector
+        return self._auxiliary_vector
 
     @property
     def os(self) -> str:
         """Return the current OS."""
-        if not self.__os:
-            self.__os = platform.system().lower()
-        return self.__os
+        if not self._os:
+            self._os = platform.system().lower()
+        return self._os
 
     @property
     def pid(self) -> int:
         """Return the PID of the target process."""
-        if not self.__pid:
+        if not self._pid:
             pid = gdb.selected_inferior().pid if not gef.session.qemu_mode else gdb.selected_thread().ptid[1]
             if not pid:
                 raise RuntimeError("cannot retrieve PID for target process")
-            self.__pid = pid
-        return self.__pid
+            self._pid = pid
+        return self._pid
 
     @property
-    def file(self) -> pathlib.Path:
+    def file(self) -> Optional[pathlib.Path]:
         """Return a Path object of the target process."""
-        if not self.__file:
-            self.__file = pathlib.Path(gdb.current_progspace().filename)
-        return self.__file
+        fpath: str = gdb.current_progspace().filename
+        if fpath and not self._file:
+            self._file = pathlib.Path(fpath).expanduser()
+        return self._file
+
+    @property
+    def cwd(self) -> Optional[pathlib.Path]:
+        return self.file.parent if self.file else None
 
     @property
     def pagesize(self) -> int:
@@ -11282,8 +11047,8 @@ class GefSessionManager(GefManager):
         auxval = self.auxiliary_vector
         if not auxval:
             return DEFAULT_PAGE_SIZE
-        self.__pagesize = auxval["AT_PAGESZ"]
-        return self.__pagesize
+        self._pagesize = auxval["AT_PAGESZ"]
+        return self._pagesize
 
     @property
     def canary(self) -> Optional[Tuple[int, int]]:
@@ -11294,8 +11059,144 @@ class GefSessionManager(GefManager):
         canary_location = auxval["AT_RANDOM"]
         canary = gef.memory.read_integer(canary_location)
         canary &= ~0xFF
-        self.__canary = (canary, canary_location)
-        return self.__canary
+        self._canary = (canary, canary_location)
+        return self._canary
+
+    @property
+    def maps(self) -> Optional[pathlib.Path]:
+        if not is_alive():
+            return None
+        if not self._maps:
+            self._maps = pathlib.Path(f"/proc/{self.pid}/maps")
+        return self._maps
+
+
+
+class GefRemoteSessionManager(GefSessionManager):
+    """Class for managing remote sessions with GEF. It will create a temporary environment
+    designed to clone the remote one."""
+    def __init__(self, host: str, port: int, pid: int =-1) -> None:
+        super().__init__()
+        self.__host = host
+        self.__port = port
+        if not self.connect(pid):
+            raise EnvironmentError(f"Cannot connect to remote target {self.target}")
+        if not self.setup():
+            raise EnvironmentError(f"Failed to create a proper environment for {self.target}")
+        gdb.execute("context")
+        return
+
+    def __del__(self) -> None:
+        self.__local_root_fd.cleanup()
+        try:
+            gef_on_new_unhook(self.remote_objfile_event_handler)
+        except:
+            pass
+        return
+
+    def __str__(self) -> str:
+        return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid})"
+
+    @property
+    def target(self) -> str:
+        return f"{self.__host}:{self.__port}"
+
+    @property
+    def root(self) -> pathlib.Path:
+        return self.__local_root_path.absolute()
+
+    @property
+    def file(self) -> pathlib.Path:
+        """Path to the file being debugged as seen by the remote endpoint."""
+        session_file = super().file
+        if not session_file:
+            raise RuntimeError("No session started")
+        fname = str(session_file)
+        if fname.startswith("target:"):
+            fname = fname[len("target:"):]
+        return pathlib.Path(fname)
+
+    @property
+    def lfile(self) -> pathlib.Path:
+        """Local path to the file being debugged."""
+        return self.root / str(self.file).lstrip("/")
+
+    @property
+    def maps(self) -> pathlib.Path:
+        if not self._maps:
+            self._maps = self.root / f"proc/{self.pid}/maps"
+        return self._maps
+
+    def sync(self, src: str, dst: Optional[str] = None) -> bool:
+        """Copy the `src` into the temporary chroot. If `dst` is provided, that path will be
+        used instead of `src`."""
+        if not dst:
+            dst = src
+        tgt = self.root / dst.lstrip("/")
+        if tgt.exists():
+            return True
+        tgt.parent.mkdir(parents=True, exist_ok=True)
+        gdb.execute(f"remote get {src} {tgt.absolute()}")
+        return tgt.exists()
+
+    def connect(self, pid: int) -> bool:
+        """Connect to remote target. If in extended mode, also attach to the given PID."""
+        # before anything, register our new hook to download files from the remote target
+        gef_on_new_hook(self.remote_objfile_event_handler)
+
+        # then attempt to connect
+        is_extended_mode = (pid > -1)
+        try:
+            with DisableContextOutputContext():
+                gdb.execute(f"target {'extended-' if is_extended_mode else ''}remote {self.target}")
+                if is_extended_mode:
+                    gdb.execute(f"attach {pid:d}")
+            return True
+        except Exception as e:
+            err(f"Failed to connect to {self.target}: {e}")
+
+        # a failure will trigger the cleanup, deleting our hook anyway
+        return False
+
+    def setup(self) -> bool:
+        # create the local root tempdir, it'll be destroyed when the object is deleted
+        self.__local_root_fd = tempfile.TemporaryDirectory()
+        self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
+
+        # get the file
+        fpath = f"/proc/{self.pid}/exe"
+        if not self.sync(fpath, str(self.file)):
+            err(f"'{fpath}' could not be fetched on the remote system.")
+            return False
+
+        # pseudo procfs
+        for _file in ("maps", "environ", "cmdline"):
+            fpath = f"/proc/{self.pid}/{_file}"
+            if not self.sync(fpath):
+                err(f"'{fpath}' could not be fetched on the remote system.")
+                return False
+
+        # makeup a fake mem mapping in case we failed to retrieve it
+        maps = self.root / f"proc/{self.pid}/maps"
+        if not maps.exists():
+            with maps.open("w") as fd:
+                fname = self.file.absolute()
+                mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
+                fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
+
+        # refresh gef to consider the binary
+        reset_all_caches()
+        gef.binary = Elf(self.lfile)
+        reset_architecture()
+        return True
+
+    def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
+        if not gef.session.remote or not evt.new_objfile.filename.startswith("target:"):
+            return
+        src: str = evt.new_objfile.filename[len("target:"):]
+        if not self.sync(src):
+            raise FileNotFoundError(f"Failed to sync '{src}'")
+        return
 
 
 class GefUiManager(GefManager):

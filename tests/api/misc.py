@@ -44,14 +44,6 @@ class MiscFunctionTest(GefUnitTestGeneric):
         self.assertException(res)
 
 
-    def test_func_download_file(self):
-        gdbsrv = start_gdbserver(_target("default"))
-        func = f"download_file('{_target('default')}')"
-        res = gdb_test_python_method(func)
-        stop_gdbserver(gdbsrv)
-        self.assertNoException(res)
-
-
     @pytest.mark.slow
     @pytest.mark.online
     @pytest.mark.skip
