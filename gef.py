@@ -67,7 +67,6 @@ import os
 import pathlib
 import platform
 import re
-import shutil
 import site
 import socket
 import string
@@ -81,7 +80,7 @@ import warnings
 from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
-from typing import (Any, ByteString, Callable, Dict, Generator, IO, Iterator, List,
+from typing import (Any, ByteString, Callable, Dict, Generator, Iterator, List,
                     NoReturn, Optional, Sequence, Tuple, Type, Union)
 from urllib.request import urlopen
 
@@ -3271,14 +3270,13 @@ def is_qemu_system() -> bool:
     return 'received: ""' in response
 
 
-@lru_cache()
 def get_filepath() -> Optional[str]:
     """Return the local absolute path of the file currently debugged."""
     if gef.session.remote:
         return str(gef.session.remote.lfile.absolute())
-    if not gef.session.file:
-        return None
-    return str(gef.session.file.absolute())
+    if gef.session.file:
+        return str(gef.session.file.absolute())
+    return None
 
 
 def get_function_length(sym: str) -> int:
@@ -3836,10 +3834,9 @@ def is_in_x86_kernel(address: int) -> bool:
     return (address >> memalign) == 0xF
 
 
-@lru_cache()
 def is_remote_debug() -> bool:
     """"Return True is the current debugging session is running through GDB remote session."""
-    return gef.session.remote is not None or "remote" in gdb.execute("maintenance print target-stack", to_string=True)
+    return gef.session.remote is not None
 
 
 def de_bruijn(alphabet: bytes, n: int) -> Generator[str, None, None]:
@@ -9461,32 +9458,24 @@ class GotCommand(GenericCommand):
                                          "Line color of the got command output for unresolved function")
         return
 
-    def get_jmp_slots(self, readelf: str, filename: str) -> List[str]:
-        cmd = [readelf, "--relocs", filename]
-        lines = gef_execute_external(cmd, as_list=True)
-        return [line for line in lines if "JUMP" in line]
-
     @only_if_gdb_running
     def do_invoke(self, argv: List[str]) -> None:
-        try:
-            readelf = gef.session.constants["readelf"]
-        except OSError:
-            err("Missing `readelf`")
-            return
+        readelf = gef.session.constants["readelf"]
 
-        # get the filtering parameter.
-        func_names_filter = []
-        if argv:
-            func_names_filter = argv
+        if is_remote_debug():
+            elf_file = str(gef.session.remote.lfile)
+            elf_virtual_path = str(gef.session.remote.file)
+        else:
+            elf_file = str(gef.session.file)
+            elf_virtual_path = str(gef.session.file)
 
-        # getting vmmap to understand the boundaries of the main binary
-        # we will use this info to understand if a function has been resolved or not.
+        func_names_filter = argv if argv else []
         vmmap = gef.memory.maps
-        base_address = min(x.page_start for x in vmmap if x.path == get_filepath())
-        end_address = max(x.page_end for x in vmmap if x.path == get_filepath())
+        base_address = min(x.page_start for x in vmmap if x.path == elf_virtual_path)
+        end_address = max(x.page_end for x in vmmap if x.path == elf_virtual_path)
 
         # get the checksec output.
-        checksec_status = checksec(get_filepath())
+        checksec_status = checksec(elf_file)
         relro_status = "Full RelRO"
         full_relro = checksec_status["Full RelRO"]
         pie = checksec_status["PIE"]  # if pie we will have offset instead of abs address.
@@ -9499,7 +9488,8 @@ class GotCommand(GenericCommand):
                 relro_status = "No RelRO"
 
         # retrieve jump slots using readelf
-        jmpslots = self.get_jmp_slots(readelf, get_filepath())
+        lines = gef_execute_external([readelf, "--relocs", elf_file], as_list=True)
+        jmpslots = [line for line in lines if "JUMP" in line]
 
         gef_print(f"\nGOT protection: {relro_status} | GOT functions: {len(jmpslots)}\n ")
 
@@ -9514,7 +9504,7 @@ class GotCommand(GenericCommand):
             address_val = int(address, 16)
 
             # address_val is an offset from the base_address if we have PIE.
-            if pie:
+            if pie or is_remote_debug():
                 address_val = base_address + address_val
 
             # read the address of the function.
@@ -9529,7 +9519,6 @@ class GotCommand(GenericCommand):
             line = f"[{hex(address_val)}] "
             line += Color.colorify(f"{name} {RIGHT_ARROW} {hex(got_address)}", color)
             gef_print(line)
-
         return
 
 
@@ -10921,6 +10910,7 @@ class GefHeapManager(GefManager):
         ceil = lambda n: int(-1 * n // 1 * -1)
         return malloc_alignment * ceil((address / malloc_alignment))
 
+
 class GefSetting:
     """Basic class for storing gef settings as objects"""
     def __init__(self, value: Any, cls: Optional[type] = None, description: Optional[str] = None) -> None:
@@ -11071,7 +11061,6 @@ class GefSessionManager(GefManager):
         return self._maps
 
 
-
 class GefRemoteSessionManager(GefSessionManager):
     """Class for managing remote sessions with GEF. It will create a temporary environment
     designed to clone the remote one."""
@@ -11108,13 +11097,14 @@ class GefRemoteSessionManager(GefSessionManager):
     @property
     def file(self) -> pathlib.Path:
         """Path to the file being debugged as seen by the remote endpoint."""
-        session_file = super().file
-        if not session_file:
-            raise RuntimeError("No session started")
-        fname = str(session_file)
-        if fname.startswith("target:"):
-            fname = fname[len("target:"):]
-        return pathlib.Path(fname)
+        if not self._file:
+            filename = gdb.current_progspace().filename
+            if not filename:
+                raise RuntimeError("No session started")
+            if not filename.startswith("target:"):
+                raise ValueError(f"Invalid remote filename: {filename}")
+            self._file = pathlib.Path(filename[len("target:"):])
+        return self._file
 
     @property
     def lfile(self) -> pathlib.Path:

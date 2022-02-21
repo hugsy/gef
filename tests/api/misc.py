@@ -12,8 +12,6 @@ from tests.utils import (
     _target,
     gdb_start_silent_cmd,
     gdb_test_python_method,
-    start_gdbserver,
-    stop_gdbserver,
     GefUnitTestGeneric,
 )
 
