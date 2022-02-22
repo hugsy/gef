@@ -2067,13 +2067,15 @@ def get_arch() -> str:
 
     arch_str = gdb.execute("show architecture", to_string=True).strip()
     if "The target architecture is set automatically (currently " in arch_str:
-        arch_str = arch_str.split("(currently ", 1)[1]
-        arch_str = arch_str.split(")", 1)[0]
+        arch_str = arch_str.lstrip("(currently ").rstrip(")")
     elif "The target architecture is assumed to be " in arch_str:
-        arch_str = arch_str.replace("The target architecture is assumed to be ", "")
+        arch_str = arch_str.lstrip("The target architecture is assumed to be ")
     elif "The target architecture is set to " in arch_str:
         # GDB version >= 10.1
-        arch_str = re.findall(r"\"(.+)\"", arch_str)[0]
+        if '"auto"' in arch_str:
+            arch_str = re.findall(r"currently \"(.+)\"", arch_str)[0]
+        else:
+            arch_str = re.findall(r"\"(.+)\"", arch_str)[0]
     else:
         # Unknown, we throw an exception to be safe
         raise RuntimeError(f"Unknown architecture: {arch_str}")
@@ -2134,6 +2136,13 @@ def register_architecture(cls: Type["Architecture"]) -> Type["Architecture"]:
 
 class Architecture(metaclass=abc.ABCMeta):
     """Generic metaclass for the architecture supported by GEF."""
+
+    @staticmethod
+    def supports_gdb_arch(gdb_arch: str) -> Optional[bool]:
+        """If implemented by a child `Architecture`, this function dictates if the current class
+        supports the loaded ELF file (which can be accessed via `gef.binary`). This callback
+        function will override any assumption made by GEF to determine the architecture."""
+        return None
 
     @abc.abstractproperty
     def all_registers(self) -> List[str]:                                     pass
@@ -3163,6 +3172,9 @@ class MIPS64(MIPS):
     mode = "MIPS64"
     ptrsize = 8
 
+    @staticmethod
+    def supports_gdb_arch(gdb_arch: str) -> Optional[bool]:
+        return gdb_arch.startswith("mips") and gef.binary.e_class == Elf.Class.ELF_64_BITS
 
 def copy_to_clipboard(data: str) -> None:
     """Helper function to submit data to the clipboard"""
@@ -3757,12 +3769,13 @@ def reset_architecture(arch: Optional[str] = None, default: Optional[str] = None
     if not gef.binary:
         gef.binary = get_elf_headers()
 
-    arch_name = gef.binary.e_machine if gef.binary else get_arch()
+    gdb_arch = get_arch()
+    arch_name = gef.binary.e_machine if gef.binary else gdb_arch
 
-    if ((arch_name == "MIPS" or arch_name == Elf.Abi.MIPS)
-        and (gef.binary is not None and gef.binary.e_class == Elf.Class.ELF_64_BITS)):
-        # MIPS64 = arch(MIPS) + 64b flag
-        arch_name = "MIPS64"
+    preciser_arch = next((a for a in arches.values() if a.supports_gdb_arch(gdb_arch)), None)
+    if preciser_arch:
+        gef.arch = preciser_arch()
+        return
 
     try:
         gef.arch = arches[arch_name]()

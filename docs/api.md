@@ -213,3 +213,22 @@ args.foo --> [3, 14, 159, 2653] # a List(int) from user input
 args.bleh --> "" # the default value
 args.blah --> True # set to True because user input declared the option (would have been False otherwise)
 ```
+
+### Adding new architectures
+
+Support for new architectures can be added by inheriting from the `Architecture` class. To register the new architecture with gef, the decorator `@register_architecture` has to be added to the class. Examples can be found in [gef-extras](https://github.com/hugsy/gef-extras/tree/dev/archs).
+
+Sometimes architectures can more precisely determine whether they apply to the current target by looking at the architecture determined by gdb. For these cases the custom architecture may implement the `supports_gdb_arch()` static function to signal that they should be used instead of the default. The function receives only one argument:
+- `gdb_str` (of type `str`) which is the architecture name as reported by GDB. 
+
+The function **must** return:
+- `True` if the current `Architecture` class supports the target binary; `False` otherwise.
+- `None` to simply ignore this check and let GEF try to determine the architecture.
+
+One example is the ARM Cortex-M architecture which in some cases should rather be used than the generic ARM one:
+
+```python
+@staticmethod
+def supports_gdb_arch(gdb_arch: str) -> Optional[bool]:
+    return bool(re.search("^armv.*-m$", gdb_arch))
+```
