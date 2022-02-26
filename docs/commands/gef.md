@@ -127,7 +127,7 @@ gef➤  gef run ./binary
 gef➤  gef install SCRIPTNAME1 [SCRIPTNAME2...]
 ```
 
-Where `SCRIPTNAME1` ... are the names of script from the [`gef-extras` repository](https://github.com/hugsy/gef-extras/master/tree/scripts/).
+Where `SCRIPTNAME1` ... are the names of script from the [`gef-extras` repository](https://github.com/hugsy/gef-extras/tree/master/scripts/).
 
 
 ```
