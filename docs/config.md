@@ -53,13 +53,13 @@ the latest, though you're more likely to encounter a bug.
 ```bash
 # via the install script
 ## using curl
-$ bash -c "$(curl -fsSL http://gef.blah.cat/sh)"
+$ bash -c "$(curl -fsSL https://gef.blah.cat/sh)"
 
 ## using wget
-$ bash -c "$(wget http://gef.blah.cat/sh -O -)"
+$ bash -c "$(wget https://gef.blah.cat/sh -O -)"
 
 # or manually
-$ wget -O ~/.gdbinit-gef.py -q http://gef.blah.cat/py
+$ wget -O ~/.gdbinit-gef.py -q https://gef.blah.cat/py
 $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 ```
 

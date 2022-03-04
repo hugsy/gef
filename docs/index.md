@@ -48,7 +48,7 @@ Or [try it online](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 Simply make sure you have [GDB 8.0 or higher](https://www.gnu.org/s/gdb), compiled with Python 3.6 or higher.
 
 ```bash
-$ bash -c "$(curl -fsSL http://gef.blah.cat/sh)"
+$ bash -c "$(curl -fsSL https://gef.blah.cat/sh)"
 ```
 
 For more details and other ways to install GEF please see [./config.md](the
