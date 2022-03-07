@@ -2066,20 +2066,24 @@ def get_arch() -> str:
         return arch.name()
 
     arch_str = gdb.execute("show architecture", to_string=True).strip()
-    if "The target architecture is set automatically (currently " in arch_str:
-        arch_str = arch_str.lstrip("(currently ").rstrip(")")
-    elif "The target architecture is assumed to be " in arch_str:
-        arch_str = arch_str.lstrip("The target architecture is assumed to be ")
-    elif "The target architecture is set to " in arch_str:
+    pat = "The target architecture is set automatically (currently "
+    if arch_str.startswith(pat):
+        arch_str = arch_str[len(pat):].rstrip(")")
+        return arch_str
+
+    pat = "The target architecture is assumed to be "
+    if arch_str.startswith(pat):
+        return arch_str[len(pat):]
+
+    pat = "The target architecture is set to "
+    if arch_str.startswith(pat):
         # GDB version >= 10.1
         if '"auto"' in arch_str:
-            arch_str = re.findall(r"currently \"(.+)\"", arch_str)[0]
-        else:
-            arch_str = re.findall(r"\"(.+)\"", arch_str)[0]
-    else:
-        # Unknown, we throw an exception to be safe
-        raise RuntimeError(f"Unknown architecture: {arch_str}")
-    return arch_str
+            return re.findall(r"currently \"(.+)\"", arch_str)[0]
+        return re.findall(r"\"(.+)\"", arch_str)[0]
+
+    # Unknown, we throw an exception to be safe
+    raise RuntimeError(f"Unknown architecture: {arch_str}")
 
 
 @deprecated("Use `gef.binary.entry_point` instead")
