@@ -2045,7 +2045,7 @@ def checksec(filename: str) -> Dict[str, bool]:
         return False
 
     results = collections.OrderedDict()
-    results["Canary"] = __check_security_property("-s", filename, r"__stack_chk_fail") is True
+    results["Canary"] = __check_security_property("-rs", filename, r"__stack_chk_fail") is True
     has_gnu_stack = __check_security_property("-W -l", filename, r"GNU_STACK") is True
     if has_gnu_stack:
         results["NX"] = __check_security_property("-W -l", filename, r"GNU_STACK.*RWE") is False
