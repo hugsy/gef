@@ -3771,7 +3771,11 @@ def reset_architecture(arch: Optional[str] = None, default: Optional[str] = None
             raise OSError(f"Specified arch {arch.upper()} is not supported")
 
     if not gef.binary:
-        gef.binary = get_elf_headers()
+        try:
+            gef.binary = get_elf_headers()
+        except RuntimeError:
+            # in case the binary is not an ELF file
+            pass
 
     gdb_arch = get_arch()
     arch_name = gef.binary.e_machine if gef.binary else gdb_arch
@@ -3782,7 +3786,7 @@ def reset_architecture(arch: Optional[str] = None, default: Optional[str] = None
         return
 
     try:
-        gef.arch = arches[arch_name]()
+        gef.arch = arches[arch_name.upper()]()
     except KeyError:
         if default:
             try:
