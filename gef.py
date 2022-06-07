@@ -376,7 +376,10 @@ def deprecated(solution: str = "") -> Callable:
     def decorator(f: Callable) -> Callable:
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            msg = f"'{f.__name__}' is deprecated and will be removed in a feature release. "
+            caller = inspect.stack()[1]
+            caller_file = pathlib.Path(caller.filename)
+            caller_loc = caller.lineno
+            msg = f"'{caller_file.name}:L{caller_loc} '{f.__name__}' is deprecated and will be removed in a feature release. "
             if not gef:
                 print(msg)
             elif gef.config["gef.show_deprecation_warnings"] is True:
