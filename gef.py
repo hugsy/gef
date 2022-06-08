@@ -180,7 +180,7 @@ def reset() -> None:
     global gef
 
     arch = None
-    if gef:
+    if "gef" in locals().keys():
         reset_all_caches()
         arch = gef.arch
         del gef
@@ -1344,7 +1344,7 @@ class GlibcArena:
         return fd, bw
 
     def is_main_arena(self) -> bool:
-        return int(self) == int(gef.heap.main_arena)
+        return gef.heap.main_arena is not None and int(self) == int(gef.heap.main_arena)
 
     def heap_addr(self, allow_unaligned: bool = False) -> Optional[int]:
         if self.is_main_arena():
@@ -1605,16 +1605,14 @@ def get_libc_version() -> Tuple[int, ...]:
 
 def titlify(text: str, color: Optional[str] = None, msg_color: Optional[str] = None) -> str:
     """Print a centered title."""
-    cols = get_terminal_size()[1]
+    _, cols = get_terminal_size()
     nb = (cols - len(text) - 2) // 2
-    if color is None:
-        color = gef.config["theme.default_title_line"]
-    if msg_color is None:
-        msg_color = gef.config["theme.default_title_message"]
+    line_color = color or gef.config["theme.default_title_line"]
+    text_color = msg_color or gef.config["theme.default_title_message"]
 
-    msg = [Color.colorify(f"{HORIZONTAL_LINE * nb} ", color),
-           Color.colorify(text, msg_color),
-           Color.colorify(f" {HORIZONTAL_LINE * nb}", color)]
+    msg = [Color.colorify(f"{HORIZONTAL_LINE * nb} ", line_color),
+           Color.colorify(text, text_color),
+           Color.colorify(f" {HORIZONTAL_LINE * nb}", line_color)]
     return "".join(msg)
 
 
@@ -7582,6 +7580,8 @@ class AssembleCommand(GenericCommand):
                     endianness = "little"
                 elif be:
                     endianness = "big"
+                else:
+                    raise ValueError("Invalid endianness")
                 gef_print(f"  * {mode:<7} ({endianness})")
         return
 
@@ -8989,14 +8989,14 @@ class PatchStringCommand(GenericCommand):
 
 
 @lru_cache()
-def dereference_from(addr: int) -> List[str]:
+def dereference_from(address: int) -> List[str]:
     if not is_alive():
-        return [format_address(addr),]
+        return [format_address(address),]
 
     code_color = gef.config["theme.dereference_code"]
     string_color = gef.config["theme.dereference_string"]
     max_recursion = gef.config["dereference.max_recursion"] or 10
-    addr = lookup_address(align_address(int(addr)))
+    addr = lookup_address(align_address(address))
     msg = [format_address(addr.value),]
     seen_addrs = set()
 
@@ -11528,7 +11528,6 @@ if __name__ == "__main__":
             pass
 
     # load GEF
-    gef = None
     reset()
     gef.gdb.load()
     gef.gdb.show_banner()
