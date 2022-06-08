@@ -114,9 +114,9 @@ class GefCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         # we install 3 plugins, the pattern must be found 3 times
         pattern = "Installed file"
-        for _ in range(3):
+        for i in range(3):
             idx = res.find(pattern)
-            self.assertNotEqual(-1,  idx)
+            self.assertNotEqual(-1,  idx, f"Check {i}/{3} failed: missing '{pattern}' in\n{res}")
             self.assertIn("new command(s) available", res)
             res = res[idx:]
 

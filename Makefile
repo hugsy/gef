@@ -7,25 +7,26 @@ PYLINT_SUGGEST_FIX := y
 PYLINT_PY_VERSION := 3.6
 PYLINT_PARAMETERS := --jobs=$(PYLINT_JOBS) --suggestion-mode=$(PYLINT_SUGGEST_FIX) --py-version=$(PYLINT_PY_VERSION) --rcfile=$(PYLINT_RC)
 TARGET := $(shell lscpu | head -1 | sed -e 's/Architecture:\s*//g')
-COVERAGE_DIR ?= /tmp/cov
+TMPDIR ?= $(shell mktemp -d)
+WORKING_DIR := $(TMPDIR)
+COVERAGE_DIR := $(WORKING_DIR)/coverage
 GEF_PATH ?= $(shell readlink -f gef.py)
-TMPDIR ?= /tmp
 PYTEST_PARAMETERS := --verbose --forked --numprocesses=$(NB_CORES)
 
 .PHONY: test test_% Test% testbins clean lint
 
-test: $(TMPDIR) testbins
-	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) -k "not benchmark"
+test: testbins
+	TMPDIR=$(WORKING_DIR) python3 -m pytest $(PYTEST_PARAMETERS) -k "not benchmark"
 
-test_%: $(TMPDIR) testbins
-	TMPDIR=$(TMPDIR) python3 -m pytest $(PYTEST_PARAMETERS) -k $@
+test_%: testbins
+	TMPDIR=$(WORKING_DIR) python3 -m pytest $(PYTEST_PARAMETERS) -k $@
 
-testbins: $(TMPDIR) $(wildcard tests/binaries/*.c)
-	@TMPDIR=$(TMPDIR) $(MAKE) -j $(NB_CORES) -C tests/binaries TARGET=$(TARGET) all
+testbins: $(wildcard tests/binaries/*.c)
+	@TMPDIR=$(WORKING_DIR) $(MAKE) -j $(NB_CORES) -C tests/binaries TARGET=$(TARGET) TMPDIR=$(WORKING_DIR) all
 
 clean:
-	TMPDIR=$(TMPDIR) $(MAKE) -j $(NB_CORES) -C tests/binaries clean
-	@rm -rf $(TMPDIR)/gef-* $(TMPDIR)/gef.py || true
+	TMPDIR=$(WORKING_DIR) $(MAKE) -j $(NB_CORES) -C tests/binaries clean
+	@rm -rf $(WORKING_DIR)/gef-* $(WORKING_DIR)/gef.py || true
 
 lint:
 	python3 -m pylint $(PYLINT_PARAMETERS) $(GEF_PATH)
@@ -38,7 +39,4 @@ coverage:
 	@coverage combine $(COVERAGE_DIR)/*
 	@coverage html --include "*/gef.py"
 	@rm -rf $(COVERAGE_DIR)
-
-$(TMPDIR):
-	mkdir -p $@
 

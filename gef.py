@@ -10974,10 +10974,9 @@ class GefInstallExtraScriptCommand(gdb.Command):
             subprocess.run(["xdg-open", f"https://github.com/hugsy/gef-extras/{self.branch}/"])
             return
 
-        dir_setting = gef.config["gef.extra_plugins_dir"] or GEF_TEMP_DIR
-        self.dirpath = pathlib.Path(dir_setting).expanduser().absolute()
+        self.dirpath = pathlib.Path(gef.config["gef.tempdir"]).expanduser().absolute()
         if not self.dirpath.is_dir():
-            err("'gef.extra_plugins_dir' is not a valid directory")
+            err("'gef.tempdir' is not a valid directory")
             return
 
         for script in args:
