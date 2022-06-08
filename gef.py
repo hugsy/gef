@@ -3489,7 +3489,6 @@ def exit_handler(_: "gdb.Event") -> None:
     if gef.session.remote and gef.config["gef-remote.clean_on_exit"] is True:
         shutil.rmtree(f"/tmp/gef/{gef.session.remote:d}")
         gef.session.remote = None
-    gef = None
     return
 
 
