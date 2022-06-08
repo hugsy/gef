@@ -5,7 +5,7 @@
 
 import pytest
 
-from tests.utils import ARCH, GefUnitTestGeneric, gdb_run_cmd, gdb_run_silent_cmd
+from tests.utils import ARCH, GefUnitTestGeneric, gdb_run_cmd, gdb_start_silent_cmd
 
 
 class RopperCommand(GefUnitTestGeneric):
@@ -24,7 +24,7 @@ class RopperCommand(GefUnitTestGeneric):
         cmd = "ropper"
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         cmd = "ropper --search \"pop %; pop %; ret\""
-        res = gdb_run_silent_cmd(cmd)
+        res = gdb_start_silent_cmd(cmd)
         self.assertNoException(res)
         self.assertNotIn(": error:", res)
         self.assertTrue(len(res.splitlines()) > 2)
