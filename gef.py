@@ -100,7 +100,7 @@ def http_get(url: str) -> Optional[bytes]:
 def update_gef(argv: List[str]) -> int:
     """Try to update `gef` to the latest version pushed on GitHub master branch.
     Return 0 on success, 1 on failure. """
-    ver = "dev" if "--dev" in argv else "master"
+    ver = "dev" if "--dev" in argv else GEF_DEFAULT_BRANCH
     latest_gef_data = http_get(f"https://raw.githubusercontent.com/hugsy/gef/{ver}/scripts/gef.sh")
     if not latest_gef_data:
         print("[-] Failed to get remote gef")
@@ -154,6 +154,8 @@ GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\03
 
 PATTERN_LIBC_VERSION                   = re.compile(rb"glibc (\d+)\.(\d+)")
 
+GEF_DEFAULT_BRANCH                     = "master"
+GEF_EXTRAS_DEFAULT_BRANCH              = "master"
 
 gef : "Gef"
 __registered_commands__ : List[Type["GenericCommand"]]                      = []
@@ -10224,26 +10226,40 @@ class GefFunctionsCommand(GenericCommand):
     def __init__(self) -> None:
         super().__init__()
         self.docs = []
-        self.setup()
+        self.should_refresh = True
         return
 
-    def setup(self) -> None:
-        global gef
-        for function in gef.gdb.functions:
-            self.add_function_to_doc(function)
-        self.__doc__ = "\n".join(sorted(self.docs))
-        return
-
-    def add_function_to_doc(self, function) -> None:
+    def __add__(self, function: GenericFunction) -> Self:
         """Add function to documentation."""
         doc = getattr(function, "__doc__", "").lstrip()
-        doc = "\n                         ".join(doc.split("\n"))
-        syntax = getattr(function, "_syntax_", "").lstrip()
-        msg = f"{syntax:<25s} -- {Color.greenify(doc)}"
+        if not hasattr(function, "_syntax_"):
+            raise ValueError("Function is invalid")
+        syntax = getattr(function, "_syntax_").lstrip()
+        msg = f"{Color.colorify(syntax, 'bold cyan')}\n {doc}"
         example = getattr(function, "_example_", "").strip()
         if example:
-            msg += f"\n {'':27s} example: {Color.yellowify(example)}"
+            msg += f"\n {Color.yellowify('Example:')} {example}"
         self.docs.append(msg)
+        return self
+
+    def __radd__(self, function: GenericFunction) -> Self:
+        return self.__add__(function)
+
+    def __str__(self) -> str:
+        if self.should_refresh:
+            self.__rebuild()
+        return self.__doc__ or ""
+
+    def __rebuild(self) -> None:
+        """Rebuild the documentation for functions."""
+        for function in gef.gdb.functions.values():
+            self += function
+
+        self.command_size = len(gef.gdb.commands)
+        _, cols = get_terminal_size()
+        separator = HORIZONTAL_LINE*cols
+        self.__doc__ = f"\n{separator}\n".join(sorted(self.docs))
+        self.should_refresh = False
         return
 
     def do_invoke(self, argv) -> None:
@@ -10251,7 +10267,7 @@ class GefFunctionsCommand(GenericCommand):
         gef_print(titlify("GEF - Convenience Functions"))
         gef_print("These functions can be used as arguments to other "
                   "commands to dynamically calculate values\n")
-        gef_print(self.__doc__)
+        gef_print(str(self))
         return
 
 
@@ -10944,16 +10960,16 @@ class GefInstallExtraScriptCommand(gdb.Command):
 
     def __init__(self) -> None:
         super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, False)
-        self.branch = gef.config.get("gef.extras_default_branch", "master")
+        self.branch = gef.config.get("gef.extras_default_branch", GEF_EXTRAS_DEFAULT_BRANCH)
         return
 
-    def invoke(self, args: str, from_tty: bool) -> None:
+    def invoke(self, argv: str, from_tty: bool) -> None:
         self.dont_repeat()
-        if not args:
+        if not argv:
             err("No script name provided")
             return
 
-        args = args.split()
+        args = argv.split()
 
         if "--list" in args or "-l" in args:
             subprocess.run(["xdg-open", f"https://github.com/hugsy/gef-extras/{self.branch}/"])
@@ -11526,7 +11542,6 @@ if __name__ == "__main__":
     gef_on_memchanged_hook(memchanged_handler)
     gef_on_regchanged_hook(regchanged_handler)
 
-    print()
     if gdb.current_progspace().filename is not None:
         # if here, we are sourcing gef from a gdb session already attached, force call to new_objfile (see issue #278)
         new_objfile_handler(None)
