@@ -77,6 +77,7 @@ import sys
 import tempfile
 import time
 import traceback
+from typing_extensions import Self
 import warnings
 from functools import lru_cache
 from io import StringIO, TextIOWrapper
@@ -379,7 +380,7 @@ def deprecated(solution: str = "") -> Callable:
             caller = inspect.stack()[1]
             caller_file = pathlib.Path(caller.filename)
             caller_loc = caller.lineno
-            msg = f"'{caller_file.name}:L{caller_loc} '{f.__name__}' is deprecated and will be removed in a feature release. "
+            msg = f"{caller_file.name}:L{caller_loc} '{f.__name__}' is deprecated and will be removed in a feature release. "
             if not gef:
                 print(msg)
             elif gef.config["gef.show_deprecation_warnings"] is True:
@@ -3452,9 +3453,10 @@ def hook_stop_handler(_: "gdb.Event") -> None:
     return
 
 
-def new_objfile_handler(_: "gdb.Event") -> None:
+def new_objfile_handler(evt: "gdb.Event") -> None:
     """GDB event handler for new object file cases."""
     reset_all_caches()
+    gef.binary = Elf(evt.new_objfile.filename)
     reset_architecture()
     load_libc_args()
     return
@@ -3697,22 +3699,6 @@ def keystone_assemble(code_str: str, arch: int, mode: int, **kwargs: Any) -> Opt
         enc = enc.decode("utf-8")
 
     return enc
-
-
-@lru_cache()
-def get_elf_headers(filename: Optional[str] = None) -> Elf:
-    """Return an `Elf` object of the currently debugged target. If no `filename` provided, it will
-    be determined from the current GDB session."""
-    if not filename:
-        filename = get_filepath()
-
-    if not filename:
-        raise FileNotFoundError("No file provided")
-
-    if filename.startswith("target:"):
-        raise RuntimeError("Your file is remote, you should try using `gef-remote` instead")
-
-    return Elf(filename)
 
 
 @lru_cache()
@@ -4524,12 +4510,12 @@ def register_external_context_pane(pane_name: str, display_pane_function: Callab
 #
 # Commands
 #
-@deprecated("")
+@deprecated("Inherit `ExternalGenericCommandBase` instead")
 def register_external_command(cls: Type["GenericCommand"]) -> Type["GenericCommand"]:
     """Registering function for new GEF (sub-)command to GDB."""
     return cls
 
-@deprecated("")
+@deprecated("Inherit `GenericCommand` instead")
 def register_command(cls: Type["GenericCommand"]) -> Type["GenericCommand"]:
     """Decorator for registering new GEF (sub-)command to GDB."""
     return cls
@@ -4549,13 +4535,12 @@ class GenericCommandBase:
             __registered_commands__.append(cls)
         return
 
-class GenericExternalCommandBase:
-    def __init_subclass__(cls: Type["GenericExternalCommandBase"], **kwargs):
+class ExternalGenericCommandBase(GenericCommandBase):
+    def __init_subclass__(cls: Type["ExternalGenericCommandBase"], **kwargs):
         super().__init_subclass__(**kwargs)
-        if hasattr(cls, "_cmdline_") and issubclass(cls, GenericCommand):
+        if issubclass(cls, GenericCommandBase):
             gef.gdb.load(initial=False)
-            gef.gdb.doc.add_command_to_doc((cls._cmdline_, cls, None))
-            gef.gdb.doc.refresh()
+            gef.gdb.doc += (cls._cmdline_, cls, None)
         return
 
 class GenericCommand(gdb.Command, GenericCommandBase):
@@ -7697,8 +7682,10 @@ class ElfInfoCommand(GenericCommand):
         if filename is None:
             return
 
-        elf = get_elf_headers(filename)
-        if elf is None:
+        try:
+            elf = Elf(filename)
+        except ValueError as ve:
+            err(f"`{filename}` is an invalid value for ELF file")
             return
 
         data = [
@@ -10244,7 +10231,7 @@ class GefCommand(gdb.Command):
                         gdb.execute(f"source {entry}")
             nb_added = len(self.loaded_commands) - nb_inital
             if nb_added > 0:
-                ok(f"{Color.colorify(nb_added, 'bold green')} extra commands added from "
+                ok(f"{Color.colorify(str(nb_added), 'bold green')} extra commands added from "
                    f"'{Color.colorify(directories, 'bold blue')}'")
         except gdb.error as e:
             err(f"failed: {e}")
@@ -10333,39 +10320,48 @@ class GefHelpCommand(gdb.Command):
     def __init__(self, commands: List[Tuple[str, Any, Any]]) -> None:
         super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, False)
         self.docs = []
-        self.generate_help(commands)
-        self.refresh()
+        self.should_refresh = False
+        for command in commands:
+            self.add_command_to_doc(command)
         return
 
     def invoke(self, args: Any, from_tty: bool) -> None:
         self.dont_repeat()
         gef_print(titlify("GEF - GDB Enhanced Features"))
-        gef_print(self.__doc__ or "")
+        gef_print(str(self))
         return
 
-    def generate_help(self, commands: List[Tuple[str, Type[GenericCommand], Any]]) -> None:
-        """Generate builtin commands documentation."""
-        for command in commands:
-            self.add_command_to_doc(command)
-        return
-
-    def add_command_to_doc(self, command: Tuple[str, Type[GenericCommand], Any]) -> None:
+    def add_command_to_doc(self, command: Tuple[str, Type[GenericCommand], Any]) -> Self:
         """Add command to GEF documentation."""
         cmd, class_obj, _  = command
         if " " in cmd:
             # do not print subcommands in gef help
-            return
+            return self
         doc = getattr(class_obj, "__doc__", "").lstrip()
         doc = "\n                         ".join(doc.split("\n"))
         aliases = f" (alias: {', '.join(class_obj._aliases_)})" if hasattr(class_obj, "_aliases_") else ""
         msg = f"{cmd:<25s} -- {doc}{aliases}"
         self.docs.append(msg)
-        return
+        self.should_refresh = True
+        return self
 
-    def refresh(self) -> None:
+    def __refresh(self) -> None:
         """Refresh the documentation."""
         self.__doc__ = "\n".join(sorted(self.docs))
+        self.should_refresh = False
         return
+
+    def __add__(self, command: Tuple[str, Type[GenericCommand], Any]) -> Self:
+        return self.add_command_to_doc(command)
+
+    def __radd__(self, command: Tuple[str, Type[GenericCommand], Any]) -> Self:
+        return self.add_command_to_doc(command)
+
+    def __str__(self) -> str:
+        """Lazily regenerate the `gef help` object if it was modified"""
+        if self.should_refresh:
+            self.__refresh()
+        return self.__doc__ or ""
 
 
 class GefConfigCommand(gdb.Command):
@@ -11417,8 +11413,7 @@ if __name__ == "__main__":
     gef_on_regchanged_hook(regchanged_handler)
 
     if gdb.current_progspace().filename is not None:
-        # if here, we are sourcing gef from a gdb session already attached
-        # we must force a call to the new_objfile handler (see issue #278)
+        # if here, we are sourcing gef from a gdb session already attached, force call to new_objfile (see issue #278)
         new_objfile_handler(None)
 
     GefTmuxSetup()
