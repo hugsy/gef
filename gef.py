@@ -77,7 +77,7 @@ import sys
 import tempfile
 import time
 import traceback
-from typing_extensions import Self
+
 import warnings
 from functools import lru_cache
 from io import StringIO, TextIOWrapper
@@ -10228,7 +10228,7 @@ class GefFunctionsCommand(GenericCommand):
         self.should_refresh = True
         return
 
-    def __add__(self, function: GenericFunction) -> Self:
+    def __add__(self, function: GenericFunction):
         """Add function to documentation."""
         doc = getattr(function, "__doc__", "").lstrip()
         if not hasattr(function, "_syntax_"):
@@ -10241,7 +10241,7 @@ class GefFunctionsCommand(GenericCommand):
         self.docs.append(msg)
         return self
 
-    def __radd__(self, function: GenericFunction) -> Self:
+    def __radd__(self, function: GenericFunction):
         return self.__add__(function)
 
     def __str__(self) -> str:
@@ -10464,19 +10464,19 @@ class GefHelpCommand(gdb.Command):
         self.should_refresh = False
         return
 
-    def __add__(self, command: Tuple[str, GenericCommand]) -> Self:
+    def __add__(self, command: Tuple[str, GenericCommand]):
         """Add command to GEF documentation."""
         cmd, class_obj = command
         if " " in cmd:
             # do not print subcommands in gef help
             return self
         doc = getattr(class_obj, "__doc__", "").lstrip()
-        aliases = f" Aliases: {', '.join(class_obj._aliases_)})" if hasattr(class_obj, "_aliases_") else ""
-        msg = f"{Color.colorify(cmd, 'bold red')}\n {doc}\n {aliases}"
+        aliases = f"Aliases: {', '.join(class_obj._aliases_)}" if hasattr(class_obj, "_aliases_") else ""
+        msg = f"{Color.colorify(cmd, 'bold red')}\n{doc}\n{aliases}"
         self.docs.append(msg)
         return self
 
-    def __radd__(self, command: Tuple[str, GenericCommand]) -> Self:
+    def __radd__(self, command: Tuple[str, GenericCommand]):
         return self.__add__(command)
 
     def __str__(self) -> str:
