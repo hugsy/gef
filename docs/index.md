@@ -113,25 +113,9 @@ $ git checkout dev
 
 There are **none**: `GEF` works out of the box!
 
-However, to enjoy all the coolest features from some commands, it is recommended
-to install:
-
-- [`capstone`](https://github.com/aquynh/capstone)
-- [`keystone`](https://github.com/keystone-engine/keystone)
-- [`unicorn`](https://github.com/unicorn-engine/unicorn)
-- [`Ropper`](https://github.com/sashs/ropper)
-
-
-For a quick installation, simply use the `pip` packaged version:
-
-```bash
-$ pip3 install capstone unicorn keystone-engine ropper
-```
-
-Just make sure you are using the `pip` corresponding to the version of Python
-your GDB was compiled with. If you are experiencing issues installing them,
-post an issue on the GitHub of the respective projects. If your bug is not
-related to `GEF`, you will not get an answer.
+GEF itself provides most (if not all 🤯) features required for typical sessions. However, GEF can be easily extended via
+ - community-built scripts, functions and architectures in the repo `gef-extras` (see below)
+ - your own script which can leverage the GEF API for the heavy lifting
 
 
 ## Additional commands ##
