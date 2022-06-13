@@ -1,0 +1,20 @@
+name: Generate Documentation on GithubPages
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event.repository.fork == false
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - run: pip install mkdocs-material
+      - run: mkdocs gh-deploy --force
