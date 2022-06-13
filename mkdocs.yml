@@ -1,4 +1,13 @@
 site_name: GEF - GDB Enhanced Features documentation
+theme:
+  name: material
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.instant
+    - navigation.tabs
+
 
 nav:
 - Home: index.md
