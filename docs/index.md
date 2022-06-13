@@ -1,6 +1,6 @@
 # GEF - GDB Enhanced Features #
 
-[![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) [![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discord.gg/HCS8Hg7)
+[![Docs](https://img.shields.io/badge/Documentation-blue.svg)](https://hugsy.github.io/gef/) [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) [![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discord.gg/HCS8Hg7)
 
 `GEF` (pronounced ʤɛf - "Jeff") is a kick-ass set of commands for X86, ARM,
 MIPS, PowerPC and SPARC to make GDB cool again for exploit dev. It is aimed to
@@ -17,13 +17,13 @@ A few of `GEF` features include:
 
   * **One** single GDB script
   * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included
-    and [is installable instantly](https://gef.readthedocs.io/en/master/#setup)
+    and [is installable instantly](https://hugsy.github.io/gef/#setup)
   * **Fast** limiting the number of dependencies and optimizing code to make
     the commands as fast as possible
   * Provides [a great variety of
-    commands](https://gef.readthedocs.io/en/master/commands/) to drastically
+    commands](https://hugsy.github.io/gef/commands/) to drastically
     change your experience in GDB.
-  * [**Easily** extensible](https://gef.readthedocs.io/en/master/api/) to
+  * [**Easily** extensible](https://hugsy.github.io/gef/api/) to
     create other commands by providing more comprehensible layout to GDB Python
     API.
   * Full Python3 support ([Python2 support was
@@ -36,7 +36,7 @@ A few of `GEF` features include:
     CTFs
 
 Check out the [Screenshot
-page](https://gef.readthedocs.io/en/master/screenshots/) for more.
+page](https://hugsy.github.io/gef/master/screenshots/) for more.
 
 Or [try it online](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 

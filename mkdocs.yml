@@ -1,5 +1,5 @@
 site_name: GEF - GDB Enhanced Features documentation
-theme: readthedocs
+
 nav:
 - Home: index.md
 - Configuration: config.md
