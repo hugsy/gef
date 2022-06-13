@@ -8,7 +8,7 @@ This page describes how GEF testing is done. Any new command/functionality must 
 All the prerequisite packages are in `requirements.txt` file at the root of the project. So running
 
 ```bash
-python -m pip install -r requirements.txt --user -U
+python -m pip install -r tests/requirements.txt --user -U
 ```
 
 is enough to get started.

@@ -70,30 +70,6 @@ $ gdb -q
 (gdb) pi import urllib.request as u, tempfile as t; g=t.NamedTemporaryFile(suffix='-gef.py'); open(g.name, 'wb+').write(u.urlopen('https://tinyurl.com/gef-master').read()); gdb.execute('source %s' % g.name)
 ```
 
-### Optional dependencies
-
-A few commands were added to `GEF` to extend its capabilities. It is
-highly recommended to install the following modules (but not required):
-
-- [`capstone`](https://github.com/aquynh/capstone) - disassembly engine
-- [`Ropper`](https://github.com/sashs/Ropper) - an improved version of [`ROPgadget`](https://github.com/JonathanSalwan/ROPgadget)
-- [`unicorn`](https://github.com/unicorn-engine/unicorn) - emulation engine
-- [`keystone`](https://github.com/keystone-engine/keystone) - assembly engine
-
-Some of those modules can be installed through `python-pip`.
-
-```bash
-$ pip install capstone
-$ pip install ropper
-```
-
-Please refer to each project for installation and troubleshooting guides. As
-`gef` works out of the box, please do not send issues to this project if you
-have problems while installing those modules.
-
-`gef` will assume the module installations are valid. Otherwise, it will
-automatically disable all the `gef` commands that require this invalid module.
-
 
 ### Check setup
 

@@ -11,7 +11,7 @@ brackets if done/agreed):-->
 
 * [ ] Did you use the latest version of GEF from `dev` branch?
 * [ ] Is your bug specific to GEF (not GDB)? - Try to reproduce it running `gdb -nx`
-* [ ] Did you read the [documentation](https://gef.readthedocs.org/en/latest/) first?
+* [ ] Did you search through the [documentation](https://github.com/hugsy/gef/) first?
 * [ ] Did you check [issues](https://github.com/hugsy/gef/issues) (including
   the closed ones) - and the [PR](https://github.com/hugsy/gef/pulls)?
 

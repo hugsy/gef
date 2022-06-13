@@ -61,10 +61,10 @@ jobs:
           ${{ runner.os }}-${{ env.cache-name }}-
           ${{ runner.os }}-
 
-    - name: Install Python modules (Capstone, Keystone, Unicorn, Ropper)
+    - name: Install Python Requirements
       run: |
         mkdir -p ${{ steps.pip-cache.outputs.dir }}
-        python3 -m pip install --user --upgrade -r ./requirements.txt
+        python3 -m pip install --user --upgrade -r tests/requirements.txt
 
     - name: Setup GEF
       run: |
