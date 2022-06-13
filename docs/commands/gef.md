@@ -20,20 +20,13 @@ bytearray                 -- BytearrayCommand: Generate a bytearray to be compar
 
 ### GEF Missing Command
 
-Displays the GEF commands which couldn't be loaded, along with the reason for
-the issue.
+GEF is fully battery-included. However in some rare cases, it is possible that not all commands be loaded. If that's the case the command `gef missing` will detail which command failed to load, along with a (likely) reason. Read the documentation for a solution, or reach out on the Discord.
 
 ```
 gef➤  gef missing
-[*] Command `set-permission` is missing, reason  →  Missing `keystone-engine` package, install with: `pip install keystone-engine`.
-[*] Command `assemble` is missing, reason  →  Missing `keystone-engine` package for Python, install with: `pip install keystone-engine`.
-
-[...snip...]
-
+[*] Command `XXXX` is missing, reason  →  YYYYY.
 ```
 
-As it says in the above output, the issues should be resolved by installing the
-missing package(s) using pip.
 
 ### GEF Config Command
 

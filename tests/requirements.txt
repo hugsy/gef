@@ -1,8 +1,4 @@
-capstone
-keystone-engine
 pylint
-ropper
-unicorn
 pytest
 pytest-xdist
 pytest-benchmark

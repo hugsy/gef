@@ -55,10 +55,10 @@ _Note_: For maintenance simplicity, the unified communities on IRC/Gitter/Slack/
 A few of `GEF` features include:
 
   * **One** single GDB script
-  * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included and [is installable instantly](https://gef.readthedocs.io/en/master/#setup)
+  * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included and [is installable instantly](https://hugsy.github.io/gef/master/#setup)
   * **Fast** limiting the number of dependencies and optimizing code to make the commands as fast as possible
-  * Provides [a great variety of commands](https://gef.readthedocs.io/en/master/commands/) to drastically change your experience in GDB.
-  * [**Easily** extensible](https://gef.readthedocs.io/en/master/api/) to create other commands by providing more comprehensible layout to GDB Python API.
+  * Provides [a great variety of commands](https://hugsy.github.io/gef/master/commands/) to drastically change your experience in GDB.
+  * [**Easily** extensible](https://hugsy.github.io/gef/master/api/) to create other commands by providing more comprehensible layout to GDB Python API.
   * Full Python3 support ([Python2 support was dropped](https://github.com/hugsy/gef/releases/tag/2020.03) - see [`gef-legacy`](https://github.com/hugsy/gef-legacy)).
   * Built around an architecture abstraction layer, so all commands work in any GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS, PowerPC, etc.
   * Suited for real-life apps debugging, exploit development, just as much as CTF
@@ -70,7 +70,7 @@ Or [try it online](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 
 ## Documentation ##
 
-Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](https://gef.readthedocs.io/). Users are recommended to refer to it as it may help them in their attempts to use GEF. In particular, new users should navigate through it (see the [FAQ](https://gef.readthedocs.io/en/master/faq/) for common installation problems), and the problem persists, try to reach out for help on the Discord channel or submit an issue.
+Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](https://hugsy.github.io/gef/). Users are recommended to refer to it as it may help them in their attempts to use GEF. In particular, new users should navigate through it (see the [FAQ](https://hugsy.github.io/gef/master/faq/) for common installation problems), and the problem persists, try to reach out for help on the Discord channel or submit an issue.
 
 
 ## Current status ##
@@ -78,16 +78,16 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 
 | Documentation |License | Compatibility |
 |:---:|:---:|:---|
-| [![ReadTheDocs](https://readthedocs.org/projects/gef/badge/?version=master)](https://gef.readthedocs.org/en/master/) | [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) |
+| [![Docs](https://img.shields.io/badge/Documentation-blue.svg)](https://hugsy.github.io/gef/) | [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) |
 
 
 ## Contribute ##
 
-To get involved, refer to the [Contribution documentation](https://gef.readthedocs.io/en/master/#contribution) and the [guidelines](https://github.com/hugsy/gef/blob/dev/.github/CONTRIBUTING.md) to start.
+To get involved, refer to the [Contribution documentation](https://hugsy.github.io/gef/master/#contribution) and the [guidelines](https://github.com/hugsy/gef/blob/dev/.github/CONTRIBUTING.md) to start.
 
 ## Sponsors ##
 
-Another way to contribute to keeping the project alive is by sponsoring it! Check out [the sponsoring documentation](https://gef.readthedocs.io/en/master/#sponsors) for details so you can be part of the list of those [awesome sponsors](https://github.com/sponsors/hugsy).
+Another way to contribute to keeping the project alive is by sponsoring it! Check out [the sponsoring documentation](https://hugsy.github.io/gef/master/#sponsors) for details so you can be part of the list of those [awesome sponsors](https://github.com/sponsors/hugsy).
 
 
 ## Happy Hacking   ##

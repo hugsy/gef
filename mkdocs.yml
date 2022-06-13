@@ -1,65 +1,70 @@
 site_name: GEF - GDB Enhanced Features documentation
-theme: readthedocs
+
 nav:
 - Home: index.md
 - Configuration: config.md
 - Compatibility: compat.md
 - Frequently Asked Questions: faq.md
-- Extending GEF: api.md
 - Features: commands.md
 - Screenshots: screenshots.md
-- Testing: testing.md
-- Command aliases: commands/aliases.md
-- Command aslr: commands/aslr.md
-- Command assemble: commands/assemble.md
-- Command canary: commands/canary.md
-- Command capstone-disassemble: commands/capstone-disassemble.md
-- Command checksec: commands/checksec.md
-- Command config: commands/config.md
-- Command context: commands/context.md
-- Command dereference: commands/dereference.md
-- Command edit-flags: commands/edit-flags.md
-- Command elf-info: commands/elf-info.md
-- Command entry-break: commands/entry-break.md
-- Command eval: commands/eval.md
-- Command format-string-helper: commands/format-string-helper.md
-- Command functions: commands/functions.md
-- Command gef-remote: commands/gef-remote.md
-- Command got: commands/got.md
-- Command heap-analysis-helper: commands/heap-analysis-helper.md
-- Command heap: commands/heap.md
-- Command help: commands/help.md
-- Command hexdump: commands/hexdump.md
-- Command highlight: commands/highlight.md
-- Command hijack-fd: commands/hijack-fd.md
-- Command ida-interact: commands/ida-interact.md
-- Command is-syscall: commands/is-syscall.md
-- Command ksymaddr: commands/ksymaddr.md
-- Command memory: commands/memory.md
-- Command name-break: commands/name-break.md
-- Command nop: commands/nop.md
-- Command patch: commands/patch.md
-- Command pattern: commands/pattern.md
-- Command pcustom: commands/pcustom.md
-- Command pie: commands/pie.md
-- Command print-format: commands/print-format.md
-- Command process-search: commands/process-search.md
-- Command process-status: commands/process-status.md
-- Command registers: commands/registers.md
-- Command reset-cache: commands/reset-cache.md
-- Command ropper: commands/ropper.md
-- Command scan: commands/scan.md
-- Command search-pattern: commands/search-pattern.md
-- Command set-permission: commands/set-permission.md
-- Command shellcode: commands/shellcode.md
-- Command stub: commands/stub.md
-- Command syscall-args: commands/syscall-args.md
-- Command theme: commands/theme.md
-- Command tmux-setup: commands/tmux-setup.md
-- Command trace-run: commands/trace-run.md
-- Command unicorn-emulate: commands/unicorn-emulate.md
-- Command version: commands/version.md
-- Command vmmap: commands/vmmap.md
-- Command xfiles: commands/xfiles.md
-- Command xinfo: commands/xinfo.md
-- Command xor-memory: commands/xor-memory.md
+- Hacking GEF:
+  - Testing: testing.md
+  - Write extensions: api.md
+  - API: api/gef.md
+- Commands:
+  - aliases: commands/aliases.md
+  - aslr: commands/aslr.md
+  - canary: commands/canary.md
+  - checksec: commands/checksec.md
+  - config: commands/config.md
+  - context: commands/context.md
+  - dereference: commands/dereference.md
+  - edit-flags: commands/edit-flags.md
+  - elf-info: commands/elf-info.md
+  - entry-break: commands/entry-break.md
+  - eval: commands/eval.md
+  - format-string-helper: commands/format-string-helper.md
+  - functions: commands/functions.md
+  - gef: commands/gef.md
+  - gef-remote: commands/gef-remote.md
+  - got: commands/got.md
+  - heap-analysis-helper: commands/heap-analysis-helper.md
+  - heap: commands/heap.md
+  - help: commands/help.md
+  - hexdump: commands/hexdump.md
+  - highlight: commands/highlight.md
+  - hijack-fd: commands/hijack-fd.md
+  - ida-interact: commands/ida-interact.md
+  - is-syscall: commands/is-syscall.md
+  - ksymaddr: commands/ksymaddr.md
+  - memory: commands/memory.md
+  - name-break: commands/name-break.md
+  - nop: commands/nop.md
+  - patch: commands/patch.md
+  - pattern: commands/pattern.md
+  - pcustom: commands/pcustom.md
+  - pie: commands/pie.md
+  - print-format: commands/print-format.md
+  - process-search: commands/process-search.md
+  - process-status: commands/process-status.md
+  - registers: commands/registers.md
+  - reset-cache: commands/reset-cache.md
+  - scan: commands/scan.md
+  - search-pattern: commands/search-pattern.md
+  - shellcode: commands/shellcode.md
+  - stub: commands/stub.md
+  - syscall-args: commands/syscall-args.md
+  - theme: commands/theme.md
+  - tmux-setup: commands/tmux-setup.md
+  - trace-run: commands/trace-run.md
+  - version: commands/version.md
+  - vmmap: commands/vmmap.md
+  - xfiles: commands/xfiles.md
+  - xinfo: commands/xinfo.md
+  - xor-memory: commands/xor-memory.md
+- Functions:
+  - base: functions/base.md
+  - bss: functions/bss.md
+  - got: functions/got.md
+  - heap: functions/heap.md
+  - stack: functions/stack.md
