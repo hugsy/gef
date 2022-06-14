@@ -20,9 +20,16 @@ jobs:
           python-version: '3.9'
           architecture: 'x64'
           cache: 'pip'
+      - name: Install pre-requisite
+        run: |
+          sudo apt install gdb -y
+          pip install --requirement docs/requirements.txt
+      - name: Regenerate GEF API file
+        run: |
+          echo "$(pwd)/gef.py" > ~/.gdbinit
+          bash scripts/generate-api-docs.sh
       - name: Build and publish the docs
         run: |
           git config --global user.name "hugsy"
           git config --global user.email "hugsy@users.noreply.github.com"
-          pip install --requirement docs/requirements.txt
           mkdocs gh-deploy --force

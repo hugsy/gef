@@ -11,11 +11,12 @@ theme:
 
 nav:
 - Home: index.md
-- Configuration: config.md
-- Compatibility: compat.md
-- Frequently Asked Questions: faq.md
-- Features: commands.md
-- Screenshots: screenshots.md
+- Showroom: screenshots.md
+- Setup:
+  - Installation: install.md
+  - Configuration: config.md
+  - Compatibility: compat.md
+- FAQ: faq.md
 - Hacking GEF:
   - Testing: testing.md
   - Write extensions: api.md

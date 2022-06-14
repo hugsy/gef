@@ -166,9 +166,9 @@ the [issue #206](https://github.com/hugsy/gef/issues/206) for the whole story.
 
 ## I still don't have my answer... Where can I go?
 
-Discord is your answer: join and talk to us:
+Discord is your answer: join and talk to us by clicking here
 
-[![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) [[invite link](https://discord.gg/HCS8Hg7)]
+[![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discord.gg/HCS8Hg7)
 
 If you cannot find the answer to your problem here or on the Discord, then go to the project [Issues page](https://github.com/hugsy/gef/issues) and fill up the forms with as much information as you can!
 

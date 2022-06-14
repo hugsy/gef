@@ -1,89 +1,29 @@
-## Install GEF
+## Configuring GEF
 
-There is **NO mandatory dependency** to have `gef` running contrarily to other projects.
-A simple recent GDB compiled with Python scripting support will do.
+GEF comes with its own configuration and customization system, allowing fine tweaking. The configuration file is located under `~/.gef.rc` by default, and is automatically loaded when GEF is loaded by GDB.
+If not configuration file is found, GEF will simply use the default settings.
 
-
-### Prerequisites
-
-Only [GDB 8 and higher](https://www.gnu.org/s/gdb) is required. It must be
-compiled with Python 3.6 or higher support. For most people, simply using your
-distribution package manager should be enough.
-
-As of January 2020, GEF officially doesn't support Python 2 any longer, due to
-Python 2 becoming officially deprecated.
-
-GEF will then only work for Python 3. If you absolutely require GDB + Python 2,
-please use [GEF-Legacy](https://github.com/hugsy/gef-legacy) instead. Note that
-`gef-legacy` won't provide new features, and only functional
-bugs will be handled.
-
-You can verify it with the following command:
+The configuration file is a Python [`configparser`](https://docs.python.org/3/library/configparser.html). To create a basic file with all settings and their default values, simply run
 
 ```bash
-$ gdb -nx -ex 'pi print(sys.version)' -ex quit
+gdb -ex 'gef save' -ex quit
 ```
 
-This should display your version of Python compiled with `gdb`.
+You can now explore the configuration file under `~/.gef.rc`.
+Once in GEF, the configuration settings can be set/unset/modified by the [command `gef config`](/docs/commands/config.md). Without argument the command will simply dump all known settings:
 
-```bash
-$ gdb -nx -ex 'pi print(sys.version)' -ex quit
-3.6.9 (default, Nov  7 2019, 10:44:02)
-[GCC 8.3.0]
+![gef-config](https://i.imgur.com/bd2ZqsU.png)
+
+To update, follow the syntax
+
+```
+gef➤  gef config <Module>.<ModuleSetting>  <Value>
 ```
 
-If you see an error here, it means that your GDB installation does not support Python.
+Any setting updated this way will be specific to the current GDB session. To make permanent, use the following command
 
-
-### Setup from repository
-
-The best way to use `GEF` is by cloning the git repository from GitHub, and
-then sourcing the file from your `~/.gdbinit`.
-
-```bash
-$ git clone https://github.com/hugsy/gef.git  # or git pull to update
-$ echo 'source /path/to/gef.py' >> ~/.gdbinit
+```
+gef➤  gef save
 ```
 
-We keep releases on the _master_ branch. Checkout the _dev_ branch if you want
-the latest, though you're more likely to encounter a bug.
-
-### One-time setup script
-
-```bash
-# via the install script
-## using curl
-$ bash -c "$(curl -fsSL https://gef.blah.cat/sh)"
-
-## using wget
-$ bash -c "$(wget https://gef.blah.cat/sh -O -)"
-
-# or manually
-$ wget -O ~/.gdbinit-gef.py -q https://gef.blah.cat/py
-$ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
-```
-
-Alternatively from inside `gdb` directly:
-
-```bash
-$ gdb -q
-(gdb) pi import urllib.request as u, tempfile as t; g=t.NamedTemporaryFile(suffix='-gef.py'); open(g.name, 'wb+').write(u.urlopen('https://tinyurl.com/gef-master').read()); gdb.execute('source %s' % g.name)
-```
-
-
-### Check setup
-
-To check that `GEF` has been correctly installed, simply start a new `gdb`
-session against any binary.
-```bash
-$ gdb -q /bin/ls
-```
-
-You should see the following header and prompt
-```bash
-$ gdb -q /bin/ls
-gef loaded, `gef help' to start, `gef config' to configure
-37 commands loaded (15 sub-commands), using Python engine 3.5
-Reading symbols from /bin/ls...(no debugging symbols found)...done.
-gef➤
-```
+Refer to the [`gef config` command documentation](/docs/commands/config.md) for complete explanation.
