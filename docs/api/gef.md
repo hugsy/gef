@@ -29,10 +29,10 @@
 - **GEF_PROMPT_ON**
 - **GEF_PROMPT_OFF**
 - **PATTERN_LIBC_VERSION**
-- **gef**
 - **PREFIX**
 - **gdb_initial_settings**
 - **cmd**
+- **gef**
 
 ---
 
@@ -98,9 +98,9 @@ reset() → None
 highlight_text(text: str) → str
 ```
 
-Highlight text using gef.ui.highlight_table { match -> color } settings. 
+Highlight text using `gef.ui.highlight_table` { match -> color } settings. 
 
-If RegEx is enabled it will create a match group around all items in the gef.ui.highlight_table and wrap the specified color in the gef.ui.highlight_table around those matches. 
+If RegEx is enabled it will create a match group around all items in the `gef.ui.highlight_table` and wrap the specified color in the `gef.ui.highlight_table` around those matches. 
 
 If RegEx is disabled, split by ANSI codes and 'colorify' each match found within the specified string. 
 
@@ -311,36 +311,6 @@ experimental_feature(f: Callable) → Callable
 ```
 
 Decorator to add a warning when a feature is experimental. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=only_if_gdb_version_higher_than"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `only_if_gdb_version_higher_than`
-
-```python
-only_if_gdb_version_higher_than(
-    required_gdb_version: Tuple[int, ...]
-) → Callable
-```
-
-Decorator to check whether current GDB version requirements. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=only_if_current_arch_in"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `only_if_current_arch_in`
-
-```python
-only_if_current_arch_in(
-    valid_architectures: List[ForwardRef('Architecture')]
-) → Callable
-```
-
-Decorator to allow commands for only a subset of the architectured supported by GEF. This decorator is to use lightly, as it goes against the purpose of GEF to support all architectures GDB does. However in some cases, it is necessary. 
 
 
 ---
@@ -561,7 +531,7 @@ FakeExit(*args: Any, **kwargs: Any) → NoReturn
 parse_arguments(
     required_arguments: Dict[Union[str, Tuple[str, str]], Any],
     optional_arguments: Dict[Union[str, Tuple[str, str]], Any]
-) → Union[Callable, NoneType]
+) → Callable
 ```
 
 Argument parsing decorator. 
@@ -927,23 +897,6 @@ Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`. Ret
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=capstone_disassemble"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `capstone_disassemble`
-
-```python
-capstone_disassemble(
-    location: int,
-    nb_insn: int,
-    **kwargs: Any
-) → Generator[__main__.Instruction, NoneType, NoneType]
-```
-
-Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr` using the Capstone-Engine disassembler, if available. Return an iterator of Instruction objects. 
-
-
----
-
 <a href="https://cs.github.com/hugsy/gef?q=gef_execute_external"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `gef_execute_external`
@@ -1051,7 +1004,7 @@ register_architecture(
 ) → Type[ForwardRef('Architecture')]
 ```
 
-Class decorator for declaring an architecture to GEF. 
+`register_architecture` is **DEPRECATED** and will be removed in the future. Using the decorator `register_architecture` is unecessary 
 
 
 ---
@@ -1061,7 +1014,7 @@ Class decorator for declaring an architecture to GEF.
 ## <kbd>function</kbd> `copy_to_clipboard`
 
 ```python
-copy_to_clipboard(data: str) → None
+copy_to_clipboard(data: bytes) → None
 ```
 
 Helper function to submit data to the clipboard 
@@ -1239,21 +1192,6 @@ Return whether provided string is a hexadecimal value.
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=ida_synchronize_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ida_synchronize_handler`
-
-```python
-ida_synchronize_handler(_: 'gdb.Event') → None
-```
-
-
-
-
-
-
----
-
 <a href="https://cs.github.com/hugsy/gef?q=continue_handler"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `continue_handler`
@@ -1358,148 +1296,15 @@ Return the current terminal size.
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=get_generic_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_generic_arch`
-
-```python
-get_generic_arch(
-    module: module,
-    prefix: str,
-    arch: str,
-    mode: Optional[str],
-    big_endian: Optional[bool],
-    to_string: bool = False
-) → Tuple[str, Union[int, str]]
-```
-
-Retrieves architecture and mode from the arguments for use for the holy {cap,key}stone/unicorn trinity. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_generic_running_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_generic_running_arch`
-
-```python
-get_generic_running_arch(
-    module: module,
-    prefix: str,
-    to_string: bool = False
-) → Union[Tuple[NoneType, NoneType], Tuple[str, Union[int, str]]]
-```
-
-Retrieves architecture and mode from the current context. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_unicorn_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_unicorn_arch`
-
-```python
-get_unicorn_arch(
-    arch: Optional[str] = None,
-    mode: Optional[str] = None,
-    endian: Optional[bool] = None,
-    to_string: bool = False
-) → Union[Tuple[NoneType, NoneType], Tuple[str, Union[int, str]]]
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_capstone_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_capstone_arch`
-
-```python
-get_capstone_arch(
-    arch: Optional[str] = None,
-    mode: Optional[str] = None,
-    endian: Optional[bool] = None,
-    to_string: bool = False
-) → Union[Tuple[NoneType, NoneType], Tuple[str, Union[int, str]]]
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_keystone_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_keystone_arch`
-
-```python
-get_keystone_arch(
-    arch: Optional[str] = None,
-    mode: Optional[str] = None,
-    endian: Optional[bool] = None,
-    to_string: bool = False
-) → Union[Tuple[NoneType, NoneType], Tuple[str, Union[int, str]]]
-```
-
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=get_unicorn_registers"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `get_unicorn_registers`
-
-```python
-get_unicorn_registers(
-    to_string: bool = False
-) → Union[Dict[str, int], Dict[str, str]]
-```
-
-Return a dict matching the Unicorn identifier for a specific register. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=keystone_assemble"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `keystone_assemble`
-
-```python
-keystone_assemble(
-    code: str,
-    arch: int,
-    mode: int,
-    **kwargs: Any
-) → Union[str, bytearray, NoneType]
-```
-
-Assembly encoding function based on keystone. 
-
-
----
-
 <a href="https://cs.github.com/hugsy/gef?q=reset_architecture"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `reset_architecture`
 
 ```python
-reset_architecture(
-    arch: Optional[str] = None,
-    default: Optional[str] = None
-) → None
+reset_architecture(arch: Optional[str] = None) → None
 ```
 
-Sets the current architecture. If an arch is explicitly specified, use that one, otherwise try to parse it out of the current target. If that fails, and default is specified, select and set that arch. Raise an exception if the architecture cannot be set.  Does not return a value. 
+Sets the current architecture. If an architecture is explicitly specified by parameter, try to use that one. If this fails, an `OSError` exception will occur. If no architecture is specified, then GEF will attempt to determine automatically based on the current ELF target. If this fails, an `OSError` exception will occur. 
 
 
 ---
@@ -1591,19 +1396,6 @@ align_address_to_page(address: int) → int
 ```
 
 Align the address to a page. 
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=malloc_align_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `malloc_align_address`
-
-```python
-malloc_align_address(address: int) → int
-```
-
-Align addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github 
 
 
 ---
@@ -1849,7 +1641,7 @@ get_process_maps() → List[__main__.Section]
 ## <kbd>function</kbd> `set_arch`
 
 ```python
-set_arch(arch: Optional[str] = None, default: Optional[str] = None) → None
+set_arch(arch: Optional[str] = None, _: Optional[str] = None) → None
 ```
 
 `set_arch` is **DEPRECATED** and will be removed in the future. Use `reset_architecture` 
@@ -1882,11 +1674,11 @@ Example Usage: def display_pane(): gef_print("Wow, I am a context pane!") def pa
 
 ```python
 register_external_command(
-    obj: 'GenericCommand'
+    cls: Type[ForwardRef('GenericCommand')]
 ) → Type[ForwardRef('GenericCommand')]
 ```
 
-Registering function for new GEF (sub-)command to GDB. 
+Registering function for new GEF (sub-)command to GDB. `register_external_command` is **DEPRECATED** and will be removed in the future. 
 
 
 ---
@@ -1901,7 +1693,7 @@ register_command(
 ) → Type[ForwardRef('GenericCommand')]
 ```
 
-Decorator for registering new GEF (sub-)command to GDB. 
+Decorator for registering new GEF (sub-)command to GDB. `register_command` is **DEPRECATED** and will be removed in the future. 
 
 
 ---
@@ -1916,7 +1708,7 @@ register_priority_command(
 ) → Type[ForwardRef('GenericCommand')]
 ```
 
-Decorator for registering new command with priority, meaning that it must loaded before the other generic commands. 
+Decorator for registering new command with priority, meaning that it must  loaded before the other generic commands. `register_priority_command` is **DEPRECATED** and will be removed in the future. 
 
 
 ---
@@ -1931,12 +1723,20 @@ register_function(
 ) → Type[ForwardRef('GenericFunction')]
 ```
 
-Decorator for registering a new convenience function to GDB. 
+Decorator for registering a new convenience function to GDB. `register_function` is **DEPRECATED** and will be removed in the future. 
 
 
 ---
 
 ## <kbd>class</kbd> `AARCH64`
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> AARCH64.endianness
 
 
 
@@ -1961,6 +1761,14 @@ Decorator for registering a new convenience function to GDB.
 ---
 
 #### <kbd>property</kbd> AARCH64.pc
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> AARCH64.ptrsize
 
 
 
@@ -2116,9 +1924,8 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `AARCH64.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
 ```
-
 
 
 
@@ -2126,7 +1933,42 @@ register(name: str) → Union[int, NoneType]
 
 ---
 
+<a href="https://cs.github.com/hugsy/gef?q=AARCH64.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `AARCH64.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=AARCH64.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `AARCH64.supports_gdb_arch`
+
+```python
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
+```
+
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+
+
+---
+
 ## <kbd>class</kbd> `ARM`
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> ARM.endianness
 
 
 
@@ -2322,12 +2164,38 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `ARM.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
 ```
 
 
 
 
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=ARM.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `ARM.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=ARM.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `ARM.supports_gdb_arch`
+
+```python
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
+```
+
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
 
 
 ---
@@ -2370,7 +2238,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -2382,7 +2250,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -2408,7 +2276,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -2420,7 +2288,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -2492,6 +2360,14 @@ GEF representation of memory addresses.
 __init__(**kwargs: Any) → None
 ```
 
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> Address.valid
 
 
 
@@ -2596,7 +2472,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -2608,7 +2484,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -2634,7 +2510,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -2646,7 +2522,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -2745,7 +2621,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -2757,7 +2633,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -2783,7 +2659,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -2795,7 +2671,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -2894,7 +2770,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -2906,7 +2782,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -2932,7 +2808,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -2944,7 +2820,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -3043,7 +2919,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -3055,7 +2931,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -3081,7 +2957,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -3093,7 +2969,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -3328,9 +3204,8 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `Architecture.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
 ```
-
 
 
 
@@ -3338,162 +3213,35 @@ register(name: str) → Union[int, NoneType]
 
 ---
 
-## <kbd>class</kbd> `AssembleCommand`
-Inline code assemble. Architecture can be set in GEF runtime config.  
+<a href="https://cs.github.com/hugsy/gef?q=Architecture.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-<a href="https://cs.github.com/hugsy/gef?q=AssembleCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `AssembleCommand.__init__`
+## <kbd>function</kbd> `Architecture.reset_caches`
 
 ```python
-__init__() → None
+reset_caches() → None
 ```
 
 
 
 
 
-
 ---
 
-#### <kbd>property</kbd> AssembleCommand.settings
+<a href="https://cs.github.com/hugsy/gef?q=Architecture.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-Return the list of settings for this command. 
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=AssembleCommand.add_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `AssembleCommand.add_setting`
+## <kbd>function</kbd> `Architecture.supports_gdb_arch`
 
 ```python
-add_setting(
-    name: str,
-    value: Tuple[Any, type, str],
-    description: str = ''
-) → None
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=AssembleCommand.del_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `AssembleCommand.del_setting`
-
-```python
-del_setting(name: str) → None
-```
-
-`del_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=AssembleCommand.wrapper"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `AssembleCommand.wrapper`
-
-```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
-```
-
-
-
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
 
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=AssembleCommand.get_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `AssembleCommand.get_setting`
-
-```python
-get_setting(name: str) → Any
-```
-
-`get_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=AssembleCommand.has_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `AssembleCommand.has_setting`
-
-```python
-has_setting(name: str) → bool
-```
-
-`has_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=AssembleCommand.invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `AssembleCommand.invoke`
-
-```python
-invoke(args: str, from_tty: bool) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=AssembleCommand.list_archs"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `AssembleCommand.list_archs`
-
-```python
-list_archs() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=AssembleCommand.post_load"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `AssembleCommand.post_load`
-
-```python
-post_load() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=AssembleCommand.pre_load"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `AssembleCommand.pre_load`
-
-```python
-pre_load() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=AssembleCommand.usage"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `AssembleCommand.usage`
-
-```python
-usage() → None
-```
-
+## <kbd>class</kbd> `ArchitectureBase`
+Class decorator for declaring an architecture to GEF. 
 
 
 
@@ -3602,7 +3350,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -3614,7 +3362,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -3640,7 +3388,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -3652,7 +3400,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -3713,169 +3461,6 @@ usage() → None
 
 ---
 
-## <kbd>class</kbd> `CapstoneDisassembleCommand`
-Use capstone disassembly framework to disassemble code. 
-
-<a href="https://cs.github.com/hugsy/gef?q=CapstoneDisassembleCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `CapstoneDisassembleCommand.__init__`
-
-```python
-__init__() → None
-```
-
-
-
-
-
-
----
-
-#### <kbd>property</kbd> CapstoneDisassembleCommand.settings
-
-Return the list of settings for this command. 
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=CapstoneDisassembleCommand.add_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `CapstoneDisassembleCommand.add_setting`
-
-```python
-add_setting(
-    name: str,
-    value: Tuple[Any, type, str],
-    description: str = ''
-) → None
-```
-
-`add_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=CapstoneDisassembleCommand.capstone_analyze_pc"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `CapstoneDisassembleCommand.capstone_analyze_pc`
-
-```python
-capstone_analyze_pc(insn: __main__.Instruction, nb_insn: int) → Tuple[bool, str]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=CapstoneDisassembleCommand.del_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `CapstoneDisassembleCommand.del_setting`
-
-```python
-del_setting(name: str) → None
-```
-
-`del_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=CapstoneDisassembleCommand.wrapper"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `CapstoneDisassembleCommand.wrapper`
-
-```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=CapstoneDisassembleCommand.get_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `CapstoneDisassembleCommand.get_setting`
-
-```python
-get_setting(name: str) → Any
-```
-
-`get_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=CapstoneDisassembleCommand.has_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `CapstoneDisassembleCommand.has_setting`
-
-```python
-has_setting(name: str) → bool
-```
-
-`has_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=CapstoneDisassembleCommand.invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `CapstoneDisassembleCommand.invoke`
-
-```python
-invoke(args: str, from_tty: bool) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=CapstoneDisassembleCommand.post_load"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `CapstoneDisassembleCommand.post_load`
-
-```python
-post_load() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=CapstoneDisassembleCommand.pre_load"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `CapstoneDisassembleCommand.pre_load`
-
-```python
-pre_load() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=CapstoneDisassembleCommand.usage"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `CapstoneDisassembleCommand.usage`
-
-```python
-usage() → None
-```
-
-
-
-
-
-
----
-
 ## <kbd>class</kbd> `ChangeFdCommand`
 ChangeFdCommand: redirect file descriptor during runtime. 
 
@@ -3914,7 +3499,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -3926,7 +3511,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -3966,7 +3551,7 @@ get_fd_from_result(res: str) → int
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -3978,7 +3563,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -4074,173 +3659,6 @@ stop() → bool
 
 ---
 
-## <kbd>class</kbd> `ChangePermissionCommand`
-Change a page permission. By default, it will change it to 7 (RWX). 
-
-<a href="https://cs.github.com/hugsy/gef?q=ChangePermissionCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ChangePermissionCommand.__init__`
-
-```python
-__init__() → None
-```
-
-
-
-
-
-
----
-
-#### <kbd>property</kbd> ChangePermissionCommand.settings
-
-Return the list of settings for this command. 
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=ChangePermissionCommand.add_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ChangePermissionCommand.add_setting`
-
-```python
-add_setting(
-    name: str,
-    value: Tuple[Any, type, str],
-    description: str = ''
-) → None
-```
-
-`add_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=ChangePermissionCommand.del_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ChangePermissionCommand.del_setting`
-
-```python
-del_setting(name: str) → None
-```
-
-`del_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=ChangePermissionCommand.do_invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ChangePermissionCommand.do_invoke`
-
-```python
-do_invoke(argv: List[str]) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=ChangePermissionCommand.get_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ChangePermissionCommand.get_setting`
-
-```python
-get_setting(name: str) → Any
-```
-
-`get_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=ChangePermissionCommand.get_stub_by_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ChangePermissionCommand.get_stub_by_arch`
-
-```python
-get_stub_by_arch(
-    addr: int,
-    size: int,
-    perm: __main__.Permission
-) → Union[str, bytearray, NoneType]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=ChangePermissionCommand.has_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ChangePermissionCommand.has_setting`
-
-```python
-has_setting(name: str) → bool
-```
-
-`has_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=ChangePermissionCommand.invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ChangePermissionCommand.invoke`
-
-```python
-invoke(args: str, from_tty: bool) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=ChangePermissionCommand.post_load"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ChangePermissionCommand.post_load`
-
-```python
-post_load() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=ChangePermissionCommand.pre_load"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ChangePermissionCommand.pre_load`
-
-```python
-pre_load() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=ChangePermissionCommand.usage"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `ChangePermissionCommand.usage`
-
-```python
-usage() → None
-```
-
-
-
-
-
-
----
-
 ## <kbd>class</kbd> `ChecksecCommand`
 Checksec the security properties of the current executable or passed as argument. The command checks for the following protections: 
 - PIE 
@@ -4284,7 +3702,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -4296,7 +3714,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -4322,7 +3740,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -4334,7 +3752,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -4636,7 +4054,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -4802,7 +4220,7 @@ context_trace() → None
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -4856,7 +4274,7 @@ get_pc_context_info(pc: int, line: str) → str
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -4868,7 +4286,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -5037,7 +4455,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -5049,7 +4467,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -5058,7 +4476,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `DereferenceCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -5075,7 +4493,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -5087,7 +4505,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -5200,7 +4618,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -5212,7 +4630,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -5221,7 +4639,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `DetailRegistersCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -5238,7 +4656,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -5250,7 +4668,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -5421,7 +4839,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -5433,7 +4851,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -5442,7 +4860,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ElfInfoCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -5459,7 +4877,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -5471,7 +4889,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -5614,7 +5032,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -5626,7 +5044,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -5652,7 +5070,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -5664,7 +5082,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -5856,7 +5274,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -5868,7 +5286,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -5894,7 +5312,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -5906,7 +5324,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -6040,7 +5458,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -6052,7 +5470,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -6078,7 +5496,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -6090,7 +5508,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -6527,7 +5945,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -6539,7 +5957,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -6565,7 +5983,7 @@ do_invoke(argv) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -6577,7 +5995,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -6702,6 +6120,22 @@ __init__() → None
 
 ---
 
+#### <kbd>property</kbd> GefHeapManager.malloc_alignment
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> GefHeapManager.min_chunk_size
+
+
+
+
+
+---
+
 #### <kbd>property</kbd> GefHeapManager.selected_arena
 
 
@@ -6712,12 +6146,52 @@ __init__() → None
 
 ---
 
+<a href="https://cs.github.com/hugsy/gef?q=GefHeapManager.csize2tidx"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `GefHeapManager.csize2tidx`
+
+```python
+csize2tidx(size: int) → int
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=GefHeapManager.malloc_align_address"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `GefHeapManager.malloc_align_address`
+
+```python
+malloc_align_address(address: int) → int
+```
+
+Align addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github 
+
+---
+
 <a href="https://cs.github.com/hugsy/gef?q=GefHeapManager.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `GefHeapManager.reset_caches`
 
 ```python
 reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=GefHeapManager.tidx2size"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `GefHeapManager.tidx2size`
+
+```python
+tidx2size(idx: int) → int
 ```
 
 
@@ -6798,6 +6272,82 @@ refresh() → None
 ```
 
 Refresh the documentation. 
+
+
+---
+
+## <kbd>class</kbd> `GefInstallExtraScriptCommand`
+`gef install` command: installs one or more scripts from the `gef-extras` script repo. Note that the command doesn't check for external dependencies the script(s) might require. 
+
+<a href="https://cs.github.com/hugsy/gef?q=GefInstallExtraScriptCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `GefInstallExtraScriptCommand.__init__`
+
+```python
+__init__() → None
+```
+
+
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=GefInstallExtraScriptCommand.invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `GefInstallExtraScriptCommand.invoke`
+
+```python
+invoke(args: str, from_tty: bool) → None
+```
+
+
+
+
+
+
+---
+
+## <kbd>class</kbd> `GefLibcManager`
+Class managing everything libc-related (except heap). 
+
+<a href="https://cs.github.com/hugsy/gef?q=GefLibcManager.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `GefLibcManager.__init__`
+
+```python
+__init__() → None
+```
+
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> GefLibcManager.version
+
+
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=GefLibcManager.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `GefLibcManager.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+Reset the LRU-cached attributes 
 
 
 ---
@@ -7266,7 +6816,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -7278,7 +6828,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -7304,7 +6854,7 @@ do_invoke(args: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -7316,7 +6866,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -7501,6 +7051,14 @@ Reset the LRU-cached attributes
 
 ---
 
+#### <kbd>property</kbd> GenericArchitecture.ptrsize
+
+
+
+
+
+---
+
 #### <kbd>property</kbd> GenericArchitecture.registers
 
 
@@ -7637,12 +7195,38 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `GenericArchitecture.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
 ```
 
 
 
 
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=GenericArchitecture.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `GenericArchitecture.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=GenericArchitecture.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `GenericArchitecture.supports_gdb_arch`
+
+```python
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
+```
+
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
 
 
 ---
@@ -7685,7 +7269,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -7697,7 +7281,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -7723,7 +7307,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -7735,7 +7319,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -7796,6 +7380,28 @@ usage() → None
 
 ---
 
+## <kbd>class</kbd> `GenericCommandBase`
+
+
+
+
+
+
+
+
+---
+
+## <kbd>class</kbd> `GenericExternalCommandBase`
+
+
+
+
+
+
+
+
+---
+
 ## <kbd>class</kbd> `GenericFunction`
 This is an abstract class for invoking convenience functions, should not be instantiated. 
 
@@ -7835,7 +7441,7 @@ arg_to_long(args: List, index: int, default: int = 0) → int
 ## <kbd>function</kbd> `GenericFunction.do_invoke`
 
 ```python
-do_invoke(args: List) → int
+do_invoke(args: Any) → int
 ```
 
 
@@ -7851,6 +7457,17 @@ do_invoke(args: List) → int
 ```python
 invoke(*args: Any) → int
 ```
+
+
+
+
+
+
+---
+
+## <kbd>class</kbd> `GenericFunctionBase`
+
+
 
 
 
@@ -8303,7 +7920,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -8315,7 +7932,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -8341,7 +7958,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -8353,7 +7970,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -8452,7 +8069,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -8464,7 +8081,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -8490,7 +8107,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -8502,7 +8119,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -8615,7 +8232,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -8627,7 +8244,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -8636,7 +8253,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapChunkCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -8653,7 +8270,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -8665,7 +8282,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -8764,7 +8381,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -8776,7 +8393,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -8785,7 +8402,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapChunksCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -8839,7 +8456,7 @@ dump_chunks_heap(
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -8851,7 +8468,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -8950,7 +8567,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -8962,7 +8579,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -8988,7 +8605,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -9000,7 +8617,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -9099,7 +8716,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -9111,7 +8728,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -9120,7 +8737,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapFastbinsYCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -9137,7 +8754,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -9149,7 +8766,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -9341,7 +8958,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -9353,7 +8970,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -9362,7 +8979,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapLargeBinsCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -9379,7 +8996,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -9391,7 +9008,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -9490,7 +9107,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -9502,7 +9119,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -9528,7 +9145,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -9540,7 +9157,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -9639,7 +9256,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -9651,7 +9268,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -9660,7 +9277,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapSmallBinsCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -9677,7 +9294,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -9689,7 +9306,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -9788,7 +9405,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -9812,7 +9429,7 @@ Check the validity, dedup, and return all valid tids.
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -9850,7 +9467,7 @@ Return the location of the current thread's tcache.
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -9862,7 +9479,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -9976,7 +9593,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -9988,7 +9605,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -9997,7 +9614,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `GlibcHeapUnsortedBinsCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -10014,7 +9631,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -10026,7 +9643,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -10188,7 +9805,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -10200,7 +9817,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -10240,7 +9857,7 @@ get_jmp_slots(readelf: str, filename: str) → List[str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -10252,7 +9869,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -10355,7 +9972,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -10381,7 +9998,7 @@ clean(_: 'gdb.Event') → None
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -10421,7 +10038,7 @@ dump_tracked_allocations() → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -10433,7 +10050,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -10609,7 +10226,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -10621,7 +10238,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -10630,7 +10247,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HexdumpByteCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -10647,7 +10264,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -10659,7 +10276,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -10758,7 +10375,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -10770,7 +10387,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -10779,7 +10396,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HexdumpCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -10796,7 +10413,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -10808,7 +10425,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -10907,7 +10524,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -10919,7 +10536,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -10928,7 +10545,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HexdumpDwordCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -10945,7 +10562,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -10957,7 +10574,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -11056,7 +10673,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -11068,7 +10685,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -11077,7 +10694,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HexdumpQwordCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -11094,7 +10711,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -11106,7 +10723,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -11205,7 +10822,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -11217,7 +10834,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -11226,7 +10843,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `HexdumpWordCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -11243,7 +10860,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -11255,7 +10872,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -11354,7 +10971,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -11366,7 +10983,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -11392,7 +11009,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -11404,7 +11021,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -11503,7 +11120,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -11515,7 +11132,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -11541,7 +11158,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -11553,7 +11170,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -11652,7 +11269,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -11664,7 +11281,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -11690,7 +11307,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -11702,7 +11319,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -11801,7 +11418,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -11813,7 +11430,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -11839,7 +11456,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -11851,7 +11468,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -11964,7 +11581,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -11976,7 +11593,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -12002,7 +11619,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -12014,7 +11631,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -12076,14 +11693,14 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `IdaInteractCommand`
-IDA Interact: set of commands to interact with IDA via a XML RPC service deployed via the IDA script `ida_gef.py`. It should be noted that this command can also be used to interact with Binary Ninja (using the script `binja_gef.py`) using the same interface. 
+**REMOVED** a better version of `ida-interact` is now hosted on `gef-extras` 
 
 <a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `IdaInteractCommand.__init__`
 
 ```python
-__init__() → None
+__init__(*args: Any, **kwargs: Any) → None
 ```
 
 
@@ -12113,19 +11730,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.connect"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.connect`
-
-```python
-connect(host: Optional[str] = None, port: Optional[int] = None) → None
-```
-
-Connect to the XML-RPC service. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -12137,21 +11742,7 @@ Connect to the XML-RPC service.
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.disconnect"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.disconnect`
-
-```python
-disconnect() → None
-```
-
-
-
-
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -12163,7 +11754,9 @@ disconnect() → None
 do_invoke(argv: List[str]) → None
 ```
 
-`do_invoke` is **DEPRECATED** and will be removed in the future. 
+
+
+
 
 ---
 
@@ -12175,7 +11768,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -12187,21 +11780,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.import_structures"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.import_structures`
-
-```python
-import_structures(structs: Dict[str, List[Tuple[int, str, int]]]) → None
-```
-
-
-
-
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -12211,20 +11790,6 @@ import_structures(structs: Dict[str, List[Tuple[int, str, int]]]) → None
 
 ```python
 invoke(args: str, from_tty: bool) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.is_target_alive"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.is_target_alive`
-
-```python
-is_target_alive(host: str, port: int) → bool
 ```
 
 
@@ -12261,24 +11826,12 @@ pre_load() → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.synchronize"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.synchronize`
-
-```python
-synchronize() → None
-```
-
-Submit all active breakpoint addresses to IDA/BN. 
-
----
-
 <a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.usage"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `IdaInteractCommand.usage`
 
 ```python
-usage(meth: Optional[str] = None) → None
+usage() → None
 ```
 
 
@@ -12301,7 +11854,7 @@ __init__(
     location: str,
     mnemo: str,
     operands: List[str],
-    opcodes: bytearray
+    opcodes: bytes
 ) → None
 ```
 
@@ -12320,6 +11873,20 @@ __init__(
 
 ```python
 is_valid() → bool
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=Instruction.size"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `Instruction.size`
+
+```python
+size() → int
 ```
 
 
@@ -12367,7 +11934,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -12379,7 +11946,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -12405,7 +11972,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -12417,7 +11984,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -12427,23 +11994,6 @@ has_setting(name: str) → bool
 
 ```python
 invoke(args: str, from_tty: bool) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IsSyscallCommand.is_syscall"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IsSyscallCommand.is_syscall`
-
-```python
-is_syscall(
-    arch: __main__.Architecture,
-    instruction: __main__.Instruction
-) → bool
 ```
 
 
@@ -12520,6 +12070,14 @@ usage() → None
 ---
 
 #### <kbd>property</kbd> MIPS.pc
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> MIPS.ptrsize
 
 
 
@@ -12663,12 +12221,38 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `MIPS.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
 ```
 
 
 
 
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=MIPS.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `MIPS.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=MIPS.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `MIPS.supports_gdb_arch`
+
+```python
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
+```
+
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
 
 
 ---
@@ -12698,6 +12282,14 @@ register(name: str) → Union[int, NoneType]
 ---
 
 #### <kbd>property</kbd> MIPS64.pc
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> MIPS64.ptrsize
 
 
 
@@ -12841,7 +12433,35 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `MIPS64.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=MIPS64.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `MIPS64.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=MIPS64.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `MIPS64.supports_gdb_arch`
+
+```python
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
 
@@ -13080,7 +12700,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -13092,7 +12712,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -13118,7 +12738,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -13130,7 +12750,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -13229,7 +12849,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -13241,7 +12861,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -13267,7 +12887,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -13279,7 +12899,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -13378,7 +12998,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -13390,7 +13010,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -13416,7 +13036,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -13428,7 +13048,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -13527,7 +13147,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -13539,7 +13159,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -13565,7 +13185,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -13577,7 +13197,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -13676,7 +13296,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -13688,7 +13308,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -13714,7 +13334,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -13726,7 +13346,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -13860,7 +13480,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -13872,7 +13492,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -13881,7 +13501,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `NamedBreakpointCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -13898,7 +13518,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -13910,7 +13530,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -14009,7 +13629,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -14021,7 +13641,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -14030,21 +13650,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `NopCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=NopCommand.get_insn_size"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `NopCommand.get_insn_size`
-
-```python
-get_insn_size(addr: int) → int
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -14061,7 +13667,7 @@ get_insn_size(addr: int) → int
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -14073,7 +13679,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -14083,20 +13689,6 @@ has_setting(name: str) → bool
 
 ```python
 invoke(args: str, from_tty: bool) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=NopCommand.nop_bytes"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `NopCommand.nop_bytes`
-
-```python
-nop_bytes(loc: int, num_bytes: int) → None
 ```
 
 
@@ -14186,7 +13778,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -14198,7 +13790,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -14207,7 +13799,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PCustomCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -14238,7 +13830,7 @@ explode_type(arg: str) → Tuple[str, str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -14250,7 +13842,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -14349,7 +13941,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -14361,7 +13953,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -14401,7 +13993,7 @@ explode_type(arg: str) → Tuple[str, str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -14413,7 +14005,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -14512,7 +14104,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -14524,7 +14116,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -14562,7 +14154,7 @@ explode_type(arg: str) → Tuple[str, str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -14574,7 +14166,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -14673,7 +14265,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -14685,7 +14277,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -14725,7 +14317,7 @@ explode_type(arg: str) → Tuple[str, str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -14737,7 +14329,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -14836,7 +14428,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -14848,7 +14440,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -14857,7 +14449,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatchByteCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -14874,7 +14466,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -14886,7 +14478,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -14985,7 +14577,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -14997,7 +14589,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -15006,7 +14598,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatchCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -15023,7 +14615,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -15035,7 +14627,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -15134,7 +14726,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -15146,7 +14738,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -15155,7 +14747,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatchDwordCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -15172,7 +14764,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -15184,7 +14776,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -15283,7 +14875,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -15295,7 +14887,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -15304,7 +14896,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatchQwordCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -15321,7 +14913,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -15333,7 +14925,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -15432,7 +15024,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -15444,7 +15036,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -15470,7 +15062,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -15482,7 +15074,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -15581,7 +15173,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -15593,7 +15185,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -15602,7 +15194,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatchWordCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -15619,7 +15211,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -15631,7 +15223,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -15730,7 +15322,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -15742,7 +15334,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -15768,7 +15360,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -15780,7 +15372,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -15879,7 +15471,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -15891,7 +15483,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -15900,7 +15492,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatternCreateCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -15917,7 +15509,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -15929,7 +15521,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -16028,7 +15620,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -16040,7 +15632,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -16049,7 +15641,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PatternSearchCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -16066,7 +15658,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -16078,7 +15670,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -16223,7 +15815,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -16235,7 +15827,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -16261,7 +15853,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -16273,7 +15865,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -16372,7 +15964,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -16384,7 +15976,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -16393,7 +15985,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PieBreakpointCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -16410,7 +16002,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -16422,7 +16014,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -16535,7 +16127,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -16547,7 +16139,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -16573,7 +16165,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -16585,7 +16177,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -16684,7 +16276,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -16696,7 +16288,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -16705,7 +16297,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PieDeleteCommand.delete_bp`
 
 ```python
-delete_bp(breakpoints: List) → None
+delete_bp(breakpoints: List[__main__.PieVirtualBreakpoint]) → None
 ```
 
 
@@ -16719,7 +16311,7 @@ delete_bp(breakpoints: List) → None
 ## <kbd>function</kbd> `PieDeleteCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -16736,7 +16328,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -16748,7 +16340,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -16847,7 +16439,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -16859,7 +16451,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -16868,7 +16460,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PieInfoCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -16885,7 +16477,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -16897,7 +16489,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -16996,7 +16588,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -17008,7 +16600,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -17034,7 +16626,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -17046,7 +16638,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -17145,7 +16737,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -17157,7 +16749,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -17183,7 +16775,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -17195,7 +16787,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -17330,14 +16922,6 @@ instantiate(base: int) → None
 ---
 
 #### <kbd>property</kbd> PowerPC.pc
-
-
-
-
-
----
-
-#### <kbd>property</kbd> PowerPC.ptrsize
 
 
 
@@ -17481,12 +17065,38 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `PowerPC.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
 ```
 
 
 
 
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=PowerPC.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `PowerPC.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=PowerPC.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `PowerPC.supports_gdb_arch`
+
+```python
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
+```
+
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
 
 
 ---
@@ -17516,14 +17126,6 @@ register(name: str) → Union[int, NoneType]
 ---
 
 #### <kbd>property</kbd> PowerPC64.pc
-
-
-
-
-
----
-
-#### <kbd>property</kbd> PowerPC64.ptrsize
 
 
 
@@ -17667,12 +17269,38 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `PowerPC64.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
 ```
 
 
 
 
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=PowerPC64.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `PowerPC64.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=PowerPC64.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `PowerPC64.supports_gdb_arch`
+
+```python
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
+```
+
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
 
 
 ---
@@ -17723,7 +17351,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -17735,7 +17363,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -17744,7 +17372,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `PrintFormatCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -17761,7 +17389,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -17773,7 +17401,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -17872,7 +17500,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -17884,7 +17512,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -17893,7 +17521,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `ProcessListingCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -17924,7 +17552,7 @@ get_processes() → Generator[Dict[str, str], NoneType, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -17936,7 +17564,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -18035,7 +17663,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -18047,7 +17675,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -18115,7 +17743,7 @@ get_process_path_of(pid: int) → str
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -18141,7 +17769,7 @@ get_state_of(pid: int) → Dict[str, str]
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -18366,6 +17994,20 @@ usage() → None
 
 ---
 
+<a href="https://cs.github.com/hugsy/gef?q=RISCV.flag_register_to_human"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `RISCV.flag_register_to_human`
+
+```python
+flag_register_to_human(val: Optional[int] = None) → str
+```
+
+
+
+
+
+---
+
 <a href="https://cs.github.com/hugsy/gef?q=RISCV.get_ith_parameter"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `RISCV.get_ith_parameter`
@@ -18386,7 +18028,7 @@ Retrieves the correct parameter used for the current function call.
 ## <kbd>function</kbd> `RISCV.get_ra`
 
 ```python
-get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → int
+get_ra(insn: __main__.Instruction, frame: 'gdb.Frame') → Union[int, NoneType]
 ```
 
 
@@ -18470,12 +18112,38 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `RISCV.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
 ```
 
 
 
 
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=RISCV.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `RISCV.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=RISCV.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `RISCV.supports_gdb_arch`
+
+```python
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
+```
+
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
 
 
 ---
@@ -18541,7 +18209,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -18565,7 +18233,7 @@ Connect to remote target and get symbols. To prevent `gef` from requesting infor
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -18574,7 +18242,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `RemoteCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -18591,7 +18259,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -18603,7 +18271,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -18766,7 +18434,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -18778,7 +18446,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -18804,7 +18472,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -18816,7 +18484,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -18865,155 +18533,6 @@ pre_load() → None
 <a href="https://cs.github.com/hugsy/gef?q=ResetCacheCommand.usage"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `ResetCacheCommand.usage`
-
-```python
-usage() → None
-```
-
-
-
-
-
-
----
-
-## <kbd>class</kbd> `RopperCommand`
-Ropper (https://scoding.de/ropper/) plugin. 
-
-<a href="https://cs.github.com/hugsy/gef?q=RopperCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `RopperCommand.__init__`
-
-```python
-__init__() → None
-```
-
-
-
-
-
-
----
-
-#### <kbd>property</kbd> RopperCommand.settings
-
-Return the list of settings for this command. 
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=RopperCommand.add_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `RopperCommand.add_setting`
-
-```python
-add_setting(
-    name: str,
-    value: Tuple[Any, type, str],
-    description: str = ''
-) → None
-```
-
-`add_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=RopperCommand.del_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `RopperCommand.del_setting`
-
-```python
-del_setting(name: str) → None
-```
-
-`del_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=RopperCommand.do_invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `RopperCommand.do_invoke`
-
-```python
-do_invoke(argv: List[str]) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=RopperCommand.get_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `RopperCommand.get_setting`
-
-```python
-get_setting(name: str) → Any
-```
-
-`get_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=RopperCommand.has_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `RopperCommand.has_setting`
-
-```python
-has_setting(name: str) → bool
-```
-
-`has_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=RopperCommand.invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `RopperCommand.invoke`
-
-```python
-invoke(args: str, from_tty: bool) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=RopperCommand.post_load"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `RopperCommand.post_load`
-
-```python
-post_load() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=RopperCommand.pre_load"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `RopperCommand.pre_load`
-
-```python
-pre_load() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=RopperCommand.usage"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `RopperCommand.usage`
 
 ```python
 usage() → None
@@ -19201,12 +18720,38 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `SPARC.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
 ```
 
 
 
 
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=SPARC.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `SPARC.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=SPARC.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `SPARC.supports_gdb_arch`
+
+```python
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
+```
+
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
 
 
 ---
@@ -19387,12 +18932,38 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `SPARC64.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
 ```
 
 
 
 
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=SPARC64.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `SPARC64.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=SPARC64.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `SPARC64.supports_gdb_arch`
+
+```python
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
+```
+
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
 
 
 ---
@@ -19435,7 +19006,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -19447,7 +19018,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -19473,7 +19044,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -19485,7 +19056,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -19584,7 +19155,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -19596,7 +19167,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -19622,7 +19193,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -19634,7 +19205,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -19954,7 +19525,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -19966,7 +19537,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -19992,7 +19563,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -20004,7 +19575,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -20103,7 +19674,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -20115,7 +19686,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -20141,7 +19712,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -20167,7 +19738,7 @@ get_shellcode(sid: int) → None
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -20266,7 +19837,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -20278,7 +19849,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -20304,7 +19875,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -20316,7 +19887,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -20429,7 +20000,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -20441,7 +20012,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -20495,7 +20066,7 @@ evaluate(expr: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -20507,7 +20078,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -20606,7 +20177,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -20618,7 +20189,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -20627,7 +20198,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `SolveKernelSymbolCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -20644,7 +20215,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -20656,7 +20227,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -20853,7 +20424,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -20865,7 +20436,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -20874,7 +20445,7 @@ del_setting(name: str) → None
 ## <kbd>function</kbd> `StubCommand.wrapper`
 
 ```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
+wrapper(*args: Any, **kwargs: Any) → Callable
 ```
 
 
@@ -20891,7 +20462,7 @@ wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -20903,7 +20474,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -21002,7 +20573,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -21014,7 +20585,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -21032,34 +20603,6 @@ do_invoke(_: List[str]) → None
 
 ---
 
-<a href="https://cs.github.com/hugsy/gef?q=SyscallArgsCommand.get_filepath"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `SyscallArgsCommand.get_filepath`
-
-```python
-get_filepath(x: str) → Union[pathlib.Path, NoneType]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=SyscallArgsCommand.get_module"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `SyscallArgsCommand.get_module`
-
-```python
-get_module(modname: str) → Any
-```
-
-
-
-
-
----
-
 <a href="https://cs.github.com/hugsy/gef?q=SyscallArgsCommand.get_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `SyscallArgsCommand.get_setting`
@@ -21068,35 +20611,7 @@ get_module(modname: str) → Any
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=SyscallArgsCommand.get_settings_path"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `SyscallArgsCommand.get_settings_path`
-
-```python
-get_settings_path() → Union[pathlib.Path, NoneType]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=SyscallArgsCommand.get_syscall_table"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `SyscallArgsCommand.get_syscall_table`
-
-```python
-get_syscall_table(modname: str) → Dict[str, Any]
-```
-
-
-
-
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -21108,7 +20623,7 @@ get_syscall_table(modname: str) → Dict[str, Any]
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -21417,7 +20932,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -21429,7 +20944,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -21469,7 +20984,7 @@ get_frames_size() → int
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -21481,7 +20996,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -21603,183 +21118,6 @@ If this method is triggered, we likely have a UaF. Break the execution and repor
 
 ---
 
-## <kbd>class</kbd> `UnicornEmulateCommand`
-Use Unicorn-Engine to emulate the behavior of the binary, without affecting the GDB runtime. By default the command will emulate only the next instruction, but location and number of instruction can be changed via arguments to the command line. By default, it will emulate the next instruction from current PC. 
-
-<a href="https://cs.github.com/hugsy/gef?q=UnicornEmulateCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `UnicornEmulateCommand.__init__`
-
-```python
-__init__() → None
-```
-
-
-
-
-
-
----
-
-#### <kbd>property</kbd> UnicornEmulateCommand.settings
-
-Return the list of settings for this command. 
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=UnicornEmulateCommand.add_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `UnicornEmulateCommand.add_setting`
-
-```python
-add_setting(
-    name: str,
-    value: Tuple[Any, type, str],
-    description: str = ''
-) → None
-```
-
-`add_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=UnicornEmulateCommand.del_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `UnicornEmulateCommand.del_setting`
-
-```python
-del_setting(name: str) → None
-```
-
-`del_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=UnicornEmulateCommand.wrapper"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `UnicornEmulateCommand.wrapper`
-
-```python
-wrapper(*args: Any, **kwargs: Any) → Union[Callable, NoneType]
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=UnicornEmulateCommand.get_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `UnicornEmulateCommand.get_setting`
-
-```python
-get_setting(name: str) → Any
-```
-
-`get_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=UnicornEmulateCommand.get_unicorn_end_addr"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `UnicornEmulateCommand.get_unicorn_end_addr`
-
-```python
-get_unicorn_end_addr(start_addr: int, nb: int) → int
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=UnicornEmulateCommand.has_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `UnicornEmulateCommand.has_setting`
-
-```python
-has_setting(name: str) → bool
-```
-
-`has_setting` is **DEPRECATED** and will be removed in the future. 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=UnicornEmulateCommand.invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `UnicornEmulateCommand.invoke`
-
-```python
-invoke(args: str, from_tty: bool) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=UnicornEmulateCommand.post_load"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `UnicornEmulateCommand.post_load`
-
-```python
-post_load() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=UnicornEmulateCommand.pre_load"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `UnicornEmulateCommand.pre_load`
-
-```python
-pre_load() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=UnicornEmulateCommand.run_unicorn"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `UnicornEmulateCommand.run_unicorn`
-
-```python
-run_unicorn(start_insn_addr: int, end_insn_addr: int, **kwargs: Any) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=UnicornEmulateCommand.usage"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `UnicornEmulateCommand.usage`
-
-```python
-usage() → None
-```
-
-
-
-
-
-
----
-
 ## <kbd>class</kbd> `VMMapCommand`
 Display a comprehensive layout of the virtual memory mapping. If a filter argument, GEF will filter out the mapping whose pathname do not match that filter. 
 
@@ -21818,7 +21156,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -21830,7 +21168,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -21856,7 +21194,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -21868,7 +21206,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -22009,7 +21347,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -22021,7 +21359,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -22047,7 +21385,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -22059,7 +21397,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -22128,6 +21466,14 @@ usage() → None
 
 ---
 
+#### <kbd>property</kbd> X86.endianness
+
+
+
+
+
+---
+
 #### <kbd>property</kbd> X86.fp
 
 
@@ -22137,6 +21483,14 @@ usage() → None
 ---
 
 #### <kbd>property</kbd> X86.pc
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> X86.ptrsize
 
 
 
@@ -22282,9 +21636,8 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `X86.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
 ```
-
 
 
 
@@ -22292,7 +21645,42 @@ register(name: str) → Union[int, NoneType]
 
 ---
 
+<a href="https://cs.github.com/hugsy/gef?q=X86.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `X86.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=X86.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `X86.supports_gdb_arch`
+
+```python
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
+```
+
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+
+
+---
+
 ## <kbd>class</kbd> `X86_64`
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> X86_64.endianness
 
 
 
@@ -22309,6 +21697,14 @@ register(name: str) → Union[int, NoneType]
 ---
 
 #### <kbd>property</kbd> X86_64.pc
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> X86_64.ptrsize
 
 
 
@@ -22452,12 +21848,38 @@ mprotect_asm(addr: int, size: int, perm: __main__.Permission) → str
 ## <kbd>function</kbd> `X86_64.register`
 
 ```python
-register(name: str) → Union[int, NoneType]
+register(name: str) → int
 ```
 
 
 
 
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=X86_64.reset_caches"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `X86_64.reset_caches`
+
+```python
+reset_caches() → None
+```
+
+
+
+
+
+---
+
+<a href="https://cs.github.com/hugsy/gef?q=X86_64.supports_gdb_arch"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+## <kbd>function</kbd> `X86_64.supports_gdb_arch`
+
+```python
+supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
+```
+
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
 
 
 ---
@@ -22500,7 +21922,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -22512,7 +21934,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -22538,7 +21960,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -22550,7 +21972,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -22663,7 +22085,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -22675,7 +22097,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -22701,7 +22123,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -22713,7 +22135,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -22812,7 +22234,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -22824,7 +22246,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -22850,7 +22272,7 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -22862,7 +22284,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -22961,7 +22383,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -22973,7 +22395,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -22999,7 +22421,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -23011,7 +22433,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
@@ -23110,7 +22532,7 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. 
+`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
 
 ---
 
@@ -23122,7 +22544,7 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. 
+`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
 
 ---
 
@@ -23148,7 +22570,7 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. 
+`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
 
 ---
 
@@ -23160,7 +22582,7 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. 
+`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
 
 ---
 
