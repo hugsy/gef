@@ -77,3 +77,4 @@ nav:
   - got: functions/got.md
   - heap: functions/heap.md
   - stack: functions/stack.md
+- Deprecated: deprecated.md
