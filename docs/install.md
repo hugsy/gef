@@ -123,6 +123,49 @@ $ gdb -ex 'gef config pcustom.struct_path "/path/to/gef-extras/structs"' -ex 'ge
 There, you're now fully equipped epic pwnage with **all** GEF's goodness!!
 
 
-## Removing GEF
+# Uninstalling GEF
 
+## Prevent script loading
 
+GDB provides the `-nx` command line flag to disable the commands from the `~/.gdbinit` to be executed.
+
+```text
+gdb -nx
+```
+
+## Disable GEF
+
+To disable GEF without removing it, go to editing `~/.gdbinit`, spot the line that sources GEF, and comment / delete that line:
+
+So:
+
+```text
+$ cat ~/.gdbinit
+source /my/path/to/gef.py
+```
+
+Will become:
+```text
+$ cat ~/.gdbinit
+# source /my/path/to/gef.py
+```
+
+Restart GDB, GEF is gone. Note that you can also load GEF at any moment during your GDB session as such:
+
+```text
+$ gdb
+(gdb) source /my/path/to/gef.py
+```
+
+## Remove GEF
+
+GEF is a one-file GDB script. Therefore, to remove GEF simply spot the location it was installed (for example, by using `~/.gdbinit`) and delete the file.
+If a configuration file was created, it will be located as `~/.gef.rc` and can also be deleted:
+
+```text
+$ cat ~/.gdbinit
+# source /my/path/to/gef.py
+$ rm /my/path/to/gef.py ~/.gef.rc
+```
+
+GEF is totally removed from your system.
