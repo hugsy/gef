@@ -99,5 +99,5 @@ We would like to thank in particular the following people who've been sponsoring
  - The GEF logo was designed by [TheZakMan](https://twitter.com/thezakman)
 
 
-## :beer: Happy hacking !
+## 🍺 Happy hacking !
 

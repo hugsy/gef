@@ -78,4 +78,4 @@ To get involved, refer to the [Contribution documentation](https://hugsy.github.
 Another way to contribute to keeping the project alive is by sponsoring it! Check out [the sponsoring documentation](https://hugsy.github.io/gef/#sponsors) for details so you can be part of the list of those [awesome sponsors](https://github.com/sponsors/hugsy).
 
 
-## Happy Hacking :beers: ##
+## Happy Hacking 🍻 ##
