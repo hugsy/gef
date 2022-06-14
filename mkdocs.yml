@@ -44,7 +44,6 @@ nav:
   - hexdump: commands/hexdump.md
   - highlight: commands/highlight.md
   - hijack-fd: commands/hijack-fd.md
-  - ida-interact: commands/ida-interact.md
   - is-syscall: commands/is-syscall.md
   - ksymaddr: commands/ksymaddr.md
   - memory: commands/memory.md
