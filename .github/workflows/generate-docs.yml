@@ -17,16 +17,16 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v3
         with:
-          python-version: '3.9'
+          python-version: '3.8' # this should be set to the same version GDB was compiled against
           architecture: 'x64'
           cache: 'pip'
       - name: Install pre-requisite
         run: |
           sudo apt install gdb -y
-          pip install --requirement docs/requirements.txt
+          pip install --requirement docs/requirements.txt --upgrade
       - name: Regenerate GEF API file
         run: |
-          echo "$(pwd)/gef.py" > ~/.gdbinit
+          echo "source $(pwd)/gef.py" > ~/.gdbinit
           bash scripts/generate-api-docs.sh
       - name: Build and publish the docs
         run: |
