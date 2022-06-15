@@ -3232,9 +3232,8 @@ def is_qemu_system() -> bool:
 @lru_cache()
 def get_filepath() -> Optional[str]:
     """Return the local absolute path of the file currently debugged."""
-    filename = gdb.current_progspace().filename
-
     if is_remote_debug():
+        filename = gdb.current_progspace().filename
         # if no filename specified, try downloading target from /proc
         if filename is None:
             pid = gef.session.pid
@@ -3254,11 +3253,13 @@ def get_filepath() -> Optional[str]:
         elif gef.session.remote is not None:
             return f"/tmp/gef/{gef.session.remote:d}/{get_path_from_info_proc()}"
         return filename
-    else:
-        if filename is not None:
-            return filename
-        # inferior probably did not have name, extract cmdline from info proc
-        return get_path_from_info_proc()
+
+    try:
+        if not gef.session or not gef.session.file:
+            return None
+    except:
+        return None
+    return str(gef.session.file.absolute())
 
 
 def download_file(remote_path: str, use_cache: bool = False, local_name: Optional[str] = None) -> Optional[str]:
@@ -4729,7 +4730,7 @@ class PieRunCommand(GenericCommand):
     def do_invoke(self, argv: List[str]) -> None:
         global gef
         fpath = get_filepath()
-        if fpath is None:
+        if not fpath:
             warn("No executable to debug, use `file` to load a binary")
             return
 
@@ -6880,6 +6881,7 @@ class ShellcodeGetCommand(GenericCommand):
         return
 
 
+@register
 class ProcessListingCommand(GenericCommand):
     """List and filter process. If a PATTERN is given as argument, results shown will be grepped
     by this pattern."""
@@ -9504,7 +9506,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.readline_compat"] = GefSetting(False, bool, "Workaround for readline SOH/ETX issue (SEGV)")
         gef.config["gef.debug"] = GefSetting(False, bool, "Enable debug mode for gef")
         gef.config["gef.autosave_breakpoints_file"] = GefSetting("", str, "Automatically save and restore breakpoints")
-        gef.config["gef.extra_plugins_dir"] = GefSetting("", str, "Autoload additional GEF commands from external directory")
+        gef.config["gef.extra_plugins_dir"] = GefSetting("", str, "Autoload additional GEF commands from external directory", hooks={"on_write": self.load_extra_plugins})
         gef.config["gef.disable_color"] = GefSetting(False, bool, "Disable all colors in GEF")
         gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, str, "Directory to use for temporary/cache content")
         gef.config["gef.show_deprecation_warnings"] = GefSetting(True, bool, "Toggle the display of the `deprecated` warnings")
@@ -9542,20 +9544,17 @@ class GefCommand(gdb.Command):
 
         # restore the settings from config file if any
         GefRestoreCommand()
-
-        # load plugins from `extra_plugins_dir`
-        self.load_extra_plugins()
         return
 
     def load_extra_plugins(self) -> int:
         nb_added = -1
         try:
-            nb_inital = len(self.commands)
-            directories = gef.config["gef.extra_plugins_dir"].split(";") or []
-            for directory in directories:
-                directory = directory.strip()
-                if not directory: continue
-                directory = pathlib.Path(directory).expanduser()
+            nb_inital = len(__registered_commands__)
+            directories: List[str] = gef.config["gef.extra_plugins_dir"].split(";") or []
+            for d in directories:
+                d = d.strip()
+                if not d: continue
+                directory = pathlib.Path(d).expanduser()
                 if not directory.is_dir(): continue
                 sys.path.append(str(directory))
                 for entry in directory.iterdir():
@@ -9563,8 +9562,9 @@ class GefCommand(gdb.Command):
                     if entry.suffix != ".py": continue
                     if entry.name == "__init__.py": continue
                     gdb.execute(f"source {entry}")
-            nb_added = len(self.commands) - nb_inital
+            nb_added = len(__registered_commands__) - nb_inital
             if nb_added > 0:
+                self.load()
                 ok(f"{Color.colorify(str(nb_added), 'bold green')} extra commands added from "
                    f"'{Color.colorify(', '.join(directories), 'bold blue')}'")
         except gdb.error as e:
@@ -9803,7 +9803,7 @@ class GefConfigCommand(gdb.Command):
 
             gef.config[key] = _newval
         except Exception:
-            err(f"{key} expects type '{_type.__name__}'")
+            err(f"'{key}' expects type '{_type.__name__}', got {type(new_value)}")
             return
 
         reset_all_caches()
@@ -10489,10 +10489,19 @@ class GefHeapManager(GefManager):
 
 class GefSetting:
     """Basic class for storing gef settings as objects"""
-    def __init__(self, value: Any, cls: Optional[type] = None, description: Optional[str] = None) -> None:
+    def __init__(self, value: Any, cls: Optional[type] = None, description: Optional[str] = None, hooks: Optional[Dict[str, Callable]] = None)  -> None:
         self.value = value
         self.type = cls or type(value)
         self.description = description or ""
+        self.hooks: Tuple[List[Callable]] = ([], [])
+        if hooks:
+            for access, func in hooks.items():
+                if access not in ("on_read", "on_write"):
+                    raise ValueError(f"access not in (on_read, on_write)")
+                if not callable(func):
+                    raise ValueError(f"hook is not callable")
+                idx = 0 if (access == "on_read") else 1
+                self.hooks[idx].append(func)
         return
 
 
@@ -10502,15 +10511,19 @@ class GefSettingsManager(dict):
     For instance, to read a specific command setting: `gef.config[mycommand.mysetting]`
     """
     def __getitem__(self, name: str) -> Any:
-        return dict.__getitem__(self, name).value
+        setting : GefSetting = dict.__getitem__(self, name)
+        self.invoke_hooks(True, setting)
+        return setting.value
 
     def __setitem__(self, name: str, value: Any) -> None:
         # check if the key exists
         if dict.__contains__(self, name):
             # if so, update its value directly
             setting = dict.__getitem__(self, name)
+            if not isinstance(setting, GefSetting): raise ValueError
             setting.value = setting.type(value)
             dict.__setitem__(self, name, setting)
+            self.invoke_hooks(False, setting)
         else:
             # if not, `value` must be a GefSetting
             if not isinstance(value, GefSetting): raise Exception("Invalid argument")
@@ -10525,6 +10538,15 @@ class GefSettingsManager(dict):
 
     def raw_entry(self, name: str) -> GefSetting:
         return dict.__getitem__(self, name)
+
+    def invoke_hooks(self, is_read: bool, setting: GefSetting) -> None:
+        if not setting.hooks:
+            return
+        idx = 0 if is_read else 1
+        if not setting.hooks[idx]:
+            return
+        for callback in setting.hooks[idx]:
+            callback()
 
 
 class GefSessionManager(GefManager):
