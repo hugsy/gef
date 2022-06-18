@@ -105,19 +105,8 @@ For a full demo, watch the following tutorial:
 
 [![yt-gef-pcustom](https://img.youtube.com/vi/pid2aW7Bt_w/0.jpg)](https://www.youtube.com/watch?v=pid2aW7Bt_w)
 
-Additionally, if you have successfully configured your IDA settings (see command `ida-interact`), you can also directly import the structure(s) that was(were) reverse-engineered in IDA directly in your GDB session:
-![ida-structure-examples](https://i.imgur.com/Tnsf6nt.png)
-
-And then use the command `ida ImportStructs` to import all the structures, or `ida ImportStruct <StructName>` to only import a specific one:
-
-```
-gef➤  ida ImportStructs
-[+] Success
-```
-
-Which will become:
-
-![ida-structure-imported](https://i.imgur.com/KVhyopO.png)
+Additionally, if you have successfully configured your IDA settings, you can also directly import the structure(s) that was(were) reverse-engineered in IDA directly in your GDB session:
+![ida-structure-examples](https://i.imgur.com/Tnsf6nt.png) - (see `gef-extras/ida-rpyc`, which is the new improved version of `ida-interact`)
 
 
 #### Dynamic `ctypes.Structure`-like classes

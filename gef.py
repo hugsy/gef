@@ -5517,15 +5517,6 @@ class ChangeFdCommand(GenericCommand):
         res = int(res.split()[2], 0)
         return res
 
-class IdaInteractCommand(GenericCommand):
-    """**REMOVED** a better version of `ida-interact` is now hosted on `gef-extras`"""
-    _cmdline_ = "ida-interact"
-    _syntax_ = f"{_cmdline_} METHOD [ARGS]"
-
-    def do_invoke(self, argv: List[str]) -> None:
-        err("`ida-interact` was removed from gef. You can find a better version as part of `gef-extras`")
-        return
-
 
 class ScanSectionCommand(GenericCommand):
     """Search for addresses that are located in a memory mapping (haystack) that belonging
