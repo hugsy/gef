@@ -140,15 +140,15 @@ GEF_MAX_STRING_LENGTH                  = 50
 LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME      = "main_arena"
 ANSI_SPLIT_RE                          = r"(\033\[[\d;]*m)"
 
-LEFT_ARROW                             = " \u2190 "
-RIGHT_ARROW                            = " \u2192 "
-DOWN_ARROW                             = "\u21b3"
-HORIZONTAL_LINE                        = "\u2500"
-VERTICAL_LINE                          = "\u2502"
-CROSS                                  = "\u2718 "
-TICK                                   = "\u2713 "
-BP_GLYPH                               = "\u25cf"
-GEF_PROMPT                             = "gef\u27a4  "
+LEFT_ARROW                             = " ← "
+RIGHT_ARROW                            = " → "
+DOWN_ARROW                             = "↳"
+HORIZONTAL_LINE                        = "─"
+VERTICAL_LINE                          = "│"
+CROSS                                  = "✘ "
+TICK                                   = "✓ "
+BP_GLYPH                               = "●"
+GEF_PROMPT                             = "gef➤  "
 GEF_PROMPT_ON                          = f"\001\033[1;32m\002{GEF_PROMPT}\001\033[0m\002"
 GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\033[0m\002"
 
@@ -7318,7 +7318,7 @@ class ContextCommand(GenericCommand):
 
             padreg = reg.ljust(widest, " ")
             value = align_address(new_value)
-            old_value = align_address(old_value)
+            old_value = align_address(old_value or 0)
             if value == old_value:
                 line += f"{Color.colorify(padreg, regname_color)}: "
             else:
@@ -7382,7 +7382,7 @@ class ContextCommand(GenericCommand):
         self.context_title(f"code:{arch_name}")
 
         try:
-            instruction_iterator = capstone_disassemble if use_capstone else gef_disassemble
+            instruction_iterator = gef_disassemble
 
             for insn in instruction_iterator(pc, nb_insn, nb_prev=nb_insn_prev):
                 line = []
@@ -7423,13 +7423,11 @@ class ContextCommand(GenericCommand):
 
                 if target:
                     try:
-                        target = int(target, 0)
-                    except TypeError:  # Already an int
-                        pass
+                        address = int(target, 0) if isinstance(target, str) else target
                     except ValueError:
                         # If the operand isn't an address right now we can't parse it
                         continue
-                    for i, tinsn in enumerate(instruction_iterator(target, nb_insn)):
+                    for i, tinsn in enumerate(instruction_iterator(address, nb_insn)):
                         text= f"   {DOWN_ARROW if i == 0 else ' '}  {tinsn!s}"
                         gef_print(text)
                     break
@@ -10231,9 +10229,8 @@ class GefInstallExtraScriptCommand(gdb.Command):
 # GEF internal  classes
 #
 
-def __gef_prompt__(current_prompt: Any) -> str:
+def __gef_prompt__(current_prompt: Callable[[Callable], str]) -> str:
     """GEF custom prompt function."""
-
     if gef.config["gef.readline_compat"] is True: return GEF_PROMPT
     if gef.config["gef.disable_color"] is True: return GEF_PROMPT
     if is_alive(): return GEF_PROMPT_ON
