@@ -7512,7 +7512,7 @@ class ContextCommand(GenericCommand):
         if not block_start:
             return
         use_capstone = "use_capstone" in self and self["use_capstone"]
-        instruction_iterator = capstone_disassemble if use_capstone else gef_disassemble
+        instruction_iterator = gef_disassemble
         function_parameters = gef.arch.function_parameters
         arg_key_color = gef.config["theme.registers_register_name"]
 
@@ -9545,6 +9545,14 @@ class GefCommand(gdb.Command):
         return
 
     def load_extra_plugins(self) -> int:
+        def load_plugin(fpath: pathlib.Path) -> bool:
+            try:
+                gdb.execute(f"source {fpath}")
+            except Exception as e:
+                warn(f"Exception while loading {fpath}: {str(e)}")
+                return False
+            return True
+
         nb_added = -1
         try:
             nb_inital = len(__registered_commands__)
@@ -9554,12 +9562,16 @@ class GefCommand(gdb.Command):
                 if not d: continue
                 directory = pathlib.Path(d).expanduser()
                 if not directory.is_dir(): continue
-                sys.path.append(str(directory))
+                sys.path.append(str(directory.absolute()))
                 for entry in directory.iterdir():
-                    if not entry.is_file(): continue
-                    if entry.suffix != ".py": continue
-                    if entry.name == "__init__.py": continue
-                    gdb.execute(f"source {entry}")
+                    if entry.is_dir():
+                        if entry.name in ('gdb', 'gef', '__pycache__'): continue
+                        load_plugin(entry / "__init__.py")
+                    else:
+                        if entry.suffix != ".py": continue
+                        if entry.name == "__init__.py": continue
+                        load_plugin(entry)
+
             nb_added = len(__registered_commands__) - nb_inital
             if nb_added > 0:
                 self.load()
@@ -9800,8 +9812,8 @@ class GefConfigCommand(gdb.Command):
                 _newval = new_value
 
             gef.config[key] = _newval
-        except Exception:
-            err(f"'{key}' expects type '{_type.__name__}', got {type(new_value)}")
+        except Exception as e:
+            err(f"'{key}' expects type '{_type.__name__}', got {type(new_value).__name__}: reason {str(e)}")
             return
 
         reset_all_caches()
