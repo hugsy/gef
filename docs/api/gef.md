@@ -44,7 +44,7 @@
 http_get(url: str) → Union[bytes, NoneType]
 ```
 
-Basic HTTP wrapper for GET request. Return the body of the page if HTTP code is OK, otherwise return None. 
+Basic HTTP wrapper for GET request. Return the body of the page if HTTP code is OK, otherwise return None.
 
 
 ---
@@ -57,7 +57,7 @@ Basic HTTP wrapper for GET request. Return the body of the page if HTTP code is 
 update_gef(argv: List[str]) → int
 ```
 
-Try to update `gef` to the latest version pushed on GitHub master branch. Return 0 on success, 1 on failure.  
+Try to update `gef` to the latest version pushed on GitHub master branch. Return 0 on success, 1 on failure.
 
 
 ---
@@ -70,7 +70,7 @@ Try to update `gef` to the latest version pushed on GitHub master branch. Return
 reset_all_caches() → None
 ```
 
-Free all caches. If an object is cached, it will have a callable attribute `cache_clear` which will be invoked to purge the function cache. 
+Free all caches. If an object is cached, it will have a callable attribute `cache_clear` which will be invoked to purge the function cache.
 
 
 ---
@@ -98,11 +98,11 @@ reset() → None
 highlight_text(text: str) → str
 ```
 
-Highlight text using `gef.ui.highlight_table` { match -> color } settings. 
+Highlight text using `gef.ui.highlight_table` { match -> color } settings.
 
-If RegEx is enabled it will create a match group around all items in the `gef.ui.highlight_table` and wrap the specified color in the `gef.ui.highlight_table` around those matches. 
+If RegEx is enabled it will create a match group around all items in the `gef.ui.highlight_table` and wrap the specified color in the `gef.ui.highlight_table` around those matches.
 
-If RegEx is disabled, split by ANSI codes and 'colorify' each match found within the specified string. 
+If RegEx is disabled, split by ANSI codes and 'colorify' each match found within the specified string.
 
 
 ---
@@ -115,7 +115,7 @@ If RegEx is disabled, split by ANSI codes and 'colorify' each match found within
 gef_print(*args: str, end='\n', sep=' ', **kwargs: Any) → None
 ```
 
-Wrapper around print(), using string buffering feature. 
+Wrapper around print(), using string buffering feature.
 
 
 ---
@@ -128,7 +128,7 @@ Wrapper around print(), using string buffering feature.
 bufferize(f: Callable) → Callable
 ```
 
-Store the content to be printed for a function in memory, and flush it on function exit. 
+Store the content to be printed for a function in memory, and flush it on function exit.
 
 
 ---
@@ -141,7 +141,7 @@ Store the content to be printed for a function in memory, and flush it on functi
 p8(x: int, s: bool = False) → bytes
 ```
 
-Pack one byte respecting the current architecture endianness. 
+Pack one byte respecting the current architecture endianness.
 
 
 ---
@@ -154,7 +154,7 @@ Pack one byte respecting the current architecture endianness.
 p16(x: int, s: bool = False) → bytes
 ```
 
-Pack one word respecting the current architecture endianness. 
+Pack one word respecting the current architecture endianness.
 
 
 ---
@@ -167,7 +167,7 @@ Pack one word respecting the current architecture endianness.
 p32(x: int, s: bool = False) → bytes
 ```
 
-Pack one dword respecting the current architecture endianness. 
+Pack one dword respecting the current architecture endianness.
 
 
 ---
@@ -180,7 +180,7 @@ Pack one dword respecting the current architecture endianness.
 p64(x: int, s: bool = False) → bytes
 ```
 
-Pack one qword respecting the current architecture endianness. 
+Pack one qword respecting the current architecture endianness.
 
 
 ---
@@ -193,7 +193,7 @@ Pack one qword respecting the current architecture endianness.
 u8(x: bytes, s: bool = False) → int
 ```
 
-Unpack one byte respecting the current architecture endianness. 
+Unpack one byte respecting the current architecture endianness.
 
 
 ---
@@ -206,7 +206,7 @@ Unpack one byte respecting the current architecture endianness.
 u16(x: bytes, s: bool = False) → int
 ```
 
-Unpack one word respecting the current architecture endianness. 
+Unpack one word respecting the current architecture endianness.
 
 
 ---
@@ -219,7 +219,7 @@ Unpack one word respecting the current architecture endianness.
 u32(x: bytes, s: bool = False) → int
 ```
 
-Unpack one dword respecting the current architecture endianness. 
+Unpack one dword respecting the current architecture endianness.
 
 
 ---
@@ -232,7 +232,7 @@ Unpack one dword respecting the current architecture endianness.
 u64(x: bytes, s: bool = False) → int
 ```
 
-Unpack one qword respecting the current architecture endianness. 
+Unpack one qword respecting the current architecture endianness.
 
 
 ---
@@ -245,7 +245,7 @@ Unpack one qword respecting the current architecture endianness.
 is_ascii_string(address: int) → bool
 ```
 
-Helper function to determine if the buffer pointed by `address` is an ASCII string (in GDB) 
+Helper function to determine if the buffer pointed by `address` is an ASCII string (in GDB)
 
 
 ---
@@ -258,7 +258,7 @@ Helper function to determine if the buffer pointed by `address` is an ASCII stri
 is_alive() → bool
 ```
 
-Check if GDB is running. 
+Check if GDB is running.
 
 
 ---
@@ -271,7 +271,7 @@ Check if GDB is running.
 only_if_gdb_running(f: Callable) → Callable
 ```
 
-Decorator wrapper to check if GDB is running. 
+Decorator wrapper to check if GDB is running.
 
 
 ---
@@ -284,7 +284,7 @@ Decorator wrapper to check if GDB is running.
 only_if_gdb_target_local(f: Callable) → Callable
 ```
 
-Decorator wrapper to check if GDB is running locally (target not remote). 
+Decorator wrapper to check if GDB is running locally (target not remote).
 
 
 ---
@@ -297,7 +297,7 @@ Decorator wrapper to check if GDB is running locally (target not remote).
 deprecated(solution: str = '') → Callable
 ```
 
-Decorator to add a warning when a command is obsolete and will be removed. 
+Decorator to add a warning when a command is obsolete and will be removed.
 
 
 ---
@@ -310,7 +310,7 @@ Decorator to add a warning when a command is obsolete and will be removed.
 experimental_feature(f: Callable) → Callable
 ```
 
-Decorator to add a warning when a feature is experimental. 
+Decorator to add a warning when a feature is experimental.
 
 
 ---
@@ -323,7 +323,7 @@ Decorator to add a warning when a feature is experimental.
 only_if_events_supported(event_type: str) → Callable
 ```
 
-Checks if GDB supports events without crashing. 
+Checks if GDB supports events without crashing.
 
 
 ---
@@ -534,7 +534,7 @@ parse_arguments(
 ) → Callable
 ```
 
-Argument parsing decorator. 
+Argument parsing decorator.
 
 
 ---
@@ -551,7 +551,7 @@ titlify(
 ) → str
 ```
 
-Print a centered title. 
+Print a centered title.
 
 
 ---
@@ -624,7 +624,7 @@ info(msg: str) → None
 push_context_message(level: str, message: str) → None
 ```
 
-Push the message to be displayed the next time the context is invoked. 
+Push the message to be displayed the next time the context is invoked.
 
 
 ---
@@ -637,7 +637,7 @@ Push the message to be displayed the next time the context is invoked.
 show_last_exception() → None
 ```
 
-Display the last Python exception. 
+Display the last Python exception.
 
 
 ---
@@ -650,7 +650,7 @@ Display the last Python exception.
 gef_pystring(x: bytes) → str
 ```
 
-Returns a sanitized version as string of the bytes list given in input. 
+Returns a sanitized version as string of the bytes list given in input.
 
 
 ---
@@ -663,7 +663,7 @@ Returns a sanitized version as string of the bytes list given in input.
 gef_pybytes(x: str) → bytes
 ```
 
-Returns an immutable bytes list from the string given as input. 
+Returns an immutable bytes list from the string given as input.
 
 
 ---
@@ -698,7 +698,7 @@ hexdump(
 ) → str
 ```
 
-Return the hexdump of `src` argument. @param source *MUST* be of type bytes or bytearray @param length is the length of items per line @param separator is the default character to use if one byte is not printable @param show_raw if True, do not add the line nor the text translation @param base is the start address of the block being hexdump @return a string with the hexdump 
+Return the hexdump of `src` argument. @param source *MUST* be of type bytes or bytearray @param length is the length of items per line @param separator is the default character to use if one byte is not printable @param show_raw if True, do not add the line nor the text translation @param base is the start address of the block being hexdump @return a string with the hexdump
 
 
 ---
@@ -711,7 +711,7 @@ Return the hexdump of `src` argument. @param source *MUST* be of type bytes or b
 is_debug() → bool
 ```
 
-Check if debug mode is enabled. 
+Check if debug mode is enabled.
 
 
 ---
@@ -724,7 +724,7 @@ Check if debug mode is enabled.
 hide_context() → bool
 ```
 
-Helper function to hide the context pane. 
+Helper function to hide the context pane.
 
 
 ---
@@ -737,7 +737,7 @@ Helper function to hide the context pane.
 unhide_context() → bool
 ```
 
-Helper function to unhide the context pane. 
+Helper function to unhide the context pane.
 
 
 ---
@@ -750,7 +750,7 @@ Helper function to unhide the context pane.
 enable_redirect_output(to_file: str = '/dev/null') → None
 ```
 
-Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`. 
+Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`.
 
 
 ---
@@ -763,7 +763,7 @@ Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects 
 disable_redirect_output() → None
 ```
 
-Disable the output redirection, if any. 
+Disable the output redirection, if any.
 
 
 ---
@@ -776,7 +776,7 @@ Disable the output redirection, if any.
 gef_makedirs(path: str, mode: int = 493) → Path
 ```
 
-Recursive mkdir() creation. If successful, return the absolute path of the directory created. 
+Recursive mkdir() creation. If successful, return the absolute path of the directory created.
 
 
 ---
@@ -792,9 +792,9 @@ gdb_disassemble(
 ) → Generator[__main__.Instruction, NoneType, NoneType]
 ```
 
-Disassemble instructions from `start_pc` (Integer). Accepts the following named parameters: 
-- `end_pc` (Integer) only instructions whose start address fall in the interval from start_pc to end_pc are returned. 
-- `count` (Integer) list at most this many disassembled instructions If `end_pc` and `count` are not provided, the function will behave as if `count=1`. Return an iterator of Instruction objects 
+Disassemble instructions from `start_pc` (Integer). Accepts the following named parameters:
+- `end_pc` (Integer) only instructions whose start address fall in the interval from start_pc to end_pc are returned.
+- `count` (Integer) list at most this many disassembled instructions If `end_pc` and `count` are not provided, the function will behave as if `count=1`. Return an iterator of Instruction objects
 
 
 ---
@@ -810,7 +810,7 @@ gdb_get_nth_previous_instruction_address(
 ) → Union[int, NoneType]
 ```
 
-Return the address (Integer) of the `n`-th instruction before `addr`. 
+Return the address (Integer) of the `n`-th instruction before `addr`.
 
 
 ---
@@ -823,7 +823,7 @@ Return the address (Integer) of the `n`-th instruction before `addr`.
 gdb_get_nth_next_instruction_address(addr: int, n: int) → int
 ```
 
-Return the address (Integer) of the `n`-th instruction after `addr`. 
+Return the address (Integer) of the `n`-th instruction after `addr`.
 
 
 ---
@@ -836,7 +836,7 @@ Return the address (Integer) of the `n`-th instruction after `addr`.
 gef_instruction_n(addr: int, n: int) → Instruction
 ```
 
-Return the `n`-th instruction after `addr` as an Instruction object. 
+Return the `n`-th instruction after `addr` as an Instruction object.
 
 
 ---
@@ -849,7 +849,7 @@ Return the `n`-th instruction after `addr` as an Instruction object.
 gef_get_instruction_at(addr: int) → Instruction
 ```
 
-Return the full Instruction found at the specified address. 
+Return the full Instruction found at the specified address.
 
 
 ---
@@ -862,7 +862,7 @@ Return the full Instruction found at the specified address.
 gef_current_instruction(addr: int) → Instruction
 ```
 
-Return the current instruction as an Instruction object. 
+Return the current instruction as an Instruction object.
 
 
 ---
@@ -875,7 +875,7 @@ Return the current instruction as an Instruction object.
 gef_next_instruction(addr: int) → Instruction
 ```
 
-Return the next instruction as an Instruction object. 
+Return the next instruction as an Instruction object.
 
 
 ---
@@ -892,7 +892,7 @@ gef_disassemble(
 ) → Generator[__main__.Instruction, NoneType, NoneType]
 ```
 
-Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`. Return an iterator of Instruction objects. 
+Disassemble `nb_insn` instructions after `addr` and `nb_prev` before `addr`. Return an iterator of Instruction objects.
 
 
 ---
@@ -909,7 +909,7 @@ gef_execute_external(
 ) → Union[str, List[str]]
 ```
 
-Execute an external command and return the result. 
+Execute an external command and return the result.
 
 
 ---
@@ -922,7 +922,7 @@ Execute an external command and return the result.
 gef_execute_gdb_script(commands: str) → None
 ```
 
-Execute the parameter `source` as GDB command. This is done by writing `commands` to a temporary file, which is then executed via GDB `source` command. The tempfile is then deleted. 
+Execute the parameter `source` as GDB command. This is done by writing `commands` to a temporary file, which is then executed via GDB `source` command. The tempfile is then deleted.
 
 
 ---
@@ -935,7 +935,9 @@ Execute the parameter `source` as GDB command. This is done by writing `commands
 get_entry_point() → Union[int, NoneType]
 ```
 
-Return the binary entry point. `get_entry_point` is **DEPRECATED** and will be removed in the future. Use `gef.binary.entry_point` instead 
+Return the binary entry point.
+ `get_entry_point` is **DEPRECATED** and will be removed in the future.
+ Use `gef.binary.entry_point` instead
 
 
 ---
@@ -963,7 +965,8 @@ is_pie(fpath: str) → bool
 is_big_endian() → bool
 ```
 
-`is_big_endian` is **DEPRECATED** and will be removed in the future. Prefer `gef.arch.endianness == Endianness.BIG_ENDIAN` 
+`is_big_endian` is **DEPRECATED** and will be removed in the future.
+ Prefer `gef.arch.endianness == Endianness.BIG_ENDIAN`
 
 
 ---
@@ -976,7 +979,8 @@ is_big_endian() → bool
 is_little_endian() → bool
 ```
 
-`is_little_endian` is **DEPRECATED** and will be removed in the future. gef.arch.endianness == Endianness.LITTLE_ENDIAN 
+`is_little_endian` is **DEPRECATED** and will be removed in the future.
+ gef.arch.endianness == Endianness.LITTLE_ENDIAN
 
 
 ---
@@ -989,7 +993,7 @@ is_little_endian() → bool
 flags_to_human(reg_value: int, value_table: Dict[int, str]) → str
 ```
 
-Return a human readable string showing the flag states. 
+Return a human readable string showing the flag states.
 
 
 ---
@@ -1004,7 +1008,8 @@ register_architecture(
 ) → Type[ForwardRef('Architecture')]
 ```
 
-`register_architecture` is **DEPRECATED** and will be removed in the future. Using the decorator `register_architecture` is unecessary 
+`register_architecture` is **DEPRECATED** and will be removed in the future.
+ Using the decorator `register_architecture` is unecessary
 
 
 ---
@@ -1017,7 +1022,7 @@ register_architecture(
 copy_to_clipboard(data: bytes) → None
 ```
 
-Helper function to submit data to the clipboard 
+Helper function to submit data to the clipboard
 
 
 ---
@@ -1090,7 +1095,7 @@ use_rust_type() → str
 to_unsigned_long(v: gdb.Value) → int
 ```
 
-Cast a gdb.Value to unsigned long. 
+Cast a gdb.Value to unsigned long.
 
 
 ---
@@ -1118,7 +1123,8 @@ get_path_from_info_proc() → Union[str, NoneType]
 get_os() → str
 ```
 
-`get_os` is **DEPRECATED** and will be removed in the future. Use `gef.session.os` 
+`get_os` is **DEPRECATED** and will be removed in the future.
+ Use `gef.session.os`
 
 
 ---
@@ -1135,7 +1141,7 @@ download_file(
 ) → Union[str, NoneType]
 ```
 
-Download filename `remote_path` inside the mirror tree inside the `gef.config["gef.tempdir"]`. The tree architecture must be `gef.config["gef.tempdir"]/gef/<local_pid>/<remote_filepath>`. This allow a "chroot-like" tree format. 
+Download filename `remote_path` inside the mirror tree inside the `gef.config["gef.tempdir"]`. The tree architecture must be `gef.config["gef.tempdir"]/gef/<local_pid>/<remote_filepath>`. This allow a "chroot-like" tree format.
 
 
 ---
@@ -1148,7 +1154,7 @@ Download filename `remote_path` inside the mirror tree inside the `gef.config["g
 get_function_length(sym: str) → int
 ```
 
-Attempt to get the length of the raw bytes of a function. 
+Attempt to get the length of the raw bytes of a function.
 
 
 ---
@@ -1161,7 +1167,7 @@ Attempt to get the length of the raw bytes of a function.
 process_lookup_address(address: int) → Union[__main__.Section, NoneType]
 ```
 
-Look up for an address in memory. Return an Address object if found, None otherwise. 
+Look up for an address in memory. Return an Address object if found, None otherwise.
 
 
 ---
@@ -1174,7 +1180,7 @@ Look up for an address in memory. Return an Address object if found, None otherw
 xor(data: ByteString, key: str) → bytearray
 ```
 
-Return `data` xor-ed with `key`. 
+Return `data` xor-ed with `key`.
 
 
 ---
@@ -1187,7 +1193,7 @@ Return `data` xor-ed with `key`.
 is_hex(pattern: str) → bool
 ```
 
-Return whether provided string is a hexadecimal value. 
+Return whether provided string is a hexadecimal value.
 
 
 ---
@@ -1200,7 +1206,7 @@ Return whether provided string is a hexadecimal value.
 continue_handler(_: 'gdb.Event') → None
 ```
 
-GDB event handler for new object continue cases. 
+GDB event handler for new object continue cases.
 
 
 ---
@@ -1213,7 +1219,7 @@ GDB event handler for new object continue cases.
 hook_stop_handler(_: 'gdb.Event') → None
 ```
 
-GDB event handler for stop cases. 
+GDB event handler for stop cases.
 
 
 ---
@@ -1226,7 +1232,7 @@ GDB event handler for stop cases.
 new_objfile_handler(_: 'gdb.Event') → None
 ```
 
-GDB event handler for new object file cases. 
+GDB event handler for new object file cases.
 
 
 ---
@@ -1239,7 +1245,7 @@ GDB event handler for new object file cases.
 exit_handler(_: 'gdb.Event') → None
 ```
 
-GDB event handler for exit cases. 
+GDB event handler for exit cases.
 
 
 ---
@@ -1252,7 +1258,7 @@ GDB event handler for exit cases.
 memchanged_handler(_: 'gdb.Event') → None
 ```
 
-GDB event handler for mem changes cases. 
+GDB event handler for mem changes cases.
 
 
 ---
@@ -1265,7 +1271,7 @@ GDB event handler for mem changes cases.
 regchanged_handler(_: 'gdb.Event') → None
 ```
 
-GDB event handler for reg changes cases. 
+GDB event handler for reg changes cases.
 
 
 ---
@@ -1278,7 +1284,7 @@ GDB event handler for reg changes cases.
 load_libc_args() → bool
 ```
 
-Load the LIBC function arguments. Returns `True` on success, `False` or an Exception otherwise. 
+Load the LIBC function arguments. Returns `True` on success, `False` or an Exception otherwise.
 
 
 ---
@@ -1291,7 +1297,7 @@ Load the LIBC function arguments. Returns `True` on success, `False` or an Excep
 get_terminal_size() → Tuple[int, int]
 ```
 
-Return the current terminal size. 
+Return the current terminal size.
 
 
 ---
@@ -1304,7 +1310,7 @@ Return the current terminal size.
 reset_architecture(arch: Optional[str] = None) → None
 ```
 
-Sets the current architecture. If an architecture is explicitly specified by parameter, try to use that one. If this fails, an `OSError` exception will occur. If no architecture is specified, then GEF will attempt to determine automatically based on the current ELF target. If this fails, an `OSError` exception will occur. 
+Sets the current architecture. If an architecture is explicitly specified by parameter, try to use that one. If this fails, an `OSError` exception will occur. If no architecture is specified, then GEF will attempt to determine automatically based on the current ELF target. If this fails, an `OSError` exception will occur.
 
 
 ---
@@ -1317,7 +1323,9 @@ Sets the current architecture. If an architecture is explicitly specified by par
 get_memory_alignment(in_bits: bool = False) → int
 ```
 
-Try to determine the size of a pointer on this system.  First, try to parse it out of the ELF header.  Next, use the size of `size_t`.  Finally, try the size of $pc.  If `in_bits` is set to True, the result is returned in bits, otherwise in  bytes. `get_memory_alignment` is **DEPRECATED** and will be removed in the future. Use `gef.arch.ptrsize` instead 
+Try to determine the size of a pointer on this system.  First, try to parse it out of the ELF header.  Next, use the size of `size_t`.  Finally, try the size of $pc.  If `in_bits` is set to True, the result is returned in bits, otherwise in  bytes.
+ `get_memory_alignment` is **DEPRECATED** and will be removed in the future.
+ Use `gef.arch.ptrsize` instead
 
 
 ---
@@ -1330,7 +1338,7 @@ Try to determine the size of a pointer on this system.  First, try to parse it o
 clear_screen(tty: str = '') → None
 ```
 
-Clear the screen. 
+Clear the screen.
 
 
 ---
@@ -1343,7 +1351,7 @@ Clear the screen.
 format_address(addr: int) → str
 ```
 
-Format the address according to its size. 
+Format the address according to its size.
 
 
 ---
@@ -1356,7 +1364,7 @@ Format the address according to its size.
 format_address_spaces(addr: int, left: bool = True) → str
 ```
 
-Format the address according to its size, but with spaces instead of zeroes. 
+Format the address according to its size, but with spaces instead of zeroes.
 
 
 ---
@@ -1369,7 +1377,7 @@ Format the address according to its size, but with spaces instead of zeroes.
 align_address(address: int) → int
 ```
 
-Align the provided address to the process's native length. 
+Align the provided address to the process's native length.
 
 
 ---
@@ -1382,7 +1390,7 @@ Align the provided address to the process's native length.
 align_address_to_size(address: int, align: int) → int
 ```
 
-Align the address to the given size. 
+Align the address to the given size.
 
 
 ---
@@ -1395,7 +1403,7 @@ Align the address to the given size.
 align_address_to_page(address: int) → int
 ```
 
-Align the address to a page. 
+Align the address to a page.
 
 
 ---
@@ -1408,7 +1416,7 @@ Align the address to a page.
 parse_address(address: str) → int
 ```
 
-Parse an address and return it as an Integer. 
+Parse an address and return it as an Integer.
 
 
 ---
@@ -1436,7 +1444,7 @@ is_in_x86_kernel(address: int) → bool
 de_bruijn(alphabet: bytes, n: int) → Generator[str, NoneType, NoneType]
 ```
 
-De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib). 
+De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib).
 
 
 ---
@@ -1449,7 +1457,7 @@ De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwn
 generate_cyclic_pattern(length: int, cycle: int = 4) → bytearray
 ```
 
-Create a `length` byte bytearray of a de Bruijn cyclic pattern. 
+Create a `length` byte bytearray of a de Bruijn cyclic pattern.
 
 
 ---
@@ -1462,7 +1470,7 @@ Create a `length` byte bytearray of a de Bruijn cyclic pattern.
 safe_parse_and_eval(value: str) → Union[ForwardRef('gdb.Value'), NoneType]
 ```
 
-GEF wrapper for gdb.parse_and_eval(): this function returns None instead of raising gdb.error if the eval failed. 
+GEF wrapper for gdb.parse_and_eval(): this function returns None instead of raising gdb.error if the eval failed.
 
 
 ---
@@ -1475,7 +1483,7 @@ GEF wrapper for gdb.parse_and_eval(): this function returns None instead of rais
 gef_convenience(value: str) → str
 ```
 
-Defines a new convenience value. 
+Defines a new convenience value.
 
 
 ---
@@ -1488,7 +1496,7 @@ Defines a new convenience value.
 parse_string_range(s: str) → Iterator[int]
 ```
 
-Parses an address range (e.g. 0x400000-0x401000) 
+Parses an address range (e.g. 0x400000-0x401000)
 
 
 ---
@@ -1501,7 +1509,8 @@ Parses an address range (e.g. 0x400000-0x401000)
 gef_get_pie_breakpoint(num: int) → PieVirtualBreakpoint
 ```
 
-`gef_get_pie_breakpoint` is **DEPRECATED** and will be removed in the future. Use `gef.session.pie_breakpoints[num]` 
+`gef_get_pie_breakpoint` is **DEPRECATED** and will be removed in the future.
+ Use `gef.session.pie_breakpoints[num]`
 
 
 ---
@@ -1514,7 +1523,8 @@ gef_get_pie_breakpoint(num: int) → PieVirtualBreakpoint
 endian_str() → str
 ```
 
-`endian_str` is **DEPRECATED** and will be removed in the future. Use `str(gef.arch.endianness)` instead 
+`endian_str` is **DEPRECATED** and will be removed in the future.
+ Use `str(gef.arch.endianness)` instead
 
 
 ---
@@ -1527,7 +1537,8 @@ endian_str() → str
 get_gef_setting(name: str) → Any
 ```
 
-`get_gef_setting` is **DEPRECATED** and will be removed in the future. Use `gef.config[key]` 
+`get_gef_setting` is **DEPRECATED** and will be removed in the future.
+ Use `gef.config[key]`
 
 
 ---
@@ -1540,7 +1551,8 @@ get_gef_setting(name: str) → Any
 set_gef_setting(name: str, value: Any) → None
 ```
 
-`set_gef_setting` is **DEPRECATED** and will be removed in the future. Use `gef.config[key] = value` 
+`set_gef_setting` is **DEPRECATED** and will be removed in the future.
+ Use `gef.config[key] = value`
 
 
 ---
@@ -1553,7 +1565,8 @@ set_gef_setting(name: str, value: Any) → None
 gef_getpagesize() → int
 ```
 
-`gef_getpagesize` is **DEPRECATED** and will be removed in the future. Use `gef.session.pagesize` 
+`gef_getpagesize` is **DEPRECATED** and will be removed in the future.
+ Use `gef.session.pagesize`
 
 
 ---
@@ -1566,7 +1579,8 @@ gef_getpagesize() → int
 gef_read_canary() → Union[Tuple[int, int], NoneType]
 ```
 
-`gef_read_canary` is **DEPRECATED** and will be removed in the future. Use `gef.session.canary` 
+`gef_read_canary` is **DEPRECATED** and will be removed in the future.
+ Use `gef.session.canary`
 
 
 ---
@@ -1579,7 +1593,8 @@ gef_read_canary() → Union[Tuple[int, int], NoneType]
 get_pid() → int
 ```
 
-`get_pid` is **DEPRECATED** and will be removed in the future. Use `gef.session.pid` 
+`get_pid` is **DEPRECATED** and will be removed in the future.
+ Use `gef.session.pid`
 
 
 ---
@@ -1592,7 +1607,8 @@ get_pid() → int
 get_filename() → str
 ```
 
-`get_filename` is **DEPRECATED** and will be removed in the future. Use `gef.session.file.name` 
+`get_filename` is **DEPRECATED** and will be removed in the future.
+ Use `gef.session.file.name`
 
 
 ---
@@ -1605,7 +1621,8 @@ get_filename() → str
 get_glibc_arena() → Union[__main__.GlibcArena, NoneType]
 ```
 
-`get_glibc_arena` is **DEPRECATED** and will be removed in the future. Use `gef.heap.main_arena` 
+`get_glibc_arena` is **DEPRECATED** and will be removed in the future.
+ Use `gef.heap.main_arena`
 
 
 ---
@@ -1618,7 +1635,8 @@ get_glibc_arena() → Union[__main__.GlibcArena, NoneType]
 get_register(regname) → Union[int, NoneType]
 ```
 
-`get_register` is **DEPRECATED** and will be removed in the future. Use `gef.arch.register(regname)` 
+`get_register` is **DEPRECATED** and will be removed in the future.
+ Use `gef.arch.register(regname)`
 
 
 ---
@@ -1631,7 +1649,8 @@ get_register(regname) → Union[int, NoneType]
 get_process_maps() → List[__main__.Section]
 ```
 
-`get_process_maps` is **DEPRECATED** and will be removed in the future. Use `gef.memory.maps` 
+`get_process_maps` is **DEPRECATED** and will be removed in the future.
+ Use `gef.memory.maps`
 
 
 ---
@@ -1644,7 +1663,8 @@ get_process_maps() → List[__main__.Section]
 set_arch(arch: Optional[str] = None, _: Optional[str] = None) → None
 ```
 
-`set_arch` is **DEPRECATED** and will be removed in the future. Use `reset_architecture` 
+`set_arch` is **DEPRECATED** and will be removed in the future.
+ Use `reset_architecture`
 
 
 ---
@@ -1661,9 +1681,9 @@ register_external_context_pane(
 ) → None
 ```
 
-Registering function for new GEF Context View. pane_name: a string that has no spaces (used in settings) display_pane_function: a function that uses gef_print() to print strings pane_title_function: a function that returns a string or None, which will be displayed as the title. If None, no title line is displayed. 
+Registering function for new GEF Context View. pane_name: a string that has no spaces (used in settings) display_pane_function: a function that uses gef_print() to print strings pane_title_function: a function that returns a string or None, which will be displayed as the title. If None, no title line is displayed.
 
-Example Usage: def display_pane(): gef_print("Wow, I am a context pane!") def pane_title(): return "example:pane" register_external_context_pane("example_pane", display_pane, pane_title) 
+Example Usage: def display_pane(): gef_print("Wow, I am a context pane!") def pane_title(): return "example:pane" register_external_context_pane("example_pane", display_pane, pane_title)
 
 
 ---
@@ -1678,7 +1698,9 @@ register_external_command(
 ) → Type[ForwardRef('GenericCommand')]
 ```
 
-Registering function for new GEF (sub-)command to GDB. `register_external_command` is **DEPRECATED** and will be removed in the future. 
+Registering function for new GEF (sub-)command to GDB.
+ `register_external_command` is **DEPRECATED** and will be removed in the future.
+
 
 
 ---
@@ -1693,7 +1715,9 @@ register_command(
 ) → Type[ForwardRef('GenericCommand')]
 ```
 
-Decorator for registering new GEF (sub-)command to GDB. `register_command` is **DEPRECATED** and will be removed in the future. 
+Decorator for registering new GEF (sub-)command to GDB.
+ `register_command` is **DEPRECATED** and will be removed in the future.
+
 
 
 ---
@@ -1708,7 +1732,9 @@ register_priority_command(
 ) → Type[ForwardRef('GenericCommand')]
 ```
 
-Decorator for registering new command with priority, meaning that it must  loaded before the other generic commands. `register_priority_command` is **DEPRECATED** and will be removed in the future. 
+Decorator for registering new command with priority, meaning that it must  loaded before the other generic commands.
+ `register_priority_command` is **DEPRECATED** and will be removed in the future.
+
 
 
 ---
@@ -1723,7 +1749,9 @@ register_function(
 ) → Type[ForwardRef('GenericFunction')]
 ```
 
-Decorator for registering a new convenience function to GDB. `register_function` is **DEPRECATED** and will be removed in the future. 
+Decorator for registering a new convenience function to GDB.
+ `register_function` is **DEPRECATED** and will be removed in the future.
+
 
 
 ---
@@ -1819,7 +1847,7 @@ get_ith_parameter(
 ) → Tuple[str, Union[int, NoneType]]
 ```
 
-Retrieves the correct parameter used for the current function call. 
+Retrieves the correct parameter used for the current function call.
 
 ---
 
@@ -1901,7 +1929,7 @@ is_ret(insn: __main__.Instruction) → bool
 is_thumb() → bool
 ```
 
-Determine if the machine is currently in THUMB mode. 
+Determine if the machine is currently in THUMB mode.
 
 ---
 
@@ -1955,7 +1983,7 @@ reset_caches() → None
 supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture.
 
 
 ---
@@ -2059,7 +2087,7 @@ get_ith_parameter(
 ) → Tuple[str, Union[int, NoneType]]
 ```
 
-Retrieves the correct parameter used for the current function call. 
+Retrieves the correct parameter used for the current function call.
 
 ---
 
@@ -2141,7 +2169,7 @@ is_ret(insn: __main__.Instruction) → bool
 is_thumb() → bool
 ```
 
-Determine if the machine is currently in THUMB mode. 
+Determine if the machine is currently in THUMB mode.
 
 ---
 
@@ -2195,13 +2223,13 @@ reset_caches() → None
 supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture.
 
 
 ---
 
 ## <kbd>class</kbd> `ASLRCommand`
-View/modify the ASLR setting of GDB. By default, GDB will disable ASLR when it starts the process. (i.e. not attached). This command allows to change that setting. 
+View/modify the ASLR setting of GDB. By default, GDB will disable ASLR when it starts the process. (i.e. not attached). This command allows to change that setting.
 
 <a href="https://cs.github.com/hugsy/gef?q=ASLRCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -2220,7 +2248,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> ASLRCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -2238,7 +2266,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -2250,7 +2279,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -2276,7 +2306,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -2288,7 +2319,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -2350,7 +2382,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `Address`
-GEF representation of memory addresses. 
+GEF representation of memory addresses.
 
 <a href="https://cs.github.com/hugsy/gef?q=Address.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -2435,7 +2467,7 @@ is_in_text_segment() → bool
 ---
 
 ## <kbd>class</kbd> `AliasesAddCommand`
-Command to add aliases. 
+Command to add aliases.
 
 <a href="https://cs.github.com/hugsy/gef?q=AliasesAddCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -2454,7 +2486,7 @@ __init__() → None
 
 #### <kbd>property</kbd> AliasesAddCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -2472,7 +2504,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -2484,7 +2517,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -2510,7 +2544,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -2522,7 +2557,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -2584,7 +2620,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `AliasesCommand`
-Base command to add, remove, or list aliases. 
+Base command to add, remove, or list aliases.
 
 <a href="https://cs.github.com/hugsy/gef?q=AliasesCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -2603,7 +2639,7 @@ __init__() → None
 
 #### <kbd>property</kbd> AliasesCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -2621,7 +2657,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -2633,7 +2670,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -2659,7 +2697,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -2671,7 +2710,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -2733,7 +2773,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `AliasesListCommand`
-Command to list aliases. 
+Command to list aliases.
 
 <a href="https://cs.github.com/hugsy/gef?q=AliasesListCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -2752,7 +2792,7 @@ __init__() → None
 
 #### <kbd>property</kbd> AliasesListCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -2770,7 +2810,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -2782,7 +2823,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -2808,7 +2850,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -2820,7 +2863,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -2882,7 +2926,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `AliasesRmCommand`
-Command to remove aliases. 
+Command to remove aliases.
 
 <a href="https://cs.github.com/hugsy/gef?q=AliasesRmCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -2901,7 +2945,7 @@ __init__() → None
 
 #### <kbd>property</kbd> AliasesRmCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -2919,7 +2963,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -2931,7 +2976,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -2957,7 +3003,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -2969,7 +3016,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -3031,7 +3079,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `Architecture`
-Generic metaclass for the architecture supported by GEF. 
+Generic metaclass for the architecture supported by GEF.
 
 
 ---
@@ -3111,7 +3159,7 @@ get_ith_parameter(
 ) → Tuple[str, Union[int, NoneType]]
 ```
 
-Retrieves the correct parameter used for the current function call. 
+Retrieves the correct parameter used for the current function call.
 
 ---
 
@@ -3235,13 +3283,13 @@ reset_caches() → None
 supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture.
 
 
 ---
 
 ## <kbd>class</kbd> `ArchitectureBase`
-Class decorator for declaring an architecture to GEF. 
+Class decorator for declaring an architecture to GEF.
 
 
 
@@ -3250,7 +3298,7 @@ Class decorator for declaring an architecture to GEF.
 ---
 
 ## <kbd>class</kbd> `BssBaseFunction`
-Return the current bss base address plus the given offset. 
+Return the current bss base address plus the given offset.
 
 <a href="https://cs.github.com/hugsy/gef?q=BssBaseFunction.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -3313,7 +3361,7 @@ invoke(*args: Any) → int
 ---
 
 ## <kbd>class</kbd> `CanaryCommand`
-Shows the canary value of the current process. 
+Shows the canary value of the current process.
 
 <a href="https://cs.github.com/hugsy/gef?q=CanaryCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -3332,7 +3380,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> CanaryCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -3350,7 +3398,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -3362,7 +3411,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -3388,7 +3438,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -3400,7 +3451,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -3462,7 +3514,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `ChangeFdCommand`
-ChangeFdCommand: redirect file descriptor during runtime. 
+ChangeFdCommand: redirect file descriptor during runtime.
 
 <a href="https://cs.github.com/hugsy/gef?q=ChangeFdCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -3481,7 +3533,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> ChangeFdCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -3499,7 +3551,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -3511,7 +3564,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -3551,7 +3605,8 @@ get_fd_from_result(res: str) → int
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -3563,7 +3618,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -3625,7 +3681,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `ChangePermissionBreakpoint`
-When hit, this temporary breakpoint will restore the original code, and position $pc correctly. 
+When hit, this temporary breakpoint will restore the original code, and position $pc correctly.
 
 <a href="https://cs.github.com/hugsy/gef?q=ChangePermissionBreakpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -3660,12 +3716,12 @@ stop() → bool
 ---
 
 ## <kbd>class</kbd> `ChecksecCommand`
-Checksec the security properties of the current executable or passed as argument. The command checks for the following protections: 
-- PIE 
-- NX 
-- RelRO 
-- Glibc Stack Canaries 
-- Fortify Source 
+Checksec the security properties of the current executable or passed as argument. The command checks for the following protections:
+- PIE
+- NX
+- RelRO
+- Glibc Stack Canaries
+- Fortify Source
 
 <a href="https://cs.github.com/hugsy/gef?q=ChecksecCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -3684,7 +3740,7 @@ __init__() → None
 
 #### <kbd>property</kbd> ChecksecCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -3702,7 +3758,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -3714,7 +3771,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -3740,7 +3798,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -3752,7 +3811,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -3828,7 +3888,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `Color`
-Used to colorify terminal output. 
+Used to colorify terminal output.
 
 
 
@@ -3885,7 +3945,7 @@ boldify(msg: str) → str
 colorify(text: str, attrs: str) → str
 ```
 
-Color text according to the given attributes. 
+Color text according to the given attributes.
 
 ---
 
@@ -4017,7 +4077,7 @@ yellowify(msg: str) → str
 ---
 
 ## <kbd>class</kbd> `ContextCommand`
-Displays a comprehensive and modular summary of runtime context. Unless setting `enable` is set to False, this command will be spawned automatically every time GDB hits a breakpoint, a watchpoint, or any kind of interrupt. By default, it will show panes that contain the register states, the stack, and the disassembly code around $pc. 
+Displays a comprehensive and modular summary of runtime context. Unless setting `enable` is set to False, this command will be spawned automatically every time GDB hits a breakpoint, a watchpoint, or any kind of interrupt. By default, it will show panes that contain the register states, the stack, and the disassembly code around $pc.
 
 <a href="https://cs.github.com/hugsy/gef?q=ContextCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -4036,7 +4096,7 @@ __init__() → None
 
 #### <kbd>property</kbd> ContextCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -4054,7 +4114,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -4220,7 +4281,8 @@ context_trace() → None
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -4274,7 +4336,8 @@ get_pc_context_info(pc: int, line: str) → str
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -4286,7 +4349,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -4358,7 +4422,7 @@ pre_load() → None
 print_arguments_from_symbol(function_name: str, symbol: 'gdb.Symbol') → None
 ```
 
-If symbols were found, parse them and print the argument adequately. 
+If symbols were found, parse them and print the argument adequately.
 
 ---
 
@@ -4370,7 +4434,7 @@ If symbols were found, parse them and print the argument adequately.
 print_guessed_arguments(function_name: str) → None
 ```
 
-When no symbol, read the current basic block and look for "interesting" instructions. 
+When no symbol, read the current basic block and look for "interesting" instructions.
 
 ---
 
@@ -4418,7 +4482,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `DereferenceCommand`
-Dereference recursively from an address and display information. This acts like WinDBG `dps` command. 
+Dereference recursively from an address and display information. This acts like WinDBG `dps` command.
 
 <a href="https://cs.github.com/hugsy/gef?q=DereferenceCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -4437,7 +4501,7 @@ __init__() → None
 
 #### <kbd>property</kbd> DereferenceCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -4455,7 +4519,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -4467,7 +4532,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -4493,7 +4559,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -4505,7 +4572,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -4581,7 +4649,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `DetailRegistersCommand`
-Display full details on one, many or all registers value from current architecture. 
+Display full details on one, many or all registers value from current architecture.
 
 <a href="https://cs.github.com/hugsy/gef?q=DetailRegistersCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -4600,7 +4668,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> DetailRegistersCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -4618,7 +4686,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -4630,7 +4699,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -4656,7 +4726,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -4668,7 +4739,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -4730,10 +4802,10 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `Elf`
-Basic ELF parsing. Ref: 
-- http://www.skyfree.org/linux/references/ELF_Format.pdf 
-- https://refspecs.linuxfoundation.org/elf/elfspec_ppc.pdf 
-- https://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html 
+Basic ELF parsing. Ref:
+- http://www.skyfree.org/linux/references/ELF_Format.pdf
+- https://refspecs.linuxfoundation.org/elf/elfspec_ppc.pdf
+- https://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
 
 <a href="https://cs.github.com/hugsy/gef?q=Elf.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -4743,7 +4815,7 @@ Basic ELF parsing. Ref:
 __init__(path: str = '', minimalist: bool = False) → None
 ```
 
-Instantiate an ELF object. The default behavior is to create the object by parsing the ELF file. But in some cases (QEMU-stub), we may just want a simple minimal object with default values. 
+Instantiate an ELF object. The default behavior is to create the object by parsing the ELF file. But in some cases (QEMU-stub), we may just want a simple minimal object with default values.
 
 
 ---
@@ -4802,7 +4874,7 @@ seek(off: int) → None
 ---
 
 ## <kbd>class</kbd> `ElfInfoCommand`
-Display a limited subset of ELF header information. If no argument is provided, the command will show information about the current ELF being debugged. 
+Display a limited subset of ELF header information. If no argument is provided, the command will show information about the current ELF being debugged.
 
 <a href="https://cs.github.com/hugsy/gef?q=ElfInfoCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -4821,7 +4893,7 @@ __init__() → None
 
 #### <kbd>property</kbd> ElfInfoCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -4839,7 +4911,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -4851,7 +4924,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -4877,7 +4951,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -4889,7 +4964,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -4951,7 +5027,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `Endianness`
-An enumeration. 
+An enumeration.
 
 
 
@@ -4960,7 +5036,7 @@ An enumeration.
 ---
 
 ## <kbd>class</kbd> `EntryBreakBreakpoint`
-Breakpoint used internally to stop execution at the most convenient entry point. 
+Breakpoint used internally to stop execution at the most convenient entry point.
 
 <a href="https://cs.github.com/hugsy/gef?q=EntryBreakBreakpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -4995,7 +5071,7 @@ stop() → bool
 ---
 
 ## <kbd>class</kbd> `EntryPointBreakCommand`
-Tries to find best entry point and sets a temporary breakpoint on it. The command will test for well-known symbols for entry points, such as `main`, `_main`, `__libc_start_main`, etc. defined by the setting `entrypoint_symbols`. 
+Tries to find best entry point and sets a temporary breakpoint on it. The command will test for well-known symbols for entry points, such as `main`, `_main`, `__libc_start_main`, etc. defined by the setting `entrypoint_symbols`.
 
 <a href="https://cs.github.com/hugsy/gef?q=EntryPointBreakCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -5014,7 +5090,7 @@ __init__() → None
 
 #### <kbd>property</kbd> EntryPointBreakCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -5032,7 +5108,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -5044,7 +5121,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -5070,7 +5148,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -5082,7 +5161,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -5237,7 +5317,7 @@ clear_caches() → None
 ---
 
 ## <kbd>class</kbd> `FlagsCommand`
-Edit flags in a human friendly way. 
+Edit flags in a human friendly way.
 
 <a href="https://cs.github.com/hugsy/gef?q=FlagsCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -5256,7 +5336,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> FlagsCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -5274,7 +5354,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -5286,7 +5367,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -5312,7 +5394,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -5324,7 +5407,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -5386,7 +5470,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `FormatStringBreakpoint`
-Inspect stack for format string. 
+Inspect stack for format string.
 
 <a href="https://cs.github.com/hugsy/gef?q=FormatStringBreakpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -5421,7 +5505,7 @@ stop() → bool
 ---
 
 ## <kbd>class</kbd> `FormatStringSearchCommand`
-Exploitable format-string helper: this command will set up specific breakpoints at well-known dangerous functions (printf, snprintf, etc.), and check if the pointer holding the format string is writable, and therefore susceptible to format string attacks if an attacker can control its content. 
+Exploitable format-string helper: this command will set up specific breakpoints at well-known dangerous functions (printf, snprintf, etc.), and check if the pointer holding the format string is writable, and therefore susceptible to format string attacks if an attacker can control its content.
 
 <a href="https://cs.github.com/hugsy/gef?q=FormatStringSearchCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -5440,7 +5524,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> FormatStringSearchCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -5458,7 +5542,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -5470,7 +5555,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -5496,7 +5582,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -5508,7 +5595,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -5609,7 +5697,7 @@ load_module(fullname)
 ---
 
 ## <kbd>class</kbd> `Gef`
-The GEF root class, which serves as a entrypoint for all the debugging session attributes (architecture, memory, settings, etc.). 
+The GEF root class, which serves as a entrypoint for all the debugging session attributes (architecture, memory, settings, etc.).
 
 <a href="https://cs.github.com/hugsy/gef?q=Gef.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -5636,7 +5724,7 @@ __init__() → None
 reinitialize_managers() → None
 ```
 
-Reinitialize the managers. Avoid calling this function directly, using `pi reset()` is preferred 
+Reinitialize the managers. Avoid calling this function directly, using `pi reset()` is preferred
 
 ---
 
@@ -5648,7 +5736,7 @@ Reinitialize the managers. Avoid calling this function directly, using `pi reset
 reset_caches() → None
 ```
 
-Recursively clean the cache of all the managers. Avoid calling this function directly, using `reset-cache` is preferred 
+Recursively clean the cache of all the managers. Avoid calling this function directly, using `reset-cache` is preferred
 
 ---
 
@@ -5660,13 +5748,13 @@ Recursively clean the cache of all the managers. Avoid calling this function dir
 setup() → None
 ```
 
-Setup initialize the runtime setup, which may require for the `gef` to be not None. 
+Setup initialize the runtime setup, which may require for the `gef` to be not None.
 
 
 ---
 
 ## <kbd>class</kbd> `GefAlias`
-Simple aliasing wrapper because GDB doesn't do what it should. 
+Simple aliasing wrapper because GDB doesn't do what it should.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefAlias.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -5720,7 +5808,7 @@ lookup_command(cmd: str) → Union[Tuple[str, Type, Any], NoneType]
 ---
 
 ## <kbd>class</kbd> `GefCommand`
-GEF main command: view all new commands by typing `gef`. 
+GEF main command: view all new commands by typing `gef`.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -5759,7 +5847,7 @@ add_context_pane(
 ) → None
 ```
 
-Add a new context pane to ContextCommand. 
+Add a new context pane to ContextCommand.
 
 ---
 
@@ -5785,7 +5873,7 @@ invoke(args: Any, from_tty: bool) → None
 load(initial: bool = False) → None
 ```
 
-Load all the commands and functions defined by GEF into GDB. 
+Load all the commands and functions defined by GEF into GDB.
 
 ---
 
@@ -5805,7 +5893,7 @@ setup() → None
 ---
 
 ## <kbd>class</kbd> `GefConfigCommand`
-GEF configuration sub-command This command will help set/view GEF settings for the current debugging session. It is possible to make those changes permanent by running `gef save` (refer to this command help), and/or restore previously saved settings by running `gef restore` (refer help). 
+GEF configuration sub-command This command will help set/view GEF settings for the current debugging session. It is possible to make those changes permanent by running `gef save` (refer to this command help), and/or restore previously saved settings by running `gef restore` (refer help).
 
 <a href="https://cs.github.com/hugsy/gef?q=GefConfigCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -5896,7 +5984,7 @@ set_setting(argv: Tuple[str, Any]) → None
 ---
 
 ## <kbd>class</kbd> `GefFunctionsCommand`
-List the convenience functions provided by GEF. 
+List the convenience functions provided by GEF.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefFunctionsCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -5915,7 +6003,7 @@ __init__() → None
 
 #### <kbd>property</kbd> GefFunctionsCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -5929,7 +6017,7 @@ Return the list of settings for this command.
 add_function_to_doc(function) → None
 ```
 
-Add function to documentation. 
+Add function to documentation.
 
 ---
 
@@ -5945,7 +6033,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -5957,7 +6046,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -5983,7 +6073,8 @@ do_invoke(argv) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -5995,7 +6086,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -6071,7 +6163,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GefHeapManager`
-Class managing session heap. 
+Class managing session heap.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefHeapManager.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6168,7 +6260,7 @@ csize2tidx(size: int) → int
 malloc_align_address(address: int) → int
 ```
 
-Align addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github 
+Align addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github
 
 ---
 
@@ -6202,7 +6294,7 @@ tidx2size(idx: int) → int
 ---
 
 ## <kbd>class</kbd> `GefHelpCommand`
-GEF help sub-command. 
+GEF help sub-command.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefHelpCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6231,7 +6323,7 @@ add_command_to_doc(
 ) → None
 ```
 
-Add command to GEF documentation. 
+Add command to GEF documentation.
 
 ---
 
@@ -6245,7 +6337,7 @@ generate_help(
 ) → None
 ```
 
-Generate builtin commands documentation. 
+Generate builtin commands documentation.
 
 ---
 
@@ -6271,13 +6363,13 @@ invoke(args: Any, from_tty: bool) → None
 refresh() → None
 ```
 
-Refresh the documentation. 
+Refresh the documentation.
 
 
 ---
 
 ## <kbd>class</kbd> `GefInstallExtraScriptCommand`
-`gef install` command: installs one or more scripts from the `gef-extras` script repo. Note that the command doesn't check for external dependencies the script(s) might require. 
+`gef install` command: installs one or more scripts from the `gef-extras` script repo. Note that the command doesn't check for external dependencies the script(s) might require.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefInstallExtraScriptCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6312,7 +6404,7 @@ invoke(args: str, from_tty: bool) → None
 ---
 
 ## <kbd>class</kbd> `GefLibcManager`
-Class managing everything libc-related (except heap). 
+Class managing everything libc-related (except heap).
 
 <a href="https://cs.github.com/hugsy/gef?q=GefLibcManager.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6347,7 +6439,7 @@ __init__() → None
 reset_caches() → None
 ```
 
-Reset the LRU-cached attributes 
+Reset the LRU-cached attributes
 
 
 ---
@@ -6370,13 +6462,13 @@ Reset the LRU-cached attributes
 reset_caches() → None
 ```
 
-Reset the LRU-cached attributes 
+Reset the LRU-cached attributes
 
 
 ---
 
 ## <kbd>class</kbd> `GefMemoryManager`
-Class that manages memory access for gef. 
+Class that manages memory access for gef.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefMemoryManager.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6411,7 +6503,7 @@ __init__() → None
 read(addr: int, length: int = 16) → bytes
 ```
 
-Return a `length` long byte array with the copy of the process memory at `addr`. 
+Return a `length` long byte array with the copy of the process memory at `addr`.
 
 ---
 
@@ -6423,7 +6515,7 @@ Return a `length` long byte array with the copy of the process memory at `addr`.
 read_ascii_string(address: int) → Union[str, NoneType]
 ```
 
-Read an ASCII string from memory 
+Read an ASCII string from memory
 
 ---
 
@@ -6439,7 +6531,7 @@ read_cstring(
 ) → str
 ```
 
-Return a C-string read from memory. 
+Return a C-string read from memory.
 
 ---
 
@@ -6451,7 +6543,7 @@ Return a C-string read from memory.
 read_integer(addr: int) → int
 ```
 
-Return an integer read from memory. 
+Return an integer read from memory.
 
 ---
 
@@ -6477,13 +6569,13 @@ reset_caches() → None
 write(address: int, buffer: ByteString, length: int = 16) → None
 ```
 
-Write `buffer` at address `address`. 
+Write `buffer` at address `address`.
 
 
 ---
 
 ## <kbd>class</kbd> `GefMissingCommand`
-GEF missing sub-command Display the GEF commands that could not be loaded, along with the reason of why they could not be loaded. 
+GEF missing sub-command Display the GEF commands that could not be loaded, along with the reason of why they could not be loaded.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefMissingCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6518,7 +6610,7 @@ invoke(args: Any, from_tty: bool) → None
 ---
 
 ## <kbd>class</kbd> `GefRestoreCommand`
-GEF restore sub-command. Loads settings from file '~/.gef.rc' and apply them to the configuration of GEF. 
+GEF restore sub-command. Loads settings from file '~/.gef.rc' and apply them to the configuration of GEF.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefRestoreCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6553,7 +6645,7 @@ invoke(args: str, from_tty: bool) → None
 ---
 
 ## <kbd>class</kbd> `GefRunCommand`
-Override GDB run commands with the context from GEF. Simple wrapper for GDB run command to use arguments set from `gef set args`. 
+Override GDB run commands with the context from GEF. Simple wrapper for GDB run command to use arguments set from `gef set args`.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefRunCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6588,7 +6680,7 @@ invoke(args: Any, from_tty: bool) → None
 ---
 
 ## <kbd>class</kbd> `GefSaveCommand`
-GEF save sub-command. Saves the current configuration of GEF to disk (by default in file '~/.gef.rc'). 
+GEF save sub-command. Saves the current configuration of GEF to disk (by default in file '~/.gef.rc').
 
 <a href="https://cs.github.com/hugsy/gef?q=GefSaveCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6623,7 +6715,7 @@ invoke(args: Any, from_tty: bool) → None
 ---
 
 ## <kbd>class</kbd> `GefSessionManager`
-Class managing the runtime properties of GEF.  
+Class managing the runtime properties of GEF.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefSessionManager.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6650,31 +6742,31 @@ __init__() → None
 
 #### <kbd>property</kbd> GefSessionManager.canary
 
-Returns a tuple of the canary address and value, read from the auxiliary vector. 
+Returns a tuple of the canary address and value, read from the auxiliary vector.
 
 ---
 
 #### <kbd>property</kbd> GefSessionManager.file
 
-Return a Path object of the target process. 
+Return a Path object of the target process.
 
 ---
 
 #### <kbd>property</kbd> GefSessionManager.os
 
-Return the current OS. 
+Return the current OS.
 
 ---
 
 #### <kbd>property</kbd> GefSessionManager.pagesize
 
-Get the system page size 
+Get the system page size
 
 ---
 
 #### <kbd>property</kbd> GefSessionManager.pid
 
-Return the PID of the target process. 
+Return the PID of the target process.
 
 
 
@@ -6696,7 +6788,7 @@ reset_caches() → None
 ---
 
 ## <kbd>class</kbd> `GefSetCommand`
-Override GDB set commands with the context from GEF. 
+Override GDB set commands with the context from GEF.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefSetCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6731,7 +6823,7 @@ invoke(args: Any, from_tty: bool) → None
 ---
 
 ## <kbd>class</kbd> `GefSetting`
-Basic class for storing gef settings as objects 
+Basic class for storing gef settings as objects
 
 <a href="https://cs.github.com/hugsy/gef?q=GefSetting.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6756,7 +6848,7 @@ __init__(
 ---
 
 ## <kbd>class</kbd> `GefSettingsManager`
-GefSettings acts as a dict where the global settings are stored and can be read, written or deleted as any other dict. For instance, to read a specific command setting: `gef.config[mycommand.mysetting]` 
+GefSettings acts as a dict where the global settings are stored and can be read, written or deleted as any other dict. For instance, to read a specific command setting: `gef.config[mycommand.mysetting]`
 
 
 
@@ -6779,7 +6871,7 @@ raw_entry(name: str) → GefSetting
 ---
 
 ## <kbd>class</kbd> `GefThemeCommand`
-Customize GEF appearance. 
+Customize GEF appearance.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefThemeCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6798,7 +6890,7 @@ __init__() → None
 
 #### <kbd>property</kbd> GefThemeCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -6816,7 +6908,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -6828,7 +6921,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -6854,7 +6948,8 @@ do_invoke(args: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -6866,7 +6961,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -6928,7 +7024,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GefTmuxSetup`
-Setup a confortable tmux debugging environment. 
+Setup a confortable tmux debugging environment.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefTmuxSetup.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -6969,7 +7065,7 @@ invoke(args: Any, from_tty: bool) → None
 screen_setup() → None
 ```
 
-Hackish equivalent of the tmux_setup() function for screen. 
+Hackish equivalent of the tmux_setup() function for screen.
 
 ---
 
@@ -6981,13 +7077,13 @@ Hackish equivalent of the tmux_setup() function for screen.
 tmux_setup() → None
 ```
 
-Prepare the tmux environment by vertically splitting the current pane, and forcing the context to be redirected there. 
+Prepare the tmux environment by vertically splitting the current pane, and forcing the context to be redirected there.
 
 
 ---
 
 ## <kbd>class</kbd> `GefUiManager`
-Class managing UI settings. 
+Class managing UI settings.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefUiManager.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -7014,7 +7110,7 @@ __init__() → None
 reset_caches() → None
 ```
 
-Reset the LRU-cached attributes 
+Reset the LRU-cached attributes
 
 
 ---
@@ -7102,7 +7198,7 @@ get_ith_parameter(
 ) → Tuple[str, Union[int, NoneType]]
 ```
 
-Retrieves the correct parameter used for the current function call. 
+Retrieves the correct parameter used for the current function call.
 
 ---
 
@@ -7226,13 +7322,13 @@ reset_caches() → None
 supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture.
 
 
 ---
 
 ## <kbd>class</kbd> `GenericCommand`
-This is an abstract class for invoking commands, should not be instantiated. 
+This is an abstract class for invoking commands, should not be instantiated.
 
 <a href="https://cs.github.com/hugsy/gef?q=GenericCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -7251,7 +7347,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> GenericCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -7269,7 +7365,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -7281,7 +7378,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -7307,7 +7405,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -7319,7 +7418,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -7403,7 +7503,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GenericFunction`
-This is an abstract class for invoking convenience functions, should not be instantiated. 
+This is an abstract class for invoking convenience functions, should not be instantiated.
 
 <a href="https://cs.github.com/hugsy/gef?q=GenericFunction.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -7477,7 +7577,7 @@ invoke(*args: Any) → int
 ---
 
 ## <kbd>class</kbd> `GlibcArena`
-Glibc arena class Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671 
+Glibc arena class Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcArena.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -7526,7 +7626,7 @@ bin(i: int) → Tuple[int, int]
 fastbin(i: int) → Union[ForwardRef('GlibcChunk'), NoneType]
 ```
 
-Return head chunk in fastbinsY[i]. 
+Return head chunk in fastbinsY[i].
 
 ---
 
@@ -7538,7 +7638,7 @@ Return head chunk in fastbinsY[i].
 get_heap_for_ptr(ptr: int) → int
 ```
 
-Find the corresponding heap for a given pointer (int). See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L129 
+Find the corresponding heap for a given pointer (int). See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L129
 
 ---
 
@@ -7586,7 +7686,7 @@ is_main_arena() → bool
 ---
 
 ## <kbd>class</kbd> `GlibcChunk`
-Glibc chunk class. The default behavior (from_base=False) is to interpret the data starting at the memory address pointed to as the chunk data. Setting from_base to True instead treats that data as the chunk header. Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/. 
+Glibc chunk class. The default behavior (from_base=False) is to interpret the data starting at the memory address pointed to as the chunk data. Setting from_base to True instead treats that data as the chunk header. Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/.
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcChunk.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -7819,9 +7919,9 @@ has_p_bit() → bool
 is_used() → bool
 ```
 
-Check if the current block is used by: 
-- checking the M bit is true 
-- or checking that next chunk PREV_INUSE flag is true 
+Check if the current block is used by:
+- checking the M bit is true
+- or checking that next chunk PREV_INUSE flag is true
 
 ---
 
@@ -7883,7 +7983,7 @@ str_chunk_size_flag() → str
 ---
 
 ## <kbd>class</kbd> `GlibcHeapArenaCommand`
-Display information on a heap chunk. 
+Display information on a heap chunk.
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcHeapArenaCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -7902,7 +8002,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> GlibcHeapArenaCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -7920,7 +8020,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -7932,7 +8033,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -7958,7 +8060,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -7970,7 +8073,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -8032,7 +8136,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GlibcHeapBinsCommand`
-Display information on the bins on an arena (default: main_arena). See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123. 
+Display information on the bins on an arena (default: main_arena). See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123.
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcHeapBinsCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -8051,7 +8155,7 @@ __init__() → None
 
 #### <kbd>property</kbd> GlibcHeapBinsCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -8069,7 +8173,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -8081,7 +8186,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -8107,7 +8213,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -8119,7 +8226,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -8195,7 +8303,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GlibcHeapChunkCommand`
-Display information on a heap chunk. See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123. 
+Display information on a heap chunk. See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123.
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcHeapChunkCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -8214,7 +8322,7 @@ __init__() → None
 
 #### <kbd>property</kbd> GlibcHeapChunkCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -8232,7 +8340,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -8244,7 +8353,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -8270,7 +8380,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -8282,7 +8393,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -8344,7 +8456,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GlibcHeapChunksCommand`
-Display all heap chunks for the current arena. As an optional argument the base address of a different arena can be passed 
+Display all heap chunks for the current arena. As an optional argument the base address of a different arena can be passed
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcHeapChunksCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -8363,7 +8475,7 @@ __init__() → None
 
 #### <kbd>property</kbd> GlibcHeapChunksCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -8381,7 +8493,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -8393,7 +8506,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -8456,7 +8570,8 @@ dump_chunks_heap(
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -8468,7 +8583,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -8530,7 +8646,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GlibcHeapCommand`
-Base command to get information about the Glibc heap structure. 
+Base command to get information about the Glibc heap structure.
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcHeapCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -8549,7 +8665,7 @@ __init__() → None
 
 #### <kbd>property</kbd> GlibcHeapCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -8567,7 +8683,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -8579,7 +8696,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -8605,7 +8723,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -8617,7 +8736,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -8679,7 +8799,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GlibcHeapFastbinsYCommand`
-Display information on the fastbinsY on an arena (default: main_arena). See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123. 
+Display information on the fastbinsY on an arena (default: main_arena). See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123.
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcHeapFastbinsYCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -8698,7 +8818,7 @@ __init__() → None
 
 #### <kbd>property</kbd> GlibcHeapFastbinsYCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -8716,7 +8836,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -8728,7 +8849,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -8754,7 +8876,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -8766,7 +8889,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -8828,7 +8952,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GlibcHeapInfo`
-Glibc heap_info struct See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L64 
+Glibc heap_info struct See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L64
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcHeapInfo.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -8921,7 +9045,7 @@ __init__(addr: Union[int, str]) → None
 ---
 
 ## <kbd>class</kbd> `GlibcHeapLargeBinsCommand`
-Convenience command for viewing large bins. 
+Convenience command for viewing large bins.
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcHeapLargeBinsCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -8940,7 +9064,7 @@ __init__() → None
 
 #### <kbd>property</kbd> GlibcHeapLargeBinsCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -8958,7 +9082,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -8970,7 +9095,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -8996,7 +9122,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -9008,7 +9135,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -9070,7 +9198,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GlibcHeapSetArenaCommand`
-Display information on a heap chunk. 
+Display information on a heap chunk.
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcHeapSetArenaCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -9089,7 +9217,7 @@ __init__() → None
 
 #### <kbd>property</kbd> GlibcHeapSetArenaCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -9107,7 +9235,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -9119,7 +9248,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -9145,7 +9275,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -9157,7 +9288,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -9219,7 +9351,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GlibcHeapSmallBinsCommand`
-Convenience command for viewing small bins. 
+Convenience command for viewing small bins.
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcHeapSmallBinsCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -9238,7 +9370,7 @@ __init__() → None
 
 #### <kbd>property</kbd> GlibcHeapSmallBinsCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -9256,7 +9388,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -9268,7 +9401,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -9294,7 +9428,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -9306,7 +9441,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -9368,7 +9504,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GlibcHeapTcachebinsCommand`
-Display information on the Tcachebins on an arena (default: main_arena). See https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=d5c3fafc4307c9b7a4c7d5cb381fcdbfad340bcc. 
+Display information on the Tcachebins on an arena (default: main_arena). See https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=d5c3fafc4307c9b7a4c7d5cb381fcdbfad340bcc.
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcHeapTcachebinsCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -9387,7 +9523,7 @@ __init__() → None
 
 #### <kbd>property</kbd> GlibcHeapTcachebinsCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -9405,7 +9541,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -9417,7 +9554,7 @@ add_setting(
 check_thread_ids(tids: List[int]) → List[int]
 ```
 
-Check the validity, dedup, and return all valid tids. 
+Check the validity, dedup, and return all valid tids.
 
 ---
 
@@ -9429,7 +9566,8 @@ Check the validity, dedup, and return all valid tids.
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -9455,7 +9593,7 @@ do_invoke(argv: List[str]) → None
 find_tcache() → int
 ```
 
-Return the location of the current thread's tcache. 
+Return the location of the current thread's tcache.
 
 ---
 
@@ -9467,7 +9605,8 @@ Return the location of the current thread's tcache.
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -9479,7 +9618,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -9536,7 +9676,7 @@ tcachebin(
 ) → Tuple[Union[__main__.GlibcChunk, NoneType], int]
 ```
 
-Return the head chunk in tcache[i] and the number of chunks in the bin. 
+Return the head chunk in tcache[i] and the number of chunks in the bin.
 
 ---
 
@@ -9556,7 +9696,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GlibcHeapUnsortedBinsCommand`
-Display information on the Unsorted Bins of an arena (default: main_arena). See: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1689. 
+Display information on the Unsorted Bins of an arena (default: main_arena). See: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1689.
 
 <a href="https://cs.github.com/hugsy/gef?q=GlibcHeapUnsortedBinsCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -9575,7 +9715,7 @@ __init__() → None
 
 #### <kbd>property</kbd> GlibcHeapUnsortedBinsCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -9593,7 +9733,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -9605,7 +9746,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -9631,7 +9773,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -9643,7 +9786,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -9705,7 +9849,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GotBaseFunction`
-Return the current GOT base address plus the given offset. 
+Return the current GOT base address plus the given offset.
 
 <a href="https://cs.github.com/hugsy/gef?q=GotBaseFunction.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -9768,7 +9912,7 @@ invoke(*args: Any) → int
 ---
 
 ## <kbd>class</kbd> `GotCommand`
-Display current status of the got inside the process. 
+Display current status of the got inside the process.
 
 <a href="https://cs.github.com/hugsy/gef?q=GotCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -9787,7 +9931,7 @@ __init__()
 
 #### <kbd>property</kbd> GotCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -9805,7 +9949,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -9817,7 +9962,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -9857,7 +10003,8 @@ get_jmp_slots(readelf: str, filename: str) → List[str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -9869,7 +10016,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -9931,11 +10079,11 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `HeapAnalysisCommand`
-Heap vulnerability analysis helper: this command aims to track dynamic heap allocation done through malloc()/free() to provide some insights on possible heap vulnerabilities. The following vulnerabilities are checked: 
-- NULL free 
-- Use-after-Free 
-- Double Free 
-- Heap overlap 
+Heap vulnerability analysis helper: this command aims to track dynamic heap allocation done through malloc()/free() to provide some insights on possible heap vulnerabilities. The following vulnerabilities are checked:
+- NULL free
+- Use-after-Free
+- Double Free
+- Heap overlap
 
 <a href="https://cs.github.com/hugsy/gef?q=HeapAnalysisCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -9954,7 +10102,7 @@ __init__() → None
 
 #### <kbd>property</kbd> HeapAnalysisCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -9972,7 +10120,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -9998,7 +10147,8 @@ clean(_: 'gdb.Event') → None
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -10038,7 +10188,8 @@ dump_tracked_allocations() → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -10050,7 +10201,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -10126,7 +10278,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `HeapBaseFunction`
-Return the current heap base address plus an optional offset. 
+Return the current heap base address plus an optional offset.
 
 <a href="https://cs.github.com/hugsy/gef?q=HeapBaseFunction.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -10189,7 +10341,7 @@ invoke(*args: Any) → int
 ---
 
 ## <kbd>class</kbd> `HexdumpByteCommand`
-Display SIZE lines of hexdump as BYTE from the memory location pointed by ADDRESS. 
+Display SIZE lines of hexdump as BYTE from the memory location pointed by ADDRESS.
 
 <a href="https://cs.github.com/hugsy/gef?q=HexdumpByteCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -10208,7 +10360,7 @@ __init__() → None
 
 #### <kbd>property</kbd> HexdumpByteCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -10226,7 +10378,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -10238,7 +10391,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -10264,7 +10418,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -10276,7 +10431,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -10338,7 +10494,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `HexdumpCommand`
-Display SIZE lines of hexdump from the memory location pointed by LOCATION. 
+Display SIZE lines of hexdump from the memory location pointed by LOCATION.
 
 <a href="https://cs.github.com/hugsy/gef?q=HexdumpCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -10357,7 +10513,7 @@ __init__() → None
 
 #### <kbd>property</kbd> HexdumpCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -10375,7 +10531,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -10387,7 +10544,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -10413,7 +10571,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -10425,7 +10584,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -10487,7 +10647,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `HexdumpDwordCommand`
-Display SIZE lines of hexdump as DWORD from the memory location pointed by ADDRESS. 
+Display SIZE lines of hexdump as DWORD from the memory location pointed by ADDRESS.
 
 <a href="https://cs.github.com/hugsy/gef?q=HexdumpDwordCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -10506,7 +10666,7 @@ __init__() → None
 
 #### <kbd>property</kbd> HexdumpDwordCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -10524,7 +10684,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -10536,7 +10697,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -10562,7 +10724,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -10574,7 +10737,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -10636,7 +10800,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `HexdumpQwordCommand`
-Display SIZE lines of hexdump as QWORD from the memory location pointed by ADDRESS. 
+Display SIZE lines of hexdump as QWORD from the memory location pointed by ADDRESS.
 
 <a href="https://cs.github.com/hugsy/gef?q=HexdumpQwordCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -10655,7 +10819,7 @@ __init__() → None
 
 #### <kbd>property</kbd> HexdumpQwordCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -10673,7 +10837,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -10685,7 +10850,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -10711,7 +10877,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -10723,7 +10890,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -10785,7 +10953,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `HexdumpWordCommand`
-Display SIZE lines of hexdump as WORD from the memory location pointed by ADDRESS. 
+Display SIZE lines of hexdump as WORD from the memory location pointed by ADDRESS.
 
 <a href="https://cs.github.com/hugsy/gef?q=HexdumpWordCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -10804,7 +10972,7 @@ __init__() → None
 
 #### <kbd>property</kbd> HexdumpWordCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -10822,7 +10990,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -10834,7 +11003,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -10860,7 +11030,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -10872,7 +11043,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -10934,7 +11106,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `HighlightAddCommand`
-Add a match to the highlight table. 
+Add a match to the highlight table.
 
 <a href="https://cs.github.com/hugsy/gef?q=HighlightAddCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -10953,7 +11125,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> HighlightAddCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -10971,7 +11143,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -10983,7 +11156,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -11009,7 +11183,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -11021,7 +11196,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -11083,7 +11259,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `HighlightClearCommand`
-Clear the highlight table, remove all matches. 
+Clear the highlight table, remove all matches.
 
 <a href="https://cs.github.com/hugsy/gef?q=HighlightClearCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -11102,7 +11278,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> HighlightClearCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -11120,7 +11296,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -11132,7 +11309,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -11158,7 +11336,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -11170,7 +11349,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -11232,7 +11412,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `HighlightCommand`
-Highlight user-defined text matches in GEF output universally. 
+Highlight user-defined text matches in GEF output universally.
 
 <a href="https://cs.github.com/hugsy/gef?q=HighlightCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -11251,7 +11431,7 @@ __init__() → None
 
 #### <kbd>property</kbd> HighlightCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -11269,7 +11449,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -11281,7 +11462,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -11307,7 +11489,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -11319,7 +11502,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -11381,7 +11565,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `HighlightListCommand`
-Show the current highlight table with matches to colors. 
+Show the current highlight table with matches to colors.
 
 <a href="https://cs.github.com/hugsy/gef?q=HighlightListCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -11400,7 +11584,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> HighlightListCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -11418,7 +11602,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -11430,7 +11615,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -11456,7 +11642,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -11468,7 +11655,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -11544,7 +11732,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `HighlightRemoveCommand`
-Remove a match in the highlight table. 
+Remove a match in the highlight table.
 
 <a href="https://cs.github.com/hugsy/gef?q=HighlightRemoveCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -11563,7 +11751,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> HighlightRemoveCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -11581,7 +11769,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -11593,7 +11782,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -11619,7 +11809,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -11631,7 +11822,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -11692,157 +11884,8 @@ usage() → None
 
 ---
 
-## <kbd>class</kbd> `IdaInteractCommand`
-**REMOVED** a better version of `ida-interact` is now hosted on `gef-extras` 
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.__init__`
-
-```python
-__init__(*args: Any, **kwargs: Any) → None
-```
-
-
-
-
-
-
----
-
-#### <kbd>property</kbd> IdaInteractCommand.settings
-
-Return the list of settings for this command. 
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.add_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.add_setting`
-
-```python
-add_setting(
-    name: str,
-    value: Tuple[Any, type, str],
-    description: str = ''
-) → None
-```
-
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.del_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.del_setting`
-
-```python
-del_setting(name: str) → None
-```
-
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.do_invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.do_invoke`
-
-```python
-do_invoke(argv: List[str]) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.get_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.get_setting`
-
-```python
-get_setting(name: str) → Any
-```
-
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.has_setting"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.has_setting`
-
-```python
-has_setting(name: str) → bool
-```
-
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.invoke"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.invoke`
-
-```python
-invoke(args: str, from_tty: bool) → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.post_load"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.post_load`
-
-```python
-post_load() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.pre_load"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.pre_load`
-
-```python
-pre_load() → None
-```
-
-
-
-
-
----
-
-<a href="https://cs.github.com/hugsy/gef?q=IdaInteractCommand.usage"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
-
-## <kbd>function</kbd> `IdaInteractCommand.usage`
-
-```python
-usage() → None
-```
-
-
-
-
-
-
----
-
 ## <kbd>class</kbd> `Instruction`
-GEF representation of a CPU instruction. 
+GEF representation of a CPU instruction.
 
 <a href="https://cs.github.com/hugsy/gef?q=Instruction.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -11897,7 +11940,7 @@ size() → int
 ---
 
 ## <kbd>class</kbd> `IsSyscallCommand`
-Tells whether the next instruction is a system call. 
+Tells whether the next instruction is a system call.
 
 <a href="https://cs.github.com/hugsy/gef?q=IsSyscallCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -11916,7 +11959,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> IsSyscallCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -11934,7 +11977,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -11946,7 +11990,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -11972,7 +12017,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -11984,7 +12030,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -12128,7 +12175,7 @@ get_ith_parameter(
 ) → Tuple[str, Union[int, NoneType]]
 ```
 
-Retrieves the correct parameter used for the current function call. 
+Retrieves the correct parameter used for the current function call.
 
 ---
 
@@ -12252,7 +12299,7 @@ reset_caches() → None
 supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture.
 
 
 ---
@@ -12340,7 +12387,7 @@ get_ith_parameter(
 ) → Tuple[str, Union[int, NoneType]]
 ```
 
-Retrieves the correct parameter used for the current function call. 
+Retrieves the correct parameter used for the current function call.
 
 ---
 
@@ -12472,7 +12519,7 @@ supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ---
 
 ## <kbd>class</kbd> `MallocStateStruct`
-GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658 
+GEF representation of malloc_state from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658
 
 <a href="https://cs.github.com/hugsy/gef?q=MallocStateStruct.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -12663,7 +12710,7 @@ get_size_t_pointer(addr: int) → gdb.Value
 ---
 
 ## <kbd>class</kbd> `MemoryCommand`
-Add or remove address ranges to the memory view. 
+Add or remove address ranges to the memory view.
 
 <a href="https://cs.github.com/hugsy/gef?q=MemoryCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -12682,7 +12729,7 @@ __init__() → None
 
 #### <kbd>property</kbd> MemoryCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -12700,7 +12747,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -12712,7 +12760,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -12738,7 +12787,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -12750,7 +12800,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -12812,7 +12863,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `MemoryUnwatchCommand`
-Removes address ranges to the memory view. 
+Removes address ranges to the memory view.
 
 <a href="https://cs.github.com/hugsy/gef?q=MemoryUnwatchCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -12831,7 +12882,7 @@ __init__() → None
 
 #### <kbd>property</kbd> MemoryUnwatchCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -12849,7 +12900,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -12861,7 +12913,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -12887,7 +12940,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -12899,7 +12953,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -12961,7 +13016,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `MemoryWatchCommand`
-Adds address ranges to the memory view. 
+Adds address ranges to the memory view.
 
 <a href="https://cs.github.com/hugsy/gef?q=MemoryWatchCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -12980,7 +13035,7 @@ __init__() → None
 
 #### <kbd>property</kbd> MemoryWatchCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -12998,7 +13053,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -13010,7 +13066,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -13036,7 +13093,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -13048,7 +13106,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -13110,7 +13169,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `MemoryWatchListCommand`
-Lists all watchpoints to display in context layout. 
+Lists all watchpoints to display in context layout.
 
 <a href="https://cs.github.com/hugsy/gef?q=MemoryWatchListCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -13129,7 +13188,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> MemoryWatchListCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -13147,7 +13206,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -13159,7 +13219,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -13185,7 +13246,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -13197,7 +13259,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -13259,7 +13322,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `MemoryWatchResetCommand`
-Removes all watchpoints. 
+Removes all watchpoints.
 
 <a href="https://cs.github.com/hugsy/gef?q=MemoryWatchResetCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -13278,7 +13341,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> MemoryWatchResetCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -13296,7 +13359,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -13308,7 +13372,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -13334,7 +13399,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -13346,7 +13412,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -13408,7 +13475,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `NamedBreakpoint`
-Breakpoint which shows a specified name, when hit. 
+Breakpoint which shows a specified name, when hit.
 
 <a href="https://cs.github.com/hugsy/gef?q=NamedBreakpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -13443,7 +13510,7 @@ stop() → bool
 ---
 
 ## <kbd>class</kbd> `NamedBreakpointCommand`
-Sets a breakpoint and assigns a name to it, which will be shown, when it's hit. 
+Sets a breakpoint and assigns a name to it, which will be shown, when it's hit.
 
 <a href="https://cs.github.com/hugsy/gef?q=NamedBreakpointCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -13462,7 +13529,7 @@ __init__() → None
 
 #### <kbd>property</kbd> NamedBreakpointCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -13480,7 +13547,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -13492,7 +13560,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -13518,7 +13587,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -13530,7 +13600,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -13592,7 +13663,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `NopCommand`
-Patch the instruction(s) pointed by parameters with NOP. Note: this command is architecture aware. 
+Patch the instruction(s) pointed by parameters with NOP. Note: this command is architecture aware.
 
 <a href="https://cs.github.com/hugsy/gef?q=NopCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -13611,7 +13682,7 @@ __init__() → None
 
 #### <kbd>property</kbd> NopCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -13629,7 +13700,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -13641,7 +13713,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -13667,7 +13740,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -13679,7 +13753,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -13741,7 +13816,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PCustomCommand`
-Dump user defined structure. This command attempts to reproduce WinDBG awesome `dt` command for GDB and allows to apply structures (from symbols or custom) directly to an address. Custom structures can be defined in pure Python using ctypes, and should be stored in a specific directory, whose path must be stored in the `pcustom.struct_path` configuration setting. 
+Dump user defined structure. This command attempts to reproduce WinDBG awesome `dt` command for GDB and allows to apply structures (from symbols or custom) directly to an address. Custom structures can be defined in pure Python using ctypes, and should be stored in a specific directory, whose path must be stored in the `pcustom.struct_path` configuration setting.
 
 <a href="https://cs.github.com/hugsy/gef?q=PCustomCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -13760,7 +13835,7 @@ __init__() → None
 
 #### <kbd>property</kbd> PCustomCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -13778,7 +13853,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -13790,7 +13866,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -13830,7 +13907,8 @@ explode_type(arg: str) → Tuple[str, str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -13842,7 +13920,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -13904,7 +13983,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PCustomEditCommand`
-PCustom: edit the content of a given structure 
+PCustom: edit the content of a given structure
 
 <a href="https://cs.github.com/hugsy/gef?q=PCustomEditCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -13923,7 +14002,7 @@ __init__() → None
 
 #### <kbd>property</kbd> PCustomEditCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -13941,7 +14020,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -13953,7 +14033,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -13993,7 +14074,8 @@ explode_type(arg: str) → Tuple[str, str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14005,7 +14087,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14067,7 +14150,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PCustomListCommand`
-PCustom: list available structures 
+PCustom: list available structures
 
 <a href="https://cs.github.com/hugsy/gef?q=PCustomListCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -14086,7 +14169,7 @@ __init__() → None
 
 #### <kbd>property</kbd> PCustomListCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -14104,7 +14187,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -14116,7 +14200,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14128,7 +14213,7 @@ del_setting(name: str) → None
 do_invoke(_: List) → None
 ```
 
-Dump the list of all the structures and their respective. 
+Dump the list of all the structures and their respective.
 
 ---
 
@@ -14154,7 +14239,8 @@ explode_type(arg: str) → Tuple[str, str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14166,7 +14252,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14228,7 +14315,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PCustomShowCommand`
-PCustom: show the content of a given structure 
+PCustom: show the content of a given structure
 
 <a href="https://cs.github.com/hugsy/gef?q=PCustomShowCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -14247,7 +14334,7 @@ __init__() → None
 
 #### <kbd>property</kbd> PCustomShowCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -14265,7 +14352,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -14277,7 +14365,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14317,7 +14406,8 @@ explode_type(arg: str) → Tuple[str, str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14329,7 +14419,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14391,7 +14482,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PatchByteCommand`
-Write specified WORD to the specified address. 
+Write specified WORD to the specified address.
 
 <a href="https://cs.github.com/hugsy/gef?q=PatchByteCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -14410,7 +14501,7 @@ __init__() → None
 
 #### <kbd>property</kbd> PatchByteCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -14428,7 +14519,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -14440,7 +14532,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14466,7 +14559,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14478,7 +14572,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14540,7 +14635,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PatchCommand`
-Write specified values to the specified address. 
+Write specified values to the specified address.
 
 <a href="https://cs.github.com/hugsy/gef?q=PatchCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -14559,7 +14654,7 @@ __init__() → None
 
 #### <kbd>property</kbd> PatchCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -14577,7 +14672,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -14589,7 +14685,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14615,7 +14712,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14627,7 +14725,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14689,7 +14788,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PatchDwordCommand`
-Write specified DWORD to the specified address. 
+Write specified DWORD to the specified address.
 
 <a href="https://cs.github.com/hugsy/gef?q=PatchDwordCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -14708,7 +14807,7 @@ __init__() → None
 
 #### <kbd>property</kbd> PatchDwordCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -14726,7 +14825,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -14738,7 +14838,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14764,7 +14865,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14776,7 +14878,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14838,7 +14941,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PatchQwordCommand`
-Write specified QWORD to the specified address. 
+Write specified QWORD to the specified address.
 
 <a href="https://cs.github.com/hugsy/gef?q=PatchQwordCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -14857,7 +14960,7 @@ __init__() → None
 
 #### <kbd>property</kbd> PatchQwordCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -14875,7 +14978,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -14887,7 +14991,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14913,7 +15018,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14925,7 +15031,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14987,7 +15094,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PatchStringCommand`
-Write specified string to the specified memory location pointed by ADDRESS. 
+Write specified string to the specified memory location pointed by ADDRESS.
 
 <a href="https://cs.github.com/hugsy/gef?q=PatchStringCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -15006,7 +15113,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> PatchStringCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -15024,7 +15131,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15036,7 +15144,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -15062,7 +15171,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15074,7 +15184,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -15136,7 +15247,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PatchWordCommand`
-Write specified WORD to the specified address. 
+Write specified WORD to the specified address.
 
 <a href="https://cs.github.com/hugsy/gef?q=PatchWordCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -15155,7 +15266,7 @@ __init__() → None
 
 #### <kbd>property</kbd> PatchWordCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -15173,7 +15284,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15185,7 +15297,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -15211,7 +15324,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15223,7 +15337,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -15285,7 +15400,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PatternCommand`
-Generate or Search a De Bruijn Sequence of unique substrings of length N and a total length of LENGTH. The default value of N is set to match the currently loaded architecture. 
+Generate or Search a De Bruijn Sequence of unique substrings of length N and a total length of LENGTH. The default value of N is set to match the currently loaded architecture.
 
 <a href="https://cs.github.com/hugsy/gef?q=PatternCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -15304,7 +15419,7 @@ __init__() → None
 
 #### <kbd>property</kbd> PatternCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -15322,7 +15437,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15334,7 +15450,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -15360,7 +15477,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15372,7 +15490,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -15434,7 +15553,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PatternCreateCommand`
-Generate a De Bruijn Sequence of unique substrings of length N and a total length of LENGTH. The default value of N is set to match the currently loaded architecture. 
+Generate a De Bruijn Sequence of unique substrings of length N and a total length of LENGTH. The default value of N is set to match the currently loaded architecture.
 
 <a href="https://cs.github.com/hugsy/gef?q=PatternCreateCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -15453,7 +15572,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> PatternCreateCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -15471,7 +15590,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15483,7 +15603,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -15509,7 +15630,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15521,7 +15643,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -15583,7 +15706,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PatternSearchCommand`
-Search a De Bruijn Sequence of unique substrings of length N and a maximum total length of MAX_LENGTH. The default value of N is set to match the currently loaded architecture. The PATTERN argument can be a GDB symbol (such as a register name), a string or a hexadecimal value 
+Search a De Bruijn Sequence of unique substrings of length N and a maximum total length of MAX_LENGTH. The default value of N is set to match the currently loaded architecture. The PATTERN argument can be a GDB symbol (such as a register name), a string or a hexadecimal value
 
 <a href="https://cs.github.com/hugsy/gef?q=PatternSearchCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -15602,7 +15725,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> PatternSearchCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -15620,7 +15743,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15632,7 +15756,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -15658,7 +15783,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15670,7 +15796,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -15746,7 +15873,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `Permission`
-GEF representation of Linux permission. 
+GEF representation of Linux permission.
 
 
 
@@ -15778,7 +15905,7 @@ __init__(elf: __main__.Elf, off: int) → None
 ---
 
 ## <kbd>class</kbd> `PieAttachCommand`
-Do attach with PIE breakpoint support. 
+Do attach with PIE breakpoint support.
 
 <a href="https://cs.github.com/hugsy/gef?q=PieAttachCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -15797,7 +15924,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> PieAttachCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -15815,7 +15942,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15827,7 +15955,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -15853,7 +15982,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15865,7 +15995,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -15927,7 +16058,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PieBreakpointCommand`
-Set a PIE breakpoint at an offset from the target binaries base address. 
+Set a PIE breakpoint at an offset from the target binaries base address.
 
 <a href="https://cs.github.com/hugsy/gef?q=PieBreakpointCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -15946,7 +16077,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> PieBreakpointCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -15964,7 +16095,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15976,7 +16108,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -16002,7 +16135,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -16014,7 +16148,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16090,7 +16225,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PieCommand`
-PIE breakpoint support. 
+PIE breakpoint support.
 
 <a href="https://cs.github.com/hugsy/gef?q=PieCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -16109,7 +16244,7 @@ __init__() → None
 
 #### <kbd>property</kbd> PieCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -16127,7 +16262,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -16139,7 +16275,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -16165,7 +16302,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -16177,7 +16315,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16239,7 +16378,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PieDeleteCommand`
-Delete a PIE breakpoint. 
+Delete a PIE breakpoint.
 
 <a href="https://cs.github.com/hugsy/gef?q=PieDeleteCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -16258,7 +16397,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> PieDeleteCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -16276,7 +16415,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -16288,7 +16428,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -16328,7 +16469,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -16340,7 +16482,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16402,7 +16545,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PieInfoCommand`
-Display breakpoint info. 
+Display breakpoint info.
 
 <a href="https://cs.github.com/hugsy/gef?q=PieInfoCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -16421,7 +16564,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> PieInfoCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -16439,7 +16582,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -16451,7 +16595,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -16477,7 +16622,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -16489,7 +16635,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16551,7 +16698,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PieRemoteCommand`
-Attach to a remote connection with PIE breakpoint support. 
+Attach to a remote connection with PIE breakpoint support.
 
 <a href="https://cs.github.com/hugsy/gef?q=PieRemoteCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -16570,7 +16717,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> PieRemoteCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -16588,7 +16735,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -16600,7 +16748,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -16626,7 +16775,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -16638,7 +16788,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16700,7 +16851,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PieRunCommand`
-Run process with PIE breakpoint support. 
+Run process with PIE breakpoint support.
 
 <a href="https://cs.github.com/hugsy/gef?q=PieRunCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -16719,7 +16870,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> PieRunCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -16737,7 +16888,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -16749,7 +16901,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -16775,7 +16928,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -16787,7 +16941,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16849,7 +17004,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `PieVirtualBreakpoint`
-PIE virtual breakpoint (not real breakpoint). 
+PIE virtual breakpoint (not real breakpoint).
 
 <a href="https://cs.github.com/hugsy/gef?q=PieVirtualBreakpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -16972,7 +17127,7 @@ get_ith_parameter(
 ) → Tuple[str, Union[int, NoneType]]
 ```
 
-Retrieves the correct parameter used for the current function call. 
+Retrieves the correct parameter used for the current function call.
 
 ---
 
@@ -17096,7 +17251,7 @@ reset_caches() → None
 supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture.
 
 
 ---
@@ -17176,7 +17331,7 @@ get_ith_parameter(
 ) → Tuple[str, Union[int, NoneType]]
 ```
 
-Retrieves the correct parameter used for the current function call. 
+Retrieves the correct parameter used for the current function call.
 
 ---
 
@@ -17300,13 +17455,13 @@ reset_caches() → None
 supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture.
 
 
 ---
 
 ## <kbd>class</kbd> `PrintFormatCommand`
-Print bytes format in commonly used formats, such as literals in high level languages. 
+Print bytes format in commonly used formats, such as literals in high level languages.
 
 <a href="https://cs.github.com/hugsy/gef?q=PrintFormatCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -17333,7 +17488,7 @@ __init__() → None
 
 #### <kbd>property</kbd> PrintFormatCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -17351,7 +17506,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -17363,7 +17519,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -17389,7 +17546,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -17401,7 +17559,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -17463,7 +17622,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `ProcessListingCommand`
-List and filter process. If a PATTERN is given as argument, results shown will be grepped by this pattern. 
+List and filter process. If a PATTERN is given as argument, results shown will be grepped by this pattern.
 
 <a href="https://cs.github.com/hugsy/gef?q=ProcessListingCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -17482,7 +17641,7 @@ __init__() → None
 
 #### <kbd>property</kbd> ProcessListingCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -17500,7 +17659,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -17512,7 +17672,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -17552,7 +17713,8 @@ get_processes() → Generator[Dict[str, str], NoneType, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -17564,7 +17726,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -17626,7 +17789,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `ProcessStatusCommand`
-Extends the info given by GDB `info proc`, by giving an exhaustive description of the process status (file descriptors, ancestor, descendants, etc.). 
+Extends the info given by GDB `info proc`, by giving an exhaustive description of the process status (file descriptors, ancestor, descendants, etc.).
 
 <a href="https://cs.github.com/hugsy/gef?q=ProcessStatusCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -17645,7 +17808,7 @@ __init__() → None
 
 #### <kbd>property</kbd> ProcessStatusCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -17663,7 +17826,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -17675,7 +17839,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -17743,7 +17908,8 @@ get_process_path_of(pid: int) → str
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -17769,7 +17935,8 @@ get_state_of(pid: int) → Dict[str, str]
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -18019,7 +18186,7 @@ get_ith_parameter(
 ) → Tuple[str, Union[int, NoneType]]
 ```
 
-Retrieves the correct parameter used for the current function call. 
+Retrieves the correct parameter used for the current function call.
 
 ---
 
@@ -18143,7 +18310,7 @@ reset_caches() → None
 supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture.
 
 
 ---
@@ -18172,7 +18339,7 @@ __init__(to: str = '/dev/null') → None
 ---
 
 ## <kbd>class</kbd> `RemoteCommand`
-gef wrapper for the `target remote` command. This command will automatically download the target binary in the local temporary directory (defaut /tmp) and then source it. Additionally, it will fetch all the /proc/PID/maps and loads all its information. 
+gef wrapper for the `target remote` command. This command will automatically download the target binary in the local temporary directory (defaut /tmp) and then source it. Additionally, it will fetch all the /proc/PID/maps and loads all its information.
 
 <a href="https://cs.github.com/hugsy/gef?q=RemoteCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -18191,7 +18358,7 @@ __init__() → None
 
 #### <kbd>property</kbd> RemoteCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -18209,7 +18376,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -18221,7 +18389,7 @@ add_setting(
 connect_target(target: str, is_extended_remote: bool) → bool
 ```
 
-Connect to remote target and get symbols. To prevent `gef` from requesting information not fetched just yet, we disable the context disable when connection was successful. 
+Connect to remote target and get symbols. To prevent `gef` from requesting information not fetched just yet, we disable the context disable when connection was successful.
 
 ---
 
@@ -18233,7 +18401,8 @@ Connect to remote target and get symbols. To prevent `gef` from requesting infor
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -18259,7 +18428,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -18271,7 +18441,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -18297,7 +18468,7 @@ invoke(args: str, from_tty: bool) → None
 load_from_remote_proc(pid: int, info: str) → Union[str, NoneType]
 ```
 
-Download one item from /proc/pid. 
+Download one item from /proc/pid.
 
 ---
 
@@ -18309,7 +18480,7 @@ Download one item from /proc/pid.
 new_objfile_handler(event: 'gdb.Event') → None
 ```
 
-Hook that handles new_objfile events, will update remote environment accordingly. 
+Hook that handles new_objfile events, will update remote environment accordingly.
 
 ---
 
@@ -18377,7 +18548,7 @@ refresh_shared_library_path() → None
 setup_remote_environment(pid: int, update_solib: bool = False) → None
 ```
 
-Clone the remote environment locally in the temporary directory. The command will duplicate the entries in the /proc/<pid> locally and then source those information into the current gdb context to allow gef to use all the extra commands as it was local debugging. 
+Clone the remote environment locally in the temporary directory. The command will duplicate the entries in the /proc/<pid> locally and then source those information into the current gdb context to allow gef to use all the extra commands as it was local debugging.
 
 ---
 
@@ -18397,7 +18568,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `ResetCacheCommand`
-Reset cache of all stored data. This command is here for debugging and test purposes, GEF handles properly the cache reset under "normal" scenario. 
+Reset cache of all stored data. This command is here for debugging and test purposes, GEF handles properly the cache reset under "normal" scenario.
 
 <a href="https://cs.github.com/hugsy/gef?q=ResetCacheCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -18416,7 +18587,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> ResetCacheCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -18434,7 +18605,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -18446,7 +18618,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -18472,7 +18645,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -18484,7 +18658,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -18546,8 +18721,8 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `SPARC`
-Refs: 
-- https://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf 
+Refs:
+- https://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
 
 
 ---
@@ -18627,7 +18802,7 @@ get_ith_parameter(
 ) → Tuple[str, Union[int, NoneType]]
 ```
 
-Retrieves the correct parameter used for the current function call. 
+Retrieves the correct parameter used for the current function call.
 
 ---
 
@@ -18751,15 +18926,15 @@ reset_caches() → None
 supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture.
 
 
 ---
 
 ## <kbd>class</kbd> `SPARC64`
-Refs: 
-- http://math-atlas.sourceforge.net/devel/assembly/abi_sysV_sparc.pdf 
-- https://cr.yp.to/2005-590/sparcv9.pdf 
+Refs:
+- http://math-atlas.sourceforge.net/devel/assembly/abi_sysV_sparc.pdf
+- https://cr.yp.to/2005-590/sparcv9.pdf
 
 
 ---
@@ -18839,7 +19014,7 @@ get_ith_parameter(
 ) → Tuple[str, Union[int, NoneType]]
 ```
 
-Retrieves the correct parameter used for the current function call. 
+Retrieves the correct parameter used for the current function call.
 
 ---
 
@@ -18963,13 +19138,13 @@ reset_caches() → None
 supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture.
 
 
 ---
 
 ## <kbd>class</kbd> `ScanSectionCommand`
-Search for addresses that are located in a memory mapping (haystack) that belonging to another (needle). 
+Search for addresses that are located in a memory mapping (haystack) that belonging to another (needle).
 
 <a href="https://cs.github.com/hugsy/gef?q=ScanSectionCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -18988,7 +19163,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> ScanSectionCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -19006,7 +19181,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -19018,7 +19194,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -19044,7 +19221,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -19056,7 +19234,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -19118,7 +19297,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `SearchPatternCommand`
-SearchPatternCommand: search a pattern in memory. If given an hex value (starting with 0x) the command will also try to look for upwards cross-references to this address. 
+SearchPatternCommand: search a pattern in memory. If given an hex value (starting with 0x) the command will also try to look for upwards cross-references to this address.
 
 <a href="https://cs.github.com/hugsy/gef?q=SearchPatternCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -19137,7 +19316,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> SearchPatternCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -19155,7 +19334,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -19167,7 +19347,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -19193,7 +19374,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -19205,7 +19387,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -19287,7 +19470,7 @@ print_section(section: __main__.Section) → None
 search_pattern(pattern: str, section_name: str) → None
 ```
 
-Search a pattern within the whole userland memory. 
+Search a pattern within the whole userland memory.
 
 ---
 
@@ -19303,7 +19486,7 @@ search_pattern_by_address(
 ) → List[Tuple[int, int, Union[str, NoneType]]]
 ```
 
-Search a pattern within a range defined by arguments. 
+Search a pattern within a range defined by arguments.
 
 ---
 
@@ -19323,7 +19506,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `Section`
-GEF representation of process memory sections. 
+GEF representation of process memory sections.
 
 <a href="https://cs.github.com/hugsy/gef?q=Section.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -19402,7 +19585,7 @@ is_writable() → bool
 ---
 
 ## <kbd>class</kbd> `SectionBaseFunction`
-Return the matching file's base address plus an optional offset. Defaults to current file. Note that quotes need to be escaped 
+Return the matching file's base address plus an optional offset. Defaults to current file. Note that quotes need to be escaped
 
 <a href="https://cs.github.com/hugsy/gef?q=SectionBaseFunction.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -19488,7 +19671,7 @@ __init__(elf: Optional[__main__.Elf], off: int) → None
 ---
 
 ## <kbd>class</kbd> `ShellcodeCommand`
-ShellcodeCommand uses @JonathanSalwan simple-yet-awesome shellcode API to download shellcodes. 
+ShellcodeCommand uses @JonathanSalwan simple-yet-awesome shellcode API to download shellcodes.
 
 <a href="https://cs.github.com/hugsy/gef?q=ShellcodeCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -19507,7 +19690,7 @@ __init__() → None
 
 #### <kbd>property</kbd> ShellcodeCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -19525,7 +19708,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -19537,7 +19721,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -19563,7 +19748,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -19575,7 +19761,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -19637,7 +19824,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `ShellcodeGetCommand`
-Download shellcode from shell-storm's shellcode database. 
+Download shellcode from shell-storm's shellcode database.
 
 <a href="https://cs.github.com/hugsy/gef?q=ShellcodeGetCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -19656,7 +19843,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> ShellcodeGetCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -19674,7 +19861,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -19686,7 +19874,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -19712,7 +19901,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -19738,7 +19928,8 @@ get_shellcode(sid: int) → None
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -19800,7 +19991,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `ShellcodeSearchCommand`
-Search pattern in shell-storm's shellcode database. 
+Search pattern in shell-storm's shellcode database.
 
 <a href="https://cs.github.com/hugsy/gef?q=ShellcodeSearchCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -19819,7 +20010,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> ShellcodeSearchCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -19837,7 +20028,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -19849,7 +20041,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -19875,7 +20068,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -19887,7 +20081,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -19963,7 +20158,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `SmartEvalCommand`
-SmartEval: Smart eval (vague approach to mimic WinDBG `?`). 
+SmartEval: Smart eval (vague approach to mimic WinDBG `?`).
 
 <a href="https://cs.github.com/hugsy/gef?q=SmartEvalCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -19982,7 +20177,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> SmartEvalCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -20000,7 +20195,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -20012,7 +20208,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -20066,7 +20263,8 @@ evaluate(expr: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -20078,7 +20276,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -20140,7 +20339,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `SolveKernelSymbolCommand`
-Solve kernel symbols from kallsyms table. 
+Solve kernel symbols from kallsyms table.
 
 <a href="https://cs.github.com/hugsy/gef?q=SolveKernelSymbolCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -20159,7 +20358,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> SolveKernelSymbolCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -20177,7 +20376,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -20189,7 +20389,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -20215,7 +20416,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -20227,7 +20429,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -20289,7 +20492,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `StackOffsetFunction`
-Return the current stack base address plus an optional offset. 
+Return the current stack base address plus an optional offset.
 
 <a href="https://cs.github.com/hugsy/gef?q=StackOffsetFunction.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -20352,7 +20555,7 @@ invoke(*args: Any) → int
 ---
 
 ## <kbd>class</kbd> `StubBreakpoint`
-Create a breakpoint to permanently disable a call (fork/alarm/signal/etc.). 
+Create a breakpoint to permanently disable a call (fork/alarm/signal/etc.).
 
 <a href="https://cs.github.com/hugsy/gef?q=StubBreakpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -20387,7 +20590,7 @@ stop() → bool
 ---
 
 ## <kbd>class</kbd> `StubCommand`
-Stub out the specified function. This function is useful when needing to skip one function to be called and disrupt your runtime flow (ex. fork). 
+Stub out the specified function. This function is useful when needing to skip one function to be called and disrupt your runtime flow (ex. fork).
 
 <a href="https://cs.github.com/hugsy/gef?q=StubCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -20406,7 +20609,7 @@ __init__() → None
 
 #### <kbd>property</kbd> StubCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -20424,7 +20627,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -20436,7 +20640,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -20462,7 +20667,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -20474,7 +20680,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -20536,7 +20743,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `SyscallArgsCommand`
-Gets the syscall name and arguments based on the register values in the current state. 
+Gets the syscall name and arguments based on the register values in the current state.
 
 <a href="https://cs.github.com/hugsy/gef?q=SyscallArgsCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -20555,7 +20762,7 @@ __init__() → None
 
 #### <kbd>property</kbd> SyscallArgsCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -20573,7 +20780,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -20585,7 +20793,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -20611,7 +20820,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -20623,7 +20833,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -20685,7 +20896,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `TraceFreeBreakpoint`
-Track calls to free() and attempts to detect inconsistencies. 
+Track calls to free() and attempts to detect inconsistencies.
 
 <a href="https://cs.github.com/hugsy/gef?q=TraceFreeBreakpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -20720,7 +20931,7 @@ stop() → bool
 ---
 
 ## <kbd>class</kbd> `TraceFreeRetBreakpoint`
-Internal temporary breakpoint to track free()d values. 
+Internal temporary breakpoint to track free()d values.
 
 <a href="https://cs.github.com/hugsy/gef?q=TraceFreeRetBreakpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -20755,7 +20966,7 @@ stop() → bool
 ---
 
 ## <kbd>class</kbd> `TraceMallocBreakpoint`
-Track allocations done with malloc() or calloc(). 
+Track allocations done with malloc() or calloc().
 
 <a href="https://cs.github.com/hugsy/gef?q=TraceMallocBreakpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -20790,7 +21001,7 @@ stop() → bool
 ---
 
 ## <kbd>class</kbd> `TraceMallocRetBreakpoint`
-Internal temporary breakpoint to retrieve the return value of malloc(). 
+Internal temporary breakpoint to retrieve the return value of malloc().
 
 <a href="https://cs.github.com/hugsy/gef?q=TraceMallocRetBreakpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -20825,7 +21036,7 @@ stop() → bool
 ---
 
 ## <kbd>class</kbd> `TraceReallocBreakpoint`
-Track re-allocations done with realloc(). 
+Track re-allocations done with realloc().
 
 <a href="https://cs.github.com/hugsy/gef?q=TraceReallocBreakpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -20860,7 +21071,7 @@ stop() → bool
 ---
 
 ## <kbd>class</kbd> `TraceReallocRetBreakpoint`
-Internal temporary breakpoint to retrieve the return value of realloc(). 
+Internal temporary breakpoint to retrieve the return value of realloc().
 
 <a href="https://cs.github.com/hugsy/gef?q=TraceReallocRetBreakpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -20895,7 +21106,7 @@ stop() → bool
 ---
 
 ## <kbd>class</kbd> `TraceRunCommand`
-Create a runtime trace of all instructions executed from $pc to LOCATION specified. The trace is stored in a text file that can be next imported in IDA Pro to visualize the runtime path. 
+Create a runtime trace of all instructions executed from $pc to LOCATION specified. The trace is stored in a text file that can be next imported in IDA Pro to visualize the runtime path.
 
 <a href="https://cs.github.com/hugsy/gef?q=TraceRunCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -20914,7 +21125,7 @@ __init__() → None
 
 #### <kbd>property</kbd> TraceRunCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -20932,7 +21143,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -20944,7 +21156,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -20984,7 +21197,8 @@ get_frames_size() → int
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -20996,7 +21210,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -21086,7 +21301,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `UafWatchpoint`
-Custom watchpoints set TraceFreeBreakpoint() to monitor free()d pointers being used. 
+Custom watchpoints set TraceFreeBreakpoint() to monitor free()d pointers being used.
 
 <a href="https://cs.github.com/hugsy/gef?q=UafWatchpoint.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -21113,13 +21328,13 @@ __init__(addr: int) → None
 stop() → bool
 ```
 
-If this method is triggered, we likely have a UaF. Break the execution and report it. 
+If this method is triggered, we likely have a UaF. Break the execution and report it.
 
 
 ---
 
 ## <kbd>class</kbd> `VMMapCommand`
-Display a comprehensive layout of the virtual memory mapping. If a filter argument, GEF will filter out the mapping whose pathname do not match that filter. 
+Display a comprehensive layout of the virtual memory mapping. If a filter argument, GEF will filter out the mapping whose pathname do not match that filter.
 
 <a href="https://cs.github.com/hugsy/gef?q=VMMapCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -21138,7 +21353,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> VMMapCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -21156,7 +21371,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -21168,7 +21384,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -21194,7 +21411,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -21206,7 +21424,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -21310,7 +21529,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `VersionCommand`
-Display GEF version info. 
+Display GEF version info.
 
 <a href="https://cs.github.com/hugsy/gef?q=VersionCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -21329,7 +21548,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> VersionCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -21347,7 +21566,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -21359,7 +21579,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -21385,7 +21606,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -21397,7 +21619,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -21667,7 +21890,7 @@ reset_caches() → None
 supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture.
 
 
 ---
@@ -21755,7 +21978,7 @@ get_ith_parameter(
 ) → Tuple[str, Union[int, NoneType]]
 ```
 
-Retrieves the correct parameter used for the current function call. 
+Retrieves the correct parameter used for the current function call.
 
 ---
 
@@ -21879,13 +22102,13 @@ reset_caches() → None
 supports_gdb_arch(gdb_arch: str) → Union[bool, NoneType]
 ```
 
-If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture. 
+If implemented by a child `Architecture`, this function dictates if the current class supports the loaded ELF file (which can be accessed via `gef.binary`). This callback function will override any assumption made by GEF to determine the architecture.
 
 
 ---
 
 ## <kbd>class</kbd> `XAddressInfoCommand`
-Retrieve and display runtime information for the location(s) given as parameter. 
+Retrieve and display runtime information for the location(s) given as parameter.
 
 <a href="https://cs.github.com/hugsy/gef?q=XAddressInfoCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -21904,7 +22127,7 @@ __init__() → None
 
 #### <kbd>property</kbd> XAddressInfoCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -21922,7 +22145,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -21934,7 +22158,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -21960,7 +22185,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -21972,7 +22198,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -22048,7 +22275,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `XFilesCommand`
-Shows all libraries (and sections) loaded by binary. This command extends the GDB command `info files`, by retrieving more information from extra sources, and providing a better display. If an argument FILE is given, the output will grep information related to only that file. If an argument name is also given, the output will grep to the name within FILE. 
+Shows all libraries (and sections) loaded by binary. This command extends the GDB command `info files`, by retrieving more information from extra sources, and providing a better display. If an argument FILE is given, the output will grep information related to only that file. If an argument name is also given, the output will grep to the name within FILE.
 
 <a href="https://cs.github.com/hugsy/gef?q=XFilesCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -22067,7 +22294,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> XFilesCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -22085,7 +22312,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -22097,7 +22325,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -22123,7 +22352,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -22135,7 +22365,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -22197,7 +22428,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `XorMemoryCommand`
-XOR a block of memory. The command allows to simply display the result, or patch it runtime at runtime. 
+XOR a block of memory. The command allows to simply display the result, or patch it runtime at runtime.
 
 <a href="https://cs.github.com/hugsy/gef?q=XorMemoryCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -22216,7 +22447,7 @@ __init__() → None
 
 #### <kbd>property</kbd> XorMemoryCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -22234,7 +22465,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -22246,7 +22478,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -22272,7 +22505,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -22284,7 +22518,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -22346,7 +22581,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `XorMemoryDisplayCommand`
-Display a block of memory pointed by ADDRESS by xor-ing each byte with KEY. The key must be provided in hexadecimal format. 
+Display a block of memory pointed by ADDRESS by xor-ing each byte with KEY. The key must be provided in hexadecimal format.
 
 <a href="https://cs.github.com/hugsy/gef?q=XorMemoryDisplayCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -22365,7 +22600,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> XorMemoryDisplayCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -22383,7 +22618,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -22395,7 +22631,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -22421,7 +22658,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -22433,7 +22671,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -22495,7 +22734,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `XorMemoryPatchCommand`
-Patch a block of memory pointed by ADDRESS by xor-ing each byte with KEY. The key must be provided in hexadecimal format. 
+Patch a block of memory pointed by ADDRESS by xor-ing each byte with KEY. The key must be provided in hexadecimal format.
 
 <a href="https://cs.github.com/hugsy/gef?q=XorMemoryPatchCommand.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -22514,7 +22753,7 @@ __init__(*args: Any, **kwargs: Any) → None
 
 #### <kbd>property</kbd> XorMemoryPatchCommand.settings
 
-Return the list of settings for this command. 
+Return the list of settings for this command.
 
 
 
@@ -22532,7 +22771,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead 
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -22544,7 +22784,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead 
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -22570,7 +22811,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead 
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -22582,7 +22824,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead 
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -22644,7 +22887,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `Zone`
-Zone(name, zone_start, zone_end, filename) 
+Zone(name, zone_start, zone_end, filename)
 
 
 
@@ -22653,7 +22896,7 @@ Zone(name, zone_start, zone_end, filename)
 ---
 
 ## <kbd>class</kbd> `classproperty`
-Make the attribute a `classproperty`. 
+Make the attribute a `classproperty`.
 
 
 

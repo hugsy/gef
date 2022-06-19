@@ -5542,20 +5542,8 @@ class ChangeFdCommand(GenericCommand):
 
     def get_fd_from_result(self, res: str) -> int:
         # Output example: $1 = 3
-        res = int(res.split()[2], 0)
-        res = gdb.execute(f"""p/d {res}""", to_string=True)
-        res = int(res.split()[2], 0)
-        return res
-
-@register
-class IdaInteractCommand(GenericCommand):
-    """**REMOVED** a better version of `ida-interact` is now hosted on `gef-extras`"""
-    _cmdline_ = "ida-interact"
-    _syntax_ = f"{_cmdline_} METHOD [ARGS]"
-
-    def do_invoke(self, argv: List[str]) -> None:
-        err("`ida-interact` was removed from gef. You can find a better version as part of `gef-extras`")
-        return
+        res = gdb.execute(f"""p/d {int(res.split()[2], 0)}""", to_string=True)
+        return int(res.split()[2], 0)
 
 
 @register

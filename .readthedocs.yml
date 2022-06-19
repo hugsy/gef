@@ -1,0 +1,15 @@
+version: 2
+
+mkdocs:
+  configuration: docs/obsolete/mkdocs.yml
+  fail_on_warning: false
+
+formats: all
+
+build:
+  image: latest
+
+python:
+  version: 3.7
+  install:
+    - requirements: docs/obsolete/requirements.txt

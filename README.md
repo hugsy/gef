@@ -1,14 +1,11 @@
 <p align="center">
-  <table style="border: 0px">
-  <tr><td><img src="https://i.imgur.com/o0L8lPN.png" alt="logo"/></td></tr>
-  <tr>
-  <td>
-  <a href="https://discord.gg/HCS8Hg7"><img alt="Discord" src="https://img.shields.io/badge/Discord-BlahCats-yellow"></a>
+  <img src="https://i.imgur.com/o0L8lPN.png" alt="logo"/>
+</p>
+
+<p align="center">
+    <a href="https://discord.gg/HCS8Hg7"><img alt="Discord" src="https://img.shields.io/badge/Discord-BlahCats-yellow"></a>
   <a href="https://hugsy.github.io/gef"><img alt="Docs" src="https://img.shields.io/badge/Docs-gh--pages-brightgreen"></a>
-  <a title="Use the IDs: gef/gef-demo" href="https://demo.gef.blah.cat"><img alt="Try GEF" src="https://img.shields.io/badge/Demo-Try--GEF-blue"></a>
-  </td>
-  </tr>
-  </table>
+  <a title="Use the IDs: gef/gef-demo" href="https://demo.gef.blah.cat"><img alt="Try GEF" src="https://img.shields.io/badge/Demo-Try%20GEF%20Live-blue"></a>
 </p>
 
 `GEF` (pronounced ʤɛf - "Jeff") is a set of commands for x86/64, ARM, MIPS, PowerPC and SPARC to assist exploit developers and reverse-engineers when using old school GDB. It provides additional features to GDB using the Python API to assist during the process of dynamic analysis and exploit development. Application developers will also benefit from it, as GEF lifts a great part of regular GDB obscurity, avoiding repeating traditional commands, or bringing out the relevant information from the debugging runtime.
@@ -78,4 +75,4 @@ To get involved, refer to the [Contribution documentation](https://hugsy.github.
 Another way to contribute to keeping the project alive is by sponsoring it! Check out [the sponsoring documentation](https://hugsy.github.io/gef/#sponsors) for details so you can be part of the list of those [awesome sponsors](https://github.com/sponsors/hugsy).
 
 
-## Happy Hacking :beers: ##
+## Happy Hacking 🍻 ##
