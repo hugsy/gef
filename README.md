@@ -43,10 +43,10 @@ You can immediately see that GEF is correctly installed by launching GDB:
 A few of `GEF` features include:
 
   * **One** single GDB script
-  * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included and [is installable instantly](https://hugsy.github.io/gef/master/#setup)
+  * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included and [is installable instantly](https://hugsy.github.io/gef/#setup)
   * **Fast** limiting the number of dependencies and optimizing code to make the commands as fast as possible
   * Provides a great variety of commands to drastically change your experience in GDB.
-  * [**Easily** extensible](https://hugsy.github.io/gef/master/api/) to create other commands by providing more comprehensible layout to GDB Python API.
+  * [**Easily** extensible](https://hugsy.github.io/gef/api/) to create other commands by providing more comprehensible layout to GDB Python API.
   * Full Python3 support ([Python2 support was dropped](https://github.com/hugsy/gef/releases/tag/2020.03) - see [`gef-legacy`](https://github.com/hugsy/gef-legacy)).
   * Built around an architecture abstraction layer, so all commands work in any GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS, PowerPC, etc.
   * Suited for real-life apps debugging, exploit development, just as much as CTF
@@ -61,9 +61,9 @@ Unlike other GDB plugins, GEF has an extensive and up-to-date [documentation](ht
 
 ## Current status ##
 
-| Documentation |License | Compatibility | CI Tests (`master`) | CI Tests (`dev`) |
+| Documentation |License | Compatibility | CI Tests (`main`) | CI Tests (`dev`) |
 |:---:|:---:|:---|--|--|
-| [![Documentation](https://github.com/hugsy/gef/actions/workflows/generate-docs.yml/badge.svg)](https://github.com/hugsy/gef/actions/workflows/generate-docs.yml) | [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/master/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) | [![CI Test for GEF](https://github.com/hugsy/gef/actions/workflows/run-tests.yml/badge.svg)](https://github.com/hugsy/gef/actions/workflows/run-tests.yml) | [![CI Test for GEF](https://github.com/hugsy/gef/actions/workflows/run-tests.yml/badge.svg?branch=dev)](https://github.com/hugsy/gef/actions/workflows/run-tests.yml) |
+| [![Documentation](https://github.com/hugsy/gef/actions/workflows/generate-docs.yml/badge.svg)](https://github.com/hugsy/gef/actions/workflows/generate-docs.yml) | [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/main/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) | [![CI Test for GEF](https://github.com/hugsy/gef/actions/workflows/run-tests.yml/badge.svg)](https://github.com/hugsy/gef/actions/workflows/run-tests.yml) | [![CI Test for GEF](https://github.com/hugsy/gef/actions/workflows/run-tests.yml/badge.svg?branch=dev)](https://github.com/hugsy/gef/actions/workflows/run-tests.yml) |
 
 
 ## Contribute ##

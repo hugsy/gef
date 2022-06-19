@@ -57,7 +57,7 @@ Basic HTTP wrapper for GET request. Return the body of the page if HTTP code is 
 update_gef(argv: List[str]) → int
 ```
 
-Try to update `gef` to the latest version pushed on GitHub master branch. Return 0 on success, 1 on failure.
+Try to update `gef` to the latest version pushed on GitHub main branch. Return 0 on success, 1 on failure.
 
 
 ---

@@ -80,7 +80,7 @@ Src: [@rick2600: terminator + gdb + gef + voltron cc: @snare @_hugsy_](https://t
 
 I would suggest thoroughly reading this documentation, just having a look to
 the
-[CONTRIBUTE](https://github.com/hugsy/gef/blob/master/.github/CONTRIBUTING.md)
+[CONTRIBUTE](https://github.com/hugsy/gef/blob/main/.github/CONTRIBUTING.md)
 file of the project to give you pointers.
 
 Also a good thing would be to join our [Discord

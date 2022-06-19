@@ -27,7 +27,7 @@
 
 <!-- N.B.: Your patch won't be reviewed unless fulfilling the following base requirements: -->
 <!--- Put an `x` in all the boxes that are complete, or that don't apply -->
-- [ ] My PR was done against the `dev` branch, not `master`.
+- [ ] My PR was done against the `dev` branch, not `main`.
 - [ ] My code follows the code style of this project.
 - [ ] My change includes a change to the documentation, if required.
 - [ ] If my change adds new code, [adequate tests](docs/testing.md) have been added.
