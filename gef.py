@@ -4377,7 +4377,7 @@ class GenericCommand(gdb.Command):
 
     _cmdline_: str
     _syntax_: str
-    _example_: str = ""
+    _example_: Union[str, List[str]] = ""
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -4388,7 +4388,11 @@ class GenericCommand(gdb.Command):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.pre_load()
         syntax = Color.yellowify("\nSyntax: ") + self._syntax_
-        example = Color.yellowify("\nExample: ") + self._example_ if self._example_ else ""
+        example = Color.yellowify("\nExamples: \n\t")
+        if isinstance(self._example_, list):
+            example += "\n\t".join(self._example_)
+        elif isinstance(self._example_, str):
+            example += self._example_
         self.__doc__ = self.__doc__.replace(" "*4, "") + syntax + example
         self.repeat = False
         self.repeat_count = 0
