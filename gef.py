@@ -3145,6 +3145,7 @@ class MIPS64(MIPS):
     def supports_gdb_arch(gdb_arch: str) -> Optional[bool]:
         return gdb_arch.startswith("mips") and gef.binary.e_class == Elf.Class.ELF_64_BITS
 
+
 def copy_to_clipboard(data: bytes) -> None:
     """Helper function to submit data to the clipboard"""
     if sys.platform == "linux":
@@ -7169,9 +7170,6 @@ class ContextCommand(GenericCommand):
         self["libc_args"] = (False, "Show libc function call args description")
         self["libc_args_path"] = ("", "Path to libc function call args json files, provided via gef-extras")
 
-        if "capstone" in list(sys.modules.keys()):
-            self["use_capstone"] = (False, "Use capstone as disassembler in the code pane (instead of GDB)")
-
         self.layout_mapping = {
             "legend": (self.show_legend, None),
             "regs": (self.context_regs, None),
@@ -7184,6 +7182,8 @@ class ContextCommand(GenericCommand):
             "threads": (self.context_threads, None),
             "extra": (self.context_additional_information, None),
         }
+
+        self.instruction_iterator = gef_disassemble
         return
 
     def post_load(self) -> None:
@@ -7372,7 +7372,6 @@ class ContextCommand(GenericCommand):
     def context_code(self) -> None:
         nb_insn = self["nb_lines_code"]
         nb_insn_prev = self["nb_lines_code_prev"]
-        use_capstone = "use_capstone" in self and self["use_capstone"]
         show_opcodes_size = "show_opcodes_size" in self and self["show_opcodes_size"]
         past_insns_color = gef.config["theme.old_context"]
         cur_insn_color = gef.config["theme.disassemble_current_instruction"]
@@ -7386,9 +7385,9 @@ class ContextCommand(GenericCommand):
         self.context_title(f"code:{arch_name}")
 
         try:
-            instruction_iterator = gef_disassemble
 
-            for insn in instruction_iterator(pc, nb_insn, nb_prev=nb_insn_prev):
+
+            for insn in self.instruction_iterator(pc, nb_insn, nb_prev=nb_insn_prev):
                 line = []
                 is_taken  = False
                 target    = None
@@ -7431,7 +7430,7 @@ class ContextCommand(GenericCommand):
                     except ValueError:
                         # If the operand isn't an address right now we can't parse it
                         continue
-                    for i, tinsn in enumerate(instruction_iterator(address, nb_insn)):
+                    for i, tinsn in enumerate(self.instruction_iterator(address, nb_insn)):
                         text= f"   {DOWN_ARROW if i == 0 else ' '}  {tinsn!s}"
                         gef_print(text)
                     break
@@ -7515,12 +7514,11 @@ class ContextCommand(GenericCommand):
         block_start = __get_current_block_start_address()
         if not block_start:
             return
-        use_capstone = "use_capstone" in self and self["use_capstone"]
-        instruction_iterator = gef_disassemble
+
         function_parameters = gef.arch.function_parameters
         arg_key_color = gef.config["theme.registers_register_name"]
 
-        for insn in instruction_iterator(block_start, pc - block_start):
+        for insn in self.instruction_iterator(block_start, pc - block_start):
             if not insn.operands:
                 continue
 
