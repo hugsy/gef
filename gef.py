@@ -77,11 +77,12 @@ import sys
 import tempfile
 import time
 import traceback
+
 import warnings
 from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
-from typing import (Any, ByteString, Callable, Dict, Generator, IO, Iterator, List,
+from typing import (Any, ByteString, Callable, Dict, Generator, IO, Iterable, Iterator, List,
                     NoReturn, Optional, Sequence, Tuple, Type, Union)
 from urllib.request import urlopen
 
@@ -99,7 +100,7 @@ def http_get(url: str) -> Optional[bytes]:
 def update_gef(argv: List[str]) -> int:
     """Try to update `gef` to the latest version pushed on GitHub master branch.
     Return 0 on success, 1 on failure. """
-    ver = "dev" if "--dev" in argv else "master"
+    ver = "dev" if "--dev" in argv else GEF_DEFAULT_BRANCH
     latest_gef_data = http_get(f"https://raw.githubusercontent.com/hugsy/gef/{ver}/scripts/gef.sh")
     if not latest_gef_data:
         print("[-] Failed to get remote gef")
@@ -139,20 +140,22 @@ GEF_MAX_STRING_LENGTH                  = 50
 LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME      = "main_arena"
 ANSI_SPLIT_RE                          = r"(\033\[[\d;]*m)"
 
-LEFT_ARROW                             = " \u2190 "
-RIGHT_ARROW                            = " \u2192 "
-DOWN_ARROW                             = "\u21b3"
-HORIZONTAL_LINE                        = "\u2500"
-VERTICAL_LINE                          = "\u2502"
-CROSS                                  = "\u2718 "
-TICK                                   = "\u2713 "
-BP_GLYPH                               = "\u25cf"
-GEF_PROMPT                             = "gef\u27a4  "
+LEFT_ARROW                             = " ← "
+RIGHT_ARROW                            = " → "
+DOWN_ARROW                             = "↳"
+HORIZONTAL_LINE                        = "─"
+VERTICAL_LINE                          = "│"
+CROSS                                  = "✘ "
+TICK                                   = "✓ "
+BP_GLYPH                               = "●"
+GEF_PROMPT                             = "gef➤  "
 GEF_PROMPT_ON                          = f"\001\033[1;32m\002{GEF_PROMPT}\001\033[0m\002"
 GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\033[0m\002"
 
 PATTERN_LIBC_VERSION                   = re.compile(rb"glibc (\d+)\.(\d+)")
 
+GEF_DEFAULT_BRANCH                     = "master"
+GEF_EXTRAS_DEFAULT_BRANCH              = "master"
 
 gef : "Gef"
 __registered_commands__ : List[Type["GenericCommand"]]                      = []
@@ -177,7 +180,7 @@ def reset() -> None:
     global gef
 
     arch = None
-    if gef:
+    if "gef" in locals().keys():
         reset_all_caches()
         arch = gef.arch
         del gef
@@ -376,7 +379,10 @@ def deprecated(solution: str = "") -> Callable:
     def decorator(f: Callable) -> Callable:
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            msg = f"'{f.__name__}' is deprecated and will be removed in a feature release. "
+            caller = inspect.stack()[1]
+            caller_file = pathlib.Path(caller.filename)
+            caller_loc = caller.lineno
+            msg = f"{caller_file.name}:L{caller_loc} '{f.__name__}' is deprecated and will be removed in a feature release. "
             if not gef:
                 print(msg)
             elif gef.config["gef.show_deprecation_warnings"] is True:
@@ -806,6 +812,9 @@ class Elf:
         self.fd.seek(off, 0)
 
     def __str__(self) -> str:
+        return f"ELF('{self.path.absolute()}', {self.e_class.name}, {self.e_machine.name})"
+
+    def __repr__(self) -> str:
         return f"ELF('{self.path.absolute()}', {self.e_class.name}, {self.e_machine.name})"
 
     @property
@@ -1335,7 +1344,7 @@ class GlibcArena:
         return fd, bw
 
     def is_main_arena(self) -> bool:
-        return int(self) == int(gef.heap.main_arena)
+        return gef.heap.main_arena is not None and int(self) == int(gef.heap.main_arena)
 
     def heap_addr(self, allow_unaligned: bool = False) -> Optional[int]:
         if self.is_main_arena():
@@ -1596,16 +1605,14 @@ def get_libc_version() -> Tuple[int, ...]:
 
 def titlify(text: str, color: Optional[str] = None, msg_color: Optional[str] = None) -> str:
     """Print a centered title."""
-    cols = get_terminal_size()[1]
+    _, cols = get_terminal_size()
     nb = (cols - len(text) - 2) // 2
-    if color is None:
-        color = gef.config["theme.default_title_line"]
-    if msg_color is None:
-        msg_color = gef.config["theme.default_title_message"]
+    line_color = color or gef.config["theme.default_title_line"]
+    text_color = msg_color or gef.config["theme.default_title_message"]
 
-    msg = [Color.colorify(f"{HORIZONTAL_LINE * nb} ", color),
-           Color.colorify(text, msg_color),
-           Color.colorify(f" {HORIZONTAL_LINE * nb}", color)]
+    msg = [Color.colorify(f"{HORIZONTAL_LINE * nb} ", line_color),
+           Color.colorify(text, text_color),
+           Color.colorify(f" {HORIZONTAL_LINE * nb}", line_color)]
     return "".join(msg)
 
 
@@ -3138,6 +3145,7 @@ class MIPS64(MIPS):
     def supports_gdb_arch(gdb_arch: str) -> Optional[bool]:
         return gdb_arch.startswith("mips") and gef.binary.e_class == Elf.Class.ELF_64_BITS
 
+
 def copy_to_clipboard(data: bytes) -> None:
     """Helper function to submit data to the clipboard"""
     if sys.platform == "linux":
@@ -3225,9 +3233,8 @@ def is_qemu_system() -> bool:
 @lru_cache()
 def get_filepath() -> Optional[str]:
     """Return the local absolute path of the file currently debugged."""
-    filename = gdb.current_progspace().filename
-
     if is_remote_debug():
+        filename = gdb.current_progspace().filename
         # if no filename specified, try downloading target from /proc
         if filename is None:
             pid = gef.session.pid
@@ -3247,11 +3254,13 @@ def get_filepath() -> Optional[str]:
         elif gef.session.remote is not None:
             return f"/tmp/gef/{gef.session.remote:d}/{get_path_from_info_proc()}"
         return filename
-    else:
-        if filename is not None:
-            return filename
-        # inferior probably did not have name, extract cmdline from info proc
-        return get_path_from_info_proc()
+
+    try:
+        if not gef.session or not gef.session.file:
+            return None
+    except:
+        return None
+    return str(gef.session.file.absolute())
 
 
 def download_file(remote_path: str, use_cache: bool = False, local_name: Optional[str] = None) -> Optional[str]:
@@ -3413,16 +3422,32 @@ def hook_stop_handler(_: "gdb.Event") -> None:
     return
 
 
-def new_objfile_handler(_: "gdb.Event") -> None:
+def new_objfile_handler(evt: "gdb.Event") -> None:
     """GDB event handler for new object file cases."""
     reset_all_caches()
-    reset_architecture()
-    load_libc_args()
+    if evt:
+        try:
+            elf = Elf(evt.new_objfile.filename)
+            if not gef.binary:
+                gef.binary = elf
+                reset_architecture()
+                load_libc_args()
+            else:
+                gef.session.modules.append(elf)
+        except FileNotFoundError:
+            pass
+    else:
+        elf = Elf(gdb.current_progspace().filename)
+        if not gef.binary:
+            gef.binary = elf
+            reset_architecture()
+            load_libc_args()
     return
 
 
 def exit_handler(_: "gdb.Event") -> None:
     """GDB event handler for exit cases."""
+    global gef
     reset_all_caches()
     gef.session.qemu_mode = False
     if gef.session.remote and gef.config["gef-remote.clean_on_exit"] is True:
@@ -3504,22 +3529,6 @@ def get_terminal_size() -> Tuple[int, int]:
             return tty_rows, tty_columns
         except OSError:
             return 600, 100
-
-
-@lru_cache()
-def get_elf_headers(filename: Optional[str] = None) -> Elf:
-    """Return an `Elf` object of the currently debugged target. If no `filename` provided, it will
-    be determined from the current GDB session."""
-    if not filename:
-        filename = get_filepath()
-
-    if not filename:
-        raise FileNotFoundError("No file provided")
-
-    if filename.startswith("target:"):
-        raise RuntimeError("Your file is remote, you should try using `gef-remote` instead")
-
-    return Elf(filename)
 
 
 @lru_cache()
@@ -4331,12 +4340,12 @@ def register_external_context_pane(pane_name: str, display_pane_function: Callab
 #
 # Commands
 #
-@deprecated("")
+@deprecated("Use `register()`, and inherit from `GenericCommand` instead")
 def register_external_command(cls: Type["GenericCommand"]) -> Type["GenericCommand"]:
     """Registering function for new GEF (sub-)command to GDB."""
     return cls
 
-@deprecated("")
+@deprecated("Use `register()`, and inherit from `GenericCommand` instead")
 def register_command(cls: Type["GenericCommand"]) -> Type["GenericCommand"]:
     """Decorator for registering new GEF (sub-)command to GDB."""
     return cls
@@ -4348,29 +4357,28 @@ def register_priority_command(cls: Type["GenericCommand"]) -> Type["GenericComma
     return cls
 
 
-class GenericCommandBase:
-    def __init_subclass__(cls: Type["GenericCommandBase"], **kwargs):
-        global __registered_commands__
-        super().__init_subclass__(**kwargs)
-        if hasattr(cls, "_cmdline_") and issubclass(cls, GenericCommand):
-            __registered_commands__.append(cls)
-        return
+def register(cls: Type["GenericCommand"]) -> Type["GenericCommand"]:
+    if issubclass(cls, GenericCommand):
+        assert( hasattr(cls, "_cmdline_"))
+        assert( hasattr(cls, "do_invoke"))
+        __registered_commands__.append(cls)
+        return cls
 
-class GenericExternalCommandBase:
-    def __init_subclass__(cls: Type["GenericExternalCommandBase"], **kwargs):
-        super().__init_subclass__(**kwargs)
-        if hasattr(cls, "_cmdline_") and issubclass(cls, GenericCommand):
-            gef.gdb.load(initial=False)
-            gef.gdb.doc.add_command_to_doc((cls._cmdline_, cls, None))
-            gef.gdb.doc.refresh()
-        return
+    if issubclass(cls, GenericFunction):
+        assert( hasattr(cls, "_function_"))
+        assert( hasattr(cls, "invoke"))
+        __registered_functions__.append(cls)
+        return cls
 
-class GenericCommand(gdb.Command, GenericCommandBase):
+    raise TypeError(f"`{cls.__class__}` is an illegal class for `register`")
+
+
+class GenericCommand(gdb.Command):
     """This is an abstract class for invoking commands, should not be instantiated."""
 
     _cmdline_: str
     _syntax_: str
-    _example_: str = ""
+    _example_: Union[str, List[str]] = ""
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -4381,7 +4389,11 @@ class GenericCommand(gdb.Command, GenericCommandBase):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.pre_load()
         syntax = Color.yellowify("\nSyntax: ") + self._syntax_
-        example = Color.yellowify("\nExample: ") + self._example_ if self._example_ else ""
+        example = Color.yellowify("\nExamples: \n\t")
+        if isinstance(self._example_, list):
+            example += "\n\t".join(self._example_)
+        elif isinstance(self._example_, str):
+            example += self._example_
         self.__doc__ = self.__doc__.replace(" "*4, "") + syntax + example
         self.repeat = False
         self.repeat_count = 0
@@ -4489,6 +4501,7 @@ class GenericCommand(gdb.Command, GenericCommandBase):
         return
 
 
+@register
 class VersionCommand(GenericCommand):
     """Display GEF version info."""
 
@@ -4520,6 +4533,7 @@ class VersionCommand(GenericCommand):
         return
 
 
+@register
 class PrintFormatCommand(GenericCommand):
     """Print bytes format in commonly used formats, such as literals in high level languages."""
 
@@ -4602,6 +4616,7 @@ class PrintFormatCommand(GenericCommand):
         return
 
 
+@register
 class PieCommand(GenericCommand):
     """PIE breakpoint support."""
 
@@ -4618,6 +4633,7 @@ class PieCommand(GenericCommand):
         return
 
 
+@register
 class PieBreakpointCommand(GenericCommand):
     """Set a PIE breakpoint at an offset from the target binaries base address."""
 
@@ -4649,6 +4665,7 @@ class PieBreakpointCommand(GenericCommand):
         return
 
 
+@register
 class PieInfoCommand(GenericCommand):
     """Display breakpoint info."""
 
@@ -4674,6 +4691,7 @@ class PieInfoCommand(GenericCommand):
         return
 
 
+@register
 class PieDeleteCommand(GenericCommand):
     """Delete a PIE breakpoint."""
 
@@ -4707,6 +4725,7 @@ class PieDeleteCommand(GenericCommand):
         return
 
 
+@register
 class PieRunCommand(GenericCommand):
     """Run process with PIE breakpoint support."""
 
@@ -4716,7 +4735,7 @@ class PieRunCommand(GenericCommand):
     def do_invoke(self, argv: List[str]) -> None:
         global gef
         fpath = get_filepath()
-        if fpath is None:
+        if not fpath:
             warn("No executable to debug, use `file` to load a binary")
             return
 
@@ -4749,6 +4768,7 @@ class PieRunCommand(GenericCommand):
         return
 
 
+@register
 class PieAttachCommand(GenericCommand):
     """Do attach with PIE breakpoint support."""
 
@@ -4772,6 +4792,7 @@ class PieAttachCommand(GenericCommand):
         return
 
 
+@register
 class PieRemoteCommand(GenericCommand):
     """Attach to a remote connection with PIE breakpoint support."""
 
@@ -4795,6 +4816,7 @@ class PieRemoteCommand(GenericCommand):
         return
 
 
+@register
 class SmartEvalCommand(GenericCommand):
     """SmartEval: Smart eval (vague approach to mimic WinDBG `?`)."""
 
@@ -4860,6 +4882,7 @@ class SmartEvalCommand(GenericCommand):
         return
 
 
+@register
 class CanaryCommand(GenericCommand):
     """Shows the canary value of the current process."""
 
@@ -4885,6 +4908,7 @@ class CanaryCommand(GenericCommand):
         return
 
 
+@register
 class ProcessStatusCommand(GenericCommand):
     """Extends the info given by GDB `info proc`, by giving an exhaustive description of the
     process status (file descriptors, ancestor, descendants, etc.)."""
@@ -5040,6 +5064,7 @@ class ProcessStatusCommand(GenericCommand):
         return
 
 
+@register
 class GefThemeCommand(GenericCommand):
     """Customize GEF appearance."""
 
@@ -5297,6 +5322,7 @@ class ExternalStructureManager:
         return None
 
 
+@register
 class PCustomCommand(GenericCommand):
     """Dump user defined structure.
     This command attempts to reproduce WinDBG awesome `dt` command for GDB and allows
@@ -5351,6 +5377,7 @@ class PCustomCommand(GenericCommand):
         return modname, structname
 
 
+@register
 class PCustomListCommand(PCustomCommand):
     """PCustom: list available structures"""
 
@@ -5374,6 +5401,7 @@ class PCustomListCommand(PCustomCommand):
         return
 
 
+@register
 class PCustomShowCommand(PCustomCommand):
     """PCustom: show the content of a given structure"""
 
@@ -5401,6 +5429,7 @@ class PCustomShowCommand(PCustomCommand):
         return
 
 
+@register
 class PCustomEditCommand(PCustomCommand):
     """PCustom: edit the content of a given structure"""
 
@@ -5446,6 +5475,7 @@ class {structname}(Structure):
         return
 
 
+@register
 class ChangeFdCommand(GenericCommand):
     """ChangeFdCommand: redirect file descriptor during runtime."""
 
@@ -5512,12 +5542,11 @@ class ChangeFdCommand(GenericCommand):
 
     def get_fd_from_result(self, res: str) -> int:
         # Output example: $1 = 3
-        res = int(res.split()[2], 0)
-        res = gdb.execute(f"""p/d {res}""", to_string=True)
-        res = int(res.split()[2], 0)
-        return res
+        res = gdb.execute(f"""p/d {int(res.split()[2], 0)}""", to_string=True)
+        return int(res.split()[2], 0)
 
 
+@register
 class ScanSectionCommand(GenericCommand):
     """Search for addresses that are located in a memory mapping (haystack) that belonging
     to another (needle)."""
@@ -5585,6 +5614,7 @@ class ScanSectionCommand(GenericCommand):
         return
 
 
+@register
 class SearchPatternCommand(GenericCommand):
     """SearchPatternCommand: search a pattern in memory. If given an hex value (starting with 0x)
     the command will also try to look for upwards cross-references to this address."""
@@ -5718,6 +5748,7 @@ class SearchPatternCommand(GenericCommand):
         return
 
 
+@register
 class FlagsCommand(GenericCommand):
     """Edit flags in a human friendly way."""
 
@@ -5763,11 +5794,7 @@ class FlagsCommand(GenericCommand):
         return
 
 
-
-
-
-
-
+@register
 class RemoteCommand(GenericCommand):
     """gef wrapper for the `target remote` command. This command will automatically
     download the target binary in the local temporary directory (defaut /tmp) and then
@@ -5989,6 +6016,7 @@ class RemoteCommand(GenericCommand):
         return
 
 
+@register
 class NopCommand(GenericCommand):
     """Patch the instruction(s) pointed by parameters with NOP. Note: this command is architecture
     aware."""
@@ -6026,6 +6054,7 @@ class NopCommand(GenericCommand):
         return
 
 
+@register
 class StubCommand(GenericCommand):
     """Stub out the specified function. This function is useful when needing to skip one
     function to be called and disrupt your runtime flow (ex. fork)."""
@@ -6049,8 +6078,7 @@ class StubCommand(GenericCommand):
         return
 
 
-
-
+@register
 class GlibcHeapCommand(GenericCommand):
     """Base command to get information about the Glibc heap structure."""
 
@@ -6067,6 +6095,7 @@ class GlibcHeapCommand(GenericCommand):
         return
 
 
+@register
 class GlibcHeapSetArenaCommand(GenericCommand):
     """Display information on a heap chunk."""
 
@@ -6104,6 +6133,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
         return
 
 
+@register
 class GlibcHeapArenaCommand(GenericCommand):
     """Display information on a heap chunk."""
 
@@ -6117,6 +6147,7 @@ class GlibcHeapArenaCommand(GenericCommand):
         return
 
 
+@register
 class GlibcHeapChunkCommand(GenericCommand):
     """Display information on a heap chunk.
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
@@ -6160,6 +6191,7 @@ class GlibcHeapChunkCommand(GenericCommand):
         return
 
 
+@register
 class GlibcHeapChunksCommand(GenericCommand):
     """Display all heap chunks for the current arena. As an optional argument
     the base address of a different arena can be passed"""
@@ -6225,6 +6257,7 @@ class GlibcHeapChunksCommand(GenericCommand):
         return
 
 
+@register
 class GlibcHeapBinsCommand(GenericCommand):
     """Display information on the bins on an arena (default: main_arena).
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
@@ -6280,6 +6313,7 @@ class GlibcHeapBinsCommand(GenericCommand):
         return nb_chunk
 
 
+@register
 class GlibcHeapTcachebinsCommand(GenericCommand):
     """Display information on the Tcachebins on an arena (default: main_arena).
     See https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=d5c3fafc4307c9b7a4c7d5cb381fcdbfad340bcc."""
@@ -6444,6 +6478,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         return chunk, count
 
 
+@register
 class GlibcHeapFastbinsYCommand(GenericCommand):
     """Display information on the fastbinsY on an arena (default: main_arena).
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
@@ -6509,6 +6544,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         return
 
 
+@register
 class GlibcHeapUnsortedBinsCommand(GenericCommand):
     """Display information on the Unsorted Bins of an arena (default: main_arena).
     See: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1689."""
@@ -6535,6 +6571,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
         return
 
 
+@register
 class GlibcHeapSmallBinsCommand(GenericCommand):
     """Convenience command for viewing small bins."""
 
@@ -6566,6 +6603,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
         return
 
 
+@register
 class GlibcHeapLargeBinsCommand(GenericCommand):
     """Convenience command for viewing large bins."""
 
@@ -6597,6 +6635,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         return
 
 
+@register
 class SolveKernelSymbolCommand(GenericCommand):
     """Solve kernel symbols from kallsyms table."""
 
@@ -6631,6 +6670,7 @@ class SolveKernelSymbolCommand(GenericCommand):
         return
 
 
+@register
 class DetailRegistersCommand(GenericCommand):
     """Display full details on one, many or all registers value from current architecture."""
 
@@ -6724,6 +6764,7 @@ class DetailRegistersCommand(GenericCommand):
         return
 
 
+@register
 class ShellcodeCommand(GenericCommand):
     """ShellcodeCommand uses @JonathanSalwan simple-yet-awesome shellcode API to
     download shellcodes."""
@@ -6741,6 +6782,7 @@ class ShellcodeCommand(GenericCommand):
         return
 
 
+@register
 class ShellcodeSearchCommand(GenericCommand):
     """Search pattern in shell-storm's shellcode database."""
 
@@ -6789,6 +6831,7 @@ class ShellcodeSearchCommand(GenericCommand):
         return
 
 
+@register
 class ShellcodeGetCommand(GenericCommand):
     """Download shellcode from shell-storm's shellcode database."""
 
@@ -6831,6 +6874,7 @@ class ShellcodeGetCommand(GenericCommand):
         return
 
 
+@register
 class ProcessListingCommand(GenericCommand):
     """List and filter process. If a PATTERN is given as argument, results shown will be grepped
     by this pattern."""
@@ -6895,6 +6939,7 @@ class ProcessListingCommand(GenericCommand):
         return
 
 
+@register
 class ElfInfoCommand(GenericCommand):
     """Display a limited subset of ELF header information. If no argument is provided, the command will
     show information about the current ELF being debugged."""
@@ -6919,8 +6964,10 @@ class ElfInfoCommand(GenericCommand):
         if filename is None:
             return
 
-        elf = get_elf_headers(filename)
-        if elf is None:
+        try:
+            elf = Elf(filename)
+        except ValueError as ve:
+            err(f"`{filename}` is an invalid value for ELF file")
             return
 
         data = [
@@ -6970,6 +7017,7 @@ class ElfInfoCommand(GenericCommand):
         return
 
 
+@register
 class EntryPointBreakCommand(GenericCommand):
     """Tries to find best entry point and sets a temporary breakpoint on it. The command will test for
     well-known symbols for entry points, such as `main`, `_main`, `__libc_start_main`, etc. defined by
@@ -7049,6 +7097,7 @@ class EntryPointBreakCommand(GenericCommand):
         return self.set_init_tbreak(base_address + addr)
 
 
+@register
 class NamedBreakpointCommand(GenericCommand):
     """Sets a breakpoint and assigns a name to it, which will be shown, when it's hit."""
 
@@ -7073,6 +7122,7 @@ class NamedBreakpointCommand(GenericCommand):
         return
 
 
+@register
 class ContextCommand(GenericCommand):
     """Displays a comprehensive and modular summary of runtime context. Unless setting `enable` is
     set to False, this command will be spawned automatically every time GDB hits a breakpoint, a
@@ -7108,9 +7158,6 @@ class ContextCommand(GenericCommand):
         self["libc_args"] = (False, "Show libc function call args description")
         self["libc_args_path"] = ("", "Path to libc function call args json files, provided via gef-extras")
 
-        if "capstone" in list(sys.modules.keys()):
-            self["use_capstone"] = (False, "Use capstone as disassembler in the code pane (instead of GDB)")
-
         self.layout_mapping = {
             "legend": (self.show_legend, None),
             "regs": (self.context_regs, None),
@@ -7123,6 +7170,8 @@ class ContextCommand(GenericCommand):
             "threads": (self.context_threads, None),
             "extra": (self.context_additional_information, None),
         }
+
+        self.instruction_iterator = gef_disassemble
         return
 
     def post_load(self) -> None:
@@ -7261,7 +7310,7 @@ class ContextCommand(GenericCommand):
 
             padreg = reg.ljust(widest, " ")
             value = align_address(new_value)
-            old_value = align_address(old_value)
+            old_value = align_address(old_value or 0)
             if value == old_value:
                 line += f"{Color.colorify(padreg, regname_color)}: "
             else:
@@ -7311,7 +7360,6 @@ class ContextCommand(GenericCommand):
     def context_code(self) -> None:
         nb_insn = self["nb_lines_code"]
         nb_insn_prev = self["nb_lines_code_prev"]
-        use_capstone = "use_capstone" in self and self["use_capstone"]
         show_opcodes_size = "show_opcodes_size" in self and self["show_opcodes_size"]
         past_insns_color = gef.config["theme.old_context"]
         cur_insn_color = gef.config["theme.disassemble_current_instruction"]
@@ -7325,9 +7373,9 @@ class ContextCommand(GenericCommand):
         self.context_title(f"code:{arch_name}")
 
         try:
-            instruction_iterator = capstone_disassemble if use_capstone else gef_disassemble
 
-            for insn in instruction_iterator(pc, nb_insn, nb_prev=nb_insn_prev):
+
+            for insn in self.instruction_iterator(pc, nb_insn, nb_prev=nb_insn_prev):
                 line = []
                 is_taken  = False
                 target    = None
@@ -7366,13 +7414,11 @@ class ContextCommand(GenericCommand):
 
                 if target:
                     try:
-                        target = int(target, 0)
-                    except TypeError:  # Already an int
-                        pass
+                        address = int(target, 0) if isinstance(target, str) else target
                     except ValueError:
                         # If the operand isn't an address right now we can't parse it
                         continue
-                    for i, tinsn in enumerate(instruction_iterator(target, nb_insn)):
+                    for i, tinsn in enumerate(self.instruction_iterator(address, nb_insn)):
                         text= f"   {DOWN_ARROW if i == 0 else ' '}  {tinsn!s}"
                         gef_print(text)
                     break
@@ -7456,12 +7502,11 @@ class ContextCommand(GenericCommand):
         block_start = __get_current_block_start_address()
         if not block_start:
             return
-        use_capstone = "use_capstone" in self and self["use_capstone"]
-        instruction_iterator = capstone_disassemble if use_capstone else gef_disassemble
+
         function_parameters = gef.arch.function_parameters
         arg_key_color = gef.config["theme.registers_register_name"]
 
-        for insn in instruction_iterator(block_start, pc - block_start):
+        for insn in self.instruction_iterator(block_start, pc - block_start):
             if not insn.operands:
                 continue
 
@@ -7778,6 +7823,7 @@ class ContextCommand(GenericCommand):
         return
 
 
+@register
 class MemoryCommand(GenericCommand):
     """Add or remove address ranges to the memory view."""
     _cmdline_ = "memory"
@@ -7793,6 +7839,7 @@ class MemoryCommand(GenericCommand):
         return
 
 
+@register
 class MemoryWatchCommand(GenericCommand):
     """Adds address ranges to the memory view."""
     _cmdline_ = "memory watch"
@@ -7831,6 +7878,7 @@ class MemoryWatchCommand(GenericCommand):
         return
 
 
+@register
 class MemoryUnwatchCommand(GenericCommand):
     """Removes address ranges to the memory view."""
     _cmdline_ = "memory unwatch"
@@ -7857,6 +7905,7 @@ class MemoryUnwatchCommand(GenericCommand):
         return
 
 
+@register
 class MemoryWatchResetCommand(GenericCommand):
     """Removes all watchpoints."""
     _cmdline_ = "memory reset"
@@ -7869,6 +7918,7 @@ class MemoryWatchResetCommand(GenericCommand):
         return
 
 
+@register
 class MemoryWatchListCommand(GenericCommand):
     """Lists all watchpoints to display in context layout."""
     _cmdline_ = "memory list"
@@ -7886,6 +7936,7 @@ class MemoryWatchListCommand(GenericCommand):
         return
 
 
+@register
 class HexdumpCommand(GenericCommand):
     """Display SIZE lines of hexdump from the memory location pointed by LOCATION."""
 
@@ -7963,6 +8014,7 @@ class HexdumpCommand(GenericCommand):
         return lines
 
 
+@register
 class HexdumpQwordCommand(HexdumpCommand):
     """Display SIZE lines of hexdump as QWORD from the memory location pointed by ADDRESS."""
 
@@ -7976,6 +8028,7 @@ class HexdumpQwordCommand(HexdumpCommand):
         return
 
 
+@register
 class HexdumpDwordCommand(HexdumpCommand):
     """Display SIZE lines of hexdump as DWORD from the memory location pointed by ADDRESS."""
 
@@ -7989,6 +8042,7 @@ class HexdumpDwordCommand(HexdumpCommand):
         return
 
 
+@register
 class HexdumpWordCommand(HexdumpCommand):
     """Display SIZE lines of hexdump as WORD from the memory location pointed by ADDRESS."""
 
@@ -8002,6 +8056,7 @@ class HexdumpWordCommand(HexdumpCommand):
         return
 
 
+@register
 class HexdumpByteCommand(HexdumpCommand):
     """Display SIZE lines of hexdump as BYTE from the memory location pointed by ADDRESS."""
 
@@ -8015,6 +8070,7 @@ class HexdumpByteCommand(HexdumpCommand):
         return
 
 
+@register
 class PatchCommand(GenericCommand):
     """Write specified values to the specified address."""
 
@@ -8057,6 +8113,7 @@ class PatchCommand(GenericCommand):
         return
 
 
+@register
 class PatchQwordCommand(PatchCommand):
     """Write specified QWORD to the specified address."""
 
@@ -8070,6 +8127,7 @@ class PatchQwordCommand(PatchCommand):
         return
 
 
+@register
 class PatchDwordCommand(PatchCommand):
     """Write specified DWORD to the specified address."""
 
@@ -8083,6 +8141,7 @@ class PatchDwordCommand(PatchCommand):
         return
 
 
+@register
 class PatchWordCommand(PatchCommand):
     """Write specified WORD to the specified address."""
 
@@ -8096,6 +8155,7 @@ class PatchWordCommand(PatchCommand):
         return
 
 
+@register
 class PatchByteCommand(PatchCommand):
     """Write specified WORD to the specified address."""
 
@@ -8109,6 +8169,7 @@ class PatchByteCommand(PatchCommand):
         return
 
 
+@register
 class PatchStringCommand(GenericCommand):
     """Write specified string to the specified memory location pointed by ADDRESS."""
 
@@ -8137,14 +8198,14 @@ class PatchStringCommand(GenericCommand):
 
 
 @lru_cache()
-def dereference_from(addr: int) -> List[str]:
+def dereference_from(address: int) -> List[str]:
     if not is_alive():
-        return [format_address(addr),]
+        return [format_address(address),]
 
     code_color = gef.config["theme.dereference_code"]
     string_color = gef.config["theme.dereference_string"]
     max_recursion = gef.config["dereference.max_recursion"] or 10
-    addr = lookup_address(align_address(int(addr)))
+    addr = lookup_address(align_address(address))
     msg = [format_address(addr.value),]
     seen_addrs = set()
 
@@ -8199,6 +8260,7 @@ def dereference_from(addr: int) -> List[str]:
     return msg
 
 
+@register
 class DereferenceCommand(GenericCommand):
     """Dereference recursively from an address and display information. This acts like WinDBG `dps`
     command."""
@@ -8282,6 +8344,7 @@ class DereferenceCommand(GenericCommand):
         return
 
 
+@register
 class ASLRCommand(GenericCommand):
     """View/modify the ASLR setting of GDB. By default, GDB will disable ASLR when it starts the process. (i.e. not
     attached). This command allows to change that setting."""
@@ -8323,6 +8386,7 @@ class ASLRCommand(GenericCommand):
         return
 
 
+@register
 class ResetCacheCommand(GenericCommand):
     """Reset cache of all stored data. This command is here for debugging and test purposes, GEF
     handles properly the cache reset under "normal" scenario."""
@@ -8335,6 +8399,7 @@ class ResetCacheCommand(GenericCommand):
         return
 
 
+@register
 class VMMapCommand(GenericCommand):
     """Display a comprehensive layout of the virtual memory mapping. If a filter argument, GEF will
     filter out the mapping whose pathname do not match that filter."""
@@ -8414,6 +8479,7 @@ class VMMapCommand(GenericCommand):
         return True
 
 
+@register
 class XFilesCommand(GenericCommand):
     """Shows all libraries (and sections) loaded by binary. This command extends the GDB command
     `info files`, by retrieving more information from extra sources, and providing a better
@@ -8450,6 +8516,7 @@ class XFilesCommand(GenericCommand):
         return
 
 
+@register
 class XAddressInfoCommand(GenericCommand):
     """Retrieve and display runtime information for the location(s) given as parameter."""
 
@@ -8511,6 +8578,7 @@ class XAddressInfoCommand(GenericCommand):
         return
 
 
+@register
 class XorMemoryCommand(GenericCommand):
     """XOR a block of memory. The command allows to simply display the result, or patch it
     runtime at runtime."""
@@ -8527,6 +8595,7 @@ class XorMemoryCommand(GenericCommand):
         return
 
 
+@register
 class XorMemoryDisplayCommand(GenericCommand):
     """Display a block of memory pointed by ADDRESS by xor-ing each byte with KEY. The key must be
     provided in hexadecimal format."""
@@ -8555,6 +8624,7 @@ class XorMemoryDisplayCommand(GenericCommand):
         return
 
 
+@register
 class XorMemoryPatchCommand(GenericCommand):
     """Patch a block of memory pointed by ADDRESS by xor-ing each byte with KEY. The key must be
     provided in hexadecimal format."""
@@ -8579,6 +8649,7 @@ class XorMemoryPatchCommand(GenericCommand):
         return
 
 
+@register
 class TraceRunCommand(GenericCommand):
     """Create a runtime trace of all instructions executed from $pc to LOCATION specified. The
     trace is stored in a text file that can be next imported in IDA Pro to visualize the runtime
@@ -8668,6 +8739,7 @@ class TraceRunCommand(GenericCommand):
         return
 
 
+@register
 class PatternCommand(GenericCommand):
     """Generate or Search a De Bruijn Sequence of unique substrings of length N
     and a total length of LENGTH. The default value of N is set to match the
@@ -8686,6 +8758,7 @@ class PatternCommand(GenericCommand):
         return
 
 
+@register
 class PatternCreateCommand(GenericCommand):
     """Generate a De Bruijn Sequence of unique substrings of length N and a
     total length of LENGTH. The default value of N is set to match the currently
@@ -8707,6 +8780,7 @@ class PatternCreateCommand(GenericCommand):
         return
 
 
+@register
 class PatternSearchCommand(GenericCommand):
     """Search a De Bruijn Sequence of unique substrings of length N and a
     maximum total length of MAX_LENGTH. The default value of N is set to match
@@ -8772,6 +8846,7 @@ class PatternSearchCommand(GenericCommand):
         return
 
 
+@register
 class ChecksecCommand(GenericCommand):
     """Checksec the security properties of the current executable or passed as argument. The
     command checks for the following protections:
@@ -8831,6 +8906,7 @@ class ChecksecCommand(GenericCommand):
         return
 
 
+@register
 class GotCommand(GenericCommand):
     """Display current status of the got inside the process."""
 
@@ -8918,6 +8994,7 @@ class GotCommand(GenericCommand):
         return
 
 
+@register
 class HighlightCommand(GenericCommand):
     """Highlight user-defined text matches in GEF output universally."""
     _cmdline_ = "highlight"
@@ -8932,6 +9009,7 @@ class HighlightCommand(GenericCommand):
         return self.usage()
 
 
+@register
 class HighlightListCommand(GenericCommand):
     """Show the current highlight table with matches to colors."""
     _cmdline_ = "highlight list"
@@ -8953,6 +9031,7 @@ class HighlightListCommand(GenericCommand):
         return self.print_highlight_table()
 
 
+@register
 class HighlightClearCommand(GenericCommand):
     """Clear the highlight table, remove all matches."""
     _cmdline_ = "highlight clear"
@@ -8963,6 +9042,7 @@ class HighlightClearCommand(GenericCommand):
         return gef.ui.highlight_table.clear()
 
 
+@register
 class HighlightAddCommand(GenericCommand):
     """Add a match to the highlight table."""
     _cmdline_ = "highlight add"
@@ -8979,6 +9059,7 @@ class HighlightAddCommand(GenericCommand):
         return
 
 
+@register
 class HighlightRemoveCommand(GenericCommand):
     """Remove a match in the highlight table."""
     _cmdline_ = "highlight remove"
@@ -9000,6 +9081,7 @@ class HighlightRemoveCommand(GenericCommand):
         return
 
 
+@register
 class FormatStringSearchCommand(GenericCommand):
     """Exploitable format-string helper: this command will set up specific breakpoints
     at well-known dangerous functions (printf, snprintf, etc.), and check if the pointer
@@ -9031,6 +9113,7 @@ class FormatStringSearchCommand(GenericCommand):
         return
 
 
+@register
 class HeapAnalysisCommand(GenericCommand):
     """Heap vulnerability analysis helper: this command aims to track dynamic heap allocation
     done through malloc()/free() to provide some insights on possible heap vulnerabilities. The
@@ -9135,6 +9218,7 @@ class HeapAnalysisCommand(GenericCommand):
         return
 
 
+@register
 class IsSyscallCommand(GenericCommand):
     """Tells whether the next instruction is a system call."""
     _cmdline_ = "is-syscall"
@@ -9146,6 +9230,7 @@ class IsSyscallCommand(GenericCommand):
         return
 
 
+@register
 class SyscallArgsCommand(GenericCommand):
     """Gets the syscall name and arguments based on the register values in the current state."""
     _cmdline_ = "syscall-args"
@@ -9229,16 +9314,7 @@ def register_function(cls: Type["GenericFunction"]) -> Type["GenericFunction"]:
     return cls
 
 
-class GenericFunctionBase:
-    def __init_subclass__(cls: Type["GenericFunctionBase"], **kwargs):
-        global __registered_functions__
-        super().__init_subclass__(**kwargs)
-        if hasattr(cls, "_function_") and issubclass(cls, GenericFunction):
-            __registered_functions__.append(cls)
-        return
-
-
-class GenericFunction(gdb.Function, GenericFunctionBase):
+class GenericFunction(gdb.Function):
     """This is an abstract class for invoking convenience functions, should not be instantiated."""
 
     _function_ : str
@@ -9264,6 +9340,7 @@ class GenericFunction(gdb.Function, GenericFunctionBase):
         raise NotImplementedError
 
 
+@register
 class StackOffsetFunction(GenericFunction):
     """Return the current stack base address plus an optional offset."""
     _function_ = "_stack"
@@ -9277,6 +9354,7 @@ class StackOffsetFunction(GenericFunction):
         return self.arg_to_long(args, 0) + base
 
 
+@register
 class HeapBaseFunction(GenericFunction):
     """Return the current heap base address plus an optional offset."""
     _function_ = "_heap"
@@ -9291,6 +9369,7 @@ class HeapBaseFunction(GenericFunction):
         return self.arg_to_long(args, 0) + base
 
 
+@register
 class SectionBaseFunction(GenericFunction):
     """Return the matching file's base address plus an optional offset.
     Defaults to current file. Note that quotes need to be escaped"""
@@ -9318,6 +9397,7 @@ class SectionBaseFunction(GenericFunction):
         return addr
 
 
+@register
 class BssBaseFunction(GenericFunction):
     """Return the current bss base address plus the given offset."""
     _function_ = "_bss"
@@ -9331,6 +9411,7 @@ class BssBaseFunction(GenericFunction):
         return self.arg_to_long(args, 0) + base
 
 
+@register
 class GotBaseFunction(GenericFunction):
     """Return the current GOT base address plus the given offset."""
     _function_ = "_got"
@@ -9344,6 +9425,7 @@ class GotBaseFunction(GenericFunction):
         return base + self.arg_to_long(args, 0)
 
 
+@register
 class GefFunctionsCommand(GenericCommand):
     """List the convenience functions provided by GEF."""
     _cmdline_ = "functions"
@@ -9352,26 +9434,40 @@ class GefFunctionsCommand(GenericCommand):
     def __init__(self) -> None:
         super().__init__()
         self.docs = []
-        self.setup()
+        self.should_refresh = True
         return
 
-    def setup(self) -> None:
-        global gef
-        for function in gef.gdb.loaded_functions:
-            self.add_function_to_doc(function)
-        self.__doc__ = "\n".join(sorted(self.docs))
-        return
-
-    def add_function_to_doc(self, function) -> None:
+    def __add__(self, function: GenericFunction):
         """Add function to documentation."""
         doc = getattr(function, "__doc__", "").lstrip()
-        doc = "\n                         ".join(doc.split("\n"))
-        syntax = getattr(function, "_syntax_", "").lstrip()
-        msg = f"{syntax:<25s} -- {Color.greenify(doc)}"
+        if not hasattr(function, "_syntax_"):
+            raise ValueError("Function is invalid")
+        syntax = getattr(function, "_syntax_").lstrip()
+        msg = f"{Color.colorify(syntax, 'bold cyan')}\n {doc}"
         example = getattr(function, "_example_", "").strip()
         if example:
-            msg += f"\n {'':27s} example: {Color.yellowify(example)}"
+            msg += f"\n {Color.yellowify('Example:')} {example}"
         self.docs.append(msg)
+        return self
+
+    def __radd__(self, function: GenericFunction):
+        return self.__add__(function)
+
+    def __str__(self) -> str:
+        if self.should_refresh:
+            self.__rebuild()
+        return self.__doc__ or ""
+
+    def __rebuild(self) -> None:
+        """Rebuild the documentation for functions."""
+        for function in gef.gdb.functions.values():
+            self += function
+
+        self.command_size = len(gef.gdb.commands)
+        _, cols = get_terminal_size()
+        separator = HORIZONTAL_LINE*cols
+        self.__doc__ = f"\n{separator}\n".join(sorted(self.docs))
+        self.should_refresh = False
         return
 
     def do_invoke(self, argv) -> None:
@@ -9379,7 +9475,7 @@ class GefFunctionsCommand(GenericCommand):
         gef_print(titlify("GEF - Convenience Functions"))
         gef_print("These functions can be used as arguments to other "
                   "commands to dynamically calculate values\n")
-        gef_print(self.__doc__)
+        gef_print(str(self))
         return
 
 
@@ -9398,83 +9494,87 @@ class GefCommand(gdb.Command):
         gef.config["gef.readline_compat"] = GefSetting(False, bool, "Workaround for readline SOH/ETX issue (SEGV)")
         gef.config["gef.debug"] = GefSetting(False, bool, "Enable debug mode for gef")
         gef.config["gef.autosave_breakpoints_file"] = GefSetting("", str, "Automatically save and restore breakpoints")
-        gef.config["gef.extra_plugins_dir"] = GefSetting("", str, "Autoload additional GEF commands from external directory")
+        gef.config["gef.extra_plugins_dir"] = GefSetting("", str, "Autoload additional GEF commands from external directory", hooks={"on_write": self.load_extra_plugins})
         gef.config["gef.disable_color"] = GefSetting(False, bool, "Disable all colors in GEF")
         gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, str, "Directory to use for temporary/cache content")
         gef.config["gef.show_deprecation_warnings"] = GefSetting(True, bool, "Toggle the display of the `deprecated` warnings")
-        self.loaded_commands: List[Tuple[str, Type[GenericCommand], Any]] = []
-        self.loaded_functions: List[Type[GenericFunction]] = []
-        self.missing_commands: Dict[str, Exception] = {}
+
+        self.commands : Dict[str, GenericCommand] = collections.OrderedDict()
+        self.functions : Dict[str, GenericFunction] = collections.OrderedDict()
+        self.missing: Dict[str, Exception] = {}
         return
 
+    @property
+    def loaded_commands(self) -> List[Tuple[str, Type[GenericCommand], Any]]:
+        print("Obsolete loaded_commands")
+        raise
+
+    @property
+    def loaded_functions(self) -> List[Type[GenericFunction]]:
+        print("Obsolete loaded_functions")
+        raise
+
+    @property
+    def missing_commands(self) -> Dict[str, Exception]:
+        print("Obsolete missing_commands")
+        raise
+
     def setup(self) -> None:
-        self.load(initial=True)
-        # loading GEF sub-commands
-        self.doc = GefHelpCommand(self.loaded_commands)
-        self.cfg = GefConfigCommand(self.loaded_command_names)
+        self.load()
+
+        GefHelpCommand()
+        GefConfigCommand()
         GefSaveCommand()
-        GefRestoreCommand()
         GefMissingCommand()
         GefSetCommand()
         GefRunCommand()
         GefInstallExtraScriptCommand()
 
-        # load the saved settings
-        gdb.execute("gef restore")
-
-        # restore the autosave/autoreload breakpoints policy (if any)
-        self.__reload_auto_breakpoints()
-
-        # load plugins from `extra_plugins_dir`
-        if self.__load_extra_plugins() > 0:
-            # if here, at least one extra plugin was loaded, so we need to restore
-            # the settings once more
-            gdb.execute("gef restore quiet")
+        # restore the settings from config file if any
+        GefRestoreCommand()
         return
 
-    def __reload_auto_breakpoints(self) -> None:
-        bkp_fname = gef.config["gef.autosave_breakpoints_file"]
-        bkp_fname = bkp_fname[0] if bkp_fname else None
-        if bkp_fname:
-            # restore if existing
-            if os.access(bkp_fname, os.R_OK):
-                gdb.execute(f"source {bkp_fname}")
+    def load_extra_plugins(self) -> int:
+        def load_plugin(fpath: pathlib.Path) -> bool:
+            try:
+                gdb.execute(f"source {fpath}")
+            except Exception as e:
+                warn(f"Exception while loading {fpath}: {str(e)}")
+                return False
+            return True
 
-            # add hook for autosave breakpoints on quit command
-            source = [
-                "define hook-quit",
-                f" save breakpoints {bkp_fname}",
-                "end",
-            ]
-            gef_execute_gdb_script("\n".join(source) + "\n")
-        return
-
-    def __load_extra_plugins(self) -> int:
         nb_added = -1
         try:
-            nb_inital = len(self.loaded_commands)
-            directories = gef.config["gef.extra_plugins_dir"]
-            if directories:
-                for directory in directories.split(";"):
-                    directory = pathlib.Path(directory).expanduser()
-                    if not directory.is_dir(): continue
-                    sys.path.append(str(directory))
-                    for entry in directory.iterdir():
-                        if not entry.is_file(): continue
+            nb_inital = len(__registered_commands__)
+            directories: List[str] = gef.config["gef.extra_plugins_dir"].split(";") or []
+            for d in directories:
+                d = d.strip()
+                if not d: continue
+                directory = pathlib.Path(d).expanduser()
+                if not directory.is_dir(): continue
+                sys.path.append(str(directory.absolute()))
+                for entry in directory.iterdir():
+                    if entry.is_dir():
+                        if entry.name in ('gdb', 'gef', '__pycache__'): continue
+                        load_plugin(entry / "__init__.py")
+                    else:
                         if entry.suffix != ".py": continue
                         if entry.name == "__init__.py": continue
-                        gdb.execute(f"source {entry}")
-            nb_added = len(self.loaded_commands) - nb_inital
+                        load_plugin(entry)
+
+            nb_added = len(__registered_commands__) - nb_inital
             if nb_added > 0:
-                ok(f"{Color.colorify(nb_added, 'bold green')} extra commands added from "
-                   f"'{Color.colorify(directories, 'bold blue')}'")
+                self.load()
+                ok(f"{Color.colorify(str(nb_added), 'bold green')} extra commands added from "
+                   f"'{Color.colorify(', '.join(directories), 'bold blue')}'")
         except gdb.error as e:
             err(f"failed: {e}")
         return nb_added
 
     @property
-    def loaded_command_names(self) -> List[str]:
-        return [x[0] for x in self.loaded_commands]
+    def loaded_command_names(self) -> Iterable[str]:
+        print("obsolete loaded_command_names")
+        return self.commands.keys()
 
     def invoke(self, args: Any, from_tty: bool) -> None:
         self.dont_repeat()
@@ -9483,7 +9583,7 @@ class GefCommand(gdb.Command):
 
     def add_context_pane(self, pane_name: str, display_pane_function: Callable, pane_title_function: Callable) -> None:
         """Add a new context pane to ContextCommand."""
-        for _, _, class_instance in self.loaded_commands:
+        for _, class_instance in self.commands.items():
             if isinstance(class_instance, ContextCommand):
                 context = class_instance
                 break
@@ -9498,52 +9598,58 @@ class GefCommand(gdb.Command):
         # overload the printing of pane title
         context.layout_mapping[corrected_settings_name] = (display_pane_function, pane_title_function)
 
-    def load(self, initial: bool = False) -> None:
+    def load(self) -> None:
         """Load all the commands and functions defined by GEF into GDB."""
-        nb_missing = 0
-        self.commands = [(x._cmdline_, x) for x in __registered_commands__]
+        current_commands = set( self.commands.keys() )
+        new_commands = set( [x._cmdline_ for x in __registered_commands__] ) - current_commands
+        current_functions = set( self.functions.keys() )
+        new_functions = set([x._function_ for x in __registered_functions__]) - current_functions
+        self.missing.clear()
 
-        # load all of the functions
-        for function_class_name in __registered_functions__:
-            self.loaded_functions.append(function_class_name())
+        # load all new functions
+        for name in sorted(new_functions):
+            for function_class in __registered_functions__:
+                if function_class._function_ == name:
+                    self.functions[name] = function_class()
+                    break
 
-        def is_loaded(x: str) -> bool:
-            return any(u for u in self.loaded_commands if x == u[0])
-
-        for cmd, class_obj in self.commands:
-            if is_loaded(cmd):
-                continue
-
+        # load all new commands
+        for name in sorted(new_commands):
             try:
-                self.loaded_commands.append((cmd, class_obj, class_obj()))
+                for function_class in __registered_commands__:
+                    if function_class._cmdline_ == name:
+                        command_instance = function_class()
 
-                if hasattr(class_obj, "_aliases_"):
-                    aliases = getattr(class_obj, "_aliases_")
-                    for alias in aliases:
-                        GefAlias(alias, cmd)
+                        # create the aliases if any
+                        if hasattr(command_instance, "_aliases_"):
+                            aliases = getattr(command_instance, "_aliases_")
+                            for alias in aliases:
+                                GefAlias(alias, name)
+
+                        self.commands[name] = command_instance
+                        break
 
             except Exception as reason:
-                self.missing_commands[cmd] = reason
-                nb_missing += 1
+                self.missing[name] = reason
+        return
 
-        # sort by command name
-        self.loaded_commands = sorted(self.loaded_commands, key=lambda x: x[1]._cmdline_)
 
-        if initial:
-            gef_print(f"{Color.greenify('GEF')} for {gef.session.os} ready, "
-                      f"type `{Color.colorify('gef', 'underline yellow')}' to start, "
-                      f"`{Color.colorify('gef config', 'underline pink')}' to configure")
+    def show_banner(self) -> None:
+        gef_print(f"{Color.greenify('GEF')} for {gef.session.os} ready, "
+                  f"type `{Color.colorify('gef', 'underline yellow')}' to start, "
+                  f"`{Color.colorify('gef config', 'underline pink')}' to configure")
 
-            ver = f"{sys.version_info.major:d}.{sys.version_info.minor:d}"
-            nb_cmds = len(self.loaded_commands)
-            gef_print(f"{Color.colorify(nb_cmds, 'bold green')} commands loaded for "
-                      f"GDB {Color.colorify(gdb.VERSION, 'bold yellow')} "
-                      f"using Python engine {Color.colorify(ver, 'bold red')}")
+        ver = f"{sys.version_info.major:d}.{sys.version_info.minor:d}"
+        gef_print(f"{Color.colorify(str(len(self.commands)), 'bold green')} commands loaded "
+                    f"and {Color.colorify(str(len(self.functions)), 'bold blue')} functions added for "
+                    f"GDB {Color.colorify(gdb.VERSION, 'bold yellow')} "
+                    f"using Python engine {Color.colorify(ver, 'bold red')}")
 
-            if nb_missing:
-                warn(f"{Color.colorify(nb_missing, 'bold red')} "
-                     f"command{'s' if nb_missing > 1 else ''} could not be loaded, "
-                     f"run `{Color.colorify('gef missing', 'underline pink')}` to know why.")
+        nb_missing = len(self.missing)
+        if nb_missing:
+                warn(f"{Color.colorify(str(nb_missing), 'bold red')} "
+                    f"command{'s' if nb_missing > 1 else ''} could not be loaded, "
+                    f"run `{Color.colorify('gef missing', 'underline pink')}` to know why.")
         return
 
 
@@ -9552,42 +9658,52 @@ class GefHelpCommand(gdb.Command):
     _cmdline_ = "gef help"
     _syntax_  = _cmdline_
 
-    def __init__(self, commands: List[Tuple[str, Any, Any]]) -> None:
+    def __init__(self) -> None:
         super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, False)
         self.docs = []
-        self.generate_help(commands)
-        self.refresh()
+        self.should_refresh = True
+        self.command_size = 0
         return
 
     def invoke(self, args: Any, from_tty: bool) -> None:
         self.dont_repeat()
         gef_print(titlify("GEF - GDB Enhanced Features"))
-        gef_print(self.__doc__ or "")
+        gef_print(str(self))
         return
 
-    def generate_help(self, commands: List[Tuple[str, Type[GenericCommand], Any]]) -> None:
-        """Generate builtin commands documentation."""
-        for command in commands:
-            self.add_command_to_doc(command)
+    def __rebuild(self) -> None:
+        """Rebuild the documentation."""
+        for name, cmd in gef.gdb.commands.items():
+            self += (name, cmd)
+
+        self.command_size = len(gef.gdb.commands)
+        _, cols = get_terminal_size()
+        separator = HORIZONTAL_LINE*cols
+        self.__doc__ = f"\n{separator}\n".join(sorted(self.docs))
+        self.should_refresh = False
         return
 
-    def add_command_to_doc(self, command: Tuple[str, Type[GenericCommand], Any]) -> None:
+    def __add__(self, command: Tuple[str, GenericCommand]):
         """Add command to GEF documentation."""
-        cmd, class_obj, _  = command
+        cmd, class_obj = command
         if " " in cmd:
             # do not print subcommands in gef help
-            return
+            return self
         doc = getattr(class_obj, "__doc__", "").lstrip()
-        doc = "\n                         ".join(doc.split("\n"))
-        aliases = f" (alias: {', '.join(class_obj._aliases_)})" if hasattr(class_obj, "_aliases_") else ""
-        msg = f"{cmd:<25s} -- {doc}{aliases}"
+        aliases = f"Aliases: {', '.join(class_obj._aliases_)}" if hasattr(class_obj, "_aliases_") else ""
+        msg = f"{Color.colorify(cmd, 'bold red')}\n{doc}\n{aliases}"
         self.docs.append(msg)
-        return
+        return self
 
-    def refresh(self) -> None:
-        """Refresh the documentation."""
-        self.__doc__ = "\n".join(sorted(self.docs))
-        return
+    def __radd__(self, command: Tuple[str, GenericCommand]):
+        return self.__add__(command)
+
+    def __str__(self) -> str:
+        """Lazily regenerate the `gef help` object if it was modified"""
+        # quick check in case the docs have changed
+        if self.should_refresh or self.command_size != len(gef.gdb.commands):
+            self.__rebuild()
+        return self.__doc__ or ""
 
 
 class GefConfigCommand(gdb.Command):
@@ -9600,9 +9716,8 @@ class GefConfigCommand(gdb.Command):
     _cmdline_ = "gef config"
     _syntax_  = f"{_cmdline_} [setting_name] [setting_value]"
 
-    def __init__(self, loaded_commands: List[str]) -> None:
+    def __init__(self) -> None:
         super().__init__(self._cmdline_, gdb.COMMAND_NONE, prefix=False)
-        self.loaded_commands = loaded_commands
         return
 
     def invoke(self, args: str, from_tty: bool) -> None:
@@ -9669,7 +9784,7 @@ class GefConfigCommand(gdb.Command):
             err("Invalid command format")
             return
 
-        loaded_commands = [ x[0] for x in gef.gdb.loaded_commands ] + ["gef"]
+        loaded_commands = list( gef.gdb.commands.keys()) + ["gef"]
         plugin_name = key.split(".", 1)[0]
         if plugin_name not in loaded_commands:
             err(f"Unknown plugin '{plugin_name}'")
@@ -9687,8 +9802,8 @@ class GefConfigCommand(gdb.Command):
                 _newval = new_value
 
             gef.config[key] = _newval
-        except Exception:
-            err(f"{key} expects type '{_type.__name__}'")
+        except Exception as e:
+            err(f"'{key}' expects type '{_type.__name__}', got {type(new_value).__name__}: reason {str(e)}")
             return
 
         reset_all_caches()
@@ -9755,14 +9870,17 @@ class GefRestoreCommand(gdb.Command):
 
     def __init__(self) -> None:
         super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, False)
+        self.reload(True)
         return
 
     def invoke(self, args: str, from_tty: bool) -> None:
         self.dont_repeat()
-        if not os.access(GEF_RC, os.R_OK):
-            return
+        if  GEF_RC.is_file():
+            quiet = (args.lower() == "quiet")
+            self.reload(quiet)
+        return
 
-        quiet = args.lower() == "quiet"
+    def reload(self, quiet: bool):
         cfg = configparser.ConfigParser()
         cfg.read(GEF_RC)
 
@@ -9788,9 +9906,6 @@ class GefRestoreCommand(gdb.Command):
                     new_value = True if new_value.upper() in ("TRUE", "T", "1") else False
                 setting.value = setting.type(new_value)
 
-        # ensure that the temporary directory always exists
-        gef_makedirs(gef.config["gef.tempdir"])
-
         if not quiet:
             ok(f"Configuration from '{Color.colorify(str(GEF_RC), 'bold blue')}' restored")
         return
@@ -9810,13 +9925,12 @@ class GefMissingCommand(gdb.Command):
 
     def invoke(self, args: Any, from_tty: bool) -> None:
         self.dont_repeat()
-        missing_commands = gef.gdb.missing_commands.keys()
+        missing_commands = gef.gdb.missing
         if not missing_commands:
             ok("No missing command")
             return
 
-        for missing_command in missing_commands:
-            reason = gef.gdb.missing_commands[missing_command]
+        for missing_command, reason in missing_commands.items():
             warn(f"Command `{missing_command}` is missing, reason {RIGHT_ARROW} {reason}")
         return
 
@@ -9884,7 +9998,7 @@ class GefAlias(gdb.Command):
         r = self.lookup_command(c)
         self.__doc__ = f"Alias for '{Color.greenify(command)}'"
         if r is not None:
-            _instance = r[2]
+            _instance = r[1]
             self.__doc__ += f": {_instance.__doc__}"
 
             if hasattr(_instance,  "complete"):
@@ -9898,15 +10012,16 @@ class GefAlias(gdb.Command):
         gdb.execute(f"{self._command} {args}", from_tty=from_tty)
         return
 
-    def lookup_command(self, cmd: str) -> Optional[Tuple[str, Type, Any]]:
+    def lookup_command(self, cmd: str) -> Optional[Tuple[str, GenericCommand]]:
         global gef
-        for _name, _class, _instance in gef.gdb.loaded_commands:
+        for _name, _instance in gef.gdb.commands.items():
             if cmd == _name:
-                return _name, _class, _instance
+                return _name, _instance
 
         return None
 
 
+@register
 class AliasesCommand(GenericCommand):
     """Base command to add, remove, or list aliases."""
 
@@ -9922,6 +10037,7 @@ class AliasesCommand(GenericCommand):
         return
 
 
+@register
 class AliasesAddCommand(AliasesCommand):
     """Command to add aliases."""
 
@@ -9941,6 +10057,7 @@ class AliasesAddCommand(AliasesCommand):
         return
 
 
+@register
 class AliasesRmCommand(AliasesCommand):
     """Command to remove aliases."""
 
@@ -9966,6 +10083,7 @@ class AliasesRmCommand(AliasesCommand):
         return
 
 
+@register
 class AliasesListCommand(AliasesCommand):
     """Command to list aliases."""
 
@@ -10060,25 +10178,24 @@ class GefInstallExtraScriptCommand(gdb.Command):
 
     def __init__(self) -> None:
         super().__init__(self._cmdline_, gdb.COMMAND_SUPPORT, gdb.COMPLETE_NONE, False)
-        self.branch = gef.config.get("gef.extras_default_branch", "master")
+        self.branch = gef.config.get("gef.extras_default_branch", GEF_EXTRAS_DEFAULT_BRANCH)
         return
 
-    def invoke(self, args: str, from_tty: bool) -> None:
+    def invoke(self, argv: str, from_tty: bool) -> None:
         self.dont_repeat()
-        if not args:
+        if not argv:
             err("No script name provided")
             return
 
-        args = args.split()
+        args = argv.split()
 
         if "--list" in args or "-l" in args:
             subprocess.run(["xdg-open", f"https://github.com/hugsy/gef-extras/{self.branch}/"])
             return
 
-        dir_setting = gef.config["gef.extra_plugins_dir"] or GEF_TEMP_DIR
-        self.dirpath = pathlib.Path(dir_setting).expanduser().absolute()
+        self.dirpath = pathlib.Path(gef.config["gef.tempdir"]).expanduser().absolute()
         if not self.dirpath.is_dir():
-            err("'gef.extra_plugins_dir' is not a valid directory")
+            err("'gef.tempdir' is not a valid directory")
             return
 
         for script in args:
@@ -10114,9 +10231,8 @@ class GefInstallExtraScriptCommand(gdb.Command):
 # GEF internal  classes
 #
 
-def __gef_prompt__(current_prompt: Any) -> str:
+def __gef_prompt__(current_prompt: Callable[[Callable], str]) -> str:
     """GEF custom prompt function."""
-
     if gef.config["gef.readline_compat"] is True: return GEF_PROMPT
     if gef.config["gef.disable_color"] is True: return GEF_PROMPT
     if is_alive(): return GEF_PROMPT_ON
@@ -10369,12 +10485,22 @@ class GefHeapManager(GefManager):
         ceil = lambda n: int(-1 * n // 1 * -1)
         return malloc_alignment * ceil((address / malloc_alignment))
 
+
 class GefSetting:
     """Basic class for storing gef settings as objects"""
-    def __init__(self, value: Any, cls: Optional[type] = None, description: Optional[str] = None) -> None:
+    def __init__(self, value: Any, cls: Optional[type] = None, description: Optional[str] = None, hooks: Optional[Dict[str, Callable]] = None)  -> None:
         self.value = value
         self.type = cls or type(value)
         self.description = description or ""
+        self.hooks: Tuple[List[Callable]] = ([], [])
+        if hooks:
+            for access, func in hooks.items():
+                if access not in ("on_read", "on_write"):
+                    raise ValueError(f"access not in (on_read, on_write)")
+                if not callable(func):
+                    raise ValueError(f"hook is not callable")
+                idx = 0 if (access == "on_read") else 1
+                self.hooks[idx].append(func)
         return
 
 
@@ -10384,15 +10510,19 @@ class GefSettingsManager(dict):
     For instance, to read a specific command setting: `gef.config[mycommand.mysetting]`
     """
     def __getitem__(self, name: str) -> Any:
-        return dict.__getitem__(self, name).value
+        setting : GefSetting = dict.__getitem__(self, name)
+        self.invoke_hooks(True, setting)
+        return setting.value
 
     def __setitem__(self, name: str, value: Any) -> None:
         # check if the key exists
         if dict.__contains__(self, name):
             # if so, update its value directly
             setting = dict.__getitem__(self, name)
+            if not isinstance(setting, GefSetting): raise ValueError
             setting.value = setting.type(value)
             dict.__setitem__(self, name, setting)
+            self.invoke_hooks(False, setting)
         else:
             # if not, `value` must be a GefSetting
             if not isinstance(value, GefSetting): raise Exception("Invalid argument")
@@ -10408,6 +10538,15 @@ class GefSettingsManager(dict):
     def raw_entry(self, name: str) -> GefSetting:
         return dict.__getitem__(self, name)
 
+    def invoke_hooks(self, is_read: bool, setting: GefSetting) -> None:
+        if not setting.hooks:
+            return
+        idx = 0 if is_read else 1
+        if not setting.hooks[idx]:
+            return
+        for callback in setting.hooks[idx]:
+            callback()
+
 
 class GefSessionManager(GefManager):
     """Class managing the runtime properties of GEF. """
@@ -10422,6 +10561,7 @@ class GefSessionManager(GefManager):
         self.pie_breakpoints: Dict[int, PieVirtualBreakpoint] = {}
         self.pie_counter = 1
         self.aliases: List[GefAlias] = []
+        self.modules: List[Elf] = []
         self.constants = {} # a dict for runtime constants (like 3rd party file paths)
         # add a few extra runtime constants to avoid lookups
         # those must be found, otherwise IOError will be raised
@@ -10627,8 +10767,9 @@ if __name__ == "__main__":
             pass
 
     # load GEF
-    gef = None
     reset()
+    gef.gdb.load()
+    gef.gdb.show_banner()
 
     # gdb events configuration
     gef_on_continue_hook(continue_handler)
@@ -10639,8 +10780,7 @@ if __name__ == "__main__":
     gef_on_regchanged_hook(regchanged_handler)
 
     if gdb.current_progspace().filename is not None:
-        # if here, we are sourcing gef from a gdb session already attached
-        # we must force a call to the new_objfile handler (see issue #278)
+        # if here, we are sourcing gef from a gdb session already attached, force call to new_objfile (see issue #278)
         new_objfile_handler(None)
 
     GefTmuxSetup()
