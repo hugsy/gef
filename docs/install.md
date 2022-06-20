@@ -72,7 +72,7 @@ $ python ~/.gdbinit-gef.py --update
 Updated
 ```
 
-This will deploy the latest version of `gef`'s _master_ branch from Github. If no updates are available, `gef` will respond `No update` instead.
+This will deploy the latest version of `gef`'s _main_ branch from Github. If no updates are available, `gef` will respond `No update` instead.
 
 ## Using git
 
@@ -85,13 +85,13 @@ $ echo source `pwd`/gef/gef.py >> ~/.gdbinit
 
 GEF is in very active development, so the default branch is `dev`. This is the branch you must use if you intend to submit pull requests.
 
-However if you prefer a more stable life, you can then switch to the `master` branch:
+However if you prefer a more stable life, you can then switch to the `main` branch:
 
 ```bash
-$ git checkout master
+$ git checkout main
 ```
 
-The `master` branch gets only updated for new releases, or also when critical fixes occur and need to be patched urgently.
+The `main` branch gets only updated for new releases, or also when critical fixes occur and need to be patched urgently.
 
 
 ## Community repository: GEF-Extras
@@ -102,7 +102,7 @@ To benefit from it:
 ```bash
 # using the automated way
 ## via the install script
-$ bash -c "$(wget https://github.com/hugsy/gef/raw/master/scripts/gef-extras.sh -O -)"
+$ bash -c "$(wget https://github.com/hugsy/gef/raw/main/scripts/gef-extras.sh -O -)"
 
 # or manually
 ## clone the repo

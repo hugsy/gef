@@ -120,21 +120,21 @@ gef➤  gef run ./binary
 gef➤  gef install SCRIPTNAME1 [SCRIPTNAME2...]
 ```
 
-Where `SCRIPTNAME1` ... are the names of script from the [`gef-extras` repository](https://github.com/hugsy/gef-extras/tree/master/scripts/).
+Where `SCRIPTNAME1` ... are the names of script from the [`gef-extras` repository](https://github.com/hugsy/gef-extras/tree/main/scripts/).
 
 
 ```
 gef➤  gef install remote windbg stack
-[+] Searching for 'remote.py' in `gef-extras@master`...
+[+] Searching for 'remote.py' in `gef-extras@main`...
 [+] Installed file '/tmp/gef/remote.py', new command(s) available: `rpyc-remote`
-[+] Searching for 'windbg.py' in `gef-extras@master`...
+[+] Searching for 'windbg.py' in `gef-extras@main`...
 [+] Installed file '/tmp/gef/windbg.py', new command(s) available: `pt`, `hh`, `tt`, `ptc`, `sxe`, `u`, `xs`, `tc`, `pc`, `g`, `r`
-[+] Searching for 'stack.py' in `gef-extras@master`...
+[+] Searching for 'stack.py' in `gef-extras@main`...
 [+] Installed file '/tmp/gef/stack.py', new command(s) available: `current-stack-frame`
 gef➤
 ```
 
-This makes it easier to deploy new functionalities in limited environment. By default, the command looks up for script names in the `master` branch of `gef-extras`. However you can change specify a different branch through the `gef.default_branch` configuration setting:
+This makes it easier to deploy new functionalities in limited environment. By default, the command looks up for script names in the `main` branch of `gef-extras`. However you can change specify a different branch through the `gef.default_branch` configuration setting:
 
 ```
 gef➤ gef config gef.default_branch dev

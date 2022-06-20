@@ -98,7 +98,7 @@ def http_get(url: str) -> Optional[bytes]:
 
 
 def update_gef(argv: List[str]) -> int:
-    """Try to update `gef` to the latest version pushed on GitHub master branch.
+    """Try to update `gef` to the latest version pushed on GitHub main branch.
     Return 0 on success, 1 on failure. """
     ver = "dev" if "--dev" in argv else GEF_DEFAULT_BRANCH
     latest_gef_data = http_get(f"https://raw.githubusercontent.com/hugsy/gef/{ver}/scripts/gef.sh")
@@ -154,8 +154,8 @@ GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\03
 
 PATTERN_LIBC_VERSION                   = re.compile(rb"glibc (\d+)\.(\d+)")
 
-GEF_DEFAULT_BRANCH                     = "master"
-GEF_EXTRAS_DEFAULT_BRANCH              = "master"
+GEF_DEFAULT_BRANCH                     = "main"
+GEF_EXTRAS_DEFAULT_BRANCH              = "main"
 
 gef : "Gef"
 __registered_commands__ : List[Type["GenericCommand"]]                      = []
