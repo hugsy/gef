@@ -2,11 +2,9 @@
 
 ### License ###
 
-`gef` is placed under [license MIT](https://github.com/hugsy/gef/LICENSE) which
-provides Open-Source access to the code and its use.
+`gef` is placed under [license MIT](https://github.com/hugsy/gef/blob/main/LICENSE) which provides Open-Source access to the code and its use.
 
-By contributing to `gef` code through the _Pull Requests_ mechanism, you accept
-to release the code written by you under the said license.
+By contributing to `gef` code through the _Pull Requests_ mechanism, you accept to release the code written by you under the said license.
 
 
 ### Submitting a Patch ###
@@ -17,8 +15,8 @@ to release the code written by you under the said license.
     * Respect the coding style (same indentation format, explicit names as possible)
     * Comment your code
     * If you add a new feature/GDB command, also write the adequate
-      documentation (in [`docs/`](https://github.com/hugsy/gef/docs))
-1. Submit a pull request, **make sure it is made against the `dev` branch (not `master`, which only contains tested and stable features)**
+      documentation (in [`docs/`](docs/))
+1. Submit a pull request, **make sure it is made against the `dev` branch (not `main`, which only contains tested and stable features)**
 1. The contributors will review your patch. If it is approved, the change will
    be merged via the GitHub, and you will be seen as contributors. If it needs
    additional work, the repo owner will respond with useful comments.

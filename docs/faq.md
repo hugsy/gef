@@ -75,47 +75,12 @@ Some interesting plugins highly recommended too:
 Src: [@rick2600: terminator + gdb + gef + voltron cc: @snare @_hugsy_](https://twitter.com/rick2600/status/775926070566490113)
 
 
-## GEF says missing modules, but I'm sure I've installed them, what's up with that? ##
-
-99.999% of the time, this happens because the module(s) were **not** installed
-for the Python version GDB is compiled to work with! For example, GDB is
-compiled for Python3 support, but the module(s) was(were) installed using `pip2`
-(and therefore Python2).
-
-To verify this, you can simply start GDB with GEF, which will show you the
-Python version currently supported by your GDB, or run the command:
-
-```bash
-$ gdb -q -nx -ex 'pi print (sys.version)' -ex quit
-3.5.2+ (default, Dec 13 2016, 14:16:35)
-[GCC 6.2.1 20161124]
-```
-
-It immediately shows that GDB was compiled for Python3. You have to install the
-modules (such as `capstone`, `keystone`, etc.) for this version and it will
-work, guaranteed.
-
-And if this does not work, it is simply that the modules was not installed
-properly. To avoid incorrect behavior, if importing the Python module fails,
-GEF will simply discard altogether the command that uses it, and it will be
-shown when running the `gef missing` command.
-
-To see the proper stacktrace, simply open a Python interpreter and try importing
-the module. This will show you an error.
-
-This is **not** an error or bug in GEF. As a matter of fact, GEF doesn't need any
-of those external modules to run. However, the quickest way to solve this issue would
-be simply to run the [`update-trinity`](https://github.com/hugsy/stuff/blob/master/update-trinity.sh)
-script, which will download, compile and install the latest versions of `capstone`,
-`keystone` and `unicorn`, allowing also other modules relying on them (such as `ropper`)
-to run smoothly.
-
 
 ## I want to contribute, where should I head first? ##
 
 I would suggest thoroughly reading this documentation, just having a look to
 the
-[CONTRIBUTE](https://github.com/hugsy/gef/blob/master/.github/CONTRIBUTING.md)
+[CONTRIBUTE](https://github.com/hugsy/gef/blob/main/.github/CONTRIBUTING.md)
 file of the project to give you pointers.
 
 Also a good thing would be to join our [Discord
@@ -201,9 +166,9 @@ the [issue #206](https://github.com/hugsy/gef/issues/206) for the whole story.
 
 ## I still don't have my answer... Where can I go?
 
-Discord is your answer: join and talk to us:
+Discord is your answer: join and talk to us by clicking here
 
-[![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discordapp.com/channels/705160148813086841/705160148813086843) [[invite link](https://discord.gg/HCS8Hg7)]
+[![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discord.gg/HCS8Hg7)
 
 If you cannot find the answer to your problem here or on the Discord, then go to the project [Issues page](https://github.com/hugsy/gef/issues) and fill up the forms with as much information as you can!
 

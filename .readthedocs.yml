@@ -1,8 +1,8 @@
 version: 2
 
 mkdocs:
-  configuration: mkdocs.yml
-  fail_on_warning: true
+  configuration: docs/obsolete/mkdocs.yml
+  fail_on_warning: false
 
 formats: all
 
@@ -12,4 +12,4 @@ build:
 python:
   version: 3.7
   install:
-    - requirements: docs/requirements.txt
+    - requirements: docs/obsolete/requirements.txt

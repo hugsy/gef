@@ -2,7 +2,7 @@
 
 set -e
 
-branch="master"
+branch="main"
 if [ "$1" = "dev" ]; then
     branch="dev"
     echo "set branch to dev"

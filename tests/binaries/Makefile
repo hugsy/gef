@@ -24,7 +24,7 @@ all: $(LINKED)
 
 
 %.out : %.c
-	@echo "[+] Building '$@'"
+	@echo "[+] Building '$(TMPDIR)/$@'"
 	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -o $(TMPDIR)/$@ $? $(LDFLAGS)
 
 clean :

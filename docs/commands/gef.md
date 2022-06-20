@@ -20,20 +20,13 @@ bytearray                 -- BytearrayCommand: Generate a bytearray to be compar
 
 ### GEF Missing Command
 
-Displays the GEF commands which couldn't be loaded, along with the reason for
-the issue.
+GEF is fully battery-included. However in some rare cases, it is possible that not all commands be loaded. If that's the case the command `gef missing` will detail which command failed to load, along with a (likely) reason. Read the documentation for a solution, or reach out on the Discord.
 
 ```
 gef➤  gef missing
-[*] Command `set-permission` is missing, reason  →  Missing `keystone-engine` package, install with: `pip install keystone-engine`.
-[*] Command `assemble` is missing, reason  →  Missing `keystone-engine` package for Python, install with: `pip install keystone-engine`.
-
-[...snip...]
-
+[*] Command `XXXX` is missing, reason  →  YYYYY.
 ```
 
-As it says in the above output, the issues should be resolved by installing the
-missing package(s) using pip.
 
 ### GEF Config Command
 
@@ -127,21 +120,21 @@ gef➤  gef run ./binary
 gef➤  gef install SCRIPTNAME1 [SCRIPTNAME2...]
 ```
 
-Where `SCRIPTNAME1` ... are the names of script from the [`gef-extras` repository](https://github.com/hugsy/gef-extras/tree/master/scripts/).
+Where `SCRIPTNAME1` ... are the names of script from the [`gef-extras` repository](https://github.com/hugsy/gef-extras/tree/main/scripts/).
 
 
 ```
 gef➤  gef install remote windbg stack
-[+] Searching for 'remote.py' in `gef-extras@master`...
+[+] Searching for 'remote.py' in `gef-extras@main`...
 [+] Installed file '/tmp/gef/remote.py', new command(s) available: `rpyc-remote`
-[+] Searching for 'windbg.py' in `gef-extras@master`...
+[+] Searching for 'windbg.py' in `gef-extras@main`...
 [+] Installed file '/tmp/gef/windbg.py', new command(s) available: `pt`, `hh`, `tt`, `ptc`, `sxe`, `u`, `xs`, `tc`, `pc`, `g`, `r`
-[+] Searching for 'stack.py' in `gef-extras@master`...
+[+] Searching for 'stack.py' in `gef-extras@main`...
 [+] Installed file '/tmp/gef/stack.py', new command(s) available: `current-stack-frame`
 gef➤
 ```
 
-This makes it easier to deploy new functionalities in limited environment. By default, the command looks up for script names in the `master` branch of `gef-extras`. However you can change specify a different branch through the `gef.default_branch` configuration setting:
+This makes it easier to deploy new functionalities in limited environment. By default, the command looks up for script names in the `main` branch of `gef-extras`. However you can change specify a different branch through the `gef.default_branch` configuration setting:
 
 ```
 gef➤ gef config gef.default_branch dev

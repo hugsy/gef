@@ -2,7 +2,7 @@
 
 `gef` provides a way to create and apply to the currently debugged environment, any new structure (in the C-struct way). On top of simply displaying known and user-defined structures, it also allows to apply those structures to the current context. It intends to mimic the very useful [WinDBG `dt`](https://msdn.microsoft.com/en-us/library/windows/hardware/ff542772(v=vs.85).aspx) command.
 
-This is achieved via the command `pcustom` (for `print custom`), or you can use its alias, `dt` (in reference to the WinDBG command) as provided by the [`WinDbg compatibility extension`](https://github.com/hugsy/gef-extras/blob/master/scripts/windbg.py)
+This is achieved via the command `pcustom` (for `print custom`), or you can use its alias, `dt` (in reference to the WinDBG command) as provided by the [`WinDbg compatibility extension`](https://github.com/hugsy/gef-extras/blob/main/scripts/windbg.py)
 
 
 ### Configuration
@@ -105,19 +105,8 @@ For a full demo, watch the following tutorial:
 
 [![yt-gef-pcustom](https://img.youtube.com/vi/pid2aW7Bt_w/0.jpg)](https://www.youtube.com/watch?v=pid2aW7Bt_w)
 
-Additionally, if you have successfully configured your IDA settings (see command `ida-interact`), you can also directly import the structure(s) that was(were) reverse-engineered in IDA directly in your GDB session:
-![ida-structure-examples](https://i.imgur.com/Tnsf6nt.png)
-
-And then use the command `ida ImportStructs` to import all the structures, or `ida ImportStruct <StructName>` to only import a specific one:
-
-```
-gef➤  ida ImportStructs
-[+] Success
-```
-
-Which will become:
-
-![ida-structure-imported](https://i.imgur.com/KVhyopO.png)
+Additionally, if you have successfully configured your IDA settings, you can also directly import the structure(s) that was(were) reverse-engineered in IDA directly in your GDB session:
+![ida-structure-examples](https://i.imgur.com/Tnsf6nt.png) - (see `gef-extras/ida-rpyc`, which is the new improved version of `ida-interact`)
 
 
 #### Dynamic `ctypes.Structure`-like classes

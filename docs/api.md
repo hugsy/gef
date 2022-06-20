@@ -8,7 +8,7 @@ quickly create their own commands. This page intends to summarize how to
 create advanced GDB commands in moments using `GEF` as a library.
 
 A [dedicated repository](https://github.com/hugsy/gef-extras) was born to host
-[external scripts](https://github.com/hugsy/gef-extras/tree/master/scripts). This
+[external scripts](https://github.com/hugsy/gef-extras/tree/main/scripts). This
 repo is open to all for contributions, no restrictions and the most valuable
 ones will be integrated into `gef.py`.
 
@@ -219,7 +219,7 @@ args.blah --> True # set to True because user input declared the option (would h
 Support for new architectures can be added by inheriting from the `Architecture` class. To register the new architecture with gef, the decorator `@register_architecture` has to be added to the class. Examples can be found in [gef-extras](https://github.com/hugsy/gef-extras/tree/dev/archs).
 
 Sometimes architectures can more precisely determine whether they apply to the current target by looking at the architecture determined by gdb. For these cases the custom architecture may implement the `supports_gdb_arch()` static function to signal that they should be used instead of the default. The function receives only one argument:
-- `gdb_str` (of type `str`) which is the architecture name as reported by GDB. 
+- `gdb_str` (of type `str`) which is the architecture name as reported by GDB.
 
 The function **must** return:
 - `True` if the current `Architecture` class supports the target binary; `False` otherwise.
