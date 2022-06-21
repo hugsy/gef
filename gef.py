@@ -2161,6 +2161,9 @@ class Architecture(ArchitectureBase):
         if not all(map(lambda x: hasattr(cls, x), attributes)):
             raise NotImplementedError
 
+    def __str__(self) -> str:
+        return f"Architecture({self.arch}, {self.mode}, {self.endianness})"
+
     @staticmethod
     def supports_gdb_arch(gdb_arch: str) -> Optional[bool]:
         """If implemented by a child `Architecture`, this function dictates if the current class
@@ -10353,7 +10356,7 @@ class GefSessionManager(GefManager):
         return
 
     def __str__(self) -> str:
-        return f"Session(local='{bool(self.remote is None)}', pid='{self.pid}', os={self.os})"
+        return f"Session(local='{bool(self.remote is None)}', pid={self._pid or 'Not running'}, os='{self.os}')"
 
     @property
     def auxiliary_vector(self) -> Optional[Dict[str, int]]:
