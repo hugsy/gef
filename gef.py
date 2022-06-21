@@ -5806,7 +5806,7 @@ class RemoteCommand(GenericCommand):
         qemu: Optional[pathlib.Path] = None
         try:
             if args.qemu_user:
-                qemu = pathlib.Path(args.qemu_binary) if args.qemu_binary or gef.session.file
+                qemu = pathlib.Path(args.qemu_binary) if args.qemu_binary else gef.session.file
                 if not qemu.exists():
                     raise FileNotFoundError
         except Exception as e:
