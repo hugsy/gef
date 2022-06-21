@@ -1616,6 +1616,12 @@ def titlify(text: str, color: Optional[str] = None, msg_color: Optional[str] = N
     return "".join(msg)
 
 
+def dbg(msg: str) -> None:
+    if gef.config["gef.debug"] is True:
+        gef_print(f"{Color.colorify('[=]', 'bold cyan')} {msg}")
+    return
+
+
 def err(msg: str) -> None:
     gef_print(f"{Color.colorify('[!]', 'bold red')} {msg}")
     return
@@ -5765,15 +5771,16 @@ class FlagsCommand(GenericCommand):
 
 @register
 class RemoteCommand(GenericCommand):
-    """gef wrapper for the `target remote` command. This command will automatically
-    download the target binary in the local temporary directory (defaut /tmp) and then
-    source it. Additionally, it will fetch all the /proc/PID/maps and loads all its
-    information."""
+    """GDB `target remote` command on steroids. This command will use the remote procfs to create
+    a local copy of the execution environment, including the target binary and its libraries
+    in the local temporary directory (the value by default is in `gef.config.tempdir`). Additionally, it
+    will fetch all the /proc/PID/maps and loads all its information. If procfs is not available remotely, the command
+    will likely fail. You can however still use the limited command provided by GDB `target remote`."""
 
     _cmdline_ = "gef-remote"
     _syntax_  = f"{_cmdline_} [OPTIONS] TARGET"
-    _example_  = (f"\n{_cmdline_} --pid 6789 localhost:1234"
-                  f"\n{_cmdline_} --qemu-mode localhost:4444 # when using qemu-user")
+    _example_  = [f"{_cmdline_} --pid 6789 localhost 1234",
+                  f"{_cmdline_} --qemu-mode localhost4444 "]
 
     def __init__(self) -> None:
         super().__init__(prefix=False)
@@ -10387,6 +10394,8 @@ class GefSessionManager(GefManager):
     @property
     def file(self) -> Optional[pathlib.Path]:
         """Return a Path object of the target process."""
+        if gef.session.remote is not None:
+            return gef.session.remote.file
         fpath: str = gdb.current_progspace().filename
         if fpath and not self._file:
             self._file = pathlib.Path(fpath).expanduser()
@@ -10394,6 +10403,8 @@ class GefSessionManager(GefManager):
 
     @property
     def cwd(self) -> Optional[pathlib.Path]:
+        if gef.session.remote is not None:
+            return gef.session.remote.root
         return self.file.parent if self.file else None
 
     @property
@@ -10421,6 +10432,8 @@ class GefSessionManager(GefManager):
     def maps(self) -> Optional[pathlib.Path]:
         if not is_alive():
             return None
+        if gef.session.remote is not None:
+            return gef.session.remote.maps
         if not self._maps:
             self._maps = pathlib.Path(f"/proc/{self.pid}/maps")
         return self._maps
@@ -10433,6 +10446,9 @@ class GefRemoteSessionManager(GefSessionManager):
         super().__init__()
         self.__host = host
         self.__port = port
+        self.__local_root_fd = tempfile.TemporaryDirectory()
+        self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
+        dbg(f"[remote] initializing remote session with {self.target} under {self.root}")
         if not self.connect(pid):
             raise EnvironmentError(f"Cannot connect to remote target {self.target}")
         if not self.setup():
@@ -10444,8 +10460,9 @@ class GefRemoteSessionManager(GefSessionManager):
         self.__local_root_fd.cleanup()
         try:
             gef_on_new_unhook(self.remote_objfile_event_handler)
-        except:
-            pass
+            gef_on_new_hook(new_objfile_handler)
+        except Exception as e:
+            warn(f"Exception while restoring local context: {str(e)}")
         return
 
     def __str__(self) -> str:
@@ -10466,9 +10483,8 @@ class GefRemoteSessionManager(GefSessionManager):
             filename = gdb.current_progspace().filename
             if not filename:
                 raise RuntimeError("No session started")
-            if not filename.startswith("target:"):
-                raise ValueError(f"Invalid remote filename: {filename}")
-            self._file = pathlib.Path(filename[len("target:"):])
+            start_idx = len("target:") if filename.startswith("target:") else 0
+            self._file = pathlib.Path(filename[start_idx:])
         return self._file
 
     @property
@@ -10491,19 +10507,25 @@ class GefRemoteSessionManager(GefSessionManager):
         if tgt.exists():
             return True
         tgt.parent.mkdir(parents=True, exist_ok=True)
+        dbg(f"[remote] downloading '{src}' -> '{tgt}'")
         gdb.execute(f"remote get {src} {tgt.absolute()}")
         return tgt.exists()
 
     def connect(self, pid: int) -> bool:
         """Connect to remote target. If in extended mode, also attach to the given PID."""
         # before anything, register our new hook to download files from the remote target
+        dbg(f"[remote] Installing new objfile handlers")
+        gef_on_new_unhook(new_objfile_handler)
         gef_on_new_hook(self.remote_objfile_event_handler)
 
         # then attempt to connect
         is_extended_mode = (pid > -1)
+        dbg(f"[remote] Enabling extended remote: {bool(is_extended_mode)}")
         try:
             with DisableContextOutputContext():
-                gdb.execute(f"target {'extended-' if is_extended_mode else ''}remote {self.target}")
+                cmd = f"target {'extended-' if is_extended_mode else ''}remote {self.target}"
+                dbg(f"[remote] Executing '{cmd}'")
+                gdb.execute(cmd)
                 if is_extended_mode:
                     gdb.execute(f"attach {pid:d}")
             return True
@@ -10514,12 +10536,9 @@ class GefRemoteSessionManager(GefSessionManager):
         return False
 
     def setup(self) -> bool:
-        # create the local root tempdir, it'll be destroyed when the object is deleted
-        self.__local_root_fd = tempfile.TemporaryDirectory()
-        self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
-
         # get the file
         fpath = f"/proc/{self.pid}/exe"
+        print(self.file, fpath)
         if not self.sync(fpath, str(self.file)):
             err(f"'{fpath}' could not be fetched on the remote system.")
             return False
@@ -10546,11 +10565,16 @@ class GefRemoteSessionManager(GefSessionManager):
         return True
 
     def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
-        if not gef.session.remote or not evt.new_objfile.filename.startswith("target:"):
+        dbg(f"[remote] in remote_objfile_handler({evt.new_objfile.filename if evt else 'None'}))")
+        if not evt:
             return
-        src: str = evt.new_objfile.filename[len("target:"):]
-        if not self.sync(src):
-            raise FileNotFoundError(f"Failed to sync '{src}'")
+        if not evt.new_objfile.filename.startswith("target:") and not evt.new_objfile.filename.startswith("/"):
+            warn(f"[remote] skipping '{evt.new_objfile.filename}'")
+            return
+        if evt.new_objfile.filename.startswith("target:"):
+            src: str = evt.new_objfile.filename[len("target:"):]
+            if not self.sync(src):
+                raise FileNotFoundError(f"Failed to sync '{src}'")
         return
 
 
@@ -10563,7 +10587,7 @@ class GefUiManager(GefManager):
         self.highlight_table: Dict[str, str] = {}
         self.libc_args_table: Dict[str, Dict[str, Dict[str, str]]] = {}
         self.watches: Dict[int, Tuple[int, str]] = {}
-        self.context_messages: List[str] = []
+        self.context_messages: List[Tuple[str, str]] = []
         return
 
 
