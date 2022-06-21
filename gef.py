@@ -2162,7 +2162,7 @@ class Architecture(ArchitectureBase):
             raise NotImplementedError
 
     def __str__(self) -> str:
-        return f"Architecture({self.arch}, {self.mode}, {self.endianness})"
+        return f"Architecture({self.arch}, {self.mode or 'None'}, {repr(self.endianness)})"
 
     @staticmethod
     def supports_gdb_arch(gdb_arch: str) -> Optional[bool]:
