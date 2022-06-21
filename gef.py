@@ -10352,6 +10352,9 @@ class GefSessionManager(GefManager):
         self._maps: Optional[pathlib.Path] = None
         return
 
+    def __str__(self) -> str:
+        return f"Session(local='{bool(self.remote is None)}', pid='{self.pid}', os={self.os})"
+
     @property
     def auxiliary_vector(self) -> Optional[Dict[str, int]]:
         if not is_alive():
@@ -10597,6 +10600,9 @@ class GefLibcManager(GefManager):
         self._version : Optional[Tuple[int, int]] = None
         return
 
+    def __str__(self) -> str:
+        return f"Libc(version='{self.version}')"
+
     @property
     def version(self) -> Optional[Tuple[int, int]]:
         if not is_alive():
@@ -10616,6 +10622,9 @@ class Gef:
         self.ui = GefUiManager()
         self.libc = GefLibcManager()
         return
+
+    def __str__(self) -> str:
+        return f"Gef(binary='{self.binary}', arch='{self.arch}')"
 
     def reinitialize_managers(self) -> None:
         """Reinitialize the managers. Avoid calling this function directly, using `pi reset()` is preferred"""
