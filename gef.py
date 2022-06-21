@@ -10558,6 +10558,7 @@ class GefRemoteSessionManager(GefSessionManager):
         return False
 
     def setup(self) -> bool:
+        # setup remote adequately depending on remote or qemu mode
         if self.in_qemu_user():
             self.__setup_qemu()
         else:
@@ -10568,13 +10569,13 @@ class GefRemoteSessionManager(GefSessionManager):
         reset_architecture()
         return True
 
-    def __setup_qemu() -> bool:
+    def __setup_qemu(self) -> bool:
         # create a procfs
         ## /proc/pid/cmdline
         cmdline = self.root / f"proc/{self.pid}/cmdline"
         if not cmdline.exists():
             with cmdline.open("w") as fd:
-                fd.write(f"")
+                fd.write("")
 
         ## /proc/pid/environ
         environ = self.root / f"proc/{self.pid}/environ"
@@ -10591,7 +10592,7 @@ class GefRemoteSessionManager(GefSessionManager):
                 fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
         return True
 
-    def __setup_remote() -> bool:
+    def __setup_remote(self) -> bool:
         # get the file
         fpath = f"/proc/{self.pid}/exe"
         if not self.sync(fpath, str(self.file)):
