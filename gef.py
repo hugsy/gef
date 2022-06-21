@@ -10356,7 +10356,7 @@ class GefSessionManager(GefManager):
         return
 
     def __str__(self) -> str:
-        return f"Session(local='{bool(self.remote is None)}', pid={self._pid or 'Not running'}, os='{self.os}')"
+        return f"Session({'Local' if self.remote is None else 'Remote'}', pid={self._pid or 'Not running'}, os='{self.os}')"
 
     @property
     def auxiliary_vector(self) -> Optional[Dict[str, int]]:
