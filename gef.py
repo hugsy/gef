@@ -10627,7 +10627,7 @@ class Gef:
         return
 
     def __str__(self) -> str:
-        return f"Gef(binary='{self.binary}', arch='{self.arch}')"
+        return f"Gef(binary='{self.binary or 'None'}', arch={self.arch})"
 
     def reinitialize_managers(self) -> None:
         """Reinitialize the managers. Avoid calling this function directly, using `pi reset()` is preferred"""
