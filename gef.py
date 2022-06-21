@@ -5782,14 +5782,15 @@ class RemoteCommand(GenericCommand):
 
     _cmdline_ = "gef-remote"
     _syntax_  = f"{_cmdline_} [OPTIONS] TARGET"
-    _example_  = [f"{_cmdline_} --pid 6789 localhost 1234",
-                  f"{_cmdline_} --qemu-mode localhost4444 "]
+    _example_  = [f"{_cmdline_} localhost 1234",
+                  f"{_cmdline_} --pid 6789 localhost 1234",
+                  f"{_cmdline_} --qemu-user --qemu-binary /bin/debugme localhost 4444 "]
 
     def __init__(self) -> None:
         super().__init__(prefix=False)
         return
 
-    @parse_arguments({"host": "", "port": 0}, {"--pid": -1,})
+    @parse_arguments({"host": "", "port": 0}, {"--pid": -1, "--qemu-user": False, "--qemu-binary": ""})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         if gef.session.remote is not None:
             err("You already are in remote session. Close it first before opening a new one...")
@@ -5801,8 +5802,19 @@ class RemoteCommand(GenericCommand):
             err("Missing parameters")
             return
 
+        # qemu-user support
+        qemu: Optional[pathlib.Path] = None
+        try:
+            if args.qemu_user:
+                qemu = pathlib.Path(args.qemu_binary) if args.qemu_binary or gef.session.file
+                if not qemu.exists():
+                    raise FileNotFoundError
+        except Exception as e:
+            err(f"Failed to initialize qemu-user mode: {str(e)}")
+            return
+
         # try to establish the remote session, throw on error
-        gef.session.remote = GefRemoteSessionManager(args.host, args.port, args.pid)
+        gef.session.remote = GefRemoteSessionManager(args.host, args.port, args.pid, qemu)
         return
 
 
@@ -10319,10 +10331,10 @@ class GefSettingsManager(dict):
         if not setting.hooks:
             return
         idx = 0 if is_read else 1
-        if not setting.hooks[idx]:
-            return
-        for callback in setting.hooks[idx]:
-            callback()
+        if setting.hooks[idx]:
+            for callback in setting.hooks[idx]:
+                callback()
+        return
 
 
 class GefSessionManager(GefManager):
@@ -10448,12 +10460,13 @@ class GefSessionManager(GefManager):
 class GefRemoteSessionManager(GefSessionManager):
     """Class for managing remote sessions with GEF. It will create a temporary environment
     designed to clone the remote one."""
-    def __init__(self, host: str, port: int, pid: int =-1) -> None:
+    def __init__(self, host: str, port: int, pid: int =-1, qemu: Optional[pathlib.Path] = None) -> None:
         super().__init__()
         self.__host = host
         self.__port = port
         self.__local_root_fd = tempfile.TemporaryDirectory()
         self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
+        self.__qemu = qemu
         dbg(f"[remote] initializing remote session with {self.target} under {self.root}")
         if not self.connect(pid):
             raise EnvironmentError(f"Cannot connect to remote target {self.target}")
@@ -10471,8 +10484,11 @@ class GefRemoteSessionManager(GefSessionManager):
             warn(f"Exception while restoring local context: {str(e)}")
         return
 
+    def in_qemu_user(self) -> bool:
+        return self.__qemu is not None
+
     def __str__(self) -> str:
-        return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid})"
+        return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid}, qemu_user={bool(self.in_qemu_user())})"
 
     @property
     def target(self) -> str:
@@ -10542,9 +10558,42 @@ class GefRemoteSessionManager(GefSessionManager):
         return False
 
     def setup(self) -> bool:
+        if self.in_qemu_user():
+            self.__setup_qemu()
+        else:
+            self.__setup_remote()
+        # refresh gef to consider the binary
+        reset_all_caches()
+        gef.binary = Elf(self.lfile)
+        reset_architecture()
+        return True
+
+    def __setup_qemu() -> bool:
+        # create a procfs
+        ## /proc/pid/cmdline
+        cmdline = self.root / f"proc/{self.pid}/cmdline"
+        if not cmdline.exists():
+            with cmdline.open("w") as fd:
+                fd.write(f"")
+
+        ## /proc/pid/environ
+        environ = self.root / f"proc/{self.pid}/environ"
+        if not environ.exists():
+            with environ.open("wb") as fd:
+                fd.write(b"PATH=/bin\x00HOME=/tmp\x00")
+
+        ## /proc/pid/maps
+        maps = self.root / f"proc/{self.pid}/maps"
+        if not maps.exists():
+            with maps.open("w") as fd:
+                fname = self.file.absolute()
+                mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
+                fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
+        return True
+
+    def __setup_remote() -> bool:
         # get the file
         fpath = f"/proc/{self.pid}/exe"
-        print(self.file, fpath)
         if not self.sync(fpath, str(self.file)):
             err(f"'{fpath}' could not be fetched on the remote system.")
             return False
@@ -10563,11 +10612,6 @@ class GefRemoteSessionManager(GefSessionManager):
                 fname = self.file.absolute()
                 mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
                 fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
-
-        # refresh gef to consider the binary
-        reset_all_caches()
-        gef.binary = Elf(self.lfile)
-        reset_architecture()
         return True
 
     def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
