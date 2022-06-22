@@ -229,7 +229,7 @@ def _target(name: str, extension: str = ".out") -> pathlib.Path:
 
 
 def start_gdbserver(exe: Union[str, pathlib.Path] = _target("default"),
-                    port: int = 1234) -> subprocess.Popen:
+                    port: int = GDBSERVER_DEFAULT_PORT) -> subprocess.Popen:
     """Start a gdbserver on the target binary.
 
     Args:
@@ -264,6 +264,32 @@ def gdbserver_session(*args, **kwargs):
         yield sess
     finally:
         stop_gdbserver(sess)
+
+
+def start_qemuuser(exe: Union[str, pathlib.Path] = _target("default"),
+                   port: int = GDBSERVER_DEFAULT_PORT) -> subprocess.Popen:
+    return subprocess.Popen(["qemu-x86_64", "-g", str(port), exe],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def stop_qemuuser(process: subprocess.Popen) -> None:
+    if process.poll() is None:
+        process.kill()
+        process.wait()
+
+
+@contextlib.contextmanager
+def qemuuser_session(*args, **kwargs):
+    exe = kwargs.get("exe", "") or _target("default")
+    port = kwargs.get("port", 0) or GDBSERVER_DEFAULT_PORT
+    sess = start_gdbserver(exe, port)
+    try:
+        yield sess
+    finally:
+        stop_gdbserver(sess)
+
+
+
 
 def findlines(substring: str, buffer: str) -> List[str]:
     """Extract the lines from the buffer which contains the pattern
