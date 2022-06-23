@@ -158,9 +158,10 @@ GEF_DEFAULT_BRANCH                     = "main"
 GEF_EXTRAS_DEFAULT_BRANCH              = "main"
 
 gef : "Gef"
-__registered_commands__ : List[Type["GenericCommand"]]                      = []
-__registered_functions__ : List[Type["GenericFunction"]]                    = []
-__registered_architectures__ : Dict[Union["Elf.Abi", str], Type["Architecture"]]  = {}
+__registered_commands__ : List[Type["GenericCommand"]]                                        = []
+__registered_functions__ : List[Type["GenericFunction"]]                                      = []
+__registered_architectures__ : Dict[Union["Elf.Abi", str], Type["Architecture"]]              = {}
+__registered_file_formats__ : List[ Type["FileFormat"] ]                                      = []
 
 
 def reset_all_caches() -> None:
@@ -289,44 +290,52 @@ def bufferize(f: Callable) -> Callable:
 # Helpers
 #
 
-def p8(x: int, s: bool = False) -> bytes:
+def p8(x: int, s: bool = False, e: Optional["Endianness"] = None) -> bytes:
     """Pack one byte respecting the current architecture endianness."""
-    return struct.pack(f"{gef.arch.endianness}B", x) if not s else struct.pack(f"{gef.arch.endianness}b", x)
+    endian = e or gef.arch.endianness
+    return struct.pack(f"{endian}B", x) if not s else struct.pack(f"{endian:s}b", x)
 
 
-def p16(x: int, s: bool = False) -> bytes:
+def p16(x: int, s: bool = False, e: Optional["Endianness"] = None) -> bytes:
     """Pack one word respecting the current architecture endianness."""
-    return struct.pack(f"{gef.arch.endianness}H", x) if not s else struct.pack(f"{gef.arch.endianness}h", x)
+    endian = e or gef.arch.endianness
+    return struct.pack(f"{endian}H", x) if not s else struct.pack(f"{endian:s}h", x)
 
 
-def p32(x: int, s: bool = False) -> bytes:
+def p32(x: int, s: bool = False, e: Optional["Endianness"] = None) -> bytes:
     """Pack one dword respecting the current architecture endianness."""
-    return struct.pack(f"{gef.arch.endianness}I", x) if not s else struct.pack(f"{gef.arch.endianness}i", x)
+    endian = e or gef.arch.endianness
+    return struct.pack(f"{endian}I", x) if not s else struct.pack(f"{endian:s}i", x)
 
 
-def p64(x: int, s: bool = False) -> bytes:
+def p64(x: int, s: bool = False, e: Optional["Endianness"] = None) -> bytes:
     """Pack one qword respecting the current architecture endianness."""
-    return struct.pack(f"{gef.arch.endianness}Q", x) if not s else struct.pack(f"{gef.arch.endianness}q", x)
+    endian = e or gef.arch.endianness
+    return struct.pack(f"{endian}Q", x) if not s else struct.pack(f"{endian:s}q", x)
 
 
-def u8(x: bytes, s: bool = False) -> int:
+def u8(x: bytes, s: bool = False, e: Optional["Endianness"] = None) -> int:
     """Unpack one byte respecting the current architecture endianness."""
-    return struct.unpack(f"{gef.arch.endianness}B", x)[0] if not s else struct.unpack(f"{gef.arch.endianness}b", x)[0]
+    endian = e or gef.arch.endianness
+    return struct.unpack(f"{endian}B", x)[0] if not s else struct.unpack(f"{endian:s}b", x)[0]
 
 
-def u16(x: bytes, s: bool = False) -> int:
+def u16(x: bytes, s: bool = False, e: Optional["Endianness"] = None) -> int:
     """Unpack one word respecting the current architecture endianness."""
-    return struct.unpack(f"{gef.arch.endianness}H", x)[0] if not s else struct.unpack(f"{gef.arch.endianness}h", x)[0]
+    endian = e or gef.arch.endianness
+    return struct.unpack(f"{endian}H", x)[0] if not s else struct.unpack(f"{endian:s}h", x)[0]
 
 
-def u32(x: bytes, s: bool = False) -> int:
+def u32(x: bytes, s: bool = False, e: Optional["Endianness"] = None) -> int:
     """Unpack one dword respecting the current architecture endianness."""
-    return struct.unpack(f"{gef.arch.endianness}I", x)[0] if not s else struct.unpack(f"{gef.arch.endianness}i", x)[0]
+    endian = e or gef.arch.endianness
+    return struct.unpack(f"{endian}I", x)[0] if not s else struct.unpack(f"{endian:s}i", x)[0]
 
 
-def u64(x: bytes, s: bool = False) -> int:
+def u64(x: bytes, s: bool = False, e: Optional["Endianness"] = None) -> int:
     """Unpack one qword respecting the current architecture endianness."""
-    return struct.unpack(f"{gef.arch.endianness}Q", x)[0] if not s else struct.unpack(f"{gef.arch.endianness}q", x)[0]
+    endian = e or gef.arch.endianness
+    return struct.unpack(f"{endian}Q", x)[0] if not s else struct.unpack(f"{endian:s}q", x)[0]
 
 
 def is_ascii_string(address: int) -> bool:
@@ -678,7 +687,31 @@ class Endianness(enum.Enum):
         return self.value
 
 
-class Elf:
+class FileFormat:
+    name: str
+    path: pathlib.Path
+    entry_point: int
+    checksec: Dict[str, bool]
+
+    def __init__(self, path: Union[str, pathlib.Path]) -> None:
+        raise NotImplemented
+
+    def __init_subclass__(cls: Type["FileFormat"], **kwargs):
+        global __registered_file_formats__
+        super().__init_subclass__(**kwargs)
+        required_attributes = ("name", "entry_point", "is_valid", "checksec",)
+        for attr in required_attributes:
+            if not hasattr(cls, attr):
+                raise NotImplementedError(f"File format '{cls.__name__}' is invalid: missing attribute '{attr}'")
+        __registered_file_formats__.append(cls)
+        return
+
+    @classmethod
+    def is_valid(cls, path: pathlib.Path) -> bool:
+        raise NotImplemented
+
+
+class Elf(FileFormat):
     """Basic ELF parsing.
     Ref:
     - http://www.skyfree.org/linux/references/ELF_Format.pdf
@@ -746,16 +779,24 @@ class Elf:
     path: pathlib.Path
     phdrs : List["Phdr"]
     shdrs : List["Shdr"]
+    name: str = "ELF"
 
-    def __init__(self, path: str = "", minimalist: bool = False) -> None:
-        """Instantiate an ELF object. The default behavior is to create the object by parsing the ELF file.
-        But in some cases (QEMU-stub), we may just want a simple minimal object with default values."""
-        if minimalist:
-            return
+    __checksec : Dict[str, bool]
 
-        self.path = pathlib.Path(path).expanduser()
-        if not os.access(self.path, os.R_OK):
+    def __init__(self, path: Union[str, pathlib.Path]) -> None:
+        """Instantiate an ELF object. A valid ELF must be provided, or an exception will be thrown."""
+
+        if isinstance(path, str):
+            self.path = pathlib.Path(path).expanduser()
+        elif isinstance(path, pathlib.Path):
+            self.path = path
+        else:
+            raise TypeError
+
+        if not self.path.exists():
             raise FileNotFoundError(f"'{self.path}' not found/readable, most gef features will not work")
+
+        self.__checksec = {}
 
         with self.path.open("rb") as self.fd:
             # off 0x0
@@ -820,6 +861,45 @@ class Elf:
     @property
     def entry_point(self) -> int:
         return self.e_entry
+
+    @classmethod
+    def is_valid(cls, path: pathlib.Path) -> bool:
+        return u32(path.open("rb").read(4), e = Endianness.BIG_ENDIAN) == Elf.ELF_MAGIC
+
+    @property
+    def checksec(self) -> Dict[str, bool]:
+        """Check the security property of the ELF binary. The following properties are:
+        - Canary
+        - NX
+        - PIE
+        - Fortify
+        - Partial/Full RelRO.
+        Return a dict() with the different keys mentioned above, and the boolean
+        associated whether the protection was found."""
+        if not self.__checksec:
+            def __check_security_property(opt: str, filename: str, pattern: str) -> bool:
+                cmd   = [readelf,]
+                cmd  += opt.split()
+                cmd  += [filename,]
+                lines = gef_execute_external(cmd, as_list=True)
+                for line in lines:
+                    if re.search(pattern, line):
+                        return True
+                return False
+
+            abspath = str(self.path.absolute())
+            readelf = gef.session.constants["readelf"]
+            self.__checksec["Canary"] = __check_security_property("-rs", abspath, r"__stack_chk_fail") is True
+            has_gnu_stack = __check_security_property("-W -l", abspath, r"GNU_STACK") is True
+            if has_gnu_stack:
+                self.__checksec["NX"] = __check_security_property("-W -l", abspath, r"GNU_STACK.*RWE") is False
+            else:
+                self.__checksec["NX"] = False
+            self.__checksec["PIE"] = __check_security_property("-h", abspath, r":.*EXEC") is False
+            self.__checksec["Fortify"] = __check_security_property("-s", abspath, r"_chk@GLIBC") is True
+            self.__checksec["Partial RelRO"] = __check_security_property("-l", abspath, r"GNU_RELRO") is True
+            self.__checksec["Full RelRO"] = self.__checksec["Partial RelRO"] and __check_security_property("-d", abspath, r"BIND_NOW") is True
+        return self.__checksec
 
     @classproperty
     @deprecated("use `Elf.Abi.X86_64`")
@@ -1991,40 +2071,9 @@ def gef_execute_gdb_script(commands: str) -> None:
     return
 
 
-@lru_cache(32)
+@deprecated("Use Elf(fname).checksec()")
 def checksec(filename: str) -> Dict[str, bool]:
-    """Check the security property of the ELF binary. The following properties are:
-    - Canary
-    - NX
-    - PIE
-    - Fortify
-    - Partial/Full RelRO.
-    Return a dict() with the different keys mentioned above, and the boolean
-    associated whether the protection was found."""
-    readelf = gef.session.constants["readelf"]
-
-    def __check_security_property(opt: str, filename: str, pattern: str) -> bool:
-        cmd   = [readelf,]
-        cmd  += opt.split()
-        cmd  += [filename,]
-        lines = gef_execute_external(cmd, as_list=True)
-        for line in lines:
-            if re.search(pattern, line):
-                return True
-        return False
-
-    results = collections.OrderedDict()
-    results["Canary"] = __check_security_property("-rs", filename, r"__stack_chk_fail") is True
-    has_gnu_stack = __check_security_property("-W -l", filename, r"GNU_STACK") is True
-    if has_gnu_stack:
-        results["NX"] = __check_security_property("-W -l", filename, r"GNU_STACK.*RWE") is False
-    else:
-        results["NX"] = False
-    results["PIE"] = __check_security_property("-h", filename, r":.*EXEC") is False
-    results["Fortify"] = __check_security_property("-s", filename, r"_chk@GLIBC") is True
-    results["Partial RelRO"] = __check_security_property("-l", filename, r"GNU_RELRO") is True
-    results["Full RelRO"] = results["Partial RelRO"] and __check_security_property("-d", filename, r"BIND_NOW") is True
-    return results
+    return Elf(filename).checksec
 
 
 @lru_cache()
@@ -2062,7 +2111,7 @@ def get_entry_point() -> Optional[int]:
 
 
 def is_pie(fpath: str) -> bool:
-    return checksec(fpath)["PIE"]
+    return Elf(fpath).checksec["PIE"]
 
 
 @deprecated("Prefer `gef.arch.endianness == Endianness.BIG_ENDIAN`")
@@ -3429,23 +3478,21 @@ def hook_stop_handler(_: "gdb.Event") -> None:
 def new_objfile_handler(evt: "gdb.Event") -> None:
     """GDB event handler for new object file cases."""
     reset_all_caches()
-    if evt:
-        try:
-            elf = Elf(evt.new_objfile.filename)
-            if not gef.binary:
-                gef.binary = elf
-                reset_architecture()
-                load_libc_args()
-            else:
-                gef.session.modules.append(elf)
-        except FileNotFoundError:
-            pass
-    else:
-        elf = Elf(gdb.current_progspace().filename)
+    try:
+        target = pathlib.Path( evt.new_objfile.filename if evt else gdb.current_progspace().filename)
+        FileFormatClasses = list(filter(lambda fmtcls: fmtcls.is_valid(target), __registered_file_formats__))
+        GuessedFileFormatClass : Type[FileFormat] = FileFormatClasses.pop() if len(FileFormatClasses) else Elf
+        binary = GuessedFileFormatClass(target)
         if not gef.binary:
-            gef.binary = elf
-            reset_architecture()
-            load_libc_args()
+            gef.binary = binary
+        else:
+            gef.session.modules.append(binary)
+        reset_architecture()
+        load_libc_args()
+    except FileNotFoundError as fne:
+        warn(f"Failed to find objfile or not a valid file format: {str(fne)}")
+    except RuntimeError as re:
+        warn(f"Not a valid file format: {str(re)}")
     return
 
 
@@ -10565,7 +10612,7 @@ class GefSessionManager(GefManager):
         self.pie_breakpoints: Dict[int, PieVirtualBreakpoint] = {}
         self.pie_counter = 1
         self.aliases: List[GefAlias] = []
-        self.modules: List[Elf] = []
+        self.modules: List[FileFormat] = []
         self.constants = {} # a dict for runtime constants (like 3rd party file paths)
         # add a few extra runtime constants to avoid lookups
         # those must be found, otherwise IOError will be raised
@@ -10682,8 +10729,18 @@ class GefLibcManager(GefManager):
 class Gef:
     """The GEF root class, which serves as a entrypoint for all the debugging session attributes (architecture,
     memory, settings, etc.)."""
+    binary: Optional[FileFormat]
+    arch: Architecture
+    config : GefSettingsManager
+    ui: GefUiManager
+    libc: GefLibcManager
+    memory : GefMemoryManager
+    heap : GefHeapManager
+    session : GefSessionManager
+    gdb: GefCommand
+
     def __init__(self) -> None:
-        self.binary: Optional[Elf] = None
+        self.binary: Optional[FileFormat] = None
         self.arch: Architecture = GenericArchitecture() # see PR #516, will be reset by `new_objfile_handler`
         self.config = GefSettingsManager()
         self.ui = GefUiManager()
