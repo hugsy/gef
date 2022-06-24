@@ -83,7 +83,7 @@ from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Dict, Generator, IO, Iterable, Iterator, List,
-                    NoReturn, Optional, Sequence, Tuple, Type, Union)
+                    NoReturn, Optional, Sequence, Set, Tuple, Type, Union)
 from urllib.request import urlopen
 
 
@@ -161,7 +161,7 @@ gef : "Gef"
 __registered_commands__ : List[Type["GenericCommand"]]                                        = []
 __registered_functions__ : List[Type["GenericFunction"]]                                      = []
 __registered_architectures__ : Dict[Union["Elf.Abi", str], Type["Architecture"]]              = {}
-__registered_file_formats__ : List[ Type["FileFormat"] ]                                      = []
+__registered_file_formats__ : Set[ Type["FileFormat"] ]                                       = set()
 
 
 def reset_all_caches() -> None:
@@ -687,11 +687,16 @@ class Endianness(enum.Enum):
         return self.value
 
 
+class FileFormatSection:
+    misc: Any
+
+
 class FileFormat:
     name: str
     path: pathlib.Path
     entry_point: int
     checksec: Dict[str, bool]
+    sections: List[FileFormatSection]
 
     def __init__(self, path: Union[str, pathlib.Path]) -> None:
         raise NotImplemented
@@ -703,12 +708,15 @@ class FileFormat:
         for attr in required_attributes:
             if not hasattr(cls, attr):
                 raise NotImplementedError(f"File format '{cls.__name__}' is invalid: missing attribute '{attr}'")
-        __registered_file_formats__.append(cls)
+        __registered_file_formats__.add(cls)
         return
 
     @classmethod
     def is_valid(cls, path: pathlib.Path) -> bool:
         raise NotImplemented
+
+    def __str__(self) -> str:
+        return f"{self.name}('{self.path.absolute()}', entry @ {self.entry_point:#x})"
 
 
 class Elf(FileFormat):
@@ -10805,9 +10813,6 @@ if __name__ == "__main__":
             [PYTHONBIN, "-c", "import os, sys;print(os.linesep.join(sys.path).strip())"]).decode("utf-8").split()
         sys.path.extend(SITE_PACKAGES_DIRS)
 
-    # setup prompt
-    gdb.prompt_hook = __gef_prompt__
-
     # setup config
     gdb_initial_settings = (
         "set confirm off",
@@ -10831,6 +10836,9 @@ if __name__ == "__main__":
     reset()
     gef.gdb.load()
     gef.gdb.show_banner()
+
+    # setup prompt
+    gdb.prompt_hook = __gef_prompt__
 
     # gdb events configuration
     gef_on_continue_hook(continue_handler)
