@@ -8182,7 +8182,7 @@ class PatchWordCommand(PatchCommand):
 
 @register
 class PatchByteCommand(PatchCommand):
-    """Write specified WORD to the specified address."""
+    """Write specified BYTE to the specified address."""
 
     _cmdline_ = "patch byte"
     _syntax_  = f"{_cmdline_} LOCATION BYTE1 [BYTE2 [BYTE3..]]"
