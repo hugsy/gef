@@ -3766,12 +3766,18 @@ def dereference(addr: int) -> Optional["gdb.Value"]:
     return None
 
 
-def gef_convenience(value: str) -> str:
+def gef_convenience(value: Union[str, bytes]) -> str:
     """Defines a new convenience value."""
     global gef
     var_name = f"$_gef{gef.session.convenience_vars_index:d}"
     gef.session.convenience_vars_index += 1
-    gdb.execute(f"""set {var_name} = "{value}" """)
+    if isinstance(value, str):
+        gdb.execute(f"""set {var_name} = "{value}" """)
+    elif isinstance(value, bytes):
+        value_as_array = "{" + ", ".join(["%#.02x" % x for x in value]) + "}"
+        gdb.execute(f"""set {var_name} = {value_as_array} """)
+    else:
+        raise TypeError
     return var_name
 
 
@@ -4541,7 +4547,7 @@ class VersionCommand(GenericCommand):
 class PrintFormatCommand(GenericCommand):
     """Print bytes format in commonly used formats, such as literals in high level languages."""
 
-    valid_formats = ("py", "c", "js", "asm", "hex")
+    valid_formats = ("py", "c", "js", "asm", "hex", "bytearray")
     valid_bitness = (8, 16, 32, 64)
 
     _cmdline_ = "print-format"
@@ -4590,12 +4596,17 @@ class PrintFormatCommand(GenericCommand):
         fmt = self.format_matrix[args.bitlen][0]
         data = []
 
-        for addr in range(start_addr, end_addr, size):
-            value = struct.unpack(fmt, gef.memory.read(addr, size))[0]
-            data += [value]
-        sdata = ", ".join(map(hex, data))
+        if args.lang != "bytearray":
+            for addr in range(start_addr, end_addr, size):
+                value = struct.unpack(fmt, gef.memory.read(addr, size))[0]
+                data += [value]
+            sdata = ", ".join(map(hex, data))
 
-        if args.lang == "py":
+        if args.lang == "bytearray":
+            data = gef.memory.read(start_addr, args.length)
+            preview = str(data[0:10])
+            out = f"Saved data {preview}... in '{gef_convenience(data)}'"
+        elif args.lang == "py":
             out = f"buf = [{sdata}]"
         elif args.lang == "c":
             c_type = self.format_matrix[args.bitlen][1]
@@ -8107,9 +8118,19 @@ class PatchCommand(GenericCommand):
 
         addr = align_address(parse_address(args.location))
         size, fcode = self.SUPPORTED_SIZES[self.format]
+        values = args.values 
+
+        if size == 1: 
+            if values[0].startswith("$_gef"):
+                var_name = values[0]
+                try: 
+                    values = str(gdb.parse_and_eval(var_name)).lstrip("{").rstrip("}").replace(",","").split(" ")
+                except:
+                    gef_print(f"Bad variable specified, check value with command: p {var_name}")
+                    return
 
         d = str(gef.arch.endianness)
-        for value in args.values:
+        for value in values:
             value = parse_address(value) & ((1 << size * 8) - 1)
             vstr = struct.pack(d + fcode, value)
             gef.memory.write(addr, vstr, length=size)
