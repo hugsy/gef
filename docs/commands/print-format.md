@@ -7,6 +7,7 @@ The command `print-format` (alias `pf`) will dump an arbitrary location as an ar
  - Assembly (`asm`)
  - Javascript (`js`)
  - Hex string (`hex`)
+ - For patch byte command or GDB $_gef[N] byte access (`bytearray`)
 
 
 ```
@@ -26,3 +27,15 @@ gef➤  print-format --lang py --bitlen 8 -l 10 --clip $rsp
 [+] Copied to clipboard
 buf = [0x87, 0xfa, 0xa3, 0xf7, 0xff, 0x7f, 0x0, 0x0, 0x30, 0xe6]
 ```
+
+These commands copy the first 10 bytes of $rsp+8 to $rip:
+
+```
+gef➤  print-format --lang bytearray -l 10 $rsp+8
+Saved data b'\xcb\xe3\xff\xff\xff\x7f\x00\x00\x00\x00'... in '$_gef0'
+gef➤  display/x $_gef0[5]
+4: /x $_gef0[5] = 0x7f
+gef➤  patch byte $rip $_gef0
+```
+
+Very handy to copy-paste-execute shellcodes/data from different memory regions.
