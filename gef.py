@@ -67,7 +67,7 @@ import os
 import pathlib
 import platform
 import re
-import site
+import shutil
 import socket
 import string
 import struct
@@ -76,13 +76,13 @@ import sys
 import tempfile
 import time
 import traceback
-
 import warnings
 from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
-from typing import (Any, ByteString, Callable, Dict, Generator, IO, Iterable, Iterator, List,
-                    NoReturn, Optional, Sequence, Tuple, Type, Union)
+from typing import (IO, Any, ByteString, Callable, Dict, Generator, Iterable,
+                    Iterator, List, NoReturn, Optional, Sequence, Tuple, Type,
+                    Union)
 from urllib.request import urlopen
 
 
@@ -113,7 +113,7 @@ def update_gef(argv: List[str]) -> int:
 
 
 try:
-    import gdb # type:ignore
+    import gdb  # type:ignore
 except ImportError:
     # if out of gdb, the only action allowed is to update gef.py
     if len(sys.argv) >= 2 and sys.argv[1].lower() in ("--update", "--upgrade"):
@@ -448,6 +448,7 @@ def parse_arguments(required_arguments: Dict[Union[str, Tuple[str, str]], Any],
                     argtype = int_wrapper
 
                 argname_is_list = not isinstance(argname, str)
+                assert not argname_is_list and isinstance(argname, str)
                 if not argname_is_list and argname.startswith("-"):
                     # optional args
                     if argtype is bool:
@@ -3481,7 +3482,7 @@ def get_terminal_size() -> Tuple[int, int]:
         return 600, 100
 
     if platform.system() == "Windows":
-        from ctypes import windll, create_string_buffer
+        from ctypes import create_string_buffer, windll
         hStdErr = -12
         herr = windll.kernel32.GetStdHandle(hStdErr)
         csbi = create_string_buffer(22)
@@ -5793,14 +5794,15 @@ class RemoteCommand(GenericCommand):
 
     _cmdline_ = "gef-remote"
     _syntax_  = f"{_cmdline_} [OPTIONS] TARGET"
-    _example_  = [f"{_cmdline_} --pid 6789 localhost 1234",
-                  f"{_cmdline_} --qemu-mode localhost4444 "]
+    _example_  = [f"{_cmdline_} localhost 1234",
+                  f"{_cmdline_} --pid 6789 localhost 1234",
+                  f"{_cmdline_} --qemu-user --qemu-binary /bin/debugme localhost 4444 "]
 
     def __init__(self) -> None:
         super().__init__(prefix=False)
         return
 
-    @parse_arguments({"host": "", "port": 0}, {"--pid": -1,})
+    @parse_arguments({"host": "", "port": 0}, {"--pid": -1, "--qemu-user": True, "--qemu-binary": ""})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         if gef.session.remote is not None:
             err("You already are in remote session. Close it first before opening a new one...")
@@ -5812,8 +5814,21 @@ class RemoteCommand(GenericCommand):
             err("Missing parameters")
             return
 
+        # qemu-user support
+        qemu_binary: Optional[pathlib.Path] = None
+        try:
+            if args.qemu_user:
+                qemu_binary = pathlib.Path(args.qemu_binary).expanduser().absolute() if args.qemu_binary else gef.session.file
+                if not qemu_binary or not qemu_binary.exists():
+                    raise FileNotFoundError(f"{qemu_binary} does not exist")
+        except Exception as e:
+            err(f"Failed to initialize qemu-user mode, reason: {str(e)}")
+            return
+
         # try to establish the remote session, throw on error
-        gef.session.remote = GefRemoteSessionManager(args.host, args.port, args.pid)
+        gef.session.remote = GefRemoteSessionManager(args.host, args.port, args.pid, qemu_binary)
+        reset_all_caches()
+        gdb.execute("context")
         return
 
 
@@ -7904,12 +7919,12 @@ class PatchCommand(GenericCommand):
 
         addr = align_address(parse_address(args.location))
         size, fcode = self.SUPPORTED_SIZES[self.format]
-        values = args.values 
+        values = args.values
 
-        if size == 1: 
+        if size == 1:
             if values[0].startswith("$_gef"):
                 var_name = values[0]
-                try: 
+                try:
                     values = str(gdb.parse_and_eval(var_name)).lstrip("{").rstrip("}").replace(",","").split(" ")
                 except:
                     gef_print(f"Bad variable specified, check value with command: p {var_name}")
@@ -10135,10 +10150,11 @@ class GefMemoryManager(GefManager):
 
     def __parse_procfs_maps(self) -> Generator[Section, None, None]:
         """Get the memory mapping from procfs."""
-        __process_map_file = gef.session.remote.maps if gef.session.remote else gef.session.maps
-        if not __process_map_file:
-            return
-        with __process_map_file.open("r") as fd:
+        procfs_mapfile = gef.session.maps
+        if not procfs_mapfile:
+            is_remote = gef.session.remote is not None
+            raise FileNotFoundError(f"Missing {'remote ' if is_remote else ''}procfs map file")
+        with procfs_mapfile.open("r") as fd:
             for line in fd:
                 line = line.strip()
                 addr, perm, off, _, rest = line.split(" ", 4)
@@ -10340,10 +10356,10 @@ class GefSettingsManager(dict):
         if not setting.hooks:
             return
         idx = 0 if is_read else 1
-        if not setting.hooks[idx]:
-            return
-        for callback in setting.hooks[idx]:
-            callback()
+        if setting.hooks[idx]:
+            for callback in setting.hooks[idx]:
+                callback()
+        return
 
 
 class GefSessionManager(GefManager):
@@ -10377,7 +10393,7 @@ class GefSessionManager(GefManager):
         return
 
     def __str__(self) -> str:
-        return f"Session({'Local' if self.remote is None else 'Remote'}', pid={self._pid or 'Not running'}, os='{self.os}')"
+        return f"Session({'Local' if self.remote is None else 'Remote'}, pid={self.pid or 'Not running'}, os='{self.os}')"
 
     @property
     def auxiliary_vector(self) -> Optional[Dict[str, int]]:
@@ -10457,30 +10473,32 @@ class GefSessionManager(GefManager):
 
     @property
     def maps(self) -> Optional[pathlib.Path]:
+        """Returns the Path to the procfs entry for the memory mapping."""
         if not is_alive():
             return None
-        if gef.session.remote is not None:
-            return gef.session.remote.maps
         if not self._maps:
-            self._maps = pathlib.Path(f"/proc/{self.pid}/maps")
+            if gef.session.remote is not None:
+                self._maps = gef.session.remote.maps
+            else:
+                self._maps = pathlib.Path(f"/proc/{self.pid}/maps")
         return self._maps
 
 
 class GefRemoteSessionManager(GefSessionManager):
     """Class for managing remote sessions with GEF. It will create a temporary environment
     designed to clone the remote one."""
-    def __init__(self, host: str, port: int, pid: int =-1) -> None:
+    def __init__(self, host: str, port: int, pid: int =-1, qemu: Optional[pathlib.Path] = None) -> None:
         super().__init__()
         self.__host = host
         self.__port = port
         self.__local_root_fd = tempfile.TemporaryDirectory()
         self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
+        self.__qemu = qemu
         dbg(f"[remote] initializing remote session with {self.target} under {self.root}")
         if not self.connect(pid):
             raise EnvironmentError(f"Cannot connect to remote target {self.target}")
         if not self.setup():
             raise EnvironmentError(f"Failed to create a proper environment for {self.target}")
-        gdb.execute("context")
         return
 
     def __del__(self) -> None:
@@ -10492,8 +10510,11 @@ class GefRemoteSessionManager(GefSessionManager):
             warn(f"Exception while restoring local context: {str(e)}")
         return
 
+    def in_qemu_user(self) -> bool:
+        return self.__qemu is not None
+
     def __str__(self) -> str:
-        return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid})"
+        return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid}, qemu_user={bool(self.in_qemu_user())})"
 
     @property
     def target(self) -> str:
@@ -10563,9 +10584,57 @@ class GefRemoteSessionManager(GefSessionManager):
         return False
 
     def setup(self) -> bool:
+        # setup remote adequately depending on remote or qemu mode
+        if self.in_qemu_user():
+            dbg(f"Setting up as qemu session, target={self.__qemu}")
+            self.__setup_qemu()
+        else:
+            dbg(f"Setting up as remote session")
+            self.__setup_remote()
+
+        # refresh gef to consider the binary
+        reset_all_caches()
+        gef.binary = Elf(self.lfile)
+        reset_architecture()
+        return True
+
+    def __setup_qemu(self) -> bool:
+        # setup emulated file in the chroot
+        assert self.__qemu
+        target = self.root / str(self.__qemu.parent).lstrip("/")
+        target.mkdir(parents=True, exist_ok=False)
+        shutil.copy2(self.__qemu, target)
+        self._file = self.__qemu
+        assert self.lfile.exists()
+
+        # create a procfs
+        procfs = self.root / f"proc/{self.pid}/"
+        procfs.mkdir(parents=True, exist_ok=True)
+
+        ## /proc/pid/cmdline
+        cmdline = procfs / "cmdline"
+        if not cmdline.exists():
+            with cmdline.open("w") as fd:
+                fd.write("")
+
+        ## /proc/pid/environ
+        environ = procfs / "environ"
+        if not environ.exists():
+            with environ.open("wb") as fd:
+                fd.write(b"PATH=/bin\x00HOME=/tmp\x00")
+
+        ## /proc/pid/maps
+        maps = procfs / "maps"
+        if not maps.exists():
+            with maps.open("w") as fd:
+                fname = self.file.absolute()
+                mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
+                fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
+        return True
+
+    def __setup_remote(self) -> bool:
         # get the file
         fpath = f"/proc/{self.pid}/exe"
-        print(self.file, fpath)
         if not self.sync(fpath, str(self.file)):
             err(f"'{fpath}' could not be fetched on the remote system.")
             return False
@@ -10584,11 +10653,6 @@ class GefRemoteSessionManager(GefSessionManager):
                 fname = self.file.absolute()
                 mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
                 fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
-
-        # refresh gef to consider the binary
-        reset_all_caches()
-        gef.binary = Elf(self.lfile)
-        reset_architecture()
         return True
 
     def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
