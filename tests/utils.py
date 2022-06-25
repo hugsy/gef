@@ -3,6 +3,7 @@ Utility functions for testing
 """
 
 import contextlib
+import enum
 import os
 import pathlib
 import platform
@@ -10,11 +11,9 @@ import re
 import subprocess
 import tempfile
 import unittest
-from urllib.request import urlopen
 import warnings
-import enum
-
-from typing import Dict, Iterable, Union, List, Optional
+from typing import Dict, Iterable, List, Optional, Union
+from urllib.request import urlopen
 
 TMPDIR = pathlib.Path(tempfile.gettempdir())
 ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()

@@ -20,6 +20,10 @@ class PatchCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertRegex(res, r"0xcc\s*0x[^c]{2}")
 
+    def test_cmd_patch_byte_bytearray(self):
+        res = gdb_start_silent_cmd_last_line("set $_gef69 = { 0xcc, 0xcc }", after=["patch byte $pc $_gef69", "display/8bx $pc",])
+        self.assertNoException(res)
+        self.assertRegex(res, r"(0xcc\s*)(\1)0x[^c]{2}")
 
     def test_cmd_patch_word(self):
         res = gdb_start_silent_cmd_last_line("patch word $pc 0xcccc", after=["display/8bx $pc",])
