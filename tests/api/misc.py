@@ -12,8 +12,6 @@ from tests.utils import (
     _target,
     gdb_start_silent_cmd,
     gdb_test_python_method,
-    start_gdbserver,
-    stop_gdbserver,
     GefUnitTestGeneric,
 )
 
@@ -42,14 +40,6 @@ class MiscFunctionTest(GefUnitTestGeneric):
         func = "parse_address('meh')"
         res = gdb_test_python_method(func)
         self.assertException(res)
-
-
-    def test_func_download_file(self):
-        gdbsrv = start_gdbserver(_target("default"))
-        func = f"download_file('{_target('default')}')"
-        res = gdb_test_python_method(func)
-        stop_gdbserver(gdbsrv)
-        self.assertNoException(res)
 
 
     @pytest.mark.slow
