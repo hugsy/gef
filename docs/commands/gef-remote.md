@@ -24,7 +24,7 @@ Process /tmp/default.out created; pid = 258932
 Listening on port 1234
 ```
 
-![](https://i.imgur.com/Zc4vnBd.png)
+![gef-remote-1](https://i.imgur.com/Zc4vnBd.png)
 
 On the client, when the original `gdb` would use `target remote`, GEF's syntax is roughly similar (shown running in debug mode for more verbose output, but you don't have to):
 
