@@ -10302,6 +10302,10 @@ class GefHeapManager(GefManager):
 
 class GefSetting:
     """Basic class for storing gef settings as objects"""
+    class SettingHookType(enum.IntEnum):
+        READ_ACCESS = 0
+        WRITE_ACCESS = 1
+
     def __init__(self, value: Any, cls: Optional[type] = None, description: Optional[str] = None, hooks: Optional[Dict[str, Callable]] = None)  -> None:
         self.value = value
         self.type = cls or type(value)
@@ -10313,8 +10317,8 @@ class GefSetting:
                     raise ValueError(f"access not in (on_read, on_write)")
                 if not callable(func):
                     raise ValueError(f"hook is not callable")
-                idx = 0 if (access == "on_read") else 1
-                self.hooks[idx].append(func)
+                idx = SettingHookType(int(access == "on_read"))
+                self.hooks[idx.value].append(func)
         return
 
 
@@ -10325,7 +10329,7 @@ class GefSettingsManager(dict):
     """
     def __getitem__(self, name: str) -> Any:
         setting : GefSetting = dict.__getitem__(self, name)
-        self.invoke_hooks(True, setting)
+        self.__invoke_read_hooks(setting)
         return setting.value
 
     def __setitem__(self, name: str, value: Any) -> None:
@@ -10336,13 +10340,13 @@ class GefSettingsManager(dict):
             if not isinstance(setting, GefSetting): raise ValueError
             setting.value = setting.type(value)
             dict.__setitem__(self, name, setting)
-            self.invoke_hooks(False, setting)
         else:
             # if not, `value` must be a GefSetting
             if not isinstance(value, GefSetting): raise Exception("Invalid argument")
             if not value.type: raise Exception("Invalid type")
             if not value.description: raise Exception("Invalid description")
             dict.__setitem__(self, name, value)
+        self.__invoke_write_hooks(setting)
         return
 
     def __delitem__(self, name: str) -> None:
@@ -10352,10 +10356,18 @@ class GefSettingsManager(dict):
     def raw_entry(self, name: str) -> GefSetting:
         return dict.__getitem__(self, name)
 
-    def invoke_hooks(self, is_read: bool, setting: GefSetting) -> None:
+    def __invoke_read_hooks(self, setting: GefSetting) -> None:
+        self.__invoke_hooks(is_read=True, setting=setting)
+        return
+
+    def __invoke_write_hooks(self, setting: GefSetting) -> None:
+        self.__invoke_hooks(is_read=False, setting=setting)
+        return
+
+    def __invoke_hooks(self, is_read: bool, setting: GefSetting) -> None:
         if not setting.hooks:
             return
-        idx = 0 if is_read else 1
+        idx = GefSetting.SettingHookType(int(is_read)).value
         if setting.hooks[idx]:
             for callback in setting.hooks[idx]:
                 callback()
