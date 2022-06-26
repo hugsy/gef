@@ -68,6 +68,7 @@ import pathlib
 import platform
 import re
 import shutil
+import site
 import socket
 import string
 import struct
@@ -80,7 +81,7 @@ import warnings
 from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
-from typing import (IO, Any, ByteString, Callable, Dict, Generator, Iterable,
+from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
                     Iterator, List, NoReturn, Optional, Sequence, Tuple, Type,
                     Union)
 from urllib.request import urlopen
@@ -9362,6 +9363,7 @@ class GefCommand(gdb.Command):
             return True
 
         nb_added = -1
+        start_time = time.perf_counter()
         try:
             nb_inital = len(__registered_commands__)
             directories: List[str] = gef.config["gef.extra_plugins_dir"].split(";") or []
@@ -9383,8 +9385,10 @@ class GefCommand(gdb.Command):
             nb_added = len(__registered_commands__) - nb_inital
             if nb_added > 0:
                 self.load()
+                end_time = time.perf_counter()
+                load_time = end_time - start_time
                 ok(f"{Color.colorify(str(nb_added), 'bold green')} extra commands added from "
-                   f"'{Color.colorify(', '.join(directories), 'bold blue')}'")
+                   f"'{Color.colorify(', '.join(directories), 'bold blue')}' in {load_time:.2f} seconds")
         except gdb.error as e:
             err(f"failed: {e}")
         return nb_added
@@ -9423,6 +9427,7 @@ class GefCommand(gdb.Command):
         current_functions = set( self.functions.keys() )
         new_functions = set([x._function_ for x in __registered_functions__]) - current_functions
         self.missing.clear()
+        self.__load_time_ms = time.perf_counter_ns()
 
         # load all new functions
         for name in sorted(new_functions):
@@ -9449,6 +9454,8 @@ class GefCommand(gdb.Command):
 
             except Exception as reason:
                 self.missing[name] = reason
+
+        self.__load_time_ms = (time.perf_counter_ns() - self.__load_time_ms) / 1000
         return
 
 
@@ -9460,7 +9467,7 @@ class GefCommand(gdb.Command):
         ver = f"{sys.version_info.major:d}.{sys.version_info.minor:d}"
         gef_print(f"{Color.colorify(str(len(self.commands)), 'bold green')} commands loaded "
                     f"and {Color.colorify(str(len(self.functions)), 'bold blue')} functions added for "
-                    f"GDB {Color.colorify(gdb.VERSION, 'bold yellow')} "
+                    f"GDB {Color.colorify(gdb.VERSION, 'bold yellow')} in {self.__load_time_ms:.2f}ms "
                     f"using Python engine {Color.colorify(ver, 'bold red')}")
 
         nb_missing = len(self.missing)
@@ -10309,19 +10316,23 @@ class GefSetting:
         self.value = value
         self.type = cls or type(value)
         self.description = description or ""
-        self.hooks: Tuple[List[Callable]] = ([], [])
+        self.hooks: Tuple[List[Callable], List[Callable]] = ([], [])
         if hooks:
             for access, func in hooks.items():
-                if not callable(func):
-                    raise ValueError(f"hook is not callable")
                 if access == "on_read":
                     idx = GefSetting.READ_ACCESS
                 elif access == "on_write":
                     idx = GefSetting.WRITE_ACCESS
                 else:
                     raise ValueError
+                if not callable(func):
+                    raise ValueError(f"hook is not callable")
                 self.hooks[idx].append(func)
         return
+
+    def __str__(self) -> str:
+        return f"Setting(type={self.type.__name__}, value='{self.value}', desc='{self.description[:10]}...', "\
+            f"read_hooks={len(self.hooks[GefSetting.READ_ACCESS])}, write_hooks={len(self.hooks[GefSetting.READ_ACCESS])})"
 
 
 class GefSettingsManager(dict):
@@ -10330,15 +10341,15 @@ class GefSettingsManager(dict):
     For instance, to read a specific command setting: `gef.config[mycommand.mysetting]`
     """
     def __getitem__(self, name: str) -> Any:
-        setting : GefSetting = super().__getitem__(self, name)
+        setting : GefSetting = super().__getitem__(name)
         self.__invoke_read_hooks(setting)
         return setting.value
 
     def __setitem__(self, name: str, value: Any) -> None:
         # check if the key exists
-        if super().__contains__(self, name):
+        if super().__contains__(name):
             # if so, update its value directly
-            setting = super().__getitem__(self, name)
+            setting = super().__getitem__(name)
             if not isinstance(setting, GefSetting): raise ValueError
             setting.value = setting.type(value)
         else:
@@ -10347,16 +10358,16 @@ class GefSettingsManager(dict):
             if not value.type: raise Exception("Invalid type")
             if not value.description: raise Exception("Invalid description")
             setting = value
-        super().__setitem__(self, name, setting)
+        super().__setitem__(name, setting)
         self.__invoke_write_hooks(setting)
         return
 
     def __delitem__(self, name: str) -> None:
-        super().__delitem__(self, name)
+        super().__delitem__(name)
         return
 
     def raw_entry(self, name: str) -> GefSetting:
-        return super().__getitem__(self, name)
+        return super().__getitem__(name)
 
     def __invoke_read_hooks(self, setting: GefSetting) -> None:
         self.__invoke_hooks(is_write=False, setting=setting)
@@ -10808,10 +10819,13 @@ if __name__ == "__main__":
         except gdb.error:
             pass
 
-    # load GEF
+    # load GEF, set up the managers and load the plugins, functions,
     reset()
     gef.gdb.load()
     gef.gdb.show_banner()
+
+    # load config
+    gef.gdb.load_extra_plugins()
 
     # gdb events configuration
     gef_on_continue_hook(continue_handler)
