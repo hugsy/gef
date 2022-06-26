@@ -10330,34 +10330,33 @@ class GefSettingsManager(dict):
     For instance, to read a specific command setting: `gef.config[mycommand.mysetting]`
     """
     def __getitem__(self, name: str) -> Any:
-        setting : GefSetting = dict.__getitem__(self, name)
+        setting : GefSetting = super().__getitem__(self, name)
         self.__invoke_read_hooks(setting)
         return setting.value
 
     def __setitem__(self, name: str, value: Any) -> None:
         # check if the key exists
-        if dict.__contains__(self, name):
+        if super().__contains__(self, name):
             # if so, update its value directly
-            setting = dict.__getitem__(self, name)
+            setting = super().__getitem__(self, name)
             if not isinstance(setting, GefSetting): raise ValueError
             setting.value = setting.type(value)
-            dict.__setitem__(self, name, setting)
         else:
             # if not, `value` must be a GefSetting
             if not isinstance(value, GefSetting): raise Exception("Invalid argument")
             if not value.type: raise Exception("Invalid type")
             if not value.description: raise Exception("Invalid description")
             setting = value
-            dict.__setitem__(self, name, setting)
+        super().__setitem__(self, name, setting)
         self.__invoke_write_hooks(setting)
         return
 
     def __delitem__(self, name: str) -> None:
-        dict.__delitem__(self, name)
+        super().__delitem__(self, name)
         return
 
     def raw_entry(self, name: str) -> GefSetting:
-        return dict.__getitem__(self, name)
+        return super().__getitem__(self, name)
 
     def __invoke_read_hooks(self, setting: GefSetting) -> None:
         self.__invoke_hooks(is_write=False, setting=setting)
