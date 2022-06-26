@@ -2,6 +2,8 @@
 Utility functions for testing
 """
 
+import contextlib
+import enum
 import os
 import pathlib
 import platform
@@ -9,11 +11,9 @@ import re
 import subprocess
 import tempfile
 import unittest
-from urllib.request import urlopen
 import warnings
-import enum
-
-from typing import Iterable, Union, List, Optional
+from typing import Dict, Iterable, List, Optional, Union
+from urllib.request import urlopen
 
 TMPDIR = pathlib.Path(tempfile.gettempdir())
 ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()
@@ -28,7 +28,7 @@ GEF_DEFAULT_PROMPT = "gef➤  "
 GEF_DEFAULT_TEMPDIR = "/tmp/gef"
 GEF_PATH = pathlib.Path(os.getenv("GEF_PATH", "gef.py"))
 STRIP_ANSI_DEFAULT = True
-
+GDBSERVER_DEFAULT_PORT = 1234
 
 CommandType = Union[str, Iterable[str]]
 
@@ -106,17 +106,17 @@ def ansi_clean(s: str) -> str:
     return ansi_escape.sub("", s)
 
 
-def _add_command(commands: CommandType) -> List[str]:
-    if isinstance(commands, str):
-        commands = [commands]
-    return [_str for cmd in commands for _str in ["-ex", cmd]]
-
-
 def gdb_run_cmd(cmd: CommandType, before: CommandType = (), after: CommandType = (),
                 target: pathlib.Path = DEFAULT_TARGET,
                 strip_ansi: bool = STRIP_ANSI_DEFAULT) -> str:
     """Execute a command inside GDB. `before` and `after` are lists of commands to be executed
     before (resp. after) the command to test."""
+
+    def _add_command(commands: CommandType) -> List[str]:
+        if isinstance(commands, str):
+            commands = [commands]
+        return [_str for cmd in commands for _str in ["-ex", cmd]]
+
     command = ["gdb", "-q", "-nx"]
     if COVERAGE_DIR:
         coverage_file = pathlib.Path(COVERAGE_DIR) / os.getenv("PYTEST_XDIST_WORKER", "gw0")
@@ -228,7 +228,7 @@ def _target(name: str, extension: str = ".out") -> pathlib.Path:
 
 
 def start_gdbserver(exe: Union[str, pathlib.Path] = _target("default"),
-                    port: int = 1234) -> subprocess.Popen:
+                    port: int = GDBSERVER_DEFAULT_PORT) -> subprocess.Popen:
     """Start a gdbserver on the target binary.
 
     Args:
@@ -252,6 +252,42 @@ def stop_gdbserver(gdbserver: subprocess.Popen) -> None:
     if gdbserver.poll() is None:
         gdbserver.kill()
         gdbserver.wait()
+
+
+@contextlib.contextmanager
+def gdbserver_session(*args, **kwargs):
+    exe = kwargs.get("exe", "") or _target("default")
+    port = kwargs.get("port", 0) or GDBSERVER_DEFAULT_PORT
+    sess = start_gdbserver(exe, port)
+    try:
+        yield sess
+    finally:
+        stop_gdbserver(sess)
+
+
+def start_qemuuser(exe: Union[str, pathlib.Path] = _target("default"),
+                   port: int = GDBSERVER_DEFAULT_PORT) -> subprocess.Popen:
+    return subprocess.Popen(["qemu-x86_64", "-g", str(port), exe],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def stop_qemuuser(process: subprocess.Popen) -> None:
+    if process.poll() is None:
+        process.kill()
+        process.wait()
+
+
+@contextlib.contextmanager
+def qemuuser_session(*args, **kwargs):
+    exe = kwargs.get("exe", "") or _target("default")
+    port = kwargs.get("port", 0) or GDBSERVER_DEFAULT_PORT
+    sess = start_gdbserver(exe, port)
+    try:
+        yield sess
+    finally:
+        stop_gdbserver(sess)
+
+
 
 
 def findlines(substring: str, buffer: str) -> List[str]:
