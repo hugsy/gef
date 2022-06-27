@@ -2152,9 +2152,8 @@ def is_little_endian() -> bool:
 def flags_to_human(reg_value: int, value_table: Dict[int, str]) -> str:
     """Return a human readable string showing the flag states."""
     flags = []
-    for i in value_table:
-        flag_str = Color.boldify(value_table[i].upper()) if reg_value & (1<<i) else value_table[i].lower()
-        flags.append(flag_str)
+    for bit_index, name in value_table.items():
+        flags.append(Color.boldify(name.upper()) if reg_value & (1<<bit_index) != 0 else name.lower())
     return f"[{' '.join(flags)}]"
 
 
@@ -2616,13 +2615,14 @@ class AARCH64(ARM):
         29: "carry",
         28: "overflow",
         7: "interrupt",
+        9: "endian",
         6: "fast",
+        5: "t32",
+        4: "m[4]",
     }
     function_parameters = ("$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7",)
     syscall_register = "$x8"
     syscall_instructions = ("svc $x0",)
-
-    _ptrsize = 8
 
     def is_call(self, insn: Instruction) -> bool:
         mnemo = insn.mnemonic
@@ -2635,6 +2635,31 @@ class AARCH64(ARM):
         if not val:
             val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
+
+    @property
+    def cpsr(self) -> int:
+        if not is_alive():
+            raise RuntimeError("Cannot get CPSR, program not started?")
+        return gef.arch.register(self.flag_register)
+
+    def is_aarch32(self) -> bool:
+        """Determine if the CPU is currently in AARCH32 mode from runtime."""
+        return (self.cpsr & (1 << 4) != 0) and (self.cpsr & (1 << 5) == 0)
+
+    def is_thumb32(self) -> bool:
+        """Determine if the CPU is currently in THUMB32 mode from runtime."""
+        return (self.cpsr & (1 << 4) == 1) and (self.cpsr & (1 << 5) == 1)
+
+    @property
+    def ptrsize(self) -> int:
+        """Determine the size of pointer from the current CPU mode"""
+        if not is_alive():
+            return 8
+        if self.is_aarch32():
+            return 4
+        if self.is_thumb32():
+            return 2
+        return 8
 
     @classmethod
     def mprotect_asm(cls, addr: int, size: int, perm: Permission) -> str:
