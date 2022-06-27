@@ -9475,7 +9475,7 @@ class GefCommand(gdb.Command):
         current_functions = set( self.functions.keys() )
         new_functions = set([x._function_ for x in __registered_functions__]) - current_functions
         self.missing.clear()
-        self.__load_time_ms = time.perf_counter_ns()
+        self.__load_time_ms = time.time()* 1000
 
         # load all new functions
         for name in sorted(new_functions):
@@ -9503,7 +9503,7 @@ class GefCommand(gdb.Command):
             except Exception as reason:
                 self.missing[name] = reason
 
-        self.__load_time_ms = (time.perf_counter_ns() - self.__load_time_ms) / 1000
+        self.__load_time_ms = (time.time()* 1000) - self.__load_time_ms
         return
 
 
