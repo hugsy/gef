@@ -2480,7 +2480,7 @@ class ARM(Architecture):
 
     def is_thumb(self) -> bool:
         """Determine if the machine is currently in THUMB mode."""
-        return is_alive() and gef.arch.register(self.flag_register) & (1 << 5)
+        return is_alive() and (self.cpsr & (1 << 5) == 1)
 
     @property
     def pc(self) -> Optional[int]:
@@ -2488,6 +2488,12 @@ class ARM(Architecture):
         if self.is_thumb():
             pc += 1
         return pc
+
+    @property
+    def cpsr(self) -> int:
+        if not is_alive():
+            raise RuntimeError("Cannot get CPSR, program not started?")
+        return gef.arch.register(self.flag_register)
 
     @property
     def mode(self) -> str:
@@ -2635,12 +2641,6 @@ class AARCH64(ARM):
         if not val:
             val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
-
-    @property
-    def cpsr(self) -> int:
-        if not is_alive():
-            raise RuntimeError("Cannot get CPSR, program not started?")
-        return gef.arch.register(self.flag_register)
 
     def is_aarch32(self) -> bool:
         """Determine if the CPU is currently in AARCH32 mode from runtime."""
