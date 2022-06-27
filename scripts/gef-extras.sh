@@ -16,7 +16,7 @@ fi
 
 git clone https://github.com/hugsy/gef-extras.git "${DIR}"
 ver=$(gdb -q -nx -ex 'pi print(f"{sys.version_info.major}.{sys.version_info.minor}", end="")' -ex quit)
-python${ver} -m pip install --requirement "${DIR}"/docs/requirements.txt --upgrade
+python${ver} -m pip install --requirement "${DIR}"/requirements.txt --upgrade
 gdb -q -ex "gef config gef.extra_plugins_dir '${DIR}/scripts'" \
        -ex "gef config pcustom.struct_path '${DIR}/structs'" \
        -ex "gef config syscall-args.path '${DIR}/syscall-tables'" \
