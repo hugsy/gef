@@ -3697,9 +3697,9 @@ def format_address(addr: int) -> str:
     addr = align_address(addr)
 
     if memalign_size == 4:
-        return f"{addr:#08x}"
+        return f"0x{addr:08x}"
 
-    return f"{addr:#016x}"
+    return f"0x{addr:016x}"
 
 
 def format_address_spaces(addr: int, left: bool = True) -> str:
