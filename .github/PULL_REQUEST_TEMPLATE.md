@@ -7,20 +7,18 @@
 <!-- How does this look? Add a screenshot if you can -->
 
 
-## How Has This Been Tested?
+## Against which architecture was this tested ?
 
-| Architecture |          Yes/No          | Comments                                  |
-| ------------ | :----------------------: | ----------------------------------------- |
-| x86-32       | :x:                      | Replace with :white_check_mark: if tested |
-| x86-64       | :x:                      |                                           |
-| ARM          | :x:                      |                                           |
-| AARCH64      | :x:                      |                                           |
-| MIPS         | :x:                      |                                           |
-| POWERPC      | :x:                      |                                           |
-| SPARC        | :x:                      |                                           |
-| RISC-V       | :x:                      |                                           |
-| `make test`  | :x:                      |                                           |
+"Tested" indicates that the PR works *and* the unit test (i.e. `make test`) run passes without issue.
 
+ * [ ] x86-32
+ * [ ] x86-64
+ * [ ] ARM
+ * [ ] AARCH64
+ * [ ] MIPS        
+ * [ ] POWERPC     
+ * [ ] SPARC       
+ * [ ] RISC-V 
 
 
 ## Checklist
