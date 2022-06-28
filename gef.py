@@ -8703,7 +8703,7 @@ class PatternSearchCommand(GenericCommand):
             return
         max_length = args.max_length or gef.config["pattern.length"]
         n = args.period or gef.arch.ptrsize
-        if n not in (2, 4, 8):
+        if n not in (2, 4, 8) or n > gef.arch.ptrsize:
             err("Incorrect value for period")
             return
         self.search(args.pattern, max_length, n)
@@ -8715,10 +8715,10 @@ class PatternSearchCommand(GenericCommand):
         # 1. check if it's a symbol (like "$sp" or "0x1337")
         symbol = safe_parse_and_eval(pattern)
         if symbol:
-            addr = abs(symbol)
+            addr = int(abs(symbol))
             dereferenced_value = dereference(addr)
             if dereferenced_value:
-                addr = abs(dereferenced_value)
+                addr = int(abs(dereferenced_value))
             mask = (1<<(8 * period))-1
             addr &= mask
             pattern_le = addr.to_bytes(period, 'little')

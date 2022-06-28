@@ -30,13 +30,14 @@ class PatternCommand(GefUnitTestGeneric):
             expected_offsets = (16, 16, 5, 9)
         elif ARCH == "armv7l":
             lookup_register = "$r11"
-            expected_offsets = (8, None, 5, 9)
+            expected_offsets = (8, 8, 5, 9)
         elif ARCH == "x86_64":
             lookup_register = "$rbp"
             expected_offsets = (8, 8, 5, 9)
         elif ARCH == "i686":
             lookup_register = "$ebp"
-            expected_offsets = (16, None, 5, 9)
+            # expected_offsets = (16, None, 5, 9)
+            expected_offsets = (16, 16, 5, 9)
         else:
             raise ValueError("Invalid architecture")
 
