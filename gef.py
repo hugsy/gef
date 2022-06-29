@@ -8689,18 +8689,23 @@ class PatternSearchCommand(GenericCommand):
 
     _cmdline_ = "pattern search"
     _syntax_  = f"{_cmdline_} [-h] [-n N] [--max-length MAX_LENGTH] [pattern]"
-    _example_ = (f"\n{_cmdline_} $pc"
-                 f"\n{_cmdline_} 0x61616164"
-                 f"\n{_cmdline_} aaab")
+    _example_ = [f"{_cmdline_} $pc",
+                 f"{_cmdline_} 0x61616164",
+                 f"{_cmdline_} aaab"]
     _aliases_ = ["pattern offset"]
 
     @only_if_gdb_running
-    @parse_arguments({"pattern": ""}, {("-n", "--n"): 0, ("-l", "--max-length"): 0})
+    @parse_arguments({"pattern": ""}, {("--period", "-n"): 0, ("--max-length", "-l"): 0})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args = kwargs["arguments"]
+        if not args.pattern:
+            warn("No pattern provided")
+            return
         max_length = args.max_length or gef.config["pattern.length"]
-        n = args.n or gef.arch.ptrsize
-        info(f"Searching for '{args.pattern}'")
+        n = args.period or gef.arch.ptrsize
+        if n not in (2, 4, 8) or n > gef.arch.ptrsize:
+            err("Incorrect value for period")
+            return
         self.search(args.pattern, max_length, n)
         return
 
@@ -8710,39 +8715,34 @@ class PatternSearchCommand(GenericCommand):
         # 1. check if it's a symbol (like "$sp" or "0x1337")
         symbol = safe_parse_and_eval(pattern)
         if symbol:
-            addr = int(symbol)
+            addr = int(abs(symbol))
             dereferenced_value = dereference(addr)
-            # 1-bis. try to dereference
             if dereferenced_value:
-                addr = int(dereferenced_value)
-            struct_packsize = {
-                2: "H",
-                4: "I",
-                8: "Q",
-            }
-            pattern_be = struct.pack(f">{struct_packsize[gef.arch.ptrsize]}", addr)
-            pattern_le = struct.pack(f"<{struct_packsize[gef.arch.ptrsize]}", addr)
+                addr = int(abs(dereferenced_value))
+            mask = (1<<(8 * period))-1
+            addr &= mask
+            pattern_le = addr.to_bytes(period, 'little')
+            pattern_be = addr.to_bytes(period, 'big')
         else:
             # 2. assume it's a plain string
             pattern_be = gef_pybytes(pattern)
             pattern_le = gef_pybytes(pattern[::-1])
 
+        info(f"Searching for '{pattern_le.hex()}'/'{pattern_be.hex()}' with period={period}")
         cyclic_pattern = generate_cyclic_pattern(size, period)
-        found = False
         off = cyclic_pattern.find(pattern_le)
         if off >= 0:
             ok(f"Found at offset {off:d} (little-endian search) "
                f"{Color.colorify('likely', 'bold red') if gef.arch.endianness == Endianness.LITTLE_ENDIAN else ''}")
-            found = True
+            return
 
         off = cyclic_pattern.find(pattern_be)
         if off >= 0:
             ok(f"Found at offset {off:d} (big-endian search) "
                f"{Color.colorify('likely', 'bold green') if gef.arch.endianness == Endianness.BIG_ENDIAN else ''}")
-            found = True
+            return
 
-        if not found:
-            err(f"Pattern '{pattern}' not found")
+        err(f"Pattern '{pattern}' not found")
         return
 
 
