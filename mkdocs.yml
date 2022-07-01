@@ -44,7 +44,6 @@ nav:
   - hexdump: commands/hexdump.md
   - highlight: commands/highlight.md
   - hijack-fd: commands/hijack-fd.md
-  - is-syscall: commands/is-syscall.md
   - ksymaddr: commands/ksymaddr.md
   - memory: commands/memory.md
   - name-break: commands/name-break.md
@@ -62,7 +61,6 @@ nav:
   - search-pattern: commands/search-pattern.md
   - shellcode: commands/shellcode.md
   - stub: commands/stub.md
-  - syscall-args: commands/syscall-args.md
   - theme: commands/theme.md
   - tmux-setup: commands/tmux-setup.md
   - trace-run: commands/trace-run.md

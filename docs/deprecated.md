@@ -13,3 +13,5 @@ This page aims to track those changes.
 | `ida-interact` | Moved | 2022.06 | [Link](https://github.com/hugsy/gef-extras/blob/dev/scripts/ida_interact.py) | Depends on `rpyc` |
 | `exploit-template` | Moved | [c402900](https://github.com/hugsy/gef-extras/commit/c4029007994d5e508cb3df900b60821b0b61e0e5) | [Link](https://github.com/hugsy/gef-extras/blob/dev/scripts/skel.py) | |
 | `windbg` | Moved | [a933a5a](https://github.com/hugsy/gef-extras/commit/a933a5ac43933742d91f4e299eadf05e3e0670be) | [Link](https://github.com/hugsy/gef-extras/blob/dev/scripts/windbg.py) | |
+| `is-syscall` | Moved | [3f79fb38](https://github.com/hugsy/gef-extras/commit/3f79fb382aa9052d073698d40237f98982c5d2de) | [Link](https://github.com/hugsy/gef-extras/blob/dev/scripts/syscall_args) | |
+| `syscall-args` | Moved | [3f79fb38](https://github.com/hugsy/gef-extras/commit/3f79fb382aa9052d073698d40237f98982c5d2de) | [Link](https://github.com/hugsy/gef-extras/blob/dev/scripts/syscall_args) | |
