@@ -158,8 +158,8 @@ GEF_DEFAULT_BRANCH                     = "main"
 GEF_EXTRAS_DEFAULT_BRANCH              = "main"
 
 gef : "Gef"
-__registered_commands__ : List[Type["GenericCommand"]]                                        = []
-__registered_functions__ : List[Type["GenericFunction"]]                                      = []
+__registered_commands__ : Set[Type["GenericCommand"]]                                        = set()
+__registered_functions__ : Set[Type["GenericFunction"]]                                      = set()
 __registered_architectures__ : Dict[Union["Elf.Abi", str], Type["Architecture"]]              = {}
 __registered_file_formats__ : Set[ Type["FileFormat"] ]                                       = set()
 
@@ -4416,17 +4416,20 @@ def register_priority_command(cls: Type["GenericCommand"]) -> Type["GenericComma
     return cls
 
 
-def register(cls: Type["GenericCommand"]) -> Type["GenericCommand"]:
+def register(cls: Union[Type["GenericCommand"], Type["GenericFunction"]]) -> Union[Type["GenericCommand"], Type["GenericFunction"]]:
+    global __registered_commands__, __registered_functions__
     if issubclass(cls, GenericCommand):
         assert( hasattr(cls, "_cmdline_"))
         assert( hasattr(cls, "do_invoke"))
-        __registered_commands__.append(cls)
+        assert( all(map(lambda x: x._cmdline_ != cls._cmdline_, __registered_commands__)))
+        __registered_commands__.add(cls)
         return cls
 
     if issubclass(cls, GenericFunction):
         assert( hasattr(cls, "_function_"))
         assert( hasattr(cls, "invoke"))
-        __registered_functions__.append(cls)
+        assert( all(map(lambda x: x._function_ != cls._function_, __registered_functions__)))
+        __registered_functions__.add(cls)
         return cls
 
     raise TypeError(f"`{cls.__class__}` is an illegal class for `register`")
@@ -7120,6 +7123,9 @@ class ContextCommand(GenericCommand):
             except gdb.MemoryError as e:
                 # a MemoryError will happen when $pc is corrupted (invalid address)
                 err(str(e))
+            except IndexError:
+                # the `section` is not present, just skip
+                pass
 
         self.context_title("")
 
@@ -9110,93 +9116,6 @@ class HeapAnalysisCommand(GenericCommand):
         return
 
 
-@register
-class IsSyscallCommand(GenericCommand):
-    """Tells whether the next instruction is a system call."""
-    _cmdline_ = "is-syscall"
-    _syntax_ = _cmdline_
-
-    @only_if_gdb_running
-    def do_invoke(self, _: List[str]) -> None:
-        ok(f"Current instruction is{' ' if is_syscall(gef.arch.pc) else ' not '}a syscall")
-        return
-
-
-@register
-class SyscallArgsCommand(GenericCommand):
-    """Gets the syscall name and arguments based on the register values in the current state."""
-    _cmdline_ = "syscall-args"
-    _syntax_ = _cmdline_
-
-    def __init__(self) -> None:
-        super().__init__()
-        path = pathlib.Path(gef.config["gef.tempdir"]) / "syscall-tables"
-        self["path"] = (str(path.absolute()), "Path to store/load the syscall tables files")
-        return
-
-    @only_if_gdb_running
-    def do_invoke(self, _: List[str]) -> None:
-        if not self["path"]:
-            err(f"Cannot open '{self['path']}': check directory and/or "
-                "`gef config syscall-args.path` setting.")
-            return
-
-        color = gef.config["theme.table_heading"]
-        arch = gef.arch.__class__.__name__
-        syscall_table = self.__get_syscall_table(arch)
-
-        if is_syscall(gef.arch.pc):
-            # if $pc is before the `syscall` instruction is executed:
-            reg_value = gef.arch.register(gef.arch.syscall_register)
-        else:
-            # otherwise, try the previous instruction (case of using `catch syscall`)
-            previous_insn_addr = gdb_get_nth_previous_instruction_address(gef.arch.pc, 1)
-            if not is_syscall(previous_insn_addr):
-                err("No syscall found")
-                return
-            reg_value = gef.arch.register(f"$orig_{gef.arch.syscall_register.lstrip('$')}")
-
-        if reg_value not in syscall_table:
-            warn(f"There is no system call for {reg_value:#x}")
-            return
-        syscall_entry = syscall_table[reg_value]
-
-        values = [gef.arch.register(param.reg) for param in syscall_entry.params]
-        parameters = [s.param for s in syscall_entry.params]
-        registers = [s.reg for s in syscall_entry.params]
-
-        info(f"Detected syscall {Color.colorify(syscall_entry.name, color)}")
-        gef_print(f"    {syscall_entry.name}({', '.join(parameters)})")
-
-        headers = ["Parameter", "Register", "Value"]
-        param_names = [re.split(r" |\*", p)[-1] for p in parameters]
-        info(Color.colorify("{:<20} {:<20} {}".format(*headers), color))
-        for name, register, value in zip(param_names, registers, values):
-            line = f"    {name:<20} {register:<20} {value:#x}"
-            addrs = dereference_from(value)
-            if len(addrs) > 1:
-                line += RIGHT_ARROW + RIGHT_ARROW.join(addrs[1:])
-            gef_print(line)
-        return
-
-    def __get_syscall_table(self, modname: str) -> Dict[str, Any]:
-        def get_filepath(x: str) -> Optional[pathlib.Path]:
-            path = pathlib.Path(self["path"]).expanduser()
-            if not path.is_dir():
-                return None
-            return path / f"{x}.py"
-
-        def load_module(modname: str) -> Any:
-            _fpath = get_filepath(modname)
-            if not _fpath:
-                raise FileNotFoundError
-            _fullname = str(_fpath.absolute())
-            return importlib.machinery.SourceFileLoader(modname, _fullname).load_module(None)
-
-        _mod = load_module(modname)
-        return getattr(_mod, "syscall_table")
-
-
 #
 # GDB Function declaration
 #
@@ -9429,6 +9348,7 @@ class GefCommand(gdb.Command):
     def load_extra_plugins(self) -> int:
         def load_plugin(fpath: pathlib.Path) -> bool:
             try:
+                dbg(f"Loading '{fpath}'")
                 gdb.execute(f"source {fpath}")
             except Exception as e:
                 warn(f"Exception while loading {fpath}: {str(e)}")
@@ -9458,10 +9378,15 @@ class GefCommand(gdb.Command):
             nb_added = len(__registered_commands__) - nb_inital
             if nb_added > 0:
                 self.load()
+                nb_failed = len(__registered_commands__) - len(self.commands)
                 end_time = time.perf_counter()
                 load_time = end_time - start_time
                 ok(f"{Color.colorify(str(nb_added), 'bold green')} extra commands added from "
                    f"'{Color.colorify(', '.join(directories), 'bold blue')}' in {load_time:.2f} seconds")
+                if nb_failed != 0:
+                    warn(f"{Color.colorify(str(nb_failed), 'bold light_gray')} extra commands/functions failed to be added. "
+                    "Check `gef missing` to know why")
+
         except gdb.error as e:
             err(f"failed: {e}")
         return nb_added
@@ -9504,17 +9429,17 @@ class GefCommand(gdb.Command):
 
         # load all new functions
         for name in sorted(new_functions):
-            for function_class in __registered_functions__:
-                if function_class._function_ == name:
-                    self.functions[name] = function_class()
+            for function_cls in __registered_functions__:
+                if function_cls._function_ == name:
+                    self.functions[name] = function_cls()
                     break
 
         # load all new commands
         for name in sorted(new_commands):
             try:
-                for function_class in __registered_commands__:
-                    if function_class._cmdline_ == name:
-                        command_instance = function_class()
+                for command_cls in __registered_commands__:
+                    if command_cls._cmdline_ == name:
+                        command_instance = command_cls()
 
                         # create the aliases if any
                         if hasattr(command_instance, "_aliases_"):
