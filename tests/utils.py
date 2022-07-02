@@ -289,6 +289,31 @@ def qemuuser_session(*args, **kwargs):
 
 
 
+def find_symbol(binary: pathlib.Path, symbol: str) -> int:
+    """Find a symbol by name in a ELF binary using `objdump`.
+    The expect output syntax for `objdump` is:
+    SYMBOL TABLE:
+    0000000000000318 l    d  .interp        0000000000000000              .interp
+    0000000000000338 l    d  .note.gnu.property     0000000000000000              .note.gnu.property
+    0000000000000358 l    d  .note.gnu.build-id     0000000000000000              .note.gnu.build-id
+    000000000000037c l    d  .note.ABI-tag  0000000000000000              .note.ABI-tag
+
+    Args:
+        binary (pathlib.Path): the ELF file to inspect
+        symbol (str): the name of the symbol to find
+
+    Returns:
+        int the address/offset of the symbol
+
+    Raises:
+        KeyError if the symbol is not found
+    """
+    name = symbol.encode("utf8")
+    for line in [x.strip().split() for x in subprocess.check_output(["objdump", "-t", binary]).splitlines() if len(x.strip())]:
+         if line[-1] == name:
+             return int(line[0], 0x10)
+    raise KeyError(f"`{symbol}` not found in {binary}")
+
 
 def findlines(substring: str, buffer: str) -> List[str]:
     """Extract the lines from the buffer which contains the pattern

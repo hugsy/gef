@@ -2,9 +2,8 @@
 `pie` command test module
 """
 
-import random
-
-from tests.utils import GefUnitTestGeneric, gdb_run_cmd, removeuntil
+from tests.utils import (GefUnitTestGeneric, _target, find_symbol, gdb_run_cmd,
+                         removeuntil)
 
 
 class PieCommand(GefUnitTestGeneric):
@@ -12,14 +11,9 @@ class PieCommand(GefUnitTestGeneric):
 
 
     def setUp(self) -> None:
-        # we assume `_target` is `default.out` and is (should be) a PIE binary
-        res = gdb_run_cmd("disassemble main")
-        start_str = "Dump of assembler code for function main:\n"
-        end_str = "End of assembler dump."
-        lines = removeuntil(start_str, res[:res.find(end_str)]).splitlines()
-        self.assertGreater(len(lines), 1)
-        idx = random.randint(0, len(lines)-1)
-        self.pie_offset = int(lines[idx].split()[0], 16)
+        target = _target("default")
+        self.pie_offset = find_symbol(target, "main")
+        self.assertGreater(self.pie_offset, 0)
         return super().setUp()
 
 
