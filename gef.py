@@ -4612,6 +4612,7 @@ class PrintFormatCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(complete=gdb.COMPLETE_LOCATION)
+        self["max_size_preview"] = (10, "max size preview of bytes")
         return
 
     @property
@@ -4654,7 +4655,7 @@ class PrintFormatCommand(GenericCommand):
 
         if args.lang == "bytearray":
             data = gef.memory.read(start_addr, args.length)
-            preview = str(data[0:10])
+            preview = str(data[0:self["max_size_preview"]])
             out = f"Saved data {preview}... in '{gef_convenience(data)}'"
         elif args.lang == "py":
             out = f"buf = [{sdata}]"
