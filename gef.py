@@ -51,6 +51,7 @@
 
 import abc
 import argparse
+import ast
 import binascii
 import codecs
 import collections
@@ -5686,10 +5687,16 @@ class SearchPatternCommand(GenericCommand):
     _cmdline_ = "search-pattern"
     _syntax_ = f"{_cmdline_} PATTERN [little|big] [section]"
     _aliases_ = ["grep", "xref"]
-    _example_ = (f"\n{_cmdline_} AAAAAAAA"
-                 f"\n{_cmdline_} 0x555555554000 little stack"
-                 f"\n{_cmdline_} AAAA 0x600000-0x601000")
-
+    _example_ = [f"{_cmdline_} AAAAAAAA",
+                 f"{_cmdline_} 0x555555554000 little stack",
+                 f"{_cmdline_} AAAA 0x600000-0x601000",
+                 f"{_cmdline_} --regex 0x401000 0x401500 ([\\\\x20-\\\\x7E]{{2,}})(?=\\\\x00)   <-- It matchs null-end-printable(from x20-x7e) C strings (min size 2 bytes)"]
+                 
+    def __init__(self) -> None:
+        super().__init__()
+        self["max_size_preview"] = (10, "max size preview of bytes")
+        self["nr_pages_chunk"] = (0x400, "number of pages readed for each memory read chunk")
+        
     def print_section(self, section: Section) -> None:
         title = "In "
         if section.path:
@@ -5746,6 +5753,37 @@ class SearchPatternCommand(GenericCommand):
             del mem
 
         return locations
+        
+    def search_binpattern_by_address(self, binpattern: bytes, start_address: int, end_address: int) -> List[Tuple[int, int, Optional[str]]]:
+        """Search a binary pattern within a range defined by arguments."""
+
+        step = self["nr_pages_chunk"] * gef.session.pagesize
+        locations = []
+
+        for chunk_addr in range(start_address, end_address, step):
+            if chunk_addr + step > end_address:
+                chunk_size = end_address - chunk_addr
+            else:
+                chunk_size = step
+
+            try:
+                mem = gef.memory.read(chunk_addr, chunk_size)
+            except gdb.MemoryError as e:
+                return []
+            preview_size = self["max_size_preview"] 
+            for match in re.finditer(binpattern, mem):
+                start = chunk_addr + match.start()
+                preview = str(mem[slice(*match.span())][0:preview_size]) + "..."
+                size_match = match.span()[1] - match.span()[0]
+                if size_match > 0:
+                    size_match -= 1
+                end = start + size_match
+                
+                locations.append((start, end, preview))
+
+            del mem
+
+        return locations
 
     def search_pattern(self, pattern: str, section_name: str) -> None:
         """Search a pattern within the whole userland memory."""
@@ -5773,6 +5811,18 @@ class SearchPatternCommand(GenericCommand):
         argc = len(argv)
         if argc < 1:
             self.usage()
+            return
+            
+        if argc > 3 and argv[0].startswith("--regex"):
+            pattern = ' '.join(argv[3:])
+            pattern = ast.literal_eval("b'" + pattern + "'")
+
+            addr_start = parse_address(argv[1])
+            addr_end = parse_address(argv[2])
+            
+            for loc in self.search_binpattern_by_address(pattern, addr_start, addr_end):
+                self.print_loc(loc)
+
             return
 
         pattern = argv[0]
