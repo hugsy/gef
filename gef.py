@@ -5714,7 +5714,7 @@ class SearchPatternCommand(GenericCommand):
     def search_pattern_by_address(self, pattern: str, start_address: int, end_address: int) -> List[Tuple[int, int, Optional[str]]]:
         """Search a pattern within a range defined by arguments."""
         _pattern = gef_pybytes(pattern)
-        step = 0x400 * 0x1000
+        step = self["nr_pages_chunk"] * gef.session.pagesize
         locations = []
 
         for chunk_addr in range(start_address, end_address, step):
@@ -5725,20 +5725,8 @@ class SearchPatternCommand(GenericCommand):
 
             try:
                 mem = gef.memory.read(chunk_addr, chunk_size)
-            except gdb.error as e:
-                estr = str(e)
-                if estr.startswith("Cannot access memory "):
-                    #
-                    # This is a special case where /proc/$pid/maps
-                    # shows virtual memory address with a read bit,
-                    # but it cannot be read directly from userspace.
-                    #
-                    # See: https://github.com/hugsy/gef/issues/674
-                    #
-                    err(estr)
-                    return []
-                else:
-                    raise e
+            except gdb.MemoryError as e:
+                return []
 
             for match in re.finditer(_pattern, mem):
                 start = chunk_addr + match.start()
