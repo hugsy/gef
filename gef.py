@@ -3482,7 +3482,6 @@ def new_objfile_handler(evt: "gdb.Event") -> None:
         if not gef.binary:
             gef.binary = binary
             reset_architecture()
-            load_libc_args()
         else:
             gef.session.modules.append(binary)
     except FileNotFoundError as fne:
@@ -3514,41 +3513,6 @@ def regchanged_handler(_: "gdb.RegisterChangedEvent") -> None:
     """GDB event handler for reg changes cases."""
     reset_all_caches()
     return
-
-
-def load_libc_args() -> bool:
-    """Load the LIBC function arguments. Returns `True` on success, `False` or an Exception otherwise."""
-    global gef
-    # load libc function arguments' definitions
-    if not gef.config["context.libc_args"]:
-        return False
-
-    path = gef.config["context.libc_args_path"]
-    if not path:
-        return False
-
-    path = pathlib.Path(path).expanduser().absolute()
-    if not path.exists():
-        raise RuntimeError("Config `context.libc_args_path` set but it's not a directory")
-
-    _arch_mode = f"{gef.arch.arch.lower()}_{gef.arch.mode}"
-    _libc_args_file = path / f"{_arch_mode}.json"
-
-    # current arch and mode already loaded
-    if _arch_mode in gef.ui.libc_args_table:
-        return True
-
-    gef.ui.libc_args_table[_arch_mode] = {}
-    try:
-        with _libc_args_file.open() as _libc_args:
-            gef.ui.libc_args_table[_arch_mode] = json.load(_libc_args)
-        return True
-    except FileNotFoundError:
-        warn(f"Config context.libc_args is set but definition cannot be loaded: file {_libc_args_file} not found")
-    except json.decoder.JSONDecodeError as e:
-        warn(f"Config context.libc_args is set but definition cannot be loaded from file {_libc_args_file}: {e}")
-    gef.ui.libc_args_table[_arch_mode] = {}
-    return False
 
 
 def get_terminal_size() -> Tuple[int, int]:
@@ -4380,20 +4344,25 @@ class NamedBreakpoint(gdb.Breakpoint):
 # Context Panes
 #
 
-def register_external_context_pane(pane_name: str, display_pane_function: Callable[[], None], pane_title_function: Callable[[], Optional[str]]) -> None:
+def register_external_context_pane(pane_name: str, display_pane_function: Callable[[], None], pane_title_function: Callable[[], Optional[str]], condition : Optional[Callable[[], bool]] = None) -> None:
     """
     Registering function for new GEF Context View.
     pane_name: a string that has no spaces (used in settings)
     display_pane_function: a function that uses gef_print() to print strings
     pane_title_function: a function that returns a string or None, which will be displayed as the title.
     If None, no title line is displayed.
+    condition: an optional callback: if not None, the callback will be executed first. If it returns true,
+      then only the pane title and content will displayed. Otherwise, it's simply skipped.
 
-    Example Usage:
-    def display_pane(): gef_print("Wow, I am a context pane!")
-    def pane_title(): return "example:pane"
-    register_external_context_pane("example_pane", display_pane, pane_title)
+    Example usage for a simple text to show when we hit a syscall:
+    def only_syscall(): return gef_current_instruction(gef.arch.pc).is_syscall()
+    def display_pane():
+      gef_print("Wow, I am a context pane!")
+    def pane_title():
+      return "example:pane"
+    register_external_context_pane("example_pane", display_pane, pane_title, only_syscall)
     """
-    gef.gdb.add_context_pane(pane_name, display_pane_function, pane_title_function)
+    gef.gdb.add_context_pane(pane_name, display_pane_function, pane_title_function, condition)
     return
 
 
@@ -5695,12 +5664,12 @@ class SearchPatternCommand(GenericCommand):
                  f"{_cmdline_} 0x555555554000 little stack",
                  f"{_cmdline_} AAAA 0x600000-0x601000",
                  f"{_cmdline_} --regex 0x401000 0x401500 ([\\\\x20-\\\\x7E]{{2,}})(?=\\\\x00)   <-- It matchs null-end-printable(from x20-x7e) C strings (min size 2 bytes)"]
-                 
+
     def __init__(self) -> None:
         super().__init__()
         self["max_size_preview"] = (10, "max size preview of bytes")
         self["nr_pages_chunk"] = (0x400, "number of pages readed for each memory read chunk")
-        
+
     def print_section(self, section: Section) -> None:
         title = "In "
         if section.path:
@@ -5745,7 +5714,7 @@ class SearchPatternCommand(GenericCommand):
             del mem
 
         return locations
-        
+
     def search_binpattern_by_address(self, binpattern: bytes, start_address: int, end_address: int) -> List[Tuple[int, int, Optional[str]]]:
         """Search a binary pattern within a range defined by arguments."""
 
@@ -5762,7 +5731,7 @@ class SearchPatternCommand(GenericCommand):
                 mem = gef.memory.read(chunk_addr, chunk_size)
             except gdb.MemoryError as e:
                 return []
-            preview_size = self["max_size_preview"] 
+            preview_size = self["max_size_preview"]
             for match in re.finditer(binpattern, mem):
                 start = chunk_addr + match.start()
                 preview = str(mem[slice(*match.span())][0:preview_size]) + "..."
@@ -5770,7 +5739,7 @@ class SearchPatternCommand(GenericCommand):
                 if size_match > 0:
                     size_match -= 1
                 end = start + size_match
-                
+
                 locations.append((start, end, preview))
 
             del mem
@@ -5804,14 +5773,14 @@ class SearchPatternCommand(GenericCommand):
         if argc < 1:
             self.usage()
             return
-            
+
         if argc > 3 and argv[0].startswith("--regex"):
             pattern = ' '.join(argv[3:])
             pattern = ast.literal_eval("b'" + pattern + "'")
 
             addr_start = parse_address(argv[1])
             addr_end = parse_address(argv[2])
-            
+
             for loc in self.search_binpattern_by_address(pattern, addr_start, addr_end):
                 self.print_loc(loc)
 
@@ -7087,20 +7056,20 @@ class ContextCommand(GenericCommand):
         self["clear_screen"] = (True, "Clear the screen before printing the context")
         self["layout"] = ("legend regs stack code args source memory threads trace extra", "Change the order/presence of the context sections")
         self["redirect"] = ("", "Redirect the context information to another TTY")
-        self["libc_args"] = (False, "Show libc function call args description")
-        self["libc_args_path"] = ("", "Path to libc function call args json files, provided via gef-extras")
+        self["libc_args"] = (False, "[DEPRECATED - Unused] Show libc function call args description")
+        self["libc_args_path"] = ("", "[DEPRECATED - Unused] Path to libc function call args json files, provided via gef-extras")
 
         self.layout_mapping = {
-            "legend": (self.show_legend, None),
-            "regs": (self.context_regs, None),
-            "stack": (self.context_stack, None),
-            "code": (self.context_code, None),
-            "args": (self.context_args, None),
-            "memory": (self.context_memory, None),
-            "source": (self.context_source, None),
-            "trace": (self.context_trace, None),
-            "threads": (self.context_threads, None),
-            "extra": (self.context_additional_information, None),
+            "legend": (self.show_legend, None, None),
+            "regs": (self.context_regs, None, None),
+            "stack": (self.context_stack, None, None),
+            "code": (self.context_code, None, None),
+            "args": (self.context_args, None, None),
+            "memory": (self.context_memory, None, None),
+            "source": (self.context_source, None, None),
+            "trace": (self.context_trace, None, None),
+            "threads": (self.context_threads, None, None),
+            "extra": (self.context_additional_information, None, None),
         }
 
         self.instruction_iterator = gef_disassemble
@@ -7155,7 +7124,10 @@ class ContextCommand(GenericCommand):
                 continue
 
             try:
-                display_pane_function, pane_title_function = self.layout_mapping[section]
+                display_pane_function, pane_title_function, condition = self.layout_mapping[section]
+                if condition:
+                    if not condition():
+                        continue
                 if pane_title_function:
                     self.context_title(pane_title_function())
                 display_pane_function()
@@ -7464,31 +7436,16 @@ class ContextCommand(GenericCommand):
                         if op in extended_registers[exreg]:
                             parameter_set.add(exreg)
 
-        nb_argument = None
-        _arch_mode = f"{gef.arch.arch.lower()}_{gef.arch.mode}"
-        _function_name = None
-        if function_name.endswith("@plt"):
-            _function_name = function_name.split("@")[0]
-            try:
-                nb_argument = len(gef.ui.libc_args_table[_arch_mode][_function_name])
-            except KeyError:
-                pass
-
-        if not nb_argument:
-            if is_x86_32():
-                nb_argument = len(parameter_set)
-            else:
-                nb_argument = max([function_parameters.index(p)+1 for p in parameter_set], default=0)
+        if is_x86_32():
+            nb_argument = len(parameter_set)
+        else:
+            nb_argument = max([function_parameters.index(p)+1 for p in parameter_set], default=0)
 
         args = []
         for i in range(nb_argument):
             _key, _values = gef.arch.get_ith_parameter(i, in_func=False)
             _values = RIGHT_ARROW.join(dereference_from(_values))
-            try:
-                args.append("{} = {} (def: {})".format(Color.colorify(_key, arg_key_color), _values,
-                                                       gef.ui.libc_args_table[_arch_mode][_function_name][_key]))
-            except KeyError:
-                args.append(f"{Color.colorify(_key, arg_key_color)} = {_values}")
+            args.append(f"{Color.colorify(_key, arg_key_color)} = {_values}")
 
         self.context_title("arguments (guessed)")
         gef_print(f"{function_name} (")
@@ -7656,11 +7613,11 @@ class ContextCommand(GenericCommand):
 
     def context_threads(self) -> None:
         def reason() -> str:
-            res = gdb.execute("info program", to_string=True).splitlines()
+            res = gdb.execute("info program", to_string=True)
             if not res:
                 return "NOT RUNNING"
 
-            for line in res:
+            for line in res.splitlines():
                 line = line.strip()
                 if line.startswith("It stopped with signal "):
                     return line.replace("It stopped with signal ", "").split(",", 1)[0]
@@ -9440,7 +9397,7 @@ class GefCommand(gdb.Command):
         gdb.execute("gef help")
         return
 
-    def add_context_pane(self, pane_name: str, display_pane_function: Callable, pane_title_function: Callable) -> None:
+    def add_context_pane(self, pane_name: str, display_pane_function: Callable, pane_title_function: Callable, condition: Optional[Callable]) -> None:
         """Add a new context pane to ContextCommand."""
         for _, class_instance in self.commands.items():
             if isinstance(class_instance, ContextCommand):
@@ -9455,7 +9412,7 @@ class GefCommand(gdb.Command):
         gef.config["context.layout"] += f" {corrected_settings_name}"
 
         # overload the printing of pane title
-        context.layout_mapping[corrected_settings_name] = (display_pane_function, pane_title_function)
+        context.layout_mapping[corrected_settings_name] = (display_pane_function, pane_title_function, condition)
 
     def load(self) -> None:
         """Load all the commands and functions defined by GEF into GDB."""
@@ -10738,7 +10695,6 @@ class GefUiManager(GefManager):
         self.context_hidden = False
         self.stream_buffer : Optional[StringIO] = None
         self.highlight_table: Dict[str, str] = {}
-        self.libc_args_table: Dict[str, Dict[str, Dict[str, str]]] = {}
         self.watches: Dict[int, Tuple[int, str]] = {}
         self.context_messages: List[Tuple[str, str]] = []
         return
