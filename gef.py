@@ -1201,59 +1201,55 @@ def search_for_main_arena() -> int:
 
 
 class GlibcHeapInfo:
-    """Glibc heap_info struct
-    See https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L64"""
+    """Glibc heap_info struct"""
 
-    def __init__(self, addr: Union[int, str]) -> None:
-        self.__addr = parse_address(addr) if isinstance(addr, str) else addr
-        self.size_t = cached_lookup_type("size_t")
-        if not self.size_t:
-            ptr_type = "unsigned long" if gef.arch.ptrsize == 8 else "unsigned int"
-            self.size_t = cached_lookup_type(ptr_type)
+    @staticmethod
+    def heap_info_t() -> Type[ctypes.Structure]:
+        class heap_info_cls(ctypes.Structure):
+            pass
+        pointer = ctypes.c_uint64 if gef and gef.arch.ptrsize == 8 else ctypes.c_uint32
+        heap_info_cls._fields_ = [
+            ("ar_ptr", ctypes.POINTER(GlibcArena.malloc_state_t())),
+            ("prev", ctypes.POINTER(heap_info_cls)),
+            ("size", pointer),
+            ("mprotect_size", pointer),
+            ("pad", pointer),
+        ]
+        return heap_info_cls
+
+    def __init__(self, addr: Union[str, int]) -> None:
+        self.__address : int = parse_address(f"&{addr}") if isinstance(addr, str) else addr
+        self.reset()
+        return
+
+    def reset(self):
+        self.__sizeof = ctypes.sizeof(GlibcHeapInfo.heap_info_t())
+        self.__data = gef.memory.read(self.__address, ctypes.sizeof(GlibcArena.malloc_state_t()))
+        self.__heap_info = GlibcArena.malloc_state_t().from_buffer_copy(self.__data)
+        return
+
+    def __getattr__(self, item: Any) -> Any:
+        if item in dir(self.__heap_info):
+            return getattr(self.__heap_info, item)
+        return getattr(self, item)
+
+    def __abs__(self) -> int:
+        return self.__address
+
+    def __int__(self) -> int:
+        return self.__address
+
+    @property
+    def address(self) -> int:
+        return self.__address
+
+    @property
+    def sizeof(self) -> int:
+        return self.__sizeof
 
     @property
     def addr(self) -> int:
-        return self.__addr
-
-    @property
-    def ar_ptr_addr(self) -> int:
-        return self.addr
-
-    @property
-    def prev_addr(self) -> int:
-        return self.ar_ptr_addr + gef.arch.ptrsize
-
-    @property
-    def size_addr(self) -> int:
-        return self.prev_addr + gef.arch.ptrsize
-
-    @property
-    def mprotect_size_addr(self) -> int:
-        return self.size_addr + self.size_t.sizeof
-
-    @property
-    def ar_ptr(self) -> "gdb.Value":
-        return self._get_size_t_pointer(self.ar_ptr_addr)
-
-    @property
-    def prev(self) -> "gdb.Value":
-        return self._get_size_t_pointer(self.prev_addr)
-
-    @property
-    def size(self) -> "gdb.Value":
-        return self._get_size_t(self.size_addr)
-
-    @property
-    def mprotect_size(self) -> "gdb.Value":
-        return self._get_size_t(self.mprotect_size_addr)
-
-    # helper methods
-    def _get_size_t_pointer(self, addr: int) -> "gdb.Value":
-        size_t_pointer = self.size_t.pointer()
-        return dereference(addr).cast(size_t_pointer)
-
-    def _get_size_t(self, addr: int) -> "gdb.Value":
-        return dereference(addr).cast(self.size_t)
+        return int(self)
 
 
 class GlibcArena:
