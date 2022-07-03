@@ -1186,130 +1186,18 @@ def search_for_main_arena() -> int:
     except gdb.error:
         malloc_hook_addr = parse_address("(void *)&__malloc_hook")
 
+        struct_size = ctypes.sizeof(GlibcArena.malloc_state_t())
+
         if is_x86():
             addr = align_address_to_size(malloc_hook_addr + gef.arch.ptrsize, 0x20)
         elif is_arch(Elf.Abi.AARCH64):
-            addr = malloc_hook_addr - gef.arch.ptrsize*2 - MallocStateStruct("*0").struct_size
+            addr = malloc_hook_addr - gef.arch.ptrsize*2 - struct_size
         elif is_arch(Elf.Abi.ARM):
-            addr = malloc_hook_addr - gef.arch.ptrsize - MallocStateStruct("*0").struct_size
+            addr = malloc_hook_addr - gef.arch.ptrsize - struct_size
         else:
             raise OSError(f"Cannot find main_arena for {gef.arch.arch}")
 
     return addr
-
-
-class MallocStateStruct:
-    """GEF representation of malloc_state
-    from https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L1658"""
-
-    def __init__(self, addr: str) -> None:
-        try:
-            self.__addr = parse_address(f"&{addr}")
-        except gdb.error:
-            self.__addr = search_for_main_arena()
-            # if `search_for_main_arena` throws `gdb.error` on symbol lookup:
-            # it means the session is not started, so just propagate the exception
-
-        self.num_fastbins = 10
-        self.num_bins = 254
-
-        self.int_size = cached_lookup_type("int").sizeof
-        self.size_t = cached_lookup_type("size_t")
-        if not self.size_t:
-            ptr_type = "unsigned long" if gef.arch.ptrsize == 8 else "unsigned int"
-            self.size_t = cached_lookup_type(ptr_type)
-
-        # Account for separation of have_fastchunks flag into its own field
-        # within the malloc_state struct in GLIBC >= 2.27
-        # https://sourceware.org/git/?p=glibc.git;a=commit;h=e956075a5a2044d05ce48b905b10270ed4a63e87
-        # Be aware you could see this change backported into GLIBC release
-        # branches.
-        if get_libc_version() >= (2, 27):
-            self.fastbin_offset = align_address_to_size(self.int_size * 3, 8)
-        else:
-            self.fastbin_offset = self.int_size * 2
-        return
-
-    # struct offsets
-    @property
-    def addr(self) -> int:
-        return self.__addr
-
-    @property
-    def fastbins_addr(self) -> int:
-        return self.__addr + self.fastbin_offset
-
-    @property
-    def top_addr(self) -> int:
-        return self.fastbins_addr + self.num_fastbins * gef.arch.ptrsize
-
-    @property
-    def last_remainder_addr(self) -> int:
-        return self.top_addr + gef.arch.ptrsize
-
-    @property
-    def bins_addr(self) -> int:
-        return self.last_remainder_addr + gef.arch.ptrsize
-
-    @property
-    def next_addr(self) -> int:
-        return self.bins_addr + self.num_bins * gef.arch.ptrsize + self.int_size * 4
-
-    @property
-    def next_free_addr(self) -> int:
-        return self.next_addr + gef.arch.ptrsize
-
-    @property
-    def system_mem_addr(self) -> int:
-        return self.next_free_addr + gef.arch.ptrsize * 2
-
-    @property
-    def struct_size(self) -> int:
-        return self.system_mem_addr + gef.arch.ptrsize * 2 - self.__addr
-
-    # struct members
-    @property
-    def fastbinsY(self) -> "gdb.Value":
-        return self.get_size_t_array(self.fastbins_addr, self.num_fastbins)
-
-    @property
-    def top(self) -> "gdb.Value":
-        return self.get_size_t_pointer(self.top_addr)
-
-    @property
-    def last_remainder(self) -> "gdb.Value":
-        return self.get_size_t_pointer(self.last_remainder_addr)
-
-    @property
-    def bins(self) -> "gdb.Value":
-        return self.get_size_t_array(self.bins_addr, self.num_bins)
-
-    @property
-    def next(self) -> "gdb.Value":
-        return self.get_size_t_pointer(self.next_addr)
-
-    @property
-    def next_free(self) -> "gdb.Value":
-        return self.get_size_t_pointer(self.next_free_addr)
-
-    @property
-    def system_mem(self) -> "gdb.Value":
-        return self.get_size_t(self.system_mem_addr)
-
-    # helper methods
-    def get_size_t(self, addr: int) -> "gdb.Value":
-        return dereference(addr).cast(self.size_t)
-
-    def get_size_t_pointer(self, addr: int) -> "gdb.Value":
-        size_t_pointer = self.size_t.pointer()
-        return dereference(addr).cast(size_t_pointer)
-
-    def get_size_t_array(self, addr: int, length: int) -> "gdb.Value":
-        size_t_array = self.size_t.array(length)
-        return dereference(addr).cast(size_t_array)
-
-    def __getitem__(self, item: str) -> Any:
-        return getattr(self, item)
 
 
 class GlibcHeapInfo:
@@ -1369,39 +1257,66 @@ class GlibcHeapInfo:
 
 
 class GlibcArena:
-    """Glibc arena class
-    Ref: https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1671"""
+    """Glibc arena class"""
+
+    NFASTBINS = 10
+    NBINS = 254
+    BINMAPSIZE = 4
+
+    @staticmethod
+    def malloc_state_t() -> Type[ctypes.Structure]:
+        pointer = ctypes.c_uint64 if gef and gef.arch.ptrsize == 8 else ctypes.c_uint32
+        fields = [
+            ("mutex", ctypes.c_uint32),
+            ("have_fastchunks", ctypes.c_uint32),
+            ("flags", ctypes.c_uint32),
+        ]
+        if gef and gef.libc.version and gef.libc.version >= (2, 27):
+            fields += [
+                ("UNUSED_c", ctypes.c_uint32),          # padding to align to 0x10
+                ("fastbinsY", GlibcArena.NFASTBINS * pointer),
+            ]
+        fields += [
+            ("top", pointer),
+            ("last_remainder", pointer),
+            ("bins", GlibcArena.NBINS * pointer),
+            ("binmap", GlibcArena.BINMAPSIZE * ctypes.c_uint32),
+            ("next", pointer),
+            ("next_free", pointer),
+            ("attached_threads", pointer),
+            ("system_mem", pointer),
+            ("max_system_mem", pointer),
+        ]
+        class malloc_state_cls(ctypes.Structure):
+            _fields_ = fields
+        return malloc_state_cls
 
     def __init__(self, addr: str) -> None:
-        self.__arena: Union["gdb.Value", MallocStateStruct]
         try:
-            arena = gdb.parse_and_eval(addr)
-            malloc_state_t = cached_lookup_type("struct malloc_state")
-            self.__arena = arena.cast(malloc_state_t)  # here __arena becomes a "gdb.Value"
-            self.__addr = int(arena.address)
-            self.struct_size: int = malloc_state_t.sizeof
-        except:
-            self.__arena = MallocStateStruct(addr)  # here __arena becomes MallocStateStruct
-            self.__addr = self.__arena.addr
-
-        try:
-            self.top             = int(self.top)
-            self.last_remainder  = int(self.last_remainder)
-            self.n               = int(self.next)
-            self.nfree           = int(self.next_free)
-            self.sysmem          = int(self.system_mem)
-        except gdb.error as e:
-            err("Glibc arena: {}".format(e))
+            self.__address : int = parse_address(f"&{addr}")
+        except gdb.error:
+            self.__address : int = search_for_main_arena()
+            # if `search_for_main_arena` throws `gdb.error` on symbol lookup:
+            # it means the session is not started, so just propagate the exception
+        self.reset()
         return
 
-    def __getitem__(self, item: Any) -> Any:
-        return self.__arena[item]
+    def reset(self):
+        self.__sizeof = ctypes.sizeof(GlibcArena.malloc_state_t())
+        self.__data = gef.memory.read(self.__address, ctypes.sizeof(GlibcArena.malloc_state_t()))
+        self.__arena = GlibcArena.malloc_state_t().from_buffer_copy(self.__data)
+        return
 
     def __getattr__(self, item: Any) -> Any:
-        return self.__arena[item]
+        if item in dir(self.__arena):
+            return getattr(self.__arena, item)
+        return getattr(self, item)
+
+    def __abs__(self) -> int:
+        return self.__address
 
     def __int__(self) -> int:
-        return self.__addr
+        return self.__address
 
     def __iter__(self) -> Generator["GlibcArena", None, None]:
         yield self
@@ -1417,8 +1332,27 @@ class GlibcArena:
         return
 
     def __eq__(self, other: "GlibcArena") -> bool:
-        # You cannot have 2 arenas at the same address, so this check should be enough
-        return self.__addr == int(other)
+        return self.__address == int(other)
+
+    def __str__(self) -> str:
+        return (f"{Color.colorify('Arena', 'blue bold underline')}(base={self.__address:#x}, top={self.top:#x}, "
+                f"last_remainder={self.last_remainder:#x}, next={self.next:#x}, next_free={self.next_free:#x}, "
+                f"system_mem={self.system_mem:#x})")
+
+    def __repr__(self) -> str:
+        return f"GlibcArena(address={self.__address:#x}, size={self.__sizeof})"
+
+    @property
+    def address(self) -> int:
+        return self.__address
+
+    @property
+    def sizeof(self) -> int:
+        return self.__sizeof
+
+    @property
+    def addr(self) -> int:
+        return int(self)
 
     def fastbin(self, i: int) -> Optional["GlibcChunk"]:
         """Return head chunk in fastbinsY[i]."""
@@ -1468,15 +1402,6 @@ class GlibcArena:
             default_mmap_threshold_max = 4 * 1024 * 1024 * cached_lookup_type("long").sizeof
         heap_max_size = 2 * default_mmap_threshold_max
         return ptr & ~(heap_max_size - 1)
-
-    def __str__(self) -> str:
-        return (f"{Color.colorify('Arena', 'blue bold underline')}(base={self.__addr:#x}, top={self.top:#x}, "
-                f"last_remainder={self.last_remainder:#x}, next={self.n:#x}, next_free={self.nfree:#x}, "
-                f"system_mem={self.sysmem:#x})")
-
-    @property
-    def addr(self) -> int:
-        return int(self)
 
 
 class GlibcChunk:
