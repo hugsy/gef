@@ -5700,6 +5700,7 @@ class SearchPatternCommand(GenericCommand):
         super().__init__()
         self["max_size_preview"] = (10, "max size preview of bytes")
         self["nr_pages_chunk"] = (0x400, "number of pages readed for each memory read chunk")
+        return
         
     def print_section(self, section: Section) -> None:
         title = "In "
