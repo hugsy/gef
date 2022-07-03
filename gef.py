@@ -5695,12 +5695,12 @@ class SearchPatternCommand(GenericCommand):
                  f"{_cmdline_} 0x555555554000 little stack",
                  f"{_cmdline_} AAAA 0x600000-0x601000",
                  f"{_cmdline_} --regex 0x401000 0x401500 ([\\\\x20-\\\\x7E]{{2,}})(?=\\\\x00)   <-- It matchs null-end-printable(from x20-x7e) C strings (min size 2 bytes)"]
-                 
+
     def __init__(self) -> None:
         super().__init__()
         self["max_size_preview"] = (10, "max size preview of bytes")
         self["nr_pages_chunk"] = (0x400, "number of pages readed for each memory read chunk")
-        
+
     def print_section(self, section: Section) -> None:
         title = "In "
         if section.path:
@@ -5745,7 +5745,7 @@ class SearchPatternCommand(GenericCommand):
             del mem
 
         return locations
-        
+
     def search_binpattern_by_address(self, binpattern: bytes, start_address: int, end_address: int) -> List[Tuple[int, int, Optional[str]]]:
         """Search a binary pattern within a range defined by arguments."""
 
@@ -5762,7 +5762,7 @@ class SearchPatternCommand(GenericCommand):
                 mem = gef.memory.read(chunk_addr, chunk_size)
             except gdb.MemoryError as e:
                 return []
-            preview_size = self["max_size_preview"] 
+            preview_size = self["max_size_preview"]
             for match in re.finditer(binpattern, mem):
                 start = chunk_addr + match.start()
                 preview = str(mem[slice(*match.span())][0:preview_size]) + "..."
@@ -5770,7 +5770,7 @@ class SearchPatternCommand(GenericCommand):
                 if size_match > 0:
                     size_match -= 1
                 end = start + size_match
-                
+
                 locations.append((start, end, preview))
 
             del mem
@@ -5804,14 +5804,14 @@ class SearchPatternCommand(GenericCommand):
         if argc < 1:
             self.usage()
             return
-            
+
         if argc > 3 and argv[0].startswith("--regex"):
             pattern = ' '.join(argv[3:])
             pattern = ast.literal_eval("b'" + pattern + "'")
 
             addr_start = parse_address(argv[1])
             addr_end = parse_address(argv[2])
-            
+
             for loc in self.search_binpattern_by_address(pattern, addr_start, addr_end):
                 self.print_loc(loc)
 
@@ -6142,14 +6142,12 @@ class GlibcHeapChunksCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args = kwargs["arguments"]
-        arenas = gef.heap.arenas
-        for arena in arenas:
+        for arena in gef.heap.arenas:
             self.dump_chunks_arena(arena, print_arena=args.all, allow_unaligned=args.allow_unaligned)
             if not args.all:
                 break
 
     def dump_chunks_arena(self, arena: GlibcArena, print_arena: bool = False, allow_unaligned: bool = False) -> None:
-        top_chunk_addr = arena.top
         heap_addr = arena.heap_addr(allow_unaligned=allow_unaligned)
         if heap_addr is None:
             err("Could not find heap for arena")
@@ -6157,36 +6155,36 @@ class GlibcHeapChunksCommand(GenericCommand):
         if print_arena:
             gef_print(str(arena))
         if arena.is_main_arena():
-            self.dump_chunks_heap(heap_addr, top=top_chunk_addr, allow_unaligned=allow_unaligned)
+            self.dump_chunks_heap(heap_addr, arena, allow_unaligned=allow_unaligned)
         else:
-            heap_info_structs = arena.get_heap_info_list()
+            heap_info_structs = arena.get_heap_info_list() or []
             first_heap_info = heap_info_structs.pop(0)
             heap_info_t_size = int(arena) - first_heap_info.addr
-            until = first_heap_info.addr + first_heap_info.size
-            self.dump_chunks_heap(heap_addr, until=until, top=top_chunk_addr, allow_unaligned=allow_unaligned)
-            for heap_info in heap_info_structs:
-                start = heap_info.addr + heap_info_t_size
-                until = heap_info.addr + heap_info.size
-                self.dump_chunks_heap(start, until=until, top=top_chunk_addr, allow_unaligned=allow_unaligned)
+            if self.dump_chunks_heap(heap_addr, arena, allow_unaligned=allow_unaligned):
+                for heap_info in heap_info_structs:
+                    start = heap_info.addr + heap_info_t_size
+                    if not self.dump_chunks_heap(start, arena, allow_unaligned=allow_unaligned):
+                        break
         return
 
-    def dump_chunks_heap(self, start: int, until: Optional[int] = None, top: Optional[int] = None, allow_unaligned: bool = False) -> None:
+    def dump_chunks_heap(self, start: int, arena: GlibcArena, allow_unaligned: bool = False) -> bool:
         nb = self["peek_nb_byte"]
         chunk_iterator = GlibcChunk(start, from_base=True, allow_unaligned=allow_unaligned)
         for chunk in chunk_iterator:
+            if chunk.base_address == arena.top:
+                gef_print(
+                    f"{chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
+                break
+
+            if chunk.base_address > arena.top:
+                err("Corrupted heap, cannot continue.")
+                return False
+
             line = str(chunk)
             if nb:
                 line += f"\n    [{hexdump(gef.memory.read(chunk.data_address, nb), nb, base=chunk.data_address)}]"
             gef_print(line)
-
-            next_chunk_addr = chunk.get_next_chunk_addr()
-            if until and next_chunk_addr >= until:
-                break
-
-            if chunk.base_address == top:
-                gef_print(f"{chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
-                break
-        return
+        return True
 
 
 @register
