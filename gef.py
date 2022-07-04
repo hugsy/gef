@@ -1405,29 +1405,88 @@ class GlibcChunk:
     address pointed to as the chunk data. Setting from_base to True instead treats that data as the chunk header.
     Ref:  https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/."""
 
+    class ChunkFlags(enum.IntFlag):
+        PREV_INUSE = 1
+        IS_MMAPPED = 2
+        NON_MAIN_ARENA = 4
+
+        def __str__(self) -> str:
+            return f" | ".join([
+                Color.greenify("PREV_INUSE") if self.value & self.PREV_INUSE else Color.redify("PREV_INUSE"),
+                Color.greenify("IS_MMAPPED") if self.value & self.IS_MMAPPED else Color.redify("IS_MMAPPED"),
+                Color.greenify("NON_MAIN_ARENA") if self.value & self.NON_MAIN_ARENA else Color.redify("NON_MAIN_ARENA")
+            ])
+
+    @staticmethod
+    def malloc_chunk_t() -> Type[ctypes.Structure]:
+        pointer = ctypes.c_uint64 if gef and gef.arch.ptrsize == 8 else ctypes.c_uint32
+        class malloc_chunk_cls(ctypes.Structure):
+            pass
+
+        malloc_chunk_cls._fields_ = [
+            ("prev_size", pointer),
+            ("size", pointer),
+            ("fd", pointer),
+            ("bk", pointer),
+            ("fd_nextsize", ctypes.POINTER(malloc_chunk_cls)),
+            ("bk_nextsize", ctypes.POINTER(malloc_chunk_cls)),
+        ]
+        return malloc_chunk_cls
+
     def __init__(self, addr: int, from_base: bool = False, allow_unaligned: bool = True) -> None:
-        self.ptrsize = gef.arch.ptrsize
-        self.data_address = addr + 2 * self.ptrsize if from_base else addr
-        self.base_address = addr if from_base else addr - 2 * self.ptrsize
+        ptrsize = gef.arch.ptrsize
+        self.data_address = addr + 2 * ptrsize if from_base else addr
+        self.base_address = addr if from_base else addr - 2 * ptrsize
         if not allow_unaligned:
             self.data_address = gef.heap.malloc_align_address(self.data_address)
-        self.size_addr = int(self.data_address - self.ptrsize)
+        self.size_addr = int(self.data_address - ptrsize)
         self.prev_size_addr = self.base_address
+        self.reset()
         return
 
-    def get_chunk_size(self) -> int:
-        return gef.memory.read_integer(self.size_addr) & (~0x07)
+    def reset(self):
+        self.__sizeof = ctypes.sizeof(GlibcChunk.malloc_chunk_t())
+        self.__data = gef.memory.read(
+            self.base_address, ctypes.sizeof(GlibcChunk.malloc_chunk_t()))
+        self.__chunk = GlibcChunk.malloc_chunk_t().from_buffer_copy(self.__data)
+        return
+
+    @property
+    def prev_size(self) -> int:
+        return self.__chunk.prev_size
 
     @property
     def size(self) -> int:
-        return self.get_chunk_size()
+        return self.__chunk.size & (~0x07)
+
+    @property
+    def flags(self) -> ChunkFlags:
+        return GlibcChunk.ChunkFlags(self.__chunk.size & 0x07)
+
+    @property
+    def fd(self) -> int:
+        assert(gef and gef.libc.version)
+        return self.__chunk.fd if gef.libc.version < (2, 32) else self.reveal_ptr(self.data_address)
+
+    @property
+    def bk(self) -> int:
+        return self.__chunk.bk
+
+    @property
+    def fd_nextsize(self) -> int:
+        return self.__chunk.fd_nextsize
+
+    @property
+    def bk_nextsize(self) -> int:
+        return self.__chunk.bk_nextsize
 
     def get_usable_size(self) -> int:
         # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L4537
-        cursz = self.get_chunk_size()
+        ptrsz = gef.arch.ptrsize
+        cursz = self.size
         if cursz == 0: return cursz
-        if self.has_m_bit(): return cursz - 2 * self.ptrsize
-        return cursz - self.ptrsize
+        if self.has_m_bit(): return cursz - 2 * ptrsz
+        return cursz - ptrsz
 
     @property
     def usable_size(self) -> int:
@@ -1466,41 +1525,50 @@ class GlibcChunk:
         return GlibcChunk(addr, allow_unaligned=allow_unaligned)
 
     def get_next_chunk_addr(self) -> int:
-        return self.data_address + self.get_chunk_size()
+        return self.data_address + self.size
 
-    # if free-ed functions
-    def get_fwd_ptr(self, sll: bool) -> int:
-        # Not a single-linked-list (sll) or no Safe-Linking support yet
-        if not sll or get_libc_version() < (2, 32):
-            return gef.memory.read_integer(self.data_address)
-        # Unmask ("reveal") the Safe-Linking pointer
-        else:
-            return gef.memory.read_integer(self.data_address) ^ (self.data_address >> 12)
+    def protect_ptr(self, pos: int, pointer: int) -> int:
+        """https://elixir.bootlin.com/glibc/glibc-2.32/source/malloc/malloc.c#L339"""
+        assert(gef and gef.libc.version)
+        if gef.libc.version < (2, 32):
+            return pointer
+        return (pos >> 12) ^ pointer
+
+    def reveal_ptr(self, pointer: int) -> int:
+        """https://elixir.bootlin.com/glibc/glibc-2.32/source/malloc/malloc.c#L341"""
+        assert(gef and gef.libc.version)
+        if gef.libc.version < (2, 32):
+            return pointer
+        return gef.memory.read_integer(pointer) ^ (pointer >> 12)
+
+    # obsolete functions
+    @deprecated(f"Use `GlibcChunk.fd`")
+    def get_fwd_ptr(self) -> int:
+        return self.fd
+
+    @deprecated(f"Use `GlibcChunk.bk`")
+    def get_bkw_ptr(self) -> int:
+        return gef.memory.read_integer(self.data_address + gef.arch.ptrsize)
 
     @property
     def fwd(self) -> int:
-        return self.get_fwd_ptr(False)
-
-    fd = fwd  # for compat
-
-    def get_bkw_ptr(self) -> int:
-        return gef.memory.read_integer(self.data_address + self.ptrsize)
+        warn(f"[Obsolete] `GlibcChunk.fwd` is deprecated, use `GlibcChunk.fd`")
+        return self.get_fwd_ptr()
 
     @property
     def bck(self) -> int:
+        warn(f"[Obsolete]  `GlibcChunk.bck` is deprecated, use `GlibcChunk.bk`")
         return self.get_bkw_ptr()
-
-    bk = bck  # for compat
-    # endif free-ed functions
+    # endif obsolete functions
 
     def has_p_bit(self) -> bool:
-        return bool(gef.memory.read_integer(self.size_addr) & 0x01)
+        return bool(self.flags & GlibcChunk.ChunkFlags.PREV_INUSE)
 
     def has_m_bit(self) -> bool:
-        return bool(gef.memory.read_integer(self.size_addr) & 0x02)
+        return bool(self.flags & GlibcChunk.ChunkFlags.IS_MMAPPED)
 
     def has_n_bit(self) -> bool:
-        return bool(gef.memory.read_integer(self.size_addr) & 0x04)
+        return bool(self.flags & GlibcChunk.ChunkFlags.NON_MAIN_ARENA)
 
     def is_used(self) -> bool:
         """Check if the current block is used by:
@@ -1512,20 +1580,13 @@ class GlibcChunk:
         next_chunk = self.get_next_chunk()
         return True if next_chunk.has_p_bit() else False
 
-    def str_chunk_size_flag(self) -> str:
-        msg = []
-        msg.append(f"PREV_INUSE flag: {Color.greenify('On') if self.has_p_bit() else Color.redify('Off')}")
-        msg.append(f"IS_MMAPPED flag: {Color.greenify('On') if self.has_m_bit() else Color.redify('Off')}")
-        msg.append(f"NON_MAIN_ARENA flag: {Color.greenify('On') if self.has_n_bit() else Color.redify('Off')}")
-        return "\n".join(msg)
-
-    def _str_sizes(self) -> str:
+    def __str_sizes(self) -> str:
         msg = []
         failed = False
 
         try:
-            msg.append("Chunk size: {0:d} ({0:#x})".format(self.get_chunk_size()))
-            msg.append("Usable size: {0:d} ({0:#x})".format(self.get_usable_size()))
+            msg.append("Chunk size: {0:d} ({0:#x})".format(self.size))
+            msg.append("Usable size: {0:d} ({0:#x})".format(self.usable_size))
             failed = True
         except gdb.MemoryError:
             msg.append(f"Chunk size: Cannot read at {self.size_addr:#x} (corrupted?)")
@@ -1537,57 +1598,38 @@ class GlibcChunk:
             msg.append(f"Previous chunk size: Cannot read at {self.base_address:#x} (corrupted?)")
 
         if failed:
-            msg.append(self.str_chunk_size_flag())
+            msg.append(str(self.flags))
 
         return "\n".join(msg)
 
     def _str_pointers(self) -> str:
         fwd = self.data_address
-        bkw = self.data_address + self.ptrsize
+        bkw = self.data_address + gef.arch.ptrsize
 
         msg = []
         try:
-            msg.append(f"Forward pointer: {self.get_fwd_ptr(False):#x}")
+            msg.append(f"Forward pointer: {self.fd:#x}")
         except gdb.MemoryError:
             msg.append(f"Forward pointer: {fwd:#x} (corrupted?)")
 
         try:
-            msg.append(f"Backward pointer: {self.get_bkw_ptr():#x}")
+            msg.append(f"Backward pointer: {self.bk:#x}")
         except gdb.MemoryError:
             msg.append(f"Backward pointer: {bkw:#x} (corrupted?)")
 
         return "\n".join(msg)
 
-    def str_as_alloced(self) -> str:
-        return self._str_sizes()
-
-    def str_as_freed(self) -> str:
-        return f"{self._str_sizes()}\n\n{self._str_pointers()}"
-
-    def flags_as_string(self) -> str:
-        flags = []
-        if self.has_p_bit():
-            flags.append(Color.colorify("PREV_INUSE", "red bold"))
-        else:
-            flags.append(Color.colorify("! PREV_INUSE", "green bold"))
-        if self.has_m_bit():
-            flags.append(Color.colorify("IS_MMAPPED", "red bold"))
-        if self.has_n_bit():
-            flags.append(Color.colorify("NON_MAIN_ARENA", "red bold"))
-        return "|".join(flags)
-
     def __str__(self) -> str:
         return (f"{Color.colorify('Chunk', 'yellow bold underline')}(addr={self.data_address:#x}, "
-                f"size={self.get_chunk_size():#x}, flags={self.flags_as_string()})")
+                f"size={self.size:#x}, flags={self.flags!s})")
 
     def psprint(self) -> str:
-        msg = []
-        msg.append(str(self))
-        if self.is_used():
-            msg.append(self.str_as_alloced())
-        else:
-            msg.append(self.str_as_freed())
-
+        msg = [
+            str(self),
+            self.__str_sizes(),
+        ]
+        if not self.is_used():
+            msg.append(f"\n\n{self._str_pointers()}")
         return "\n".join(msg) + "\n"
 
 
@@ -4080,7 +4122,7 @@ class TraceMallocRetBreakpoint(gdb.FinishBreakpoint):
             align = gef.arch.ptrsize
             for chunk_addr, _ in gef.session.heap_allocated_chunks:
                 current_chunk = GlibcChunk(chunk_addr)
-                current_chunk_size = current_chunk.get_chunk_size()
+                current_chunk_size = current_chunk.size
 
                 if chunk_addr <= loc < chunk_addr + current_chunk_size:
                     offset = loc - chunk_addr - 2*align
@@ -5618,7 +5660,7 @@ class SearchPatternCommand(GenericCommand):
         self["max_size_preview"] = (10, "max size preview of bytes")
         self["nr_pages_chunk"] = (0x400, "number of pages readed for each memory read chunk")
         return
-        
+
     def print_section(self, section: Section) -> None:
         title = "In "
         if section.path:
@@ -6232,7 +6274,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
                         chunks.add(chunk.data_address)
 
-                        next_chunk = chunk.get_fwd_ptr(True)
+                        next_chunk = chunk.fwd
                         if next_chunk == 0:
                             break
 
@@ -6375,12 +6417,12 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
                         gef_print(f"{RIGHT_ARROW} [loop detected]", end="")
                         break
 
-                    if fastbin_index(chunk.get_chunk_size()) != i:
+                    if fastbin_index(chunk.size) != i:
                         gef_print("[incorrect fastbin_index] ", end="")
 
                     chunks.add(chunk.data_address)
 
-                    next_chunk = chunk.get_fwd_ptr(True)
+                    next_chunk = chunk.fwd
                     if next_chunk == 0:
                         break
 
