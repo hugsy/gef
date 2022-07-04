@@ -1407,14 +1407,10 @@ class GlibcChunk:
 
     def __init__(self, addr: int, from_base: bool = False, allow_unaligned: bool = True) -> None:
         self.ptrsize = gef.arch.ptrsize
-        if from_base:
-            self.data_address = addr + 2 * self.ptrsize
-        else:
-            self.data_address = addr
+        self.data_address = addr + 2 * self.ptrsize if from_base else addr
+        self.base_address = addr if from_base else addr - 2 * self.ptrsize
         if not allow_unaligned:
             self.data_address = gef.heap.malloc_align_address(self.data_address)
-        self.base_address = addr - 2 * self.ptrsize
-
         self.size_addr = int(self.data_address - self.ptrsize)
         self.prev_size_addr = self.base_address
         return
