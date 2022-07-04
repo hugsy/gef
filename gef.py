@@ -61,6 +61,7 @@ import enum
 import functools
 import hashlib
 import importlib
+import importlib.util
 import inspect
 import itertools
 import json
@@ -1256,8 +1257,11 @@ class GlibcArena:
     """Glibc arena class"""
 
     NFASTBINS = 10
-    NBINS = 254
-    BINMAPSIZE = 4
+    NBINS = 128
+    NSMALLBINS = 64
+    BINMAPSHIFT = 5
+    BITSPERMAP = 1 << BINMAPSHIFT
+    BINMAPSIZE = NBINS // BITSPERMAP
 
     @staticmethod
     def malloc_state_t() -> Type[ctypes.Structure]:
@@ -1275,7 +1279,7 @@ class GlibcArena:
         fields += [
             ("top", pointer),
             ("last_remainder", pointer),
-            ("bins", GlibcArena.NBINS * pointer),
+            ("bins", (GlibcArena.NBINS * 2 - 2) * pointer),
             ("binmap", GlibcArena.BINMAPSIZE * ctypes.c_uint32),
             ("next", pointer),
             ("next_free", pointer),
@@ -1303,11 +1307,6 @@ class GlibcArena:
         self.__arena = GlibcArena.malloc_state_t().from_buffer_copy(self.__data)
         return
 
-    def __getattr__(self, item: Any) -> Any:
-        if item in dir(self.__arena):
-            return getattr(self.__arena, item)
-        return getattr(self, item)
-
     def __abs__(self) -> int:
         return self.__address
 
@@ -1315,15 +1314,16 @@ class GlibcArena:
         return self.__address
 
     def __iter__(self) -> Generator["GlibcArena", None, None]:
-        yield self
+        main_arena = int(gef.heap.main_arena)
+
         current_arena = self
+        yield current_arena
 
         while True:
-            next_arena_address = int(current_arena.next)
-            if next_arena_address == int(gef.heap.main_arena):
+            if current_arena.next == 0 or current_arena.next == main_arena:
                 break
 
-            current_arena = GlibcArena(f"*{next_arena_address:#x} ")
+            current_arena = GlibcArena(f"*{current_arena.next:#x} ")
             yield current_arena
         return
 
@@ -1331,9 +1331,9 @@ class GlibcArena:
         return self.__address == int(other)
 
     def __str__(self) -> str:
-        return (f"{Color.colorify('Arena', 'blue bold underline')}(base={self.__address:#x}, top={self.top:#x}, "
-                f"last_remainder={self.last_remainder:#x}, next={self.next:#x}, next_free={self.next_free:#x}, "
-                f"system_mem={self.system_mem:#x})")
+        properties = f"base={self.__address:#x}, top={self.top:#x}, " \
+                f"last_remainder={self.last_remainder:#x}, next={self.next:#x}"
+        return (f"{Color.colorify('Arena', 'blue bold underline')}({properties})")
 
     def __repr__(self) -> str:
         return f"GlibcArena(address={self.__address:#x}, size={self.__sizeof})"
@@ -1350,6 +1350,48 @@ class GlibcArena:
     def addr(self) -> int:
         return int(self)
 
+    @property
+    def top(self) -> int:
+        return self.__arena.top
+
+    @property
+    def last_remainder(self) -> int:
+        return self.__arena.last_remainder
+
+    @property
+    def fastbinsY(self) -> ctypes.Array:
+        if not gef.libc.version >= (2, 27):
+            raise RuntimeError
+        return self.__arena.fastbinsY
+
+    @property
+    def bins(self) -> ctypes.Array:
+        return self.__arena.bins
+
+    @property
+    def binmap(self) -> ctypes.Array:
+        return self.__arena.binmap
+
+    @property
+    def next(self) -> int:
+        return self.__arena.next
+
+    @property
+    def next_free(self) -> int:
+        return self.__arena.next_free
+
+    @property
+    def attached_threads(self) -> int:
+        return self.__arena.attached_threads
+
+    @property
+    def system_mem(self) -> int:
+        return self.__arena.system_mem
+
+    @property
+    def max_system_mem(self) -> int:
+        return self.__arena.max_system_mem
+
     def fastbin(self, i: int) -> Optional["GlibcChunk"]:
         """Return head chunk in fastbinsY[i]."""
         addr = int(self.fastbinsY[i])
@@ -1360,8 +1402,13 @@ class GlibcArena:
     def bin(self, i: int) -> Tuple[int, int]:
         idx = i * 2
         fd = int(self.bins[idx])
-        bw = int(self.bins[idx + 1])
-        return fd, bw
+        bk = int(self.bins[idx + 1])
+        return fd, bk
+
+    def bin_at(self, i) -> int:
+        header_sz = 2 * gef.arch.ptrsize
+        offset = ctypes.addressof(self.__arena.bins) - ctypes.addressof(self.__arena)
+        return self.__address + offset + (i-1) * 2 * gef.arch.ptrsize + header_sz
 
     def is_main_arena(self) -> bool:
         return gef.heap.main_arena is not None and int(self) == int(gef.heap.main_arena)
@@ -1372,7 +1419,7 @@ class GlibcArena:
             if not heap_section:
                 return None
             return heap_section
-        _addr = int(self) + self.struct_size
+        _addr = int(self) + self.sizeof
         if allow_unaligned:
             return _addr
         return gef.heap.malloc_align_address(_addr)
@@ -6152,7 +6199,7 @@ class GlibcHeapBinsCommand(GenericCommand):
     """Display information on the bins on an arena (default: main_arena).
     See https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1123."""
 
-    _bin_types_ = ["tcache", "fast", "unsorted", "small", "large"]
+    _bin_types_ = ("tcache", "fast", "unsorted", "small", "large")
     _cmdline_ = "heap bins"
     _syntax_ = f"{_cmdline_} [{'|'.join(_bin_types_)}]"
 
@@ -6163,12 +6210,12 @@ class GlibcHeapBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv: List[str]) -> None:
         if not argv:
-            for bin_t in GlibcHeapBinsCommand._bin_types_:
+            for bin_t in self._bin_types_:
                 gdb.execute(f"heap bins {bin_t}")
             return
 
         bin_t = argv[0]
-        if bin_t not in GlibcHeapBinsCommand._bin_types_:
+        if bin_t not in self._bin_types_:
             self.usage()
             return
 
@@ -6178,24 +6225,30 @@ class GlibcHeapBinsCommand(GenericCommand):
     @staticmethod
     def pprint_bin(arena_addr: str, index: int, _type: str = "") -> int:
         arena = GlibcArena(arena_addr)
-        fw, bk = arena.bin(index)
 
-        if bk == 0x00 and fw == 0x00:
+        fd, bk = arena.bin(index)
+        if (fd, bk) == (0x00, 0x00):
             warn("Invalid backward and forward bin pointers(fw==bk==NULL)")
             return -1
 
+        if gef.libc.version >= (2, 34):
+            if index >= 1:
+                previous_bin_address = arena.bin_at(index-1)
+                if previous_bin_address == fd:
+                    return 0
+
         nb_chunk = 0
-        head = GlibcChunk(bk, from_base=True).fwd
-        if fw == head:
+        head = GlibcChunk(bk, from_base=True).fd
+        if fd == head:
             return nb_chunk
 
-        ok(f"{_type}bins[{index:d}]: fw={fw:#x}, bk={bk:#x}")
+        ok(f"{_type}bins[{index:d}]: fw={fd:#x}, bk={bk:#x}")
 
         m = []
-        while fw != head:
-            chunk = GlibcChunk(fw, from_base=True)
+        while fd != head:
+            chunk = GlibcChunk(fd, from_base=True)
             m.append(f"{RIGHT_ARROW}  {chunk!s}")
-            fw = chunk.fwd
+            fd = chunk.fd
             nb_chunk += 1
 
         if m:
@@ -6274,7 +6327,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
                         chunks.add(chunk.data_address)
 
-                        next_chunk = chunk.fwd
+                        next_chunk = chunk.fd
                         if next_chunk == 0:
                             break
 
@@ -6422,7 +6475,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
 
                     chunks.add(chunk.data_address)
 
-                    next_chunk = chunk.fwd
+                    next_chunk = chunk.fd
                     if next_chunk == 0:
                         break
 
@@ -6480,11 +6533,11 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
             err("Heap not initialized")
             return
 
-        arena_addr = args.arena_address if args.arena_address else f"{gef.heap.selected_arena.addr:#x}"
-        gef_print(titlify(f"Small Bins for arena at {arena_addr}"))
+        arena_address = args.arena_address or f"{gef.heap.selected_arena.address:#x}"
+        gef_print(titlify(f"Small Bins for arena at {arena_address}"))
         bins = {}
         for i in range(1, 63):
-            nb_chunk = GlibcHeapBinsCommand.pprint_bin(f"*{arena_addr}", i, "small_")
+            nb_chunk = GlibcHeapBinsCommand.pprint_bin(f"*{arena_address}", i, "small_")
             if nb_chunk < 0:
                 break
             if nb_chunk > 0:
