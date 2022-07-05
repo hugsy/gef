@@ -31,7 +31,7 @@ $ echo source ~/.gdbinit-gef.py >> ~/.gdbinit
 
 # or alternatively from inside gdb directly
 $ gdb -q
-(gdb) pi import urllib.request as u, tempfile as t; g=t.NamedTemporaryFile(suffix='-gef.py'); open(g.name, 'wb+').write(u.urlopen('https://tinyurl.com/gef-master').read()); gdb.execute('source %s' % g.name)
+(gdb) pi import urllib.request as u, tempfile as t; g=t.NamedTemporaryFile(suffix='-gef.py'); open(g.name, 'wb+').write(u.urlopen('https://tinyurl.com/gef-main').read()); gdb.execute('source %s' % g.name)
 ```
 
 _Note_: to fetch the latest of GEF (i.e. from the `dev` branch), simply replace in the URL to https://gef.blah.cat/dev.
