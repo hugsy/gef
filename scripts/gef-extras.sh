@@ -7,12 +7,19 @@ set -e
 
 branch="main"
 if [ "$1" = "dev" ]; then
-    branch="dev"
-    echo "set branch to dev"
+  branch="dev"
+  echo "set branch to dev"
+  if [ $# -ge 2 ]; then
+    DIR_ARG=$2
+  fi
+else
+  if [ $# -ge 1 ]; then
+    DIR_ARG=$1
+  fi
 fi
 
-if [ $# -ge 1 ]; then
-  DIR="$(realpath "$1")/gef-extras"
+if [ -z DIR_ARG ]; then
+  DIR="$(realpath "$DIR_ARG")/gef-extras"
   test -d "${DIR}" || exit 1
 elif [ -d "${HOME}/.config" ]; then
   DIR="${HOME}/.config/gef-extras"
