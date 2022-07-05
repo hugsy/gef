@@ -5,6 +5,12 @@
 #
 set -e
 
+branch="main"
+if [ "$1" = "dev" ]; then
+    branch="dev"
+    echo "set branch to dev"
+fi
+
 if [ $# -ge 1 ]; then
   DIR="$(realpath "$1")/gef-extras"
   test -d "${DIR}" || exit 1
@@ -14,7 +20,7 @@ else
   DIR="${HOME}/.gef-extras"
 fi
 
-git clone https://github.com/hugsy/gef-extras.git "${DIR}"
+git clone --branch ${branch} https://github.com/hugsy/gef-extras.git "${DIR}"
 ver=$(gdb -q -nx -ex 'pi print(f"{sys.version_info.major}.{sys.version_info.minor}", end="")' -ex quit)
 python${ver} -m pip install --requirement "${DIR}"/requirements.txt --upgrade
 gdb -q -ex "gef config gef.extra_plugins_dir '${DIR}/scripts'" \
