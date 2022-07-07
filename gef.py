@@ -2362,7 +2362,7 @@ class RISCV(Architecture):
             else: taken, reason = False, f"{rs1}>={rs2}"
         elif condition == "le":
             if rs1 <= rs2: taken, reason = True, f"{rs1}<={rs2}"
-            else: taken, reason = False, f"{rs1}<={rs2}"
+            else: taken, reason = False, f"{rs1}>{rs2}"
         elif condition == "ge":
             if rs1 < rs2: taken, reason = True, f"{rs1}>={rs2}"
             else: taken, reason = False, f"{rs1}<{rs2}"
