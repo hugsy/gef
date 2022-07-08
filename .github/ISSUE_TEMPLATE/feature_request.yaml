@@ -1,0 +1,50 @@
+name: Feature Request
+description: Use this form to suggest a feature you would like to see in GEF
+body:
+- type: markdown
+  id: md_welcome
+  attributes:
+    value: |
+      Had an idea of a new useful feature for GEF, but can't implement it? Here's your chance
+- type: dropdown
+  attributes:
+    label: Type of feature request
+    description: Describe the category your feature request falls under
+    options:
+    - Additional API
+    - New architecture support/Existing architecture improvement
+    - Misc
+- type: input
+  attributes:
+    label: Misc
+    description: "If \"Misc\" was selected above, describe the type"
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Summary Description
+    description: |
+      A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Implementation idea/suggestion
+    description: |
+      A clear and concise description of how you would like this problem be solved.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Existing alternatives?
+    description: |
+      Describe alternatives already considered.
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Additional information
+    description: |
+      Add any other context or screenshots about the feature request here.
+  validations:
+    required: false

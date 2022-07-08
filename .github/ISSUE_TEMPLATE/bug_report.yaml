@@ -2,25 +2,30 @@ name: Bug Report
 description: Help us improve GEF by filling up this report correctly.
 title: "[Bug] "
 body:
-- type: input
+- type: markdown
+  id: md_welcome
   attributes:
-    label: GEF Version
+    value: |
+      Use this form is for reporting bugs GEF! Please provide as much information as possible to allow us
+      to correctly triage the issue.
+- type: textarea
+  attributes:
+    label: GEF+GDB version
     description: |
-      The exact version of GEF.
-    placeholder: X.X.X
+      The exact version of GEF and GDB. Copy/paste the output of the `version` command.
   validations:
     required: true
 - type: input
+  id: os_info
   attributes:
-    label: GDB Version + Python
-    description: |
-      The version of GDB and Python you're using
-    placeholder: X.X.X
+    label: Operating System
+    description: What OS are you using? Copy/paste the output of `lsb_release -a` or equivalent/
+    placeholder: "e.g., Arch Linux, FreeBSD"
   validations:
-    required: true     
+    required: false
 - type: textarea
   attributes:
-    label: What's the issue you encountered?
+    label: Describe the issue you encountered
     description: |
       Describe the issue in detail and what you were doing beforehand.
   validations:
@@ -28,29 +33,27 @@ body:
 - type: textarea
   attributes:
     label: How can the issue be reproduced?
-    description: Include a detailed step by step process for recreating your issue.
-  validations:
-    required: true
-- type: textarea
-  attributes: 
-    label: GEF Version
     description: |
-      Use the `version` command to populate this field
-    placeholder: X.X.X
+      Include a detailed step by step process for recreating your issue.
+      1.
+      2.
   validations:
     required: true
 - type: checkboxes
   attributes:
     label: Architecture impacted
+    description: |
+      On which architecture can you confirm this bug exist?
     options:
-    - label: x86
-    - label: x64
+    - label: X86
+    - label: X64
     - label: ARM
     - label: ARM64
     - label: MIPS
     - label: MIPS64
     - label: PPC
     - label: PPC64
+    - label: RISCV
 - type: textarea
   attributes:
     label: Describe your issue
@@ -62,7 +65,7 @@ body:
   attributes:
     label: Minimalist test case
     value: |
-      Use this field for a minimal code to compile and spot the issue:     
+      Use this field for a minimal code to compile and spot the issue:
       ```c
       // compile with gcc -fPIE -pic -o my_issue.out my_issue.c
       int main(){ return 0; }
@@ -72,7 +75,10 @@ body:
     required: false
 - type: textarea
   attributes:
-    label: Additional context ?
+    label: Additional context?
+    description: |
+      If a bug/crash is found, use `gef config gef.debug 1` to enable the debug mode and collect more information.
+      You can copy/paste those information in the field.
     value: |
       - Screenshots
       - Callstack
