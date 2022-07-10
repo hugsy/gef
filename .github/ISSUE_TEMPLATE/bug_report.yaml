@@ -1,0 +1,88 @@
+name: Bug Report
+description: Help us improve GEF by filling up this report correctly.
+title: "[Bug] "
+body:
+- type: markdown
+  id: md_welcome
+  attributes:
+    value: |
+      Use this form is for reporting bugs GEF! Please provide as much information as possible to allow us
+      to correctly triage the issue.
+- type: textarea
+  attributes:
+    label: GEF+GDB version
+    description: |
+      The exact version of GEF and GDB. Copy/paste the output of the `version` command.
+  validations:
+    required: true
+- type: input
+  id: os_info
+  attributes:
+    label: Operating System
+    description: What OS are you using? Copy/paste the output of `lsb_release -a` or equivalent/
+    placeholder: "e.g., Arch Linux, FreeBSD"
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Describe the issue you encountered
+    description: |
+      Describe the issue in detail and what you were doing beforehand.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: How can the issue be reproduced?
+    description: |
+      Include a detailed step by step process for recreating your issue.
+      1.
+      2.
+  validations:
+    required: true
+- type: checkboxes
+  attributes:
+    label: Architecture impacted
+    description: |
+      On which architecture can you confirm this bug exist?
+    options:
+    - label: X86
+    - label: X64
+    - label: ARM
+    - label: ARM64
+    - label: MIPS
+    - label: MIPS64
+    - label: PPC
+    - label: PPC64
+    - label: RISCV
+- type: textarea
+  attributes:
+    label: Describe your issue
+    value: |
+      Provide a step-by-step to reproduce your issue.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Minimalist test case
+    value: |
+      Use this field for a minimal code to compile and spot the issue:
+      ```c
+      // compile with gcc -fPIE -pic -o my_issue.out my_issue.c
+      int main(){ return 0; }
+      ```
+      You can also provide a Dockerfile if you prefer
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Additional context?
+    description: |
+      If a bug/crash is found, use `gef config gef.debug 1` to enable the debug mode and collect more information.
+      You can copy/paste those information in the field.
+    value: |
+      - Screenshots
+      - Callstack
+      - Coredumps
+      - If possible and useful, please upload the binary
+  validations:
+    required: false
