@@ -2513,7 +2513,7 @@ class ARM(Architecture):
 
     @property
     def ptrsize(self) -> int:
-        return 2 if self.is_thumb() else 4
+        return 4
 
     def is_call(self, insn: Instruction) -> bool:
         mnemo = insn.mnemonic
