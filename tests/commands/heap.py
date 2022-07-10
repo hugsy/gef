@@ -2,17 +2,9 @@
 Heap commands test module
 """
 
-from tests.utils import (
-    ARCH,
-    findlines,
-    gdb_run_cmd,
-    gdb_run_silent_cmd,
-    gdb_start_silent_cmd,
-    _target,
-    GefUnitTestGeneric,
-    is_32b,
-    is_64b,
-)
+from tests.utils import (ARCH, GefUnitTestGeneric, _target, findlines,
+                         gdb_run_cmd, gdb_run_silent_cmd, gdb_start_silent_cmd,
+                         is_32b, is_64b)
 
 
 class HeapCommand(GefUnitTestGeneric):
@@ -50,7 +42,7 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
-        self.assertIn("NON_MAIN_ARENA flag: ", res)
+        self.assertIn("PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA", res)
 
 
     def test_cmd_heap_chunk_with_number(self):
