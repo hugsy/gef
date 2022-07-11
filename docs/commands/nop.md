@@ -1,4 +1,4 @@
-## Command nop ##
+## Command `nop`
 
 The `nop` command allows you to easily skip instructions.
 

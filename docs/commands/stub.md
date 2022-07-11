@@ -1,4 +1,4 @@
-## Command stub ##
+## Command `stub`
 
 The `stub` command allows you stub out functions, optionally specifying the
 return value.

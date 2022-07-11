@@ -1,4 +1,4 @@
-## Command heap-analysis-helper ##
+## Command `heap-analysis-helper`
 
 Please note: This feature is still under development, expect bugs and unstability.
 

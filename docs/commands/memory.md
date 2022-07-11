@@ -1,4 +1,4 @@
-## Command memory ##
+## Command `memory`
 
 As long as the 'memory' section is enabled in your context layout (which it is
 by default), you can register addresses, lengths, and grouping size.

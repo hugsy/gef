@@ -1,4 +1,4 @@
-## Command GEF ##
+## Command `gef`
 
 ### GEF Base Command
 

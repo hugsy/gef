@@ -52,7 +52,7 @@ Alternatively from inside `gdb` directly:
 
 ```bash
 $ gdb -q
-(gdb) pi import urllib.request as u, tempfile as t; g=t.NamedTemporaryFile(suffix='-gef.py'); open(g.name, 'wb+').write(u.urlopen('https://tinyurl.com/gef-master').read()); gdb.execute('source %s' % g.name)
+(gdb) pi import urllib.request as u, tempfile as t; g=t.NamedTemporaryFile(suffix='-gef.py'); open(g.name, 'wb+').write(u.urlopen('https://tinyurl.com/gef-main').read()); gdb.execute('source %s' % g.name)
 ```
 
 That's it! GEF is installed and correctly set up. You can confirm it by checking the `~/.gdbinit` file and see a line that sources (i.e. loads) GEF.
@@ -79,7 +79,7 @@ This will deploy the latest version of `gef`'s _main_ branch from Github. If no 
 To contribute to GEF, you might prefer using git directly.
 
 ```bash
-$ git clone https://github.com/hugsy/gef.git
+$ git clone --branch dev https://github.com/hugsy/gef.git
 $ echo source `pwd`/gef/gef.py >> ~/.gdbinit
 ```
 
@@ -106,7 +106,7 @@ $ bash -c "$(wget https://github.com/hugsy/gef/raw/main/scripts/gef-extras.sh -O
 
 # or manually
 ## clone the repo
-$ git clone https://github.com/hugsy/gef-extras.git
+$ git clone --branch main https://github.com/hugsy/gef-extras.git
 
 ## then specify gef to load this directory
 $ gdb -ex 'gef config gef.extra_plugins_dir "/path/to/gef-extras/scripts"' -ex 'gef save' -ex quit

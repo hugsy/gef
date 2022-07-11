@@ -1,4 +1,4 @@
-## Command highlight ##
+## Command `highlight`
 
 This command sets up custom highlighting for user set strings.
 

@@ -1,4 +1,4 @@
-## Command aliases ##
+## Command `aliases`
 
 Base command to add, remove, and list `GEF` defined aliases.
 

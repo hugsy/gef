@@ -4,15 +4,8 @@
 
 import pytest
 
-from tests.utils import (
-    ARCH,
-    GefUnitTestGeneric,
-    _target,
-    findlines,
-    gdb_run_cmd,
-    gdb_start_silent_cmd,
-    gdb_run_silent_cmd
-)
+from tests.utils import (ARCH, GefUnitTestGeneric, _target, findlines,
+                         gdb_run_cmd, gdb_run_silent_cmd, gdb_start_silent_cmd)
 
 
 class NopCommand(GefUnitTestGeneric):
@@ -61,7 +54,7 @@ class NopCommand(GefUnitTestGeneric):
     def test_cmd_nop_invalid_end_address(self):
         res = gdb_run_silent_cmd(
             f"{self.cmd} 0x1337000+0x1000-4 --nb 5",
-            target=_target("set-permission")
+            target=_target("mmap-known-address")
         )
         self.assertNoException(res)
         self.assertIn("Cannot patch instruction at 0x1337ffc: reaching unmapped area", res)

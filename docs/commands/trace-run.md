@@ -1,4 +1,4 @@
-## Command trace-run ##
+## Command `trace-run`
 
 The `trace-run` command is meant to be provide a visual appreciation directly
 in IDA disassembler of the path taken by a specific execution. It should be

@@ -3,13 +3,7 @@ Pattern commands test module
 """
 import pytest
 
-from tests.utils import (
-    gdb_run_cmd,
-    _target,
-
-    ARCH,
-    GefUnitTestGeneric,
-)
+from tests.utils import ARCH, GefUnitTestGeneric, _target, gdb_run_cmd, is_64b
 
 
 class PatternCommand(GefUnitTestGeneric):
@@ -34,11 +28,15 @@ class PatternCommand(GefUnitTestGeneric):
         if ARCH == "aarch64":
             lookup_register = "$x30"
             expected_offsets = (16, 16, 5, 9)
+        elif ARCH == "armv7l":
+            lookup_register = "$r11"
+            expected_offsets = (8, 8, 5, 9)
         elif ARCH == "x86_64":
             lookup_register = "$rbp"
             expected_offsets = (8, 8, 5, 9)
         elif ARCH == "i686":
             lookup_register = "$ebp"
+            # expected_offsets = (16, None, 5, 9)
             expected_offsets = (16, 16, 5, 9)
         else:
             raise ValueError("Invalid architecture")
@@ -51,11 +49,12 @@ class PatternCommand(GefUnitTestGeneric):
         self.assertIn(f"Found at offset {expected_offsets[0]} (little-endian search) likely", res)
 
         #1
-        cmd = f"pattern search -n 8 {lookup_register}"
-        before = ("set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run")
-        res = gdb_run_cmd(cmd, before=before, target=target)
-        self.assertNoException(res)
-        self.assertIn(f"Found at offset {expected_offsets[1]} (little-endian search) likely", res)
+        if is_64b():
+            cmd = f"pattern search -n 8 {lookup_register}"
+            before = ("set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run")
+            res = gdb_run_cmd(cmd, before=before, target=target)
+            self.assertNoException(res)
+            self.assertIn(f"Found at offset {expected_offsets[1]} (little-endian search) likely", res)
 
         #2
         cmd = "pattern search -n 4 caaa"
@@ -65,9 +64,17 @@ class PatternCommand(GefUnitTestGeneric):
         self.assertIn(f"Found at offset {expected_offsets[2]} (little-endian search) likely", res)
 
         #3
-        cmd = "pattern search -n 8 caaaaaaa"
-        before = ("set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run")
+        if is_64b():
+            cmd = "pattern search -n 8 caaaaaaa"
+            before = ("set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run")
+            res = gdb_run_cmd(cmd, before=before, target=target)
+            self.assertNoException(res)
+            self.assertIn(f"Found at offset {expected_offsets[3]} (little-endian search) likely", res)
+
+        #4
+        cmd = "pattern search -n 4 JUNK"
+        before = ("set args aaaabaaacaaadaaaeaaafaaagaaahaaa", "run")
         res = gdb_run_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
-        self.assertIn(f"Found at offset {expected_offsets[3]} (little-endian search) likely", res)
+        self.assertIn(f"not found", res)
 

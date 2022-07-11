@@ -1,4 +1,4 @@
-## Command dereference
+## Command `dereference`
 
 The `dereference` command (also aliased `telescope` for PEDA former users) aims
 to simplify the dereferencing of an address in GDB to determine the content it

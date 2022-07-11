@@ -1,4 +1,4 @@
-## Command elf-info ##
+## Command `elf-info`
 
 `elf-info` (alias `elf`) provides some basic information on the currently
 loaded ELF binary:

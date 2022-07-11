@@ -1,4 +1,4 @@
-## Command heap ##
+## Command `heap`
 
 The `heap` command provides information on the heap chunk specified as argument. For
 the moment, it only supports GlibC heap format (see

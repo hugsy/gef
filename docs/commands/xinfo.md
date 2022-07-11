@@ -1,4 +1,4 @@
-## Command xinfo ##
+## Command `xinfo`
 
 `xinfo` displays all the information known to `gef` about the specific address
 given as argument:

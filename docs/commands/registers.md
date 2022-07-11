@@ -1,4 +1,4 @@
-## Command registers ##
+## Command `registers`
 
 The `registers` command will print all the registers and dereference any
 pointers.

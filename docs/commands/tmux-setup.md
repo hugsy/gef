@@ -1,4 +1,4 @@
-## Command tmux-setup ##
+## Command `tmux-setup`
 
 In the purpose of always making debugging sessions easier while being more
 effective, `GEF` integrates two commands:

@@ -1,4 +1,4 @@
-## Command checksec ##
+## Command `checksec` ##
 
 The `checksec` command is inspired from
 [`checksec.sh`](https://www.trapkit.de/tools/checksec.html). It provides a

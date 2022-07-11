@@ -1,4 +1,4 @@
-## Command xor-memory
+## Command `xor-memory`
 
 This command is used to XOR a block of memory.
 

@@ -1,4 +1,4 @@
-## Command entry-break ##
+## Command `entry-break`
 
 The `entry-break` (alias `start`) command's goal is to find and break at the
 most obvious entry point available in the binary. Since the binary will start

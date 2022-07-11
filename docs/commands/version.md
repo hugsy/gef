@@ -1,4 +1,4 @@
-## Command version ##
+## Command `version`
 
 Print out version information about your current gdb environment.
 

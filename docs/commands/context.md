@@ -1,4 +1,4 @@
-## Command context ##
+## Command `context` ##
 
 ![gef-context](https://i.imgur.com/aZiG8Yb.png)
 

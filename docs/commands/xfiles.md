@@ -1,4 +1,4 @@
-## Command xfiles ##
+## Command `xfiles`
 
 `xfiles` is a more convenient representation of the GDB native command, `info
 files` allowing you to filter by pattern given in argument. For example, if you
