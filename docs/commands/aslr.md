@@ -1,4 +1,4 @@
-## Command aslr ##
+## Command `aslr`
 
 Easily check, enable or disable ASLR on the debugged binary.
 

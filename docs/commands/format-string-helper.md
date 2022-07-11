@@ -1,4 +1,4 @@
-## Command format-string-helper ##
+## Command `format-string-helper`
 
 The `format-string-helper` command will create a `GEF` specific type of
 breakpoints dedicated to detecting potentially insecure format string when

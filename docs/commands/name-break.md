@@ -1,4 +1,4 @@
-## Command name-break ##
+## Command `name-break`
 
 The command `name-break` (alias `nb`) can be used to set a breakpoint on
 a location with a name assigned to it.

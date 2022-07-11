@@ -1,4 +1,4 @@
-## Command process-search ##
+## Command `process-search`
 
 `process-search` (aka `ps`) is a convenience command to list and filter process
 on the host. It is aimed at making the debugging process a little easier when

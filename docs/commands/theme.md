@@ -1,4 +1,4 @@
-## Command theme
+## Command `theme`
 
 Customize `GEF` by changing its color scheme.
 

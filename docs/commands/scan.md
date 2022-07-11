@@ -1,4 +1,4 @@
-## Command scan ##
+## Command `scan`
 
 `scan` searches for addresses of one memory region (needle) inside another
 region (haystack) and lists all results.

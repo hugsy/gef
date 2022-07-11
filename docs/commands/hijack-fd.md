@@ -1,4 +1,4 @@
-## Command hijack-fd ##
+## Command `hijack-fd`
 
 `gef` can be used to modify file descriptors of the debugged process. The new
 file descriptor can point to a file, a pipe, a socket, a device etc.

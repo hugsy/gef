@@ -1,4 +1,4 @@
-## Command canary ##
+## Command `canary`
 
 If the currently debugged process was compiled with the Smash Stack Protector
 (SSP) - i.e. the `-fstack-protector` flag was passed to the compiler, this

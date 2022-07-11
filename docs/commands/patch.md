@@ -1,4 +1,4 @@
-## Command patch ##
+## Command `patch`
 
 `patch` lets you easily patch the specified values to the specified address.
 

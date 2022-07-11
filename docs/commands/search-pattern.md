@@ -1,4 +1,4 @@
-## Command search-pattern ##
+## Command `search-pattern`
 
 `gef` allows you to search for a specific pattern at runtime in all the segments
 of your process memory layout. The command `search-pattern`, alias `grep`, aims
@@ -41,6 +41,6 @@ Sometimes, you may need an advanced search using regex. Just use --regex arg.
 Example: how to find null-end-printable(from x20-x7e) C strings (min size >=2 bytes) with a regex:
 
 ```
-gef➤  search-pattern --regex 0x401000 0x401500 ([\\x20-\\x7E]{2,})(?=\\x00)   
+gef➤  search-pattern --regex 0x401000 0x401500 ([\\x20-\\x7E]{2,})(?=\\x00)
 
 ```

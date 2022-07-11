@@ -1,4 +1,4 @@
-## Command print-format ##
+## Command `print-format`
 
 The command `print-format` (alias `pf`) will dump an arbitrary location as an array of bytes following the format specified. Currently, the output formats supported are
 

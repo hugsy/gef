@@ -1,4 +1,4 @@
-## Command pattern ##
+## Command `pattern`
 
 This command will create or search a [De
 Bruijn](https://en.wikipedia.org/wiki/De_Bruijn_sequence) cyclic pattern to
@@ -9,7 +9,7 @@ It should be noted that for better compatibility, the algorithm implemented in
 `GEF` is the same as the one in `pwntools`, and can therefore be used in
 conjunction.
 
-### create ###
+### `pattern create` ###
 
 ```
 pattern create [-h] [-n N] [length]
@@ -34,7 +34,7 @@ from pwn import *
 p = cyclic(128, n=8)
 ```
 
-### search ###
+### `pattern search` ###
 
 ```
 pattern search [-h] [-n N] [--max-length MAX_LENGTH] [pattern]

@@ -1,4 +1,4 @@
-## Command process-status ##
+## Command `process-status`
 
 > This command replaces the old commands `pid` and `fd`.
 

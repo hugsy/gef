@@ -1,4 +1,4 @@
-## Command edit-flags ##
+## Command `edit-flags`
 
 The `edit-flags` command (alias: `flags`) provides a quick and comprehensible
 way to view and edit the flag register for the architectures that support it.

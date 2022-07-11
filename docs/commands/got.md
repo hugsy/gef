@@ -1,9 +1,9 @@
-## Command got ##
+## Command `got`
 
 Display the current state of GOT table of the running process.
 
-The `got` command optionally takes function names and filters 
-the output displaying only the matching functions. 
+The `got` command optionally takes function names and filters
+the output displaying only the matching functions.
 ```
 gef➤ got
 ```

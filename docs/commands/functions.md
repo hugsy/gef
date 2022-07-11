@@ -1,4 +1,4 @@
-## Command functions ##
+## Command `functions`
 
 The `functions` command will list all of
 the [convenience functions](https://sourceware.org/gdb/onlinedocs/gdb/Convenience-Funs.html)

@@ -1,4 +1,4 @@
-## Command pie ##
+## Command `pie` ##
 
 The `pie` command is handy when working with position-independent executables.
 At runtime, it can automatically resolve addresses for breakpoints that are not

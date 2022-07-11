@@ -1,4 +1,4 @@
-## Command $ ##
+## Command `$`
 
 The `$` command attempts to mimic WinDBG `?` command.
 

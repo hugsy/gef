@@ -1,4 +1,4 @@
-## Command hexdump ##
+## Command `hexdump`
 
 Imitation of the WinDBG command.
 

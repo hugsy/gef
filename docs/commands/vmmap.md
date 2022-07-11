@@ -1,4 +1,4 @@
-## Command vmmap ##
+## Command `vmmap`
 
 `vmmap` displays the target process's entire memory space mapping.
 

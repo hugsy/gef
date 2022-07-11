@@ -1,4 +1,4 @@
-## Command config ##
+## Command `gef config` ##
 
 `gef` reads its config from a file which is by default located at `~/.gef.rc`, but which
 can also be specified via the `GEF_RC` environment variable. In addition, `gef` can also
