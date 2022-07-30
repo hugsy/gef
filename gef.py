@@ -1268,22 +1268,29 @@ class GlibcArena:
         pointer = ctypes.c_uint64 if gef and gef.arch.ptrsize == 8 else ctypes.c_uint32
         fields = [
             ("mutex", ctypes.c_uint32),
-            ("have_fastchunks", ctypes.c_uint32),
             ("flags", ctypes.c_uint32),
         ]
         if gef and gef.libc.version and gef.libc.version >= (2, 27):
+            # https://elixir.bootlin.com/glibc/glibc-2.27/source/malloc/malloc.c#L1684
             fields += [
-                ("UNUSED_c", ctypes.c_uint32),          # padding to align to 0x10
-                ("fastbinsY", GlibcArena.NFASTBINS * pointer),
+                ("have_fastchunks", ctypes.c_uint32),
+                ("UNUSED_c", ctypes.c_uint32), # padding to align to 0x10
             ]
         fields += [
+            ("fastbinsY", GlibcArena.NFASTBINS * pointer),
             ("top", pointer),
             ("last_remainder", pointer),
             ("bins", (GlibcArena.NBINS * 2 - 2) * pointer),
             ("binmap", GlibcArena.BINMAPSIZE * ctypes.c_uint32),
             ("next", pointer),
-            ("next_free", pointer),
-            ("attached_threads", pointer),
+            ("next_free", pointer)
+        ]
+        if gef and gef.libc.version and gef.libc.version >= (2, 23):
+            # https://elixir.bootlin.com/glibc/glibc-2.23/source/malloc/malloc.c#L1719
+            fields += [
+                ("attached_threads", pointer)
+            ]            
+        fields += [
             ("system_mem", pointer),
             ("max_system_mem", pointer),
         ]
@@ -1360,8 +1367,6 @@ class GlibcArena:
 
     @property
     def fastbinsY(self) -> ctypes.Array:
-        if not gef.libc.version >= (2, 27):
-            raise RuntimeError
         return self.__arena.fastbinsY
 
     @property
@@ -1397,7 +1402,7 @@ class GlibcArena:
         addr = int(self.fastbinsY[i])
         if addr == 0:
             return None
-        return GlibcChunk(addr + 2 * gef.arch.ptrsize)
+        return GlibcChunk(addr + 2 * gef.arch.ptrsize, _type="fast")
 
     def bin(self, i: int) -> Tuple[int, int]:
         idx = i * 2
@@ -1480,7 +1485,7 @@ class GlibcChunk:
         ]
         return malloc_chunk_cls
 
-    def __init__(self, addr: int, from_base: bool = False, allow_unaligned: bool = True) -> None:
+    def __init__(self, addr: int, from_base: bool = False, allow_unaligned: bool = True, _type: str = "") -> None:
         ptrsize = gef.arch.ptrsize
         self.data_address = addr + 2 * ptrsize if from_base else addr
         self.base_address = addr if from_base else addr - 2 * ptrsize
@@ -1488,6 +1493,7 @@ class GlibcChunk:
             self.data_address = gef.heap.malloc_align_address(self.data_address)
         self.size_addr = int(self.data_address - ptrsize)
         self.prev_size_addr = self.base_address
+        self.type = _type
         self.reset()
         return
 
@@ -1513,7 +1519,10 @@ class GlibcChunk:
     @property
     def fd(self) -> int:
         assert(gef and gef.libc.version)
-        return self.__chunk.fd if gef.libc.version < (2, 32) else self.reveal_ptr(self.data_address)
+        if gef.libc.version >= (2, 32) and self.type in ["tcache", "fast"]:
+            return self.reveal_ptr(self.data_address)
+        else:
+            return self.__chunk.fd
 
     @property
     def bk(self) -> int:
@@ -1576,17 +1585,11 @@ class GlibcChunk:
 
     def protect_ptr(self, pos: int, pointer: int) -> int:
         """https://elixir.bootlin.com/glibc/glibc-2.32/source/malloc/malloc.c#L339"""
-        assert(gef and gef.libc.version)
-        if gef.libc.version < (2, 32):
-            return pointer
         return (pos >> 12) ^ pointer
 
-    def reveal_ptr(self, pointer: int) -> int:
+    def reveal_ptr(self, pos: int) -> int:
         """https://elixir.bootlin.com/glibc/glibc-2.32/source/malloc/malloc.c#L341"""
-        assert(gef and gef.libc.version)
-        if gef.libc.version < (2, 32):
-            return pointer
-        return gef.memory.read_integer(pointer) ^ (pointer >> 12)
+        return (pos >> 12) ^ gef.memory.read_integer(pos)
 
     # obsolete functions
     @deprecated(f"Use `GlibcChunk.fd`")
@@ -6203,14 +6206,8 @@ class GlibcHeapBinsCommand(GenericCommand):
             warn("Invalid backward and forward bin pointers(fw==bk==NULL)")
             return -1
 
-        if gef.libc.version >= (2, 34):
-            if index >= 1:
-                previous_bin_address = arena.bin_at(index-1)
-                if previous_bin_address == fd:
-                    return 0
-
         nb_chunk = 0
-        head = GlibcChunk(bk, from_base=True).fd
+        head = GlibcChunk(bk, from_base=True, _type=_type).fd
         if fd == head:
             return nb_chunk
 
@@ -6218,7 +6215,7 @@ class GlibcHeapBinsCommand(GenericCommand):
 
         m = []
         while fd != head:
-            chunk = GlibcChunk(fd, from_base=True)
+            chunk = GlibcChunk(fd, from_base=True, _type=_type)
             m.append(f"{RIGHT_ARROW}  {chunk!s}")
             fd = chunk.fd
             nb_chunk += 1
@@ -6303,7 +6300,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                         if next_chunk == 0:
                             break
 
-                        chunk = GlibcChunk(next_chunk)
+                        chunk = GlibcChunk(next_chunk, _type="tcache")
                     except gdb.MemoryError:
                         msg.append(f"{LEFT_ARROW} [Corrupted chunk at {chunk.data_address:#x}]")
                         break
@@ -6366,7 +6363,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             err("Incorrect index value, index value must be between 0 and {}-1, given {}".format(GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS, i))
             return None, 0
 
-        tcache_chunk = GlibcChunk(tcache_base)
+        tcache_chunk = GlibcChunk(tcache_base, _type="tcache")
 
         # Glibc changed the size of the tcache in version 2.30; this fix has
         # been backported inconsistently between distributions. We detect the
@@ -6389,7 +6386,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             count = u16(gef.memory.read(tcache_base + tcache_count_size*i, 2))
 
         chunk = dereference(tcache_base + tcache_count_size*GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS + i*gef.arch.ptrsize)
-        chunk = GlibcChunk(int(chunk)) if chunk else None
+        chunk = GlibcChunk(int(chunk), _type="tcache") if chunk else None
         return chunk, count
 
 
@@ -6451,7 +6448,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
                     if next_chunk == 0:
                         break
 
-                    chunk = GlibcChunk(next_chunk, from_base=True)
+                    chunk = GlibcChunk(next_chunk, from_base=True, _type="fast")
                 except gdb.MemoryError:
                     gef_print(f"{LEFT_ARROW} [Corrupted chunk at {chunk.data_address:#x}]", end="")
                     break
