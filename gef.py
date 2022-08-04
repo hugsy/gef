@@ -8211,9 +8211,13 @@ class DereferenceCommand(GenericCommand):
         register_hints = []
 
         for regname in gef.arch.all_registers:
-            regvalue = gef.arch.register(regname)
-            if current_address == regvalue:
-                register_hints.append(regname)
+            try:
+                regvalue = gef.arch.register(regname)
+                if current_address == regvalue:
+                    register_hints.append(regname)
+            except:
+                # Register is unavailable
+                pass
 
         if register_hints:
             m = f"\t{LEFT_ARROW}{', '.join(list(register_hints))}"
