@@ -2277,7 +2277,21 @@ class Architecture(ArchitectureBase):
 
         # 2nd chance - if an exception, propagate it
         regname = regname.lstrip("$")
-        value = gdb.selected_frame().read_register(regname)
+        gdbframe = gdb.selected_frame()
+        gdbarch = gdbframe.architecture()
+        
+        registers = {i.name:gdbframe.read_register(i) for i in gdbarch.registers() if regname in i.name}
+        value = registers.get(regname, None)
+        
+        if value is None:
+            raise gdb.error(f"Register {regname} not found")
+
+        try:
+            value = int(value)
+        except gdb.error as e:
+            err(f"error with ${regname}: {e}") # Register is likely unavailable or unable to fit within native int type.
+            value = 0
+            
         return int(value)
 
     def register(self, name: str) -> int:
@@ -8211,13 +8225,9 @@ class DereferenceCommand(GenericCommand):
         register_hints = []
 
         for regname in gef.arch.all_registers:
-            try:
-                regvalue = gef.arch.register(regname)
-                if current_address == regvalue:
-                    register_hints.append(regname)
-            except:
-                # Register is unavailable
-                pass
+            regvalue = gef.arch.register(regname)
+            if current_address == regvalue:
+                register_hints.append(regname)
 
         if register_hints:
             m = f"\t{LEFT_ARROW}{', '.join(list(register_hints))}"
