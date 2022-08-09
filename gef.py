@@ -88,6 +88,8 @@ from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
                     Union)
 from urllib.request import urlopen
 
+GEF_DEFAULT_BRANCH                     = "main"
+GEF_EXTRAS_DEFAULT_BRANCH              = "main"
 
 def http_get(url: str) -> Optional[bytes]:
     """Basic HTTP wrapper for GET request. Return the body of the page if HTTP code is OK,
@@ -155,9 +157,6 @@ GEF_PROMPT_ON                          = f"\001\033[1;32m\002{GEF_PROMPT}\001\03
 GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\033[0m\002"
 
 PATTERN_LIBC_VERSION                   = re.compile(rb"glibc (\d+)\.(\d+)")
-
-GEF_DEFAULT_BRANCH                     = "main"
-GEF_EXTRAS_DEFAULT_BRANCH              = "main"
 
 gef : "Gef"
 __registered_commands__ : Set[Type["GenericCommand"]]                                        = set()
