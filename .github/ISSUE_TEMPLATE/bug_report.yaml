@@ -7,10 +7,14 @@ body:
   attributes:
     value: |
       Use this form is for reporting bugs GEF! Please provide as much information as possible to allow us
-      to correctly triage the issue.
+      to correctly triage the issue. Failure to complete the form is likely to result in your report simply being ignored.
 - type: textarea
   attributes:
     label: GEF+GDB version
+    value: |
+      ```
+      Output for version here
+      ```
     description: |
       The exact version of GEF and GDB. Copy/paste the output of the `version` command.
   validations:
@@ -30,15 +34,6 @@ body:
       Describe the issue in detail and what you were doing beforehand.
   validations:
     required: true
-- type: textarea
-  attributes:
-    label: How can the issue be reproduced?
-    description: |
-      Include a detailed step by step process for recreating your issue.
-      1.
-      2.
-  validations:
-    required: true
 - type: checkboxes
   attributes:
     label: Architecture impacted
@@ -56,7 +51,7 @@ body:
     - label: RISCV
 - type: textarea
   attributes:
-    label: Describe your issue
+    label: Describe your issue. Without a proper reproduction step-by-step, your issue will be ignored.
     value: |
       Provide a step-by-step to reproduce your issue.
   validations:
