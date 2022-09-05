@@ -37,8 +37,8 @@ body:
     label: Do you read the docs and look at previously closed issues/PRs for similar cases?
     multiple: false
     options:
-    - label: No
-    - label: Yes    
+    - No
+    - Yes    
   validations:
     required: true    
 - type: checkboxes
