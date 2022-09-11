@@ -4939,7 +4939,7 @@ class CanaryCommand(GenericCommand):
     def do_invoke(self, argv: List[str]) -> None:
         self.dont_repeat()
 
-        has_canary = checksec(get_filepath())["Canary"]
+        has_canary = Elf(get_filepath()).checksec["Canary"]
         if not has_canary:
             warn("This binary was not compiled with SSP.")
             return
@@ -8801,7 +8801,7 @@ class ChecksecCommand(GenericCommand):
         return
 
     def print_security_properties(self, filename: str) -> None:
-        sec = checksec(filename)
+        sec = Elf(filename).checksec
         for prop in sec:
             if prop in ("Partial RelRO", "Full RelRO"): continue
             val = sec[prop]
@@ -8854,7 +8854,7 @@ class GotCommand(GenericCommand):
         end_address = max(x.page_end for x in vmmap if x.path == elf_virtual_path)
 
         # get the checksec output.
-        checksec_status = checksec(elf_file)
+        checksec_status = Elf(elf_file).checksec
         relro_status = "Full RelRO"
         full_relro = checksec_status["Full RelRO"]
         pie = checksec_status["PIE"]  # if pie we will have offset instead of abs address.
