@@ -9964,9 +9964,7 @@ class GefTmuxSetup(gdb.Command):
         tmux = which("tmux")
         ok("tmux session found, splitting window...")
         
-        pane_info = subprocess.check_output([tmux, "splitw", "-h", '-F#{session_name}:#{window_index}.#{pane_index}-#{pane_tty}', "-P"]).decode().strip().split("-")
-        pane = pane_info[0]
-        pty = pane_info[1]
+        pane, pty = subprocess.check_output([tmux, "splitw", "-h", '-F#{session_name}:#{window_index}.#{pane_index}-#{pane_tty}', "-P"]).decode().strip().split("-")
         atexit.register(lambda : subprocess.run([tmux, "kill-pane", "-t", pane]))
         # clear the screen and let it wait for input forever
         gdb.execute(f"! {tmux} send-keys -t {pane} 'clear ; cat' C-m")
