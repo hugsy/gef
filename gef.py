@@ -52,6 +52,7 @@
 import abc
 import argparse
 import ast
+import atexit
 import binascii
 import codecs
 import collections
@@ -9962,12 +9963,13 @@ class GefTmuxSetup(gdb.Command):
         forcing the context to be redirected there."""
         tmux = which("tmux")
         ok("tmux session found, splitting window...")
-        old_ptses = set(os.listdir("/dev/pts"))
-        gdb.execute(f"! {tmux} split-window -h 'clear ; cat'")
+        
+        pane, pty = subprocess.check_output([tmux, "splitw", "-h", '-F#{session_name}:#{window_index}.#{pane_index}-#{pane_tty}', "-P"]).decode().strip().split("-")
+        atexit.register(lambda : subprocess.run([tmux, "kill-pane", "-t", pane]))
+        # clear the screen and let it wait for input forever
+        gdb.execute(f"! {tmux} send-keys -t {pane} 'clear ; cat' C-m")
         gdb.execute(f"! {tmux} select-pane -L")
-        new_ptses = set(os.listdir("/dev/pts"))
-        pty = list(new_ptses - old_ptses)[0]
-        pty = f"/dev/pts/{pty}"
+        
         ok(f"Setting `context.redirect` to '{pty}'...")
         gdb.execute(f"gef config context.redirect {pty}")
         ok("Done!")
