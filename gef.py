@@ -3483,8 +3483,13 @@ def hook_stop_handler(_: "gdb.StopEvent") -> None:
 def new_objfile_handler(evt: Optional["gdb.NewObjFileEvent"]) -> None:
     """GDB event handler for new object file cases."""
     reset_all_caches()
+    path = evt.new_objfile.filename if evt else gdb.current_progspace().filename
     try:
-        target = pathlib.Path( evt.new_objfile.filename if evt else gdb.current_progspace().filename)
+        if gef.session.root:
+            # If the process is in a container, replace the 'target:' placeholder
+            # with the actual root directory of the process.
+            path = path.replace('target:', str(gef.session.root))
+        target = pathlib.Path(path)
         FileFormatClasses = list(filter(lambda fmtcls: fmtcls.is_valid(target), __registered_file_formats__))
         GuessedFileFormatClass : Type[FileFormat] = FileFormatClasses.pop() if len(FileFormatClasses) else Elf
         binary = GuessedFileFormatClass(target)
@@ -3494,7 +3499,8 @@ def new_objfile_handler(evt: Optional["gdb.NewObjFileEvent"]) -> None:
         else:
             gef.session.modules.append(binary)
     except FileNotFoundError as fne:
-        warn(f"Failed to find objfile or not a valid file format: {str(fne)}")
+        if "system-supplied DSO" not in path:
+            warn(f"Failed to find objfile or not a valid file format: {str(fne)}")
     except RuntimeError as re:
         warn(f"Not a valid file format: {str(re)}")
     return
@@ -10425,6 +10431,7 @@ class GefSessionManager(GefManager):
         self._file = None
         self._canary = None
         self._maps: Optional[pathlib.Path] = None
+        self._root: Optional[pathlib.Path] = None
         return
 
     def __str__(self) -> str:
@@ -10518,6 +10525,14 @@ class GefSessionManager(GefManager):
                 self._maps = pathlib.Path(f"/proc/{self.pid}/maps")
         return self._maps
 
+    @property
+    def root(self) -> Optional[pathlib.Path]:
+        """Returns the path to the process's root directory."""
+        if not is_alive():
+            return None
+        if not self._root:
+            self._root = pathlib.Path(f"/proc/{self.pid}/root")
+        return self._root
 
 class GefRemoteSessionManager(GefSessionManager):
     """Class for managing remote sessions with GEF. It will create a temporary environment
