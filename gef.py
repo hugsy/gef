@@ -3485,10 +3485,10 @@ def new_objfile_handler(evt: Optional["gdb.NewObjFileEvent"]) -> None:
     reset_all_caches()
     path = evt.new_objfile.filename if evt else gdb.current_progspace().filename
     try:
-        if gef.session.root:
-            # If the process is in a container, replace the 'target:' placeholder
+        if gef.session.root and path.startswith("target:"):
+            # If the process is in a container, replace the "target:" prefix
             # with the actual root directory of the process.
-            path = path.replace('target:', str(gef.session.root))
+            path = path.replace("target:", str(gef.session.root), 1)
         target = pathlib.Path(path)
         FileFormatClasses = list(filter(lambda fmtcls: fmtcls.is_valid(target), __registered_file_formats__))
         GuessedFileFormatClass : Type[FileFormat] = FileFormatClasses.pop() if len(FileFormatClasses) else Elf
