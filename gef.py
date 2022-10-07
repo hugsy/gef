@@ -3499,6 +3499,9 @@ def new_objfile_handler(evt: Optional["gdb.NewObjFileEvent"]) -> None:
         else:
             gef.session.modules.append(binary)
     except FileNotFoundError as fne:
+        # Linux automatically maps the vDSO into our process, and GDB
+        # will give us the string 'system-supplied DSO' as a path.
+        # This is normal, so we shouldn't warn the user about it
         if "system-supplied DSO" not in path:
             warn(f"Failed to find objfile or not a valid file format: {str(fne)}")
     except RuntimeError as re:
