@@ -1,5 +1,6 @@
 pylint
 pytest
+pytest-cov
 pytest-xdist
 pytest-benchmark
 coverage
