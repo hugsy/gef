@@ -1,6 +1,9 @@
 name: Generate GithubPages
 
 on:
+
+  workflow_dispatch:
+
   push:
     branches:
       - dev

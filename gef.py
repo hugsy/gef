@@ -4939,7 +4939,7 @@ class CanaryCommand(GenericCommand):
     def do_invoke(self, argv: List[str]) -> None:
         self.dont_repeat()
 
-        has_canary = checksec(get_filepath())["Canary"]
+        has_canary = Elf(get_filepath()).checksec["Canary"]
         if not has_canary:
             warn("This binary was not compiled with SSP.")
             return
@@ -8801,7 +8801,7 @@ class ChecksecCommand(GenericCommand):
         return
 
     def print_security_properties(self, filename: str) -> None:
-        sec = checksec(filename)
+        sec = Elf(filename).checksec
         for prop in sec:
             if prop in ("Partial RelRO", "Full RelRO"): continue
             val = sec[prop]
