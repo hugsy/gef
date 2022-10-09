@@ -37,6 +37,11 @@ jobs:
         sudo apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver
         sudo python3 -m pip install --upgrade pip
 
+    - name: Set runtime environment variables
+      run: |
+        echo PY_VER=`gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit` >> $GITHUB_ENV
+        echo NB_CPU=`grep -c ^processor /proc/cpuinfo` >> $GITHUB_ENV
+
     - name: Set architecture specific properties
       id: set-arch-properties
       run: |
@@ -65,7 +70,7 @@ jobs:
     - name: Install Python Requirements
       run: |
         mkdir -p ${{ steps.pip-cache.outputs.dir }}
-        python3 -m pip install --user --upgrade -r tests/requirements.txt
+        python${{ env.PY_VER }} -m pip install --user --upgrade -r tests/requirements.txt
 
     - name: Setup GEF
       run: |
@@ -76,11 +81,10 @@ jobs:
       env:
         GEF_CI_ARCH: ${{ steps.set-arch-properties.outputs.arch }}
       run: |
-        export NB_CPU="$(grep -c ^processor /proc/cpuinfo)"
-        make -C tests/binaries -j $NB_CPU
-        python3 -m pytest -n $NB_CPU tests/
+        make -C tests/binaries -j ${{ env.NB_CPU }}
+        python${{ env.PY_VER }} -m pytest --forked -n ${{ env.NB_CPU }} -v -k "not benchmark" tests/
 
     - name: Run linter
       run: |
-        make lint
+        python${{ env.PY_VER }} -m pylint --rcfile=$(pwd)/.pylintrc gef.py tests/*/*.py
 
