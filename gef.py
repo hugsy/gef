@@ -3506,9 +3506,8 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
     reset_all_caches()
     gef.session.qemu_mode = False
     if gef.session.remote:
-        # make sure the tempdir is trashed
         gef.session.remote.close()
-        del(gef.session.remote)
+        del gef.session.remote
         gef.session.remote = None
     return
 
