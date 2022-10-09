@@ -52,6 +52,7 @@
 import abc
 import argparse
 import ast
+import atexit
 import binascii
 import codecs
 import collections
@@ -88,6 +89,8 @@ from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
                     Union)
 from urllib.request import urlopen
 
+GEF_DEFAULT_BRANCH                     = "main"
+GEF_EXTRAS_DEFAULT_BRANCH              = "main"
 
 def http_get(url: str) -> Optional[bytes]:
     """Basic HTTP wrapper for GET request. Return the body of the page if HTTP code is OK,
@@ -155,9 +158,6 @@ GEF_PROMPT_ON                          = f"\001\033[1;32m\002{GEF_PROMPT}\001\03
 GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\033[0m\002"
 
 PATTERN_LIBC_VERSION                   = re.compile(rb"glibc (\d+)\.(\d+)")
-
-GEF_DEFAULT_BRANCH                     = "main"
-GEF_EXTRAS_DEFAULT_BRANCH              = "main"
 
 gef : "Gef"
 __registered_commands__ : Set[Type["GenericCommand"]]                                        = set()
@@ -3483,7 +3483,7 @@ def hook_stop_handler(_: "gdb.StopEvent") -> None:
     return
 
 
-def new_objfile_handler(evt: "gdb.Event") -> None:
+def new_objfile_handler(evt: Optional["gdb.NewObjFileEvent"]) -> None:
     """GDB event handler for new object file cases."""
     reset_all_caches()
     try:
@@ -4692,7 +4692,7 @@ class PieBreakpointCommand(GenericCommand):
 
     @parse_arguments({"offset": ""}, {})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if not args.offset:
             self.usage()
             return
@@ -4724,7 +4724,7 @@ class PieInfoCommand(GenericCommand):
 
     @parse_arguments({"breakpoints": [-1,]}, {})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if args.breakpoints[0] == -1:
             # No breakpoint info needed
             bps = gef.session.pie_breakpoints.values()
@@ -4751,7 +4751,7 @@ class PieDeleteCommand(GenericCommand):
     @parse_arguments({"breakpoints": [-1,]}, {})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         global gef
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if args.breakpoints[0] == -1:
             # no arg, delete all
             to_delete = list(gef.session.pie_breakpoints.values())
@@ -4943,7 +4943,7 @@ class CanaryCommand(GenericCommand):
     def do_invoke(self, argv: List[str]) -> None:
         self.dont_repeat()
 
-        has_canary = checksec(get_filepath())["Canary"]
+        has_canary = Elf(get_filepath()).checksec["Canary"]
         if not has_canary:
             warn("This binary was not compiled with SSP.")
             return
@@ -5395,7 +5395,7 @@ class PCustomCommand(GenericCommand):
 
     @parse_arguments({"type": "", "address": ""}, {})
     def do_invoke(self, *_: Any, **kwargs: Dict[str, Any]) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if not args.type:
             gdb.execute("pcustom list")
             return
@@ -5907,7 +5907,7 @@ class RemoteCommand(GenericCommand):
             return
 
         # argument check
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if not args.host or not args.port:
             err("Missing parameters")
             return
@@ -5948,7 +5948,7 @@ class NopCommand(GenericCommand):
     @only_if_gdb_running
     @parse_arguments({"address": "$pc"}, {"--nb": 0, })
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         address = parse_address(args.address)
         nop = gef.arch.nop_insn
         number_of_bytes = args.nb or 1
@@ -5986,7 +5986,7 @@ class StubCommand(GenericCommand):
     @only_if_gdb_running
     @parse_arguments({"address": ""}, {("-r", "--retval"): 0})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         loc = args.address if args.address else f"*{gef.arch.pc:#x}"
         StubBreakpoint(loc, args.retval)
         return
@@ -6076,7 +6076,7 @@ class GlibcHeapChunkCommand(GenericCommand):
     @parse_arguments({"address": ""}, {"--allow-unaligned": True, "--number": 1})
     @only_if_gdb_running
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if not args.address:
             err("Missing chunk address")
             self.usage()
@@ -6086,7 +6086,7 @@ class GlibcHeapChunkCommand(GenericCommand):
         current_chunk = GlibcChunk(addr, allow_unaligned=args.allow_unaligned)
 
         if args.number > 1:
-            for _ in range(args.number):
+            for _i in range(args.number):
                 if current_chunk.size == 0:
                     break
 
@@ -6408,7 +6408,7 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
         def fastbin_index(sz: int) -> int:
             return (sz >> 4) - 2 if SIZE_SZ == 8 else (sz >> 3) - 2
 
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if not gef.heap.main_arena:
             err("Heap not initialized")
             return
@@ -6471,7 +6471,7 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
     @parse_arguments({"arena_address": ""}, {})
     @only_if_gdb_running
     def do_invoke(self, *_: Any, **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if gef.heap.main_arena is None:
             err("Heap not initialized")
             return
@@ -6497,7 +6497,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
     @parse_arguments({"arena_address": ""}, {})
     @only_if_gdb_running
     def do_invoke(self, *_: Any, **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if not gef.heap.main_arena:
             err("Heap not initialized")
             return
@@ -6529,7 +6529,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
     @parse_arguments({"arena_address": ""}, {})
     @only_if_gdb_running
     def do_invoke(self, *_: Any, **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if gef.heap.main_arena is None:
             err("Heap not initialized")
             return
@@ -6562,7 +6562,7 @@ class SolveKernelSymbolCommand(GenericCommand):
                 return int(num, 16)
             except ValueError:
                 return 0
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if not args.symbol:
             self.usage()
             return
@@ -6599,7 +6599,7 @@ class DetailRegistersCommand(GenericCommand):
         string_color = gef.config["theme.dereference_string"]
         regs = gef.arch.all_registers
 
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if args.registers and args.registers[0]:
             required_regs = set(args.registers)
             valid_regs = [reg for reg in gef.arch.all_registers if reg in required_regs]
@@ -6803,7 +6803,7 @@ class ProcessListingCommand(GenericCommand):
 
     @parse_arguments({"pattern": ""}, {"--attach": True, "--smart-scan": True})
     def do_invoke(self, _: List, **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         do_attach = args.attach
         smart_scan = args.smart_scan
         pattern = args.pattern
@@ -6866,7 +6866,7 @@ class ElfInfoCommand(GenericCommand):
 
     @parse_arguments({}, {"--filename": ""})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
 
         if is_qemu_system():
             err("Unsupported")
@@ -7024,7 +7024,7 @@ class NamedBreakpointCommand(GenericCommand):
 
     @parse_arguments({"name": "", "address": "*$pc"}, {})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if not args.name:
             err("Missing name for breakpoint")
             self.usage()
@@ -7862,7 +7862,7 @@ class HexdumpCommand(GenericCommand):
             err("Invalid command")
             return
 
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         target = args.address or self.__last_target
         start_addr = parse_address(target)
         read_from = align_address(start_addr)
@@ -7995,7 +7995,7 @@ class PatchCommand(GenericCommand):
     @only_if_gdb_running
     @parse_arguments({"location": "", "values": ["", ]}, {})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         if not self.format or self.format not in self.SUPPORTED_SIZES:
             self.usage()
             return
@@ -8222,7 +8222,7 @@ class DereferenceCommand(GenericCommand):
     @only_if_gdb_running
     @parse_arguments({"address": "$sp"}, {("-r", "--reference"): "", ("-l", "--length"): 10})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         nb = args.length
 
         target = args.address
@@ -8683,7 +8683,7 @@ class PatternCreateCommand(GenericCommand):
 
     @parse_arguments({"length": 0}, {("-n", "--n"): 0})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
-        args = kwargs["arguments"]
+        args : argparse.Namespace = kwargs["arguments"]
         length = args.length or gef.config["pattern.length"]
         n = args.n or gef.arch.ptrsize
         info(f"Generating a pattern of {length:d} bytes (n={n:d})")
@@ -8714,6 +8714,7 @@ class PatternSearchCommand(GenericCommand):
         if not args.pattern:
             warn("No pattern provided")
             return
+
         max_length = args.max_length or gef.config["pattern.length"]
         n = args.period or gef.arch.ptrsize
         if n not in (2, 4, 8) or n > gef.arch.ptrsize:
@@ -8799,7 +8800,7 @@ class ChecksecCommand(GenericCommand):
         return
 
     def print_security_properties(self, filename: str) -> None:
-        sec = checksec(filename)
+        sec = Elf(filename).checksec
         for prop in sec:
             if prop in ("Partial RelRO", "Full RelRO"): continue
             val = sec[prop]
@@ -8852,7 +8853,7 @@ class GotCommand(GenericCommand):
         end_address = max(x.page_end for x in vmmap if x.path == elf_virtual_path)
 
         # get the checksec output.
-        checksec_status = checksec(elf_file)
+        checksec_status = Elf(elf_file).checksec
         relro_status = "Full RelRO"
         full_relro = checksec_status["Full RelRO"]
         pie = checksec_status["PIE"]  # if pie we will have offset instead of abs address.
@@ -9960,12 +9961,13 @@ class GefTmuxSetup(gdb.Command):
         forcing the context to be redirected there."""
         tmux = which("tmux")
         ok("tmux session found, splitting window...")
-        old_ptses = set(os.listdir("/dev/pts"))
-        gdb.execute(f"! {tmux} split-window -h 'clear ; cat'")
+        
+        pane, pty = subprocess.check_output([tmux, "splitw", "-h", '-F#{session_name}:#{window_index}.#{pane_index}-#{pane_tty}', "-P"]).decode().strip().split("-")
+        atexit.register(lambda : subprocess.run([tmux, "kill-pane", "-t", pane]))
+        # clear the screen and let it wait for input forever
+        gdb.execute(f"! {tmux} send-keys -t {pane} 'clear ; cat' C-m")
         gdb.execute(f"! {tmux} select-pane -L")
-        new_ptses = set(os.listdir("/dev/pts"))
-        pty = list(new_ptses - old_ptses)[0]
-        pty = f"/dev/pts/{pty}"
+        
         ok(f"Setting `context.redirect` to '{pty}'...")
         gdb.execute(f"gef config context.redirect {pty}")
         ok("Done!")
@@ -10433,8 +10435,8 @@ class GefSessionManager(GefManager):
         if not self._auxiliary_vector:
             auxiliary_vector = {}
             auxv_info = gdb.execute("info auxv", to_string=True)
-            if "failed" in auxv_info:
-                err(auxv_info)
+            if not auxv_info or "failed" in auxv_info:
+                err("Failed to query auxiliary variables")
                 return None
             for line in auxv_info.splitlines():
                 line = line.split('"')[0].strip()  # remove the ending string (if any)
@@ -10687,7 +10689,7 @@ class GefRemoteSessionManager(GefSessionManager):
 
     def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
         dbg(f"[remote] in remote_objfile_handler({evt.new_objfile.filename if evt else 'None'}))")
-        if not evt:
+        if not evt or not evt.new_objfile.filename:
             return
         if not evt.new_objfile.filename.startswith("target:") and not evt.new_objfile.filename.startswith("/"):
             warn(f"[remote] skipping '{evt.new_objfile.filename}'")

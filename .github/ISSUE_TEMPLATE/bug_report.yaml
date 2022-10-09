@@ -1,16 +1,18 @@
 name: Bug Report
-description: Help us improve GEF by filling up this report correctly.
+description: File a bug report.
 title: "[Bug] "
+labels: ["bug", "triage"]
 body:
 - type: markdown
   id: md_welcome
   attributes:
     value: |
-      Use this form is for reporting bugs GEF! Please provide as much information as possible to allow us
-      to correctly triage the issue.
+      Complete this form is for reporting bugs in GEF. Incomplete/invalid report will simply being ignored or closed. 
+      Also note that this is not the place to ask installation or usage problem. Use the Discord channel for that.
 - type: textarea
   attributes:
     label: GEF+GDB version
+    render: shell
     description: |
       The exact version of GEF and GDB. Copy/paste the output of the `version` command.
   validations:
@@ -30,15 +32,15 @@ body:
       Describe the issue in detail and what you were doing beforehand.
   validations:
     required: true
-- type: textarea
+- type: dropdown
   attributes:
-    label: How can the issue be reproduced?
-    description: |
-      Include a detailed step by step process for recreating your issue.
-      1.
-      2.
+    label: Do you read the docs and look at previously closed issues/PRs for similar cases?
+    multiple: false
+    options:
+    - "No"
+    - "Yes"    
   validations:
-    required: true
+    required: true    
 - type: checkboxes
   attributes:
     label: Architecture impacted
@@ -56,7 +58,7 @@ body:
     - label: RISCV
 - type: textarea
   attributes:
-    label: Describe your issue
+    label: Describe your issue. Without a proper reproduction step-by-step, your issue will be ignored.
     value: |
       Provide a step-by-step to reproduce your issue.
   validations:
