@@ -76,7 +76,7 @@ jobs:
       env:
         GEF_CI_ARCH: ${{ steps.set-arch-properties.outputs.arch }}
       run: |
-        make test
+        python3 -m pytest -n $(grep -c ^processor /proc/cpuinfo) tests/
 
     - name: Run linter
       run: |
