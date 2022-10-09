@@ -9,16 +9,16 @@
 
 ## Against which architecture was this tested ?
 
-"Tested" indicates that the PR works *and* the unit test (i.e. `make test`) run passes without issue.
+"Tested" indicates that the PR works *and* the unit test (see `docs/testing.md`) run passes without issue.
 
  * [ ] x86-32
  * [ ] x86-64
  * [ ] ARM
  * [ ] AARCH64
- * [ ] MIPS        
- * [ ] POWERPC     
- * [ ] SPARC       
- * [ ] RISC-V 
+ * [ ] MIPS
+ * [ ] POWERPC
+ * [ ] SPARC
+ * [ ] RISC-V
 
 
 ## Checklist
