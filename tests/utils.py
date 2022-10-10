@@ -281,11 +281,11 @@ def stop_qemuuser(process: subprocess.Popen) -> None:
 def qemuuser_session(*args, **kwargs):
     exe = kwargs.get("exe", "") or _target("default")
     port = kwargs.get("port", 0) or GDBSERVER_DEFAULT_PORT
-    sess = start_gdbserver(exe, port)
+    sess = start_qemuuser(exe, port)
     try:
         yield sess
     finally:
-        stop_gdbserver(sess)
+        stop_qemuuser(sess)
 
 
 
