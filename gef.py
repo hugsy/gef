@@ -3506,8 +3506,8 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
     reset_all_caches()
     gef.session.qemu_mode = False
     if gef.session.remote:
-        # make sure the tempdir is trashed
-        del(gef.session.remote)
+        gef.session.remote.close()
+        del gef.session.remote
         gef.session.remote = None
     return
 
@@ -9964,13 +9964,13 @@ class GefTmuxSetup(gdb.Command):
         forcing the context to be redirected there."""
         tmux = which("tmux")
         ok("tmux session found, splitting window...")
-        
+
         pane, pty = subprocess.check_output([tmux, "splitw", "-h", '-F#{session_name}:#{window_index}.#{pane_index}-#{pane_tty}', "-P"]).decode().strip().split("-")
         atexit.register(lambda : subprocess.run([tmux, "kill-pane", "-t", pane]))
         # clear the screen and let it wait for input forever
         gdb.execute(f"! {tmux} send-keys -t {pane} 'clear ; cat' C-m")
         gdb.execute(f"! {tmux} select-pane -L")
-        
+
         ok(f"Setting `context.redirect` to '{pty}'...")
         gdb.execute(f"gef config context.redirect {pty}")
         ok("Done!")
@@ -10536,7 +10536,7 @@ class GefRemoteSessionManager(GefSessionManager):
             raise EnvironmentError(f"Failed to create a proper environment for {self.target}")
         return
 
-    def __del__(self) -> None:
+    def close(self) -> None:
         self.__local_root_fd.cleanup()
         try:
             gef_on_new_unhook(self.remote_objfile_event_handler)
