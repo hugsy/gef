@@ -17,7 +17,7 @@ is enough to get started.
 ### Running tests
 
 
-#### Basic `pytest` te
+#### Basic `pytest`
 
 For testing GEF on the architecture on the host running the tests (most cases), simply run
 
