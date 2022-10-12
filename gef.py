@@ -1397,7 +1397,7 @@ class GlibcArena:
     def max_system_mem(self) -> int:
         return self.__arena.max_system_mem
 
-    def fastbin(self, i: int) -> Optional["GlibcChunk"]:
+    def fastbin(self, i: int) -> Optional["GlibcFastChunk"]:
         """Return head chunk in fastbinsY[i]."""
         addr = int(self.fastbinsY[i])
         if addr == 0:
@@ -1517,7 +1517,11 @@ class GlibcChunk:
 
     @property
     def fd(self) -> int:
-        return self.__chunk.fd
+        assert(gef and gef.libc.version)
+        if gef.libc.version > (2, 32) and isinstance(self, (GlibcFastChunk, GlibcTcacheChunk)):
+            return self.reveal_ptr(self.data_address)
+        else:
+            return self.__chunk.fd
 
     @property
     def bk(self) -> int:
@@ -1577,6 +1581,20 @@ class GlibcChunk:
 
     def get_next_chunk_addr(self) -> int:
         return self.data_address + self.size
+    
+    def protect_ptr(self, pos: int, pointer: int) -> int:
+        """https://elixir.bootlin.com/glibc/glibc-2.32/source/malloc/malloc.c#L339"""
+        assert(gef and gef.libc.version)
+        if gef.libc.version < (2, 32):
+            return pointer
+        return (pos >> 12) ^ pointer
+
+    def reveal_ptr(self, pointer: int) -> int:
+        """https://elixir.bootlin.com/glibc/glibc-2.32/source/malloc/malloc.c#L341"""
+        assert(gef and gef.libc.version)
+        if gef.libc.version < (2, 32):
+            return pointer
+        return gef.memory.read_integer(pointer) ^ (pointer >> 12)
 
     def has_p_bit(self) -> bool:
         return bool(self.flags & GlibcChunk.ChunkFlags.PREV_INUSE)
@@ -1651,32 +1669,9 @@ class GlibcChunk:
 
 
 class GlibcFastChunk(GlibcChunk):
+    pass
 
-    @property
-    def fd(self) -> int:
-        assert(gef and gef.libc.version)
-        if gef.libc.version < (2, 32):
-            return self.__chunk.fd
-        else:
-            return self.reveal_ptr(self.data_address)
-
-    def protect_ptr(self, pos: int, pointer: int) -> int:
-        """https://elixir.bootlin.com/glibc/glibc-2.32/source/malloc/malloc.c#L339"""
-        assert(gef and gef.libc.version)
-        if gef.libc.version < (2, 32):
-            return pointer
-        return (pos >> 12) ^ pointer
-
-    def reveal_ptr(self, pointer: int) -> int:
-        """https://elixir.bootlin.com/glibc/glibc-2.32/source/malloc/malloc.c#L341"""
-        assert(gef and gef.libc.version)
-        if gef.libc.version < (2, 32):
-            return pointer
-        return gef.memory.read_integer(pointer) ^ (pointer >> 12)
-
-
-class GlibcTcacheChunk(GlibcFastChunk):
-    
+class GlibcTcacheChunk(GlibcChunk):
     pass
 
 
@@ -6361,7 +6356,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         return list(valid_tids)
 
     @staticmethod
-    def tcachebin(tcache_base: int, i: int) -> Tuple[Optional[GlibcChunk], int]:
+    def tcachebin(tcache_base: int, i: int) -> Tuple[Optional[GlibcTcacheChunk], int]:
         """Return the head chunk in tcache[i] and the number of chunks in the bin."""
         if i >= GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS:
             err("Incorrect index value, index value must be between 0 and {}-1, given {}".format(GlibcHeapTcachebinsCommand.TCACHE_MAX_BINS, i))
