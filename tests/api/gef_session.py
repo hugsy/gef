@@ -15,6 +15,7 @@ from tests.utils import (
     gdb_run_cmd,
     qemuuser_session
 )
+import re
 
 GDBSERVER_PREFERED_HOST = "localhost"
 GDBSERVER_PREFERED_PORT = 1234
@@ -73,4 +74,4 @@ class GefSessionApi(GefUnitTestGeneric):
                 f"gef-remote --qemu-user --qemu-binary {target} {GDBSERVER_PREFERED_HOST} {port}"]
             res = gdb_run_cmd(f"pi gef.session.root", target=_target("default"), before=before)
             self.assertNoException(res)
-            assert "/proc/1/root" in res
+            assert re.search(r"\/proc\/[0-9]+/root", res)
