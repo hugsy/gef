@@ -1224,9 +1224,9 @@ class GlibcHeapInfo:
         return
 
     def reset(self):
-        self.__sizeof = ctypes.sizeof(GlibcHeapInfo.heap_info_t())
-        self.__data = gef.memory.read(self.__address, ctypes.sizeof(GlibcArena.malloc_state_t()))
-        self.__heap_info = GlibcArena.malloc_state_t().from_buffer_copy(self.__data)
+        self._sizeof = ctypes.sizeof(GlibcHeapInfo.heap_info_t())
+        self._data = gef.memory.read(self.__address, ctypes.sizeof(GlibcArena.malloc_state_t()))
+        self.__heap_info = GlibcArena.malloc_state_t().from_buffer_copy(self._data)
         return
 
     def __getattr__(self, item: Any) -> Any:
@@ -1246,7 +1246,7 @@ class GlibcHeapInfo:
 
     @property
     def sizeof(self) -> int:
-        return self.__sizeof
+        return self._sizeof
 
     @property
     def addr(self) -> int:
@@ -1309,9 +1309,9 @@ class GlibcArena:
         return
 
     def reset(self):
-        self.__sizeof = ctypes.sizeof(GlibcArena.malloc_state_t())
-        self.__data = gef.memory.read(self.__address, ctypes.sizeof(GlibcArena.malloc_state_t()))
-        self.__arena = GlibcArena.malloc_state_t().from_buffer_copy(self.__data)
+        self._sizeof = ctypes.sizeof(GlibcArena.malloc_state_t())
+        self._data = gef.memory.read(self.__address, ctypes.sizeof(GlibcArena.malloc_state_t()))
+        self.__arena = GlibcArena.malloc_state_t().from_buffer_copy(self._data)
         return
 
     def __abs__(self) -> int:
@@ -1343,7 +1343,7 @@ class GlibcArena:
         return (f"{Color.colorify('Arena', 'blue bold underline')}({properties})")
 
     def __repr__(self) -> str:
-        return f"GlibcArena(address={self.__address:#x}, size={self.__sizeof})"
+        return f"GlibcArena(address={self.__address:#x}, size={self._sizeof})"
 
     @property
     def address(self) -> int:
@@ -1351,7 +1351,7 @@ class GlibcArena:
 
     @property
     def sizeof(self) -> int:
-        return self.__sizeof
+        return self._sizeof
 
     @property
     def addr(self) -> int:
@@ -1497,43 +1497,39 @@ class GlibcChunk:
         return
 
     def reset(self):
-        self.__sizeof = ctypes.sizeof(GlibcChunk.malloc_chunk_t())
-        self.__data = gef.memory.read(
+        self._sizeof = ctypes.sizeof(GlibcChunk.malloc_chunk_t())
+        self._data = gef.memory.read(
             self.base_address, ctypes.sizeof(GlibcChunk.malloc_chunk_t()))
-        self.__chunk = GlibcChunk.malloc_chunk_t().from_buffer_copy(self.__data)
+        self._chunk = GlibcChunk.malloc_chunk_t().from_buffer_copy(self._data)
         return
 
     @property
     def prev_size(self) -> int:
-        return self.__chunk.prev_size
+        return self._chunk.prev_size
 
     @property
     def size(self) -> int:
-        return self.__chunk.size & (~0x07)
+        return self._chunk.size & (~0x07)
 
     @property
     def flags(self) -> ChunkFlags:
-        return GlibcChunk.ChunkFlags(self.__chunk.size & 0x07)
+        return GlibcChunk.ChunkFlags(self._chunk.size & 0x07)
 
     @property
     def fd(self) -> int:
-        assert(gef and gef.libc.version)
-        if gef.libc.version > (2, 32) and isinstance(self, (GlibcFastChunk, GlibcTcacheChunk)):
-            return self.reveal_ptr(self.data_address)
-        else:
-            return self.__chunk.fd
+        return self._chunk.fd
 
     @property
     def bk(self) -> int:
-        return self.__chunk.bk
+        return self._chunk.bk
 
     @property
     def fd_nextsize(self) -> int:
-        return self.__chunk.fd_nextsize
+        return self._chunk.fd_nextsize
 
     @property
     def bk_nextsize(self) -> int:
-        return self.__chunk.bk_nextsize
+        return self._chunk.bk_nextsize
 
     def get_usable_size(self) -> int:
         # https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L4537
@@ -1582,20 +1578,6 @@ class GlibcChunk:
     def get_next_chunk_addr(self) -> int:
         return self.data_address + self.size
     
-    def protect_ptr(self, pos: int, pointer: int) -> int:
-        """https://elixir.bootlin.com/glibc/glibc-2.32/source/malloc/malloc.c#L339"""
-        assert(gef and gef.libc.version)
-        if gef.libc.version < (2, 32):
-            return pointer
-        return (pos >> 12) ^ pointer
-
-    def reveal_ptr(self, pointer: int) -> int:
-        """https://elixir.bootlin.com/glibc/glibc-2.32/source/malloc/malloc.c#L341"""
-        assert(gef and gef.libc.version)
-        if gef.libc.version < (2, 32):
-            return pointer
-        return gef.memory.read_integer(pointer) ^ (pointer >> 12)
-
     def has_p_bit(self) -> bool:
         return bool(self.flags & GlibcChunk.ChunkFlags.PREV_INUSE)
 
@@ -1669,9 +1651,30 @@ class GlibcChunk:
 
 
 class GlibcFastChunk(GlibcChunk):
-    pass
 
-class GlibcTcacheChunk(GlibcChunk):
+    @property
+    def fd(self) -> int:
+        assert(gef and gef.libc.version)
+        if gef.libc.version < (2, 32):
+            return self._chunk.fd
+        return self.reveal_ptr(self.data_address)
+
+    def protect_ptr(self, pos: int, pointer: int) -> int:
+        """https://elixir.bootlin.com/glibc/glibc-2.32/source/malloc/malloc.c#L339"""
+        assert(gef and gef.libc.version)
+        if gef.libc.version < (2, 32):
+            return pointer
+        return (pos >> 12) ^ pointer
+
+    def reveal_ptr(self, pointer: int) -> int:
+        """https://elixir.bootlin.com/glibc/glibc-2.32/source/malloc/malloc.c#L341"""
+        assert(gef and gef.libc.version)
+        if gef.libc.version < (2, 32):
+            return pointer
+        return gef.memory.read_integer(pointer) ^ (pointer >> 12)
+
+class GlibcTcacheChunk(GlibcFastChunk):
+    
     pass
 
 
@@ -1748,8 +1751,8 @@ def show_last_exception() -> None:
     def _show_code_line(fname: str, idx: int) -> str:
         fname = os.path.expanduser(os.path.expandvars(fname))
         with open(fname, "r") as f:
-            __data = f.readlines()
-        return __data[idx - 1] if 0 < idx < len(__data) else ""
+            _data = f.readlines()
+        return _data[idx - 1] if 0 < idx < len(_data) else ""
 
     gef_print("")
     exc_type, exc_value, exc_traceback = sys.exc_info()
