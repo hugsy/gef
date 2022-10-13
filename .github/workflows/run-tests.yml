@@ -91,7 +91,7 @@ jobs:
     - name: Run test coverage
       run: |
         current_score=$(curl --silent https://hugsy.github.io/gef/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
-        bash docs/generate-coverage-docs.sh
+        bash scripts/generate-coverage-docs.sh
         new_score=$(cat docs/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         echo "Test coverage score: ${new_score}% (old ${current_score}%)"
         test ${current_score} -gt ${new_score} && (echo "New score cannot be lower." ; exit 1)
