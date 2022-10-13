@@ -18,5 +18,7 @@ COVERAGE_DIR="${TMPDIR_RUN}" python${PY_VER} -m pytest -n ${NB_CORES} "${GEF_TES
 echo "[+] Combining data to '${TMPDIR_COV}'"
 python${PY_VER} -m coverage combine --data-file=${TMPDIR_COV} "${TMPDIR_RUN}"/*
 
-echo "[+] Generating HTML report to '${GEF_DOCS_DIR}'"
-python${PY_VER} -m coverage html --data-file="${TMPDIR_COV}" --include='*/gef.py' --directory="${GEF_DOCS_DIR}"
+echo "[+] Generating reports to '${GEF_DOCS_DIR}'"
+python${PY_VER} -m coverage html --data-file="${TMPDIR_COV}" --include='*/gef.py' --directory="${GEF_DOCS_DIR}" --precision=4
+python${PY_VER} -m coverage xml  --data-file="${TMPDIR_COV}" --include='*/gef.py' -o "${GEF_DOCS_DIR}/coverage.xml"
+python${PY_VER} -m coverage json  --data-file="${TMPDIR_COV}" --include='*/gef.py' -o "${GEF_DOCS_DIR}/coverage.json"
