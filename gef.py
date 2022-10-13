@@ -356,6 +356,15 @@ def is_alive() -> bool:
         return False
 
 
+def calling_function() -> Optional[str]:
+    """Return the name of the calling function"""
+    try:
+        stack_info = traceback.extract_stack()[-3]
+        return stack_info.name
+    except:
+        return None
+
+
 #
 # Decorators
 #
@@ -10859,3 +10868,8 @@ if __name__ == "__main__":
         new_objfile_handler(None)
 
     GefTmuxSetup()
+
+    # `target remote` commands cannot be disabled, so print a warning message instead
+    errmsg = "Using `target remote` with GEF does not work, use `gef-remote` instead. You've been warned."
+    gdb.execute(f"define target hook-remote\n pi if calling_function() != \"connect\": err(\"{errmsg}\") \nend")
+    gdb.execute(f"define target hook-extended-remote\n pi if calling_function() != \"connect\": err(\"{errmsg}\") \nend")
