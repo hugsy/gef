@@ -223,7 +223,9 @@ def gdb_time_python_method(meth: str, setup: str,
 def _target(name: str, extension: str = ".out") -> pathlib.Path:
     target = TMPDIR / f"{name}{extension}"
     if not target.exists():
-        raise FileNotFoundError(f"Could not find file '{target}'")
+        subprocess.run(["make", "-C", "tests/binaries", target.name])
+        if not target.exists():
+            raise FileNotFoundError(f"Could not find file '{target}'")
     return target
 
 

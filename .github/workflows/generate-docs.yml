@@ -1,6 +1,9 @@
 name: Generate GithubPages
 
 on:
+
+  workflow_dispatch:
+
   push:
     branches:
       - dev
@@ -21,10 +24,10 @@ jobs:
           python${version} -m pip install --requirement docs/requirements.txt --upgrade
       - name: Regenerate GEF API file
         run: |
-          ls
           echo "source $(pwd)/gef.py" > ~/.gdbinit
           cat ~/.gdbinit
           bash scripts/generate-api-docs.sh
+          bash scripts/generate-coverage-docs.sh
       - name: Build and publish the docs
         run: |
           git config --global user.name "hugsy"

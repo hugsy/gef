@@ -110,11 +110,12 @@ class GefCommand(GefUnitTestGeneric):
 
     @pytest.mark.online
     def test_cmd_gef_install(self):
-        res = gdb_run_cmd("gef install skel windbg stack")
+        test_commands = ("skel", "windbg", "stack")
+        res = gdb_run_cmd(f"gef install {' '.join(test_commands)}")
         self.assertNoException(res)
         # we install 3 plugins, the pattern must be found 3 times
         pattern = "Installed file"
-        for i in range(3):
+        for i in range(len(test_commands)):
             idx = res.find(pattern)
             self.assertNotEqual(-1,  idx, f"Check {i}/{3} failed: missing '{pattern}' in\n{res}")
             self.assertIn("new command(s) available", res)
