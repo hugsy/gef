@@ -11,6 +11,7 @@ theme:
 
 nav:
 - Home: index.md
+- Coverage: https://hugsy.github.io/gef/coverage/
 - Showroom: screenshots.md
 - Setup:
   - Installation: install.md
