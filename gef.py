@@ -1298,7 +1298,7 @@ class GlibcArena:
             # https://elixir.bootlin.com/glibc/glibc-2.23/source/malloc/malloc.c#L1719
             fields += [
                 ("attached_threads", pointer)
-            ]            
+            ]
         fields += [
             ("system_mem", pointer),
             ("max_system_mem", pointer),
@@ -1586,7 +1586,7 @@ class GlibcChunk:
 
     def get_next_chunk_addr(self) -> int:
         return self.data_address + self.size
-    
+
     def has_p_bit(self) -> bool:
         return bool(self.flags & GlibcChunk.ChunkFlags.PREV_INUSE)
 
@@ -1683,7 +1683,7 @@ class GlibcFastChunk(GlibcChunk):
         return gef.memory.read_integer(pointer) ^ (pointer >> 12)
 
 class GlibcTcacheChunk(GlibcFastChunk):
-    
+
     pass
 
 
@@ -2550,11 +2550,18 @@ class ARM(Architecture):
         return flags_to_human(val, self.flags_table)
 
     def is_conditional_branch(self, insn: Instruction) -> bool:
-        conditions = {"eq", "ne", "lt", "le", "gt", "ge", "vs", "vc", "mi", "pl", "hi", "ls", "cc", "cs"}
-        return insn.mnemonic[-2:] in conditions
+        conditions = {"eq", "ne", "lt", "le", "gt", "ge", "vs", "vc", "mi", "pl", "hi", "ls", "cc", "cs", "hs", "lo"}
+        mnemo = insn.mnemonic
+        if len(mnemo) > 3:
+            # Because ARM UAL is not obligatory, the order of status and conditional-execution
+            # could be switched: ADDEQS vs ADDSEQ, therefore we remove a trailing "s" here
+            mnemo = mnemo.rstrip("s")
+        return mnemo.startswith("b") and mnemo[-2:] in conditions
 
     def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:
         mnemo = insn.mnemonic
+        if len(mnemo) > 3:
+            mnemo = mnemo.rstrip("s")
         # ref: https://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = gef.arch.register(self.flag_register)
@@ -2582,8 +2589,8 @@ class ARM(Architecture):
             taken, reason = bool(val&(1<<flags["carry"])) and not bool(val&(1<<flags["zero"])), "C && !Z"
         elif mnemo.endswith("ls"):
             taken, reason = not val&(1<<flags["carry"]) or bool(val&(1<<flags["zero"])), "!C || Z"
-        elif mnemo.endswith("cs"): taken, reason = bool(val&(1<<flags["carry"])), "C"
-        elif mnemo.endswith("cc"): taken, reason = not val&(1<<flags["carry"]), "!C"
+        elif mnemo.endswith("cs") or mnemo.endswith("hs"): taken, reason = bool(val&(1<<flags["carry"])), "C"
+        elif mnemo.endswith("cc") or mnemo.endswith("lo"): taken, reason = not val&(1<<flags["carry"]), "!C"
         return taken, reason
 
     def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> int:
