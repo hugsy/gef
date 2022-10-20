@@ -3513,6 +3513,9 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
     reset_all_caches()
     gef.session.qemu_mode = False
     if gef.session.remote:
+        if gef.session.remote.follow_child:
+            gef.session.remote.follow_child = False
+            return
         gef.session.remote.close()
         del gef.session.remote
         gef.session.remote = None
@@ -3954,6 +3957,14 @@ def gef_on_regchanged_hook(func: Callable[["gdb.RegisterChangedEvent"], None]) -
 @only_if_events_supported("register_changed")
 def gef_on_regchanged_unhook(func: Callable[["gdb.RegisterChangedEvent"], None]) -> None:
     gdb.events.register_changed.disconnect(func)
+
+@only_if_events_supported("new_inferior")
+def gef_on_new_inferior_hook(func: Callable[["gdb.NewInferiorEvent"], None]) -> None:
+    gdb.events.new_inferior.connect(func)
+
+@only_if_events_supported("new_inferior")
+def get_onf_new_inferior_unhook(func: Callable[["gdb.NewinferiorEvent"], None]) -> None:
+    gdb.events.new_inferior.disconnect(func)
 
 
 #
@@ -10537,14 +10548,17 @@ class GefRemoteSessionManager(GefSessionManager):
         self.__local_root_fd = tempfile.TemporaryDirectory()
         self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
         self.__qemu = qemu
+        self.follow_child = False
         dbg(f"[remote] initializing remote session with {self.target} under {self.root}")
         if not self.connect(pid):
             raise EnvironmentError(f"Cannot connect to remote target {self.target}")
         if not self.setup():
             raise EnvironmentError(f"Failed to create a proper environment for {self.target}")
+        gef_on_new_inferior_hook(self.new_inferior_event_handler)
         return
 
     def close(self) -> None:
+        dbg(f"[remote] closing remote session with {self.target}")
         self.__local_root_fd.cleanup()
         try:
             gef_on_new_unhook(self.remote_objfile_event_handler)
@@ -10699,7 +10713,7 @@ class GefRemoteSessionManager(GefSessionManager):
         return True
 
     def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
-        dbg(f"[remote] in remote_objfile_handler({evt.new_objfile.filename if evt else 'None'}))")
+        dbg(f"[remote] in remote_objfile_handler({evt.new_objfile.filename if evt else 'None'})")
         if not evt or not evt.new_objfile.filename:
             return
         if not evt.new_objfile.filename.startswith("target:") and not evt.new_objfile.filename.startswith("/"):
@@ -10709,6 +10723,18 @@ class GefRemoteSessionManager(GefSessionManager):
             src: str = evt.new_objfile.filename[len("target:"):]
             if not self.sync(src):
                 raise FileNotFoundError(f"Failed to sync '{src}'")
+        return
+
+    def new_inferior_event_handler(self, evt: "gdb.NewInferiorEvent") -> None:
+        dbg(f"[remote] in new_inferior_event_handler({evt.inferior.pid if evt else 'None'})")
+        if not evt or not evt.inferior.pid:
+            return
+        show_follow_fork_mode = gdb.execute("show follow-fork-mode", to_string=True)
+        follow_fork_mode = show_follow_fork_mode.split('"')[1] if show_follow_fork_mode else None
+        if follow_fork_mode != "child":
+            return
+        dbg(f"[remote] prepare to follow child process {evt.inferior.pid}")
+        self.follow_child = True
         return
 
 
