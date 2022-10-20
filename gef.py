@@ -2552,45 +2552,43 @@ class ARM(Architecture):
     def is_conditional_branch(self, insn: Instruction) -> bool:
         conditions = {"eq", "ne", "lt", "le", "gt", "ge", "vs", "vc", "mi", "pl", "hi", "ls", "cc", "cs", "hs", "lo"}
         mnemo = insn.mnemonic
-        if len(mnemo) > 3:
-            # Because ARM UAL is not obligatory, the order of status and conditional-execution
-            # could be switched: ADDEQS vs ADDSEQ, therefore we remove a trailing "s" here
-            mnemo = mnemo.rstrip("s")
-        return mnemo.startswith("b") and mnemo[-2:] in conditions
+        # Because ARM UAL is not obligatory, the order of status and conditional-execution
+        # could be switched: ADDEQS vs ADDSEQ
+        return mnemo.startswith("b") and (mnemo[-2:] in conditions or mnemo[-3:-1] in conditions)
 
     def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:
         mnemo = insn.mnemonic
-        if len(mnemo) > 3:
-            mnemo = mnemo.rstrip("s")
         # ref: https://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = gef.arch.register(self.flag_register)
         taken, reason = False, ""
 
-        if mnemo.endswith("eq"): taken, reason = bool(val&(1<<flags["zero"])), "Z"
-        elif mnemo.endswith("ne"): taken, reason = not bool(val&(1<<flags["zero"])), "!Z"
-        elif mnemo.endswith("lt"):
+        if mnemo.endswith("eq") or mnemo.endswith("eqs"): taken, reason = bool(val&(1<<flags["zero"])), "Z"
+        elif mnemo.endswith("ne") or mnemo.endswith("nes"): taken, reason = not bool(val&(1<<flags["zero"])), "!Z"
+        elif mnemo.endswith("lt") or mnemo.endswith("lts"):
             taken, reason = bool(val&(1<<flags["negative"])) != bool(val&(1<<flags["overflow"])), "N!=V"
-        elif mnemo.endswith("le"):
+        elif mnemo.endswith("le") or mnemo.endswith("les"):
             taken, reason = bool(val&(1<<flags["zero"])) or \
                 bool(val&(1<<flags["negative"])) != bool(val&(1<<flags["overflow"])), "Z || N!=V"
-        elif mnemo.endswith("gt"):
+        elif mnemo.endswith("gt") or mnemo.endswith("gts"):
             taken, reason = bool(val&(1<<flags["zero"])) == 0 and \
                 bool(val&(1<<flags["negative"])) == bool(val&(1<<flags["overflow"])), "!Z && N==V"
-        elif mnemo.endswith("ge"):
+        elif mnemo.endswith("ge") or mnemo.endswith("ges"):
             taken, reason = bool(val&(1<<flags["negative"])) == bool(val&(1<<flags["overflow"])), "N==V"
-        elif mnemo.endswith("vs"): taken, reason = bool(val&(1<<flags["overflow"])), "V"
-        elif mnemo.endswith("vc"): taken, reason = not val&(1<<flags["overflow"]), "!V"
-        elif mnemo.endswith("mi"):
+        elif mnemo.endswith("vs") or mnemo.endswith("vss"): taken, reason = bool(val&(1<<flags["overflow"])), "V"
+        elif mnemo.endswith("vc") or mnemo.endswith("vcs"): taken, reason = not val&(1<<flags["overflow"]), "!V"
+        elif mnemo.endswith("mi") or mnemo.endswith("mis"):
             taken, reason = bool(val&(1<<flags["negative"])), "N"
-        elif mnemo.endswith("pl"):
+        elif mnemo.endswith("pl") or mnemo.endswith("pls"):
             taken, reason = not val&(1<<flags["negative"]), "N==0"
-        elif mnemo.endswith("hi"):
+        elif mnemo.endswith("hi") or mnemo.endswith("his"):
             taken, reason = bool(val&(1<<flags["carry"])) and not bool(val&(1<<flags["zero"])), "C && !Z"
-        elif mnemo.endswith("ls"):
+        elif mnemo.endswith("ls") or mnemo.endswith("lss"):
             taken, reason = not val&(1<<flags["carry"]) or bool(val&(1<<flags["zero"])), "!C || Z"
-        elif mnemo.endswith("cs") or mnemo.endswith("hs"): taken, reason = bool(val&(1<<flags["carry"])), "C"
-        elif mnemo.endswith("cc") or mnemo.endswith("lo"): taken, reason = not val&(1<<flags["carry"]), "!C"
+        elif mnemo.endswith("cs") or mnemo.endswith("css") or mnemo.endswith("hs") or mnemo.endswith("hss"):
+            taken, reason = bool(val&(1<<flags["carry"])), "C"
+        elif mnemo.endswith("cc") or mnemo.endswith("ccs") or mnemo.endswith("lo") or mnemo.endswith("los"):
+            taken, reason = not val&(1<<flags["carry"]), "!C"
         return taken, reason
 
     def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> int:
