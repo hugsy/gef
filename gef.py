@@ -3513,8 +3513,8 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
     reset_all_caches()
     gef.session.qemu_mode = False
     if gef.session.remote:
-        if gef.session.remote.follow_child:
-            gef.session.remote.follow_child = False
+        if gef.session.remote._follow_next_child:
+            gef.session.remote._follow_next_child = False
             return
         gef.session.remote.close()
         del gef.session.remote
@@ -3963,7 +3963,7 @@ def gef_on_new_inferior_hook(func: Callable[["gdb.NewInferiorEvent"], None]) -> 
     gdb.events.new_inferior.connect(func)
 
 @only_if_events_supported("new_inferior")
-def get_onf_new_inferior_unhook(func: Callable[["gdb.NewinferiorEvent"], None]) -> None:
+def gef_on_new_inferior_unhook(func: Callable[["gdb.NewinferiorEvent"], None]) -> None:
     gdb.events.new_inferior.disconnect(func)
 
 
@@ -10548,7 +10548,7 @@ class GefRemoteSessionManager(GefSessionManager):
         self.__local_root_fd = tempfile.TemporaryDirectory()
         self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
         self.__qemu = qemu
-        self.follow_child = False
+        self._follow_next_child = False
         dbg(f"[remote] initializing remote session with {self.target} under {self.root}")
         if not self.connect(pid):
             raise EnvironmentError(f"Cannot connect to remote target {self.target}")
@@ -10562,6 +10562,7 @@ class GefRemoteSessionManager(GefSessionManager):
         self.__local_root_fd.cleanup()
         try:
             gef_on_new_unhook(self.remote_objfile_event_handler)
+            gef_on_new_inferior_unhook(self.new_inferior_event_handler)
             gef_on_new_hook(new_objfile_handler)
         except Exception as e:
             warn(f"Exception while restoring local context: {str(e)}")
@@ -10733,8 +10734,13 @@ class GefRemoteSessionManager(GefSessionManager):
         follow_fork_mode = show_follow_fork_mode.split('"')[1] if show_follow_fork_mode else None
         if follow_fork_mode != "child":
             return
-        dbg(f"[remote] prepare to follow child process {evt.inferior.pid}")
-        self.follow_child = True
+        self.follow_child(evt.inferior.pid)
+        return
+
+    def follow_child(self, pid: int) -> None:
+        dbg(f"[remote] prepare to follow child process {pid}")
+        self._follow_next_child = True
+        self._pid = pid
         return
 
 
