@@ -172,3 +172,11 @@ Discord is your answer: join and talk to us by clicking here
 
 If you cannot find the answer to your problem here or on the Discord, then go to the project [Issues page](https://github.com/hugsy/gef/issues) and fill up the forms with as much information as you can!
 
+## How can I use GEF to debug a process in a container?
+
+GEF can attach to a process running in a container using `gdb --pid=$PID`, where `$PID` is the ID of the running process *on the host*. To find this, you can use `docker top <container ID> -o pid | awk '!/PID/' | xargs -I'{}' pstree -psa {}` to view the process tree for the container.
+
+`sudo` may be required to attach to the process, which will depend on your system's security settings.
+
+Please note that cross-container debugging may have unexpected issues. Installing gdb and GEF inside the container, or using [the official GEF docker image](https://hub.docker.com/r/crazyhugsy/gef) may improve results.
+
