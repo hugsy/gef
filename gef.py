@@ -3360,7 +3360,7 @@ def is_qemu() -> bool:
 def is_qemu_usermode() -> bool:
     if not is_qemu():
         return False
-    response = gdb.execute('maintenance packet QOffsets', to_string=True, from_tty=False)
+    response = gdb.execute('maintenance packet qOffsets', to_string=True, from_tty=False)
     return "Text=" in response
 
 
@@ -3368,7 +3368,7 @@ def is_qemu_usermode() -> bool:
 def is_qemu_system() -> bool:
     if not is_qemu():
         return False
-    response = gdb.execute('maintenance packet QOffsets', to_string=True, from_tty=False)
+    response = gdb.execute('maintenance packet qOffsets', to_string=True, from_tty=False)
     return 'received: ""' in response
 
 
@@ -10201,8 +10201,12 @@ class GefMemoryManager(GefManager):
 
     def __parse_maps(self) -> List[Section]:
         """Return the mapped memory sections"""
-        if is_qemu_system():
-            return list(self.__parse_info_mem())
+        try:
+            if is_qemu_system():
+                return list(self.__parse_info_mem())
+        except gdb.error:
+            # Target may not support this command
+            pass
         try:
             return list(self.__parse_procfs_maps())
         except FileNotFoundError:
@@ -10505,13 +10509,9 @@ class GefSessionManager(GefManager):
             return None
         if is_qemu_system():
             return None
-
         if not self._auxiliary_vector:
             auxiliary_vector = {}
-            try:
-                auxv_info = gdb.execute("info auxv", to_string=True)
-            except gdb.error:
-                auxv_info = None
+            auxv_info = gdb.execute("info auxv", to_string=True)
             if not auxv_info or "failed" in auxv_info:
                 err("Failed to query auxiliary variables")
                 return None
