@@ -86,7 +86,7 @@ jobs:
         python${{ env.PY_VER }} -m pylint --rcfile=$(pwd)/.pylintrc gef.py tests/*/*.py
 
     - name: Run test coverage
-      if: matrix.os == 'ubuntu-2204'
+      if: matrix.os == 'ubuntu-22.04'
       run: |
         current_score=$(curl --silent https://hugsy.github.io/gef/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         bash scripts/generate-coverage-docs.sh
