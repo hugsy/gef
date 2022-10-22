@@ -644,6 +644,15 @@ class Permission(enum.Flag):
         if perm_str[2] == "x": perm |= Permission.EXECUTE
         return perm
 
+    @staticmethod
+    def from_info_mem(perm_str: str) -> "Permission":
+        perm = Permission(0)
+        # perm_str[0] shows if this is a user page, which
+        # we don't track
+        if perm_str[1] == "r": perm |= Permission.READ
+        if perm_str[2] == "w": perm |= Permission.WRITE
+        return perm
+
 
 class Section:
     """GEF representation of process memory sections."""
@@ -5948,6 +5957,11 @@ class RemoteCommand(GenericCommand):
             return
 
         # try to establish the remote session, throw on error
+        # Set `.remote` to False here - `GefRemoteSessionManager` invokes code which
+        # calls `is_remote_debug` which checks if `.remote` is None
+        # Change it here early to prevent some spurious errors being thrown while the session
+        # starts up
+        gef.session.remote = False
         gef.session.remote = GefRemoteSessionManager(args.host, args.port, args.pid, qemu_binary)
         reset_all_caches()
         gdb.execute("context")
@@ -10187,6 +10201,8 @@ class GefMemoryManager(GefManager):
 
     def __parse_maps(self) -> List[Section]:
         """Return the mapped memory sections"""
+        if is_qemu_system():
+            return list(self.__parse_info_mem())
         try:
             return list(self.__parse_procfs_maps())
         except FileNotFoundError:
@@ -10250,6 +10266,32 @@ class GefMemoryManager(GefManager):
             except ValueError:
                 continue
         return
+
+    def __parse_info_mem(self) -> Generator[Section, None, None]:
+        """Get the memory mapping from GDB's command `monitor info mem`"""
+        stream = StringIO(gdb.execute("monitor info mem", to_string=True))
+        for line in stream:
+            if not line:
+                break
+            try:
+                # FORMAT
+                # ffffff2a65e0b000-ffffff2a65e0c000 0000000000001000 -r-
+                # ^--- start       ^--- end         ^--- offset      ^^^-- perms
+                # `perms` are `urw`, for 'usermode', 'readable', 'writable'
+                ranges, off, perms = line.split(' ')
+                start, end = ranges.split('-')
+                start, end = int(start, 16), int(end, 16)
+            except ValueError as e:
+                continue
+
+            perm = Permission.from_info_mem(perms)
+            yield Section(
+                page_start=start,
+                page_end=end,
+                offset=off,
+                permission=perm,
+                inode="",
+            )
 
 
 class GefHeapManager(GefManager):
@@ -10461,10 +10503,15 @@ class GefSessionManager(GefManager):
     def auxiliary_vector(self) -> Optional[Dict[str, int]]:
         if not is_alive():
             return None
+        if is_qemu_system():
+            return None
 
         if not self._auxiliary_vector:
             auxiliary_vector = {}
-            auxv_info = gdb.execute("info auxv", to_string=True)
+            try:
+                auxv_info = gdb.execute("info auxv", to_string=True)
+            except gdb.error:
+                auxv_info = None
             if not auxv_info or "failed" in auxv_info:
                 err("Failed to query auxiliary variables")
                 return None
