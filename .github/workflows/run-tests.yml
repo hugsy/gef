@@ -91,5 +91,5 @@ jobs:
         current_score=$(curl --silent https://hugsy.github.io/gef/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         bash scripts/generate-coverage-docs.sh
         new_score=$(cat docs/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
-        echo "Test coverage score: ${new_score}% (current ${current_score}%)"
-        python${{ env.PY_VER }} -c "( ${new_score} < ${current_score} ) or exit(1)"
+        echo "New coverage score: ${new_score}% (current ${current_score}%)"
+        python${{ env.PY_VER }} -c "( ${new_score} >= ${current_score} ) or exit(1)"
