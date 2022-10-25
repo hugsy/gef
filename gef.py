@@ -10283,6 +10283,7 @@ class GefMemoryManager(GefManager):
                 # ^--- start       ^--- end         ^--- offset      ^^^-- perms
                 # `perms` are `urw`, for 'usermode', 'readable', 'writable'
                 ranges, off, perms = line.split(' ')
+                off = int(off, 16)
                 start, end = ranges.split('-')
                 start, end = int(start, 16), int(end, 16)
             except ValueError as e:
