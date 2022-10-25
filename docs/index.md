@@ -37,7 +37,7 @@ GEF has no dependencies, is fully battery-included and works out of the box. You
 bash -c "$(curl -fsSL https://gef.blah.cat/sh)"
 ```
 
-For more details and other ways to install GEF please see [installation page](/docs/install.md).
+For more details and other ways to install GEF please see [installation page](https://hugsy.github.io/gef/install/).
 
 
 ### Run
