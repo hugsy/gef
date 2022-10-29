@@ -10849,7 +10849,7 @@ if __name__ == "__main__":
         "set pagination off",
         "set print elements 0",
         "set history save on",
-        "set history filename ~/.gdb_history",
+        f"set history filename {os.getenv('GDBHISTFILE', '~/.gdb_history')}",
         "set output-radix 0x10",
         "set print pretty on",
         "set disassembly-flavor intel",
