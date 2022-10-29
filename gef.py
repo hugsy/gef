@@ -627,26 +627,26 @@ class Permission(enum.Flag):
         perm_str += "x" if self & Permission.EXECUTE else "-"
         return perm_str
 
-    @staticmethod
-    def from_info_sections(*args: str) -> "Permission":
-        perm = Permission(0)
+    @classmethod
+    def from_info_sections(cls, *args: str) -> "Permission":
+        perm = cls(0)
         for arg in args:
             if "READONLY" in arg: perm |= Permission.READ
             if "DATA" in arg: perm |= Permission.WRITE
             if "CODE" in arg: perm |= Permission.EXECUTE
         return perm
 
-    @staticmethod
-    def from_process_maps(perm_str: str) -> "Permission":
-        perm = Permission(0)
+    @classmethod
+    def from_process_maps(cls, perm_str: str) -> "Permission":
+        perm = cls(0)
         if perm_str[0] == "r": perm |= Permission.READ
         if perm_str[1] == "w": perm |= Permission.WRITE
         if perm_str[2] == "x": perm |= Permission.EXECUTE
         return perm
 
-    @staticmethod
-    def from_info_mem(perm_str: str) -> "Permission":
-        perm = Permission(0)
+    @classmethod
+    def from_info_mem(cls, perm_str: str) -> "Permission":
+        perm = cls(0)
         # perm_str[0] shows if this is a user page, which
         # we don't track
         if perm_str[1] == "r": perm |= Permission.READ
@@ -10281,11 +10281,10 @@ class GefMemoryManager(GefManager):
                 # FORMAT
                 # ffffff2a65e0b000-ffffff2a65e0c000 0000000000001000 -r-
                 # ^--- start       ^--- end         ^--- offset      ^^^-- perms
-                # `perms` are `urw`, for 'usermode', 'readable', 'writable'
-                ranges, off, perms = line.split(' ')
+                # `perms` are `urw`, for "usermode", "readable", "writable"
+                ranges, off, perms = line.split(" ")
                 off = int(off, 16)
-                start, end = ranges.split('-')
-                start, end = int(start, 16), int(end, 16)
+                start, end = [int(s, 16) for s in ranges.split("-")]
             except ValueError as e:
                 continue
 
