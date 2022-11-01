@@ -3352,15 +3352,15 @@ def get_os() -> str:
 def is_qemu() -> bool:
     if not is_remote_debug():
         return False
-    response = gdb.execute('maintenance packet Qqemu.sstepbits', to_string=True, from_tty=False)
-    return 'ENABLE=' in response
+    response = gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False)
+    return "ENABLE=" in response
 
 
 @lru_cache()
 def is_qemu_usermode() -> bool:
     if not is_qemu():
         return False
-    response = gdb.execute('maintenance packet qOffsets', to_string=True, from_tty=False)
+    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False)
     return "Text=" in response
 
 
@@ -3368,8 +3368,8 @@ def is_qemu_usermode() -> bool:
 def is_qemu_system() -> bool:
     if not is_qemu():
         return False
-    response = gdb.execute('maintenance packet qOffsets', to_string=True, from_tty=False)
-    return 'received: ""' in response
+    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False)
+    return "received: \"\"" in response
 
 
 def get_filepath() -> Optional[str]:
