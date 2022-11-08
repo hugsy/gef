@@ -23,7 +23,7 @@ For testing GEF on the architecture on the host running the tests (most cases), 
 
 ```bash
 cd /root/of/gef
-python3 -m pytest -v -k not benchmark
+python3 -m pytest -v -k "not benchmark" tests
 ```
 
 Note that to ensure compatibility, tests must be executed with the same Python version GDB was compiled against. To obtain this version, you can execute the following command:
