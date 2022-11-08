@@ -3618,6 +3618,7 @@ def reset_architecture(arch: Optional[str] = None) -> None:
             gef.arch = arches[arch]()
         except KeyError:
             raise OSError(f"Specified arch {arch.upper()} is not supported")
+        return
 
     gdb_arch = get_arch()
 
