@@ -3,4 +3,5 @@ pytest
 pytest-cov
 pytest-xdist
 pytest-benchmark
+pytest-forked
 coverage

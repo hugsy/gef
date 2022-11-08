@@ -26,7 +26,7 @@ jobs:
         shell: bash
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install python and toolchain
       run: |
@@ -37,27 +37,18 @@ jobs:
     - name: Set runtime environment variables
       run: |
         echo PY_VER=`gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit` >> $GITHUB_ENV
-        echo NB_CPU=`grep -c ^processor /proc/cpuinfo` >> $GITHUB_ENV
-
-    - name: Set architecture specific properties
-      id: set-arch-properties
-      run: |
-        echo "::set-output name=arch::$(uname --processor)"
-
-    - name: Get pip cache dir
-      id: pip-cache
-      run: |
-        echo "::set-output name=dir::$(python3 -m pip cache dir)"
+        echo GEF_CI_NB_CPU=`grep -c ^processor /proc/cpuinfo` >> $GITHUB_ENV
+        echo GEF_CI_ARCH=`uname --processor` >> $GITHUB_ENV
+        echo GEF_CI_CACHE_DIR=`python3 -m pip cache dir` >> $GITHUB_ENV
 
     - name: Cache dependencies
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       id: cache-deps
       env:
         cache-name: cache-deps
       with:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        path: |
-          ${{ steps.pip-cache.outputs.dir }}
+        path: ${{ env.GEF_CI_CACHE_DIR }}
         restore-keys:
           ${{ runner.os }}-pip-${{ env.cache-name }}-
           ${{ runner.os }}-pip-
@@ -66,7 +57,7 @@ jobs:
 
     - name: Install Python Requirements
       run: |
-        mkdir -p ${{ steps.pip-cache.outputs.dir }}
+        mkdir -p ${{ env.GEF_CI_CACHE_DIR }}
         python${{ env.PY_VER }} -m pip install --user --upgrade -r tests/requirements.txt
 
     - name: Setup GEF
@@ -75,11 +66,9 @@ jobs:
         gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/pwd
 
     - name: Run Tests
-      env:
-        GEF_CI_ARCH: ${{ steps.set-arch-properties.outputs.arch }}
       run: |
-        make -C tests/binaries -j ${{ env.NB_CPU }}
-        python${{ env.PY_VER }} -m pytest --forked -n ${{ env.NB_CPU }} -v -k "not benchmark" tests/
+        make -C tests/binaries -j ${{ env.GEF_CI_NB_CPU }}
+        python${{ env.PY_VER }} -m pytest --forked -n ${{ env.GEF_CI_NB_CPU }} -v -k "not benchmark" tests/
 
     - name: Run linter
       run: |
