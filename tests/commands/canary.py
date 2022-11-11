@@ -20,7 +20,7 @@ class CanaryCommand(GefUnitTestGeneric):
         # overwriting this value does not overwrite the in-use canary so it
         # is not tested
         if platform.machine() == "x86_64":
-            patch = r"pi gef.memory.write(gef.arch.canary_address(), b'\xef\xbe\xad\xde')"
+            patch = r"pi gef.memory.write(gef.arch.canary_address(), b'\xef\xbe\xad\xde\x00\x00\x00\x00')"
             res = gdb_start_silent_cmd(patch, target=_target("canary"), after=["canary"])
             self.assertNoException(res)
             self.assertIn("0xdeadbeef", res)
