@@ -26,8 +26,8 @@ jobs:
       - name: Regenerate GEF API file
         run: |
           echo "source $(pwd)/gef.py" > ~/.gdbinit
-          cat ~/.gdbinit
           bash scripts/generate-api-docs.sh
+          bash scripts/generate-settings-docs.sh
           bash scripts/generate-coverage-docs.sh
       - name: Build and publish the docs
         run: |
