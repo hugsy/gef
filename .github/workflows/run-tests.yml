@@ -37,9 +37,9 @@ jobs:
     - name: Set runtime environment variables
       run: |
         echo PY_VER=`gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit` >> $GITHUB_ENV
-        echo NB_CPU=`grep -c ^processor /proc/cpuinfo` >> $GITHUB_ENV
+        echo GEF_CI_NB_CPU=`grep -c ^processor /proc/cpuinfo` >> $GITHUB_ENV
         echo GEF_CI_ARCH=`uname --processor` >> $GITHUB_ENV
-        echo GEF_CACHE_DIR=`python3 -m pip cache dir` >> $GITHUB_ENV
+        echo GEF_CI_CACHE_DIR=`python3 -m pip cache dir` >> $GITHUB_ENV
 
     - name: Cache dependencies
       uses: actions/cache@v3
@@ -48,8 +48,7 @@ jobs:
         cache-name: cache-deps
       with:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        path: |
-          ${{ env.GEF_CACHE_DIR }}
+        path: ${{ env.GEF_CI_CACHE_DIR }}
         restore-keys:
           ${{ runner.os }}-pip-${{ env.cache-name }}-
           ${{ runner.os }}-pip-
@@ -58,7 +57,7 @@ jobs:
 
     - name: Install Python Requirements
       run: |
-        mkdir -p ${{ env.GEF_CACHE_DIR }}
+        mkdir -p ${{ env.GEF_CI_CACHE_DIR }}
         python${{ env.PY_VER }} -m pip install --user --upgrade -r tests/requirements.txt
 
     - name: Setup GEF
@@ -68,18 +67,22 @@ jobs:
 
     - name: Run Tests
       run: |
-        make -C tests/binaries -j ${{ env.NB_CPU }}
-        python${{ env.PY_VER }} -m pytest --forked -n ${{ env.NB_CPU }} -v -k "not benchmark" tests/
+        make -C tests/binaries -j ${{ env.GEF_CI_NB_CPU }}
+        python${{ env.PY_VER }} -m pytest --forked -n ${{ env.GEF_CI_NB_CPU }} -v -k "not benchmark" tests/
 
     - name: Run linter
       run: |
         python${{ env.PY_VER }} -m pylint --rcfile=$(pwd)/.pylintrc gef.py tests/*/*.py
 
     - name: Run test coverage
-      if: matrix.os == 'ubuntu-2204'
+      if: matrix.os == 'ubuntu-22.04'
+      env:
+        ALLOWED_MARGIN: 0.05
+        MIN_COVERAGE: 70
       run: |
         current_score=$(curl --silent https://hugsy.github.io/gef/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         bash scripts/generate-coverage-docs.sh
         new_score=$(cat docs/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
-        echo "Test coverage score: ${new_score}% (current ${current_score}%)"
-        python${{ env.PY_VER }} -c "( ${new_score} < ${current_score} ) or exit(1)"
+        echo "New coverage score: ${new_score}% (current ${current_score}%)"
+        python${{ env.PY_VER }} -c "( ${new_score} < ${{ env.MIN_COVERAGE}} ) and exit(1)"
+        python${{ env.PY_VER }} -c "( ${new_score} < ( ${current_score} - ${{ env.ALLOWED_MARGIN}} ) ) and exit(2)"

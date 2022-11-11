@@ -1298,7 +1298,7 @@ class GlibcArena:
             # https://elixir.bootlin.com/glibc/glibc-2.23/source/malloc/malloc.c#L1719
             fields += [
                 ("attached_threads", pointer)
-            ]            
+            ]
         fields += [
             ("system_mem", pointer),
             ("max_system_mem", pointer),
@@ -1586,7 +1586,7 @@ class GlibcChunk:
 
     def get_next_chunk_addr(self) -> int:
         return self.data_address + self.size
-    
+
     def has_p_bit(self) -> bool:
         return bool(self.flags & GlibcChunk.ChunkFlags.PREV_INUSE)
 
@@ -1683,7 +1683,7 @@ class GlibcFastChunk(GlibcChunk):
         return gef.memory.read_integer(pointer) ^ (pointer >> 12)
 
 class GlibcTcacheChunk(GlibcFastChunk):
-    
+
     pass
 
 
@@ -3618,6 +3618,7 @@ def reset_architecture(arch: Optional[str] = None) -> None:
             gef.arch = arches[arch]()
         except KeyError:
             raise OSError(f"Specified arch {arch.upper()} is not supported")
+        return
 
     gdb_arch = get_arch()
 
@@ -6772,7 +6773,7 @@ class ShellcodeGetCommand(GenericCommand):
     _aliases_ = ["sc-get",]
 
     api_base = "http://shell-storm.org"
-    get_url = f"{api_base}/shellcode/files/shellcode-{{:d}}.php"
+    get_url = f"{api_base}/shellcode/files/shellcode-{{:d}}.html"
 
     def do_invoke(self, argv: List[str]) -> None:
         if len(argv) != 1:
@@ -6796,13 +6797,11 @@ class ShellcodeGetCommand(GenericCommand):
             return
 
         ok("Downloaded, written to disk...")
-        tempdir = gef.config["gef.tempdir"]
-        fd, fname = tempfile.mkstemp(suffix=".txt", prefix="sc-", text=True, dir=tempdir)
-        shellcode = res.splitlines()[7:-11]
-        shellcode = b"\n".join(shellcode).replace(b"&quot;", b'"')
-        os.write(fd, shellcode)
-        os.close(fd)
-        ok(f"Shellcode written to '{fname}'")
+        with tempfile.NamedTemporaryFile(prefix="sc-", suffix=".txt", mode='w+b', delete=False, dir=gef.config["gef.tempdir"]) as fd:
+            shellcode = res.split(b"<pre>")[1].split(b"</pre>")[0]
+            shellcode = shellcode.replace(b"&quot;", b'"')
+            fd.write(shellcode)
+            ok(f"Shellcode written to '{fd.name}'")
         return
 
 
@@ -10849,7 +10848,7 @@ if __name__ == "__main__":
         "set pagination off",
         "set print elements 0",
         "set history save on",
-        "set history filename ~/.gdb_history",
+        f"set history filename {os.getenv('GDBHISTFILE', '~/.gdb_history')}",
         "set output-radix 0x10",
         "set print pretty on",
         "set disassembly-flavor intel",
