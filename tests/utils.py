@@ -10,6 +10,7 @@ import platform
 import re
 import subprocess
 import tempfile
+import time
 import unittest
 import warnings
 from typing import Dict, Iterable, List, Optional, Union
@@ -262,6 +263,7 @@ def gdbserver_session(*args, **kwargs):
     port = kwargs.get("port", 0) or GDBSERVER_DEFAULT_PORT
     sess = start_gdbserver(exe, port)
     try:
+        time.sleep(0.5) # forced delay to allow gdbserver to start listening
         yield sess
     finally:
         stop_gdbserver(sess)
