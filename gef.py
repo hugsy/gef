@@ -10526,17 +10526,21 @@ class GefSessionManager(GefManager):
         except NotImplementedError:
             # Fall back to `AT_RANDOM`, which is the original source
             # of the canary value but not the canonical location
-            auxval = self.auxiliary_vector
-            if not auxval:
-                return None
-            canary_location = auxval["AT_RANDOM"]
-            canary = gef.memory.read_integer(canary_location)
-            warn("Canary was read from auxiliary vector")
-            # The canary is created by reading a word from `AT_RANDOM`
-            # and zeroing the lowest byte
-            canary &= ~0xFF
-
+            return self.original_canary
         return canary, canary_location
+
+    @property
+    def original_canary(self) -> Optional[Tuple[int, int]]:
+        """Return a tuple of the initial canary address and value, read from the
+        auxiliary vector."""
+        auxval = self.auxiliary_vector
+        if not auxval:
+            return None
+        canary_location = auxval["AT_RANDOM"]
+        canary = gef.memory.read_integer(canary_location)
+        canary &= ~0xFF
+        return canary, canary_location
+
 
     @property
     def maps(self) -> Optional[pathlib.Path]:
