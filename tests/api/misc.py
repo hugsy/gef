@@ -41,6 +41,18 @@ class MiscFunctionTest(GefUnitTestGeneric):
         res = gdb_test_python_method(func)
         self.assertException(res)
 
+    def test_func_parse_maps(self):
+        func = "Permission.from_info_sections(' [10]     0x555555574000->0x55555557401b at 0x00020000: .init ALLOC LOAD READONLY CODE HAS_CONTENTS')"
+        res = gdb_test_python_method(func)
+        self.assertNoException(res)
+
+        func = "Permission.from_process_maps('0x0000555555554000 0x0000555555574000 0x0000000000000000 r-- /usr/bin/bash')"
+        res = gdb_test_python_method(func)
+        self.assertNoException(res)
+
+        func = "Permission.from_info_mem('ffffff2a65e0b000-ffffff2a65e0c000 0000000000001000 -r-')"
+        res = gdb_test_python_method(func)
+        self.assertNoException(res)
 
     @pytest.mark.slow
     @pytest.mark.online

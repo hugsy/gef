@@ -10274,16 +10274,11 @@ class GefMemoryManager(GefManager):
 
     def __parse_info_mem(self) -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `monitor info mem`"""
-        stream = StringIO(gdb.execute("monitor info mem", to_string=True))
-        for line in stream:
+        for line in StringIO(gdb.execute("monitor info mem", to_string=True)):
             if not line:
                 break
             try:
-                # FORMAT
-                # ffffff2a65e0b000-ffffff2a65e0c000 0000000000001000 -r-
-                # ^--- start       ^--- end         ^--- offset      ^^^-- perms
-                # `perms` are `urw`, for "usermode", "readable", "writable"
-                ranges, off, perms = line.split(" ")
+                ranges, off, perms = line.split()
                 off = int(off, 16)
                 start, end = [int(s, 16) for s in ranges.split("-")]
             except ValueError as e:
