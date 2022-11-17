@@ -2265,6 +2265,9 @@ class Architecture(ArchitectureBase):
     def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> Optional[int]:
         raise NotImplementedError
 
+    def canary_address(self) -> int:
+        raise NotImplementedError
+
     @classmethod
     def mprotect_asm(cls, addr: int, size: int, perm: Permission) -> str:
         raise NotImplementedError
@@ -2925,6 +2928,8 @@ class X86_64(X86):
         ]
         return "; ".join(insns)
 
+    def canary_address(self) -> int:
+        return self.register("fs_base") + 0x28
 
 class PowerPC(Architecture):
     aliases = ("PowerPC", Elf.Abi.POWERPC, "PPC")
@@ -10445,7 +10450,6 @@ class GefSessionManager(GefManager):
         self._os = None
         self._pid = None
         self._file = None
-        self._canary = None
         self._maps: Optional[pathlib.Path] = None
         self._root: Optional[pathlib.Path] = None
         return
@@ -10519,15 +10523,30 @@ class GefSessionManager(GefManager):
 
     @property
     def canary(self) -> Optional[Tuple[int, int]]:
-        """Returns a tuple of the canary address and value, read from the auxiliary vector."""
+        """Return a tuple of the canary address and value, read from the canonical
+        location if supported by the architecture. Otherwise, read from the auxiliary
+        vector."""
+        try:
+            canary_location = gef.arch.canary_address()
+            canary = gef.memory.read_integer(canary_location)
+        except NotImplementedError:
+            # Fall back to `AT_RANDOM`, which is the original source
+            # of the canary value but not the canonical location
+            return self.original_canary
+        return canary, canary_location
+
+    @property
+    def original_canary(self) -> Optional[Tuple[int, int]]:
+        """Return a tuple of the initial canary address and value, read from the
+        auxiliary vector."""
         auxval = self.auxiliary_vector
         if not auxval:
             return None
         canary_location = auxval["AT_RANDOM"]
         canary = gef.memory.read_integer(canary_location)
         canary &= ~0xFF
-        self._canary = (canary, canary_location)
-        return self._canary
+        return canary, canary_location
+
 
     @property
     def maps(self) -> Optional[pathlib.Path]:
