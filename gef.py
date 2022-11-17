@@ -3544,6 +3544,7 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
         gef.session.remote.close()
         del gef.session.remote
         gef.session.remote = None
+        gef.session.remote_initializing = False
     return
 
 
@@ -3757,7 +3758,7 @@ def is_in_x86_kernel(address: int) -> bool:
 
 def is_remote_debug() -> bool:
     """"Return True is the current debugging session is running through GDB remote session."""
-    return gef.session.remote is not None
+    return gef.session.remote_initializing or gef.session.remote is not None
 
 
 def de_bruijn(alphabet: bytes, n: int) -> Generator[str, None, None]:
@@ -5957,12 +5958,12 @@ class RemoteCommand(GenericCommand):
             return
 
         # try to establish the remote session, throw on error
-        # Set `.remote` to False here - `GefRemoteSessionManager` invokes code which
-        # calls `is_remote_debug` which checks if `.remote` is None
-        # Change it here early to prevent some spurious errors being thrown while the session
-        # starts up
-        gef.session.remote = False
+        # Set `.remote_initializing` to True here - `GefRemoteSessionManager` invokes code which
+        # calls `is_remote_debug` which checks if `remote_initializing` is True or `.remote` is None
+        # This prevents some spurious errors being thrown during startup
+        gef.session.remote_initializing = True
         gef.session.remote = GefRemoteSessionManager(args.host, args.port, args.pid, qemu_binary)
+        gef.session.remote_initializing = False
         reset_all_caches()
         gdb.execute("context")
         return
@@ -10475,6 +10476,7 @@ class GefSessionManager(GefManager):
     def __init__(self) -> None:
         self.reset_caches()
         self.remote: Optional["GefRemoteSessionManager"] = None
+        self.remote_initializing: bool = False
         self.qemu_mode: bool = False
         self.convenience_vars_index: int = 0
         self.heap_allocated_chunks: List[Tuple[int, int]] = []
