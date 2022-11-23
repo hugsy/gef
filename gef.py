@@ -627,21 +627,30 @@ class Permission(enum.Flag):
         perm_str += "x" if self & Permission.EXECUTE else "-"
         return perm_str
 
-    @staticmethod
-    def from_info_sections(*args: str) -> "Permission":
-        perm = Permission(0)
+    @classmethod
+    def from_info_sections(cls, *args: str) -> "Permission":
+        perm = cls(0)
         for arg in args:
             if "READONLY" in arg: perm |= Permission.READ
             if "DATA" in arg: perm |= Permission.WRITE
             if "CODE" in arg: perm |= Permission.EXECUTE
         return perm
 
-    @staticmethod
-    def from_process_maps(perm_str: str) -> "Permission":
-        perm = Permission(0)
+    @classmethod
+    def from_process_maps(cls, perm_str: str) -> "Permission":
+        perm = cls(0)
         if perm_str[0] == "r": perm |= Permission.READ
         if perm_str[1] == "w": perm |= Permission.WRITE
         if perm_str[2] == "x": perm |= Permission.EXECUTE
+        return perm
+
+    @classmethod
+    def from_info_mem(cls, perm_str: str) -> "Permission":
+        perm = cls(0)
+        # perm_str[0] shows if this is a user page, which
+        # we don't track
+        if perm_str[1] == "r": perm |= Permission.READ
+        if perm_str[2] == "w": perm |= Permission.WRITE
         return perm
 
 
@@ -3343,15 +3352,15 @@ def get_os() -> str:
 def is_qemu() -> bool:
     if not is_remote_debug():
         return False
-    response = gdb.execute('maintenance packet Qqemu.sstepbits', to_string=True, from_tty=False)
-    return 'ENABLE=' in response
+    response = gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False)
+    return "ENABLE=" in response
 
 
 @lru_cache()
 def is_qemu_usermode() -> bool:
     if not is_qemu():
         return False
-    response = gdb.execute('maintenance packet QOffsets', to_string=True, from_tty=False)
+    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False)
     return "Text=" in response
 
 
@@ -3359,8 +3368,8 @@ def is_qemu_usermode() -> bool:
 def is_qemu_system() -> bool:
     if not is_qemu():
         return False
-    response = gdb.execute('maintenance packet QOffsets', to_string=True, from_tty=False)
-    return 'received: ""' in response
+    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False)
+    return "received: \"\"" in response
 
 
 def get_filepath() -> Optional[str]:
@@ -3535,6 +3544,7 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
         gef.session.remote.close()
         del gef.session.remote
         gef.session.remote = None
+        gef.session.remote_initializing = False
     return
 
 
@@ -3748,7 +3758,7 @@ def is_in_x86_kernel(address: int) -> bool:
 
 def is_remote_debug() -> bool:
     """"Return True is the current debugging session is running through GDB remote session."""
-    return gef.session.remote is not None
+    return gef.session.remote_initializing or gef.session.remote is not None
 
 
 def de_bruijn(alphabet: bytes, n: int) -> Generator[str, None, None]:
@@ -5948,7 +5958,12 @@ class RemoteCommand(GenericCommand):
             return
 
         # try to establish the remote session, throw on error
+        # Set `.remote_initializing` to True here - `GefRemoteSessionManager` invokes code which
+        # calls `is_remote_debug` which checks if `remote_initializing` is True or `.remote` is None
+        # This prevents some spurious errors being thrown during startup
+        gef.session.remote_initializing = True
         gef.session.remote = GefRemoteSessionManager(args.host, args.port, args.pid, qemu_binary)
+        gef.session.remote_initializing = False
         reset_all_caches()
         gdb.execute("context")
         return
@@ -10188,6 +10203,12 @@ class GefMemoryManager(GefManager):
     def __parse_maps(self) -> List[Section]:
         """Return the mapped memory sections"""
         try:
+            if is_qemu_system():
+                return list(self.__parse_info_mem())
+        except gdb.error:
+            # Target may not support this command
+            pass
+        try:
             return list(self.__parse_procfs_maps())
         except FileNotFoundError:
             return list(self.__parse_gdb_info_sections())
@@ -10250,6 +10271,27 @@ class GefMemoryManager(GefManager):
             except ValueError:
                 continue
         return
+
+    def __parse_info_mem(self) -> Generator[Section, None, None]:
+        """Get the memory mapping from GDB's command `monitor info mem`"""
+        for line in StringIO(gdb.execute("monitor info mem", to_string=True)):
+            if not line:
+                break
+            try:
+                ranges, off, perms = line.split()
+                off = int(off, 16)
+                start, end = [int(s, 16) for s in ranges.split("-")]
+            except ValueError as e:
+                continue
+
+            perm = Permission.from_info_mem(perms)
+            yield Section(
+                page_start=start,
+                page_end=end,
+                offset=off,
+                permission=perm,
+                inode="",
+            )
 
 
 class GefHeapManager(GefManager):
@@ -10429,6 +10471,7 @@ class GefSessionManager(GefManager):
     def __init__(self) -> None:
         self.reset_caches()
         self.remote: Optional["GefRemoteSessionManager"] = None
+        self.remote_initializing: bool = False
         self.qemu_mode: bool = False
         self.convenience_vars_index: int = 0
         self.heap_allocated_chunks: List[Tuple[int, int]] = []
@@ -10461,7 +10504,8 @@ class GefSessionManager(GefManager):
     def auxiliary_vector(self) -> Optional[Dict[str, int]]:
         if not is_alive():
             return None
-
+        if is_qemu_system():
+            return None
         if not self._auxiliary_vector:
             auxiliary_vector = {}
             auxv_info = gdb.execute("info auxv", to_string=True)
