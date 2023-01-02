@@ -43,7 +43,7 @@ You can immediately see that GEF is correctly installed by launching GDB:
 A few of `GEF` features include:
 
   * **One** single GDB script
-  * Entirely **OS Agnostic**, **NO** dependencies: `GEF` is battery-included and [is installable instantly](https://hugsy.github.io/gef/#setup)
+  * Entirely **architecture agnostic**, **NO** dependencies: `GEF` is battery-included and [is installable instantly](https://hugsy.github.io/gef/#setup)
   * **Fast** limiting the number of dependencies and optimizing code to make the commands as fast as possible
   * Provides a great variety of commands to drastically change your experience in GDB.
   * [**Easily** extensible](https://hugsy.github.io/gef/api/) to create other commands by providing more comprehensible layout to GDB Python API.
