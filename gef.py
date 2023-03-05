@@ -2083,16 +2083,18 @@ def gef_disassemble(addr: int, nb_insn: int, nb_prev: int = 0) -> Generator[Inst
     nb_insn = max(1, nb_insn)
 
     if nb_prev:
-        start_addr = gdb_get_nth_previous_instruction_address(addr, nb_prev)
-        if start_addr:
-            for insn in gdb_disassemble(start_addr, count=nb_prev):
-                if insn.address == addr: break
-                yield insn
+        try:
+            start_addr = gdb_get_nth_previous_instruction_address(addr, nb_prev)
+            if start_addr:
+                    for insn in gdb_disassemble(start_addr, count=nb_prev):
+                        if insn.address == addr: break
+                        yield insn
+        except gdb.MemoryError:
+            # If the address pointing to the previous instruction(s) is not mapped, simply skip them
+            pass
 
     for insn in gdb_disassemble(addr, count=nb_insn):
         yield insn
-
-
 
 
 def gef_execute_external(command: Sequence[str], as_list: bool = False, **kwargs: Any) -> Union[str, List[str]]:
