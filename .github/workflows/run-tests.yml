@@ -77,7 +77,7 @@ jobs:
     - name: Run test coverage
       if: matrix.os == 'ubuntu-22.04'
       env:
-        ALLOWED_MARGIN: 0.05
+        ALLOWED_MARGIN: 0.01
         MIN_COVERAGE: 70
       run: |
         current_score=$(curl --silent https://hugsy.github.io/gef/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
@@ -85,4 +85,4 @@ jobs:
         new_score=$(cat docs/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         echo "New coverage score: ${new_score}% (current ${current_score}%)"
         python${{ env.PY_VER }} -c "( ${new_score} < ${{ env.MIN_COVERAGE}} ) and exit(1)"
-        python${{ env.PY_VER }} -c "( ${new_score} < ( ${current_score} - ${{ env.ALLOWED_MARGIN}} ) ) and exit(2)"
+        python${{ env.PY_VER }} -c "(( abs( ${current_score}-${new_score}) / ${current_score} ) >= ${{ env.ALLOWED_MARGIN}}) and exit(2)"
