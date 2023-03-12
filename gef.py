@@ -1193,30 +1193,9 @@ class Instruction:
     def size(self) -> int:
         return len(self.opcodes)
 
-
-@lru_cache()
+@deprecated("Use GefHeapManager.find_main_arena_addr()")
 def search_for_main_arena() -> int:
-    """A helper function to find the libc `main_arena` address, either from symbol or from its offset
-    from `__malloc_hook`."""
-    try:
-        addr = parse_address(f"&{LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME}")
-
-    except gdb.error:
-        malloc_hook_addr = parse_address("(void *)&__malloc_hook")
-
-        struct_size = ctypes.sizeof(GlibcArena.malloc_state_t())
-
-        if is_x86():
-            addr = align_address_to_size(malloc_hook_addr + gef.arch.ptrsize, 0x20)
-        elif is_arch(Elf.Abi.AARCH64):
-            addr = malloc_hook_addr - gef.arch.ptrsize*2 - struct_size
-        elif is_arch(Elf.Abi.ARM):
-            addr = malloc_hook_addr - gef.arch.ptrsize - struct_size
-        else:
-            raise OSError(f"Cannot find main_arena for {gef.arch.arch}")
-
-    return addr
-
+    return GefHeapManager.find_main_arena_addr()
 
 class GlibcHeapInfo:
     """Glibc heap_info struct"""
@@ -1319,8 +1298,8 @@ class GlibcArena:
         try:
             self.__address : int = parse_address(f"&{addr}")
         except gdb.error:
-            self.__address : int = search_for_main_arena()
-            # if `search_for_main_arena` throws `gdb.error` on symbol lookup:
+            self.__address : int = GefHeapManager.find_main_arena_addr()
+            # if `find_main_arena_addr` throws `gdb.error` on symbol lookup:
             # it means the session is not started, so just propagate the exception
         self.reset()
         return
@@ -1467,6 +1446,22 @@ class GlibcArena:
             default_mmap_threshold_max = 4 * 1024 * 1024 * cached_lookup_type("long").sizeof
         heap_max_size = 2 * default_mmap_threshold_max
         return ptr & ~(heap_max_size - 1)
+
+    @staticmethod
+    def verify(addr: int) -> bool:
+        """Verify that the address matches a possible valid GlibcArena"""
+        try:
+            test_arena = GlibcArena(f"*{addr:#x}")
+            cur_arena = GlibcArena(f"*{test_arena.next:#x}")
+            track_arenas = [cur_arena]
+            while (cur_arena != test_arena):
+                if cur_arena == 0:
+                    return False
+                cur_arena = GlibcArena(f"*{cur_arena.next:#x}")
+        except Exception as e:
+            dbg(f"Exception: {e}")
+            return False
+        return True
 
 
 class GlibcChunk:
@@ -1694,25 +1689,9 @@ class GlibcTcacheChunk(GlibcFastChunk):
 
     pass
 
-
-@lru_cache()
+@deprecated("Use GefLibcManager.find_libc_version()")
 def get_libc_version() -> Tuple[int, ...]:
-    sections = gef.memory.maps
-    for section in sections:
-        match = re.search(r"libc6?[-_](\d+)\.(\d+)\.so", section.path)
-        if match:
-            return tuple(int(_) for _ in match.groups())
-        if "libc" in section.path:
-            try:
-                with open(section.path, "rb") as f:
-                    data = f.read()
-            except OSError:
-                continue
-            match = re.search(PATTERN_LIBC_VERSION, data)
-            if match:
-                return tuple(int(_) for _ in match.groups())
-    return 0, 0
-
+    return GefLibcManager.find_libc_version()
 
 def titlify(text: str, color: Optional[str] = None, msg_color: Optional[str] = None) -> str:
     """Print a centered title."""
@@ -6055,7 +6034,7 @@ class GlibcHeapCommand(GenericCommand):
 
 @register
 class GlibcHeapSetArenaCommand(GenericCommand):
-    """Display information on a heap chunk."""
+    """Set the address of the main_arena or the currently selected arena."""
 
     _cmdline_ = "heap set-arena"
     _syntax_  = f"{_cmdline_} [address|&symbol]"
@@ -6066,28 +6045,36 @@ class GlibcHeapSetArenaCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    def do_invoke(self, argv: List[str]) -> None:
+    @parse_arguments({"addr": ""}, {"--reset": True})
+    def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         global gef
 
-        if not argv:
+        args: argparse.Namespace = kwargs["arguments"]
+        
+        if args.reset:
+            gef.heap.reset_caches()
+            return
+
+        if not args.addr:
             ok(f"Current arena set to: '{gef.heap.selected_arena}'")
             return
 
-        if is_hex(argv[0]):
-            new_arena_address = int(argv[0], 16)
+        if is_hex(args.addr):
+            new_arena_address = int(args.addr, 16)
         else:
-            new_arena_symbol = safe_parse_and_eval(argv[0])
+            new_arena_symbol = safe_parse_and_eval(args.addr)
             if not new_arena_symbol:
                 err("Invalid symbol for arena")
                 return
             new_arena_address = to_unsigned_long(new_arena_symbol)
 
         new_arena = GlibcArena( f"*{new_arena_address:#x}")
-        if new_arena not in gef.heap.arenas:
-            err("Invalid arena")
-            return
-
-        gef.heap.selected_arena = new_arena
+        if new_arena in gef.heap.arenas:
+            # if entered arena is in arena list then just select it
+            gef.heap.selected_arena = new_arena
+        else:
+            # otherwise set the main arena to the entered arena
+            gef.heap.main_arena = new_arena
         return
 
 
@@ -6293,7 +6280,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, argv: List[str]) -> None:
         # Determine if we are using libc with tcache built in (2.26+)
-        if get_libc_version() < (2, 26):
+        if gef.libc.version and gef.libc.version < (2, 26):
             info("No Tcache in this version of libc")
             return
 
@@ -10315,7 +10302,7 @@ class GefHeapManager(GefManager):
     def main_arena(self) -> Optional[GlibcArena]:
         if not self.__libc_main_arena:
             try:
-                __main_arena_addr = search_for_main_arena()
+                __main_arena_addr = GefHeapManager.find_main_arena_addr()
                 self.__libc_main_arena = GlibcArena(f"*{__main_arena_addr:#x}")
                 # the initialization of `main_arena` also defined `selected_arena`, so
                 # by default, `main_arena` == `selected_arena`
@@ -10325,11 +10312,74 @@ class GefHeapManager(GefManager):
                 pass
         return self.__libc_main_arena
 
+    @main_arena.setter
+    def main_arena(self, value: GlibcArena) -> None:
+        self.__libc_main_arena = value
+        return
+
+    @lru_cache()
+    @staticmethod
+    def find_main_arena_addr() -> int:
+        """A helper function to find the glibc `main_arena` address, either from
+        symbol, from its offset from `__malloc_hook` or by brute force."""
+        # First, try find `main_arena` symbol directly
+        try:
+            return parse_address(f"&{LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME}")
+        except gdb.error:
+            pass
+        
+        # Second, try to find it by offset from `__malloc_hook`
+        if gef and gef.libc.version and gef.libc.version < (2, 34):
+            try:
+                addr = None
+                malloc_hook_addr = parse_address("(void *)&__malloc_hook")
+
+                struct_size = ctypes.sizeof(GlibcArena.malloc_state_t())
+
+                if is_x86():
+                    addr = align_address_to_size(malloc_hook_addr + gef.arch.ptrsize, 0x20)
+                elif is_arch(Elf.Abi.AARCH64):
+                    addr = malloc_hook_addr - gef.arch.ptrsize*2 - struct_size
+                elif is_arch(Elf.Abi.ARM):
+                    addr = malloc_hook_addr - gef.arch.ptrsize - struct_size
+            except gdb.error:
+                pass
+               
+            # Verify the found address before returning
+            if addr and GlibcArena.verify(addr):
+                return addr
+
+        # Last Resort, try to find it via brute force
+        try:
+            dbg("Trying to bruteforce main_arena address")
+            # setup search_range for `main_arena` to `.data` of glibc
+            search_filter = lambda f: "libc" in f.filename and f.name == ".data"
+            dotdata = list(filter(search_filter, get_info_files()))[0]
+            search_range = range(dotdata.zone_start, dotdata.zone_end, 0x20)
+            # search for possible candidates
+            candidates = list(filter(GlibcArena.verify, search_range))
+            if len(candidates) == 1:
+                addr = candidates[0]
+                dbg(f"Found single candidate at {addr:#x}")
+                return addr
+            elif len(candidates) > 1:
+                gef_print(f"Found multiple possible candidates for main_arena:")
+                for candidate in candidates:
+                    gef_print(f"- {candidate:#x}")
+                gef_print(f"Please set the correct one with the `{ GlibcHeapSetArenaCommand._cmdline_}` command.")
+            else:
+                dbg("Bruteforce not successful")
+        except Exception:
+            pass
+
+        # Nothing helped
+        raise OSError(f"Cannot find main_arena for {gef.arch.arch}")
+
     @property
     def selected_arena(self) -> Optional[GlibcArena]:
         if not self.__libc_selected_arena:
             # `selected_arena` must default to `main_arena`
-            self.__libc_selected_arena = self.__libc_main_arena
+            self.__libc_selected_arena = self.main_arena
         return self.__libc_selected_arena
 
     @selected_arena.setter
@@ -10371,7 +10421,7 @@ class GefHeapManager(GefManager):
     @property
     def malloc_alignment(self) -> int:
         __default_malloc_alignment = 0x10
-        if get_libc_version() > (2, 25) and is_x86_32():
+        if gef.libc.version and gef.libc.version >= (2, 26) and is_x86_32():
             # Special case introduced in Glibc 2.26:
             # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
             return __default_malloc_alignment
@@ -10830,8 +10880,29 @@ class GefLibcManager(GefManager):
         if not is_alive():
             return None
         if not self._version:
-            self._version = get_libc_version()
+            self._version = GefLibcManager.find_libc_version()
         return self._version
+
+    @lru_cache()
+    @staticmethod
+    def find_libc_version() -> Tuple[int, ...]:
+        sections = gef.memory.maps
+        for section in sections:
+            match = re.search(r"libc6?[-_](\d+)\.(\d+)\.so", section.path)
+            if match:
+                return tuple(int(_) for _ in match.groups())
+            if "libc" in section.path:
+                try:
+                    with open(section.path, "rb") as f:
+                        data = f.read()
+                except OSError:
+                    continue
+                match = re.search(PATTERN_LIBC_VERSION, data)
+                if match:
+                    return tuple(int(_) for _ in match.groups())
+        return 0, 0
+
+
 
 
 class Gef:
