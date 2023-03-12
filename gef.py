@@ -1459,7 +1459,6 @@ class GlibcArena:
                     return False
                 cur_arena = GlibcArena(f"*{cur_arena.next:#x}")
         except Exception as e:
-            dbg(f"Exception: {e}")
             return False
         return True
 
