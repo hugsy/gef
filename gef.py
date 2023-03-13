@@ -65,7 +65,6 @@ import importlib
 import importlib.util
 import inspect
 import itertools
-import json
 import os
 import pathlib
 import platform
@@ -1977,7 +1976,7 @@ def gdb_get_location_from_symbol(address: int) -> Optional[Tuple[str, int]]:
     Return a tuple with the name and offset if found, None otherwise."""
     # this is horrible, ugly hack and shitty perf...
     # find a *clean* way to get gdb.Location from an address
-    sym = gdb.execute(f"info symbol {address:#x}", to_string=True)
+    sym = str(gdb.execute(f"info symbol {address:#x}", to_string=True))
     if sym.startswith("No symbol matches"):
         return None
 
@@ -1990,8 +1989,10 @@ def gdb_get_location_from_symbol(address: int) -> Optional[Tuple[str, int]]:
 
 
 def gdb_disassemble(start_pc: int, **kwargs: int) -> Generator[Instruction, None, None]:
-    """Disassemble instructions from `start_pc` (Integer). Accepts the following named parameters:
-    - `end_pc` (Integer) only instructions whose start address fall in the interval from start_pc to end_pc are returned.
+    """Disassemble instructions from `start_pc` (Integer). Accepts the following named
+    parameters:
+    - `end_pc` (Integer) only instructions whose start address fall in the interval from
+      start_pc to end_pc are returned.
     - `count` (Integer) list at most this many disassembled instructions
     If `end_pc` and `count` are not provided, the function will behave as if `count=1`.
     Return an iterator of Instruction objects
@@ -2091,16 +2092,18 @@ def gef_disassemble(addr: int, nb_insn: int, nb_prev: int = 0) -> Generator[Inst
     nb_insn = max(1, nb_insn)
 
     if nb_prev:
-        start_addr = gdb_get_nth_previous_instruction_address(addr, nb_prev)
-        if start_addr:
-            for insn in gdb_disassemble(start_addr, count=nb_prev):
-                if insn.address == addr: break
-                yield insn
+        try:
+            start_addr = gdb_get_nth_previous_instruction_address(addr, nb_prev)
+            if start_addr:
+                    for insn in gdb_disassemble(start_addr, count=nb_prev):
+                        if insn.address == addr: break
+                        yield insn
+        except gdb.MemoryError:
+            # If the address pointing to the previous instruction(s) is not mapped, simply skip them
+            pass
 
     for insn in gdb_disassemble(addr, count=nb_insn):
         yield insn
-
-
 
 
 def gef_execute_external(command: Sequence[str], as_list: bool = False, **kwargs: Any) -> Union[str, List[str]]:
@@ -4670,6 +4673,8 @@ class PrintFormatCommand(GenericCommand):
                 value = struct.unpack(fmt, gef.memory.read(addr, size))[0]
                 data += [value]
             sdata = ", ".join(map(hex, data))
+        else:
+            sdata = ""
 
         if args.lang == "bytearray":
             data = gef.memory.read(start_addr, args.length)
@@ -8313,7 +8318,7 @@ class ASLRCommand(GenericCommand):
         argc = len(argv)
 
         if argc == 0:
-            ret = gdb.execute("show disable-randomization", to_string=True)
+            ret = gdb.execute("show disable-randomization", to_string=True) or ""
             i = ret.find("virtual address space is ")
             if i < 0:
                 return
