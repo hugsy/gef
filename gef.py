@@ -1205,13 +1205,26 @@ class GlibcHeapInfo:
         class heap_info_cls(ctypes.Structure):
             pass
         pointer = ctypes.c_uint64 if gef and gef.arch.ptrsize == 8 else ctypes.c_uint32
-        heap_info_cls._fields_ = [
+        pad_size = -5 * gef.arch.ptrsize & (gef.heap.malloc_alignment - 1) 
+        fields = [
             ("ar_ptr", ctypes.POINTER(GlibcArena.malloc_state_t())),
             ("prev", ctypes.POINTER(heap_info_cls)),
-            ("size", pointer),
-            ("mprotect_size", pointer),
-            ("pad", pointer),
+            ("size", pointer)
         ]
+        if gef and gef.libc.version and gef.libc.version >= (2, 5):
+            fields += [
+                ("mprotect_size", pointer)
+            ]
+            pad_size = -6 * gef.arch.ptrsize & (gef.heap.malloc_alignment - 1)
+        if gef and gef.libc.version and gef.libc.version >= (2, 34):
+            fields += [
+                ("pagesize", pointer)
+            ]
+            pad_size = -3 * gef.arch.ptrsize & (gef.heap.malloc_alignment - 1)
+        fields += [
+            ("pad", ctypes.c_uint8*pad_size)
+        ]
+        heap_info_cls._fields_ = fields
         return heap_info_cls
 
     def __init__(self, addr: Union[str, int]) -> None:
@@ -1221,13 +1234,13 @@ class GlibcHeapInfo:
 
     def reset(self):
         self._sizeof = ctypes.sizeof(GlibcHeapInfo.heap_info_t())
-        self._data = gef.memory.read(self.__address, ctypes.sizeof(GlibcArena.malloc_state_t()))
-        self.__heap_info = GlibcArena.malloc_state_t().from_buffer_copy(self._data)
+        self._data = gef.memory.read(self.__address, ctypes.sizeof(GlibcHeapInfo.heap_info_t()))
+        self._heap_info = GlibcHeapInfo.heap_info_t().from_buffer_copy(self._data)
         return
 
     def __getattr__(self, item: Any) -> Any:
-        if item in dir(self.__heap_info):
-            return getattr(self.__heap_info, item)
+        if item in dir(self._heap_info):
+            return ctypes.cast(getattr(self._heap_info, item), ctypes.c_void_p).value
         return getattr(self, item)
 
     def __abs__(self) -> int:
@@ -1247,6 +1260,18 @@ class GlibcHeapInfo:
     @property
     def addr(self) -> int:
         return int(self)
+
+    @property
+    def heap_start(self) -> int:
+        if self.ar_ptr - self.address < 0x60:
+            # special case: first heap of non-main-arena
+            arena = GlibcArena(f"*{self.ar_ptr:#x}")
+            return arena.heap_addr()
+        return self.address + self.sizeof
+
+    @property
+    def heap_end(self) -> int:
+        return self.address + self.size
 
 
 class GlibcArena:
@@ -1430,7 +1455,7 @@ class GlibcArena:
             return None
         heap_addr = self.get_heap_for_ptr(self.top)
         heap_infos = [GlibcHeapInfo(heap_addr)]
-        while heap_infos[-1].prev != 0:
+        while heap_infos[-1].prev is not None:
             prev = int(heap_infos[-1].prev)
             heap_info = GlibcHeapInfo(prev)
             heap_infos.append(heap_info)
@@ -6154,10 +6179,21 @@ class GlibcHeapChunksCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args = kwargs["arguments"]
-        for arena in gef.heap.arenas:
-            self.dump_chunks_arena(arena, print_arena=args.all, allow_unaligned=args.allow_unaligned)
-            if not args.all:
-                break
+        if args.all or not args.arena_address:
+            for arena in gef.heap.arenas:
+                self.dump_chunks_arena(arena, print_arena=args.all, allow_unaligned=args.allow_unaligned)
+                if not args.all:
+                    break
+        elif is_hex(args.arena_address):
+            arena = GlibcArena(f"*{args.arena_address}")
+            self.dump_chunks_arena(arena, allow_unaligned=args.allow_unaligned)
+        else:
+            arena_symbol = safe_parse_and_eval(args.arena_address)
+            if not arena_symbol:
+                err("Invalid symbol for arena")
+                return
+            arena = to_unsigned_long(arena_symbol)
+            self.dump_chunks_arena(arena, allow_unaligned=args.allow_unaligned)
 
     def dump_chunks_arena(self, arena: GlibcArena, print_arena: bool = False, allow_unaligned: bool = False) -> None:
         heap_addr = arena.heap_addr(allow_unaligned=allow_unaligned)
@@ -6167,19 +6203,16 @@ class GlibcHeapChunksCommand(GenericCommand):
         if print_arena:
             gef_print(str(arena))
         if arena.is_main_arena():
-            self.dump_chunks_heap(heap_addr, arena, allow_unaligned=allow_unaligned)
+            heap_end = arena.top + GlibcChunk(arena.top, from_base=True).size
+            self.dump_chunks_heap(heap_addr, heap_end, arena, allow_unaligned=allow_unaligned)
         else:
             heap_info_structs = arena.get_heap_info_list() or []
-            first_heap_info = heap_info_structs.pop(0)
-            heap_info_t_size = int(arena) - first_heap_info.addr
-            if self.dump_chunks_heap(heap_addr, arena, allow_unaligned=allow_unaligned):
-                for heap_info in heap_info_structs:
-                    start = heap_info.addr + heap_info_t_size
-                    if not self.dump_chunks_heap(start, arena, allow_unaligned=allow_unaligned):
-                        break
+            for heap_info in heap_info_structs:
+                if not self.dump_chunks_heap(heap_info.heap_start, heap_info.heap_end, arena, allow_unaligned=allow_unaligned):
+                    break
         return
 
-    def dump_chunks_heap(self, start: int, arena: GlibcArena, allow_unaligned: bool = False) -> bool:
+    def dump_chunks_heap(self, start: int, end: int, arena: GlibcArena, allow_unaligned: bool = False) -> bool:
         nb = self["peek_nb_byte"]
         chunk_iterator = GlibcChunk(start, from_base=True, allow_unaligned=allow_unaligned)
         for chunk in chunk_iterator:
@@ -6188,7 +6221,7 @@ class GlibcHeapChunksCommand(GenericCommand):
                     f"{chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
                 break
 
-            if chunk.base_address > arena.top:
+            if chunk.base_address > end:
                 err("Corrupted heap, cannot continue.")
                 return False
 
