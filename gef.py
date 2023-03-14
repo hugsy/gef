@@ -10349,7 +10349,6 @@ class GefHeapManager(GefManager):
         self.__libc_main_arena = value
         return
 
-    @lru_cache()
     @staticmethod
     def find_main_arena_addr() -> int:
         """A helper function to find the glibc `main_arena` address, either from
@@ -10915,7 +10914,6 @@ class GefLibcManager(GefManager):
             self._version = GefLibcManager.find_libc_version()
         return self._version
 
-    @lru_cache()
     @staticmethod
     def find_libc_version() -> Tuple[int, ...]:
         sections = gef.memory.maps
