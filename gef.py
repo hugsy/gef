@@ -6083,14 +6083,11 @@ class GlibcHeapSetArenaCommand(GenericCommand):
             ok(f"Current arena set to: '{gef.heap.selected_arena}'")
             return
 
-        if is_hex(args.addr):
-            new_arena_address = int(args.addr, 16)
-        else:
-            new_arena_symbol = safe_parse_and_eval(args.addr)
-            if not new_arena_symbol:
-                err("Invalid symbol for arena")
-                return
-            new_arena_address = to_unsigned_long(new_arena_symbol)
+        try:
+            new_arena_address = parse_address(args.addr)
+        except gdb.error:
+            err("Invalid symbol for arena")
+            return
 
         new_arena = GlibcArena( f"*{new_arena_address:#x}")
         if new_arena in gef.heap.arenas:
@@ -9386,6 +9383,8 @@ class GefCommand(gdb.Command):
         gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, str, "Directory to use for temporary/cache content")
         gef.config["gef.show_deprecation_warnings"] = GefSetting(True, bool, "Toggle the display of the `deprecated` warnings")
         gef.config["gef.buffer"] = GefSetting(True, bool, "Internally buffer command output until completion")
+        gef.config["gef.bruteforce_main_arena"] = GefSetting(False, bool, "Allow bruteforcing main_arena symbol if everything else fails")
+        gef.config["gef.main_arena_offset"] = GefSetting("", str, "Offset from libc base address to main_arena symbol (int or hex). Set to empty string to disable.")
 
         self.commands : Dict[str, GenericCommand] = collections.OrderedDict()
         self.functions : Dict[str, GenericFunction] = collections.OrderedDict()
@@ -10353,7 +10352,22 @@ class GefHeapManager(GefManager):
     def find_main_arena_addr() -> int:
         """A helper function to find the glibc `main_arena` address, either from
         symbol, from its offset from `__malloc_hook` or by brute force."""
-        # First, try find `main_arena` symbol directly
+        # Before anything else, use libc offset from config if available
+        if gef and gef.config["gef.main_arena_offset"]:
+            try:
+                libc_base = get_section_base_address("libc")
+                offset = parse_address(gef.config["gef.main_arena_offset"])
+                if libc_base:
+                    dbg(f"Using main_arena_offset={offset:#x} from config")
+                    addr = libc_base + offset
+
+                    # Verify the found address before returning
+                    if GlibcArena.verify(addr):
+                        return addr
+            except gdb.error:
+                pass
+
+        # First, try to find `main_arena` symbol directly
         try:
             return parse_address(f"&{LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME}")
         except gdb.error:
@@ -10362,7 +10376,6 @@ class GefHeapManager(GefManager):
         # Second, try to find it by offset from `__malloc_hook`
         if gef and gef.libc.version and gef.libc.version < (2, 34):
             try:
-                addr = None
                 malloc_hook_addr = parse_address("(void *)&__malloc_hook")
 
                 struct_size = ctypes.sizeof(GlibcArena.malloc_state_t())
@@ -10373,38 +10386,40 @@ class GefHeapManager(GefManager):
                     addr = malloc_hook_addr - gef.arch.ptrsize*2 - struct_size
                 elif is_arch(Elf.Abi.ARM):
                     addr = malloc_hook_addr - gef.arch.ptrsize - struct_size
+                else:
+                    addr = None
+
+                # Verify the found address before returning
+                if addr and GlibcArena.verify(addr):
+                    return addr
+
             except gdb.error:
                 pass
                
-            # Verify the found address before returning
-            if addr and GlibcArena.verify(addr):
-                return addr
-
-        # Last Resort, try to find it via brute force
-        try:
-            dbg("Trying to bruteforce main_arena address")
-            # setup search_range for `main_arena` to `.data` of glibc
-            search_filter = lambda f: "libc" in f.filename and f.name == ".data"
-            dotdata = list(filter(search_filter, get_info_files()))[0]
-            search_range = range(dotdata.zone_start, dotdata.zone_end, 0x20)
-            # search for possible candidates
-            candidates = list(filter(GlibcArena.verify, search_range))
-            if len(candidates) == 1:
-                addr = candidates[0]
-                dbg(f"Found single candidate at {addr:#x}")
-                return addr
-            elif len(candidates) > 1:
-                gef_print(f"Found multiple possible candidates for main_arena:")
-                for candidate in candidates:
-                    gef_print(f"- {candidate:#x}")
-                gef_print(f"Please set the correct one with the `{ GlibcHeapSetArenaCommand._cmdline_}` command.")
-            else:
+        # Last resort, try to find it via brute force if enabled in settings
+        if gef and gef.config["gef.bruteforce_main_arena"]:
+            alignment = 0x8
+            try:
+                dbg("Trying to bruteforce main_arena address")
+                # setup search_range for `main_arena` to `.data` of glibc
+                search_filter = lambda f: "libc" in f.filename and f.name == ".data"
+                dotdata = list(filter(search_filter, get_info_files()))[0]
+                search_range = range(dotdata.zone_start, dotdata.zone_end, alignment)
+                # find first possible candidate
+                for addr in search_range:
+                    if GlibcArena.verify(addr):
+                        dbg(f"Found candidate at {addr:#x}")
+                        return addr
                 dbg("Bruteforce not successful")
-        except Exception:
-            pass
+            except Exception:
+                pass
 
         # Nothing helped
-        raise OSError(f"Cannot find main_arena for {gef.arch.arch}")
+        err_msg = f"Cannot find main_arena for {gef.arch.arch}. You might want to set a manually found libc offset "
+        if not gef.config["gef.bruteforce_main_arena"]:
+            err_msg += "or allow bruteforcing "
+        err_msg += "through the GEF config."
+        raise OSError(err_msg)
 
     @property
     def selected_arena(self) -> Optional[GlibcArena]:
