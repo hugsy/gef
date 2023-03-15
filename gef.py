@@ -10349,6 +10349,7 @@ class GefHeapManager(GefManager):
             base = 0
             try:
                 base = parse_address("mp_->sbrk_base")
+                base = self.malloc_align_address(base)
             except gdb.error:
                 # missing symbol, try again
                 base = 0
