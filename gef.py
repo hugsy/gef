@@ -1204,7 +1204,7 @@ class GlibcHeapInfo:
     def heap_info_t() -> Type[ctypes.Structure]:
         class heap_info_cls(ctypes.Structure):
             pass
-        pointer = ctypes.c_uint64 if gef and gef.arch.ptrsize == 8 else ctypes.c_uint32
+        pointer = ctypes.c_uint64 if gef.arch.ptrsize == 8 else ctypes.c_uint32
         pad_size = -5 * gef.arch.ptrsize & (gef.heap.malloc_alignment - 1) 
         fields = [
             ("ar_ptr", ctypes.POINTER(GlibcArena.malloc_state_t())),
