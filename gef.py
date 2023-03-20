@@ -1267,7 +1267,12 @@ class GlibcHeapInfo:
         if self.ar_ptr - self.address < 0x60:
             # special case: first heap of non-main-arena
             arena = GlibcArena(f"*{self.ar_ptr:#x}")
-            return arena.heap_addr() or 0
+            heap_addr = arena.heap_addr()
+            if heap_addr:
+                return heap_addr
+            else:
+                err(f"Cannot find heap address for arena {self.ar_ptr:#x}")
+                return 0
         return self.address + self.sizeof
 
     @property
@@ -6179,6 +6184,8 @@ class GlibcHeapChunksCommand(GenericCommand):
         if args.all or not args.arena_address:
             for arena in gef.heap.arenas:
                 self.dump_chunks_arena(arena, print_arena=args.all, allow_unaligned=args.allow_unaligned)
+                if not args.all:
+                    return
         try:
             arena_addr = parse_address(args.arena_address)
             arena = GlibcArena(f"*{arena_addr:#x}")
