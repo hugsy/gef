@@ -1202,6 +1202,7 @@ class GlibcHeapInfo:
 
     @staticmethod
     def heap_info_t() -> Type[ctypes.Structure]:
+        assert(gef and gef.libc)
         class heap_info_cls(ctypes.Structure):
             pass
         pointer = ctypes.c_uint64 if gef and gef.arch.ptrsize == 8 else ctypes.c_uint32
@@ -1211,12 +1212,12 @@ class GlibcHeapInfo:
             ("prev", ctypes.POINTER(heap_info_cls)),
             ("size", pointer)
         ]
-        if gef and gef.libc.version and gef.libc.version >= (2, 5):
+        if gef.libc.version >= (2, 5):
             fields += [
                 ("mprotect_size", pointer)
             ]
             pad_size = -6 * gef.arch.ptrsize & (gef.heap.malloc_alignment - 1)
-        if gef and gef.libc.version and gef.libc.version >= (2, 34):
+        if gef.libc.version >= (2, 34):
             fields += [
                 ("pagesize", pointer)
             ]
@@ -1266,7 +1267,7 @@ class GlibcHeapInfo:
         if self.ar_ptr - self.address < 0x60:
             # special case: first heap of non-main-arena
             arena = GlibcArena(f"*{self.ar_ptr:#x}")
-            return arena.heap_addr()
+            return arena.heap_addr() or 0
         return self.address + self.sizeof
 
     @property
@@ -1478,8 +1479,7 @@ class GlibcArena:
         try:
             test_arena = GlibcArena(f"*{addr:#x}")
             cur_arena = GlibcArena(f"*{test_arena.next:#x}")
-            track_arenas = [cur_arena]
-            while (cur_arena != test_arena):
+            while cur_arena != test_arena:
                 if cur_arena == 0:
                     return False
                 cur_arena = GlibcArena(f"*{cur_arena.next:#x}")
@@ -6179,18 +6179,13 @@ class GlibcHeapChunksCommand(GenericCommand):
         if args.all or not args.arena_address:
             for arena in gef.heap.arenas:
                 self.dump_chunks_arena(arena, print_arena=args.all, allow_unaligned=args.allow_unaligned)
-                if not args.all:
-                    break
-        elif is_hex(args.arena_address):
-            arena = GlibcArena(f"*{args.arena_address}")
+        try:
+            arena_addr = parse_address(args.arena_address)
+            arena = GlibcArena(f"*{arena_addr:#x}")
             self.dump_chunks_arena(arena, allow_unaligned=args.allow_unaligned)
-        else:
-            arena_symbol = safe_parse_and_eval(args.arena_address)
-            if not arena_symbol:
-                err("Invalid symbol for arena")
-                return
-            arena = to_unsigned_long(arena_symbol)
-            self.dump_chunks_arena(arena, allow_unaligned=args.allow_unaligned)
+        except gdb.error:
+            err("Invalid arena")
+            return
 
     def dump_chunks_arena(self, arena: GlibcArena, print_arena: bool = False, allow_unaligned: bool = False) -> None:
         heap_addr = arena.heap_addr(allow_unaligned=allow_unaligned)
@@ -10353,7 +10348,7 @@ class GefHeapManager(GefManager):
         """A helper function to find the glibc `main_arena` address, either from
         symbol, from its offset from `__malloc_hook` or by brute force."""
         # Before anything else, use libc offset from config if available
-        if gef and gef.config["gef.main_arena_offset"]:
+        if gef.config["gef.main_arena_offset"]:
             try:
                 libc_base = get_section_base_address("libc")
                 offset = parse_address(gef.config["gef.main_arena_offset"])
