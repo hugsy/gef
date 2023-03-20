@@ -27,7 +27,8 @@ when executing a `heap` command the next time, you can try this instead:
 gef➤ gef config gef.bruteforce_main_arena True
 ```
 
-Note that this might take a few seconds to complete. If GEF does find the symbol you can then calculate the offset to the libc base address and save it in the config.
+Note that this might take a few seconds to complete. If GEF does find the symbol
+you can then calculate the offset to the libc base address and save it in the config.
 
 
 ### `heap chunks` command ###
