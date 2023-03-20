@@ -10355,6 +10355,7 @@ class GefHeapManager(GefManager):
         return
 
     @staticmethod
+    @lru_cache()
     def find_main_arena_addr() -> int:
         """A helper function to find the glibc `main_arena` address, either from
         symbol, from its offset from `__malloc_hook` or by brute force."""
@@ -10936,6 +10937,7 @@ class GefLibcManager(GefManager):
         return self._version
 
     @staticmethod
+    @lru_cache()
     def find_libc_version() -> Tuple[int, ...]:
         sections = gef.memory.maps
         for section in sections:
