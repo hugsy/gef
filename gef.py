@@ -1264,8 +1264,12 @@ class GlibcHeapInfo:
 
     @property
     def heap_start(self) -> int:
+        # check special case: first heap of non-main-arena
         if self.ar_ptr - self.address < 0x60:
-            # special case: first heap of non-main-arena
+            # the first heap of a non-main-arena starts with a `heap_info`
+            # struct, which should fit easily into 0x60 bytes throughout
+            # all architectures and glibc versions. If this check succeeds
+            # then we are currently looking at such a "first heap"
             arena = GlibcArena(f"*{self.ar_ptr:#x}")
             heap_addr = arena.heap_addr()
             if heap_addr:
