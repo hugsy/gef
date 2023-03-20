@@ -10376,7 +10376,7 @@ class GefHeapManager(GefManager):
             pass
         
         # Second, try to find it by offset from `__malloc_hook`
-        if gef and gef.libc.version and gef.libc.version < (2, 34):
+        if gef.libc.version < (2, 34):
             try:
                 malloc_hook_addr = parse_address("(void *)&__malloc_hook")
 
@@ -10399,7 +10399,7 @@ class GefHeapManager(GefManager):
                 pass
                
         # Last resort, try to find it via brute force if enabled in settings
-        if gef and gef.config["gef.bruteforce_main_arena"]:
+        if gef.config["gef.bruteforce_main_arena"]:
             alignment = 0x8
             try:
                 dbg("Trying to bruteforce main_arena address")
@@ -10469,7 +10469,7 @@ class GefHeapManager(GefManager):
     @property
     def malloc_alignment(self) -> int:
         __default_malloc_alignment = 0x10
-        if gef.libc.version and gef.libc.version >= (2, 26) and is_x86_32():
+        if gef.libc.version >= (2, 26) and is_x86_32():
             # Special case introduced in Glibc 2.26:
             # https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
             return __default_malloc_alignment
