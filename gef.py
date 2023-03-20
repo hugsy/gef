@@ -1202,7 +1202,6 @@ class GlibcHeapInfo:
 
     @staticmethod
     def heap_info_t() -> Type[ctypes.Structure]:
-        assert(gef and gef.libc)
         class heap_info_cls(ctypes.Structure):
             pass
         pointer = ctypes.c_uint64 if gef and gef.arch.ptrsize == 8 else ctypes.c_uint32
