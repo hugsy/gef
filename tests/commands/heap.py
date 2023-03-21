@@ -64,6 +64,14 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertIn("Chunk(addr=", res)
         self.assertIn("top chunk", res)
 
+        cmd = "heap chunks"
+        target = _target("heap-non-main")
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertIn("Chunk(addr=", res)
+        self.assertIn("top chunk", res)
+        chunks = [line for line in res.splitlines() if "Chunk(addr=" in line]
+
         cmd = "python gdb.execute(f'heap chunks {int(list(gef.heap.arenas)[1]):#x}')"
         target = _target("heap-non-main")
         res = gdb_run_silent_cmd(cmd, target=target)
@@ -71,6 +79,9 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertNotIn("using '&main_arena' instead", res)
         self.assertIn("Chunk(addr=", res)
         self.assertIn("top chunk", res)
+        non_main_chunks = [line for line in res.splitlines() if "Chunk(addr=" in line]
+        # make sure that the chunks of each arena are distinct
+        self.assertNotEqual(chunks, non_main_chunks)
 
 
     def test_cmd_heap_chunks_mult_heaps(self):
@@ -107,7 +118,7 @@ class HeapCommand(GefUnitTestGeneric):
 
 
     def test_cmd_heap_bins_non_main(self):
-        cmd = "python gdb.execute(f'heap bins fast {gef.heap.main_arena.addr:#x}')"
+        cmd = "python gdb.execute(f'heap bins fast {gef.heap.main_arena.next:#x}')"
         before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
         target = _target("heap-non-main")
         res = gdb_run_silent_cmd(cmd, before=before, target=target)

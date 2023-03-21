@@ -9,6 +9,28 @@ for `malloc` structure information). Syntax to the subcommands is straight forwa
 gef➤ heap <sub_commands>
 ```
 
+## `main_arena` symbol ###
+
+If the linked glibc of the target program does not have debugging symbols it
+might be tricky for GEF to find the address of the `main_arena` which is needed
+for most of the `heap` subcommands. If you know the offset of this symbol from
+the glibc base address you can use GEF's config to provide said value:
+
+```
+gef➤ gef config gef.main_arena_offset <offset>
+```
+
+If you do not know this offset and you want GEF to try and find it via bruteforce
+when executing a `heap` command the next time, you can try this instead:
+
+```
+gef➤ gef config gef.bruteforce_main_arena True
+```
+
+Note that this might take a few seconds to complete. If GEF does find the symbol
+you can then calculate the offset to the libc base address and save it in the config.
+
+
 ### `heap chunks` command ###
 
 Displays all the chunks from the `heap` section of the current arena.
