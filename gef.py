@@ -1205,7 +1205,7 @@ class GlibcHeapInfo:
         class heap_info_cls(ctypes.Structure):
             pass
         pointer = ctypes.c_uint64 if gef.arch.ptrsize == 8 else ctypes.c_uint32
-        pad_size = -5 * gef.arch.ptrsize & (gef.heap.malloc_alignment - 1) 
+        pad_size = -5 * gef.arch.ptrsize & (gef.heap.malloc_alignment - 1)
         fields = [
             ("ar_ptr", ctypes.POINTER(GlibcArena.malloc_state_t())),
             ("prev", ctypes.POINTER(heap_info_cls)),
@@ -6082,7 +6082,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
         global gef
 
         args: argparse.Namespace = kwargs["arguments"]
-        
+
         if args.reset:
             gef.heap.reset_caches()
             return
@@ -8310,13 +8310,23 @@ class DereferenceCommand(GenericCommand):
             return
 
         if gef.config["context.grow_stack_down"] is True:
-            from_insnum = nb * (self.repeat_count + 1) - 1
-            to_insnum = self.repeat_count * nb - 1
-            insnum_step = -1
+            if nb > 0:
+                from_insnum = nb * (self.repeat_count + 1) - 1
+                to_insnum = self.repeat_count * nb - 1
+                insnum_step = -1
+            else:
+                from_insnum = 0 + self.repeat_count * nb
+                to_insnum = nb * (self.repeat_count + 1)
+                insnum_step = -1
         else:
-            from_insnum = 0 + self.repeat_count * nb
-            to_insnum = nb * (self.repeat_count + 1)
-            insnum_step = 1
+            if nb > 0:
+                from_insnum = 0 + self.repeat_count * nb
+                to_insnum = nb * (self.repeat_count + 1)
+                insnum_step = 1
+            else:
+                from_insnum = nb * (self.repeat_count + 1) + 1
+                to_insnum = (0 + self.repeat_count * nb) + 1
+                insnum_step = 1
 
         start_address = align_address(target_addr)
         base_offset = start_address - align_address(ref_addr)
@@ -10378,7 +10388,7 @@ class GefHeapManager(GefManager):
             return parse_address(f"&{LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME}")
         except gdb.error:
             pass
-        
+
         # Second, try to find it by offset from `__malloc_hook`
         if gef.libc.version < (2, 34):
             try:
@@ -10401,7 +10411,7 @@ class GefHeapManager(GefManager):
 
             except gdb.error:
                 pass
-               
+
         # Last resort, try to find it via brute force if enabled in settings
         if gef.config["gef.bruteforce_main_arena"]:
             alignment = 0x8
