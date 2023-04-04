@@ -34,7 +34,6 @@ class DereferenceCommand(GefUnitTestGeneric):
         ]
         res = gdb_start_silent_cmd(cmd=setup, after=cmd)
         self.assertNoException(res)
-        print(res)
 
         """
         Assuming the default config of grow_stack_down = False, $sp should look like this:
@@ -58,7 +57,6 @@ class DereferenceCommand(GefUnitTestGeneric):
         ]
         res = gdb_start_silent_cmd(cmd=setup, after=cmd)
         self.assertNoException(res)
-        print(res)
 
         """
         Assuming the default config of grow_stack_down = False, $sp should look like this:
