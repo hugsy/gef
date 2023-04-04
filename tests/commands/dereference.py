@@ -28,19 +28,21 @@ class DereferenceCommand(GefUnitTestGeneric):
 
         cmd = "dereference $sp -l 2"
         setup = [
+            "gef config context.grow_stack_down False",
             "set {char[9]} ($sp+0x8) = { 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x00 }",
             "set {char[9]} ($sp-0x8) = { 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x00 }"
         ]
         res = gdb_start_silent_cmd(cmd=setup, after=cmd)
         self.assertNoException(res)
+        print(res)
 
         """
-        Assuming the default config of grow_stack_down = True, $sp should look like this:
-        0x00007fffffffd278│+0x0008: "AAAAAAAA"
+        Assuming the default config of grow_stack_down = False, $sp should look like this:
         0x00007fffffffd270│+0x0000: 0x0000000000000000   ← $rsp
+        0x00007fffffffd278│+0x0008: "AAAAAAAA"
         Hence, we want to look at the second last line of the output
         """
-        res = res.splitlines()[-2]
+        res = res.splitlines()[-1]
         self.assertTrue("AAAAAAAA" in res)
         self.assertTrue("BBBBBBBB" not in res)
 
@@ -50,18 +52,20 @@ class DereferenceCommand(GefUnitTestGeneric):
 
         cmd = "dereference $sp -l -2"
         setup = [
+            "gef config context.grow_stack_down False",
             "set {char[9]} ($sp+0x8) = { 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x00 }",
             "set {char[9]} ($sp-0x8) = { 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x00 }"
         ]
         res = gdb_start_silent_cmd(cmd=setup, after=cmd)
         self.assertNoException(res)
+        print(res)
 
         """
-        Assuming the default config of grow_stack_down = True, $sp should look like this:
-        0x00007fffffffd270│+0x0000: 0x0000000000000000   ← $rsp
+        Assuming the default config of grow_stack_down = False, $sp should look like this:
         0x00007fffffffd268│-0x0008: "BBBBBBBB"
+        0x00007fffffffd270│+0x0000: 0x0000000000000000   ← $rsp
         Hence, we want to look at the last line of the output
         """
-        res = res.splitlines()[-1]
+        res = res.splitlines()[-2]
         self.assertTrue("AAAAAAAA" not in res)
         self.assertTrue("BBBBBBBB" in res)
