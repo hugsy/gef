@@ -8324,7 +8324,7 @@ class DereferenceCommand(GenericCommand):
                 to_insnum = nb * (self.repeat_count + 1)
             else:
                 from_insnum = nb * (self.repeat_count + 1) + 1
-                to_insnum = (0 + self.repeat_count * nb) + 1
+                to_insnum = (self.repeat_count * nb) + 1
 
         start_address = align_address(target_addr)
         base_offset = start_address - align_address(ref_addr)

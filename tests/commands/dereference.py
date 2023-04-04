@@ -39,11 +39,11 @@ class DereferenceCommand(GefUnitTestGeneric):
         Assuming the default config of grow_stack_down = False, $sp should look like this:
         0x00007fffffffd270│+0x0000: 0x0000000000000000   ← $rsp
         0x00007fffffffd278│+0x0008: "AAAAAAAA"
-        Hence, we want to look at the second last line of the output
+        Hence, we want to look at the last line of the output
         """
         res = res.splitlines()[-1]
-        self.assertTrue("AAAAAAAA" in res)
-        self.assertTrue("BBBBBBBB" not in res)
+        self.assertIn("AAAAAAAA", res)
+        self.assertNotIn("BBBBBBBB", res)
 
 
     def test_cmd_dereference_backwards(self):
@@ -62,8 +62,8 @@ class DereferenceCommand(GefUnitTestGeneric):
         Assuming the default config of grow_stack_down = False, $sp should look like this:
         0x00007fffffffd268│-0x0008: "BBBBBBBB"
         0x00007fffffffd270│+0x0000: 0x0000000000000000   ← $rsp
-        Hence, we want to look at the last line of the output
+        Hence, we want to look at the second last line of the output
         """
         res = res.splitlines()[-2]
-        self.assertTrue("AAAAAAAA" not in res)
-        self.assertTrue("BBBBBBBB" in res)
+        self.assertNotIn("AAAAAAAA", res)
+        self.assertIn("BBBBBBBB", res)
