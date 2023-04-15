@@ -281,6 +281,7 @@ Description:
 ### `context.nb_lines_backtrace`
 ```
 context.nb_lines_backtrace (int) = 10
+
 Description:
 	Number of line in the backtrace pane
 ```
