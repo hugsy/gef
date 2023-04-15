@@ -73,3 +73,56 @@ gef➤  heap-analysis-helper show
 ```
 
 ![heap-analysis-helper-show](https://i.imgur.com/0I4jBWJ.png)
+
+## Available settings for `heap-analysis-helper`
+
+
+### `heap-analysis-helper.check_free_null`
+
+```
+heap-analysis-helper.check_free_null (bool) = False
+
+Description:
+	Break execution when a free(NULL) is encountered
+```
+
+
+### `heap-analysis-helper.check_double_free`
+
+```
+heap-analysis-helper.check_double_free (bool) = True
+
+Description:
+	Break execution when a double free is encountered
+```
+
+
+### `heap-analysis-helper.check_weird_free`
+
+```
+heap-analysis-helper.check_weird_free (bool) = True
+
+Description:
+	Break execution when free() is called against a non-tracked pointer
+```
+
+
+### `heap-analysis-helper.check_uaf`
+
+```
+heap-analysis-helper.check_uaf (bool) = True
+
+Description:
+	Break execution when a possible Use-after-Free condition is found
+```
+
+
+### `heap-analysis-helper.check_heap_overlap`
+
+```
+heap-analysis-helper.check_heap_overlap (bool) = True
+
+Description:
+	Break execution when a possible overlap in allocation is found
+```
+
