@@ -24,10 +24,13 @@ jobs:
         current_score=$(curl --silent https://hugsy.github.io/gef/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         bash scripts/generate-coverage-docs.sh
         new_score=$(cat docs/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
-        cat >> /tmp/msg << EOF
+        commit=$(git rev-parse HEAD)
+        cat > /tmp/msg << EOF
+        Commit:${commit}
         New coverage score: ${new_score}%
         Current score: ${current_score}%
         EOF
+        cat /tmp/msg
         echo "msg=\"$(cat /tmp/msg)\"" >> $GITHUB_OUTPUT
 
     - uses: actions/github-script@v6
