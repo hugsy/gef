@@ -75,7 +75,7 @@ convenient for tracking the evolution of arbitrary locations in memory. Tracked
 locations can be removed one by one using `memory unwatch`, or altogether with
 `memory reset`.
 
-The size of most sections are also customizable:
+The size of most sections are also customizable (see [#Available-Settings] for a complete reference):
 
 * `nb_lines_stack` configures how many lines of the stack to show.
 * `nb_lines_backtrack` configures how many lines of the backtrace to show.
@@ -193,8 +193,164 @@ gef➤  gef config context.ignore_registers "$cs $ds $gs"
 gef➤  gef config context.show_source_code_variable_values 0
 ```
 
-* Show better definitions for call to libc functions.
+
+## Available settings
+
+
+### `context.enable`
 ```
-gef➤  gef config context.libc_args True
-gef➤  gef config context.libc_args_path /path/to/gef-extras/libc_args
+context.enable (bool) = True
+
+Description:
+	Enable/disable printing the context when breaking
+```
+
+
+### `context.show_source_code_variable_values`
+```
+context.show_source_code_variable_values (bool) = True
+
+Description:
+	Show extra PC context info in the source code
+```
+
+
+### `context.show_stack_raw`
+```
+context.show_stack_raw (bool) = False
+
+Description:
+	Show the stack pane as raw hexdump (no dereference)
+```
+
+
+### `context.show_registers_raw`
+```
+context.show_registers_raw (bool) = False
+
+Description:
+	Show the registers pane with raw values (no dereference)
+```
+
+
+### `context.show_opcodes_size`
+```
+context.show_opcodes_size (int) = 0
+
+Description:
+	Number of bytes of opcodes to display next to the disassembly
+```
+
+
+### `context.peek_calls`
+```
+context.peek_calls (bool) = True
+
+Description:
+	Peek into calls
+```
+
+
+### `context.peek_ret`
+```
+context.peek_ret (bool) = True
+
+Description:
+	Peek at return address
+```
+
+
+### `context.nb_lines_stack`
+```
+context.nb_lines_stack (int) = 8
+
+Description:
+	Number of line in the stack pane
+```
+
+
+### `context.grow_stack_down`
+```
+context.grow_stack_down (bool) = False
+
+Description:
+	Order of stack downward starts at largest down to stack pointer
+```
+
+
+### `context.nb_lines_backtrace`
+```
+context.nb_lines_backtrace (int) = 10
+Description:
+	Number of line in the backtrace pane
+```
+
+### `context.nb_lines_backtrace_before`
+```
+context.nb_lines_backtrace_before (int) = 2
+
+Description:
+	Number of line in the backtrace pane before selected frame
+```
+
+
+### `context.nb_lines_threads`
+```
+context.nb_lines_threads (int) = -1
+
+Description:
+	Number of line in the threads pane
+```
+
+
+### `context.nb_lines_code`
+
+```
+context.nb_lines_code (int) = 6
+context.nb_lines_code_prev (int) = 3
+```
+
+
+### `context.nb_lines_code_prev`
+```
+context.nb_lines_code_prev (int) = 3
+
+Description:
+	Number of instruction before $pc
+```
+
+
+### `context.ignore_registers`
+```
+context.ignore_registers (str) = ""
+
+Description:
+	Space-separated list of registers not to display (e.g. '$cs $ds $gs')
+```
+
+
+### `context.clear_screen`
+```
+context.clear_screen (bool) = False
+
+Description:
+	Clear the screen before printing the context
+```
+
+
+### `context.layout`
+```
+context.layout (str) = "legend regs stack code args source memory threads trace extra"
+
+Description:
+	Change the order/presence of the context sections
+```
+
+
+### `context.redirect`
+```
+context.redirect (str) = ""
+
+Description:
+	Redirect the context information to another TTY
 ```
