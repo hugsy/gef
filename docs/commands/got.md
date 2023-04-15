@@ -26,3 +26,25 @@ gef➤ got str get
 ```
 
 ![gef-got-multi-filter](https://i.imgur.com/7L2uLt8.png)
+
+## Available settings for `got`
+
+
+### `got.function_resolved`
+
+```
+got.function_resolved (str) = "green"
+
+Description:
+	Line color of the got command output for resolved function
+```
+
+
+### `got.function_not_resolved`
+
+```
+got.function_not_resolved (str) = "yellow"
+
+Description:
+	Line color of the got command output for unresolved function
+```

@@ -83,3 +83,16 @@ gef➤  dereference $sp -l -3
 0x00007fffffffcf78│-0x0008: 0x0000000000000020 (" "?)
 0x00007fffffffcf70│-0x0010: 0x000000000000000a ("\n"?)
 ```
+
+
+## Available settings for `dereference`
+
+
+### `dereference.max_recursion`
+
+```
+dereference.max_recursion (int) = 7
+
+Description:
+	Maximum level of pointer recursion
+```

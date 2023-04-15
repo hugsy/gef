@@ -19,3 +19,24 @@ will color the path taken:
 
 ![trace-run-2](https://i.imgur.com/oAGoSMQ.png)
 
+## Available settings for `trace-run`
+
+
+### `trace-run.max_tracing_recursion`
+
+```
+trace-run.max_tracing_recursion (int) = 1
+
+Description:
+	Maximum depth of tracing
+```
+
+
+### `trace-run.tracefile_prefix`
+
+```
+trace-run.tracefile_prefix (str) = "./gef-trace-"
+
+Description:
+	Specify the tracing output file prefix
+```

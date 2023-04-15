@@ -63,3 +63,15 @@ gef➤  pattern search aaaaaaac
 [+] Found at offset 16 (little-endian search) likely
 [+] Found at offset 9 (big-endian search)
 ```
+
+## Available settings for `pattern`
+
+
+### `pattern.length`
+
+```
+pattern.length (int) = 1024
+
+Description:
+	Default length of a cyclic buffer to generate
+```
