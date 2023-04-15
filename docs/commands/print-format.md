@@ -39,3 +39,16 @@ gef➤  patch byte $rip $_gef0
 ```
 
 Very handy to copy-paste-execute shellcodes/data from different memory regions.
+
+
+## Available settings for `print-format`
+
+
+### `print-format.max_size_preview`
+
+```
+print-format.max_size_preview (int) = 10
+
+Description:
+	max size preview of bytes
+```

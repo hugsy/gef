@@ -188,3 +188,56 @@ gef➤ pcustom list
 Should return several entries.
 
 And remember this is collaborative repository, so feel free to contribute too!
+
+
+## Available settings for `pcustom`
+
+
+### `pcustom.struct_path`
+
+```
+pcustom.struct_path (str) = "/tmp/gef/structs"
+
+Description:
+	Path to store/load the structure ctypes files
+```
+
+
+### `pcustom.max_depth`
+
+```
+pcustom.max_depth (int) = 4
+
+Description:
+	Maximum level of recursion supported
+```
+
+
+### `pcustom.structure_name`
+
+```
+pcustom.structure_name (str) = "bold blue"
+
+Description:
+	Color of the structure name
+```
+
+
+### `pcustom.structure_type`
+
+```
+pcustom.structure_type (str) = "bold red"
+
+Description:
+	Color of the attribute type
+```
+
+
+### `pcustom.structure_size`
+
+```
+pcustom.structure_size (str) = "green"
+
+Description:
+	Color of the attribute size
+```
