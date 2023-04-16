@@ -23,7 +23,7 @@ do
     command=$(echo ${setting_long} | cut -d . -f1)
     fname="${GEF_DOCS_DIR}/${command}.md"
     if [ ! -f ${fname} ]; then
-        echo -e "# Settings for command \`${command}\`\n\n" > $fname
+        echo -e "# Settings for command [\`${command}\`](/gef/commands/${command})\n\n" > $fname
         echo "  - ${command}: settings/${command}.md" >> ${GEF_MKDOC_YML}
     fi
 done < ${SETTINGS_FILE}
@@ -31,9 +31,10 @@ done < ${SETTINGS_FILE}
 gdb -q \
     -ex "gef config gef.disable_color 1" \
     -ex "pi for k,v in gef.config.items(): open(f'${GEF_DOCS_DIR}/{k.split(\".\",1)[0]}.md', 'a+').write(f'''
-## Setting \`{k}\`\n\n
-Type: \`{v.type.__name__}\`\n
-Default: \`{v.value}\`\n
-Description:\n> {v.description}\n
+##  \`{k.split(\".\",1)[1]}\`\n\n
+**Name** \`{k}\`\n
+**Type** \`{v.type.__name__}\`\n
+**Default**Value: \`{v.value}\`\n
+**Description** {v.description}\n
 ''')" \
     -ex quit > /dev/null
