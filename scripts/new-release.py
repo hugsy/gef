@@ -30,6 +30,7 @@ REPOSITORY     = "hugsy/gef"
 GITHUB_TOKEN   = os.getenv("GITHUB_REPO_TOKEN")
 DEBUG          = False
 OUTPUT_FILE    = pathlib.Path( tempfile.gettempdir() ) / "CHANGELOG.md"
+GITHUB_NEW_TOKEN_URL = "https://github.com/settings/personal-access-tokens/new"
 
 
 def dbg(x: str):
@@ -122,6 +123,15 @@ def generate_changelog(args: argparse.Namespace) -> bool:
     return True
 
 
+def test_token(args) -> bool:
+    url = f"https://api.github.com/repos/{args.repository}/issues"
+    req = requests.get(url, headers={"Authorization": f"token {args.token}"})
+    if req.status_code != 200:
+        print(f"test_token(): return HTTP code {req.status_code}")
+        print(f"Get a token from {GITHUB_NEW_TOKEN_URL} with 'Read-Only' privilege on Issues for the {args.repository} repository")
+    return req.status_code == 200
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(usage = __usage__, description = __desc__, prog = __file__)
     parser.add_argument("--debug", action="store_true", default=DEBUG,
@@ -139,7 +149,12 @@ if __name__ == "__main__":
     parser.add_argument("--push-release", action="store_true", default=False,
                         help="Create the new tag and publish the release on Github")
 
-    x = parser.parse_args()
-    DEBUG = x.debug
-    generate_changelog(x)
+    args = parser.parse_args()
+    DEBUG = args.debug
+
+    if not test_token(args):
+        dbg(f"The GITHUB_TOKEN is not valid")
+        exit(1)
+
+    generate_changelog(args)
     exit(0)
