@@ -23,7 +23,7 @@ do
     command=$(echo ${setting_long} | cut -d . -f1)
     fname="${GEF_DOCS_DIR}/${command}.md"
     if [ ! -f ${fname} ]; then
-        echo "# Settings for command \`${command}\`\n\n" > $fname
+        echo -e "# Settings for command \`${command}\`\n\n" > $fname
         echo "  - ${command}: settings/${command}.md" >> ${GEF_MKDOC_YML}
     fi
 done < ${SETTINGS_FILE}
