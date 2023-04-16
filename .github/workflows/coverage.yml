@@ -9,7 +9,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Run test coverage
-      id: get-coverage
+      id: get_coverage
       env:
         ALLOWED_MARGIN: 0.01
         MIN_COVERAGE: 70
@@ -24,21 +24,27 @@ jobs:
         current_score=$(curl --silent https://hugsy.github.io/gef/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         bash scripts/generate-coverage-docs.sh
         new_score=$(cat docs/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
+        diff_score=$(python -c "print(${new_score} - ${current_score})")
         commit=$(git rev-parse HEAD)
-        cat > /tmp/msg << EOF
-        Commit:${commit}
-        New coverage score: ${new_score}%
-        Current score: ${current_score}%
-        EOF
-        cat /tmp/msg
-        echo "msg=\"$(cat /tmp/msg)\"" >> $GITHUB_OUTPUT
+        echo "commit=${commit}" >> $GITHUB_OUTPUT
+        echo "new_coverage_score=${new_score}" >> $GITHUB_OUTPUT
+        echo "current_coverage_score=${current_score}" >> $GITHUB_OUTPUT
+        echo "diff_score=${diff_score}" >> $GITHUB_OUTPUT
 
     - uses: actions/github-script@v6
+      env:
+        COMMIT: ${{ steps.get_coverage.outputs.commit }}
+        SCORE_OLD: ${{ steps.get_coverage.outputs.current_coverage_score }}
+        SCORE_NEW: ${{ steps.get_coverage.outputs.new_coverage_score }}
+        SCORE_DIFF: ${{ steps.get_coverage.outputs.diff_score }}
       with:
         script: |
-          github.rest.pulls.createComment({
-            pull_number: context.pull.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: steps.get-coverage.outputs.msg
-          })
+          const comment = `## 🤖 Coverage Update
+
+            * Commit: ${process.env.COMMIT}
+            * Current Coverage: ${process.env.SCORE_OLD}%
+            * New Coverage: ${process.env.SCORE_NEW}%
+            * Diff: ${process.env.SCORE_DIFF} 
+          `;
+          const { owner, repo, number } = context.issue;
+          await github.rest.issues.createComment({ owner, repo, issue_number: number, body: comment });
