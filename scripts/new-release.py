@@ -46,7 +46,7 @@ def shell(x: str) -> str:
 
 def generate_changelog(args: argparse.Namespace) -> bool:
     """Generate the changelog for the new release."""
-    latest_tag = shell("git describe --abbrev=0")
+    latest_tag = shell("git describe --tags --abbrev=0")
 
     print(f"Creating changelog for {args.version} in {args.output_file.name}")
     args.output_file.write(f"# Changelog: {args.version} - {args.codename}{os.linesep}{os.linesep}")
