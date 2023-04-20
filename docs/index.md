@@ -17,7 +17,7 @@ distros start pushing `gdb` compiled with Python3 support).
 
   * **One** single GDB script
   * Entirely **architecture agnostic**, **NO** dependencies: `GEF` is battery-included and [is installable instantly](https://hugsy.github.io/gef/#setup)
-  * **Fast** limiting the number of dependencies and optimizing code to makethe commands as fast as possible
+  * **Fast** limiting the number of dependencies and optimizing code to make the commands as fast as possible
   * Provides a great variety of commands to drastically change your debugging experience in GDB.
   * [**Easily** extensible](https://hugsy.github.io/gef/api/) to create other commands by providing more comprehensible layout to GDB Python API.
   * Full Python3 support ([Python2 support was dropped in 2020.03](https://github.com/hugsy/gef/releases/tag/2020.03)) - check out [`gef-legacy`](https://github.com/hugsy/gef-legacy) for a Python2 compatible version, and [the compatibility matrix](/docs/compat.md) for a complete rundown of version support.
