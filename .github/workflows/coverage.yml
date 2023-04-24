@@ -1,6 +1,8 @@
 name: CI Coverage
 
-on: [pull_request]
+on:
+  pull_request:
+    types: [opened, edited]
 
 jobs:
   coverage:
@@ -38,13 +40,14 @@ jobs:
         SCORE_NEW: ${{ steps.get_coverage.outputs.new_coverage_score }}
         SCORE_DIFF: ${{ steps.get_coverage.outputs.diff_score }}
       with:
+        github-token: ${{ secrets.COVERAGE_REPORT_TOKEN }}
         script: |
           const comment = `## 🤖 Coverage Update
 
             * Commit: ${process.env.COMMIT}
             * Current Coverage: ${process.env.SCORE_OLD}%
             * New Coverage: ${process.env.SCORE_NEW}%
-            * Diff: ${process.env.SCORE_DIFF} 
+            * Diff: ${process.env.SCORE_DIFF}
           `;
           const { owner, repo, number } = context.issue;
           await github.rest.issues.createComment({ owner, repo, issue_number: number, body: comment });
