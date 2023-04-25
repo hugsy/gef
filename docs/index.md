@@ -8,8 +8,7 @@ be used mostly by exploit developers and reverse-engineers, to provide
 additional features to GDB using the Python API to assist during the process of
 dynamic analysis and exploit development.
 
-It has full support for both Python2 and Python3 indifferently (as more and more
-distros start pushing `gdb` compiled with Python3 support).
+It requires Python 3, but [`gef-legacy`](https://github.com/hugsy/gef-legacy) can be used if Python 2 support is needed.
 
 ![gef-context](https://i.imgur.com/E3EuQPs.png)
 
