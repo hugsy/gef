@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-    <a href="https://discord.gg/HCS8Hg7"><img alt="Discord" src="https://img.shields.io/badge/Discord-BlahCats-yellow"></a>
+    <a href="https://discord.gg/hSbqxxBgRX"><img alt="Discord" src="https://img.shields.io/badge/Discord-BlahCats-yellow"></a>
   <a href="https://hugsy.github.io/gef"><img alt="Docs" src="https://img.shields.io/badge/Docs-gh--pages-brightgreen"></a>
   <a title="Use the IDs: gef/gef-demo" href="https://demo.gef.blah.cat"><img alt="Try GEF" src="https://img.shields.io/badge/Demo-Try%20GEF%20Live-blue"></a>
 </p>
