@@ -8700,7 +8700,7 @@ class TraceRunCommand(GenericCommand):
         loc_cur = loc_start
         frame_count_init = self.get_frames_size()
 
-        gef_print("#",
+        print("#",
                   f"# Execution tracing of {get_filepath()}",
                   f"# Start address: {format_address(loc_start)}",
                   f"# End address: {format_address(loc_end)}",
@@ -8717,11 +8717,12 @@ class TraceRunCommand(GenericCommand):
                 else:
                     gdb.execute("finish")
 
+                gdb.execute("x/i $pc")
                 loc_cur = gef.arch.pc
                 gdb.flush()
 
             except gdb.error as e:
-                gef_print("#",
+                print("#",
                           f"# Execution interrupted at address {format_address(loc_cur)}",
                           f"# Exception: {e}",
                           "#\n", sep="\n")
