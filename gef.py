@@ -6029,9 +6029,9 @@ class NopCommand(GenericCommand):
             total_bytes = (last_addr - address) + gef_get_instruction_at(last_addr).size()
 
         if total_bytes % len(nop):
-            warn(f"Patching {total_bytes} bytes at {address:#x} will be result in a final uncomplete nop and maybe disas broken")
+            warn(f"Patching {total_bytes} bytes at {address:#x} will result in a partially patched instruction and may break disassembly")
         
-        nops = bytearray(nop * int(total_bytes / len(nop)))
+        nops = bytearray(nop * (total_bytes // len(nop)))
         end_address = Address(value=address + total_bytes)
         if not end_address.valid:
             err(f"Cannot patch instruction at {address:#x}: reaching unmapped area")
