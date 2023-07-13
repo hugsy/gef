@@ -6014,15 +6014,15 @@ class NopCommand(GenericCommand):
         args : argparse.Namespace = kwargs["arguments"]
         address = parse_address(args.address)
         nop = gef.arch.nop_insn
-        number_of_items = args.n or 1
+        num_items = args.n or 1
         as_bytes_flag = not args.b
 
         total_bytes = 0
         if as_bytes_flag:
             insn = gef_get_instruction_at(address)
-            if insn.size() != number_of_items:
-                warn(f"Patching {number_of_items} bytes at {address:#x} might result in corruption / disasm broken")
-            nops = bytearray(nop * number_of_items)
+            if insn.size() != num_items:
+                warn(f"Patching {num_items} bytes at {address:#x} might result in corruption / disasm broken")
+            nops = bytearray(nop * num_items)
             end_address = Address(value=address + len(nops))
             if not end_address.valid:
                 err(f"Cannot patch instruction at {address:#x}: reaching unmapped area")
@@ -6030,7 +6030,7 @@ class NopCommand(GenericCommand):
             total_bytes = len(nops)
         else:
             try:
-                total_bytes = gdb_get_nth_next_instruction_address(address, number_of_items + 1) - address
+                total_bytes = gdb_get_nth_next_instruction_address(address, num_items + 1) - address
             except:
                 err(f"Cannot patch instruction at {address:#x}: MAYBE reaching unmapped area")
                 return
