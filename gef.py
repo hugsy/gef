@@ -6015,34 +6015,30 @@ class NopCommand(GenericCommand):
         address = parse_address(args.address)
         nop = gef.arch.nop_insn
         num_items = args.n or 1
-        as_bytes_flag = not args.b
+        as_nops_flags = not args.b
 
         total_bytes = 0
-        if as_bytes_flag:
-            insn = gef_get_instruction_at(address)
-            if insn.size() != num_items:
-                warn(f"Patching {num_items} bytes at {address:#x} might result in corruption / disasm broken")
-            nops = bytearray(nop * num_items)
-            end_address = Address(value=address + len(nops))
-            if not end_address.valid:
-                err(f"Cannot patch instruction at {address:#x}: reaching unmapped area")
-                return
-            total_bytes = len(nops)
+        if as_nops_flags:
+            total_bytes = num_items * len(nop)
         else:
             try:
-                total_bytes = gdb_get_nth_next_instruction_address(address, num_items + 1) - address
+                last_addr = gdb_get_nth_next_instruction_address(address, num_items)
             except:
                 err(f"Cannot patch instruction at {address:#x}: MAYBE reaching unmapped area")
                 return
+            total_bytes = (last_addr - address) + gef_get_instruction_at(last_addr).size()
+
+        if total_bytes % len(nop):
+            warn(f"Patching {total_bytes} bytes at {address:#x} will be result in a final uncomplete nop and maybe disas broken")
         
-        nops = bytearray(nop * total_bytes)
-        end_address = Address(value=address + len(nops))
+        nops = bytearray(nop * int(total_bytes / len(nop)))
+        end_address = Address(value=address + total_bytes)
         if not end_address.valid:
             err(f"Cannot patch instruction at {address:#x}: reaching unmapped area")
             return
 
-        ok(f"Patching {len(nops)} bytes from {address:#x}")
-        gef.memory.write(address, nops, len(nops))
+        ok(f"Patching {total_bytes} bytes from {address:#x}")
+        gef.memory.write(address, nops, total_bytes)
         return
 
 
