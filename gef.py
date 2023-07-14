@@ -6030,9 +6030,9 @@ class NopCommand(GenericCommand):
 
         if total_bytes % len(nop):
             warn(f"Patching {total_bytes} bytes at {address:#x} will result in a partially patched instruction and may break disassembly")
-        
+
         nops = bytearray(nop * (total_bytes // len(nop)))
-        end_address = Address(value=address + total_bytes)
+        end_address = Address(value=address + total_bytes - 1)
         if not end_address.valid:
             err(f"Cannot patch instruction at {address:#x}: reaching unmapped area")
             return
