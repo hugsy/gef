@@ -6,7 +6,8 @@ This page illustrates a few of the possibilities available to you when using `GE
 
 ## Multi-architecture support
 
-`GEF` was designed to support any architecture supported by GDB via an easily extensible architecture API.
+`GEF` was designed to support any architecture supported by GDB via an easily
+extensible architecture API.
 
 Currently `GEF` supports the following architectures:
 
@@ -21,13 +22,16 @@ Currently `GEF` supports the following architectures:
 
 ### Embedded hexdump view
 
-To this day, GDB doesn't come with a hexdump-like view. Well `GEF` fixes that for you via the `hexdump` command:
+To this day, GDB doesn't come with a hexdump-like view. Well `GEF` fixes that
+for you via the `hexdump` command:
 
 ![hexdump](https://i.imgur.com/qt77lFQ.png)
 
 ### Dereferencing data or registers
 
-No more endless manual pointer dereferencing `x/x` style. Just use `dereference` for that. Or for a comprehensive view of the registers, `registers` might become your best friend:
+No more endless manual pointer dereferencing `x/x` style. Just use
+`dereference` for that. Or for a comprehensive view of the registers,
+`registers` might become your best friend:
 
 ![mipsel-deref-regs](https://i.imgur.com/f5ZaWDC.png)
 

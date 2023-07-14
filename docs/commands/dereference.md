@@ -71,8 +71,8 @@ gef➤  dereference $sp -l 7 -r $rbp
 0x00007ffe6ddaa410│+0x0000: 0x0000000000000000    ← $rbp
 ```
 
-Just like with `x`, you can pass a negative number of addresses to dereference, to examine memory backwards
-from the start address:
+Just like with `x`, you can pass a negative number of addresses to dereference,
+to examine memory backwards from the start address:
 ```
 gef➤  dereference $sp -l 3
 0x00007fffffffcf90│+0x0010: 0x00007ffff7f5aaa0  →  0x0000000000000000

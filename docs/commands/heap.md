@@ -83,7 +83,8 @@ this with the `--allow-unaligned` flag. Note that this might result in
 incorrect output.
 
 
-There is an optional `number` argument, to specify the number of chunks printed by this command. To do so, simply provide the `--number` argument:
+There is an optional `number` argument, to specify the number of chunks printed
+by this command. To do so, simply provide the `--number` argument:
 
 ```
 gef➤ heap chunk --number 6 0x4e5400

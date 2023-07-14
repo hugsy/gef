@@ -3,34 +3,63 @@
 
 ## Why use GEF over PEDA? ##
 
-[PEDA](https://github.com/longld/peda) is a fantastic tool that provides similar commands to make the exploitation development process smoother.
+[PEDA](https://github.com/longld/peda) is a fantastic tool that provides
+similar commands to make the exploitation development process smoother.
 
-However, PEDA suffers from a major drawbacks, which the code is too fundamentally linked to Intel architectures (x86-32 and x86-64). On the other hand, GEF not only supports all the architecture supported by GDB (currently x86, ARM, AARCH64, MIPS, PowerPC, SPARC) but is designed to integrate new architectures very easily as well!
+However, PEDA suffers from a major drawbacks, which the code is too
+fundamentally linked to Intel architectures (x86-32 and x86-64). On the other
+hand, GEF not only supports all the architecture supported by GDB (currently
+x86, ARM, AARCH64, MIPS, PowerPC, SPARC) but is designed to integrate new
+architectures very easily as well!
 
-Also, PEDA development has been quite idle for a few years now, and many new interesting features a debugger can provide simply do not exist.
+Also, PEDA development has been quite idle for a few years now, and many new
+interesting features a debugger can provide simply do not exist.
 
 ## What if my GDB is < 8.0 ? ##
 
-GDB was introduced with its Python support early 2011 with the release of GDB 7. A (very) long way has gone since and the Python API has been massively improved, and GEF is taking advantage of them to provide the coolest features with as little performance impact as possible.
+GDB was introduced with its Python support early 2011 with the release of GDB
+7. A (very) long way has gone since and the Python API has been massively
+improved, and GEF is taking advantage of them to provide the coolest features
+with as little performance impact as possible.
 
-Currently, GEF is optimized for running against GDB version 8.0+, and Python 3.6+. This allows for a best performance and best use of the GDB Python API. However, GEF can run on older versions too, check out [the version compatibility matrix](compat.md). For really older versions of GDB, you can use [`gef-legacy`](https://github.com/hugsy/gef-legacy) which supports a lot of older GDB, and a Python 2/3 compatibility layer.
+Currently, GEF is optimized for running against GDB version 8.0+, and Python
+3.6+. This allows for a best performance and best use of the GDB Python API.
+However, GEF can run on older versions too, check out [the version
+compatibility matrix](compat.md). For really older versions of GDB, you can use
+[`gef-legacy`](https://github.com/hugsy/gef-legacy) which supports a lot of
+older GDB, and a Python 2/3 compatibility layer.
 
-Therefore, it is highly recommended to run GEF with the latest version of GDB. However, all functions should work on a GDB 8.0 and up. If not, send a [bug report](https://github.com/hugsy/gef/issues) and provide as much details as possible.
+Therefore, it is highly recommended to run GEF with the latest version of GDB.
+However, all functions should work on a GDB 8.0 and up. If not, send a [bug
+report](https://github.com/hugsy/gef/issues) and provide as much details as
+possible.
 
-If you are running an obsolete version, GEF will show a error and message and exit.
+If you are running an obsolete version, GEF will show a error and message and
+exit.
 
-Some pre-compiled static binaries for both recent GDB and GDBServer can be downloaded from the [`gdb-static`](https://github.com/hugsy/gdb-static) repository.
+Some pre-compiled static binaries for both recent GDB and GDBServer can be
+downloaded from the [`gdb-static`](https://github.com/hugsy/gdb-static)
+repository.
 
 
 ## I cannot get GEF setup!! ##
 
-GEF will work on any GDB 8+ compiled with Python 3.6+ support. You can view that commands that failed to load using `gef missing`, but this will not affect GEF generally.
+GEF will work on any GDB 8+ compiled with Python 3.6+ support. You can view
+that commands that failed to load using `gef missing`, but this will not affect
+GEF generally.
 
-If you experience problems setting it up on your host, first go to the [Discord channel](https://discord.gg/HCS8Hg7) for that. You will find great people there willing to help.
+If you experience problems setting it up on your host, first go to the [Discord
+channel](https://discord.gg/HCS8Hg7) for that. You will find great people there
+willing to help.
 
-Note that the GitHub issue section is to be used to **report bugs** and **GEF issues** (like unexpected crash, improper error handling, weird edge case, etc.), not a place to ask for help.
+Note that the GitHub issue section is to be used to **report bugs** and **GEF
+issues** (like unexpected crash, improper error handling, weird edge case,
+etc.), not a place to ask for help.
 
-All recent distributions ship packaged GDB that should be ready-to-go, with a GDB >= 8.0 and Python 3.6+. Any version higher or equal will work just fine. So you might actually only need to run `apt install gdb` to get the full-force of GEF.
+All recent distributions ship packaged GDB that should be ready-to-go, with a
+GDB >= 8.0 and Python 3.6+. Any version higher or equal will work just fine. So
+you might actually only need to run `apt install gdb` to get the full-force of
+GEF.
 
 ## I get a SegFault when starting GDB with GEF ##
 
@@ -64,7 +93,8 @@ old `readline` library.
 
 ## Does GEF prevent the use of other GDB plugins? ##
 
-Definitely not! You can use any other GDB plugin on top of it for an even better debugging experience.
+Definitely not! You can use any other GDB plugin on top of it for an even
+better debugging experience.
 
 Some interesting plugins highly recommended too:
 
@@ -170,13 +200,20 @@ Discord is your answer: join and talk to us by clicking here
 
 [![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discord.gg/HCS8Hg7)
 
-If you cannot find the answer to your problem here or on the Discord, then go to the project [Issues page](https://github.com/hugsy/gef/issues) and fill up the forms with as much information as you can!
+If you cannot find the answer to your problem here or on the Discord, then go
+to the project [Issues page](https://github.com/hugsy/gef/issues) and fill up
+the forms with as much information as you can!
 
 ## How can I use GEF to debug a process in a container?
 
-GEF can attach to a process running in a container using `gdb --pid=$PID`, where `$PID` is the ID of the running process *on the host*. To find this, you can use `docker top <container ID> -o pid | awk '!/PID/' | xargs -I'{}' pstree -psa {}` to view the process tree for the container.
+GEF can attach to a process running in a container using `gdb --pid=$PID`,
+where `$PID` is the ID of the running process *on the host*. To find this, you
+can use `docker top <container ID> -o pid | awk '!/PID/' | xargs -I'{}' pstree
+-psa {}` to view the process tree for the container.
 
-`sudo` may be required to attach to the process, which will depend on your system's security settings.
+`sudo` may be required to attach to the process, which will depend on your
+system's security settings.
 
-Please note that cross-container debugging may have unexpected issues. Installing gdb and GEF inside the container, or using [the official GEF docker image](https://hub.docker.com/r/crazyhugsy/gef) may improve results.
-
+Please note that cross-container debugging may have unexpected issues.
+Installing gdb and GEF inside the container, or using [the official GEF docker
+image](https://hub.docker.com/r/crazyhugsy/gef) may improve results.

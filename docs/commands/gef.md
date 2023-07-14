@@ -20,7 +20,10 @@ bytearray                 -- BytearrayCommand: Generate a bytearray to be compar
 
 ### GEF Missing Command
 
-GEF is fully battery-included. However in some rare cases, it is possible that not all commands be loaded. If that's the case the command `gef missing` will detail which command failed to load, along with a (likely) reason. Read the documentation for a solution, or reach out on the Discord.
+GEF is fully battery-included. However in some rare cases, it is possible that
+not all commands be loaded. If that's the case the command `gef missing` will
+detail which command failed to load, along with a (likely) reason. Read the
+documentation for a solution, or reach out on the Discord.
 
 ```
 gef➤  gef missing
@@ -114,13 +117,16 @@ gef➤  gef run ./binary
 
 ### GEF Install Command
 
-`gef install` allows to install one (or more) specific script(s) from `gef-extras`. The new scripts will be downloaded and sourced to be used immediately after by GEF. The syntax is straight forward:
+`gef install` allows to install one (or more) specific script(s) from
+`gef-extras`. The new scripts will be downloaded and sourced to be used
+immediately after by GEF. The syntax is straight forward:
 
 ```
 gef➤  gef install SCRIPTNAME1 [SCRIPTNAME2...]
 ```
 
-Where `SCRIPTNAME1` ... are the names of script from the [`gef-extras` repository](https://github.com/hugsy/gef-extras/tree/main/scripts/).
+Where `SCRIPTNAME1` ... are the names of script from the [`gef-extras`
+repository](https://github.com/hugsy/gef-extras/tree/main/scripts/).
 
 
 ```
@@ -134,11 +140,15 @@ gef➤  gef install remote windbg stack
 gef➤
 ```
 
-This makes it easier to deploy new functionalities in limited environment. By default, the command looks up for script names in the `main` branch of `gef-extras`. However you can change specify a different branch through the `gef.default_branch` configuration setting:
+This makes it easier to deploy new functionalities in limited environment. By
+default, the command looks up for script names in the `main` branch of
+`gef-extras`. However you can change specify a different branch through the
+`gef.default_branch` configuration setting:
 
 ```
 gef➤ gef config gef.default_branch dev
 ```
 
-The files will be dowloaded in the path configured in the `gef.extra_plugins_dir` setting, allowing to reload it easily without having to re-download.
-
+The files will be dowloaded in the path configured in the
+`gef.extra_plugins_dir` setting, allowing to reload it easily without having to
+re-download.
