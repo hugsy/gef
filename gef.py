@@ -5986,6 +5986,40 @@ class RemoteCommand(GenericCommand):
 
 
 @register
+class SkipiCommand(GenericCommand):
+    """Skip N instruction(s) execution"""
+
+    _cmdline_ = "skipi"
+    _syntax_  = ("{_cmdline_} [LOCATION] [--n NUM_INSTRUCTIONS]"
+                "\n\tLOCATION\taddress/symbol from where to skip"
+                 "\t--n NUM_INSTRUCTIONS\tSkip the specified number of instructions instead of the default 1.")
+
+    _example_ = [f"{_cmdline_}",
+                 f"{_cmdline_} --n 3",
+                 f"{_cmdline_} 0x69696969",
+                 f"{_cmdline_} 0x69696969 --n 6",]
+
+    def __init__(self) -> None:
+        super().__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+    @only_if_gdb_running
+    @parse_arguments({"address": "$pc"}, {"--n": 1})
+    def do_invoke(self, _: List[str], **kwargs: Any) -> None:
+        args : argparse.Namespace = kwargs["arguments"]
+        address = parse_address(args.address)
+        num_instructions = args.n
+  
+        last_addr = gdb_get_nth_next_instruction_address(address, num_instructions)
+        total_bytes = (last_addr - address) + gef_get_instruction_at(last_addr).size()
+        target_addr  = address + total_bytes
+
+        info(f"skipping {num_instructions} instructions ({total_bytes} bytes) from {address:#x} to {target_addr:#x}")
+        gdb.execute(f"set $pc = {target_addr:#x}")
+        return
+        
+
+@register
 class NopCommand(GenericCommand):
     """Patch the instruction(s) pointed by parameters with NOP. Note: this command is architecture
     aware."""
