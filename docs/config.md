@@ -2,8 +2,8 @@
 
 GEF comes with its own configuration and customization system, allowing fine
 tweaking. The configuration file is located under `~/.gef.rc` by default, and
-is automatically loaded when GEF is loaded by GDB.
-If not configuration file is found, GEF will simply use the default settings.
+is automatically loaded when GEF is loaded by GDB. If not configuration file is
+found, GEF will simply use the default settings.
 
 The configuration file is a Python
 [`configparser`](https://docs.python.org/3/library/configparser.html). To

@@ -1,13 +1,11 @@
 ## Testing GEF
 
-This page describes how GEF testing is done. Any new command/functionality must
-receive adequate testing to be merged. Also PR failing CI (test + linting)
-won't be merged either.
+This page describes how GEF testing is done. Any new command/functionality must receive adequate
+testing to be merged. Also PR failing CI (test + linting) won't be merged either.
 
 ### Prerequisites
 
-All the prerequisite packages are in `requirements.txt` file at the root of the
-project. So running
+All the prerequisite packages are in `requirements.txt` file at the root of the project. So running
 
 ```bash
 python -m pip install -r tests/requirements.txt --user -U
@@ -19,24 +17,22 @@ is enough to get started.
 
 #### Basic `pytest`
 
-For testing GEF on the architecture on the host running the tests (most cases),
-simply run
+For testing GEF on the architecture on the host running the tests (most cases), simply run
 
 ```bash
 cd /root/of/gef
 python3 -m pytest -v -k "not benchmark" tests
 ```
 
-Note that to ensure compatibility, tests must be executed with the same Python
-version GDB was compiled against. To obtain this version, you can execute the
-following command:
+Note that to ensure compatibility, tests must be executed with the same Python version GDB was
+compiled against. To obtain this version, you can execute the following command:
 
 ```bash
 gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit
 ```
 
-At the end, a summary of explanation will be shown, clearly indicating the
-tests that have failed, for instance:
+At the end, a summary of explanation will be shown, clearly indicating the tests that have failed,
+for instance:
 
 ```text
 =================================== short test summary info ==================================
@@ -51,12 +47,11 @@ You can then use `pytest` directly to help you fix each error specifically.
 
 #### Using `pytest`
 
-GEF entirely relies on [`pytest`](https://pytest.org) for its testing. Refer to
-the project documentation for details.
+GEF entirely relies on [`pytest`](https://pytest.org) for its testing. Refer to the project
+documentation for details.
 
-Adding a new command __requires__ for extensive testing in a new dedicated test
-module that should be located in
-`/root/of/gef/tests/commands/my_new_command.py`
+Adding a new command __requires__ for extensive testing in a new dedicated test module that should
+be located in `/root/of/gef/tests/commands/my_new_command.py`
 
 A skeleton of a test module would look something like:
 
@@ -84,28 +79,25 @@ class MyCommandCommand(GefUnitTestGeneric):
         self.assertIn("Hello World", res)
 ```
 
-When running your test, you can summon `pytest` with the `--pdb` flag to enter
-the python testing environment to help you get more information about the
-reason of failure.
+When running your test, you can summon `pytest` with the `--pdb` flag to enter the python testing
+environment to help you get more information about the reason of failure.
 
-One of the most convenient ways to test `gef` properly is using the `pytest`
-integration of modern editors such as VisualStudio Code or PyCharm. Without
-proper tests, new code will not be integrated.
+One of the most convenient ways to test `gef` properly is using the `pytest` integration of modern
+editors such as VisualStudio Code or PyCharm. Without proper tests, new code will not be integrated.
 
 
 ### Linting GEF
 
-You can use the Makefile at the root of the project to get the proper linting
-settings. For most cases, the following command is enough:
+You can use the Makefile at the root of the project to get the proper linting settings. For most
+cases, the following command is enough:
 
 ```bash
 cd /root/of/gef
 python3 -m pylint --rcfile .pylintrc
 ```
 
-Note that to ensure compatibility, tests must be executed with the same Python
-version GDB was compiled against. To obtain this version, you can execute the
-following command:
+Note that to ensure compatibility, tests must be executed with the same Python version GDB was
+compiled against. To obtain this version, you can execute the following command:
 
 ```bash
 gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit

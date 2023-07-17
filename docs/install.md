@@ -4,17 +4,15 @@
 
 ### GDB
 
-Only [GDB 8 and higher](https://www.gnu.org/s/gdb) is required. It must be
-compiled with Python 3.6 or higher support. For most people, simply using your
-distribution package manager should be enough.
+Only [GDB 8 and higher](https://www.gnu.org/s/gdb) is required. It must be compiled with Python 3.6
+or higher support. For most people, simply using your distribution package manager should be enough.
 
-As of January 2020, GEF officially doesn't support Python 2 any longer, due to
-Python 2 becoming officially deprecated.
+As of January 2020, GEF officially doesn't support Python 2 any longer, due to Python 2 becoming
+officially deprecated.
 
-GEF will then only work for Python 3. If you absolutely require GDB + Python 2,
-please use [GEF-Legacy](https://github.com/hugsy/gef-legacy) instead. Note that
-`gef-legacy` won't provide new features, and only functional bugs will be
-handled.
+GEF will then only work for Python 3. If you absolutely require GDB + Python 2, please use
+[GEF-Legacy](https://github.com/hugsy/gef-legacy) instead. Note that `gef-legacy` won't provide new
+features, and only functional bugs will be handled.
 
 You can verify it with the following command:
 
@@ -34,20 +32,20 @@ $ gdb -nx -ex 'pi print(sys.version)' -ex quit
 
 There are **none**: `GEF` works out of the box!
 
-GEF itself provides most (if not all 🤯) features required for typical
-sessions. However, GEF can be easily extended via
- - community-built scripts, functions and architectures in the repo
+GEF itself provides most (if not all 🤯) features required for typical sessions. However, GEF can be
+easily extended via
+- community-built scripts, functions and architectures in the repo
    `gef-extras` (see below)
- - your own script which can leverage the GEF API for the heavy lifting
+- your own script which can leverage the GEF API for the heavy lifting
 
 
 ## Standalone
 
 ### Quick install
 
-The quickest way to get started with GEF is through the installation script
-available. Simply make sure you have [GDB 8.0 or
-higher](https://www.gnu.org/s/gdb), compiled with Python 3.6 or higher, and run
+The quickest way to get started with GEF is through the installation script available. Simply make
+sure you have [GDB 8.0 or higher](https://www.gnu.org/s/gdb), compiled with Python 3.6 or higher,
+and run
 
 ```bash
 bash -c "$(curl -fsSL https://gef.blah.cat/sh)"
@@ -65,8 +63,8 @@ $ gdb -q
 (gdb) pi import urllib.request as u, tempfile as t; g=t.NamedTemporaryFile(suffix='-gef.py'); open(g.name, 'wb+').write(u.urlopen('https://tinyurl.com/gef-main').read()); gdb.execute('source %s' % g.name)
 ```
 
-That's it! GEF is installed and correctly set up. You can confirm it by
-checking the `~/.gdbinit` file and see a line that sources (i.e. loads) GEF.
+That's it! GEF is installed and correctly set up. You can confirm it by checking the `~/.gdbinit`
+file and see a line that sources (i.e. loads) GEF.
 
 ```bash
 $ cat ~/.gdbinit
@@ -76,9 +74,8 @@ source ~/.gdbinit-gef.py
 
 ### Update
 
-If your host/VM is connected to the Internet, you can update `gef` easily to
-the latest version (even without `git` installed). with `python /path/to/gef.py
---update`
+If your host/VM is connected to the Internet, you can update `gef` easily to the latest version
+(even without `git` installed). with `python /path/to/gef.py --update`
 
 ```bash
 $ python ~/.gdbinit-gef.py --update

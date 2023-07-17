@@ -11,27 +11,26 @@ extensible architecture API.
 
 Currently `GEF` supports the following architectures:
 
- - Intel x86 (32b & 64b)
- - ARM (v6/v7)
- - AARCH64
- - MIPS/MIPS64
- - PowerPC
- - SPARC/SPARCv9
+- Intel x86 (32b & 64b)
+- ARM (v6/v7)
+- AARCH64
+- MIPS/MIPS64
+- PowerPC
+- SPARC/SPARCv9
 
 ## Features
 
 ### Embedded hexdump view
 
-To this day, GDB doesn't come with a hexdump-like view. Well `GEF` fixes that
-for you via the `hexdump` command:
+To this day, GDB doesn't come with a hexdump-like view. Well `GEF` fixes that for you via the
+`hexdump` command:
 
 ![hexdump](https://i.imgur.com/qt77lFQ.png)
 
 ### Dereferencing data or registers
 
-No more endless manual pointer dereferencing `x/x` style. Just use
-`dereference` for that. Or for a comprehensive view of the registers,
-`registers` might become your best friend:
+No more endless manual pointer dereferencing `x/x` style. Just use `dereference` for that. Or for a
+comprehensive view of the registers, `registers` might become your best friend:
 
 ![mipsel-deref-regs](https://i.imgur.com/f5ZaWDC.png)
 
