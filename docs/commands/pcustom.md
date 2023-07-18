@@ -1,8 +1,13 @@
 ## Command `pcustom`
 
-`gef` provides a way to create and apply to the currently debugged environment, any new structure (in the C-struct way). On top of simply displaying known and user-defined structures, it also allows to apply those structures to the current context. It intends to mimic the very useful [WinDBG `dt`](https://msdn.microsoft.com/en-us/library/windows/hardware/ff542772(v=vs.85).aspx) command.
+`gef` provides a way to create and apply to the currently debugged environment, any new structure
+(in the C-struct way). On top of simply displaying known and user-defined structures, it also allows
+to apply those structures to the current context. It intends to mimic the very useful [WinDBG
+`dt`](https://msdn.microsoft.com/en-us/library/windows/hardware/ff542772(v=vs.85).aspx) command.
 
-This is achieved via the command `pcustom` (for `print custom`), or you can use its alias, `dt` (in reference to the WinDBG command) as provided by the [`WinDbg compatibility extension`](https://github.com/hugsy/gef-extras/blob/main/scripts/windbg.py)
+This is achieved via the command `pcustom` (for `print custom`), or you can use its alias, `dt` (in
+reference to the WinDBG command) as provided by the [`WinDbg compatibility
+extension`](https://github.com/hugsy/gef-extras/blob/main/scripts/windbg.py)
 
 
 ### Configuration
@@ -11,7 +16,8 @@ New structures can be stored in the location given by the configuration setting:
 ```
 gef➤ gef config pcustom.struct_path
 ```
-By default, this location is in `$TEMP/gef/structs` (e.g. `/tmp/user/1000/gef/structs`). The structure can be created as a simple `ctypes` structure, in a file called `<struct_name>.py`.
+By default, this location is in `$TEMP/gef/structs` (e.g. `/tmp/user/1000/gef/structs`). The
+structure can be created as a simple `ctypes` structure, in a file called `<struct_name>.py`.
 
 You can naturally set this path to a new location
 ```
@@ -36,14 +42,17 @@ gef➤  pcustom list
 [...]
 ```
 
-To create or edit a structure, use `pcustom edit <struct_name>` to spawn your EDITOR with the targeted structure. If the file does not exist, `gef` will nicely create the tree and file, and fill it with a `ctypes` template that you can use straight away!
+To create or edit a structure, use `pcustom edit <struct_name>` to spawn your EDITOR with the
+targeted structure. If the file does not exist, `gef` will nicely create the tree and file, and fill
+it with a `ctypes` template that you can use straight away!
 
 ```
 gef➤  pcustom new mystruct_t
 [+] Creating '/tmp/gef/structs/mystruct_t.py' from template
 ```
 
-If the structure already exists, GEF will open the text editor to edit the known structure. This is equivalent to:
+If the structure already exists, GEF will open the text editor to edit the known structure. This is
+equivalent to:
 
 ```
 gef➤  pcustom edit elf32_t
@@ -84,7 +93,8 @@ class person_t(Structure):
     ]
 ```
 
-`pcustom` requires at least one argument, which is the name of the structure. With only one argument, `pcustom` will dump all the fields of this structure.
+`pcustom` requires at least one argument, which is the name of the structure. With only one
+argument, `pcustom` will dump all the fields of this structure.
 
 ```
 gef➤  dt person_t
@@ -93,9 +103,8 @@ gef➤  dt person_t
 +0104   id           c_int   /* size=0x4 */
 ```
 
-
-
-By providing an address or a GDB symbol, `gef` will apply this user-defined structure to the specified address:
+By providing an address or a GDB symbol, `gef` will apply this user-defined structure to the
+specified address:
 
 ![gef-pcustom-with-address](https://i.imgur.com/vWGnu5g.png)
 
@@ -105,19 +114,25 @@ For a full demo, watch the following tutorial:
 
 [![yt-gef-pcustom](https://img.youtube.com/vi/pid2aW7Bt_w/0.jpg)](https://www.youtube.com/watch?v=pid2aW7Bt_w)
 
-Additionally, if you have successfully configured your IDA settings, you can also directly import the structure(s) that was(were) reverse-engineered in IDA directly in your GDB session:
+Additionally, if you have successfully configured your IDA settings, you can also directly import
+the structure(s) that was(were) reverse-engineered in IDA directly in your GDB session:
 ![ida-structure-examples](https://i.imgur.com/Tnsf6nt.png) - (see `gef-extras/ida-rpyc`, which is the new improved version of `ida-interact`)
 
 
 #### Dynamic `ctypes.Structure`-like classes
 
-`pcustom` also supports the use of class factories to create a `ctypes.Structure` class whose structure will be adjusted based on the runtime information we provide (information about the currently debugged binary, the architecture, the size of a pointer and more).
+`pcustom` also supports the use of class factories to create a `ctypes.Structure` class whose
+structure will be adjusted based on the runtime information we provide (information about the
+currently debugged binary, the architecture, the size of a pointer and more).
 
-The syntax is relatively close to the way we use to create static classes (see above), but instead we define a function that will generate the class. The requirements for this class factory are:
-   - take a single [`Gef`](https://github.com/hugsy/gef/blob/dev/docs/api/gef.md#class-gef) positional argument
-   - End the function name with `_t`
+The syntax is relatively close to the way we use to create static classes (see above), but instead
+we define a function that will generate the class. The requirements for this class factory are:
+- take a single [`Gef`](https://github.com/hugsy/gef/blob/dev/docs/api/gef.md#class-gef) positional
+  argument
+- End the function name with `_t`
 
-To continue the `person_t` function we defined in the example above, we could modify the static class as a dynamic one very easily:
+To continue the `person_t` function we defined in the example above, we could modify the static
+class as a dynamic one very easily:
 
 ```python
 import ctypes
@@ -136,7 +151,8 @@ def person_t(gef: Optional["Gef"]=None):
     return person_cls
 ```
 
-Thanks to the `gef` parameter, the structure can be transparently adjusted so that GEF will parse it differently with its runtime information. For example, we can add constraints to the example above:
+Thanks to the `gef` parameter, the structure can be transparently adjusted so that GEF will parse it
+differently with its runtime information. For example, we can add constraints to the example above:
 
 ```python
 import ctypes
@@ -166,7 +182,8 @@ def person_t(gef: Optional["Gef"]==None):
 
 ### Public repository of structures
 
-A community contributed repository of structures can be found in [`gef-extras`](https://github.com/hugsy/gef-extras). To deploy it:
+A community contributed repository of structures can be found in
+[`gef-extras`](https://github.com/hugsy/gef-extras). To deploy it:
 
 In bash:
 ```
@@ -179,7 +196,8 @@ gef➤ gef config pcustom.struct_path /path/to/gef-extras/structs
 gef➤ gef save
 ```
 
-Then either close GDB or `gef reload`. You can confirm the structures were correctly loaded in GEF's prompt:
+Then either close GDB or `gef reload`. You can confirm the structures were correctly loaded in GEF's
+prompt:
 
 ```
 gef➤ pcustom list

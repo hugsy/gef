@@ -1,7 +1,6 @@
 ## Command `elf-info`
 
-`elf-info` (alias `elf`) provides some basic information on the currently
-loaded ELF binary:
+`elf-info` (alias `elf`) provides some basic information on the currently loaded ELF binary:
 
 ```
 gef➤  elf
@@ -65,8 +64,8 @@ Entry point           : 0x0000000000400750
   [28] .shstrtab                     STRTAB      0x0   0x20ac     0xfc      0x0        0x0  0x0      0x1
 ```
 
-Optionally a filepath to another ELF binary can be provided to view the basic
-information for that binary instead.
+Optionally a filepath to another ELF binary can be provided to view the basic information for that
+binary instead.
 
 ```
 gef➤ elf-info --filename /path/to/elf/executable

@@ -1,11 +1,13 @@
 ## Command `memory`
 
-As long as the 'memory' section is enabled in your context layout (which it is
-by default), you can register addresses, lengths, and grouping size.
+As long as the 'memory' section is enabled in your context layout (which it is by default), you can
+register addresses, lengths, and grouping size.
 
 ![memory watch](https://i.imgur.com/NXYwSwW.png)
 
-_Note_: this command **shoud NOT** be mistaken with the [GDB `watch` command](https://sourceware.org/gdb/current/onlinedocs/gdb/Set-Watchpoints.html) meant to set breakpoints on memory access (read,write,exec).
+_Note_: this command **shoud NOT** be mistaken with the [GDB `watch`
+command](https://sourceware.org/gdb/current/onlinedocs/gdb/Set-Watchpoints.html) meant to set
+breakpoints on memory access (read,write,exec).
 
 
 ### Adding a watch
@@ -17,10 +19,14 @@ Syntax:
 memory watch <ADDRESS> [SIZE] [(qword|dword|word|byte|pointers)]
 ```
 
-If the format specified is `pointers`, then the output will be similar to executing the command `dereference $address`.
-For all other format, the output will be an hexdump of the designated location.
+If the format specified is `pointers`, then the output will be similar to executing the command
+`dereference $address`. For all other format, the output will be an hexdump of the designated
+location.
 
-Note that the address format is a GDB therefore a symbol can be passed to it. It also supports [GEF functions format](https://www.technovelty.org/linux/plt-and-got-the-key-to-code-sharing-and-dynamic-libraries.html) allowing to easily track commonly used addresses:
+Note that the address format is a GDB therefore a symbol can be passed to it. It also supports [GEF
+functions
+format](https://www.technovelty.org/linux/plt-and-got-the-key-to-code-sharing-and-dynamic-libraries.html)
+allowing to easily track commonly used addresses:
 
 For example, to watch the first 5 entries of the [GOT]() as pointers:
 
@@ -64,4 +70,3 @@ Syntax:
 ```
 memory reset
 ```
-

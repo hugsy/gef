@@ -1,7 +1,6 @@
 ## Command `registers`
 
-The `registers` command will print all the registers and dereference any
-pointers.
+The `registers` command will print all the registers and dereference any pointers.
 
 Example on a MIPS host:
 
@@ -51,8 +50,8 @@ $gp       : 0x00418b20
 
 ### Filtering registers ###
 
-If one or more register names are passed to the `registers` command as optional
-arguments, then only those will be shown:
+If one or more register names are passed to the `registers` command as optional arguments, then only
+those will be shown:
 
 ```
 gef➤ reg $rax $rip $rsp
