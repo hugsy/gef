@@ -29,7 +29,7 @@
 #######################################################################################
 #
 # gef is distributed under the MIT License (MIT)
-# Copyright (c) 2013-2022 crazy rabbidz
+# Copyright (c) 2013-2023 crazy rabbidz
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -1202,6 +1202,7 @@ class GlibcHeapInfo:
 
     @staticmethod
     def heap_info_t() -> Type[ctypes.Structure]:
+        assert gef.libc.version
         class heap_info_cls(ctypes.Structure):
             pass
         pointer = ctypes.c_uint64 if gef.arch.ptrsize == 8 else ctypes.c_uint32
@@ -3508,7 +3509,7 @@ def is_hex(pattern: str) -> bool:
     return len(pattern) % 2 == 0 and all(c in string.hexdigits for c in pattern[2:])
 
 
-def continue_handler(_: "gdb.Event") -> None:
+def continue_handler(_: "gdb.ContinueEvent") -> None:
     """GDB event handler for new object continue cases."""
     return
 
@@ -3552,13 +3553,27 @@ def new_objfile_handler(evt: Optional["gdb.NewObjFileEvent"]) -> None:
 def exit_handler(_: "gdb.ExitedEvent") -> None:
     """GDB event handler for exit cases."""
     global gef
+    # flush the caches
     reset_all_caches()
+
+    # disconnect properly the remote session
     gef.session.qemu_mode = False
     if gef.session.remote:
         gef.session.remote.close()
         del gef.session.remote
         gef.session.remote = None
         gef.session.remote_initializing = False
+
+    # if `autosave_breakpoints_file` setting is configured, save the breakpoints to disk
+    bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
+    if bkp_fpath.exists():
+        warn(f"{bkp_fpath} exists, content will be overwritten")
+
+    with bkp_fpath.open("w+") as fd:
+        for bp in gdb.breakpoints():
+            if not bp.enabled or not bp.is_valid:
+                continue
+            fd.write(f"{'t' if bp.temporary else ''}break {bp.location}\n")
     return
 
 
@@ -3931,7 +3946,7 @@ def set_arch(arch: Optional[str] = None, _: Optional[str] = None) -> None:
 #
 
 @only_if_events_supported("cont")
-def gef_on_continue_hook(func: Callable[["gdb.ThreadEvent"], None]) -> None:
+def gef_on_continue_hook(func: Callable[["gdb.ContinueEvent"], None]) -> None:
     gdb.events.cont.connect(func)
 
 
@@ -10383,6 +10398,7 @@ class GefHeapManager(GefManager):
     @staticmethod
     @lru_cache()
     def find_main_arena_addr() -> int:
+        assert gef.libc.version
         """A helper function to find the glibc `main_arena` address, either from
         symbol, from its offset from `__malloc_hook` or by brute force."""
         # Before anything else, use libc offset from config if available
@@ -10499,6 +10515,7 @@ class GefHeapManager(GefManager):
 
     @property
     def malloc_alignment(self) -> int:
+        assert gef.libc.version
         __default_malloc_alignment = 0x10
         if gef.libc.version >= (2, 26) and is_x86_32():
             # Special case introduced in Glibc 2.26:
@@ -11104,7 +11121,8 @@ if __name__ == "__main__":
     gef_on_memchanged_hook(memchanged_handler)
     gef_on_regchanged_hook(regchanged_handler)
 
-    if gdb.current_progspace().filename is not None:
+    progspace = gdb.current_progspace()
+    if progspace and progspace.filename:
         # if here, we are sourcing gef from a gdb session already attached, force call to new_objfile (see issue #278)
         new_objfile_handler(None)
 
@@ -11114,3 +11132,8 @@ if __name__ == "__main__":
     errmsg = "Using `target remote` with GEF does not work, use `gef-remote` instead. You've been warned."
     gdb.execute(f"define target hook-remote\n pi if calling_function() != \"connect\": err(\"{errmsg}\") \nend")
     gdb.execute(f"define target hook-extended-remote\n pi if calling_function() != \"connect\": err(\"{errmsg}\") \nend")
+
+    # restore saved breakpoints (if any)
+    bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
+    if bkp_fpath.exists() and bkp_fpath.is_file():
+        gdb.execute(f"source {bkp_fpath}")
