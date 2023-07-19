@@ -1,8 +1,8 @@
 ## Command `shellcode`
 
-`shellcode` is a command line client for @JonathanSalwan shellcodes database. It
-can be used to search and download directly via `GEF` the shellcode you're
-looking for. Two primitive subcommands are available, `search` and `get`
+`shellcode` is a command line client for @JonathanSalwan shellcodes database. It can be used to
+search and download directly via `GEF` the shellcode you're looking for. Two primitive subcommands
+are available, `search` and `get`
 
 ```
 gef➤ shellcode search arm
