@@ -6029,7 +6029,6 @@ class NopCommand(GenericCommand):
                  "\n\tLOCATION\taddress/symbol to patch"
                  "\t--n NUM_ITEMS\tInstead of writing one instruction/nop, patch the specified number of instructions/nops (full instruction size by default)"
                  "\t--b\tInstead of writing full instruction size, patch the specified number of nops")
-    _example_ = f"{_cmdline_} $pc"
 
     _example_ = [f"{_cmdline_}",
                  f"{_cmdline_} $pc+3",
