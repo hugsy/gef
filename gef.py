@@ -2508,8 +2508,7 @@ class ARM(Architecture):
                      "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$sp",
                      "$lr", "$pc", "$cpsr",)
 
-    # https://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
-    nop_insn = b"\x01\x10\xa0\xe1" # mov r1, r1
+    nop_insn = b"\x00\xf0\x20\xe3" # hint #0
     return_register = "$r0"
     flag_register: str = "$cpsr"
     flags_table = {
@@ -2674,6 +2673,7 @@ class AARCH64(ARM):
         5: "t32",
         4: "m[4]",
     }
+    nop_insn = b"\x1f\x20\x03\xd5" # hint #0
     function_parameters = ("$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7",)
     syscall_register = "$x8"
     syscall_instructions = ("svc $x0",)
@@ -10267,8 +10267,9 @@ class GefMemoryManager(GefManager):
         self.__maps = None
         return
 
-    def write(self, address: int, buffer: ByteString, length: int = 0x10) -> None:
+    def write(self, address: int, buffer: ByteString, length: Optional[int]) -> None:
         """Write `buffer` at address `address`."""
+        length = length or len(buffer)
         gdb.selected_inferior().write_memory(address, buffer, length)
 
     def read(self, addr: int, length: int = 0x10) -> bytes:
