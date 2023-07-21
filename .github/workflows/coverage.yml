@@ -1,4 +1,4 @@
-name: CI Coverage
+name: CI Coverage for PR
 
 on:
   pull_request:
@@ -40,7 +40,6 @@ jobs:
         SCORE_NEW: ${{ steps.get_coverage.outputs.new_coverage_score }}
         SCORE_DIFF: ${{ steps.get_coverage.outputs.diff_score }}
       with:
-        github-token: ${{ secrets.COVERAGE_REPORT_TOKEN }}
         script: |
           const comment = `## 🤖 Coverage Update
 
