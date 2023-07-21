@@ -25,12 +25,11 @@ GDB: 9.2
 GDB-Python: 3.8
 ```
 
-The `Blob Hash` can be used to easily find the git commit(s) matching
-this file revision.
+The `Blob Hash` can be used to easily find the git commit(s) matching this file revision.
 
 ```
 git log --oneline --find-object <BLOB_HASH>
 ```
 
-If this command does not return anything then the file was most likely
-modified and cannot be matched to a specific git commit.
+If this command does not return anything then the file was most likely modified and cannot be
+matched to a specific git commit.

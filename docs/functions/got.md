@@ -12,4 +12,3 @@ Example:
 ```
 gef➤ p $_got(0x20)
 ```
-

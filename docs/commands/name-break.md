@@ -1,17 +1,15 @@
 ## Command `name-break`
 
-The command `name-break` (alias `nb`) can be used to set a breakpoint on
-a location with a name assigned to it.
+The command `name-break` (alias `nb`) can be used to set a breakpoint on a location with a name
+assigned to it.
 
-Every time this breakpoint is hit, the specified name will also be shown
-in the `extra` section to make it easier to keep an overview when using
-multiple breakpoints in a stripped binary.
+Every time this breakpoint is hit, the specified name will also be shown in the `extra` section to
+make it easier to keep an overview when using multiple breakpoints in a stripped binary.
 
 `name-break name [address]`
 
-`address` may be a linespec, address, or explicit location, same as specified
-for `break`. If `address` isn't specified, it will create the breakpoint at the
-current instruction pointer address.
+`address` may be a linespec, address, or explicit location, same as specified for `break`. If
+`address` isn't specified, it will create the breakpoint at the current instruction pointer address.
 
 Examples:
 

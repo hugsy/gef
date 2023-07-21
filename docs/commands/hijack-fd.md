@@ -16,7 +16,8 @@ Will modify the current process file descriptors to redirect STDOUT to
 `/dev/null`.
 
 
-This command also supports connecting to an ip:port if it is provided as an argument. For example
+This command also supports connecting to an ip:port if it is provided as an
+argument. For example
 ```
 gef➤ hijack-fd 0 localhost:8888
 ```

@@ -1,16 +1,14 @@
 ## Command `dereference`
 
-The `dereference` command (also aliased `telescope` for PEDA former users) aims
-to simplify the dereferencing of an address in GDB to determine the content it
-actually points to.
+The `dereference` command (also aliased `telescope` for PEDA former users) aims to simplify the
+dereferencing of an address in GDB to determine the content it actually points to.
 
-It is a useful convienence function to spare to process of manually tracking
-values with successive `x/x` in GDB.
+It is a useful convienence function to spare to process of manually tracking values with successive
+`x/x` in GDB.
 
-`dereference` takes three optional arguments, a start address (or symbol or
-register, etc) to dereference (by default, `$sp`), the number of consecutive
-addresses to dereference (by default, `10`) and the base location for offset
-calculation (by default the same as the start address):
+`dereference` takes three optional arguments, a start address (or symbol or register, etc) to
+dereference (by default, `$sp`), the number of consecutive addresses to dereference (by default,
+`10`) and the base location for offset calculation (by default the same as the start address):
 
 ```
 gef➤  dereference
@@ -40,11 +38,11 @@ gef➤  telescope $rbp+0x10 -l 8
 0x00007fffffffdf78│+0x0038: 0x0000000000000000
 ```
 
-It also optionally accepts a second argument, the number of consecutive
-addresses to dereference (by default, `10`).
+It also optionally accepts a second argument, the number of consecutive addresses to dereference (by
+default, `10`).
 
-For example, if you want to dereference all the stack entries inside a function
-context (on a 64bit architecture):
+For example, if you want to dereference all the stack entries inside a function context (on a 64bit
+architecture):
 
 ```
 gef➤  p ($rbp - $rsp)/8
@@ -57,8 +55,7 @@ gef➤  dereference -l 5
 0x00007fffffffe190│+0x0020: 0x0000000000400690  →  push r15        ← $rbp
 ```
 
-It is possible to change the offset calculation to use a different address than
-the start address:
+It is possible to change the offset calculation to use a different address than the start address:
 
 ```
 gef➤  dereference $sp -l 7 -r $rbp
@@ -71,8 +68,8 @@ gef➤  dereference $sp -l 7 -r $rbp
 0x00007ffe6ddaa410│+0x0000: 0x0000000000000000    ← $rbp
 ```
 
-Just like with `x`, you can pass a negative number of addresses to dereference, to examine memory backwards
-from the start address:
+Just like with `x`, you can pass a negative number of addresses to dereference, to examine memory
+backwards from the start address:
 ```
 gef➤  dereference $sp -l 3
 0x00007fffffffcf90│+0x0010: 0x00007ffff7f5aaa0  →  0x0000000000000000

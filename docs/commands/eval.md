@@ -2,8 +2,8 @@
 
 The `$` command attempts to mimic WinDBG `?` command.
 
-When provided one argument, it will evaluate the expression, and try to display
-the result with various formats:
+When provided one argument, it will evaluate the expression, and try to display the result with
+various formats:
 
 ```
 gef➤  $ $pc+1
