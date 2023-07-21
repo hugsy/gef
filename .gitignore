@@ -13,3 +13,4 @@ debug.log
 .coverage
 htmlcov
 .benchmarks
+site/
