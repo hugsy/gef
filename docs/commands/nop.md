@@ -12,7 +12,8 @@ nop [LOCATION] [--i ITEMS] [--f] [--n] [--b]
 
 `--f` Force patch even when the selected settings could overwrite partial instructions
 
-`--n` Instead of replacing whole instructions, insert ITEMS nop instructions, no matter how many instructions it overwrites
+`--n` Instead of replacing whole instructions, insert ITEMS nop instructions, no matter how many
+instructions it overwrites
 
 `--b` Instead of replacing whole instructions, fill ITEMS bytes with nops
 

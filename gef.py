@@ -6009,7 +6009,7 @@ class SkipiCommand(GenericCommand):
         args : argparse.Namespace = kwargs["arguments"]
         address = parse_address(args.address)
         num_instructions = args.n
-  
+
         last_addr = gdb_get_nth_next_instruction_address(address, num_instructions)
         total_bytes = (last_addr - address) + gef_get_instruction_at(last_addr).size()
         target_addr  = address + total_bytes
@@ -6017,7 +6017,7 @@ class SkipiCommand(GenericCommand):
         info(f"skipping {num_instructions} instructions ({total_bytes} bytes) from {address:#x} to {target_addr:#x}")
         gdb.execute(f"set $pc = {target_addr:#x}")
         return
-        
+
 
 @register
 class NopCommand(GenericCommand):
@@ -6050,10 +6050,10 @@ class NopCommand(GenericCommand):
         address = parse_address(args.address)
         nop = gef.arch.nop_insn
         num_items = args.i or 1
-        fill_bytes = args.b 
+        fill_bytes = args.b
         fill_nops = args.n
         force_flag = args.f or False
-           
+
         if fill_nops and fill_bytes:
             err("only is possible specify --b or --n at same time")
             return
@@ -6074,8 +6074,9 @@ class NopCommand(GenericCommand):
         if len(nop) > total_bytes or total_bytes % len(nop):
             warn(f"Patching {total_bytes} bytes at {address:#x} will result in LAST-NOP "
                  f"(byte nr {total_bytes % len(nop):#x}) broken and may cause a crash or "
-                 f"break disassembly. Use --f (force) to ignore this warning")
+                 "break disassembly.")
             if not force_flag:
+                warn("Use --f (force) to ignore this warning.")
                 return
 
         target_end_address = address + total_bytes
@@ -6087,12 +6088,13 @@ class NopCommand(GenericCommand):
             curr_ins = gef_next_instruction(curr_ins.address)
 
         final_ins_end_addr = curr_ins.address + curr_ins.size()
-        
+
         if final_ins_end_addr != target_end_address:
             warn(f"Patching {total_bytes} bytes at {address:#x} will result in LAST-INSTRUCTION "
                  f"({curr_ins.address:#x}) being partial overwritten and may cause a crash or "
-                 f"break disassembly. You must use --f to allow misaligned patching.")
+                 "break disassembly.")
             if not force_flag:
+                warn("Use --f (force) to ignore this warning.")
                 return
 
         nops = bytearray(nop * total_bytes)
