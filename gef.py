@@ -3565,7 +3565,11 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
         gef.session.remote_initializing = False
 
     # if `autosave_breakpoints_file` setting is configured, save the breakpoints to disk
-    bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
+    setting = (gef.config["gef.autosave_breakpoints_file"] or "").strip()
+    if not setting:
+        return
+
+    bkp_fpath = pathlib.Path(setting).expanduser().absolute()
     if bkp_fpath.exists():
         warn(f"{bkp_fpath} exists, content will be overwritten")
 
@@ -6024,7 +6028,7 @@ class SkipiCommand(GenericCommand):
         args : argparse.Namespace = kwargs["arguments"]
         address = parse_address(args.address)
         num_instructions = args.n
-  
+
         last_addr = gdb_get_nth_next_instruction_address(address, num_instructions)
         total_bytes = (last_addr - address) + gef_get_instruction_at(last_addr).size()
         target_addr  = address + total_bytes
@@ -6032,7 +6036,7 @@ class SkipiCommand(GenericCommand):
         info(f"skipping {num_instructions} instructions ({total_bytes} bytes) from {address:#x} to {target_addr:#x}")
         gdb.execute(f"set $pc = {target_addr:#x}")
         return
-        
+
 
 @register
 class NopCommand(GenericCommand):
@@ -6065,10 +6069,10 @@ class NopCommand(GenericCommand):
         address = parse_address(args.address)
         nop = gef.arch.nop_insn
         num_items = args.i or 1
-        fill_bytes = args.b 
+        fill_bytes = args.b
         fill_nops = args.n
         force_flag = args.f or False
-           
+
         if fill_nops and fill_bytes:
             err("only is possible specify --b or --n at same time")
             return
@@ -6102,11 +6106,11 @@ class NopCommand(GenericCommand):
             curr_ins = gef_next_instruction(curr_ins.address)
 
         final_ins_end_addr = curr_ins.address + curr_ins.size()
-        
+
         if final_ins_end_addr != target_end_address:
             warn(f"Patching {total_bytes} bytes at {address:#x} will result in LAST-INSTRUCTION "
                  f"({curr_ins.address:#x}) being partial overwritten and may cause a crash or "
-                 f"break disassembly. You must use --f to allow misaligned patching.")
+                 "break disassembly. You must use --f to allow misaligned patching.")
             if not force_flag:
                 return
 
