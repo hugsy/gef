@@ -6093,8 +6093,9 @@ class NopCommand(GenericCommand):
         if len(nop) > total_bytes or total_bytes % len(nop):
             warn(f"Patching {total_bytes} bytes at {address:#x} will result in LAST-NOP "
                  f"(byte nr {total_bytes % len(nop):#x}) broken and may cause a crash or "
-                 f"break disassembly. Use --f (force) to ignore this warning")
+                 "break disassembly.")
             if not force_flag:
+                warn("Use --f (force) to ignore this warning.")
                 return
 
         target_end_address = address + total_bytes
@@ -6110,8 +6111,9 @@ class NopCommand(GenericCommand):
         if final_ins_end_addr != target_end_address:
             warn(f"Patching {total_bytes} bytes at {address:#x} will result in LAST-INSTRUCTION "
                  f"({curr_ins.address:#x}) being partial overwritten and may cause a crash or "
-                 "break disassembly. You must use --f to allow misaligned patching.")
+                 "break disassembly.")
             if not force_flag:
+                warn("Use --f (force) to ignore this warning.")
                 return
 
         nops = bytearray(nop * total_bytes)
