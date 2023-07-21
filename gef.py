@@ -6025,54 +6025,86 @@ class NopCommand(GenericCommand):
     aware."""
 
     _cmdline_ = "nop"
-    _syntax_  = ("{_cmdline_} [LOCATION] [--n NUM_ITEMS] [--b]"
-                 "\n\tLOCATION\taddress/symbol to patch"
-                 "\t--n NUM_ITEMS\tInstead of writing one instruction/nop, patch the specified number of instructions/nops (full instruction size by default)"
-                 "\t--b\tInstead of writing full instruction size, patch the specified number of nops")
-    _example_ = f"{_cmdline_} $pc"
-
+    _syntax_  = ("{_cmdline_} [LOCATION] [--i ITEMS] [--f] [--n] [--b]"
+                 "\n\tLOCATION\taddress/symbol to patch (by default this command replaces whole instructions)"
+                 "\t--i ITEMS\tnumber of items to insert (default 1)"
+                 "\t--f\tForce patch even when the selected settings could overwrite partial instructions"
+                 "\t--n\tInstead of replacing whole instructions, insert ITEMS nop instructions, no matter how many instructions it overwrites"
+                 "\t--b\tInstead of replacing whole instructions, fill ITEMS bytes with nops")
     _example_ = [f"{_cmdline_}",
                  f"{_cmdline_} $pc+3",
-                 f"{_cmdline_} --n 2 $pc+3",
+                 f"{_cmdline_} --i 2 $pc+3",
                  f"{_cmdline_} --b",
                  f"{_cmdline_} --b $pc+3",
-                 f"{_cmdline_} --b --n 2 $pc+3",]
+                 f"{_cmdline_} --f --b --i 2 $pc+3"
+                 f"{_cmdline_} --n --i 2 $pc+3",]
 
     def __init__(self) -> None:
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
     @only_if_gdb_running
-    @parse_arguments({"address": "$pc"}, {"--n": 0, "--b": False})
+    @parse_arguments({"address": "$pc"}, {"--i": 1, "--b": True, "--f": True, "--n": True})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
         address = parse_address(args.address)
         nop = gef.arch.nop_insn
-        num_items = args.n or 1
-        as_nops_flags = not args.b
+        num_items = args.i or 1
+        fill_bytes = args.b 
+        fill_nops = args.n
+        force_flag = args.f or False
+           
+        if fill_nops and fill_bytes:
+            err("only is possible specify --b or --n at same time")
+            return
 
         total_bytes = 0
-        if as_nops_flags:
+        if fill_bytes:
+            total_bytes = num_items
+        elif fill_nops:
             total_bytes = num_items * len(nop)
         else:
             try:
                 last_addr = gdb_get_nth_next_instruction_address(address, num_items)
             except:
-                err(f"Cannot patch instruction at {address:#x}: MAYBE reaching unmapped area")
+                err(f"Cannot patch instruction at {address:#x} reaching unmapped area")
                 return
             total_bytes = (last_addr - address) + gef_get_instruction_at(last_addr).size()
 
-        if total_bytes % len(nop):
-            warn(f"Patching {total_bytes} bytes at {address:#x} will result in a partially patched instruction and may break disassembly")
+        if len(nop) > total_bytes or total_bytes % len(nop):
+            warn(f"Patching {total_bytes} bytes at {address:#x} will result in LAST-NOP "
+                 f"(byte nr {total_bytes % len(nop):#x}) broken and may cause a crash or "
+                 f"break disassembly. Use --f (force) to ignore this warning")
+            if not force_flag:
+                return
 
-        nops = bytearray(nop * (total_bytes // len(nop)))
+        target_end_address = address + total_bytes
+        curr_ins = gef_current_instruction(address)
+        while curr_ins.address + curr_ins.size() < target_end_address:
+            if not Address(value=curr_ins.address + 1).valid:
+                err(f"Cannot patch instruction at {address:#x}: reaching unmapped area")
+                return
+            curr_ins = gef_next_instruction(curr_ins.address)
+
+        final_ins_end_addr = curr_ins.address + curr_ins.size()
+        
+        if final_ins_end_addr != target_end_address:
+            warn(f"Patching {total_bytes} bytes at {address:#x} will result in LAST-INSTRUCTION "
+                 f"({curr_ins.address:#x}) being partial overwritten and may cause a crash or "
+                 f"break disassembly. You must use --f to allow misaligned patching.")
+            if not force_flag:
+                return
+
+        nops = bytearray(nop * total_bytes)
         end_address = Address(value=address + total_bytes - 1)
         if not end_address.valid:
-            err(f"Cannot patch instruction at {address:#x}: reaching unmapped area")
+            err(f"Cannot patch instruction at {address:#x}: reaching unmapped "
+                f"area: {end_address:#x}")
             return
 
         ok(f"Patching {total_bytes} bytes from {address:#x}")
         gef.memory.write(address, nops, total_bytes)
+
         return
 
 
