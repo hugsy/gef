@@ -6416,7 +6416,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             if "all" in argv:
                 tids = [t.num for t in threads]
             else:
-                tids = self.check_thread_ids(argv)
+                tids = self.check_thread_ids([int(a) for a in argv])
         else:
             tids = [current_thread.num]
 
@@ -6499,21 +6499,9 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
     @staticmethod
     def check_thread_ids(tids: List[int]) -> List[int]:
-        """Check the validity, dedup, and return all valid tids."""
-        existing_tids = [t.num for t in gdb.selected_inferior().threads()]
-        valid_tids = set()
-        for tid in tids:
-            try:
-                tid = int(tid)
-            except ValueError:
-                err(f"Invalid thread id {tid:d}")
-                continue
-            if tid in existing_tids:
-                valid_tids.add(tid)
-            else:
-                err(f"Unknown thread {tid}")
-
-        return list(valid_tids)
+        """Return the subset of tids that are currently valid."""
+        existing_tids = set(t.num for t in gdb.selected_inferior().threads())
+        return list(set(tids) & existing_tids)
 
     @staticmethod
     def tcachebin(tcache_base: int, i: int) -> Tuple[Optional[GlibcTcacheChunk], int]:
@@ -6760,11 +6748,11 @@ class DetailRegistersCommand(GenericCommand):
 
         args : argparse.Namespace = kwargs["arguments"]
         if args.registers and args.registers[0]:
-            required_regs = set(args.registers)
-            valid_regs = [reg for reg in gef.arch.all_registers if reg in required_regs]
+            requested_regs = set(args.registers)
+            valid_regs = set(gef.arch.all_registers) & requested_regs
             if valid_regs:
                 regs = valid_regs
-            invalid_regs = [reg for reg in required_regs if reg not in valid_regs]
+            invalid_regs = requested_regs - valid_regs
             if invalid_regs:
                 err(f"invalid registers for architecture: {', '.join(invalid_regs)}")
 
@@ -7346,7 +7334,7 @@ class ContextCommand(GenericCommand):
 
         if self["show_registers_raw"] is False:
             regs = set(gef.arch.all_registers)
-            printable_registers = " ".join(list(regs - ignored_registers))
+            printable_registers = " ".join(regs - ignored_registers)
             gdb.execute(f"registers {printable_registers}")
             return
 
@@ -9596,10 +9584,10 @@ class GefCommand(gdb.Command):
 
     def load(self) -> None:
         """Load all the commands and functions defined by GEF into GDB."""
-        current_commands = set( self.commands.keys() )
-        new_commands = set( [x._cmdline_ for x in __registered_commands__] ) - current_commands
-        current_functions = set( self.functions.keys() )
-        new_functions = set([x._function_ for x in __registered_functions__]) - current_functions
+        current_commands = set(self.commands.keys())
+        new_commands = set(x._cmdline_ for x in __registered_commands__) - current_commands
+        current_functions = set(self.functions.keys())
+        new_functions = set(x._function_ for x in __registered_functions__) - current_functions
         self.missing.clear()
         self.__load_time_ms = time.time()* 1000
 
