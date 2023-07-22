@@ -2017,6 +2017,9 @@ def gdb_disassemble(start_pc: int, **kwargs: int) -> Generator[Instruction, None
     arch = frame.architecture()
 
     for insn in arch.disassemble(start_pc, **kwargs):
+        assert isinstance(insn["addr"], int)
+        assert isinstance(insn["length"], int)
+        assert isinstance(insn["asm"], str)
         address = insn["addr"]
         asm = insn["asm"].rstrip().split(None, 1)
         if len(asm) > 1:
