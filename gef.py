@@ -1193,6 +1193,11 @@ class Instruction:
     def size(self) -> int:
         return len(self.opcodes)
 
+    def next(self) -> "Instruction":
+        address = self.address + self.size()
+        return gef_get_instruction_at(address)
+
+
 @deprecated("Use GefHeapManager.find_main_arena_addr()")
 def search_for_main_arena() -> int:
     return GefHeapManager.find_main_arena_addr()
@@ -2013,6 +2018,9 @@ def gdb_disassemble(start_pc: int, **kwargs: int) -> Generator[Instruction, None
     arch = frame.architecture()
 
     for insn in arch.disassemble(start_pc, **kwargs):
+        assert isinstance(insn["addr"], int)
+        assert isinstance(insn["length"], int)
+        assert isinstance(insn["asm"], str)
         address = insn["addr"]
         asm = insn["asm"].rstrip().split(None, 1)
         if len(asm) > 1:
@@ -2066,19 +2074,15 @@ def gdb_get_nth_previous_instruction_address(addr: int, n: int) -> Optional[int]
     return None
 
 
+@deprecated(solution="Use `gef_instruction_n().address`")
 def gdb_get_nth_next_instruction_address(addr: int, n: int) -> int:
-    """Return the address (Integer) of the `n`-th instruction after `addr`."""
-    # fixed-length ABI
-    if gef.arch.instruction_length:
-        return addr + n * gef.arch.instruction_length
-
-    # variable-length ABI
-    insn = list(gdb_disassemble(addr, count=n))[-1]
-    return insn.address
+    """Return the address of the `n`-th instruction after `addr`. """
+    return gef_instruction_n(addr, n).address
 
 
 def gef_instruction_n(addr: int, n: int) -> Instruction:
-    """Return the `n`-th instruction after `addr` as an Instruction object."""
+    """Return the `n`-th instruction after `addr` as an Instruction object. Note that `n` is treated as
+    an positive index, starting from 0 (current instruction address)"""
     return list(gdb_disassemble(addr, count=n + 1))[n]
 
 
@@ -2509,8 +2513,7 @@ class ARM(Architecture):
                      "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$sp",
                      "$lr", "$pc", "$cpsr",)
 
-    # https://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
-    nop_insn = b"\x01\x10\xa0\xe1" # mov r1, r1
+    nop_insn = b"\x00\xf0\x20\xe3" # hint #0
     return_register = "$r0"
     flag_register: str = "$cpsr"
     flags_table = {
@@ -2675,6 +2678,7 @@ class AARCH64(ARM):
         5: "t32",
         4: "m[4]",
     }
+    nop_insn = b"\x1f\x20\x03\xd5" # hint #0
     function_parameters = ("$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7",)
     syscall_register = "$x8"
     syscall_instructions = ("svc $x0",)
@@ -6029,8 +6033,8 @@ class SkipiCommand(GenericCommand):
         address = parse_address(args.address)
         num_instructions = args.n
 
-        last_addr = gdb_get_nth_next_instruction_address(address, num_instructions)
-        total_bytes = (last_addr - address) + gef_get_instruction_at(last_addr).size()
+        last_insn = gef_instruction_n(address, num_instructions-1)
+        total_bytes = (last_insn.address - address) + last_insn.size()
         target_addr  = address + total_bytes
 
         info(f"skipping {num_instructions} instructions ({total_bytes} bytes) from {address:#x} to {target_addr:#x}")
@@ -6068,13 +6072,13 @@ class NopCommand(GenericCommand):
         args : argparse.Namespace = kwargs["arguments"]
         address = parse_address(args.address)
         nop = gef.arch.nop_insn
-        num_items = args.i or 1
-        fill_bytes = args.b
-        fill_nops = args.n
-        force_flag = args.f or False
+        num_items = int(args.i) or 1
+        fill_bytes = bool(args.b)
+        fill_nops = bool(args.n)
+        force_flag = bool(args.f) or False
 
         if fill_nops and fill_bytes:
-            err("only is possible specify --b or --n at same time")
+            err("--b and --n cannot be specified at the same time.")
             return
 
         total_bytes = 0
@@ -6084,7 +6088,8 @@ class NopCommand(GenericCommand):
             total_bytes = num_items * len(nop)
         else:
             try:
-                last_addr = gdb_get_nth_next_instruction_address(address, num_items)
+                last_insn = gef_instruction_n(address, num_items-1)
+                last_addr = last_insn.address
             except:
                 err(f"Cannot patch instruction at {address:#x} reaching unmapped area")
                 return
@@ -10274,8 +10279,9 @@ class GefMemoryManager(GefManager):
         self.__maps = None
         return
 
-    def write(self, address: int, buffer: ByteString, length: int = 0x10) -> None:
+    def write(self, address: int, buffer: ByteString, length: Optional[int] = None) -> None:
         """Write `buffer` at address `address`."""
+        length = length or len(buffer)
         gdb.selected_inferior().write_memory(address, buffer, length)
 
     def read(self, addr: int, length: int = 0x10) -> bytes:
