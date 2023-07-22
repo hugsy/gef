@@ -10267,7 +10267,7 @@ class GefMemoryManager(GefManager):
         self.__maps = None
         return
 
-    def write(self, address: int, buffer: ByteString, length: Optional[int]) -> None:
+    def write(self, address: int, buffer: ByteString, length: Optional[int] = None) -> None:
         """Write `buffer` at address `address`."""
         length = length or len(buffer)
         gdb.selected_inferior().write_memory(address, buffer, length)
