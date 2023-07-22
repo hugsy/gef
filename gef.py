@@ -2068,8 +2068,11 @@ def gdb_get_nth_previous_instruction_address(addr: int, n: int) -> Optional[int]
 def gdb_get_nth_next_instruction_address(addr: int, n: int) -> int:
     """Return the address (Integer) of the `n`-th instruction after `addr`."""
     # fixed-length ABI
+    if n == 0:
+        raise ValueError(f"`n` must be strictly positive")
+
     if gef.arch.instruction_length:
-        return addr + n * gef.arch.instruction_length
+        return addr + (n-1) * gef.arch.instruction_length
 
     # variable-length ABI
     insn = list(gdb_disassemble(addr, count=n))[-1]
@@ -6049,13 +6052,13 @@ class NopCommand(GenericCommand):
         args : argparse.Namespace = kwargs["arguments"]
         address = parse_address(args.address)
         nop = gef.arch.nop_insn
-        num_items = args.i or 1
-        fill_bytes = args.b
-        fill_nops = args.n
-        force_flag = args.f or False
+        num_items = int(args.i) or 1
+        fill_bytes = bool(args.b)
+        fill_nops = bool(args.n)
+        force_flag = bool(args.f) or False
 
         if fill_nops and fill_bytes:
-            err("only is possible specify --b or --n at same time")
+            err("--b and --n cannot be specified at the same time.")
             return
 
         total_bytes = 0
