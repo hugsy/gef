@@ -3573,7 +3573,7 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
     if bkp_fpath.exists():
         warn(f"{bkp_fpath} exists, content will be overwritten")
 
-    with bkp_fpath.open("w+") as fd:
+    with bkp_fpath.open("w") as fd:
         for bp in gdb.breakpoints():
             if not bp.enabled or not bp.is_valid:
                 continue
