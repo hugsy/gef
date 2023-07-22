@@ -1193,6 +1193,11 @@ class Instruction:
     def size(self) -> int:
         return len(self.opcodes)
 
+    def next(self) -> "Instruction":
+        address = self.address + self.size()
+        return gef_get_instruction_at(address)
+
+
 @deprecated("Use GefHeapManager.find_main_arena_addr()")
 def search_for_main_arena() -> int:
     return GefHeapManager.find_main_arena_addr()
@@ -2065,22 +2070,15 @@ def gdb_get_nth_previous_instruction_address(addr: int, n: int) -> Optional[int]
     return None
 
 
+@deprecated(solution="Use `gef_instruction_n().address`")
 def gdb_get_nth_next_instruction_address(addr: int, n: int) -> int:
-    """Return the address (Integer) of the `n`-th instruction after `addr`."""
-    # fixed-length ABI
-    if n == 0:
-        raise ValueError(f"`n` must be strictly positive")
-
-    if gef.arch.instruction_length:
-        return addr + (n-1) * gef.arch.instruction_length
-
-    # variable-length ABI
-    insn = list(gdb_disassemble(addr, count=n))[-1]
-    return insn.address
+    """Return the address of the `n`-th instruction after `addr`. """
+    return gef_instruction_n(addr, n).address
 
 
 def gef_instruction_n(addr: int, n: int) -> Instruction:
-    """Return the `n`-th instruction after `addr` as an Instruction object."""
+    """Return the `n`-th instruction after `addr` as an Instruction object. Note that `n` is treated as
+    an positive index, starting from 0 (current instruction address)"""
     return list(gdb_disassemble(addr, count=n + 1))[n]
 
 
@@ -6013,8 +6011,8 @@ class SkipiCommand(GenericCommand):
         address = parse_address(args.address)
         num_instructions = args.n
 
-        last_addr = gdb_get_nth_next_instruction_address(address, num_instructions)
-        total_bytes = (last_addr - address) + gef_get_instruction_at(last_addr).size()
+        last_insn = gef_instruction_n(address, num_instructions-1)
+        total_bytes = (last_insn.address - address) + last_insn.size()
         target_addr  = address + total_bytes
 
         info(f"skipping {num_instructions} instructions ({total_bytes} bytes) from {address:#x} to {target_addr:#x}")
@@ -6068,7 +6066,8 @@ class NopCommand(GenericCommand):
             total_bytes = num_items * len(nop)
         else:
             try:
-                last_addr = gdb_get_nth_next_instruction_address(address, num_items)
+                last_insn = gef_instruction_n(address, num_items-1)
+                last_addr = last_insn.address
             except:
                 err(f"Cannot patch instruction at {address:#x} reaching unmapped area")
                 return
