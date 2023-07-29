@@ -2,6 +2,14 @@
 
 ## Prerequisites
 
+Specific GEF commands rely on commonly used Unix commands to extract additional information. Therefore it requires the following binaries to be present:
+  * `file`
+  * `readelf`
+  * `ps`
+  * `python3`
+
+Those tools are included by defautl in many modern distributions. If they're missing, you can use your OS package manager to install them.
+
 ### GDB
 
 Only [GDB 8 and higher](https://www.gnu.org/s/gdb) is required. It must be compiled with Python 3.6
