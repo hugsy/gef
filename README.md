@@ -50,6 +50,7 @@ A few of `GEF` features include:
   * Full Python3 support ([Python2 support was dropped](https://github.com/hugsy/gef/releases/tag/2020.03) - see [`gef-legacy`](https://github.com/hugsy/gef-legacy)).
   * Built around an architecture abstraction layer, so all commands work in any GDB-supported architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS, PowerPC, etc.
   * Suited for real-life apps debugging, exploit development, just as much as CTF
+  * And a lot more commands contributed by the community available on [GEF-Extras](https://github.com/hugsy/gef-extras) !!
 
 Check out the [Screenshot page](docs/screenshots.md) for more or [try it online](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 
