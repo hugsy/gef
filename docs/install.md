@@ -8,7 +8,7 @@ Specific GEF commands rely on commonly used Unix commands to extract additional 
   * `ps`
   * `python3`
 
-Those tools are included by defautl in many modern distributions. If they're missing, you can use your OS package manager to install them.
+Those tools are included by default in many modern distributions. If they're missing, you can use your OS package manager to install them.
 
 ### GDB
 
