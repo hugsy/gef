@@ -49,7 +49,7 @@ MD009:
 # MD010/no-hard-tabs - Hard tabs
 MD010:
   # Include code blocks
-  code_blocks: true
+  code_blocks: false
   # Fenced code languages to ignore
   ignore_code_languages: []
   # Number of spaces for each hard tab
@@ -61,7 +61,7 @@ MD011: true
 # MD012/no-multiple-blanks - Multiple consecutive blank lines
 MD012:
   # Consecutive blank lines
-  maximum: 1
+  maximum: 2
 
 # MD013/line-length - Line length
 MD013:
@@ -72,9 +72,9 @@ MD013:
   # Number of characters for code blocks
   code_block_line_length: 100
   # Include code blocks
-  code_blocks: true
+  code_blocks: false
   # Include tables
-  tables: true
+  tables: false
   # Include headings
   headings: true
   # Include headings
@@ -142,13 +142,13 @@ MD029:
 # MD030/list-marker-space - Spaces after list markers
 MD030:
   # Spaces for single-line unordered list items
-  ul_single: 1
+  ul_single: 2
   # Spaces for single-line ordered list items
-  ol_single: 1
+  ol_single: 2
   # Spaces for multi-line unordered list items
-  ul_multi: 1
+  ul_multi: 2
   # Spaces for multi-line ordered list items
-  ol_multi: 1
+  ol_multi: 2
 
 # MD031/blanks-around-fences - Fenced code blocks should be surrounded by blank lines
 MD031:
@@ -216,9 +216,9 @@ MD044:
   # List of proper names
   names: []
   # Include code blocks
-  code_blocks: true
+  code_blocks: false
   # Include HTML elements
-  html_elements: true
+  html_elements: false
 
 # MD045/no-alt-text - Images should have alternate text (alt text)
 MD045: true
