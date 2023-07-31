@@ -88,7 +88,7 @@ systems such as GrSec.
 `gef` was created and maintained by myself, [`@_hugsy_`](https://twitter.com/_hugsy_), but kept
 fresh thanks to [all the contributors](https://github.com/hugsy/gef/graphs/contributors).
 
-[contributors-img](https://contrib.rocks/image?repo=hugsy/gef) ](https://github.com/hugsy/gef/graphs/contributors)
+[![contributors-img](https://contrib.rocks/image?repo=hugsy/gef)](https://github.com/hugsy/gef/graphs/contributors)
 
 Or if you just like the tool, feel free to drop a simple _"thanks"_ on Discord, Twitter or other, it
 is **always** very appreciated.
