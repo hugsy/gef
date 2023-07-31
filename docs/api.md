@@ -33,6 +33,7 @@ register_external_command(NewCommand())
 ```
 
 Loading it in `GEF` is as easy as
+
 ```
 gef➤  source /path/to/newcmd.py
 [+] Loading 'NewCommand'
@@ -61,14 +62,16 @@ We make GEF aware of this new command by registering it in the `__main__` sectio
 invoking the global function `register_external_command()`.
 
 Now you have a new GEF command which you can load, either from cli:
+
 ```bash
 gef➤  source /path/to/newcmd.py
 ```
-or add to your `~/.gdbinit`:
-```bash
-$ echo source /path/to/newcmd.py >> ~/.gdbinit
-```
 
+or add to your `~/.gdbinit`:
+
+```bash
+echo source /path/to/newcmd.py >> ~/.gdbinit
+```
 
 ## Customizing context panes
 
@@ -119,20 +122,22 @@ gef➤  pi help(Architecture)
 or even from outside GDB:
 
 ```bash
-$ gdb -q -ex 'pi help(hexdump)' -ex quit
+gdb -q -ex 'pi help(hexdump)' -ex quit
 ```
 
 The GEF API aims to provide a simpler and more Pythonic approach to GDB's.
 
 Some basic examples:
-- read the memory
+* read the memory
+
 ```python
 gef ➤  pi print(hexdump( gef.memory.read(parse_address("$pc"), length=0x20 )))
 0x0000000000000000     f3 0f 1e fa 31 ed 49 89 d1 5e 48 89 e2 48 83 e4    ....1.I..^H..H..
 0x0000000000000010     f0 50 54 4c 8d 05 66 0d 01 00 48 8d 0d ef 0c 01    .PTL..f...H.....
 ```
 
-- get access to the memory layout
+* get access to the memory layout
+
 ```
 gef ➤ pi print('\n'.join([ f"{x.page_start:#x} -> {x.page_end:#x}" for x in gef.memory.maps]))
 0x555555554000 -> 0x555555558000
@@ -148,17 +153,14 @@ gef ➤ pi print('\n'.join([ f"{x.page_start:#x} -> {x.page_end:#x}" for x in ge
 [...]
 ```
 
-
 The API also offers a number of decorators to simplify the creation of new/existing commands, such as:
-- `@only_if_gdb_running` to execute only if a GDB session is running.
-- `@only_if_gdb_target_local` to check if the target is local i.e. not debugging using GDB `remote`.
-- and many more...
-
+* `@only_if_gdb_running` to execute only if a GDB session is running.
+* `@only_if_gdb_target_local` to check if the target is local i.e. not debugging using GDB `remote`.
+* and many more...
 
 ### Reference
 
 For a complete reference of the API offered by GEF, visit [`docs/api/gef.md`](api/gef.md).
-
 
 ### Parsing command arguments
 
@@ -179,11 +181,9 @@ using a type of `tuple` or `list` for the default value. `parse_arguments` will 
 of what to expect based on the first default value of the iterable, so make sure it's not empty. For
 instance:
 
-
 ```python
 @parse_arguments( {"instructions": ["nop", "int3", "hlt"], }, {"--arch": "x64", } )
 ```
-
 
 Argument flags are also supported, allowing to write simpler version of the flag such as
 
@@ -227,11 +227,11 @@ Sometimes architectures can more precisely determine whether they apply to the c
 looking at the architecture determined by gdb. For these cases the custom architecture may implement
 the `supports_gdb_arch()` static function to signal that they should be used instead of the default.
 The function receives only one argument:
-- `gdb_str` (of type `str`) which is the architecture name as reported by GDB.
+* `gdb_str` (of type `str`) which is the architecture name as reported by GDB.
 
 The function **must** return:
-- `True` if the current `Architecture` class supports the target binary; `False` otherwise.
-- `None` to simply ignore this check and let GEF try to determine the architecture.
+* `True` if the current `Architecture` class supports the target binary; `False` otherwise.
+* `None` to simply ignore this check and let GEF try to determine the architecture.
 
 One example is the ARM Cortex-M architecture which in some cases should be used over the generic ARM
 one:

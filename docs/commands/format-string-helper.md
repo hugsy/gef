@@ -20,6 +20,7 @@ gef➤ fmtstr-helper
 ```
 
 Then start the binary execution.
+
 ```
 gef➤ r
 ```
@@ -28,4 +29,3 @@ If a potentially insecure entry is found, the breakpoint will trigger, stop the 
 display the reason for trigger and the associated context.
 
 ![fmtstr-helper-example](https://i.imgur.com/INU3KGn.png)
-

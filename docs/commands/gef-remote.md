@@ -10,6 +10,7 @@ process of debugging more cumbersome. GEF greatly improves that state with the `
 `target remote` command. For many reasons, you **cannot** use `target remote` alone with GEF.
 
 `gef-remote` can function in 2 ways:
+
 - `remote` which is meant to enrich use of GDB `target remote` command, when connecting to a "real"
   gdbserver instance
 - `qemu-mode` when connecting to GDB stab of either `qemu-user` or `qemu-system`.
@@ -79,13 +80,11 @@ that, all of GEF features are available:
 
 ![gef-remote-command](https://i.imgur.com/05epyX6.png)
 
-
 #### `remote-extended`
 
 Extended mode works the same as `remote`. Being an extended session, gdbserver has not spawned or
 attached to any process. Therefore, all that's required is to add the `--pid` flag when calling
 `gef-remote`, along with the process ID of the process to debug.
-
 
 ### Qemu mode
 
@@ -101,13 +100,12 @@ makes now even more sense 😉 And using it is very straight forward.
 
 ![qemu-user](https://user-images.githubusercontent.com/590234/175072835-e276ab6c-4f75-4313-9e66-9fe5a3fd220e.png)
 
-
 #### `qemu-system`
 
 To test locally, you can use the mini image linux x64 vm
 [here](https://mega.nz/file/ldQCDQiR#yJWJ8RXAHTxREKVmR7Hnfr70tIAQDFeWSYj96SvPO1k).
+
  1. Run `./run.sh`
  2. Use `--qemu-user` and `--qemu-binary vmlinuz` when starting `gef-remote`
-
 
 ![qemu-system](https://user-images.githubusercontent.com/590234/175071351-8e06aa27-dc61-4fd7-9215-c345dcebcd67.png)

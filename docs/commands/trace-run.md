@@ -17,4 +17,3 @@ By using the script `ida_color_gdb_trace.py` on the text file generated, it will
 taken:
 
 ![trace-run-2](https://i.imgur.com/oAGoSMQ.png)
-

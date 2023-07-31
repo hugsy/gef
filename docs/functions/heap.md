@@ -9,6 +9,7 @@ $_heap([offset])
 ```
 
 Example:
+
 ```
 gef➤ p $_heap(0x20)
 ```

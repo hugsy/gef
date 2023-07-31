@@ -44,7 +44,6 @@ FAILED tests/commands/heap.py::HeapCommand::test_cmd_heap_bins_unsorted - Assert
 
 You can then use `pytest` directly to help you fix each error specifically.
 
-
 #### Using `pytest`
 
 GEF entirely relies on [`pytest`](https://pytest.org) for its testing. Refer to the project
@@ -84,7 +83,6 @@ environment to help you get more information about the reason of failure.
 
 One of the most convenient ways to test `gef` properly is using the `pytest` integration of modern
 editors such as VisualStudio Code or PyCharm. Without proper tests, new code will not be integrated.
-
 
 ### Linting GEF
 

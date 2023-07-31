@@ -9,30 +9,34 @@ This is achieved via the command `pcustom` (for `print custom`), or you can use 
 reference to the WinDBG command) as provided by the [`WinDbg compatibility
 extension`](https://github.com/hugsy/gef-extras/blob/main/scripts/windbg.py)
 
-
 ### Configuration
 
 New structures can be stored in the location given by the configuration setting:
+
 ```
 gef➤ gef config pcustom.struct_path
 ```
+
 By default, this location is in `$TEMP/gef/structs` (e.g. `/tmp/user/1000/gef/structs`). The
 structure can be created as a simple `ctypes` structure, in a file called `<struct_name>.py`.
 
 You can naturally set this path to a new location
+
 ```
 gef➤ gef config pcustom.struct_path /my/new/location
 ```
+
 And save this change so you can re-use it directly next time you use `gdb`
+
 ```
 gef➤ gef save
 [+] Configuration saved to '~/.gef.rc'
 ```
 
-
 ### Using user-defined structures
 
 You can list existing custom structures via
+
 ```
 gef➤  pcustom list
 [+] Listing custom structures from '/tmp/structs'
@@ -82,14 +86,14 @@ class person_t(Structure):
     ]
 
     _values_ = [
-    	# You can define a function to substitute the value
-    	("age", lambda age: "Old" if age > 40 else "Young"),
-    	# Or alternatively a list of 2-tuples
-    	("id", [
-    		(0, "root"),
-    		(1, "normal user"),
-    		(None, "Invalid person")
-    	])
+        # You can define a function to substitute the value
+        ("age", lambda age: "Old" if age > 40 else "Young"),
+        # Or alternatively a list of 2-tuples
+        ("id", [
+            (0, "root"),
+            (1, "normal user"),
+            (None, "Invalid person")
+        ])
     ]
 ```
 
@@ -118,7 +122,6 @@ Additionally, if you have successfully configured your IDA settings, you can als
 the structure(s) that was(were) reverse-engineered in IDA directly in your GDB session:
 ![ida-structure-examples](https://i.imgur.com/Tnsf6nt.png) - (see `gef-extras/ida-rpyc`, which is the new improved version of `ida-interact`)
 
-
 #### Dynamic `ctypes.Structure`-like classes
 
 `pcustom` also supports the use of class factories to create a `ctypes.Structure` class whose
@@ -127,6 +130,7 @@ currently debugged binary, the architecture, the size of a pointer and more).
 
 The syntax is relatively close to the way we use to create static classes (see above), but instead
 we define a function that will generate the class. The requirements for this class factory are:
+
 - take a single [`Gef`](https://github.com/hugsy/gef/blob/dev/docs/api/gef.md#class-gef) positional
   argument
 - End the function name with `_t`
@@ -179,18 +183,19 @@ def person_t(gef: Optional["Gef"]==None):
     return person_cls
 ```
 
-
 ### Public repository of structures
 
 A community contributed repository of structures can be found in
 [`gef-extras`](https://github.com/hugsy/gef-extras). To deploy it:
 
 In bash:
+
 ```
-$ git clone https://github.com/hugsy/gef-extras
+git clone https://github.com/hugsy/gef-extras
 ```
 
 In GEF:
+
 ```
 gef➤ gef config pcustom.struct_path /path/to/gef-extras/structs
 gef➤ gef save

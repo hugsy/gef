@@ -77,4 +77,3 @@ support._
 ## Colors
 
 To find a list of supported colors, check the [theme](./theme.md#changing-colors) documentation.
-
