@@ -130,7 +130,7 @@ The GEF API aims to provide a simpler and more Pythonic approach to GDB's.
 Some basic examples:
 * read the memory
 
-```python
+```text
 gef ➤  pi print(hexdump( gef.memory.read(parse_address("$pc"), length=0x20 )))
 0x0000000000000000     f3 0f 1e fa 31 ed 49 89 d1 5e 48 89 e2 48 83 e4    ....1.I..^H..H..
 0x0000000000000010     f0 50 54 4c 8d 05 66 0d 01 00 48 8d 0d ef 0c 01    .PTL..f...H.....

@@ -12,7 +12,7 @@ dereference (by default, `$sp`), the number of consecutive addresses to derefere
 
 ```
 gef➤  dereference
-0x00007fffffffdec0│+0x0000: 0x00007ffff7ffe190  →  0x0000555555554000  →   jg 0x555555554047     ← $rsp, $r13
+0x00007fffffffdec0│+0x0000: 0x00007ffff7ffe190  →  0x0000555555554000  →   jg 0x555555554047   ← $rsp, $r13
 0x00007fffffffdec8│+0x0008: 0x00007ffff7ffe730  →  0x00007ffff7fd3000  →  0x00010102464c457f
 0x00007fffffffded0│+0x0010: 0x00007ffff7faa000  →  0x00007ffff7de9000  →  0x03010102464c457f
 0x00007fffffffded8│+0x0018: 0x00007ffff7ffd9f0  →  0x00007ffff7fd5000  →  0x00010102464c457f
