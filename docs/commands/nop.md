@@ -26,7 +26,7 @@ gef➤ nop
 nop an instruction at $pc+3 address:
 
 ```bash
-gef➤     nop $pc+3
+gef➤ nop $pc+3
 ```
 
 nop two instructions at address $pc+3:
@@ -38,7 +38,7 @@ gef➤ nop --i 2 $pc+3
 Replace 1 byte with nop at current instruction ($pc):
 
 ```bash
-gef➤     nop --b
+gef➤ nop --b
 ```
 
 Replace 1 byte with nop at address $pc+3:
