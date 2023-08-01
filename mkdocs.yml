@@ -11,7 +11,6 @@ theme:
 
 nav:
 - Home: index.md
-- Coverage: https://hugsy.github.io/gef/coverage/
 - Showroom: screenshots.md
 - Setup:
   - Installation: install.md
@@ -22,6 +21,7 @@ nav:
   - Testing: testing.md
   - Write extensions: api.md
   - API: api/gef.md
+  - Coverage: https://hugsy.github.io/gef/coverage/
 - Commands:
   - aliases: commands/aliases.md
   - aslr: commands/aslr.md
@@ -76,4 +76,5 @@ nav:
   - got: functions/got.md
   - heap: functions/heap.md
   - stack: functions/stack.md
+- GEF-Extras: https://hugsy.github.io/gef-extras/
 - Deprecated: deprecated.md
