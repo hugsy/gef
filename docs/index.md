@@ -34,7 +34,6 @@ It requires Python 3, but [`gef-legacy`](https://github.com/hugsy/gef-legacy) ca
 Check out the [showroom page](https://hugsy.github.io/gef/screenshots/) for more | or [try it online
 yourself!](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
 
-
 ## Quick start
 
 ### Automated installation
@@ -48,7 +47,6 @@ bash -c "$(curl -fsSL https://gef.blah.cat/sh)"
 
 For more details and other ways to install GEF please see [installation
 page](https://hugsy.github.io/gef/install/).
-
 
 ### Run
 
@@ -73,7 +71,6 @@ local:~ $ gdb -q
 gef➤  gef-remote -t your.ip.address:1234 -p 666
 ```
 
-
 ## Bugs & Feedbacks ##
 
 To discuss `gef`, `gdb`, exploitation or other topics, feel free to join our [Discord
@@ -91,9 +88,9 @@ systems such as GrSec.
 `gef` was created and maintained by myself, [`@_hugsy_`](https://twitter.com/_hugsy_), but kept
 fresh thanks to [all the contributors](https://github.com/hugsy/gef/graphs/contributors).
 
-[ ![contributors-img](https://contrib.rocks/image?repo=hugsy/gef) ](https://github.com/hugsy/gef/graphs/contributors)
+[![contributors-img](https://contrib.rocks/image?repo=hugsy/gef)](https://github.com/hugsy/gef/graphs/contributors)
 
-Or if you just like the tool, feel free to drop a simple *"thanks"* on Discord, Twitter or other, it
+Or if you just like the tool, feel free to drop a simple _"thanks"_ on Discord, Twitter or other, it
 is **always** very appreciated.
 
 ## Sponsors ##
@@ -110,10 +107,8 @@ dedicate more time and resources to the project:
 [<img src="https://github.com/therealdreg.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/therealdreg)
 [<img src="https://github.com/mikesart.png" height="50px" width="50px" style="border-radius: 50%">](https://github.com/mikesart)
 
-
 ## Extra Credits
 
-- The GEF logo was designed by [TheZakMan](https://twitter.com/thezakman)
+* The GEF logo was designed by [TheZakMan](https://twitter.com/thezakman)
 
-
-## 🍺 Happy hacking !
+## 🍺 Happy hacking

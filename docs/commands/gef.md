@@ -29,7 +29,6 @@ gef➤  gef missing
 [*] Command `XXXX` is missing, reason  →  YYYYY.
 ```
 
-
 ### GEF Config Command
 
 Allows the user to set/view settings for the current debugging session. For making the changes
@@ -111,7 +110,6 @@ within the command.
 gef➤  gef run ./binary
 ```
 
-
 ### GEF Install Command
 
 `gef install` allows to install one (or more) specific script(s) from `gef-extras`. The new scripts
@@ -123,7 +121,6 @@ gef➤  gef install SCRIPTNAME1 [SCRIPTNAME2...]
 
 Where `SCRIPTNAME1` ... are the names of script from the [`gef-extras`
 repository](https://github.com/hugsy/gef-extras/tree/main/scripts/).
-
 
 ```
 gef➤  gef install remote windbg stack
@@ -139,6 +136,7 @@ gef➤
 This makes it easier to deploy new functionalities in limited environment. By default, the command
 looks up for script names in the `main` branch of `gef-extras`. However you can change specify a
 different branch through the `gef.default_branch` configuration setting:
+
 ```
 gef➤ gef config gef.default_branch dev
 ```

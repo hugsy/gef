@@ -3,6 +3,7 @@
 This command is used to XOR a block of memory.
 
 Its syntax is:
+
 ```
 xor-memory <display|patch> <address> <size_to_read> <xor_key>
 ```

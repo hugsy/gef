@@ -10,7 +10,6 @@ following the format specified. Currently, the output formats supported are
 - Hex string (`hex`)
 - For patch byte command or GDB $_gef[N] byte access (`bytearray`)
 
-
 ```
 gef➤  print-format -h
 [+] print-format [--lang LANG] [--bitlen SIZE] [(--length,-l) LENGTH] [--clip] LOCATION

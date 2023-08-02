@@ -2,6 +2,7 @@
 
 `gef` allows you to search for a specific pattern at runtime in all the segments of your process
 memory layout. The command `search-pattern`, alias `grep`, aims to be straight-forward to use:
+
 ```
 gef➤  search-pattern MyPattern
 ```
@@ -25,6 +26,7 @@ For this reason, the alias `xref` also points to the command `search-pattern`.  
 command above is equivalent to `xref 0x4005f6` which makes it more intuitive to use.
 
 ### Searching in a specific range ###
+
 Sometimes, you may need to search for a very common pattern. To limit the search space, you can also
 specify an address range or the section to be checked.
 
@@ -34,6 +36,7 @@ gef➤  search-pattern 0x4005f6 little 0x603100-0x603200
 ```
 
 ### Searching in a specific range using regex ###
+
 Sometimes, you may need an advanced search using regex. Just use --regex arg.
 
 Example: how to find null-end-printable(from x20-x7e) C strings (min size >=2 bytes) with a regex:

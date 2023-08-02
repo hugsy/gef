@@ -3,12 +3,14 @@
 Easily check, enable or disable ASLR on the debugged binary.
 
 Check the status:
+
 ```
 gef➤  aslr
 ASLR is currently disabled
 ```
 
 Activate ASLR:
+
 ```
 gef➤  aslr on
 [+] Enabling ASLR
@@ -17,6 +19,7 @@ ASLR is currently enabled
 ```
 
 De-activate ASLR:
+
 ```
 gef➤  aslr off
 [+] Disabling ASLR

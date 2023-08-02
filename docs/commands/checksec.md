@@ -4,6 +4,7 @@ The `checksec` command is inspired from [`checksec.sh`](https://www.trapkit.de/t
 It provides a convenient way to determine which security protections are enabled in a binary.
 
 You can use the command on the currently debugged process:
+
 ```
 gef➤  checksec
 [+] checksec for '/vagrant/test-bin'
@@ -19,5 +20,5 @@ Full RelRO:                                       No
 Or specify directly the binary to check, for example:
 
 ```bash
-$ gdb -ex "checksec ./tests/test-x86"
+gdb -ex "checksec ./tests/test-x86"
 ```

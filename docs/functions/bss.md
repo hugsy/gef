@@ -9,6 +9,7 @@ $_bss([offset])
 ```
 
 Example:
+
 ```
 gef➤ p $_bss(0x20)
 ```

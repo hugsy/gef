@@ -10,6 +10,7 @@ $_base([filepath])
 ```
 
 Example:
+
 ```
 gef➤ p $_base(\"/usr/lib/ld-2.33.so\")
 ```

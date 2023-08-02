@@ -6,4 +6,3 @@
 ---
 
 ![redirect](https://i.imgflip.com/1f0lcn.jpg)
-

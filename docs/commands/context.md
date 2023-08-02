@@ -2,7 +2,6 @@
 
 ![gef-context](https://i.imgur.com/aZiG8Yb.png)
 
-
 `gef` (not unlike `PEDA` or `fG! famous gdbinit`) provides comprehensive context menu when hitting a
 breakpoint.
 
@@ -54,6 +53,7 @@ just omit it.
 ```
 gef➤ gef config context.layout "-legend regs stack code args -source -threads -trace extra memory"
 ```
+
 This configuration will not display the `legend`, `source`, `threads`, and `trace` sections.
 
 The `memory` pane will display the content of all locations specified by the
@@ -80,12 +80,14 @@ The size of most sections are also customizable:
 
 To have the stack displayed with the largest stack addresses on top (i.e., grow the stack downward),
 enable the following setting:
+
 ```
 gef➤ gef config context.grow_stack_down True
 ```
 
 If the saved instruction pointer is not within the portion of the stack being displayed, then a
 section is created that includes the saved ip and depending on the architecture the frame pointer.
+
 ```
 0x00007fffffffc9e8│+0x00: 0x00007ffff7a2d830  →  <__main+240> mov edi, eax    ($current_frame_savedip)
 0x00007fffffffc9e0│+0x00: 0x00000000004008c0  →  <__init+0> push r15    ← $rbp
@@ -108,12 +110,14 @@ setting `context.redirect` variable to have the context sent to another section.
 To do so, select the TTY/file/socket/etc. you want the context redirected to with `gef config`.
 
 Enter the command `tty` in the prompt:
+
 ```
 $ tty
 /dev/pts/0
 ```
 
 Then tell `gef` about it!
+
 ```
 gef➤ gef config context.redirect /dev/pts/0
 ```
@@ -121,8 +125,8 @@ gef➤ gef config context.redirect /dev/pts/0
 Enjoy:
 ![gef-context-redirect-section](https://i.imgur.com/sWlX37q.png)
 
-
 To go back to normal, remove the value:
+
 ```
 gef➤ gef config context.redirect ""
 ```
@@ -130,11 +134,13 @@ gef➤ gef config context.redirect ""
 ### Display individual sections ###
 
 You can display a single section by specifying it as an argument:
+
 ```
 gef➤ context regs
 ```
 
 Multiple sections can be provided, even if they are not part of the current layout:
+
 ```
 gef➤ context regs stack
 ```
@@ -142,46 +148,55 @@ gef➤ context regs stack
 ### Examples ###
 
 * Display the code section first, then register, and stack, hiding everything else:
+
 ```
 gef➤ gef config context.layout "code regs stack"
 ```
 
 * Stop showing the context sections when breaking:
+
 ```
 gef➤ gef config context.enable 0
 ```
 
 * Clear the screen before showing the context sections when breaking:
+
 ```
 gef➤ gef config context.clear_screen 1
 ```
 
 * Don't dereference the registers in the `regs` section (more compact):
+
 ```
 gef➤ gef config context.show_registers_raw 1
 ```
 
 * Number of bytes of opcodes to display next to the disassembly.
+
 ```
 gef➤ gef config context.show_opcodes_size 4
 ```
 
 * Don't 'peek' into the start of functions that are called.
+
 ```
 gef➤  gef config context.peek_calls False
 ```
 
 * Hide specific registers from the registers view.
+
 ```
 gef➤  gef config context.ignore_registers "$cs $ds $gs"
 ```
 
 * Hide the extra pc context info from the source code view.
+
 ```
 gef➤  gef config context.show_source_code_variable_values 0
 ```
 
 * Show better definitions for call to libc functions.
+
 ```
 gef➤  gef config context.libc_args True
 gef➤  gef config context.libc_args_path /path/to/gef-extras/libc_args

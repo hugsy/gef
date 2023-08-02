@@ -1,6 +1,5 @@
 # Frequently Asked Questions #
 
-
 ## Why use GEF over PEDA? ##
 
 [PEDA](https://github.com/longld/peda) is a fantastic tool that provides similar commands to make
@@ -35,8 +34,7 @@ If you are running an obsolete version, GEF will show a error and message and ex
 Some pre-compiled static binaries for both recent GDB and GDBServer can be downloaded from the
 [`gdb-static`](https://github.com/hugsy/gdb-static) repository.
 
-
-## I cannot get GEF setup!! ##
+## I cannot get GEF setup ##
 
 GEF will work on any GDB 8+ compiled with Python 3.6+ support. You can view that commands that
 failed to load using `gef missing`, but this will not affect GEF generally.
@@ -79,7 +77,6 @@ readline_compat = True
 You can now use all features of `gef` even on versions of GDB compiled against old `readline`
 library.
 
-
 ## Does GEF prevent the use of other GDB plugins? ##
 
 Definitely not! You can use any other GDB plugin on top of it for an even better debugging
@@ -93,8 +90,6 @@ Some interesting plugins highly recommended too:
 ![voltron](https://i.imgur.com/bfTIjNi.jpg)
 Src: [@rick2600: terminator + gdb + gef + voltron cc: @snare @_hugsy_](https://twitter.com/rick2600/status/775926070566490113)
 
-
-
 ## I want to contribute, where should I head first? ##
 
 I would suggest thoroughly reading this documentation, just having a look to the
@@ -103,7 +98,6 @@ give you pointers.
 
 Also a good thing would be to join our [Discord channel](https://discord.gg/HCS8Hg7) to get in touch
 with the people involved/using it.
-
 
 ## I think I've found a bug, how can I help fixing it? ##
 
@@ -116,9 +110,11 @@ happens, you'll only get to see a message like this:
 ![gef-exception](https://i.imgur.com/J7dUnXV.png)
 
 By switching to debug mode, `gef` will give much more information:
+
 ```
 gef➤  gef config gef.debug 1
 ```
+
 ![gef-debug](https://i.imgur.com/SGe8oFF.png)
 
 If you think fixing it is in your skills, then send a [Pull
@@ -127,7 +123,6 @@ what was your solution for it.
 
 Otherwise, you can open an [issue](https://github.com/hugsy/gef/issues), give a thorough description
 of your bug and copy/paste the content from above. This will greatly help for solving the issue.
-
 
 ## I get weird issues/characters using GDB + Python3, what's up? ##
 
@@ -141,7 +136,7 @@ In addition, some unexpected results were observed when your local is not set to
 aren't sure, simply run `gdb` like this:
 
 ```
-$ LC_ALL=en_US.UTF-8 gdb /path/to/your/binary
+LC_ALL=en_US.UTF-8 gdb /path/to/your/binary
 ```
 
 ## GDB crashes on ARM memory corruption with `gdb_exception_RETURN_MASK_ERROR` ##
@@ -160,7 +155,7 @@ Debian/Kali for ARM
 > simple ARM assembly program (noted above) when instead of exiting cleanly,
 > gdb's disassembly failed with a SIGABRT and threw an exception:
 >
->  `gdb_exception_RETURN_MASK_ERROR`
+> `gdb_exception_RETURN_MASK_ERROR`
 >
 > This turns out to be a known problem (regression) with gdb, and affects
 > gef users running the ARM platform (Raspberry Pi).
@@ -174,7 +169,7 @@ Therefore, there is nothing GEF's developers can do about that. The correct solu
 above is to recompile your GDB with a newer (better) version.
 
 The whole topic was already internally discussed, so please refer to the [issue
-#206](https://github.com/hugsy/gef/issues/206) for the whole story.
+# 206](https://github.com/hugsy/gef/issues/206) for the whole story.
 
 ## I still don't have my answer... Where can I go?
 
@@ -189,7 +184,7 @@ can!
 ## How can I use GEF to debug a process in a container?
 
 GEF can attach to a process running in a container using `gdb --pid=$PID`, where `$PID` is the ID of
-the running process *on the host*. To find this, you can use `docker top <container ID> -o pid | awk
+the running process _on the host_. To find this, you can use `docker top <container ID> -o pid | awk
 '!/PID/' | xargs -I'{}' pstree -psa {}` to view the process tree for the container.
 
 `sudo` may be required to attach to the process, which will depend on your system's security

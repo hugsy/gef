@@ -41,7 +41,7 @@ So, for example, if your targeted process is called `/home/foobar/plop`, but the
 is used through `socat`, like
 
 ```
-$ socat tcp-l:1234,fork,reuseaddr exec:/home/foobar/plop
+socat tcp-l:1234,fork,reuseaddr exec:/home/foobar/plop
 ```
 
 Then every time a new connection is opened to tcp/1234, `plop` will be forked, and GEF can easily

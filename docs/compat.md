@@ -9,6 +9,4 @@ This matrix indicates the version of Python and/or GDB
 | [2022.01](https://github.com/hugsy/gef/releases/tag/2021.01) | 7.7 | Python 3.4+ |
 | [Current](https://github.com/hugsy/gef/tree/main) | 8.0+ | Python 3.6+ |
 
-
-
 * Up to - included
