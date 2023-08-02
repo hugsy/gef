@@ -168,8 +168,8 @@ Debian/Kali for ARM
 Therefore, there is nothing GEF's developers can do about that. The correct solution as mentioned
 above is to recompile your GDB with a newer (better) version.
 
-The whole topic was already internally discussed, so please refer to the [issue
-# 206](https://github.com/hugsy/gef/issues/206) for the whole story.
+The whole topic was already internally discussed, so please refer to the 
+[issue 206](https://github.com/hugsy/gef/issues/206) for the whole story.
 
 ## I still don't have my answer... Where can I go?
 
