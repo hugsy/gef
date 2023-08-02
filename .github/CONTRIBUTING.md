@@ -2,7 +2,7 @@
 
 ### License ###
 
-`gef` is placed under [license MIT](https://github.com/hugsy/gef/blob/main/LICENSE) which provides Open-Source access to the code and its use.
+`gef` is placed under [MIT license](https://github.com/hugsy/gef/blob/main/LICENSE) which provides Open-Source access to the code and its use.
 
 By contributing to `gef` code through the _Pull Requests_ mechanism, you accept to release the code written by you under the said license.
 
