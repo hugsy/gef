@@ -5,7 +5,7 @@
 #
 set -e
 
-usage() { echo "Usage: $0 [-b <main|dev>] [-p <path_to_install>]" 1>&2; exit 1; }
+usage() { echo "Usage: $0 [-b <main|OtherBranchName>] [-p <path_to_install>]" 1>&2; exit 1; }
 
 branch="main"
 while getopts ":b:p:" o; do

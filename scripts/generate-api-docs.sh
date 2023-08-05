@@ -5,7 +5,7 @@ set -e
 script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 gef_root=$(dirname "$script_dir")
 output_path="${gef_root}/docs/api/"
-src_base_url="https://github.com/hugsy/gef/blob/dev/"
+src_base_url="https://github.com/hugsy/gef/blob/main/"
 full_doc_path="${gef_root}/docs/api/gef.md"
 
 check()
