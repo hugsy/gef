@@ -1,0 +1,72 @@
+name: "Notifications"
+
+on:
+  issues:
+      types:
+      - opened
+      - reopened
+  push:
+    branches:
+      - main
+
+  pull_request:
+    types:
+      - opened
+      - closed
+    branches:
+      - main
+
+env:
+  DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+
+jobs:
+  discord:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Notify/Push
+        if: github.event_name == 'push' && github.repository_owner == 'hugsy'
+        uses: sarisia/actions-status-discord@v1.12
+        with:
+          nodetail: true
+          title: "[${{ github.repository }}] ${{ github.actor }} pushed to `${{ github.ref_name }}`"
+          description: |
+            **Commits**:
+              ● ${{ join(github.event.commits.*.message, '
+              ● ') }}
+            ---
+            [Open Diff View](${{ github.event.compare }})
+          color: 0x00ff00
+          username: ${{ github.actor }} via GithubBot
+          avatar_url: ${{ github.actor.avatar_url }}
+
+      - name: Notify/Pull Request
+        if: github.event_name == 'pull_request'
+        uses: sarisia/actions-status-discord@v1.12
+        with:
+          nodetail: true
+          title: "[${{ github.repository }}] ${{ github.actor }} ${{ github.event.action }} PR #${{ github.event.pull_request.number }}"
+          description: |
+            **Title**: ${{ github.event.pull_request.title }}
+            ---
+            [Goto PR](${{ github.event.pull_request.html_url }})
+          color: 0x0000ff
+          username: ${{ github.actor }} via GithubBot
+          avatar_url: ${{ github.actor.avatar_url }}
+
+      - name: Notify/Issue
+        if: github.event_name == 'issues' &&  github.repository_owner == 'hugsy'
+        uses: sarisia/actions-status-discord@v1.12
+        with:
+          nodetail: true
+          title: "[${{ github.repository }}] ${{ github.actor }} ${{ github.event.action}} issue #${{ github.event.issue.number }}"
+          description: |
+            **Title**: ${{ github.event.issue.title }}
+            ---
+            [Goto issue](${{ github.event.issue.html_url }})
+          color: 0xff0000
+          username: ${{ github.actor }} via GithubBot
+          avatar_url: ${{ github.actor.avatar_url }}
