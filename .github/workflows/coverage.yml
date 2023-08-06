@@ -1,6 +1,8 @@
-name: CI Coverage
+name: CI Coverage for PR
 
-on: [pull_request]
+on:
+  pull_request:
+    types: [opened, edited]
 
 jobs:
   coverage:
@@ -44,7 +46,7 @@ jobs:
             * Commit: ${process.env.COMMIT}
             * Current Coverage: ${process.env.SCORE_OLD}%
             * New Coverage: ${process.env.SCORE_NEW}%
-            * Diff: ${process.env.SCORE_DIFF} 
+            * Diff: ${process.env.SCORE_DIFF}
           `;
           const { owner, repo, number } = context.issue;
           await github.rest.issues.createComment({ owner, repo, issue_number: number, body: comment });

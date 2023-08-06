@@ -5,14 +5,13 @@ Imitation of the WinDBG command.
 This command takes 4 optional arguments:
 
 - The format for representing the data (by default, byte)
-- A value/address/symbol used as the location to print the hexdump from (by
-  default, $sp)
-- The number of qword/dword/word/bytes to display (by default, 64 if the format
-  is byte, 16 otherwise)
+- A value/address/symbol used as the location to print the hexdump from (by default, $sp)
+- The number of qword/dword/word/bytes to display (by default, 64 if the format is byte, 16
+  otherwise)
 - The direction of output lines (by default, from low to high addresses)
 
-`hexdump byte` will also try to display the ASCII character values if the byte
-is printable (similarly to the `hexdump -C` command on Linux).
+`hexdump byte` will also try to display the ASCII character values if the byte is printable
+(similarly to the `hexdump -C` command on Linux).
 
 The syntax is as following:
 

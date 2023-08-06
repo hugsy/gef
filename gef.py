@@ -29,7 +29,7 @@
 #######################################################################################
 #
 # gef is distributed under the MIT License (MIT)
-# Copyright (c) 2013-2022 crazy rabbidz
+# Copyright (c) 2013-2023 crazy rabbidz
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -1193,6 +1193,11 @@ class Instruction:
     def size(self) -> int:
         return len(self.opcodes)
 
+    def next(self) -> "Instruction":
+        address = self.address + self.size()
+        return gef_get_instruction_at(address)
+
+
 @deprecated("Use GefHeapManager.find_main_arena_addr()")
 def search_for_main_arena() -> int:
     return GefHeapManager.find_main_arena_addr()
@@ -1202,6 +1207,7 @@ class GlibcHeapInfo:
 
     @staticmethod
     def heap_info_t() -> Type[ctypes.Structure]:
+        assert gef.libc.version
         class heap_info_cls(ctypes.Structure):
             pass
         pointer = ctypes.c_uint64 if gef.arch.ptrsize == 8 else ctypes.c_uint32
@@ -2012,6 +2018,9 @@ def gdb_disassemble(start_pc: int, **kwargs: int) -> Generator[Instruction, None
     arch = frame.architecture()
 
     for insn in arch.disassemble(start_pc, **kwargs):
+        assert isinstance(insn["addr"], int)
+        assert isinstance(insn["length"], int)
+        assert isinstance(insn["asm"], str)
         address = insn["addr"]
         asm = insn["asm"].rstrip().split(None, 1)
         if len(asm) > 1:
@@ -2065,19 +2074,15 @@ def gdb_get_nth_previous_instruction_address(addr: int, n: int) -> Optional[int]
     return None
 
 
+@deprecated(solution="Use `gef_instruction_n().address`")
 def gdb_get_nth_next_instruction_address(addr: int, n: int) -> int:
-    """Return the address (Integer) of the `n`-th instruction after `addr`."""
-    # fixed-length ABI
-    if gef.arch.instruction_length:
-        return addr + n * gef.arch.instruction_length
-
-    # variable-length ABI
-    insn = list(gdb_disassemble(addr, count=n))[-1]
-    return insn.address
+    """Return the address of the `n`-th instruction after `addr`. """
+    return gef_instruction_n(addr, n).address
 
 
 def gef_instruction_n(addr: int, n: int) -> Instruction:
-    """Return the `n`-th instruction after `addr` as an Instruction object."""
+    """Return the `n`-th instruction after `addr` as an Instruction object. Note that `n` is treated as
+    an positive index, starting from 0 (current instruction address)"""
     return list(gdb_disassemble(addr, count=n + 1))[n]
 
 
@@ -2508,8 +2513,7 @@ class ARM(Architecture):
                      "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$sp",
                      "$lr", "$pc", "$cpsr",)
 
-    # https://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0041c/Caccegih.html
-    nop_insn = b"\x01\x10\xa0\xe1" # mov r1, r1
+    nop_insn = b"\x00\xf0\x20\xe3" # hint #0
     return_register = "$r0"
     flag_register: str = "$cpsr"
     flags_table = {
@@ -2674,6 +2678,7 @@ class AARCH64(ARM):
         5: "t32",
         4: "m[4]",
     }
+    nop_insn = b"\x1f\x20\x03\xd5" # hint #0
     function_parameters = ("$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7",)
     syscall_register = "$x8"
     syscall_instructions = ("svc $x0",)
@@ -3508,7 +3513,7 @@ def is_hex(pattern: str) -> bool:
     return len(pattern) % 2 == 0 and all(c in string.hexdigits for c in pattern[2:])
 
 
-def continue_handler(_: "gdb.Event") -> None:
+def continue_handler(_: "gdb.ContinueEvent") -> None:
     """GDB event handler for new object continue cases."""
     return
 
@@ -3552,13 +3557,31 @@ def new_objfile_handler(evt: Optional["gdb.NewObjFileEvent"]) -> None:
 def exit_handler(_: "gdb.ExitedEvent") -> None:
     """GDB event handler for exit cases."""
     global gef
+    # flush the caches
     reset_all_caches()
+
+    # disconnect properly the remote session
     gef.session.qemu_mode = False
     if gef.session.remote:
         gef.session.remote.close()
         del gef.session.remote
         gef.session.remote = None
         gef.session.remote_initializing = False
+
+    # if `autosave_breakpoints_file` setting is configured, save the breakpoints to disk
+    setting = (gef.config["gef.autosave_breakpoints_file"] or "").strip()
+    if not setting:
+        return
+
+    bkp_fpath = pathlib.Path(setting).expanduser().absolute()
+    if bkp_fpath.exists():
+        warn(f"{bkp_fpath} exists, content will be overwritten")
+
+    with bkp_fpath.open("w") as fd:
+        for bp in gdb.breakpoints():
+            if not bp.enabled or not bp.is_valid:
+                continue
+            fd.write(f"{'t' if bp.temporary else ''}break {bp.location}\n")
     return
 
 
@@ -3931,7 +3954,7 @@ def set_arch(arch: Optional[str] = None, _: Optional[str] = None) -> None:
 #
 
 @only_if_events_supported("cont")
-def gef_on_continue_hook(func: Callable[["gdb.ThreadEvent"], None]) -> None:
+def gef_on_continue_hook(func: Callable[["gdb.ContinueEvent"], None]) -> None:
     gdb.events.cont.connect(func)
 
 
@@ -5986,40 +6009,128 @@ class RemoteCommand(GenericCommand):
 
 
 @register
-class NopCommand(GenericCommand):
-    """Patch the instruction(s) pointed by parameters with NOP. Note: this command is architecture
-    aware."""
+class SkipiCommand(GenericCommand):
+    """Skip N instruction(s) execution"""
 
-    _cmdline_ = "nop"
-    _syntax_  = ("{_cmdline_} [LOCATION] [--nb NUM_BYTES]"
-                 "\n\tLOCATION\taddress/symbol to patch"
-                 "\t--nb NUM_BYTES\tInstead of writing one instruction, patch the specified number of bytes")
-    _example_ = f"{_cmdline_} $pc"
+    _cmdline_ = "skipi"
+    _syntax_  = ("{_cmdline_} [LOCATION] [--n NUM_INSTRUCTIONS]"
+                "\n\tLOCATION\taddress/symbol from where to skip"
+                 "\t--n NUM_INSTRUCTIONS\tSkip the specified number of instructions instead of the default 1.")
+
+    _example_ = [f"{_cmdline_}",
+                 f"{_cmdline_} --n 3",
+                 f"{_cmdline_} 0x69696969",
+                 f"{_cmdline_} 0x69696969 --n 6",]
 
     def __init__(self) -> None:
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
     @only_if_gdb_running
-    @parse_arguments({"address": "$pc"}, {"--nb": 0, })
+    @parse_arguments({"address": "$pc"}, {"--n": 1})
+    def do_invoke(self, _: List[str], **kwargs: Any) -> None:
+        args : argparse.Namespace = kwargs["arguments"]
+        address = parse_address(args.address)
+        num_instructions = args.n
+
+        last_insn = gef_instruction_n(address, num_instructions-1)
+        total_bytes = (last_insn.address - address) + last_insn.size()
+        target_addr  = address + total_bytes
+
+        info(f"skipping {num_instructions} instructions ({total_bytes} bytes) from {address:#x} to {target_addr:#x}")
+        gdb.execute(f"set $pc = {target_addr:#x}")
+        return
+
+
+@register
+class NopCommand(GenericCommand):
+    """Patch the instruction(s) pointed by parameters with NOP. Note: this command is architecture
+    aware."""
+
+    _cmdline_ = "nop"
+    _syntax_  = ("{_cmdline_} [LOCATION] [--i ITEMS] [--f] [--n] [--b]"
+                 "\n\tLOCATION\taddress/symbol to patch (by default this command replaces whole instructions)"
+                 "\t--i ITEMS\tnumber of items to insert (default 1)"
+                 "\t--f\tForce patch even when the selected settings could overwrite partial instructions"
+                 "\t--n\tInstead of replacing whole instructions, insert ITEMS nop instructions, no matter how many instructions it overwrites"
+                 "\t--b\tInstead of replacing whole instructions, fill ITEMS bytes with nops")
+    _example_ = [f"{_cmdline_}",
+                 f"{_cmdline_} $pc+3",
+                 f"{_cmdline_} --i 2 $pc+3",
+                 f"{_cmdline_} --b",
+                 f"{_cmdline_} --b $pc+3",
+                 f"{_cmdline_} --f --b --i 2 $pc+3"
+                 f"{_cmdline_} --n --i 2 $pc+3",]
+
+    def __init__(self) -> None:
+        super().__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+    @only_if_gdb_running
+    @parse_arguments({"address": "$pc"}, {"--i": 1, "--b": True, "--f": True, "--n": True})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
         address = parse_address(args.address)
         nop = gef.arch.nop_insn
-        number_of_bytes = args.nb or 1
-        insn = gef_get_instruction_at(address)
+        num_items = int(args.i) or 1
+        fill_bytes = bool(args.b)
+        fill_nops = bool(args.n)
+        force_flag = bool(args.f) or False
 
-        if insn.size() != number_of_bytes:
-            warn(f"Patching {number_of_bytes} bytes at {address:#x} might result in corruption")
-
-        nops = bytearray(nop * number_of_bytes)
-        end_address = Address(value=address + len(nops))
-        if not end_address.valid:
-            err(f"Cannot patch instruction at {address:#x}: reaching unmapped area")
+        if fill_nops and fill_bytes:
+            err("--b and --n cannot be specified at the same time.")
             return
 
-        ok(f"Patching {len(nops)} bytes from {address:#x}")
-        gef.memory.write(address, nops, len(nops))
+        total_bytes = 0
+        if fill_bytes:
+            total_bytes = num_items
+        elif fill_nops:
+            total_bytes = num_items * len(nop)
+        else:
+            try:
+                last_insn = gef_instruction_n(address, num_items-1)
+                last_addr = last_insn.address
+            except:
+                err(f"Cannot patch instruction at {address:#x} reaching unmapped area")
+                return
+            total_bytes = (last_addr - address) + gef_get_instruction_at(last_addr).size()
+
+        if len(nop) > total_bytes or total_bytes % len(nop):
+            warn(f"Patching {total_bytes} bytes at {address:#x} will result in LAST-NOP "
+                 f"(byte nr {total_bytes % len(nop):#x}) broken and may cause a crash or "
+                 "break disassembly.")
+            if not force_flag:
+                warn("Use --f (force) to ignore this warning.")
+                return
+
+        target_end_address = address + total_bytes
+        curr_ins = gef_current_instruction(address)
+        while curr_ins.address + curr_ins.size() < target_end_address:
+            if not Address(value=curr_ins.address + 1).valid:
+                err(f"Cannot patch instruction at {address:#x}: reaching unmapped area")
+                return
+            curr_ins = gef_next_instruction(curr_ins.address)
+
+        final_ins_end_addr = curr_ins.address + curr_ins.size()
+
+        if final_ins_end_addr != target_end_address:
+            warn(f"Patching {total_bytes} bytes at {address:#x} will result in LAST-INSTRUCTION "
+                 f"({curr_ins.address:#x}) being partial overwritten and may cause a crash or "
+                 "break disassembly.")
+            if not force_flag:
+                warn("Use --f (force) to ignore this warning.")
+                return
+
+        nops = bytearray(nop * total_bytes)
+        end_address = Address(value=address + total_bytes - 1)
+        if not end_address.valid:
+            err(f"Cannot patch instruction at {address:#x}: reaching unmapped "
+                f"area: {end_address:#x}")
+            return
+
+        ok(f"Patching {total_bytes} bytes from {address:#x}")
+        gef.memory.write(address, nops, total_bytes)
+
         return
 
 
@@ -6329,7 +6440,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             if "all" in argv:
                 tids = [t.num for t in threads]
             else:
-                tids = self.check_thread_ids(argv)
+                tids = self.check_thread_ids([int(a) for a in argv])
         else:
             tids = [current_thread.num]
 
@@ -6412,21 +6523,9 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
     @staticmethod
     def check_thread_ids(tids: List[int]) -> List[int]:
-        """Check the validity, dedup, and return all valid tids."""
-        existing_tids = [t.num for t in gdb.selected_inferior().threads()]
-        valid_tids = set()
-        for tid in tids:
-            try:
-                tid = int(tid)
-            except ValueError:
-                err(f"Invalid thread id {tid:d}")
-                continue
-            if tid in existing_tids:
-                valid_tids.add(tid)
-            else:
-                err(f"Unknown thread {tid}")
-
-        return list(valid_tids)
+        """Return the subset of tids that are currently valid."""
+        existing_tids = set(t.num for t in gdb.selected_inferior().threads())
+        return list(set(tids) & existing_tids)
 
     @staticmethod
     def tcachebin(tcache_base: int, i: int) -> Tuple[Optional[GlibcTcacheChunk], int]:
@@ -6673,11 +6772,11 @@ class DetailRegistersCommand(GenericCommand):
 
         args : argparse.Namespace = kwargs["arguments"]
         if args.registers and args.registers[0]:
-            required_regs = set(args.registers)
-            valid_regs = [reg for reg in gef.arch.all_registers if reg in required_regs]
+            requested_regs = set(args.registers)
+            valid_regs = set(gef.arch.all_registers) & requested_regs
             if valid_regs:
                 regs = valid_regs
-            invalid_regs = [reg for reg in required_regs if reg not in valid_regs]
+            invalid_regs = requested_regs - valid_regs
             if invalid_regs:
                 err(f"invalid registers for architecture: {', '.join(invalid_regs)}")
 
@@ -7259,7 +7358,7 @@ class ContextCommand(GenericCommand):
 
         if self["show_registers_raw"] is False:
             regs = set(gef.arch.all_registers)
-            printable_registers = " ".join(list(regs - ignored_registers))
+            printable_registers = " ".join(regs - ignored_registers)
             gdb.execute(f"registers {printable_registers}")
             return
 
@@ -9509,10 +9608,10 @@ class GefCommand(gdb.Command):
 
     def load(self) -> None:
         """Load all the commands and functions defined by GEF into GDB."""
-        current_commands = set( self.commands.keys() )
-        new_commands = set( [x._cmdline_ for x in __registered_commands__] ) - current_commands
-        current_functions = set( self.functions.keys() )
-        new_functions = set([x._function_ for x in __registered_functions__]) - current_functions
+        current_commands = set(self.commands.keys())
+        new_commands = set(x._cmdline_ for x in __registered_commands__) - current_commands
+        current_functions = set(self.functions.keys())
+        new_functions = set(x._function_ for x in __registered_functions__) - current_functions
         self.missing.clear()
         self.__load_time_ms = time.time()* 1000
 
@@ -10180,8 +10279,9 @@ class GefMemoryManager(GefManager):
         self.__maps = None
         return
 
-    def write(self, address: int, buffer: ByteString, length: int = 0x10) -> None:
+    def write(self, address: int, buffer: ByteString, length: Optional[int] = None) -> None:
         """Write `buffer` at address `address`."""
+        length = length or len(buffer)
         gdb.selected_inferior().write_memory(address, buffer, length)
 
     def read(self, addr: int, length: int = 0x10) -> bytes:
@@ -10364,6 +10464,7 @@ class GefHeapManager(GefManager):
     @staticmethod
     @lru_cache()
     def find_main_arena_addr() -> int:
+        assert gef.libc.version
         """A helper function to find the glibc `main_arena` address, either from
         symbol, from its offset from `__malloc_hook` or by brute force."""
         # Before anything else, use libc offset from config if available
@@ -10480,6 +10581,7 @@ class GefHeapManager(GefManager):
 
     @property
     def malloc_alignment(self) -> int:
+        assert gef.libc.version
         __default_malloc_alignment = 0x10
         if gef.libc.version >= (2, 26) and is_x86_32():
             # Special case introduced in Glibc 2.26:
@@ -11085,7 +11187,8 @@ if __name__ == "__main__":
     gef_on_memchanged_hook(memchanged_handler)
     gef_on_regchanged_hook(regchanged_handler)
 
-    if gdb.current_progspace().filename is not None:
+    progspace = gdb.current_progspace()
+    if progspace and progspace.filename:
         # if here, we are sourcing gef from a gdb session already attached, force call to new_objfile (see issue #278)
         new_objfile_handler(None)
 
@@ -11095,3 +11198,8 @@ if __name__ == "__main__":
     errmsg = "Using `target remote` with GEF does not work, use `gef-remote` instead. You've been warned."
     gdb.execute(f"define target hook-remote\n pi if calling_function() != \"connect\": err(\"{errmsg}\") \nend")
     gdb.execute(f"define target hook-extended-remote\n pi if calling_function() != \"connect\": err(\"{errmsg}\") \nend")
+
+    # restore saved breakpoints (if any)
+    bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
+    if bkp_fpath.exists() and bkp_fpath.is_file():
+        gdb.execute(f"source {bkp_fpath}")

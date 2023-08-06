@@ -10,7 +10,7 @@ highlight (add|remove|list|clear)
 
 Alias:
 
-  - `hl`
+- `hl`
 
 ## Adding matches
 
@@ -71,11 +71,9 @@ highlight.regex (bool) = True
 
 ## Performance
 
-_**NOTE:** Adding many matches may slow down debugging while using GEF.
-This includes enabling RegEx support._
+_**NOTE:** Adding many matches may slow down debugging while using GEF. This includes enabling RegEx
+support._
 
 ## Colors
 
-To find a list of supported colors, check the
-[theme](./theme.md#changing-colors) documentation.
-
+To find a list of supported colors, check the [theme](./theme.md#changing-colors) documentation.

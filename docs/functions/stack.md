@@ -9,8 +9,7 @@ $_stack([offset])
 ```
 
 Example:
+
 ```
 gef➤ p $_stack(0x20)
 ```
-
-

@@ -3,13 +3,15 @@
 This command is used to XOR a block of memory.
 
 Its syntax is:
+
 ```
 xor-memory <display|patch> <address> <size_to_read> <xor_key>
 ```
 
 The first argument (`display` or `patch`) is the action to perform:
 
-1. `display` will only show an hexdump of the result of the XOR-ed memory block, without writing the debuggee's memory.
+1. `display` will only show an hexdump of the result of the XOR-ed memory block, without writing the
+   debuggee's memory.
 
         gef➤  xor display $rsp 16 1337
         [+] Displaying XOR-ing 0x7fff589b67f8-0x7fff589b6808 with '1337'

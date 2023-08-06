@@ -1,14 +1,14 @@
 ## Command `print-format`
 
-The command `print-format` (alias `pf`) will dump an arbitrary location as an array of bytes following the format specified. Currently, the output formats supported are
+The command `print-format` (alias `pf`) will dump an arbitrary location as an array of bytes
+following the format specified. Currently, the output formats supported are
 
- - Python (`py` - default)
- - C (`c`)
- - Assembly (`asm`)
- - Javascript (`js`)
- - Hex string (`hex`)
- - For patch byte command or GDB $_gef[N] byte access (`bytearray`)
-
+- Python (`py` - default)
+- C (`c`)
+- Assembly (`asm`)
+- Javascript (`js`)
+- Hex string (`hex`)
+- For patch byte command or GDB $_gef[N] byte access (`bytearray`)
 
 ```
 gef➤  print-format -h

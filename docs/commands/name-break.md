@@ -1,17 +1,15 @@
 ## Command `name-break`
 
-The command `name-break` (alias `nb`) can be used to set a breakpoint on
-a location with a name assigned to it.
+The command `name-break` (alias `nb`) can be used to set a breakpoint on a location with a name
+assigned to it.
 
-Every time this breakpoint is hit, the specified name will also be shown
-in the `extra` section to make it easier to keep an overview when using
-multiple breakpoints in a stripped binary.
+Every time this breakpoint is hit, the specified name will also be shown in the `extra` section to
+make it easier to keep an overview when using multiple breakpoints in a stripped binary.
 
 `name-break name [address]`
 
-`address` may be a linespec, address, or explicit location, same as specified
-for `break`. If `address` isn't specified, it will create the breakpoint at the
-current instruction pointer address.
+`address` may be a linespec, address, or explicit location, same as specified for `break`. If
+`address` isn't specified, it will create the breakpoint at the current instruction pointer address.
 
 Examples:
 
@@ -34,7 +32,7 @@ Example output:
      0x400e18                  mov    QWORD PTR [rbp-0x50], rsi
      0x400e1c                  mov    rax, QWORD PTR fs:0x28
 ───────────────────────────────────────────────────────────────────────────────── stack ────
-0x00007fffffffe288│+0x0000: 0x0000000000401117  →   movzx ecx, al	 ← $rsp
+0x00007fffffffe288│+0x0000: 0x0000000000401117  →   movzx ecx, al     ← $rsp
 0x00007fffffffe290│+0x0008: 0x00007fffffffe4b8  →  0x00007fffffffe71d  →  "/ctf/t19/srv_copy"
 0x00007fffffffe298│+0x0010: 0x0000000100000000
 0x00007fffffffe2a0│+0x0018: 0x0000000000000000

@@ -1,18 +1,60 @@
 ## Command `nop`
 
-The `nop` command allows you to easily skip instructions.
+The `nop` command allows you to easily patch instructions with nops.
 
 ```
-gef ➤  help nop
-Patch the instruction(s) pointed by parameters with NOP. Note: this command is architecture
-aware.
-Syntax: nop [LOCATION] [--nb NUM_BYTES]
-  LOCATION      address/symbol to patch
-    --nb NUM_BYTES      Instead of writing one instruction, patch the specified number of bytes
+nop [LOCATION] [--i ITEMS] [--f] [--n] [--b]
 ```
 
-`LOCATION` indicates the address of the instruction to bypass. If not
-specified, it will use the current value of the program counter.
+`LOCATION` address/symbol to patch (by default this command replaces whole instructions)
 
-If `--nb <bytes>` is entered, gef will explicitly patch the specified number of
-bytes.  Otherwise it will patch the _whole_ instruction at the target location.
+`--i ITEMS` number of items to insert (default 1)
+
+`--f` Force patch even when the selected settings could overwrite partial instructions
+
+`--n` Instead of replacing whole instructions, insert ITEMS nop instructions, no matter how many
+instructions it overwrites
+
+`--b` Instead of replacing whole instructions, fill ITEMS bytes with nops
+
+nop the current instruction ($pc):
+
+```bash
+gef➤ nop
+```
+
+nop an instruction at $pc+3 address:
+
+```bash
+gef➤ nop $pc+3
+```
+
+nop two instructions at address $pc+3:
+
+```bash
+gef➤ nop --i 2 $pc+3
+```
+
+Replace 1 byte with nop at current instruction ($pc):
+
+```bash
+gef➤ nop --b
+```
+
+Replace 1 byte with nop at address $pc+3:
+
+```bash
+gef➤ nop --b $pc+3
+```
+
+Replace 2 bytes with nop(s) (breaking the last instruction) at address $pc+3:
+
+```bash
+gef➤ nop --f --b --i 2 $pc+3
+```
+
+Patch 2 nops at address $pc+3:
+
+```bash
+gef➤ nop --n --i 2 $pc+3
+```
