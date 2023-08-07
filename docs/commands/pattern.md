@@ -9,7 +9,7 @@ the one in `pwntools`, and can therefore be used in conjunction.
 
 ### `pattern create`
 
-```
+```text
 pattern create [-h] [-n N] [length]
 ```
 
@@ -33,7 +33,7 @@ p = cyclic(128, n=8)
 
 ### `pattern search`
 
-```
+```text
 pattern search [-h] [-n N] [--max-length MAX_LENGTH] [pattern]
 ```
 

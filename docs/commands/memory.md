@@ -15,7 +15,7 @@ Specify a location to watch and display with the context, along with their optio
 
 Syntax:
 
-```
+```text
 memory watch <ADDRESS> [SIZE] [(qword|dword|word|byte|pointers)]
 ```
 
@@ -28,7 +28,8 @@ functions
 format](https://www.technovelty.org/linux/plt-and-got-the-key-to-code-sharing-and-dynamic-libraries.html)
 allowing to easily track commonly used addresses:
 
-For example, to watch the first 5 entries of the [GOT]() as pointers:
+For example, to watch the first 5 entries of the [GOT](https://hugsy.github.io/gef/functions/got/)
+as pointers:
 
 ```text
 gef ➤ memory watch $_got()+0x18 5
@@ -37,7 +38,7 @@ gef ➤ memory watch $_got()+0x18 5
 
 Which, when the `context` is displayed, will show something like:
 
-![](https://i.imgur.com/3YabwYv.png)
+![gef-context-memory](https://i.imgur.com/3YabwYv.png)
 
 ### Removing a watch
 
@@ -45,7 +46,7 @@ Remove a watched address. To list all the addresses being watched, use `memory l
 
 Syntax:
 
-```
+```text
 memory unwatch <ADDRESS>
 ```
 
@@ -55,11 +56,12 @@ Enumerate all the addresses currently watched by the `memory` command.
 
 Syntax:
 
-```
+```text
 memory list
 ```
 
-The command will output a list of all the addresses watched, along with the size and format to display them as.
+The command will output a list of all the addresses watched, along with the size and format to
+display them as.
 
 ### Resetting watches
 
@@ -67,6 +69,6 @@ Empties the list of addresses to watch.
 
 Syntax:
 
-```
+```text
 memory reset
 ```

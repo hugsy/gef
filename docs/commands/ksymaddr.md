@@ -4,7 +4,7 @@
 
 The syntax is straight forward:
 
-```
+```text
 ksymaddr <PATTERN>
 ```
 

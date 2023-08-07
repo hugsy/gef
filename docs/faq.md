@@ -1,4 +1,4 @@
-# Frequently Asked Questions
+## Frequently Asked Questions
 
 ## Why use GEF over PEDA?
 
@@ -84,8 +84,8 @@ experience.
 
 Some interesting plugins highly recommended too:
 
-- [!exploitable](https://github.com/jfoote/exploitable/)
-- [Voltron](https://github.com/snare/voltron)
+-  [!exploitable](https://github.com/jfoote/exploitable/)
+-  [Voltron](https://github.com/snare/voltron)
 
 ![voltron](https://i.imgur.com/bfTIjNi.jpg)
 Src: [@rick2600: terminator + gdb + gef + voltron cc: @snare @_hugsy_](https://twitter.com/rick2600/status/775926070566490113)
@@ -135,7 +135,7 @@ compiled with Python3, GEF will assume that your current charset is UTF-8 (for i
 In addition, some unexpected results were observed when your local is not set to English. If you
 aren't sure, simply run `gdb` like this:
 
-```
+```text
 LC_ALL=en_US.UTF-8 gdb /path/to/your/binary
 ```
 

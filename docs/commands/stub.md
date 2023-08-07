@@ -21,10 +21,10 @@ parent process into thinking it has become the child.
 
 Patching `fork()` calls:
 
-* Without stub:
+*  Without stub:
 
 ![fork execution](https://i.imgur.com/TjnTDot.png)
 
-* With stub:
+*  With stub:
 
 ![stubbed fork](https://i.imgur.com/CllTnRH.png)

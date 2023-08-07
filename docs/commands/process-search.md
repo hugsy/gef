@@ -33,14 +33,14 @@ Note: Use "\\" for escaping and "\\\\" for a literal backslash" in the pattern.
 
 `ps` also accepts options:
 
-* `--smart-scan` will filter out probably less relevant processes (belonging to different users,
+*  `--smart-scan` will filter out probably less relevant processes (belonging to different users,
   pattern matched to arguments instead of the commands themselves, etc.)
-* `--attach` will automatically attach to the first process found
+*  `--attach` will automatically attach to the first process found
 
 So, for example, if your targeted process is called `/home/foobar/plop`, but the existing instance
 is used through `socat`, like
 
-```
+```text
 socat tcp-l:1234,fork,reuseaddr exec:/home/foobar/plop
 ```
 

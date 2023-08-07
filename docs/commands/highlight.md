@@ -4,13 +4,13 @@ This command sets up custom highlighting for user set strings.
 
 Syntax:
 
-```
+```text
 highlight (add|remove|list|clear)
 ```
 
 Alias:
 
-- `hl`
+-  `hl`
 
 ## Adding matches
 

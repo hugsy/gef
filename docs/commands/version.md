@@ -27,7 +27,7 @@ GDB-Python: 3.8
 
 The `Blob Hash` can be used to easily find the git commit(s) matching this file revision.
 
-```
+```text
 git log --oneline --find-object <BLOB_HASH>
 ```
 

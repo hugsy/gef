@@ -20,19 +20,19 @@ value.
 
 Colors can be one of the following:
 
-- red
-- green
-- blue
-- yellow
-- gray
-- pink
+-  red
+-  green
+-  blue
+-  yellow
+-  gray
+-  pink
 
 Color also accepts the following attributes:
 
-- bold
-- underline
-- highlight
-- blink
+-  bold
+-  underline
+-  highlight
+-  blink
 
 Any other will value simply be ignored.
 

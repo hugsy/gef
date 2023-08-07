@@ -2,7 +2,7 @@
 
 The `nop` command allows you to easily patch instructions with nops.
 
-```
+```text
 nop [LOCATION] [--i ITEMS] [--f] [--n] [--b]
 ```
 
@@ -19,42 +19,42 @@ instructions it overwrites
 
 nop the current instruction ($pc):
 
-```bash
+```text
 gef➤ nop
 ```
 
 nop an instruction at $pc+3 address:
 
-```bash
+```text
 gef➤ nop $pc+3
 ```
 
 nop two instructions at address $pc+3:
 
-```bash
+```text
 gef➤ nop --i 2 $pc+3
 ```
 
 Replace 1 byte with nop at current instruction ($pc):
 
-```bash
+```text
 gef➤ nop --b
 ```
 
 Replace 1 byte with nop at address $pc+3:
 
-```bash
+```text
 gef➤ nop --b $pc+3
 ```
 
 Replace 2 bytes with nop(s) (breaking the last instruction) at address $pc+3:
 
-```bash
+```text
 gef➤ nop --f --b --i 2 $pc+3
 ```
 
 Patch 2 nops at address $pc+3:
 
-```bash
+```text
 gef➤ nop --n --i 2 $pc+3
 ```

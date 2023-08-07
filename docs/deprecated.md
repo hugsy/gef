@@ -1,4 +1,4 @@
-# Deprecated commands
+## Deprecated commands
 
 GEF is in itself a large file, but to avoid it to be out of control some commands once part of GEF
 were either moved to [GEF-Extras](https://github.com/hugsy/gef-extras) or even simply removed. This
