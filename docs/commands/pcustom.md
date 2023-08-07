@@ -132,8 +132,8 @@ currently debugged binary, the architecture, the size of a pointer and more).
 The syntax is relatively close to the way we use to create static classes (see above), but instead
 we define a function that will generate the class. The requirements for this class factory are:
 
-- take a single [`Gef`](https://github.com/hugsy/gef/blob/main/docs/api/gef.md#class-gef) positional
-  argument
+-  Take a single [`Gef`](https://github.com/hugsy/gef/blob/main/docs/api/gef.md#class-gef)
+  positional argument
 -  End the function name with `_t`
 
 To continue the `person_t` function we defined in the example above, we could modify the static
