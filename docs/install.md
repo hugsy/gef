@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-Specific GEF commands rely on commonly used Unix commands to extract additional information. 
+Specific GEF commands rely on commonly used Unix commands to extract additional information.
 Therefore it requires the following binaries to be present:
 
 * `file`
@@ -99,22 +99,10 @@ updates are available, `gef` will respond `No update` instead.
 To contribute to GEF, you might prefer using git directly.
 
 ```bash
-git clone --branch dev https://github.com/hugsy/gef.git
+git clone https://github.com/hugsy/gef.git
 echo source `pwd`/gef/gef.py >> ~/.gdbinit
 ```
 
-GEF is in very active development, so the default branch is `dev`. This is the
-branch you must use if you intend to submit pull requests.
-
-However if you prefer a more stable life, you can then switch to the `main`
-branch:
-
-```bash
-git checkout main
-```
-
-The `main` branch gets only updated for new releases, or also when critical
-fixes occur and need to be patched urgently.
 
 ## Community repository: GEF-Extras
 
