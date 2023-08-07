@@ -7,7 +7,7 @@ body:
   id: md_welcome
   attributes:
     value: |
-      Complete this form is for reporting bugs in GEF. Incomplete/invalid report will simply being ignored or closed. 
+      Complete this form is for reporting bugs in GEF. Incomplete/invalid report will simply being ignored or closed.
       Also note that this is not the place to ask installation or usage problem. Use the Discord channel for that.
 - type: textarea
   attributes:
@@ -38,9 +38,9 @@ body:
     multiple: false
     options:
     - "No"
-    - "Yes"    
+    - "Yes"
   validations:
-    required: true    
+    required: true
 - type: checkboxes
   attributes:
     label: Architecture impacted
