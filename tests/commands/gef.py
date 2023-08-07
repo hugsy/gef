@@ -120,4 +120,3 @@ class GefCommand(GefUnitTestGeneric):
             self.assertNotEqual(-1,  idx, f"Check {i}/{3} failed: missing '{pattern}' in\n{res}")
             self.assertIn("new command(s) available", res)
             res = res[idx:]
-

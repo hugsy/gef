@@ -21,6 +21,3 @@ class HexdumpCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         res = gdb_start_silent_cmd("hexdump byte $sp -s 32")
         self.assertNoException(res)
-
-
-

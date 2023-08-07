@@ -33,4 +33,3 @@ class GefFuncDeprecatedApi(GefUnitTestGeneric):
                 self.assertNoException(res)
                 if not record:
                     pytest.fail(f"Expected a warning for '{item}'!")
-

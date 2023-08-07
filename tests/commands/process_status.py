@@ -18,5 +18,3 @@ class ProcessStatusCommand(GefUnitTestGeneric):
         self.assertIn("Process Information", res)
         self.assertIn("No child process", res)
         self.assertIn("No open connections", res)
-
-

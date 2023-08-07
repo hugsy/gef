@@ -76,4 +76,3 @@ class GefHeapApi(GefUnitTestGeneric):
         addr3 = result_as_int("int(gef.heap.main_arena)")
         self.assertEqual(addr1, addr2)
         self.assertEqual(addr2, addr3)
-

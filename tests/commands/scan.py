@@ -21,4 +21,3 @@ class ScanCommand(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("scan binary libc")
         self.assertNoException(res)
         self.assertIn("__libc_start_main", res)
-
