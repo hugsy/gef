@@ -14,7 +14,7 @@ written by you under the said license.
    `patch` or `git diff --patch` commands is not accepted.
 1.  All the packages required for testing and documenting are listed in `tests/requirements.txt`
 1.  Adjust your development environment to GEF's: this is achieved using
-   [`pre-commit`](https://re-commit.com/), and getting setup is simply done by
+   [`pre-commit`](https://pre-commit.com/), and getting setup is simply done by
 1.  Installing `pre-commit` PIP package (part of the `requirements.txt` file)
 1.  Setup `pre-commit` : `pre-commit install`
 1.  Write the changes in your local repo making sure to respect the coding style (same indentation
