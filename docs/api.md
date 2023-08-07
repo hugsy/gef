@@ -223,7 +223,7 @@ args.blah --> True # set to True because user input declared the option (would h
 ### Adding new architectures
 
 Support for new architectures can be added by inheriting from the `Architecture` class. Examples can
-be found in [gef-extras](https://github.com/hugsy/gef-extras/tree/dev/archs).
+be found in [gef-extras](https://github.com/hugsy/gef-extras/tree/main/archs).
 
 Sometimes architectures can more precisely determine whether they apply to the current target by
 looking at the architecture determined by gdb. For these cases the custom architecture may implement

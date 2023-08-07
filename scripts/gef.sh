@@ -3,11 +3,6 @@
 set -e
 
 branch="main"
-if [ "$1" = "dev" ]; then
-    branch="dev"
-    echo "set branch to dev"
-fi
-
 curl_found=0
 wget_found=0
 

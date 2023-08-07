@@ -59,7 +59,7 @@ class MiscFunctionTest(GefUnitTestGeneric):
     @pytest.mark.skip
     def test_func_update_gef(self):
         bkp_home = os.environ["HOME"]
-        for branch in ("main", "dev"):
+        for branch in ("main", ):
             with tempfile.TemporaryDirectory() as tmpdir:
                 dirpath = pathlib.Path(tmpdir)
                 os.environ["HOME"] = str(dirpath.absolute())

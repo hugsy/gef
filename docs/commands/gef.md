@@ -138,7 +138,7 @@ looks up for script names in the `main` branch of `gef-extras`. However you can 
 different branch through the `gef.default_branch` configuration setting:
 
 ```text
-gef➤ gef config gef.default_branch dev
+gef➤ gef config gef.default_branch my_other_branch
 ```
 
 The files will be dowloaded in the path configured in the `gef.extra_plugins_dir` setting, allowing
