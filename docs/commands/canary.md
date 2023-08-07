@@ -6,7 +6,7 @@ canary. This makes it convenient to avoid manually searching for this value in m
 
 The command `canary` does not take any arguments.
 
-```
+```text
 gef➤ canary
 ```
 

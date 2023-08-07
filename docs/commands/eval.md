@@ -5,7 +5,7 @@ The `$` command attempts to mimic WinDBG `?` command.
 When provided one argument, it will evaluate the expression, and try to display the result with
 various formats:
 
-```
+```text
 gef➤  $ $pc+1
 93824992252977
 0x555555559431
@@ -23,7 +23,7 @@ b'\x00\xf0\xff\xff\xff\xff\xff\xff'
 
 With two arguments, it will simply compute the delta between them:
 
-```
+```text
 gef➤  vmmap libc
 Start              End                Offset             Perm
 0x00007ffff7812000 0x00007ffff79a7000 0x0000000000000000 r-x /lib/x86_64-linux-gnu/libc-2.24.so

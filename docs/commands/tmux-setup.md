@@ -14,7 +14,7 @@ pane, looking something like:
 
 To set it up, simply enter
 
-```
+```text
 gef➤ tmux-setup
 ```
 
@@ -22,7 +22,7 @@ gef➤ tmux-setup
 a very clean way to do this. Therefore, if possible, it would be recommended to use the `tmux-setup`
 command instead.
 
-### Possible color issues with tmux ###
+### Possible color issues with tmux
 
 On Linux tmux only supports 8 colors with some terminal capabilities (`$TERM` environment variable).
 This can mess up your color themes when using GEF with tmux. To remedy this if your terminal

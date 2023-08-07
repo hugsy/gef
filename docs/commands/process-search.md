@@ -6,7 +6,7 @@ tcp/listening daemon that would fork upon `accept()`).
 
 Without argument, it will return all processes reachable by user:
 
-```
+```text
 gef➤  ps
 1               root            0.0             0.4             ?           /sbin/init
 2               root            0.0             0.0             ?           [kthreadd]
@@ -24,7 +24,7 @@ gef➤  ps
 
 Or to filter with pattern:
 
-```
+```text
 gef➤  ps bash
 22590           vagrant         0.0             0.8             pts/0       -bash
 ```
@@ -47,6 +47,6 @@ socat tcp-l:1234,fork,reuseaddr exec:/home/foobar/plop
 Then every time a new connection is opened to tcp/1234, `plop` will be forked, and GEF can easily
 attach to it with the command
 
-```
+```text
 gef➤  ps --attach --smart-scan plop
 ```

@@ -7,7 +7,7 @@ the path taken by a specific execution. It should be used with the IDA script
 It will trace and store all values taken by `$pc` during the execution flow, from its current value,
 until the value provided as argument.
 
-```
+```text
 gef> trace-run <address_of_last_instruction_to_trace>
 ```
 

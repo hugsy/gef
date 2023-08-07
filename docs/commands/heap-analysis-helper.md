@@ -7,14 +7,14 @@ tracking and analyzing allocations and deallocations of chunks of memory.
 
 Currently, the following issues can be tracked:
 
-- NULL free
-- Use-after-Free
-- Double Free
-- Heap overlap
+-  NULL free
+-  Use-after-Free
+-  Double Free
+-  Heap overlap
 
 The helper can simply be activated by running the command `heap-analysis-helper`.
 
-```
+```text
 gef➤ heap-analysis
 [+] Tracking malloc()
 [+] Tracking free()
@@ -30,13 +30,13 @@ enable/disable manually punctual checks via the `gef config` command.
 
 The following settings are accepted:
 
-- `check_null_free`: to break execution when a free(NULL) is encountered (disabled by default);
-- `check_double_free`: to break execution when a double free is encountered;
+-  `check_null_free`: to break execution when a free(NULL) is encountered (disabled by default);
+-  `check_double_free`: to break execution when a double free is encountered;
 
 ![double-free](https://i.imgur.com/S7b4FJa.png)
 
-- `check_weird_free`: to execution when `free()` is called against a non-tracked pointer;
-- `check_uaf`: to break execution when a possible Use-after-Free condition is found.
+-  `check_weird_free`: to execution when `free()` is called against a non-tracked pointer;
+-  `check_uaf`: to break execution when a possible Use-after-Free condition is found.
 
 ![uaf](https://i.imgur.com/NfV5Cu9.png)
 
@@ -47,7 +47,7 @@ ascertained manually.
 The `heap-analysis-helper` can also be used to simply track allocation and liberation of chunks of
 memory. One can simply enable the tracking by setting all the configurations stated above to False:
 
-```
+```text
 gef➤  gef config heap-analysis-helper.check_double_free False
 gef➤  gef config heap-analysis-helper.check_free_null False
 gef➤  gef config heap-analysis-helper.check_weird_free False
@@ -61,7 +61,7 @@ when a chunk is allocated/freed.
 
 To get information regarding the currently tracked chunks, use the `show` subcommand:
 
-```
+```text
 gef➤  heap-analysis-helper show
 ```
 

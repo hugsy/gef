@@ -5,36 +5,36 @@ only supports GlibC heap format (see [this
 link](https://code.woboq.org/userspace/glibc/malloc/malloc.c.html#malloc_chunk) for `malloc`
 structure information). Syntax to the subcommands is straight forward:
 
-```
+```text
 gef➤ heap <sub_commands>
 ```
 
-## `main_arena` symbol ###
+## `main_arena` symbol
 
 If the linked glibc of the target program does not have debugging symbols it might be tricky for GEF
 to find the address of the `main_arena` which is needed for most of the `heap` subcommands. If you
 know the offset of this symbol from the glibc base address you can use GEF's config to provide said
 value:
 
-```
+```text
 gef➤ gef config gef.main_arena_offset <offset>
 ```
 
 If you do not know this offset and you want GEF to try and find it via bruteforce when executing a
 `heap` command the next time, you can try this instead:
 
-```
+```text
 gef➤ gef config gef.bruteforce_main_arena True
 ```
 
 Note that this might take a few seconds to complete. If GEF does find the symbol you can then
 calculate the offset to the libc base address and save it in the config.
 
-### `heap chunks` command ###
+### `heap chunks` command
 
 Displays all the chunks from the `heap` section of the current arena.
 
-```
+```text
 gef➤ heap chunks
 ```
 
@@ -43,7 +43,7 @@ gef➤ heap chunks
 To select from which arena to display chunks either use the `heap set-arena` command or provide the
 base address of the other arena like this:
 
-```
+```text
 gef➤ heap chunks [arena_address]
 ```
 
@@ -51,7 +51,7 @@ gef➤ heap chunks [arena_address]
 
 In order to display the chunks of all the available arenas at once use
 
-```
+```text
 gef➤ heap chunks -a
 ```
 
@@ -62,12 +62,12 @@ re-aligns the chunks data start addresses to match Glibc's behavior. To be able 
 chunks as well, you can disable this with the `--allow-unaligned` flag. Note that this might result
 in incorrect output.
 
-### `heap chunk` command ###
+### `heap chunk` command
 
 This command gives visual information of a Glibc malloc-ed chunked. Simply provide the address to
 the user memory pointer of the chunk to show the information related to a specific chunk:
 
-```
+```text
 gef➤ heap chunk [address]
 ```
 
@@ -81,7 +81,7 @@ in incorrect output.
 There is an optional `number` argument, to specify the number of chunks printed by this command. To
 do so, simply provide the `--number` argument:
 
-```
+```text
 gef➤ heap chunk --number 6 0x4e5400
 Chunk(addr=0x4e5400, size=0xd0, flags=PREV_INUSE)
 Chunk(addr=0x4e54d0, size=0x1a0, flags=PREV_INUSE)
@@ -92,7 +92,7 @@ Chunk(addr=0x4e6760, size=0x4c0, flags=PREV_INUSE)
 
 ```
 
-### `heap arenas` command ###
+### `heap arenas` command
 
 Multi-threaded programs have different arenas, and the knowledge of the `main_arena` is not enough.
 `gef` therefore provides the `arena` sub-commands to help you list all the arenas allocated in your
@@ -100,19 +100,19 @@ program **at the moment you call the command**.
 
 ![heap-arenas](https://i.imgur.com/RUTiADa.png)
 
-### `heap set-arena` command ###
+### `heap set-arena` command
 
 In cases where the debug symbol are not present (e.g. statically stripped binary), it is possible to
 instruct GEF to find the `main_arena` at a different location with the command:
 
-```
+```text
 gef➤ heap set-arena [address]
 ```
 
 If the arena address is correct, all `heap` commands will be functional, and use the specified
 address for `main_arena`.
 
-### `heap bins` command ###
+### `heap bins` command
 
 Glibc uses bins for keeping tracks of `free`d chunks. This is because making allocations through
 `sbrk` (requiring a syscall) is costly. Glibc uses those bins to remember formerly allocated chunks.
@@ -120,14 +120,14 @@ Because bins are structured in single or doubly linked list, I found that quite 
 interrogate `gdb` to get a pointer address, dereference it, get the value chunk, etc... So I decided
 to implement the `heap bins` sub-command, which allows to get info on:
 
-- `fastbins`
-- `bins`
-  - `unsorted`
-  - `small bins`
-  - `large bins`
-- `tcachebins`
+-  `fastbins`
+-  `bins`
+-  `unsorted`
+-  `small bins`
+-  `large bins`
+-  `tcachebins`
 
-#### `heap bins fast` command ####
+#### `heap bins fast` command
 
 When exploiting heap corruption vulnerabilities, it is sometimes convenient to know the state of the
 `fastbinsY` array.
@@ -136,7 +136,7 @@ The `fast` sub-command helps by displaying the list of fast chunks in this array
 argument, it will display the info of the `main_arena` arena. It accepts an optional argument, the
 address of another arena (which you can easily find using `heap arenas`).
 
-```
+```text
 gef➤ heap bins fast
 ──────────────────────── Fastbins for arena 0x7ffff7fb8b80 ────────────────────────
 Fastbins[idx=0, size=0x20]  ←  Chunk(addr=0x555555559380, size=0x20, flags=PREV_INUSE)
@@ -148,19 +148,19 @@ Fastbins[idx=5, size=0x70] 0x00
 Fastbins[idx=6, size=0x80] 0x00
 ```
 
-#### Other `heap bins X` command ####
+#### Other `heap bins X` command
 
 All the other subcommands (with the exception of `tcache`) for the `heap bins` work the same way as
 `fast`. If no argument is provided, `gef` will fall back to `main_arena`. Otherwise, it will use the
 address pointed as the base of the `malloc_state` structure and print out information accordingly.
 
-#### `heap bins tcache` command ####
+#### `heap bins tcache` command
 
 Modern versions of `glibc` use `tcache` bins to speed up multithreaded programs.  Unlike other bins,
 `tcache` bins are allocated on a per-thread basis, so there is one set of `tcache` bins for each
 thread.
 
-```
+```text
 gef➤ heap bins tcache [all] [thread_ids...]
 ```
 
@@ -169,6 +169,6 @@ bins tcache all` will show the `tcache`s for every thread, or you can specify an
 ids to see the `tcache` for each of them. For example, use the following command to show the
 `tcache` bins for threads 1 and 2.
 
-```
+```text
 gef➤ heap bins tcache 1 2
 ```

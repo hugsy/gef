@@ -2,7 +2,7 @@
 
 Customize `GEF` by changing its color scheme.
 
-```
+```text
 gef➤  theme
 context_title_message                   : red bold
 default_title_message                   : red bold
@@ -36,7 +36,7 @@ Color also accepts the following attributes:
 
 Any other will value simply be ignored.
 
-```
+```text
 gef➤  theme context_title_message blue bold foobar
 gef➤  theme
 context_title_message                   : blue bold

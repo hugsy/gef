@@ -10,6 +10,6 @@ $_stack([offset])
 
 Example:
 
-```
+```text
 gef➤ p $_stack(0x20)
 ```

@@ -23,14 +23,14 @@ will simply dump all known settings:
 
 To update, follow the syntax
 
-```
+```text
 gef➤  gef config <Module>.<ModuleSetting>  <Value>
 ```
 
 Any setting updated this way will be specific to the current GDB session. To
 make permanent, use the following command
 
-```
+```text
 gef➤  gef save
 ```
 

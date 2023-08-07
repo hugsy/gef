@@ -114,7 +114,7 @@ pytest -k benchmark
 
 which will return (after some time) an execution summary
 
-```
+```text
 tests/perf/benchmark.py ..                                                               [100%]
 
 

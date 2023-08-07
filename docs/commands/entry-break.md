@@ -6,9 +6,9 @@ also be resolved, making further debugging easier.
 
 It will perform the following actions:
 
-1. Look up a `main` symbol. If found, set a temporary breakpoint and go.
-2. Otherwise, it will look up for `__libc_start_main`. If found, set a temporary breakpoint and go.
-3. Finally, if the previous two symbols are not found, it will get the entry point from the ELF
+1.  Look up a `main` symbol. If found, set a temporary breakpoint and go.
+2.  Otherwise, it will look up for `__libc_start_main`. If found, set a temporary breakpoint and go.
+3.  Finally, if the previous two symbols are not found, it will get the entry point from the ELF
    header, set a breakpoint and run. This case should never fail if the ELF binary has a valid
    structure.
 

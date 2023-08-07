@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-Specific GEF commands rely on commonly used Unix commands to extract additional information. 
+Specific GEF commands rely on commonly used Unix commands to extract additional information.
 Therefore it requires the following binaries to be present:
 
 * `file`

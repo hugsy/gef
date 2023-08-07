@@ -17,7 +17,7 @@ Alias:
 The following will add `41414141`/`'AAAA'` as yellow, and `42424242`/`'BBBB'`
 as blue:
 
-```
+```text
 gef➤  hl add 41414141 yellow
 gef➤  hl add 42424242 blue
 gef➤  hl add AAAA yellow
@@ -28,7 +28,7 @@ gef➤  hl add BBBB blue
 
 To remove a match, target it by the original string used, ex.:
 
-```
+```text
 gef➤  hl rm 41414141
 ```
 
@@ -36,7 +36,7 @@ gef➤  hl rm 41414141
 
 To list all matches with their colors:
 
-```
+```text
 gef➤  hl list
 41414141 | yellow
 42424242 | blue
@@ -48,7 +48,7 @@ BBBB     | blue
 
 To clear all matches currently setup:
 
-```
+```text
 gef➤  hl clear
 ```
 
@@ -58,13 +58,13 @@ RegEx support is disabled by default, this is done for performance reasons.
 
 To enable regular expressions on text matches:
 
-```
+```text
 gef➤  gef config highlight.regex True
 ```
 
 To check the current status:
 
-```
+```text
 gef➤  gef config highlight.regex
 highlight.regex (bool) = True
 ```

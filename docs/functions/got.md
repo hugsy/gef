@@ -10,6 +10,6 @@ $_got([offset])
 
 Example:
 
-```
+```text
 gef➤ p $_got(0x20)
 ```

@@ -13,7 +13,7 @@ extension`](https://github.com/hugsy/gef-extras/blob/main/scripts/windbg.py)
 
 New structures can be stored in the location given by the configuration setting:
 
-```
+```text
 gef➤ gef config pcustom.struct_path
 ```
 
@@ -22,13 +22,13 @@ structure can be created as a simple `ctypes` structure, in a file called `<stru
 
 You can naturally set this path to a new location
 
-```
+```text
 gef➤ gef config pcustom.struct_path /my/new/location
 ```
 
 And save this change so you can re-use it directly next time you use `gdb`
 
-```
+```text
 gef➤ gef save
 [+] Configuration saved to '~/.gef.rc'
 ```
@@ -37,7 +37,7 @@ gef➤ gef save
 
 You can list existing custom structures via
 
-```
+```text
 gef➤  pcustom list
 [+] Listing custom structures from '/tmp/structs'
  →  /tmp/structs/A.py (A, B)
@@ -50,7 +50,7 @@ To create or edit a structure, use `pcustom edit <struct_name>` to spawn your ED
 targeted structure. If the file does not exist, `gef` will nicely create the tree and file, and fill
 it with a `ctypes` template that you can use straight away!
 
-```
+```text
 gef➤  pcustom new mystruct_t
 [+] Creating '/tmp/gef/structs/mystruct_t.py' from template
 ```
@@ -58,7 +58,7 @@ gef➤  pcustom new mystruct_t
 If the structure already exists, GEF will open the text editor to edit the known structure. This is
 equivalent to:
 
-```
+```text
 gef➤  pcustom edit elf32_t
 [+] Editing '/home/hugsy/code/gef-extras/structs/elf32_t.py'
 ```
@@ -100,7 +100,7 @@ class person_t(Structure):
 `pcustom` requires at least one argument, which is the name of the structure. With only one
 argument, `pcustom` will dump all the fields of this structure.
 
-```
+```text
 gef➤  dt person_t
 +0000   age          c_int   /* size=0x4 */
 +0004   name         c_char_Array_256   /* size=0x100 */
@@ -196,7 +196,7 @@ git clone https://github.com/hugsy/gef-extras
 
 In GEF:
 
-```
+```text
 gef➤ gef config pcustom.struct_path /path/to/gef-extras/structs
 gef➤ gef save
 ```
@@ -204,7 +204,7 @@ gef➤ gef save
 Then either close GDB or `gef reload`. You can confirm the structures were correctly loaded in GEF's
 prompt:
 
-```
+```text
 gef➤ pcustom list
 ```
 

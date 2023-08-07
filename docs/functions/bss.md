@@ -10,6 +10,6 @@ $_bss([offset])
 
 Example:
 
-```
+```text
 gef➤ p $_bss(0x20)
 ```

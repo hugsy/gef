@@ -10,7 +10,7 @@ ksymaddr <PATTERN>
 
 For example,
 
-```
+```text
 gef➤  ksymaddr commit_creds
 [+] Found matching symbol for 'commit_creds' at 0xffffffff8f495740 (type=T)
 [*] Found partial match for 'commit_creds' at 0xffffffff8f495740 (type=T): commit_creds

@@ -9,7 +9,7 @@ gef➤ patch string $eip "cool!"
 
 These commands copy the first 10 bytes of $rsp+8 to $rip:
 
-```
+```text
 gef➤  print-format --lang bytearray -l 10 $rsp+8
 Saved data b'\xcb\xe3\xff\xff\xff\x7f\x00\x00\x00\x00'... in '$_gef0'
 gef➤  patch byte $rip $_gef0

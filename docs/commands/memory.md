@@ -30,7 +30,7 @@ allowing to easily track commonly used addresses:
 
 For example, to watch the first 5 entries of the [GOT]() as pointers:
 
-```
+```text
 gef ➤ memory watch $_got()+0x18 5
 [+] Adding memwatch to 0x555555773c50
 ```

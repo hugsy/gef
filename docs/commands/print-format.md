@@ -10,7 +10,7 @@ following the format specified. Currently, the output formats supported are
 - Hex string (`hex`)
 - For patch byte command or GDB $_gef[N] byte access (`bytearray`)
 
-```
+```text
 gef➤  print-format -h
 [+] print-format [--lang LANG] [--bitlen SIZE] [(--length,-l) LENGTH] [--clip] LOCATION
     --lang LANG specifies the output format for programming language (available: ['py', 'c', 'js', 'asm', 'hex'], default 'py').
@@ -22,7 +22,7 @@ gef➤  print-format -h
 
 For example this command will dump 10 bytes from `$rsp` and copy the result to the clipboard.
 
-```
+```text
 gef➤  print-format --lang py --bitlen 8 -l 10 --clip $rsp
 [+] Copied to clipboard
 buf = [0x87, 0xfa, 0xa3, 0xf7, 0xff, 0x7f, 0x0, 0x0, 0x30, 0xe6]
@@ -30,7 +30,7 @@ buf = [0x87, 0xfa, 0xa3, 0xf7, 0xff, 0x7f, 0x0, 0x0, 0x30, 0xe6]
 
 These commands copy the first 10 bytes of $rsp+8 to $rip:
 
-```
+```text
 gef➤  print-format --lang bytearray -l 10 $rsp+8
 Saved data b'\xcb\xe3\xff\xff\xff\x7f\x00\x00\x00\x00'... in '$_gef0'
 gef➤  display/x $_gef0[5]

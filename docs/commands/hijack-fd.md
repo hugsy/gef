@@ -5,13 +5,13 @@ file descriptor can point to a file, a pipe, a socket, a device etc.
 
 To use it, simply run
 
-```
+```text
 gef➤ hijack-fd FDNUM NEWFILE
 ```
 
 For instance,
 
-```
+```text
 gef➤ hijack-fd 1 /dev/null
 ```
 
@@ -21,7 +21,7 @@ Will modify the current process file descriptors to redirect STDOUT to
 This command also supports connecting to an ip:port if it is provided as an
 argument. For example
 
-```
+```text
 gef➤ hijack-fd 0 localhost:8888
 ```
 

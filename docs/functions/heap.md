@@ -10,6 +10,6 @@ $_heap([offset])
 
 Example:
 
-```
+```text
 gef➤ p $_heap(0x20)
 ```

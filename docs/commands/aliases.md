@@ -2,7 +2,7 @@
 
 Base command to add, remove, and list `GEF` defined aliases.
 
-```
+```text
 gef➤  aliases
 aliases (add|rm|list)
 ```
@@ -13,13 +13,13 @@ aliases (add|rm|list)
 through the built-in command `alias`. To add a new alias, simply use the `aliases add` command. The
 "command" parameter may contain spaces.
 
-```
+```text
 aliases add [alias] [command]
 ```
 
 To remove an alias, simply use the `aliases rm` command.
 
-```
+```text
 aliases rm [alias]
 ```
 
@@ -28,7 +28,7 @@ aliases rm [alias]
 One can list aliases by using the `aliases ls` command. Some sample output of this command is seen
 below.
 
-```
+```text
 [+] Aliases defined:
 fmtstr-helper                   →  format-string-helper
 telescope                       →  dereference
@@ -51,7 +51,7 @@ located at `~/.gef.rc`. The aliases must be in the `aliases` section of the conf
 
 Creating a new alias is as simple as creating a new entry in this section:
 
-```
+```text
 $ nano ~/.gef.rc
 [...]
 [aliases]
@@ -63,7 +63,7 @@ my-new-alias = gdb-or-gef-command <arg1> <arg2> <etc...>
 For example, for those (like me) who use WinDBG and like its bindings, they can be integrated into
 GDB via GEF aliases like this:
 
-```
+```text
 $ nano ~/.gef.rc
 [...]
 [aliases]
@@ -91,7 +91,7 @@ uf = disassemble
 
 Or here are some `PEDA` aliases for people used to using `PEDA` who made the smart move to `GEF`.
 
-```
+```text
 # some peda aliases
 telescope = dereference
 start = entry-break
@@ -104,6 +104,6 @@ findmem = search-pattern
 The aliases will be loaded next time you load GDB (and `GEF`). Or you can force `GEF` to reload the
 settings with the command:
 
-```
+```text
 gef➤  gef restore
 ```

@@ -1,4 +1,4 @@
-# Extending GEF
+## Extending GEF
 
 `GEF` intends to provide a battery-included, quickly installable and crazy fast debugging
 environment sitting on top of GDB.
@@ -34,14 +34,14 @@ register_external_command(NewCommand())
 
 Loading it in `GEF` is as easy as
 
-```
+```text
 gef➤  source /path/to/newcmd.py
 [+] Loading 'NewCommand'
 ```
 
 We can call it:
 
-```
+```text
 gef➤  newcmd
 gef.arch=<__main__.X86_64 object at 0x7fd5583571c0>
 gef.arch.pc=0x55555555a7d0
@@ -53,9 +53,9 @@ Yes, that's it! Check out [the complete API](api/gef.md) to see what else GEF of
 
 Our new command must be a class that inherits from GEF's `GenericCommand`. The *only* requirements are:
 
-* a `_cmdline_` attribute (the command to type on the GDB prompt).
-* a `_syntax_` attribute, which GEF will use to auto-generate the help menu.
-* a method `do_invoke(self, args)` which will be executed when the command is invoked. `args` is a
+*  a `_cmdline_` attribute (the command to type on the GDB prompt).
+*  a `_syntax_` attribute, which GEF will use to auto-generate the help menu.
+*  a method `do_invoke(self, args)` which will be executed when the command is invoked. `args` is a
   list of the command line args provided when invoked.
 
 We make GEF aware of this new command by registering it in the `__main__` section of the script, by
@@ -91,7 +91,7 @@ register_external_context_pane("wasted_time_debugging", wasted_time_debugging, w
 
 Loading it in `GEF` is as easy as loading a command
 
-```
+```text
 gef➤  source /path/to/custom_context_pane.py
 ```
 
@@ -103,9 +103,9 @@ near the bottom of the context. The order can be modified in the `GEF` context c
 The API demonstrated above requires very specific argument types:
 `register_external_context_pane(pane_name, display_pane_function, pane_title_function)`
 
-* `pane_name`: a string that will be used as the panes setting name
-* `display_pane_function`: a function that uses `gef_print()` to print content in the pane
-* `pane_title_function`: a function that returns the title string or None to hide the title
+*  `pane_name`: a string that will be used as the panes setting name
+*  `display_pane_function`: a function that uses `gef_print()` to print content in the pane
+*  `pane_title_function`: a function that returns the title string or None to hide the title
 
 ## API
 
@@ -128,7 +128,8 @@ gdb -q -ex 'pi help(hexdump)' -ex quit
 The GEF API aims to provide a simpler and more Pythonic approach to GDB's.
 
 Some basic examples:
-* read the memory
+
+*  read the memory
 
 ```text
 gef ➤  pi print(hexdump( gef.memory.read(parse_address("$pc"), length=0x20 )))
@@ -136,9 +137,9 @@ gef ➤  pi print(hexdump( gef.memory.read(parse_address("$pc"), length=0x20 )))
 0x0000000000000010     f0 50 54 4c 8d 05 66 0d 01 00 48 8d 0d ef 0c 01    .PTL..f...H.....
 ```
 
-* get access to the memory layout
+*  get access to the memory layout
 
-```
+```text
 gef ➤ pi print('\n'.join([ f"{x.page_start:#x} -> {x.page_end:#x}" for x in gef.memory.maps]))
 0x555555554000 -> 0x555555558000
 0x555555558000 -> 0x55555556c000
@@ -154,9 +155,10 @@ gef ➤ pi print('\n'.join([ f"{x.page_start:#x} -> {x.page_end:#x}" for x in ge
 ```
 
 The API also offers a number of decorators to simplify the creation of new/existing commands, such as:
-* `@only_if_gdb_running` to execute only if a GDB session is running.
-* `@only_if_gdb_target_local` to check if the target is local i.e. not debugging using GDB `remote`.
-* and many more...
+
+*  `@only_if_gdb_running` to execute only if a GDB session is running.
+*  `@only_if_gdb_target_local` to check if the target is local i.e. not debugging using GDB `remote`.
+*  and many more...
 
 ### Reference
 
@@ -206,7 +208,7 @@ class MyCommand(GenericCommand):
 
 When the user enters the following command:
 
-```
+```text
 gef➤ mycommand --blah 3 14 159 2653
 ```
 
@@ -227,11 +229,13 @@ Sometimes architectures can more precisely determine whether they apply to the c
 looking at the architecture determined by gdb. For these cases the custom architecture may implement
 the `supports_gdb_arch()` static function to signal that they should be used instead of the default.
 The function receives only one argument:
-* `gdb_str` (of type `str`) which is the architecture name as reported by GDB.
+
+*  `gdb_str` (of type `str`) which is the architecture name as reported by GDB.
 
 The function **must** return:
-* `True` if the current `Architecture` class supports the target binary; `False` otherwise.
-* `None` to simply ignore this check and let GEF try to determine the architecture.
+
+*  `True` if the current `Architecture` class supports the target binary; `False` otherwise.
+*  `None` to simply ignore this check and let GEF try to determine the architecture.
 
 One example is the ARM Cortex-M architecture which in some cases should be used over the generic ARM
 one:
