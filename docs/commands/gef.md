@@ -4,7 +4,7 @@
 
 Displays a list of GEF commands and their descriptions.
 
-```
+```text
 gef➤  gef
 ─────────────────────────────────── GEF - GDB Enhanced Features ───────────────────────────────────
 $                         -- SmartEval: Smart eval (vague approach to mimic WinDBG `?`).
@@ -24,7 +24,7 @@ GEF is fully battery-included. However in some rare cases, it is possible that n
 loaded. If that's the case the command `gef missing` will detail which command failed to load, along
 with a (likely) reason. Read the documentation for a solution, or reach out on the Discord.
 
-```
+```text
 gef➤  gef missing
 [*] Command `XXXX` is missing, reason  →  YYYYY.
 ```
@@ -36,7 +36,7 @@ persistent see the `gef save` entry.
 
 Using `gef config` by itself just shows all of the available settings and their values.
 
-```
+```text
 gef➤  gef config
 ──────────────────────────────────── GEF configuration settings ────────────────────────────────────
 context.clear_screen (bool) = False
@@ -52,7 +52,7 @@ context.libc_args (bool) = False
 
 To filter the config settings you can use `gef config [setting]`.
 
-```
+```text
 gef➤  gef config theme
 ─────────────────────────── GEF configuration settings matching 'theme' ───────────────────────────
 theme.context_title_line (str) = "gray"
@@ -67,7 +67,7 @@ theme.default_title_message (str) = "cyan"
 You can use `gef config [setting] [value]` to set a setting for the current session (see example
 below).
 
-```
+```text
 gef➤  gef config theme.address_stack blue
 ```
 
@@ -76,7 +76,7 @@ gef➤  gef config theme.address_stack blue
 The `gef save` command saves the current settings (set with `gef config`) to the user's `~/.gef.rc`
 file (making the changes persistent).
 
-```
+```text
 gef➤  gef save
 [+] Configuration saved to '/home/michael/.gef.rc'
 ```
@@ -87,7 +87,7 @@ Using `gef restore` loads and applies settings from the `~/.gef.rc` file to the 
 This is useful if you are modifying your GEF configuration file and want to see the changes without
 completely reloading GEF.
 
-```
+```text
 gef➤  gef restore
 [+] Configuration from '/home/michael/.gef.rc' restored
 ```
@@ -97,7 +97,7 @@ gef➤  gef restore
 The GEF set command allows the user to use GEF context within GDB set commands. This is useful when
 you want to make a convenient variable which can be set and referenced later.
 
-```
+```text
 gef➤  gef set $a=1
 ```
 
@@ -106,7 +106,7 @@ gef➤  gef set $a=1
 The GEF run command is a wrapper around GDB's run command, allowing the user to use GEF context
 within the command.
 
-```
+```text
 gef➤  gef run ./binary
 ```
 
@@ -115,14 +115,14 @@ gef➤  gef run ./binary
 `gef install` allows to install one (or more) specific script(s) from `gef-extras`. The new scripts
 will be downloaded and sourced to be used immediately after by GEF. The syntax is straight forward:
 
-```
+```text
 gef➤  gef install SCRIPTNAME1 [SCRIPTNAME2...]
 ```
 
 Where `SCRIPTNAME1` ... are the names of script from the [`gef-extras`
 repository](https://github.com/hugsy/gef-extras/tree/main/scripts/).
 
-```
+```text
 gef➤  gef install remote windbg stack
 [+] Searching for 'remote.py' in `gef-extras@main`...
 [+] Installed file '/tmp/gef/remote.py', new command(s) available: `rpyc-remote`
@@ -137,7 +137,7 @@ This makes it easier to deploy new functionalities in limited environment. By de
 looks up for script names in the `main` branch of `gef-extras`. However you can change specify a
 different branch through the `gef.default_branch` configuration setting:
 
-```
+```text
 gef➤ gef config gef.default_branch my_other_branch
 ```
 

@@ -24,4 +24,3 @@ class HeapAnalysisCommand(GefUnitTestGeneric):
         addr = int(res.split("calloc(32)=")[1].split("\n")[0], 0)
         self.assertRegex(res, r"realloc\(.+, 48")
         self.assertIn(f"free({addr:#x}", res)
-

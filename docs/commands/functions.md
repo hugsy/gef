@@ -3,16 +3,16 @@
 The `functions` command will list all of the [convenience
 functions](https://sourceware.org/gdb/onlinedocs/gdb/Convenience-Funs.html) provided by GEF.
 
-- `$_base([filepath])`    -- Return the matching file's base address plus an optional offset.
+-  `$_base([filepath])`    -- Return the matching file's base address plus an optional offset.
   Defaults to the current file. Note that quotes need to be escaped.
-- `$_bss([offset])`       -- Return the current bss base address plus the given offset.
-- `$_got([offset])`       -- Return the current bss base address plus the given offset.
-- `$_heap([offset])`      -- Return the current heap base address plus an optional offset.
-- `$_stack([offset])`     -- Return the current stack base address plus an optional offset.
+-  `$_bss([offset])`       -- Return the current bss base address plus the given offset.
+-  `$_got([offset])`       -- Return the current bss base address plus the given offset.
+-  `$_heap([offset])`      -- Return the current heap base address plus an optional offset.
+-  `$_stack([offset])`     -- Return the current stack base address plus an optional offset.
 
 These functions can be used as arguments to other commands to dynamically calculate values.
 
-```
+```text
 gef➤  deref -l 4 $_heap()
 0x0000000000602000│+0x00: 0x0000000000000000     ← $r8
 0x0000000000602008│+0x08: 0x0000000000000021 ("!"?)

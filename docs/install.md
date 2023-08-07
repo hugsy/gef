@@ -1,16 +1,17 @@
-# Installing GEF
+## Installing GEF
 
 ## Prerequisites
 
 Specific GEF commands rely on commonly used Unix commands to extract additional information.
 Therefore it requires the following binaries to be present:
 
-* `file`
-* `readelf`
-* `ps`
-* `python3`
+*  `file`
+*  `readelf`
+*  `ps`
+*  `python3`
 
-Those tools are included by default in many modern distributions. If they're missing, you can use your OS package manager to install them.
+Those tools are included by default in many modern distributions. If they're missing, you can use
+your OS package manager to install them.
 
 ### GDB
 
@@ -44,9 +45,10 @@ There are **none**: `GEF` works out of the box!
 
 GEF itself provides most (if not all 🤯) features required for typical sessions. However, GEF can be
 easily extended via
-* community-built scripts, functions and architectures in the repo
+
+*  community-built scripts, functions and architectures in the repo
    `gef-extras` (see below)
-* your own script which can leverage the GEF API for the heavy lifting
+*  your own script which can leverage the GEF API for the heavy lifting
 
 ## Standalone
 

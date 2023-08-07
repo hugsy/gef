@@ -1,3 +1,6 @@
+#
+# Rules: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+#
 # Default state for all rules
 default: true
 
@@ -10,7 +13,7 @@ MD001: true
 # MD002/first-heading-h1/first-header-h1 - First heading should be a top-level heading
 MD002:
   # Heading level
-  level: 1
+  level: 2
 
 # MD003/heading-style/header-style - Heading style
 MD003:
@@ -161,7 +164,7 @@ MD032: true
 # MD033/no-inline-html - Inline HTML
 MD033:
   # Allowed elements
-  allowed_elements: []
+  allowed_elements: ["img"]
 
 # MD034/no-bare-urls - Bare URL used
 MD034: true
@@ -195,7 +198,7 @@ MD040:
 # MD041/first-line-heading/first-line-h1 - First line in a file should be a top-level heading
 MD041:
   # Heading level
-  level: 1
+  level: 2
   # RegExp for matching title in front matter
   front_matter_title: "^\\s*title\\s*[:=]"
 
@@ -203,13 +206,7 @@ MD041:
 MD042: true
 
 # MD043/required-headings/required-headers - Required heading structure
-MD043:
-  # List of headings
-  headings: []
-  # List of headings
-  headers: []
-  # Match case of headings
-  match_case: false
+MD043: false
 
 # MD044/proper-names - Proper names should have the correct capitalization
 MD044:

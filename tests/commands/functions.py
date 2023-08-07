@@ -16,4 +16,3 @@ class FunctionsCommand(GefUnitTestGeneric):
         res = gdb_run_cmd(cmd)
         self.assertNoException(res)
         self.assertIn("$_heap", res)
-

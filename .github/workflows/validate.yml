@@ -1,0 +1,31 @@
+name: Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  pre_commit:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v3
+    - uses: pre-commit/action@v3.0.0
+
+  docs_link_check:
+    name: Check URLs in docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: Check links
+        uses: lycheeverse/lychee-action@v1.4.1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          args: --exclude-mail --accept=401 --no-progress 'docs/**/*.md'
+          fail: false

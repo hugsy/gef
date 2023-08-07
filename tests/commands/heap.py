@@ -178,4 +178,3 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertIn("Found 1 chunks in unsorted bin", res)
         self.assertIn("Chunk(addr=", res)
         self.assertIn(f"size={self.expected_unsorted_bin_size:#x}", res)
-

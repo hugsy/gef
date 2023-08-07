@@ -2,7 +2,7 @@
 
 The `stub` command allows you stub out functions, optionally specifying the return value.
 
-```
+```text
 gef➤  stub [-h] [--retval RETVAL] [address]
 ```
 
@@ -17,14 +17,14 @@ fact drop us into the "child" process. It must be noted that this is a different
 classic `set follow-fork-mode child` since here we do not spawn a new process, we only trick the
 parent process into thinking it has become the child.
 
-### Example ###
+### Example
 
 Patching `fork()` calls:
 
-* Without stub:
+*  Without stub:
 
 ![fork execution](https://i.imgur.com/TjnTDot.png)
 
-* With stub:
+*  With stub:
 
 ![stubbed fork](https://i.imgur.com/CllTnRH.png)

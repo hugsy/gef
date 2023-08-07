@@ -1,6 +1,6 @@
-# Frequently Asked Questions #
+## Frequently Asked Questions
 
-## Why use GEF over PEDA? ##
+## Why use GEF over PEDA?
 
 [PEDA](https://github.com/longld/peda) is a fantastic tool that provides similar commands to make
 the exploitation development process smoother.
@@ -13,7 +13,7 @@ new architectures very easily as well!
 Also, PEDA development has been quite idle for a few years now, and many new interesting features a
 debugger can provide simply do not exist.
 
-## What if my GDB is < 8.0 ? ##
+## What if my GDB is < 8.0 ?
 
 GDB was introduced with its Python support early 2011 with the release of GDB 7. A (very) long way
 has gone since and the Python API has been massively improved, and GEF is taking advantage of them
@@ -34,7 +34,7 @@ If you are running an obsolete version, GEF will show a error and message and ex
 Some pre-compiled static binaries for both recent GDB and GDBServer can be downloaded from the
 [`gdb-static`](https://github.com/hugsy/gdb-static) repository.
 
-## I cannot get GEF setup ##
+## I cannot get GEF setup
 
 GEF will work on any GDB 8+ compiled with Python 3.6+ support. You can view that commands that
 failed to load using `gef missing`, but this will not affect GEF generally.
@@ -49,12 +49,12 @@ All recent distributions ship packaged GDB that should be ready-to-go, with a GD
 3.6+. Any version higher or equal will work just fine. So you might actually only need to run `apt
 install gdb` to get the full-force of GEF.
 
-## I get a SegFault when starting GDB with GEF ##
+## I get a SegFault when starting GDB with GEF
 
 A long standing bug in the `readline` library can make `gef` crash GDB when displaying certain
 characters (SOH/ETX). As a result, this would SIGSEGV GDB as `gef` is loading, a bit like this:
 
-```
+```text
 root@debian-aarch64:~# gdb -q ./test-bin-aarch64
 GEF ready, type `gef' to start, `gef config' to configure
 53 commands loaded, using Python engine 3.4
@@ -67,7 +67,7 @@ Segmentation fault (core dumped)
 If so, this can be fixed easily by setting the `gef.readline_compat` variable to `True` in the
 `~/.gef.rc` file. Something like this:
 
-```
+```text
 root@debian-aarch64:~# nano ~/.gef.rc
 [...]
 [gef]
@@ -77,20 +77,20 @@ readline_compat = True
 You can now use all features of `gef` even on versions of GDB compiled against old `readline`
 library.
 
-## Does GEF prevent the use of other GDB plugins? ##
+## Does GEF prevent the use of other GDB plugins?
 
 Definitely not! You can use any other GDB plugin on top of it for an even better debugging
 experience.
 
 Some interesting plugins highly recommended too:
 
-- [!exploitable](https://github.com/jfoote/exploitable/)
-- [Voltron](https://github.com/snare/voltron)
+-  [!exploitable](https://github.com/jfoote/exploitable/)
+-  [Voltron](https://github.com/snare/voltron)
 
 ![voltron](https://i.imgur.com/bfTIjNi.jpg)
 Src: [@rick2600: terminator + gdb + gef + voltron cc: @snare @_hugsy_](https://twitter.com/rick2600/status/775926070566490113)
 
-## I want to contribute, where should I head first? ##
+## I want to contribute, where should I head first?
 
 I would suggest thoroughly reading this documentation, just having a look to the
 [CONTRIBUTE](https://github.com/hugsy/gef/blob/main/.github/CONTRIBUTING.md) file of the project to
@@ -99,7 +99,7 @@ give you pointers.
 Also a good thing would be to join our [Discord channel](https://discord.gg/HCS8Hg7) to get in touch
 with the people involved/using it.
 
-## I think I've found a bug, how can I help fixing it? ##
+## I think I've found a bug, how can I help fixing it?
 
 `gef` is only getting better through people (like you!) using it, but most importantly reporting
 unexpected behavior.
@@ -111,7 +111,7 @@ happens, you'll only get to see a message like this:
 
 By switching to debug mode, `gef` will give much more information:
 
-```
+```text
 gef➤  gef config gef.debug 1
 ```
 
@@ -124,7 +124,7 @@ what was your solution for it.
 Otherwise, you can open an [issue](https://github.com/hugsy/gef/issues), give a thorough description
 of your bug and copy/paste the content from above. This will greatly help for solving the issue.
 
-## I get weird issues/characters using GDB + Python3, what's up? ##
+## I get weird issues/characters using GDB + Python3, what's up?
 
 Chances are you are not using UTF-8. Python3 is [highly relying on
 UTF-8](https://www.diveintopython3.net/strings.html) to display correctly characters of any alphabet
@@ -135,11 +135,11 @@ compiled with Python3, GEF will assume that your current charset is UTF-8 (for i
 In addition, some unexpected results were observed when your local is not set to English. If you
 aren't sure, simply run `gdb` like this:
 
-```
+```text
 LC_ALL=en_US.UTF-8 gdb /path/to/your/binary
 ```
 
-## GDB crashes on ARM memory corruption with `gdb_exception_RETURN_MASK_ERROR` ##
+## GDB crashes on ARM memory corruption with `gdb_exception_RETURN_MASK_ERROR`
 
 This issue is **NOT** GEF related, but GDB's, or more precisely some versions of GDB packaged with
 Debian/Kali for ARM
@@ -168,7 +168,7 @@ Debian/Kali for ARM
 Therefore, there is nothing GEF's developers can do about that. The correct solution as mentioned
 above is to recompile your GDB with a newer (better) version.
 
-The whole topic was already internally discussed, so please refer to the 
+The whole topic was already internally discussed, so please refer to the
 [issue 206](https://github.com/hugsy/gef/issues/206) for the whole story.
 
 ## I still don't have my answer... Where can I go?

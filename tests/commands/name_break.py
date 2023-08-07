@@ -21,4 +21,3 @@ class NameBreakCommand(GefUnitTestGeneric):
 
         res = gdb_start_silent_cmd("nb foobar")
         self.assertNoException(res)
-

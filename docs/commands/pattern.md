@@ -7,9 +7,9 @@ unique substrings of a chosen length.
 It should be noted that for better compatibility, the algorithm implemented in `GEF` is the same as
 the one in `pwntools`, and can therefore be used in conjunction.
 
-### `pattern create` ###
+### `pattern create`
 
-```
+```text
 pattern create [-h] [-n N] [length]
 ```
 
@@ -17,7 +17,7 @@ The sub-command `create` allows one create a new De Bruijn sequence. The optiona
 determines the length of unique subsequences. Its default value matches the currently loaded
 architecture. The `length` argument sets the total length of the whole sequence.
 
-```
+```text
 gef➤  pattern create -n 4 128
 [+] Generating a pattern of 128 bytes (n=4)
 aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaab
@@ -31,9 +31,9 @@ from pwn import *
 p = cyclic(128, n=8)
 ```
 
-### `pattern search` ###
+### `pattern search`
 
-```
+```text
 pattern search [-h] [-n N] [--max-length MAX_LENGTH] [pattern]
 ```
 
@@ -45,7 +45,7 @@ to search in can be adjusted.
 Note that the `pattern` can be passed as a GDB symbol (such as a register name), a string or a
 hexadecimal value
 
-```
+```text
 gef➤  pattern search 0x6161616161616167
 [+] Searching '0x6161616161616167'
 [+] Found at offset 48 (little-endian search) likely

@@ -6,7 +6,7 @@ return a human-friendly display of the register flags.
 
 One or many arguments can be provided, following the syntax below:
 
-```
+```text
 gef➤ flags [(+|-|~)FLAGNAME ...]
 ```
 
@@ -16,7 +16,7 @@ whether to set, unset, or toggle the flag.
 For instance, on x86 architecture, if we don't want to take a conditional jump (e.g. a `jz`
 instruction), but we want to have the Carry flag set, simply go with:
 
-```
+```text
 gef➤ flags -ZERO +CARRY
 ```
 

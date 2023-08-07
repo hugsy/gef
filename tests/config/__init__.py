@@ -20,4 +20,3 @@ class TestGefConfigUnit(GefUnitTestGeneric):
         # output format: 0xaddress   opcode  <symbol+offset>   mnemo  [operands, ...]
         # example: 0x5555555546b2 897dec      <main+8>         mov    DWORD PTR [rbp-0x14], edi
         self.assertRegex(res, r"(0x([0-9a-f]{2})+)\s+(([0-9a-f]{2})+)\s+<[^>]+>\s+(.*)")
-

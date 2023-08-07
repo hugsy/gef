@@ -2,7 +2,7 @@
 
 The `skipi` command allows you to easily skip instructions execution.
 
-```
+```text
 skipi [LOCATION] [--n NUM_INSTRUCTIONS]
 ```
 

@@ -37,4 +37,3 @@ class GefRemoteCommand(GefUnitTestGeneric):
             self.assertIn(
                 f"RemoteSession(target='{GDBSERVER_PREFERED_HOST}:{port}', local='/tmp/", res)
             self.assertIn(", qemu_user=True)", res)
-

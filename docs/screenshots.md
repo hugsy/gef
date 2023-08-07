@@ -1,4 +1,4 @@
-# Screenshots
+## Screenshots
 
 <!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
 
@@ -11,12 +11,12 @@ extensible architecture API.
 
 Currently `GEF` supports the following architectures:
 
-- Intel x86 (32b & 64b)
-- ARM (v6/v7)
-- AARCH64
-- MIPS/MIPS64
-- PowerPC
-- SPARC/SPARCv9
+-  Intel x86 (32b & 64b)
+-  ARM (v6/v7)
+-  AARCH64
+-  MIPS/MIPS64
+-  PowerPC
+-  SPARC/SPARCv9
 
 ## Features
 

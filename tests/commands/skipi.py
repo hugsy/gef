@@ -60,4 +60,3 @@ class SkipiCommand(GefUnitTestGeneric):
         )
         self.assertNoException(res)
         self.assertIn(r"\x90\x90", res) # 2 nops
-

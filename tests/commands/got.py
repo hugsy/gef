@@ -29,4 +29,3 @@ class GotCommand(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("got printf", target=target)
         self.assertIn("printf", res)
         self.assertNotIn("strcpy", res)
-

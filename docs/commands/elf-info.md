@@ -2,7 +2,7 @@
 
 `elf-info` (alias `elf`) provides some basic information on the currently loaded ELF binary:
 
-```
+```text
 gef➤  elf
 Magic                 : 7f 45 4c 46
 Class                 : 0x2 - 64-bit
@@ -67,6 +67,6 @@ Entry point           : 0x0000000000400750
 Optionally a filepath to another ELF binary can be provided to view the basic information for that
 binary instead.
 
-```
+```text
 gef➤ elf-info --filename /path/to/elf/executable
 ```

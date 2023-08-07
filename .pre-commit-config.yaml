@@ -1,0 +1,25 @@
+default_stages: [pre-commit, pre-push]
+fail_fast: false
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
+
+  - repo: https://github.com/pycqa/pylint
+    rev: v3.0.0a6
+    hooks:
+    - id: pylint
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.35.0
+    hooks:
+    - id: markdownlint-docker
+      args:
+        - --config=docs/.markdownlint.yaml
+        - --ignore=docs/api/gef.md
+        - --ignore=docs/obsolete/docs/index.md
+        - --ignore=docs/index.md
+        - --ignore=README.md
+        - "docs/**/*.md"

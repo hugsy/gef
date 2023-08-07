@@ -4,7 +4,7 @@
 search and download directly via `GEF` the shellcode you're looking for. Two primitive subcommands
 are available, `search` and `get`
 
-```
+```text
 gef➤ shellcode search arm
 [+] Showing matching shellcodes
 901     Linux/ARM       Add map in /etc/hosts file - 79 bytes

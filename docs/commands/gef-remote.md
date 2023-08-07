@@ -11,9 +11,9 @@ process of debugging more cumbersome. GEF greatly improves that state with the `
 
 `gef-remote` can function in 2 ways:
 
-- `remote` which is meant to enrich use of GDB `target remote` command, when connecting to a "real"
+-  `remote` which is meant to enrich use of GDB `target remote` command, when connecting to a "real"
   gdbserver instance
-- `qemu-mode` when connecting to GDB stab of either `qemu-user` or `qemu-system`.
+-  `qemu-mode` when connecting to GDB stab of either `qemu-user` or `qemu-system`.
 
 The reason for this difference being that Qemu provides *a lot* less information that GEF can
 extract to enrich debugging. Whereas GDBServer allows to download remote file (therefore allowing to
@@ -30,7 +30,7 @@ to find the debug information.
 
 For example, if we want to debug `uname`, we do on the server:
 
-```
+```text
 $ gdbserver  :1234 /tmp/default.out
 Process /tmp/default.out created; pid = 258932
 Listening on port 1234
@@ -41,7 +41,7 @@ Listening on port 1234
 On the client, when the original `gdb` would use `target remote`, GEF's syntax is roughly similar
 (shown running in debug mode for more verbose output, but you don't have to):
 
-```
+```text
 $ gdb -ex 'gef config gef.debug 1'
 GEF for linux ready, type `gef' to start, `gef config' to configure
 90 commands loaded and 5 functions added for GDB 10.2 using Python engine 3.8
@@ -95,8 +95,8 @@ makes now even more sense 😉 And using it is very straight forward.
 
 #### `qemu-user`
 
- 1. Run `qemu-x86_64 :1234 /bin/ls`
- 2. Use `--qemu-user` and `--qemu-binary /bin/ls` when starting `gef-remote`
+ 1.  Run `qemu-x86_64 :1234 /bin/ls`
+ 2.  Use `--qemu-user` and `--qemu-binary /bin/ls` when starting `gef-remote`
 
 ![qemu-user](https://user-images.githubusercontent.com/590234/175072835-e276ab6c-4f75-4313-9e66-9fe5a3fd220e.png)
 
@@ -105,7 +105,7 @@ makes now even more sense 😉 And using it is very straight forward.
 To test locally, you can use the mini image linux x64 vm
 [here](https://mega.nz/file/ldQCDQiR#yJWJ8RXAHTxREKVmR7Hnfr70tIAQDFeWSYj96SvPO1k).
 
- 1. Run `./run.sh`
- 2. Use `--qemu-user` and `--qemu-binary vmlinuz` when starting `gef-remote`
+ 1.  Run `./run.sh`
+ 2.  Use `--qemu-user` and `--qemu-binary vmlinuz` when starting `gef-remote`
 
 ![qemu-system](https://user-images.githubusercontent.com/590234/175071351-8e06aa27-dc61-4fd7-9215-c345dcebcd67.png)

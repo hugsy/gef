@@ -4,7 +4,7 @@ The `registers` command will print all the registers and dereference any pointer
 
 Example on a MIPS host:
 
-```
+```text
 gef➤ reg
 $zero     : 0x00000000
 $at       : 0x00000001
@@ -48,12 +48,12 @@ $ra       : 0x77e5e834 -> <__libc_start_main+260>: lw gp,16(sp)
 $gp       : 0x00418b20
 ```
 
-### Filtering registers ###
+### Filtering registers
 
 If one or more register names are passed to the `registers` command as optional arguments, then only
 those will be shown:
 
-```
+```text
 gef➤ reg $rax $rip $rsp
 $rax   : 0x0000555555555169  →  <main+0> endbr64
 $rsp   : 0x00007fffffffe3e8  →  0x00007ffff7df40b3  →  <__libc_start_main+243> mov edi, eax

@@ -1,4 +1,4 @@
-# GEF - GDB Enhanced Features #
+# GEF - GDB Enhanced Features
 
 [![Docs](https://img.shields.io/badge/Documentation-blue.svg)](https://hugsy.github.io/gef/) [![Coverage](https://img.shields.io/badge/Coverage-purple.svg)](https://hugsy.github.io/gef/coverage/) [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/main/LICENSE) [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) [![Discord](https://img.shields.io/badge/Discord-GDB--GEF-yellow)](https://discord.gg/HCS8Hg7)
 
@@ -29,7 +29,8 @@ It requires Python 3, but [`gef-legacy`](https://github.com/hugsy/gef-legacy) ca
 * Built around an architecture abstraction layer, so all commands work in any GDB-supported
   architecture such as x86-32/64, ARMv5/6/7, AARCH64, SPARC, MIPS, PowerPC, etc.
 * Suited for real-life debugging, exploit development, just as much as for CTFs
-* And a lot more commands contributed by the community available on [GEF-Extras](https://github.com/hugsy/gef-extras) !!
+* And a lot more commands contributed by the community available on
+[GEF-Extras](https://github.com/hugsy/gef-extras) !!
 
 Check out the [showroom page](https://hugsy.github.io/gef/screenshots/) for more | or [try it online
 yourself!](https://demo.gef.blah.cat) (user:`gef`/password:`gef-demo`)
@@ -71,7 +72,7 @@ local:~ $ gdb -q
 gef➤  gef-remote -t your.ip.address:1234 -p 666
 ```
 
-## Bugs & Feedbacks ##
+## Bugs & Feedbacks
 
 To discuss `gef`, `gdb`, exploitation or other topics, feel free to join our [Discord
 channel](https://discord.gg/HCS8Hg7).
@@ -83,7 +84,7 @@ _Side Note_: `GEF` fully relies on the GDB API and other Linux-specific sources 
 as `/proc/<pid>`). As a consequence, some of the features might not work on custom or hardened
 systems such as GrSec.
 
-## Contribution ##
+## Contribution
 
 `gef` was created and maintained by myself, [`@_hugsy_`](https://twitter.com/_hugsy_), but kept
 fresh thanks to [all the contributors](https://github.com/hugsy/gef/graphs/contributors).
@@ -93,7 +94,7 @@ fresh thanks to [all the contributors](https://github.com/hugsy/gef/graphs/contr
 Or if you just like the tool, feel free to drop a simple _"thanks"_ on Discord, Twitter or other, it
 is **always** very appreciated.
 
-## Sponsors ##
+## Sponsors
 
 We would like to thank in particular the following people who've been sponsoring GEF allowing us to
 dedicate more time and resources to the project:

@@ -13,14 +13,14 @@ make it easier to keep an overview when using multiple breakpoints in a stripped
 
 Examples:
 
-- `nb first *0x400ec0`
-- `nb "main func" main`
-- `nb read_secret *main+149`
-- `nb check_heap`
+-  `nb first *0x400ec0`
+-  `nb "main func" main`
+-  `nb read_secret *main+149`
+-  `nb check_heap`
 
 Example output:
 
-```
+```text
 ─────────────────────────────────────────────────────────────────────────── code:x86:64 ────
      0x400e04                  add    eax, 0xfffbe6e8
      0x400e09                  dec    ecx

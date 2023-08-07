@@ -13,5 +13,3 @@ class ResetCacheCommand(GefUnitTestGeneric):
     def test_cmd_reset_cache(self):
         res = gdb_start_silent_cmd("reset-cache")
         self.assertNoException(res)
-
-

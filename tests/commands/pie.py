@@ -52,4 +52,3 @@ class PieCommand(GefUnitTestGeneric):
         # check the mask of the breakpoint address
         address = int(res.split()[0], 16)
         self.assertEqual(address & self.pie_offset, self.pie_offset)
-

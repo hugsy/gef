@@ -3,18 +3,18 @@
 In the purpose of always making debugging sessions easier while being more effective, `GEF`
 integrates two commands:
 
-* `tmux-setup`
-* `screen-setup`
+*  `tmux-setup`
+*  `screen-setup`
 
 Those commands will check whether GDB is being spawn from inside a `tmux` (resp. `screen`) session,
 and if so, will split the pane vertically, and configure the context to be redirected to the new
 pane, looking something like:
 
-![](https://i.imgur.com/Khk3xGl.png)
+![gef-tmux-setup](https://i.imgur.com/Khk3xGl.png)
 
 To set it up, simply enter
 
-```
+```text
 gef➤ tmux-setup
 ```
 
@@ -22,7 +22,7 @@ gef➤ tmux-setup
 a very clean way to do this. Therefore, if possible, it would be recommended to use the `tmux-setup`
 command instead.
 
-### Possible color issues with tmux ###
+### Possible color issues with tmux
 
 On Linux tmux only supports 8 colors with some terminal capabilities (`$TERM` environment variable).
 This can mess up your color themes when using GEF with tmux. To remedy this if your terminal

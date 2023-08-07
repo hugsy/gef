@@ -77,4 +77,3 @@ class PatternCommand(GefUnitTestGeneric):
         res = gdb_run_cmd(cmd, before=before, target=target)
         self.assertNoException(res)
         self.assertIn(f"not found", res)
-

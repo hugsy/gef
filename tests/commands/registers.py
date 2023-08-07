@@ -30,4 +30,3 @@ class RegistersCommand(GefUnitTestGeneric):
         elif ARCH in ("i686", ):
             self.assertIn("$eax", res)
             self.assertIn("$eflags", res)
-
