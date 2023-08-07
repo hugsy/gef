@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: '0'
 
     - name: Run test coverage
       id: get_coverage
@@ -27,8 +29,8 @@ jobs:
         new_score=$(cat docs/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         diff_score=$(python -c "print(${new_score} - ${current_score})")
         commit=$(git rev-parse HEAD)
-        include_tests=$(git diff HEAD~1 HEAD --compact-summary | egrep --count '^ tests/')
-        include_docs=$(git diff HEAD~1 HEAD --compact-summary | egrep --count '^ docs/')
+        include_tests=$(git diff ${{ github.event.before }} ${{ github.event.after }} --compact-summary | egrep --count '^ tests/' || true)
+        include_docs=$(git diff ${{ github.event.before }} ${{ github.event.after }} --compact-summary | egrep --count '^ docs/' || true)
         echo "commit=${commit}" >> $GITHUB_OUTPUT
         echo "new_coverage_score=${new_score}" >> $GITHUB_OUTPUT
         echo "current_coverage_score=${current_score}" >> $GITHUB_OUTPUT
@@ -53,33 +55,45 @@ jobs:
             * New Coverage: ${process.env.SCORE_NEW}%
             * Diff: ${process.env.SCORE_DIFF}
 
-          This PR:
-            * ${(tests_changes == 0) ? "does not include" : "includes"} changes to tests
-            * ${(docs_changes == 0) ? "does not include" : "includes"} changes to documentation
+          To this point, this PR:
+            * ${(tests_changes == 0) ? "**does not** include" : "includes"} changes to tests
+            * ${(docs_changes == 0) ? "**does not** include" : "includes"} changes to documentation
 
           `;
 
           const { owner, repo, number } = context.issue;
           await github.rest.issues.createComment({ owner, repo, issue_number: number, body: comment });
 
-    - uses: mondeja/remove-labels-gh-action@v1
-      if: ${{ steps.get_coverage.outputs.include_docs }} == 0
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        labels: documentation
+          try {
+            if(docs_changes > 0) {
+              await github.rest.issues.addLabels({
+                owner: owner,
+                repo: repo,
+                issue_number: number,
+                labels: ['documentation']
+              });
+            } else {
+              await github.rest.issues.removeLabel({
+                owner: owner,
+                repo: repo,
+                issue_number: number,
+                name: 'documentation'
+              });
+            }
 
-    - uses: mondeja/remove-labels-gh-action@v1
-      if: ${{ steps.get_coverage.outputs.include_tests }} == 0
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        labels: automation/ci
-
-    - uses: actions-ecosystem/action-add-labels@v1
-      if: ${{ steps.get_coverage.outputs.include_docs }} > 0
-      with:
-        labels: documentation
-
-    - uses: actions-ecosystem/action-add-labels@v1
-      if: ${{ steps.get_coverage.outputs.include_tests }} > 0
-      with:
-        labels: automation/ci
+            if(tests_changes > 0) {
+              await github.rest.issues.addLabels({
+                owner: owner,
+                repo: repo,
+                issue_number: number,
+                labels: ['automation/ci']
+              });
+            } else {
+              await github.rest.issues.removeLabel({
+                owner: owner,
+                repo: repo,
+                issue_number: number,
+                name: 'automation/ci'
+              });
+            }
+          } catch (err) {}
