@@ -21,6 +21,7 @@ nav:
   - Testing: testing.md
   - Write extensions: api.md
   - API: api/gef.md
+  - Debugging: debugging.md
   - Coverage: https://hugsy.github.io/gef/coverage/
 - Commands:
   - aliases: commands/aliases.md
