@@ -15,6 +15,7 @@ import pdb; pdb.set_trace()
 Open a gdb session -> start -> nop
 
 Done!
+
 ```bash
 gef➤  nop
 > /home/dreg/.gef-7c170cf6be3d84b2672a22e43b9128a23fe53c3b.py(6075)do_invoke()
