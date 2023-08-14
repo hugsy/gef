@@ -62,6 +62,7 @@ Copy the info from output Window to gef.py:
 ![pycharm8](https://github.com/hugsy/gef/assets/9882181/be24ee23-3101-4b71-b62f-70883c9135ad)
 
 First, add to gef.py:
+
 ```python
 import pydevd_pycharm
 ```
