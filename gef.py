@@ -6440,7 +6440,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             if "all" in argv:
                 tids = [t.num for t in threads]
             else:
-                tids = self.check_thread_ids([int(a) for a in argv])
+                tids = self.check_thread_ids(argv)
         else:
             tids = [current_thread.num]
 
@@ -6523,9 +6523,20 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
     @staticmethod
     def check_thread_ids(tids: List[int]) -> List[int]:
-        """Return the subset of tids that are currently valid."""
-        existing_tids = set(t.num for t in gdb.selected_inferior().threads())
-        return list(set(tids) & existing_tids)
+        """Check the validity, dedup, and return all valid tids."""
+        existing_tids = [t.num for t in gdb.selected_inferior().threads()]
+        valid_tids = set()
+        for tid in tids:
+            try:
+                tid = int(tid)
+            except ValueError:
+                err(f"Invalid thread id {tid:d}")
+                continue
+            if tid in existing_tids:
+                valid_tids.add(tid)
+            else:
+                err(f"Unknown thread {tid}")
+        return list(valid_tids)
 
     @staticmethod
     def tcachebin(tcache_base: int, i: int) -> Tuple[Optional[GlibcTcacheChunk], int]:
