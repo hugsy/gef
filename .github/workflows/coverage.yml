@@ -57,7 +57,7 @@ jobs:
         script: |
           const tests_changes = ${{ steps.get_coverage.outputs.include_tests }};
           const docs_changes  = ${{ steps.get_coverage.outputs.include_docs }};
-          const forbidden_words = "${process.env.WORDS_FOUND}".split(" ");
+          const forbidden_words = forbiddenWordsString.split(" ").filter(word => word.trim() !== '');
           const comment = `## 🤖 Coverage Update
 
             * Commit: ${process.env.COMMIT}
@@ -68,8 +68,8 @@ jobs:
           To this point, this PR:
             * ${(tests_changes == 0) ? "**does not** include" : "includes"} changes to tests
             * ${(docs_changes == 0) ? "**does not** include" : "includes"} changes to documentation
-            * ${(forbidden_words.length == 0) ? "**does not** include forbidden words" : "includes the forbidden words:" + forbidden_words.join(", ")} 
-
+            * ${(forbidden_words.length === 0 || forbidden_words[0] === '') ? "**does not** include forbidden words" : "includes the forbidden words:" + forbidden_words.join(", ")} 
+            
           `;
 
           const { owner, repo, number } = context.issue;
