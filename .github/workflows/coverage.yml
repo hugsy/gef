@@ -37,7 +37,7 @@ jobs:
         echo "diff_score=${diff_score}" >> $GITHUB_OUTPUT
         echo "include_tests=${include_tests}" >> $GITHUB_OUTPUT
         echo "include_docs=${include_docs}" >> $GITHUB_OUTPUT
-        WORDS=("pycharm", "debugpy", "ptvsd", "breakpoint", "pdb")
+        WORDS=("pycharm" "debugpy" "ptvsd" "breakpoint" "pdb")
         WORDS_FOUND=""
         for word in "${WORDS[@]}"; do
           if git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- "gef.py" | grep "^+" | grep -q "$word"; then
@@ -57,6 +57,7 @@ jobs:
         script: |
           const tests_changes = ${{ steps.get_coverage.outputs.include_tests }};
           const docs_changes  = ${{ steps.get_coverage.outputs.include_docs }};
+          const forbidden_words = "${process.env.WORDS_FOUND}".split(" ");
           const comment = `## 🤖 Coverage Update
 
             * Commit: ${process.env.COMMIT}
@@ -67,7 +68,7 @@ jobs:
           To this point, this PR:
             * ${(tests_changes == 0) ? "**does not** include" : "includes"} changes to tests
             * ${(docs_changes == 0) ? "**does not** include" : "includes"} changes to documentation
-            * ${process.env.WORDS_FOUND}
+            * ${(forbidden_words.length == 0) ? "**does not** include forbidden words" : "includes the forbidden words:" + forbidden_words.join(", ")} 
 
           `;
 
