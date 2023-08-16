@@ -57,6 +57,7 @@ jobs:
         script: |
           const tests_changes = ${{ steps.get_coverage.outputs.include_tests }};
           const docs_changes  = ${{ steps.get_coverage.outputs.include_docs }};
+          const forbiddenWordsString = process.env.WORDS_FOUND || '';
           const forbidden_words = forbiddenWordsString.split(" ").filter(word => word.trim() !== '');
           const comment = `## 🤖 Coverage Update
 
