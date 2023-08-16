@@ -70,7 +70,6 @@ jobs:
             * ${(tests_changes == 0) ? "**does not** include" : "includes"} changes to tests
             * ${(docs_changes == 0) ? "**does not** include" : "includes"} changes to documentation
             * ${(forbidden_words.length === 0 || forbidden_words[0] === '') ? "**does not** include forbidden words" : "includes the forbidden words:" + forbidden_words.join(", ")}
-            
           `;
 
           const { owner, repo, number } = context.issue;
