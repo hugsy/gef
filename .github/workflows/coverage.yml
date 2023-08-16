@@ -37,6 +37,12 @@ jobs:
         echo "diff_score=${diff_score}" >> $GITHUB_OUTPUT
         echo "include_tests=${include_tests}" >> $GITHUB_OUTPUT
         echo "include_docs=${include_docs}" >> $GITHUB_OUTPUT
+        WORDS=("pycharm", "debugpy", "ptvsd", "breakpoint", "pdb")
+        for word in "${WORDS[@]}"; do
+          if git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- "gef.py" | grep "^+" | grep -q "$word"; then
+            echo "'$word' found in gef.py. Consider removing it." >> $GITHUB_OUTPUT
+          fi
+        done
 
     - uses: actions/github-script@v6
       env:
