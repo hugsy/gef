@@ -1,11 +1,13 @@
 name: CI Coverage for PR
 
-on:
-  pull_request:
+on: [ pull_request, pull_request_target ]
 
 jobs:
   coverage:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
     - uses: actions/checkout@v3
       with:
