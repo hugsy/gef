@@ -38,11 +38,13 @@ jobs:
         echo "include_tests=${include_tests}" >> $GITHUB_OUTPUT
         echo "include_docs=${include_docs}" >> $GITHUB_OUTPUT
         WORDS=("pycharm", "debugpy", "ptvsd", "breakpoint", "pdb")
+        WORDS_FOUND=""
         for word in "${WORDS[@]}"; do
           if git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- "gef.py" | grep "^+" | grep -q "$word"; then
-            echo "'$word' found in gef.py. Consider removing it." >> $GITHUB_OUTPUT
+            WORDS_FOUND+="'$word' "
           fi
         done
+        echo "words_found=${WORDS_FOUND}" >> $GITHUB_OUTPUT
 
     - uses: actions/github-script@v6
       env:
@@ -50,6 +52,7 @@ jobs:
         SCORE_OLD: ${{ steps.get_coverage.outputs.current_coverage_score }}
         SCORE_NEW: ${{ steps.get_coverage.outputs.new_coverage_score }}
         SCORE_DIFF: ${{ steps.get_coverage.outputs.diff_score }}
+        WORDS_FOUND: ${{ steps.get_coverage.outputs.words_found }}
       with:
         script: |
           const tests_changes = ${{ steps.get_coverage.outputs.include_tests }};
@@ -64,6 +67,7 @@ jobs:
           To this point, this PR:
             * ${(tests_changes == 0) ? "**does not** include" : "includes"} changes to tests
             * ${(docs_changes == 0) ? "**does not** include" : "includes"} changes to documentation
+            * ${process.env.WORDS_FOUND}
 
           `;
 
