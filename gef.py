@@ -6772,11 +6772,9 @@ class DetailRegistersCommand(GenericCommand):
 
         args : argparse.Namespace = kwargs["arguments"]
         if args.registers and args.registers[0]:
-            requested_regs = set(args.registers)
-            valid_regs = set(gef.arch.all_registers) & requested_regs
-            if valid_regs:
-                regs = valid_regs
-            invalid_regs = requested_regs - valid_regs
+            all_regs = set(gef.arch.all_registers)
+            regs = [reg for reg in args.registers if reg in all_regs]
+            invalid_regs = [reg for reg in args.registers if reg not in all_regs]
             if invalid_regs:
                 err(f"invalid registers for architecture: {', '.join(invalid_regs)}")
 
@@ -7356,9 +7354,10 @@ class ContextCommand(GenericCommand):
         self.context_title("registers")
         ignored_registers = set(self["ignore_registers"].split())
 
+        # Defer to DetailRegisters by default
         if self["show_registers_raw"] is False:
-            regs = set(gef.arch.all_registers)
-            printable_registers = " ".join(regs - ignored_registers)
+            regs = [reg for reg in gef.arch.all_registers if reg not in ignored_registers]
+            printable_registers = " ".join(regs)
             gdb.execute(f"registers {printable_registers}")
             return
 
