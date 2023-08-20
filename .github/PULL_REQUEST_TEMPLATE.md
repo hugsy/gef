@@ -8,7 +8,8 @@
 
 <!-- How does this look? Add a screenshot if you can -->
 
-<!-- Annotate your PR with label proper labels (architecture impacted, type of improvement, etc.)
+<!-- Annotate your PR with label proper labels (architecture impacted, type of improvement,
+etc.) ->
 
 ## Checklist
 
