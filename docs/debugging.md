@@ -2,7 +2,7 @@
 
 Debugging GEF has a trick, let's see some examples
 
-## Debugging a command execution with pdb
+## Debugging with pdb
 
 Open gef.py
 
@@ -32,7 +32,7 @@ gef➤  nop
 
 Learn more about [pdb](https://docs.python.org/3/library/pdb.html)
 
-## Debugging a command execution with pycharm
+## Debugging with PyCharm
 
 Install [pycharm](https://www.jetbrains.com/help/pycharm/installation-guide.html)
 
@@ -79,3 +79,53 @@ Open a gdb session -> start -> nop
 Done!
 
 ![pycharm9](https://github.com/hugsy/gef/assets/9882181/b22ec431-57e7-442a-835e-5817bdac7687)
+
+
+## Debugging with VSCode
+
+The approach to debug GEF with VSCode is relatively similar to that of PyCharm. Make sure to
+install the [Python extension for
+VSCode](https://marketplace.visualstudio.com/items?itemName=ms-python.python). This will install
+`debugpy`, a remote debugger that you can connect to from VSCode and debug anything in GEF from
+your session (breakpoints, watchpoints, etc.). Debugging a Python app from VSCode is [extensively
+ covered in the official docs](https://code.visualstudio.com/docs/python/debugging) to refer to
+ them if you're not sure how it works.
+
+To start a debugging session in GEF, manually run the following Python commands
+
+```python
+gef> pi import debugpy; debugpy.listen(5678); pi debugpy.wait_for_client()
+```
+
+Alternatively a convenience script named `vscode_debug.py` can also be found in the `scripts`
+folder, which you can invoke easily simply using the GDB `source` command:
+
+```text
+gef> source /path/to/gef/scripts/vscode_debug.py
+```
+
+GEF will be suspended, waiting for a client to connect to the debugger to resume the execution.
+Then from your VSCode, edit or create `/path/to/gef/.vscode/launch.json`, and add a debug
+configuration to attach to GEF, by specifying the IP address and port (on `localhost` in the
+example below, but the remote server can be anywhere):
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Attach to GEF",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            }
+        }
+    ]
+}
+```
+
+Everything is ready to attach to GEF. By default, you can simply hit F5 on VSCode (Start Debugging)
+
+![vscode-dbg](https://user-images.githubusercontent.com/590234/260521923-b730e2b1-8a17-423d-914c-2be0a1abfed4.png)
