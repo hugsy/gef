@@ -10902,7 +10902,7 @@ class GefRemoteSessionManager(GefSessionManager):
             return True
         tgt.parent.mkdir(parents=True, exist_ok=True)
         dbg(f"[remote] downloading '{src}' -> '{tgt}'")
-        gdb.execute(f"remote get {src} {tgt.absolute()}")
+        gdb.execute(f"remote get '{src}' '{tgt.absolute()}'")
         return tgt.exists()
 
     def connect(self, pid: int) -> bool:
