@@ -1815,7 +1815,7 @@ def show_last_exception() -> None:
 
     try:
         lsb_release = which("lsb_release")
-        gdb.execute(f"!{lsb_release} -a")
+        gdb.execute(f"!'{lsb_release}' -a")
     except FileNotFoundError:
         gef_print("lsb_release is missing, cannot collect additional debug information")
 
@@ -1942,7 +1942,7 @@ class RedirectOutputContext:
     def __enter__(self) -> None:
         """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
         gdb.execute("set logging overwrite")
-        gdb.execute(f"set logging file {self.redirection_target_file}")
+        gdb.execute(f"set logging file '{self.redirection_target_file}'")
         gdb.execute("set logging redirect on")
         gdb.execute("set logging on")
         return
@@ -1957,7 +1957,7 @@ class RedirectOutputContext:
 def enable_redirect_output(to_file: str = "/dev/null") -> None:
     """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
     gdb.execute("set logging overwrite")
-    gdb.execute(f"set logging file {to_file}")
+    gdb.execute(f"set logging file '{to_file}'")
     gdb.execute("set logging redirect on")
     gdb.execute("set logging on")
     return
@@ -2138,7 +2138,7 @@ def gef_execute_gdb_script(commands: str) -> None:
 
     fname = pathlib.Path(fname)
     if fname.is_file() and os.access(fname, os.R_OK):
-        gdb.execute(f"source {fname}")
+        gdb.execute(f"source '{fname}'")
         fname.unlink()
     return
 
@@ -3402,7 +3402,7 @@ def get_filepath() -> Optional[str]:
 
 def get_function_length(sym: str) -> int:
     """Attempt to get the length of the raw bytes of a function."""
-    dis = gdb.execute(f"disassemble {sym}", to_string=True).splitlines()
+    dis = gdb.execute(f"disassemble '{sym}'", to_string=True).splitlines()
     start_addr = int(dis[1].split()[0], 16)
     end_addr = int(dis[-2].split()[0], 16)
     return end_addr - start_addr
@@ -9538,7 +9538,7 @@ class GefCommand(gdb.Command):
         def load_plugin(fpath: pathlib.Path) -> bool:
             try:
                 dbg(f"Loading '{fpath}'")
-                gdb.execute(f"source {fpath}")
+                gdb.execute(f"source '{fpath}'")
             except Exception as e:
                 warn(f"Exception while loading {fpath}: {str(e)}")
                 return False
@@ -10154,11 +10154,11 @@ class GefTmuxSetup(gdb.Command):
         pane, pty = subprocess.check_output([tmux, "splitw", "-h", '-F#{session_name}:#{window_index}.#{pane_index}-#{pane_tty}', "-P"]).decode().strip().split("-")
         atexit.register(lambda : subprocess.run([tmux, "kill-pane", "-t", pane]))
         # clear the screen and let it wait for input forever
-        gdb.execute(f"! {tmux} send-keys -t {pane} 'clear ; cat' C-m")
-        gdb.execute(f"! {tmux} select-pane -L")
+        gdb.execute(f"!'{tmux}' send-keys -t {pane} 'clear ; cat' C-m")
+        gdb.execute(f"!'{tmux}' select-pane -L")
 
         ok(f"Setting `context.redirect` to '{pty}'...")
-        gdb.execute(f"gef config context.redirect {pty}")
+        gdb.execute(f"gef config context.redirect '{pty}'")
         ok("Done!")
         return
 
@@ -10178,13 +10178,13 @@ class GefTmuxSetup(gdb.Command):
             f.write(f"screen bash -c 'tty > {tty_path}; clear; cat'\n")
             f.write("focus left\n")
 
-        gdb.execute(f"! {screen} -r {sty} -m -d -X source {script_path}")
+        gdb.execute(f"!'{screen}' -r '{sty}' -m -d -X source '{script_path}'")
         # artificial delay to make sure `tty_path` is populated
         time.sleep(0.25)
         with open(tty_path, "r") as f:
             pty = f.read().strip()
         ok(f"Setting `context.redirect` to '{pty}'...")
-        gdb.execute(f"gef config context.redirect {pty}")
+        gdb.execute(f"gef config context.redirect '{pty}'")
         ok("Done!")
         os.unlink(script_path)
         os.unlink(tty_path)
@@ -10241,7 +10241,7 @@ class GefInstallExtraScriptCommand(gdb.Command):
                 fd.flush()
 
         old_command_set = set(gef.gdb.commands)
-        gdb.execute(f"source {fpath}")
+        gdb.execute(f"source '{fpath}'")
         new_command_set = set(gef.gdb.commands)
         new_commands = [f"`{c[0]}`" for c in (new_command_set - old_command_set)]
         ok(f"Installed file '{fpath}', new command(s) available: {', '.join(new_commands)}")
@@ -11111,7 +11111,7 @@ class Gef:
         self.gdb.setup()
         tempdir = self.config["gef.tempdir"]
         gef_makedirs(tempdir)
-        gdb.execute(f"save gdb-index {tempdir}")
+        gdb.execute(f"save gdb-index '{tempdir}'")
         return
 
     def reset_caches(self) -> None:
@@ -11209,4 +11209,4 @@ if __name__ == "__main__":
     # restore saved breakpoints (if any)
     bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
     if bkp_fpath.exists() and bkp_fpath.is_file():
-        gdb.execute(f"source {bkp_fpath}")
+        gdb.execute(f"source '{bkp_fpath}'")
