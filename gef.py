@@ -2140,7 +2140,7 @@ def gef_execute_gdb_script(commands: str) -> None:
 
     fname = pathlib.Path(fname)
     if fname.is_file() and os.access(fname, os.R_OK):
-        gdb.execute(f"source '{fname}'")
+        gdb.execute(f"source {fname}")
         fname.unlink()
     return
 
@@ -10160,7 +10160,7 @@ class GefTmuxSetup(gdb.Command):
         gdb.execute(f"!'{tmux}' select-pane -L")
 
         ok(f"Setting `context.redirect` to '{pty}'...")
-        gdb.execute(f"gef config context.redirect '{pty}'")
+        gdb.execute(f"gef config context.redirect {pty}")
         ok("Done!")
         return
 
@@ -10186,7 +10186,7 @@ class GefTmuxSetup(gdb.Command):
         with open(tty_path, "r") as f:
             pty = f.read().strip()
         ok(f"Setting `context.redirect` to '{pty}'...")
-        gdb.execute(f"gef config context.redirect '{pty}'")
+        gdb.execute(f"gef config context.redirect {pty}")
         ok("Done!")
         os.unlink(script_path)
         os.unlink(tty_path)
@@ -10243,7 +10243,7 @@ class GefInstallExtraScriptCommand(gdb.Command):
                 fd.flush()
 
         old_command_set = set(gef.gdb.commands)
-        gdb.execute(f"source '{fpath}'")
+        gdb.execute(f"source {fpath}")
         new_command_set = set(gef.gdb.commands)
         new_commands = [f"`{c[0]}`" for c in (new_command_set - old_command_set)]
         ok(f"Installed file '{fpath}', new command(s) available: {', '.join(new_commands)}")
@@ -11211,4 +11211,4 @@ if __name__ == "__main__":
     # restore saved breakpoints (if any)
     bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
     if bkp_fpath.exists() and bkp_fpath.is_file():
-        gdb.execute(f"source '{bkp_fpath}'")
+        gdb.execute(f"source {bkp_fpath}")
