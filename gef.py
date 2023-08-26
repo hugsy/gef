@@ -9809,7 +9809,12 @@ class GefConfigCommand(gdb.Command):
         _type = gef.config.raw_entry(key).type
         try:
             if _type == bool:
-                _newval = True if new_value.upper() in ("TRUE", "T", "1") else False
+                if new_value.upper() in ("TRUE", "T", "1"):
+                    _newval = True
+                elif new_value.upper() in ("FALSE", "F", "0"):
+                    _newval = False
+                else:
+                    raise ValueError(f"cannot parse '{new_value}' as bool")
             else:
                 _newval = new_value
         except Exception as e:
