@@ -1935,14 +1935,15 @@ class DisableContextOutputContext:
 
 
 class RedirectOutputContext:
-    def __init__(self, to: str = "/dev/null") -> None:
-        self.redirection_target_file = to
+    def __init__(self, to_file: str = "/dev/null") -> None:
+        if " " in to_file: raise Exception("Target filepath cannot contain spaces")
+        self.redirection_target_file = to_file
         return
 
     def __enter__(self) -> None:
         """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
         gdb.execute("set logging overwrite")
-        gdb.execute(f"set logging file '{self.redirection_target_file}'")
+        gdb.execute(f"set logging file {self.redirection_target_file}")
         gdb.execute("set logging redirect on")
         gdb.execute("set logging on")
         return
@@ -1956,8 +1957,9 @@ class RedirectOutputContext:
 
 def enable_redirect_output(to_file: str = "/dev/null") -> None:
     """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
+    if " " in to_file: raise Exception("Target filepath cannot contain spaces")
     gdb.execute("set logging overwrite")
-    gdb.execute(f"set logging file '{to_file}'")
+    gdb.execute(f"set logging file {to_file}")
     gdb.execute("set logging redirect on")
     gdb.execute("set logging on")
     return
@@ -8786,7 +8788,7 @@ class TraceRunCommand(GenericCommand):
     def trace(self, loc_start: int, loc_end: int, depth: int) -> None:
         info(f"Tracing from {loc_start:#x} to {loc_end:#x} (max depth={depth:d})")
         logfile = f"{self['tracefile_prefix']}{loc_start:#x}-{loc_end:#x}.txt"
-        with RedirectOutputContext(to=logfile):
+        with RedirectOutputContext(to_file=logfile):
             hide_context()
             self.start_tracing(loc_start, loc_end, depth)
             unhide_context()
@@ -9184,7 +9186,7 @@ class FormatStringSearchCommand(GenericCommand):
 
         nb_installed_breaks = 0
 
-        with RedirectOutputContext(to="/dev/null"):
+        with RedirectOutputContext(to_file="/dev/null"):
             for function_name in dangerous_functions:
                 argument_number = dangerous_functions[function_name]
                 FormatStringBreakpoint(function_name, argument_number)
