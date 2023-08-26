@@ -1936,7 +1936,7 @@ class DisableContextOutputContext:
 
 class RedirectOutputContext:
     def __init__(self, to_file: str = "/dev/null") -> None:
-        if " " in to_file: raise Exception("Target filepath cannot contain spaces")
+        if " " in to_file: raise ValueEror("Target filepath cannot contain spaces")
         self.redirection_target_file = to_file
         return
 
@@ -1957,7 +1957,7 @@ class RedirectOutputContext:
 
 def enable_redirect_output(to_file: str = "/dev/null") -> None:
     """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
-    if " " in to_file: raise Exception("Target filepath cannot contain spaces")
+    if " " in to_file: raise ValueEror("Target filepath cannot contain spaces")
     gdb.execute("set logging overwrite")
     gdb.execute(f"set logging file {to_file}")
     gdb.execute("set logging redirect on")
