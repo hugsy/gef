@@ -9489,9 +9489,11 @@ class GefCommand(gdb.Command):
         gef.config["gef.readline_compat"] = GefSetting(False, bool, "Workaround for readline SOH/ETX issue (SEGV)")
         gef.config["gef.debug"] = GefSetting(False, bool, "Enable debug mode for gef")
         gef.config["gef.autosave_breakpoints_file"] = GefSetting("", str, "Automatically save and restore breakpoints")
-        gef.config["gef.extra_plugins_dir"] = GefSetting("", str, "Autoload additional GEF commands from external directory", hooks={"on_write": self.load_extra_plugins})
+        plugins_dir = GefSetting("", str, "Autoload additional GEF commands from external directory", hooks={"on_write": GefSetting.no_spaces})
+        plugins_dir.add_hook("on_write", lambda _: self.load_extra_plugins())
+        gef.config["gef.extra_plugins_dir"] = plugins_dir
         gef.config["gef.disable_color"] = GefSetting(False, bool, "Disable all colors in GEF")
-        gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, str, "Directory to use for temporary/cache content")
+        gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, str, "Directory to use for temporary/cache content", hooks={"on_write": GefSetting.no_spaces})
         gef.config["gef.show_deprecation_warnings"] = GefSetting(True, bool, "Toggle the display of the `deprecated` warnings")
         gef.config["gef.buffer"] = GefSetting(True, bool, "Internally buffer command output until completion")
         gef.config["gef.bruteforce_main_arena"] = GefSetting(False, bool, "Allow bruteforcing main_arena symbol if everything else fails")
@@ -9807,14 +9809,22 @@ class GefConfigCommand(gdb.Command):
         _type = gef.config.raw_entry(key).type
         try:
             if _type == bool:
-                _newval = True if new_value.upper() in ("TRUE", "T", "1") else False
+                if new_value.upper() in ("TRUE", "T", "1"):
+                    _newval = True
+                elif new_value.upper() in ("FALSE", "F", "0"):
+                    _newval = False
+                else:
+                    raise ValueError(f"cannot parse '{new_value}' as bool")
             else:
                 _newval = new_value
-
-            gef.config[key] = _newval
         except Exception as e:
             err(f"'{key}' expects type '{_type.__name__}', got {type(new_value).__name__}: reason {str(e)}")
             return
+
+        try:
+            gef.config[key] = _newval
+        except Exception as e:
+            err(f"Cannot set '{key}': {e}")
 
         reset_all_caches()
         return
@@ -10605,30 +10615,34 @@ class GefHeapManager(GefManager):
 
 class GefSetting:
     """Basic class for storing gef settings as objects"""
-    READ_ACCESS = 0
-    WRITE_ACCESS = 1
 
     def __init__(self, value: Any, cls: Optional[type] = None, description: Optional[str] = None, hooks: Optional[Dict[str, Callable]] = None)  -> None:
         self.value = value
         self.type = cls or type(value)
         self.description = description or ""
-        self.hooks: Tuple[List[Callable], List[Callable]] = ([], [])
-        if hooks:
-            for access, func in hooks.items():
-                if access == "on_read":
-                    idx = GefSetting.READ_ACCESS
-                elif access == "on_write":
-                    idx = GefSetting.WRITE_ACCESS
-                else:
-                    raise ValueError
-                if not callable(func):
-                    raise ValueError(f"hook is not callable")
-                self.hooks[idx].append(func)
+        self.hooks: Dict[str, List[Callable]] = collections.defaultdict(list)
+        if not hooks:
+            hooks = {}
+
+        for access, func in hooks.items():
+            self.add_hook(access, func)
         return
 
     def __str__(self) -> str:
-        return f"Setting(type={self.type.__name__}, value='{self.value}', desc='{self.description[:10]}...', "\
-            f"read_hooks={len(self.hooks[GefSetting.READ_ACCESS])}, write_hooks={len(self.hooks[GefSetting.READ_ACCESS])})"
+        return f"Setting(type={self.type.__name__}, value='{self.value}', desc='{self.description[:10]}...', " \
+                f"read_hooks={len(self.hooks['on_read'])}, write_hooks={len(self.hooks['on_write'])})"
+
+    def add_hook(self, access, func):
+        if access != "on_read" and access != "on_write":
+            raise ValueError("invalid access type")
+        if not callable(func):
+            raise ValueError("hook is not callable")
+        self.hooks[access].append(func)
+
+    @staticmethod
+    def no_spaces(value):
+        if " " in value:
+            raise ValueError("setting cannot contain spaces")
 
 
 class GefSettingsManager(dict):
@@ -10654,32 +10668,25 @@ class GefSettingsManager(dict):
             if not value.type: raise Exception("Invalid type")
             if not value.description: raise Exception("Invalid description")
             setting = value
+            value = setting.value
         super().__setitem__(name, setting)
-        self.__invoke_write_hooks(setting)
+        self.__invoke_write_hooks(setting, value)
         return
 
     def __delitem__(self, name: str) -> None:
-        super().__delitem__(name)
-        return
+        return super().__delitem__(name)
 
     def raw_entry(self, name: str) -> GefSetting:
         return super().__getitem__(name)
 
     def __invoke_read_hooks(self, setting: GefSetting) -> None:
-        self.__invoke_hooks(is_write=False, setting=setting)
+        for callback in setting.hooks["on_read"]:
+            callback()
         return
 
-    def __invoke_write_hooks(self, setting: GefSetting) -> None:
-        self.__invoke_hooks(is_write=True, setting=setting)
-        return
-
-    def __invoke_hooks(self, is_write: bool, setting: GefSetting) -> None:
-        if not setting.hooks:
-            return
-        idx = int(is_write)
-        if setting.hooks[idx]:
-            for callback in setting.hooks[idx]:
-                callback()
+    def __invoke_write_hooks(self, setting: GefSetting, value: Any) -> None:
+        for callback in setting.hooks["on_write"]:
+            callback(value)
         return
 
 
