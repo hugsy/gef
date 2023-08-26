@@ -5987,16 +5987,16 @@ class RemoteCommand(GenericCommand):
 
         # qemu-user support
         qemu_binary: Optional[pathlib.Path] = None
-        try:
-            if args.qemu_user:
+        if args.qemu_user:
+            try:
                 qemu_binary = pathlib.Path(args.qemu_binary).expanduser().absolute() if args.qemu_binary else gef.session.file
                 if not qemu_binary or not qemu_binary.exists():
                     raise FileNotFoundError(f"{qemu_binary} does not exist")
-        except Exception as e:
-            err(f"Failed to initialize qemu-user mode, reason: {str(e)}")
-            return
+            except Exception as e:
+                err(f"Failed to initialize qemu-user mode, reason: {str(e)}")
+                return
 
-        # try to establish the remote session, throw on error
+        # Try to establish the remote session, throw on error
         # Set `.remote_initializing` to True here - `GefRemoteSessionManager` invokes code which
         # calls `is_remote_debug` which checks if `remote_initializing` is True or `.remote` is None
         # This prevents some spurious errors being thrown during startup
@@ -11195,8 +11195,9 @@ if __name__ == "__main__":
 
     # `target remote` commands cannot be disabled, so print a warning message instead
     errmsg = "Using `target remote` with GEF does not work, use `gef-remote` instead. You've been warned."
-    gdb.execute(f"define target hook-remote\n pi if calling_function() != \"connect\": err(\"{errmsg}\") \nend")
-    gdb.execute(f"define target hook-extended-remote\n pi if calling_function() != \"connect\": err(\"{errmsg}\") \nend")
+    hook = f"""pi if calling_function() != "connect": err("{errmsg}")"""
+    gdb.execute(f"define target hook-remote\n{hook}\nend")
+    gdb.execute(f"define target hook-extended-remote\n{hook}\nend")
 
     # restore saved breakpoints (if any)
     bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
