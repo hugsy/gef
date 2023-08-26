@@ -9490,7 +9490,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.debug"] = GefSetting(False, bool, "Enable debug mode for gef")
         gef.config["gef.autosave_breakpoints_file"] = GefSetting("", str, "Automatically save and restore breakpoints")
         plugins_dir = GefSetting("", str, "Autoload additional GEF commands from external directory", hooks={"on_write": GefSetting.no_spaces})
-        plugins_dir.add_hook("on_write", lambda _: self.load_extra_plugins)
+        plugins_dir.add_hook("on_write", lambda _: self.load_extra_plugins())
         gef.config["gef.extra_plugins_dir"] = plugins_dir
         gef.config["gef.disable_color"] = GefSetting(False, bool, "Disable all colors in GEF")
         gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, str, "Directory to use for temporary/cache content", hooks={"on_write": GefSetting.no_spaces})
