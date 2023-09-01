@@ -646,12 +646,20 @@ class Permission(enum.Flag):
         return perm
 
     @classmethod
-    def from_info_mem(cls, perm_str: str) -> "Permission":
+    def from_monitor_info_mem(cls, perm_str: str) -> "Permission":
         perm = cls(0)
         # perm_str[0] shows if this is a user page, which
         # we don't track
         if perm_str[1] == "r": perm |= Permission.READ
         if perm_str[2] == "w": perm |= Permission.WRITE
+        return perm
+
+    @classmethod
+    def from_info_mem(cls, perm_str: str) -> "Permission":
+        perm = cls(0)
+        if "r" in perm_str: perm |= Permission.READ
+        if "w" in perm_str: perm |= Permission.WRITE
+        if "x" in perm_str: perm |= Permission.EXECUTE
         return perm
 
 
@@ -2814,11 +2822,12 @@ class X86(Architecture):
     _endianness = Endianness.LITTLE_ENDIAN
 
     # TODO: How do I show that this is a GefMemoryMapProvider?
-    def maps(self):
+    @staticmethod
+    def x():
         yield from itertools.chain(GefMemoryManager.parse_procfs_maps(),
                                    # GefMemoryManager.parse_gdb_info_sections(),
                                    GefMemoryManager.parse_info_mem())
-    maps: GefMemoryMapProvider = maps
+    maps: GefMemoryMapProvider = x
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         reg = self.flag_register
@@ -10375,7 +10384,6 @@ class GefMemoryManager(GefManager):
     def maps(self) -> List[Section]:
         if not self.__maps:
             self.__maps = self.__parse_maps()
-        # print("returning maps")
         return self.__maps
 
     def __parse_maps(self) -> List[Section]:
@@ -10383,7 +10391,6 @@ class GefMemoryManager(GefManager):
         if gef.arch.maps is not None:
             # print("Trying to call architecture's map provider")
             maps = list(gef.arch.maps())
-            # print([str(sec) for sec in maps])
             return maps
 
         return list(itertools.chain(self.parse_info_mem(),
@@ -10417,11 +10424,11 @@ class GefMemoryManager(GefManager):
                 perm = Permission.from_process_maps(perm)
                 inode = int(inode)
                 yield Section(page_start=addr_start,
-                            page_end=addr_end,
-                            offset=off,
-                            permission=perm,
-                            inode=inode,
-                            path=pathname)
+                              page_end=addr_end,
+                              offset=off,
+                              permission=perm,
+                              inode=inode,
+                              path=pathname)
         return
 
     @staticmethod
@@ -10439,14 +10446,12 @@ class GefMemoryManager(GefManager):
                 off = int(parts[3][:-1], 16)
                 path = parts[4]
                 perm = Permission.from_info_sections(parts[5:])
-                yield Section(
-                    page_start=addr_start,
-                    page_end=addr_end,
-                    offset=off,
-                    permission=perm,
-                    inode="",
-                    path=path
-                )
+                yield Section(page_start=addr_start,
+                              page_end=addr_end,
+                              offset=off,
+                              permission=perm,
+                              inode="",
+                              path=path)
 
             except IndexError:
                 continue
@@ -10458,26 +10463,26 @@ class GefMemoryManager(GefManager):
     def parse_info_mem() -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `monitor info mem`"""
         try:
-            for line in StringIO(gdb.execute("monitor info mem", to_string=True)):
-                if not line:
-                    break
-                try:
-                    ranges, off, perms = line.split()
-                    off = int(off, 16)
-                    start, end = [int(s, 16) for s in ranges.split("-")]
-                except ValueError as e:
-                    continue
-
-                perm = Permission.from_info_mem(perms)
-                yield Section(
-                    page_start=start,
-                    page_end=end,
-                    offset=off,
-                    permission=perm,
-                    inode="",
-                )
+            stream = StringIO(gdb.execute("monitor info mem", to_string=True))
         except Exception:
-            pass
+            return
+
+        for line in stream:
+            if not line:
+                break
+            try:
+                ranges, off, perms = line.split()
+                off = int(off, 16)
+                start, end = [int(s, 16) for s in ranges.split("-")]
+            except ValueError as e:
+                continue
+
+            perm = Permission.from_monitor_info_mem(perms)
+            yield Section(page_start=start,
+                          page_end=end,
+                          offset=off,
+                          permission=perm,
+                          inode="")
 
 
 class GefHeapManager(GefManager):
