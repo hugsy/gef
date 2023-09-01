@@ -164,6 +164,8 @@ __registered_functions__ : Set[Type["GenericFunction"]]                         
 __registered_architectures__ : Dict[Union["Elf.Abi", str], Type["Architecture"]]              = {}
 __registered_file_formats__ : Set[ Type["FileFormat"] ]                                       = set()
 
+GefMemoryMapProvider = Callable[[], Generator["Section", None, None]]
+
 
 def reset_all_caches() -> None:
     """Free all caches. If an object is cached, it will have a callable attribute `cache_clear`
@@ -2258,6 +2260,7 @@ class Architecture(ArchitectureBase):
     _ptrsize: Optional[int] = None
     _endianness: Optional[Endianness] = None
     special_registers: Union[Tuple[()], Tuple[str, ...]] = ()
+    maps: Optional[GefMemoryMapProvider] = None
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -2809,6 +2812,13 @@ class X86(Architecture):
     syscall_instructions = ("sysenter", "int 0x80")
     _ptrsize = 4
     _endianness = Endianness.LITTLE_ENDIAN
+
+    # TODO: How do I show that this is a GefMemoryMapProvider?
+    def maps(self):
+        yield from itertools.chain(GefMemoryManager.parse_procfs_maps(),
+                                   # GefMemoryManager.parse_gdb_info_sections(),
+                                   GefMemoryManager.parse_info_mem())
+    maps: GefMemoryMapProvider = maps
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         reg = self.flag_register
@@ -10365,27 +10375,31 @@ class GefMemoryManager(GefManager):
     def maps(self) -> List[Section]:
         if not self.__maps:
             self.__maps = self.__parse_maps()
+        # print("returning maps")
         return self.__maps
 
     def __parse_maps(self) -> List[Section]:
         """Return the mapped memory sections"""
-        try:
-            if is_qemu_system():
-                return list(self.__parse_info_mem())
-        except gdb.error:
-            # Target may not support this command
-            pass
-        try:
-            return list(self.__parse_procfs_maps())
-        except FileNotFoundError:
-            return list(self.__parse_gdb_info_sections())
+        if gef.arch.maps is not None:
+            # print("Trying to call architecture's map provider")
+            maps = list(gef.arch.maps())
+            # print([str(sec) for sec in maps])
+            return maps
 
-    def __parse_procfs_maps(self) -> Generator[Section, None, None]:
+        return list(itertools.chain(self.parse_info_mem(),
+                                    self.parse_procfs_maps(),
+                                    self.parse_gdb_info_sections()))
+
+    # TODO: GefMemoryMapProvider
+    # TODO: Might be easier to just return nothing on error so we can 'chain' to the next
+    @staticmethod
+    def parse_procfs_maps() -> Generator[Section, None, None]:
         """Get the memory mapping from procfs."""
         procfs_mapfile = gef.session.maps
         if not procfs_mapfile:
             is_remote = gef.session.remote is not None
-            raise FileNotFoundError(f"Missing {'remote ' if is_remote else ''}procfs map file")
+            # raise FileNotFoundError(f"Missing {'remote ' if is_remote else ''}procfs map file")
+            return
         with procfs_mapfile.open("r") as fd:
             for line in fd:
                 line = line.strip()
@@ -10410,7 +10424,8 @@ class GefMemoryManager(GefManager):
                             path=pathname)
         return
 
-    def __parse_gdb_info_sections(self) -> Generator[Section, None, None]:
+    @staticmethod
+    def parse_gdb_info_sections() -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
         stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
 
@@ -10439,26 +10454,30 @@ class GefMemoryManager(GefManager):
                 continue
         return
 
-    def __parse_info_mem(self) -> Generator[Section, None, None]:
+    @staticmethod
+    def parse_info_mem() -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `monitor info mem`"""
-        for line in StringIO(gdb.execute("monitor info mem", to_string=True)):
-            if not line:
-                break
-            try:
-                ranges, off, perms = line.split()
-                off = int(off, 16)
-                start, end = [int(s, 16) for s in ranges.split("-")]
-            except ValueError as e:
-                continue
+        try:
+            for line in StringIO(gdb.execute("monitor info mem", to_string=True)):
+                if not line:
+                    break
+                try:
+                    ranges, off, perms = line.split()
+                    off = int(off, 16)
+                    start, end = [int(s, 16) for s in ranges.split("-")]
+                except ValueError as e:
+                    continue
 
-            perm = Permission.from_info_mem(perms)
-            yield Section(
-                page_start=start,
-                page_end=end,
-                offset=off,
-                permission=perm,
-                inode="",
-            )
+                perm = Permission.from_info_mem(perms)
+                yield Section(
+                    page_start=start,
+                    page_end=end,
+                    offset=off,
+                    permission=perm,
+                    inode="",
+                )
+        except Exception:
+            pass
 
 
 class GefHeapManager(GefManager):
