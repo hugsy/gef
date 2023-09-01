@@ -10387,15 +10387,35 @@ class GefMemoryManager(GefManager):
         return self.__maps
 
     def __parse_maps(self) -> List[Section]:
-        """Return the mapped memory sections"""
+        """Return the mapped memory sections. If the current arch has its maps
+        method defined, then defer to that to generated maps, otherwise, try to
+        figure it out from procfs, then info sections, then monitor info
+        mem."""
         if gef.arch.maps is not None:
-            # print("Trying to call architecture's map provider")
             maps = list(gef.arch.maps())
             return maps
 
-        return list(itertools.chain(self.parse_monitor_info_mem(),
-                                    self.parse_procfs_maps(),
-                                    self.parse_gdb_info_sections()))
+        try:
+            return list(self.parse_procfs_maps())
+        except:
+            pass
+
+        try:
+            return list(self.parse_gdb_info_sections())
+        except:
+            pass
+
+        try:
+            return list(self.parse_monitor_info_mem())
+        except:
+            pass
+
+        # This provides duplicates
+        # return list(itertools.chain(
+        #     self.parse_procfs_maps(),
+        #     self.parse_monitor_info_mem(),
+        #     self.parse_gdb_info_sections(),
+        #     ))
 
     # TODO: GefMemoryMapProvider
     # TODO: Might be easier to just return nothing on error so we can 'chain' to the next
