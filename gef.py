@@ -2826,7 +2826,7 @@ class X86(Architecture):
     def x():
         yield from itertools.chain(GefMemoryManager.parse_procfs_maps(),
                                    # GefMemoryManager.parse_gdb_info_sections(),
-                                   GefMemoryManager.parse_info_mem())
+                                   GefMemoryManager.parse_monitor_info_mem())
     maps: GefMemoryMapProvider = x
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
@@ -10393,7 +10393,7 @@ class GefMemoryManager(GefManager):
             maps = list(gef.arch.maps())
             return maps
 
-        return list(itertools.chain(self.parse_info_mem(),
+        return list(itertools.chain(self.parse_monitor_info_mem(),
                                     self.parse_procfs_maps(),
                                     self.parse_gdb_info_sections()))
 
@@ -10450,7 +10450,6 @@ class GefMemoryManager(GefManager):
                               page_end=addr_end,
                               offset=off,
                               permission=perm,
-                              inode="",
                               path=path)
 
             except IndexError:
@@ -10460,7 +10459,7 @@ class GefMemoryManager(GefManager):
         return
 
     @staticmethod
-    def parse_info_mem() -> Generator[Section, None, None]:
+    def parse_monitor_info_mem() -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `monitor info mem`"""
         try:
             stream = StringIO(gdb.execute("monitor info mem", to_string=True))
@@ -10481,8 +10480,28 @@ class GefMemoryManager(GefManager):
             yield Section(page_start=start,
                           page_end=end,
                           offset=off,
-                          permission=perm,
-                          inode="")
+                          permission=perm)
+
+    @staticmethod
+    def parse_info_mem():
+        """Get the memory mapping from GDB's command `info mem`. This can be
+        provided by certain gdbserver implementations."""
+        for line in StringIO(gdb.execute("info mem", to_string=True)):
+            # Using memory regions provided by the target.
+            # Num Enb Low Addr   High Addr  Attrs
+            # 0   y   0x10000000 0x10200000 flash blocksize 0x1000 nocache
+            # 1   y   0x20000000 0x20042000 rw nocache
+            _, en, start, end, *attrs = line.split()
+            if en != "y":
+                continue
+
+            if "flash" in attrs:
+                perm = Permission.from_info_mem("r")
+            else:
+                perm = Permission.from_info_mem("rw")
+            yield Section(page_start=int(start, 0),
+                          page_end=int(end, 0),
+                          permission=perm)
 
 
 class GefHeapManager(GefManager):
