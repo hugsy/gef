@@ -1815,7 +1815,7 @@ def show_last_exception() -> None:
 
     try:
         lsb_release = which("lsb_release")
-        gdb.execute(f"!{lsb_release} -a")
+        gdb.execute(f"!'{lsb_release}' -a")
     except FileNotFoundError:
         gef_print("lsb_release is missing, cannot collect additional debug information")
 
@@ -1935,8 +1935,9 @@ class DisableContextOutputContext:
 
 
 class RedirectOutputContext:
-    def __init__(self, to: str = "/dev/null") -> None:
-        self.redirection_target_file = to
+    def __init__(self, to_file: str = "/dev/null") -> None:
+        if " " in to_file: raise ValueEror("Target filepath cannot contain spaces")
+        self.redirection_target_file = to_file
         return
 
     def __enter__(self) -> None:
@@ -1956,6 +1957,7 @@ class RedirectOutputContext:
 
 def enable_redirect_output(to_file: str = "/dev/null") -> None:
     """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
+    if " " in to_file: raise ValueEror("Target filepath cannot contain spaces")
     gdb.execute("set logging overwrite")
     gdb.execute(f"set logging file {to_file}")
     gdb.execute("set logging redirect on")
@@ -3402,7 +3404,7 @@ def get_filepath() -> Optional[str]:
 
 def get_function_length(sym: str) -> int:
     """Attempt to get the length of the raw bytes of a function."""
-    dis = gdb.execute(f"disassemble {sym}", to_string=True).splitlines()
+    dis = gdb.execute(f"disassemble '{sym}'", to_string=True).splitlines()
     start_addr = int(dis[1].split()[0], 16)
     end_addr = int(dis[-2].split()[0], 16)
     return end_addr - start_addr
@@ -8786,7 +8788,7 @@ class TraceRunCommand(GenericCommand):
     def trace(self, loc_start: int, loc_end: int, depth: int) -> None:
         info(f"Tracing from {loc_start:#x} to {loc_end:#x} (max depth={depth:d})")
         logfile = f"{self['tracefile_prefix']}{loc_start:#x}-{loc_end:#x}.txt"
-        with RedirectOutputContext(to=logfile):
+        with RedirectOutputContext(to_file=logfile):
             hide_context()
             self.start_tracing(loc_start, loc_end, depth)
             unhide_context()
@@ -9184,7 +9186,7 @@ class FormatStringSearchCommand(GenericCommand):
 
         nb_installed_breaks = 0
 
-        with RedirectOutputContext(to="/dev/null"):
+        with RedirectOutputContext(to_file="/dev/null"):
             for function_name in dangerous_functions:
                 argument_number = dangerous_functions[function_name]
                 FormatStringBreakpoint(function_name, argument_number)
@@ -9538,7 +9540,7 @@ class GefCommand(gdb.Command):
         def load_plugin(fpath: pathlib.Path) -> bool:
             try:
                 dbg(f"Loading '{fpath}'")
-                gdb.execute(f"source {fpath}")
+                gdb.execute(f"source '{fpath}'")
             except Exception as e:
                 warn(f"Exception while loading {fpath}: {str(e)}")
                 return False
@@ -10154,8 +10156,8 @@ class GefTmuxSetup(gdb.Command):
         pane, pty = subprocess.check_output([tmux, "splitw", "-h", '-F#{session_name}:#{window_index}.#{pane_index}-#{pane_tty}', "-P"]).decode().strip().split("-")
         atexit.register(lambda : subprocess.run([tmux, "kill-pane", "-t", pane]))
         # clear the screen and let it wait for input forever
-        gdb.execute(f"! {tmux} send-keys -t {pane} 'clear ; cat' C-m")
-        gdb.execute(f"! {tmux} select-pane -L")
+        gdb.execute(f"!'{tmux}' send-keys -t {pane} 'clear ; cat' C-m")
+        gdb.execute(f"!'{tmux}' select-pane -L")
 
         ok(f"Setting `context.redirect` to '{pty}'...")
         gdb.execute(f"gef config context.redirect {pty}")
@@ -10178,7 +10180,7 @@ class GefTmuxSetup(gdb.Command):
             f.write(f"screen bash -c 'tty > {tty_path}; clear; cat'\n")
             f.write("focus left\n")
 
-        gdb.execute(f"! {screen} -r {sty} -m -d -X source {script_path}")
+        gdb.execute(f"!'{screen}' -r '{sty}' -m -d -X source '{script_path}'")
         # artificial delay to make sure `tty_path` is populated
         time.sleep(0.25)
         with open(tty_path, "r") as f:
@@ -11111,7 +11113,7 @@ class Gef:
         self.gdb.setup()
         tempdir = self.config["gef.tempdir"]
         gef_makedirs(tempdir)
-        gdb.execute(f"save gdb-index {tempdir}")
+        gdb.execute(f"save gdb-index '{tempdir}'")
         return
 
     def reset_caches(self) -> None:
