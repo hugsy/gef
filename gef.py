@@ -9540,7 +9540,7 @@ class GefCommand(gdb.Command):
         def load_plugin(fpath: pathlib.Path) -> bool:
             try:
                 dbg(f"Loading '{fpath}'")
-                gdb.execute(f"source '{fpath}'")
+                gdb.execute(f"source {fpath}")
             except Exception as e:
                 warn(f"Exception while loading {fpath}: {str(e)}")
                 return False
@@ -10180,7 +10180,7 @@ class GefTmuxSetup(gdb.Command):
             f.write(f"screen bash -c 'tty > {tty_path}; clear; cat'\n")
             f.write("focus left\n")
 
-        gdb.execute(f"!'{screen}' -r '{sty}' -m -d -X source '{script_path}'")
+        gdb.execute(f"!'{screen}' -r '{sty}' -m -d -X source {script_path}")
         # artificial delay to make sure `tty_path` is populated
         time.sleep(0.25)
         with open(tty_path, "r") as f:
