@@ -21,7 +21,7 @@ if [ -f "${HOME}/.gdbinit" ]; then
 fi
 
 if [ $wget_found -eq 1 ]; then
-    latest_tag=$(wget -q -O- "https://api.github.com/repos/hugsy/gef/tags" | grep "name" | head -1 | sed -e 's/"name": "\([^"]*\)",/\1/' -e 's/\s*//')
+    latest_tag=$(wget -q -O- "https://api.github.com/repos/hugsy/gef/tags" | grep "name" | head -1 | sed -e 's/"name": "\([^"]*\)",/\1/' -e 's/ *//')
 
     # Get the hash of the commit
     branch="${latest_tag}"
@@ -30,7 +30,7 @@ if [ $wget_found -eq 1 ]; then
     # Download the file
     wget -q "https://github.com/hugsy/gef/raw/${branch}/gef.py" -O "${HOME}/.gef-${ref}.py"
 elif [ $curl_found -eq 1 ]; then
-    latest_tag=$(curl -s "https://api.github.com/repos/hugsy/gef/tags" | grep "name" | head -1 | sed -e 's/"name": "\([^"]*\)",/\1/' -e 's/\s*//')
+    latest_tag=$(curl -s "https://api.github.com/repos/hugsy/gef/tags" | grep "name" | head -1 | sed -e 's/"name": "\([^"]*\)",/\1/' -e 's/ *//')
 
     # Get the hash of the commit
     branch="${latest_tag}"
