@@ -152,7 +152,7 @@ VERTICAL_LINE                          = "│"
 CROSS                                  = "✘ "
 TICK                                   = "✓ "
 BP_GLYPH                               = "●"
-GEF_PROMPT                             = "gef➤  "
+GEF_PROMPT                             = "gef>  "
 GEF_PROMPT_ON                          = f"\001\033[1;32m\002{GEF_PROMPT}\001\033[0m\002"
 GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\033[0m\002"
 
@@ -10263,7 +10263,6 @@ def __gef_prompt__(current_prompt: Callable[[Callable], str]) -> str:
         prompt += Color.boldify("(remote) ")
     prompt += GEF_PROMPT_ON if is_alive() else GEF_PROMPT_OFF
     return prompt
-
 
 class GefManager(metaclass=abc.ABCMeta):
     def reset_caches(self) -> None:
