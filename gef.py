@@ -7663,8 +7663,11 @@ class ContextCommand(GenericCommand):
 
         nb_line = self["nb_lines_code"]
         fn = symtab.filename
-        if len(fn) > 20:
-            fn = f"{fn[:15]}[...]{os.path.splitext(fn)[1]}"
+        if len(fn) > 30:
+            base = os.path.basename(fn)
+            if len(base) > 20:
+                base = f"{base[-10:]}"
+            fn = f"{fn[:15]}[...]{base}"
         title = f"source:{fn}+{line_num + 1}"
         cur_line_color = gef.config["theme.source_current_line"]
         self.context_title(title)
