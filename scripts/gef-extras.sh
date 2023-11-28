@@ -5,9 +5,11 @@
 #
 set -e
 
-usage() { echo "Usage: $0 [-b <main|OtherBranchName>] [-p <path_to_install>]" 1>&2; exit 1; }
+usage() { echo "Usage: $0 [-b <OtherBranchName|tag>] [-p <path_to_install>]" 1>&2; exit 1; }
 
-branch="main"
+latest_tag=$(curl -s "https://api.github.com/repos/hugsy/gef/tags" | grep "name" | head -1 | sed -e 's/"name": "\([^"]*\)",/\1/' -e 's/ *//')
+
+branch=${latest_tag}
 while getopts ":b:p:" o; do
     case "${o}" in
         b)
