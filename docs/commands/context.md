@@ -195,6 +195,26 @@ gef➤  gef config context.ignore_registers "$cs $ds $gs"
 gef➤  gef config context.show_source_code_variable_values 0
 ```
 
+*  Control how source file path is displayed.
+
+When displaying the source file name, above the source code view, the following
+settings can be changed:
+
+```text
+gef➤  gef config context.show_full_source_file_name_max_len 30
+gef➤  gef config context.show_prefix_source_path_name_len 10
+gef➤  gef config context.show_basename_source_file_name_max_len 20
+```
+
+In this example, if the file path length is less than or equal to 30 it will be
+displayed in its entirety. If however, it's more than 30 characters in length,
+it will be truncated.
+
+Truncation first splits the path into the prefix part and file name part. The
+`show_prefix_source_path_name_len` controls how many characters of the prefix
+path to show, and the `show_basename_source_file_name_max_len` controls how
+many characters from the file name to show.
+
 *  Show better definitions for call to libc functions.
 
 ```text

@@ -7220,6 +7220,9 @@ class ContextCommand(GenericCommand):
         super().__init__()
         self["enable"] = (True, "Enable/disable printing the context when breaking")
         self["show_source_code_variable_values"] = (True, "Show extra PC context info in the source code")
+        self["show_full_source_file_name_max_len"] = (30, "Show full source path name, if less than this value")
+        self["show_basename_source_file_name_max_len"] = (20, "Show the source basename in full, if less than this value")
+        self["show_prefix_source_path_name_len"] = (10, "When truncating source path, show this many path prefix characters")
         self["show_stack_raw"] = (False, "Show the stack pane as raw hexdump (no dereference)")
         self["show_registers_raw"] = (False, "Show the registers pane with raw values (no dereference)")
         self["show_opcodes_size"] = (0, "Number of bytes of opcodes to display next to the disassembly")
@@ -7661,10 +7664,17 @@ class ContextCommand(GenericCommand):
         bp_locations = [b.location for b in breakpoints if b.location and file_base_name in b.location]
         past_lines_color = gef.config["theme.old_context"]
 
+        show_full_path_max = self["show_full_source_file_name_max_len"]
+        show_basename_path_max = self["show_basename_source_file_name_max_len"]
+        show_prefix_path_len = self["show_prefix_source_path_name_len"]
+
         nb_line = self["nb_lines_code"]
         fn = symtab.filename
-        if len(fn) > 20:
-            fn = f"{fn[:15]}[...]{os.path.splitext(fn)[1]}"
+        if len(fn) > show_full_path_max:
+            base = os.path.basename(fn)
+            if len(base) > show_basename_path_max:
+                base = base[-show_basename_path_max:]
+            fn = fn[:15] + "[...]" + base
         title = f"source:{fn}+{line_num + 1}"
         cur_line_color = gef.config["theme.source_current_line"]
         self.context_title(title)
