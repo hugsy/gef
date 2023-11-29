@@ -2150,7 +2150,7 @@ def checksec(filename: str) -> Dict[str, bool]:
     return Elf(filename).checksec
 
 
-@lru_cache()
+@deprecated("Use `gef.arch` instead")
 def get_arch() -> str:
     """Return the binary's architecture."""
     if is_alive():
@@ -3679,20 +3679,22 @@ def reset_architecture(arch: Optional[str] = None) -> None:
             raise OSError(f"Specified arch {arch.upper()} is not supported")
         return
 
-    gdb_arch = get_arch()
-
-    preciser_arch = next((a for a in arches.values() if a.supports_gdb_arch(gdb_arch)), None)
-    if preciser_arch:
-        gef.arch = preciser_arch()
-        return
+    # check for bin running
+    if is_alive():
+        arch = gdb.selected_frame().architecture()
+        gdb_arch = arch.name()
+        preciser_arch = next((a for a in arches.values() if a.supports_gdb_arch(gdb_arch)), None)
+        if preciser_arch:
+            gef.arch = preciser_arch()
+            return
 
     # last resort, use the info from elf header to find it from the known architectures
-    try:
-        arch_name = gef.binary.e_machine if gef.binary else gdb_arch
-        gef.arch = arches[arch_name]()
-    except KeyError:
-        raise OSError(f"CPU type is currently not supported: {get_arch()}")
-    return
+    if gef.binary.e_machine:
+        try:
+            gef.arch = arches[gef.binary.e_machine]()
+        except KeyError:
+            raise OSError(f"CPU type is currently not supported: {gef.binary.e_machine}")
+        return
 
 
 @lru_cache()
