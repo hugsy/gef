@@ -765,6 +765,7 @@ class Elf(FileFormat):
         RISCV             = 0xf3
         IA64              = 0x32
         M68K              = 0x04
+        LOONGARCH         = 0x102
 
     class Type(enum.Enum):
         ET_RELOC          = 1
@@ -2389,6 +2390,167 @@ class GenericArchitecture(Architecture):
     nop_insn = b""
     flag_register = None
     flags_table = {}
+
+
+class LoongArch(Architecture):
+    arch = "LoongArch"
+    mode = "LoongArch64"
+    aliases = ("LOONGARCH", "LOONGARCH64", Elf.Abi.LOONGARCH)
+    all_registers = ("$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6", "$r7",
+                     "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", 
+                     "$r15", "$r16", "$r17", "$r18", "$r19", "$r20", "$r21",
+                     "$r22", "$r23", "$r24", "$r25", "$r26", "$r27", "$r28",
+                     "$r29", "$r30", "$r31", "$pc", "$fcsr",)
+    return_register = "$r4"
+    function_parameters = ("$r4", "$r5", "$r6", "$r7", "$r8", "$r9", "$r10", "$r11")
+    syscall_register = "$r11"
+    syscall_instructions = ("syscall",)
+    nop_insn = b"\x03\x40\x00\x00"
+    # LoongArch has no userspace-readable GPR flags register
+    flag_register = None
+    flags_table = {}
+
+    @property
+    def instruction_length(self) -> int:
+        return 4
+
+    def is_call(self, insn: Instruction) -> bool:
+        mnemo = insn.mnemonic
+        call_mnemos = {"bl", "jirl"}
+        return mnemo in call_mnemos
+
+    def is_ret(self, insn: Instruction) -> bool:
+        return insn.mnemonic == "ret" or (insn.mnemonic == "jirl" and insn.operands[1] == "ra")
+
+    def _register_abi_mapping(self, abiname: str) -> str:
+        abiname = abiname.strip()
+        special_registers = {
+            "$zero": "$r0",
+            "$ra": "$r1",
+            "$tp": "$r2",
+            "$sp": "$r3",
+            "$u0": "$r21",
+            # fp/s9 -> r22
+            "$fp": "$r22",
+            "$s9": "$r22",
+        }.get(abiname)
+        if special_registers is not None:
+            return special_registers
+        regclass = abiname[1]
+        if regclass == "a":
+            return f"$r{int(abiname[2:]) + 4}"
+        elif regclass == "t":
+            return f"$r{int(abiname[2:]) + 12}"
+        elif regclass == "s":
+            return f"$r{int(abiname[2:]) + 23}"
+        elif regclass == "r":
+            # no change
+            return abiname
+        raise ValueError(f"LoongArch [New ABI]: Unknown register name: {abiname}")
+
+    @classmethod
+    def mprotect_asm(cls, addr: int, size: int, perm: Permission) -> str:
+        _NR_mprotect = 226
+        # This is only applicable for LoongArch64
+        insns = [
+            "addi $sp, $sp, -32",
+            "st.d $r6, $sp, 24",
+            "st.d $r5, $sp, 16",
+            "st.d $r4, $sp, 8",
+            "st.d $r11, $sp, 0",
+            "ori $r11, $r0, {_NR_mprotect:d}",
+            f"lu12i.w $r4, {addr & 0xFFFFE000:#x}",
+            f"ori $r4, $r4, {addr & 0x1FFF:#x}",
+            f"lu32i.d $r4, {addr & 0x1FFFFF00000000:#x}",
+            f"lu52i.d $r4, $r4, {addr & 0xFFE0000000000000:#x}",
+            f"lu12i.w $r5, {size & 0xFFFFE000:#x}",
+            f"ori $r5, $r5, {size & 0x1FFF:#x}",
+            f"ori $r6, $r0, {perm.value:d}",
+            "syscall 0",
+            "ld.d $r11, $sp, 0",
+            "ld.d $r4, $sp, 8",
+            "ld.d $r5, $sp, 16",
+            "ld.d $r6, $sp, 24",
+            "addi $sp, $sp, 32"
+        ]
+        return "; ".join(insns)
+
+    def is_conditional_branch(self, insn: Instruction) -> bool:
+        conditional_mnemos = {"beq", "bne", "blt", "bge"}
+        return insn.mnemonic[:3] in conditional_mnemos
+
+    def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:
+        def long_to_twos_complement(v: int) -> int:
+            """Convert a python long value to its two's complement."""
+            if is_32bit():
+                if v & 0x80000000:
+                    return v - 0x100000000
+            elif is_64bit():
+                if v & 0x8000000000000000:
+                    return v - 0x10000000000000000
+            else:
+                raise OSError("LoongArch: ELF file is not ELF32 or ELF64. This is not currently supported")
+            return v
+
+        mnemo = insn.mnemonic
+        condition = mnemo[1:]
+        assert mnemo[0] == "b"
+
+        if condition.endswith("z"):
+            # r2 is the zero register if we are comparing to 0
+            rs1 = gef.arch.register(self._register_abi_mapping(insn.operands[0]))
+            rs2 = 0x0
+            condition = condition[:-1]
+        elif len(insn.operands) > 2:
+            # r2 is populated with the second operand
+            rs1 = gef.arch.register(self._register_abi_mapping(insn.operands[0]))
+            rs2 = gef.arch.register(self._register_abi_mapping(insn.operands[1]))
+        else:
+            raise OSError(f"LoongArch: Failed to get rs1 and rs2 for instruction: `{insn}`")
+
+        # If the conditional operation is not unsigned, convert the python long into
+        # its two's complement
+        if not condition.endswith("u"):
+            rs2 = long_to_twos_complement(rs2)
+            rs1 = long_to_twos_complement(rs1)
+        else:
+            condition = condition[:-1]
+
+        if condition == "eq":
+            if rs1 == rs2: taken, reason = True, f"{rs1}={rs2}"
+            else: taken, reason = False, f"{rs1}!={rs2}"
+        elif condition == "ne":
+            if rs1 != rs2: taken, reason = True, f"{rs1}!={rs2}"
+            else: taken, reason = False, f"{rs1}={rs2}"
+        elif condition == "lt":
+            if rs1 < rs2: taken, reason = True, f"{rs1}<{rs2}"
+            else: taken, reason = False, f"{rs1}>={rs2}"
+        elif condition == "ge":
+            if rs1 < rs2: taken, reason = True, f"{rs1}>={rs2}"
+            else: taken, reason = False, f"{rs1}<{rs2}"
+        else:
+            raise OSError(f"LoongArch: Conditional instruction `{insn}` not supported yet")
+
+        return taken, reason
+
+    @property
+    def ptrsize(self) -> int:
+        if self._ptrsize is not None:
+            return self._ptrsize
+        if is_alive():
+            self._ptrsize = gdb.parse_and_eval("$pc").type.sizeof
+            return self._ptrsize
+        # LoongArch64 is much more common
+        # than LoongArch32 (not publicly available yet) at the moment
+        return 8
+
+    def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> Optional[int]:
+        ra = None
+        if self.is_ret(insn):
+            ra = gef.arch.register("$r1")
+        elif frame.older():
+            ra = frame.older().pc()
+        return ra
 
 
 class RISCV(Architecture):
