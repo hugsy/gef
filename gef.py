@@ -11141,7 +11141,7 @@ def target_remote_posthook():
     if gef.session.remote_initializing:
         return
 
-    gef.session.remote = GefRemoteSessionManager('', 0)
+    gef.session.remote = GefRemoteSessionManager("", 0)
     if not gef.session.remote.setup():
         raise EnvironmentError(f"Failed to create a proper environment for {gef.session.remote}")
 
