@@ -11223,19 +11223,18 @@ if __name__ == "__main__":
 
     GefTmuxSetup()
 
-    # `target remote` commands cannot be disabled, so print a warning message instead
-    errmsg = "Using `target remote` with GEF does not work, use `gef-remote` instead. You've been warned."
-    hook = f"""pi if calling_function() != "connect": err("{errmsg}")"""
-    gdb.execute(f"define target hook-remote\n{hook}\nend")
-    gdb.execute(f"define target hook-extended-remote\n{hook}\nend")
-
-    # Register a post-hook for `target remote` that initialize the remote session
-    gdb.execute("""
-        define target hookpost-remote
+    warnmsg = "Using `target remote` with GEF should work in most cases, but use `gef-remote` if you can."
+    hook = f"""
+        define target hookpost-{{}}
         pi target_remote_posthook()
         context
+        pi if calling_function() != "connect": warn("{warnmsg}")
         end
-    """)
+    """
+
+    # Register a post-hook for `target remote` that initialize the remote session
+    gdb.execute(hook.format("remote"))
+    gdb.execute(hook.format("extended-remote"))
 
     # restore saved breakpoints (if any)
     bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
