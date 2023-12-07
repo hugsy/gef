@@ -11229,6 +11229,7 @@ if __name__ == "__main__":
     gdb.execute(f"define target hook-remote\n{hook}\nend")
     gdb.execute(f"define target hook-extended-remote\n{hook}\nend")
 
+    # Register a post-hook for `target remote` that initialize the remote session
     gdb.execute("""
         define target hookpost-remote
         pi target_remote_posthook()
