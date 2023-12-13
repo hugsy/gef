@@ -2821,13 +2821,23 @@ class X86(Architecture):
     _ptrsize = 4
     _endianness = Endianness.LITTLE_ENDIAN
 
-    # TODO: How do I show that this is a GefMemoryMapProvider?
+    # TODO: Delete this, this is for testing only
     @staticmethod
-    def x():
-        yield from itertools.chain(GefMemoryManager.parse_procfs_maps(),
-                                   # GefMemoryManager.parse_gdb_info_sections(),
-                                   GefMemoryManager.parse_monitor_info_mem())
-    maps: GefMemoryMapProvider = x
+    def maps():
+        try:
+            return list(GefMemoryManager.parse_procfs_maps())
+        except:
+            pass
+
+        try:
+            return list(GefMemoryManager.parse_gdb_info_sections())
+        except:
+            pass
+
+        try:
+            return list(GefMemoryManager.parse_monitor_info_mem())
+        except:
+            pass
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         reg = self.flag_register
@@ -10410,23 +10420,13 @@ class GefMemoryManager(GefManager):
         except:
             pass
 
-        # This provides duplicates
-        # return list(itertools.chain(
-        #     self.parse_procfs_maps(),
-        #     self.parse_monitor_info_mem(),
-        #     self.parse_gdb_info_sections(),
-        #     ))
-
-    # TODO: GefMemoryMapProvider
-    # TODO: Might be easier to just return nothing on error so we can 'chain' to the next
     @staticmethod
     def parse_procfs_maps() -> Generator[Section, None, None]:
         """Get the memory mapping from procfs."""
         procfs_mapfile = gef.session.maps
         if not procfs_mapfile:
             is_remote = gef.session.remote is not None
-            # raise FileNotFoundError(f"Missing {'remote ' if is_remote else ''}procfs map file")
-            return
+            raise FileNotFoundError(f"Missing {'remote ' if is_remote else ''}procfs map file")
         with procfs_mapfile.open("r") as fd:
             for line in fd:
                 line = line.strip()
