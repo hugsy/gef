@@ -6,8 +6,10 @@ does a limited job (80's bandwith FTW) to collect more information about the tar
 process of debugging more cumbersome. GEF greatly improves that state with the `gef-remote` command.
 
 📝 **Note**: If using GEF, `gef-remote` **must** be your way or debugging remote processes, never
-`target remote`. Maintainers will not provide support or help if you decide to use the traditional
-`target remote` command. For many reasons, you **cannot** use `target remote` alone with GEF.
+`target remote`. Maintainers will provide minimal support or help if you decide to use the
+traditional `target remote` command. For many reasons, you **should not** use `target remote` alone
+with GEF. It is still important to note that the default `target remote` command has been
+overwritten by a minimal copy `gef-remote`, in order to make most tools relying on this command work.
 
 `gef-remote` can function in 2 ways:
 
