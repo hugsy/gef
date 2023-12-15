@@ -38,6 +38,7 @@ class GefRemoteCommand(GefUnitTestGeneric):
                 f"RemoteSession(target='{GDBSERVER_PREFERED_HOST}:{port}', local='/tmp/", res)
             self.assertIn(", qemu_user=True)", res)
 
+
     def test_cmd_target_remote(self):
         port = GDBSERVER_PREFERED_PORT + 3
         before = [f"target remote {GDBSERVER_PREFERED_HOST}:{port}"]
@@ -48,4 +49,3 @@ class GefRemoteCommand(GefUnitTestGeneric):
             self.assertIn(
                 f"RemoteSession(target=':0', local='/tmp/", res)
             self.assertIn(", qemu_user=False)", res)
-
