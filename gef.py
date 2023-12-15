@@ -9510,6 +9510,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.readline_compat"] = GefSetting(False, bool, "Workaround for readline SOH/ETX issue (SEGV)")
         gef.config["gef.debug"] = GefSetting(False, bool, "Enable debug mode for gef")
         gef.config["gef.autosave_breakpoints_file"] = GefSetting("", str, "Automatically save and restore breakpoints")
+        gef.config["gef.disable_target_remote_overwrite"] = GefSetting(False, bool, "Disable the overwrite of `target remote`")
         plugins_dir = GefSetting("", str, "Autoload additional GEF commands from external directory", hooks={"on_write": GefSetting.no_spaces})
         plugins_dir.add_hook("on_write", lambda _: self.load_extra_plugins())
         gef.config["gef.extra_plugins_dir"] = plugins_dir
@@ -11223,18 +11224,32 @@ if __name__ == "__main__":
 
     GefTmuxSetup()
 
-    warnmsg = "Using `target remote` with GEF should work in most cases, but use `gef-remote` if you can."
-    hook = f"""
-        define target hookpost-{{}}
-        pi target_remote_posthook()
-        context
-        pi if calling_function() != "connect": warn("{warnmsg}")
-        end
-    """
 
-    # Register a post-hook for `target remote` that initialize the remote session
-    gdb.execute(hook.format("remote"))
-    gdb.execute(hook.format("extended-remote"))
+    disable_tr_overwrite_setting = "gef.disable_target_remote_overwrite"
+
+    if not gef.config[disable_tr_overwrite_setting]:
+        warnmsg = ("Using `target remote` with GEF should work in most cases, "
+                   "but use `gef-remote` if you can. You can disable the "
+                   "overwrite of the `target remote` command by toggling "
+                   f"`{disable_tr_overwrite_setting}` in the config.")
+        hook = f"""
+            define target hookpost-{{}}
+            pi target_remote_posthook()
+            context
+            pi if calling_function() != "connect": warn("{warnmsg}")
+            end
+        """
+
+        # Register a post-hook for `target remote` that initialize the remote session
+        gdb.execute(hook.format("remote"))
+        gdb.execute(hook.format("extended-remote"))
+    else:
+        errmsg = ("Using `target remote` does not work, use `gef-remote` "
+                  f"instead. You can toggle `{disable_tr_overwrite_setting}` "
+                  "if this is not desired.")
+        hook = f"""pi if calling_function() != "connect": err("{errmsg}")"""
+        gdb.execute(f"define target hook-remote\n{hook}\nend")
+        gdb.execute(f"define target hook-extended-remote\n{hook}\nend")
 
     # restore saved breakpoints (if any)
     bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
