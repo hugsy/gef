@@ -1,38 +1,43 @@
 name: CI Coverage for PR
 
-on: [ pull_request, pull_request_target ]
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
 
 jobs:
   coverage:
+    env:
+      PY_VER: ''
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v4
       with:
         fetch-depth: '0'
-
+    - name: Setup
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get -qq install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user curl
+        sudo python3 -m pip install --upgrade pip --quiet
     - name: Run test coverage
       id: get_coverage
       env:
         ALLOWED_MARGIN: 0.01
         MIN_COVERAGE: 70
       run: |
-        sudo apt-get update
-        sudo apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user curl
-        sudo python3 -m pip install --upgrade pip
         echo PY_VER=`gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit` >> $GITHUB_ENV
         echo GEF_CI_NB_CPU=`grep -c ^processor /proc/cpuinfo` >> $GITHUB_ENV
         echo GEF_CI_ARCH=`uname --processor` >> $GITHUB_ENV
-        python${{ env.PY_VER }} -m pip install --user --upgrade -r tests/requirements.txt
+        python${{ env.PY_VER }} -m pip install --user --upgrade -r tests/requirements.txt --quiet
         current_score=$(curl --silent https://hugsy.github.io/gef/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         bash scripts/generate-coverage-docs.sh
         new_score=$(cat docs/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         diff_score=$(python -c "print(${new_score} - ${current_score})")
-        commit=$(git rev-parse HEAD)
-        include_tests=$(git diff ${{ github.event.before }} ${{ github.event.after }} --compact-summary | egrep --count '^ tests/' || true)
-        include_docs=$(git diff ${{ github.event.before }} ${{ github.event.after }} --compact-summary | egrep --count '^ docs/' || true)
+        commit=${{ github.event.pull_request.head.sha }}
+        include_tests=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --compact-summary | egrep --count '^ tests/' || 0)
+        include_docs=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --compact-summary | egrep --count '^ docs/' || 0)
         echo "commit=${commit}" >> $GITHUB_OUTPUT
         echo "new_coverage_score=${new_score}" >> $GITHUB_OUTPUT
         echo "current_coverage_score=${current_score}" >> $GITHUB_OUTPUT
@@ -48,7 +53,8 @@ jobs:
         done
         echo "words_found=${WORDS_FOUND}" >> $GITHUB_OUTPUT
 
-    - uses: actions/github-script@v6
+    - name: Post comment
+      uses: actions/github-script@v7
       env:
         COMMIT: ${{ steps.get_coverage.outputs.commit }}
         SCORE_OLD: ${{ steps.get_coverage.outputs.current_coverage_score }}
@@ -57,20 +63,20 @@ jobs:
         WORDS_FOUND: ${{ steps.get_coverage.outputs.words_found }}
       with:
         script: |
+          const diff_score = ${{ steps.get_coverage.outputs.diff_score }};
           const tests_changes = ${{ steps.get_coverage.outputs.include_tests }};
           const docs_changes  = ${{ steps.get_coverage.outputs.include_docs }};
           const forbiddenWordsString = process.env.WORDS_FOUND || '';
           const forbidden_words = forbiddenWordsString.split(" ").filter(word => word.trim() !== '');
-          const comment = `## 🤖 Coverage Update
+          const comment = `## 🤖 Coverage update for ${process.env.COMMIT}
 
-            * Commit: ${process.env.COMMIT}
-            * Current Coverage: ${process.env.SCORE_OLD}%
-            * New Coverage: ${process.env.SCORE_NEW}%
-            * Diff: ${process.env.SCORE_DIFF}
+            * Diff Commit: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+            * Current vs New Coverage Score: ${process.env.SCORE_OLD}% / ${process.env.SCORE_NEW}%
+            * Difference: ${process.env.SCORE_DIFF} ${(diff_score >= 0) ? "🟢" : "🔴"}
 
           To this point, this PR:
-            * ${(tests_changes == 0) ? "**does not** include" : "includes"} changes to tests
-            * ${(docs_changes == 0) ? "**does not** include" : "includes"} changes to documentation
+            * ${(tests_changes > 0) ? "includes" : "**does not** include" } changes to tests
+            * ${(docs_changes > 0)  ? "includes" : "**does not** include" } changes to documentation
             * ${(forbidden_words.length === 0 || forbidden_words[0] === '') ? "**does not** include forbidden words" : "includes the forbidden words:" + forbidden_words.join(", ")}
           `;
 
@@ -85,15 +91,10 @@ jobs:
                 issue_number: number,
                 labels: ['documentation']
               });
-            } else {
-              await github.rest.issues.removeLabel({
-                owner: owner,
-                repo: repo,
-                issue_number: number,
-                name: 'documentation'
-              });
             }
+          } catch (err) { console.log(err); }
 
+          try {
             if(tests_changes > 0) {
               await github.rest.issues.addLabels({
                 owner: owner,
@@ -101,12 +102,5 @@ jobs:
                 issue_number: number,
                 labels: ['automation/ci']
               });
-            } else {
-              await github.rest.issues.removeLabel({
-                owner: owner,
-                repo: repo,
-                issue_number: number,
-                name: 'automation/ci'
-              });
             }
-          } catch (err) {}
+          } catch (err) { console.log(err); }
