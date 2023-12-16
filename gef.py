@@ -6365,13 +6365,13 @@ class GlibcHeapChunksCommand(GenericCommand):
         args = kwargs["arguments"]
         if args.all or not args.arena_address:
             for arena in gef.heap.arenas:
-                self.dump_chunks_arena(arena, print_arena=args.all, allow_unaligned=args.allow_unaligned, summary=args.summary)
+                self.dump_chunks_arena(arena, print_arena=args.all, allow_unaligned=args.allow_unaligned, min_size=args.min_size, max_size=args.max_size, summary=args.summary)
                 if not args.all:
                     return
         try:
             arena_addr = parse_address(args.arena_address)
             arena = GlibcArena(f"*{arena_addr:#x}")
-            self.dump_chunks_arena(arena, allow_unaligned=args.allow_unaligned, summary=args.summary)
+            self.dump_chunks_arena(arena, allow_unaligned=args.allow_unaligned, min_size=args.min_size, max_size=args.max_size, summary=args.summary)
         except gdb.error:
             err("Invalid arena")
             return
@@ -6385,11 +6385,11 @@ class GlibcHeapChunksCommand(GenericCommand):
             gef_print(str(arena))
         if arena.is_main_arena():
             heap_end = arena.top + GlibcChunk(arena.top, from_base=True).size
-            self.dump_chunks_heap(heap_addr, heap_end, arena, allow_unaligned=allow_unaligned, summary=summary)
+            self.dump_chunks_heap(heap_addr, heap_end, arena, allow_unaligned=allow_unaligned, min_size=min_size, max_size=max_size, summary=summary)
         else:
             heap_info_structs = arena.get_heap_info_list() or []
             for heap_info in heap_info_structs:
-                if not self.dump_chunks_heap(heap_info.heap_start, heap_info.heap_end, arena, allow_unaligned=allow_unaligned, summary=summary):
+                if not self.dump_chunks_heap(heap_info.heap_start, heap_info.heap_end, arena, allow_unaligned=allow_unaligned, min_size=min_size, max_size=max_size, summary=summary):
                     break
         return
 
