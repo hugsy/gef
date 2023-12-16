@@ -68,7 +68,7 @@ To get a higher level overview of the chunks you can use the `--summary` flag to
 gef➤ heap chunks --summary
 ```
 
-![heap-chunks-summary](https://i.imgur.com/DjFkzLc.png)
+![heap-chunks-summary](https://i.imgur.com/3HTgtwX.png)
 
 ### `heap chunk` command
 
