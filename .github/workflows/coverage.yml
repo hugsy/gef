@@ -27,7 +27,6 @@ jobs:
         ALLOWED_MARGIN: 0.01
         MIN_COVERAGE: 70
       run: |
-        set -x
         echo PY_VER=`gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit` >> $GITHUB_ENV
         echo GEF_CI_NB_CPU=`grep -c ^processor /proc/cpuinfo` >> $GITHUB_ENV
         echo GEF_CI_ARCH=`uname --processor` >> $GITHUB_ENV
