@@ -10480,11 +10480,11 @@ class GefMemoryManager(GefManager):
 
     @staticmethod
     def parse_monitor_info_mem() -> Generator[Section, None, None]:
-        """Get the memory mapping from GDB's command `monitor info mem`"""
-        try:
-            stream = StringIO(gdb.execute("monitor info mem", to_string=True))
-        except Exception:
-            return
+        """Get the memory mapping from GDB's command `monitor info mem`
+        This can raise an exception, which the memory manager takes to mean
+        that this method does not work to get a map.
+        """
+        stream = StringIO(gdb.execute("monitor info mem", to_string=True))
 
         for line in stream:
             if not line:
