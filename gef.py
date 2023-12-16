@@ -6322,7 +6322,7 @@ class GlibcHeapArenaSummary:
             self.flag_distribution["NON_MAIN_ARENA"].process_chunk(chunk)
 
     def print(self) -> None:
-        gef_print("== Chunk distribution by size (in bytes) ==")
+        gef_print("== Chunk distribution by size ==")
         gef_print("{:<10s}\t{:<10s}\t{:s}".format("ChunkBytes", "Count", "TotalBytes"))
         for chunk_size, chunk_summary in sorted(self.size_distribution.items(), key=lambda x: x[1].total_bytes, reverse=True):
             gef_print("{:<10d}\t{:<10d}\t{:<d}".format(chunk_size, chunk_summary.count, chunk_summary.total_bytes))
