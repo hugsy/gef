@@ -10378,33 +10378,32 @@ class GefMemoryManager(GefManager):
             self.__maps = self._parse_maps()
         return self.__maps
 
-    @staticmethod
-    def _parse_maps() -> List[Section]:
+    @classmethod
+    def _parse_maps(cls) -> List[Section]:
         """Return the mapped memory sections. If the current arch has its maps
         method defined, then defer to that to generated maps, otherwise, try to
         figure it out from procfs, then info sections, then monitor info
         mem."""
         if gef.arch.maps is not None:
-            maps = list(gef.arch.maps())
-            return maps
+            return list(gef.arch.maps())
 
         try:
-            return list(self.parse_procfs_maps())
+            return list(cls.parse_procfs_maps())
         except:
             pass
 
         try:
-            return list(self.parse_gdb_info_sections())
+            return list(cls.parse_gdb_info_sections())
         except:
             pass
 
         try:
-            return list(self.parse_monitor_info_mem())
+            return list(cls.parse_monitor_info_mem())
         except:
             pass
 
         warn("Cannot get memory map")
-        return []
+        return None
 
     @staticmethod
     def parse_procfs_maps() -> Generator[Section, None, None]:

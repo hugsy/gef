@@ -101,6 +101,14 @@ class MiscFunctionTest(GefUnitTestGeneric):
         self.assertNoException(res)
         assert "Section" in res
 
+        # The parse maps function should automatically get called when we start
+        # up, and we should be able to view the maps via the `gef.memory.maps`
+        # property.
+        func = "gef.memory.maps"
+        res = gdb_test_python_method(func)
+        self.assertNoException(res)
+        assert "Section" in res
+
 
     @pytest.mark.slow
     @pytest.mark.online
