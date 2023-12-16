@@ -2821,24 +2821,6 @@ class X86(Architecture):
     _ptrsize = 4
     _endianness = Endianness.LITTLE_ENDIAN
 
-    # TODO: Delete this, this is for testing only
-    @staticmethod
-    def maps():
-        try:
-            return list(GefMemoryManager.parse_procfs_maps())
-        except:
-            pass
-
-        try:
-            return list(GefMemoryManager.parse_gdb_info_sections())
-        except:
-            pass
-
-        try:
-            return list(GefMemoryManager.parse_monitor_info_mem())
-        except:
-            pass
-
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         reg = self.flag_register
         if not val:
