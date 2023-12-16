@@ -10420,6 +10420,9 @@ class GefMemoryManager(GefManager):
         except:
             pass
 
+        warn("Cannot get memory map")
+        return []
+
     @staticmethod
     def parse_procfs_maps() -> Generator[Section, None, None]:
         """Get the memory mapping from procfs."""
