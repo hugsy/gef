@@ -10393,10 +10393,11 @@ class GefMemoryManager(GefManager):
     @property
     def maps(self) -> List[Section]:
         if not self.__maps:
-            self.__maps = self.__parse_maps()
+            self.__maps = self._parse_maps()
         return self.__maps
 
-    def __parse_maps(self) -> List[Section]:
+    @staticmethod
+    def _parse_maps() -> List[Section]:
         """Return the mapped memory sections. If the current arch has its maps
         method defined, then defer to that to generated maps, otherwise, try to
         figure it out from procfs, then info sections, then monitor info
