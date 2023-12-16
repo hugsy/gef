@@ -6287,14 +6287,16 @@ class GlibcHeapChunkCommand(GenericCommand):
             gef_print(current_chunk.psprint())
         return
 
+
 class GlibcHeapChunkSummary:
     def __init__(self):
         self.count = 0
-        self.total_size = 0
+        self.total_bytes = 0
 
     def process_chunk(self, chunk: GlibcChunk) -> None:
         self.count += 1
-        self.total_size += chunk.size
+        self.total_bytes += chunk.size
+
 
 class GlibcHeapArenaSummary:
     def __init__(self) -> None:
@@ -6320,17 +6322,16 @@ class GlibcHeapArenaSummary:
             self.flag_distribution["NON_MAIN_ARENA"].process_chunk(chunk)
 
     def print(self) -> None:
-        gef_print(f"== Chunk distribution by size ==")
-        gef_print("{:<10s}\t{:<10s}\t{:s}".format("ChunkSize", "Count", "TotalSize"))
-        for chunk_size, chunk_summary in sorted(self.size_distribution.items(), key=lambda x: x[1].total_size, reverse=True):
-            gef_print("{:<10d}\t{:<10d}\t{:<d}".format(chunk_size, chunk_summary.count, chunk_summary.total_size))
+        gef_print("== Chunk distribution by size (in bytes) ==")
+        gef_print("{:<10s}\t{:<10s}\t{:s}".format("ChunkBytes", "Count", "TotalBytes"))
+        for chunk_size, chunk_summary in sorted(self.size_distribution.items(), key=lambda x: x[1].total_bytes, reverse=True):
+            gef_print("{:<10d}\t{:<10d}\t{:<d}".format(chunk_size, chunk_summary.count, chunk_summary.total_bytes))
 
-        gef_print(f"\n== Chunk distribution by flag ==")
-        gef_print("{:<15s}\t{:<10s}\t{:s}".format("Flag", "TotalCount", "TotalSize"))
+        gef_print("\n== Chunk distribution by flag ==")
+        gef_print("{:<15s}\t{:<10s}\t{:s}".format("Flag", "TotalCount", "TotalBytes"))
         for chunk_flag, chunk_summary in self.flag_distribution.items():
-            gef_print("{:<15s}\t{:<10d}\t{:<d}".format(chunk_flag, chunk_summary.count, chunk_summary.total_size))
+            gef_print("{:<15s}\t{:<10d}\t{:<d}".format(chunk_flag, chunk_summary.count, chunk_summary.total_bytes))
 
-        gef_print("")
 
 @register
 class GlibcHeapChunksCommand(GenericCommand):
@@ -6386,10 +6387,10 @@ class GlibcHeapChunksCommand(GenericCommand):
         chunk_iterator = GlibcChunk(start, from_base=True, allow_unaligned=allow_unaligned)
         heap_summary = GlibcHeapArenaSummary()
         for chunk in chunk_iterator:
-            is_heap_corrupted = chunk.base_address > end
+            heap_corrupted = chunk.base_address > end
 
             if summary:
-                if is_heap_corrupted:
+                if heap_corrupted:
                     err("Corrupted heap, cannot continue.")
                     return False
 
@@ -6400,7 +6401,7 @@ class GlibcHeapChunksCommand(GenericCommand):
                         f"{chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
                     break
 
-                if is_heap_corrupted:
+                if heap_corrupted:
                     err("Corrupted heap, cannot continue.")
                     return False
 
