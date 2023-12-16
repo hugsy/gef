@@ -10490,8 +10490,6 @@ class GefMemoryManager(GefManager):
         stream = StringIO(gdb.execute("monitor info mem", to_string=True))
 
         for line in stream:
-            if not line:
-                break
             try:
                 ranges, off, perms = line.split()
                 off = int(off, 16)
