@@ -6389,22 +6389,19 @@ class GlibcHeapChunksCommand(GenericCommand):
         for chunk in chunk_iterator:
             heap_corrupted = chunk.base_address > end
 
-            if summary:
-                if heap_corrupted:
-                    err("Corrupted heap, cannot continue.")
-                    return False
-
-                heap_summary.process_chunk(chunk)
-            else:
+            if not summary:
                 if chunk.base_address == arena.top:
                     gef_print(
                         f"{chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
                     break
 
-                if heap_corrupted:
-                    err("Corrupted heap, cannot continue.")
-                    return False
+            if heap_corrupted:
+                err("Corrupted heap, cannot continue.")
+                return False
 
+            if summary:
+                heap_summary.process_chunk(chunk)
+            else:
                 line = str(chunk)
                 if nb:
                     line += f"\n    [{hexdump(gef.memory.read(chunk.data_address, nb), nb, base=chunk.data_address)}]"
