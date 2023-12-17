@@ -9587,6 +9587,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.show_deprecation_warnings"] = GefSetting(True, bool, "Toggle the display of the `deprecated` warnings")
         gef.config["gef.buffer"] = GefSetting(True, bool, "Internally buffer command output until completion")
         gef.config["gef.bruteforce_main_arena"] = GefSetting(False, bool, "Allow bruteforcing main_arena symbol if everything else fails")
+        gef.config["gef.libc_ver"] = GefSetting("", str, "Override the auto-detection of libc version")
         gef.config["gef.main_arena_offset"] = GefSetting("", str, "Offset from libc base address to main_arena symbol (int or hex). Set to empty string to disable.")
 
         self.commands : Dict[str, GenericCommand] = collections.OrderedDict()
@@ -11166,6 +11167,8 @@ class GefLibcManager(GefManager):
     def version(self) -> Optional[Tuple[int, int]]:
         if not is_alive():
             return None
+        if gef.config["gef.libc_ver"] != "":
+            return tuple([int(v) for v in gef.config["gef.libc_ver"].split(".")])
         if not self._version:
             self._version = GefLibcManager.find_libc_version()
         return self._version
