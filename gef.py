@@ -1710,6 +1710,11 @@ class GlibcChunk:
             msg.append(f"\n\n{self._str_pointers()}")
         return "\n".join(msg) + "\n"
 
+    def resolve_type(self) -> str:
+        ptr_data = gef.memory.read_integer(self.data_address)
+        sym = gdb.lookup_global_symbol(f"{ptr_data:x}")
+        return sym.type.name if sym else "?"
+
 
 class GlibcFastChunk(GlibcChunk):
 
@@ -6302,7 +6307,8 @@ class GlibcHeapChunkCommand(GenericCommand):
 
 
 class GlibcHeapChunkSummary:
-    def __init__(self):
+    def __init__(self, desc = ""):
+        self.desc = desc
         self.count = 0
         self.total_bytes = 0
 
@@ -6321,10 +6327,12 @@ class GlibcHeapArenaSummary:
         }
 
     def process_chunk(self, chunk: GlibcChunk) -> None:
-        per_size_summary = self.size_distribution.get(chunk.size, None)
+        chunk_type = chunk.resolve_type()
+
+        per_size_summary = self.size_distribution.get((chunk.size, chunk_type), None)
         if per_size_summary is None:
-            per_size_summary = GlibcHeapChunkSummary()
-            self.size_distribution[chunk.size] = per_size_summary
+            per_size_summary = GlibcHeapChunkSummary(desc=chunk_type)
+            self.size_distribution[(chunk.size, chunk_type)] = per_size_summary
         per_size_summary.process_chunk(chunk)
 
         if chunk.has_p_bit():
@@ -6336,9 +6344,9 @@ class GlibcHeapArenaSummary:
 
     def print(self) -> None:
         gef_print("== Chunk distribution by size ==")
-        gef_print("{:<10s}\t{:<10s}\t{:s}".format("ChunkBytes", "Count", "TotalBytes"))
-        for chunk_size, chunk_summary in sorted(self.size_distribution.items(), key=lambda x: x[1].total_bytes, reverse=True):
-            gef_print("{:<10d}\t{:<10d}\t{:<d}".format(chunk_size, chunk_summary.count, chunk_summary.total_bytes))
+        gef_print("{:<10s}\t{:<10s}\t{:15s}\t{:s}".format("ChunkBytes", "Count", "TotalBytes", "Description"))
+        for chunk_info, chunk_summary in sorted(self.size_distribution.items(), key=lambda x: x[1].total_bytes, reverse=True):
+            gef_print("{:<10d}\t{:<10d}\t{:<15d}\t{:s}".format(chunk_info[0], chunk_summary.count, chunk_summary.total_bytes, chunk_summary.desc))
 
         gef_print("\n== Chunk distribution by flag ==")
         gef_print("{:<15s}\t{:<10s}\t{:s}".format("Flag", "TotalCount", "TotalBytes"))
