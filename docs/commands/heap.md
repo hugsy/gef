@@ -74,6 +74,8 @@ Heap chunk command also supports filtering chunks by their size. To do so, simpl
 `--min-size` or `--max-size` argument:
 
 ```text
+gef➤ heap chunks --min-size 16
+gef➤ heap chunks --max-size 32
 gef➤ heap chunks --min-size 16 --max-size 32
 ```
 
