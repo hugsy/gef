@@ -1712,8 +1712,12 @@ class GlibcChunk:
 
     def resolve_type(self) -> str:
         ptr_data = gef.memory.read_integer(self.data_address)
-        sym = gdb.lookup_global_symbol(f"{ptr_data:x}")
-        return sym.type.name if sym else "?"
+        if ptr_data != 0:
+            sym = gdb_get_location_from_symbol(ptr_data)
+            if sym is not None and "vtable for" in sym[0]:
+                return sym[0].replace("vtable for ", "")
+
+        return "<Unknown Type>"
 
 
 class GlibcFastChunk(GlibcChunk):
@@ -2003,7 +2007,6 @@ def gdb_lookup_symbol(sym: str) -> Optional[Tuple[Optional[str], Optional[Tuple[
         return gdb.decode_line(sym)[1]
     except gdb.error:
         return None
-
 
 @lru_cache(maxsize=512)
 def gdb_get_location_from_symbol(address: int) -> Optional[Tuple[str, int]]:
@@ -6369,7 +6372,7 @@ class GlibcHeapChunksCommand(GenericCommand):
         self["peek_nb_byte"] = (16, "Hexdump N first byte(s) inside the chunk data (0 to disable)")
         return
 
-    @parse_arguments({"arena_address": ""}, {("--all", "-a"): True, "--allow-unaligned": True, "--min-size": 0, "--max-size": 0, ("--summary", "-s"): True})
+    @parse_arguments({"arena_address": ""}, {("--all", "-a"): True, "--allow-unaligned": True, "--min-size": 0, "--max-size": 0, ("--summary", "-s"): True, "--resolve": True})
     @only_if_gdb_running
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args = kwargs["arguments"]
