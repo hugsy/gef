@@ -103,6 +103,22 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertIn("== Chunk distribution by size", res)
         self.assertIn("== Chunk distribution by flag", res)
 
+    def test_cmd_heap_chunks_min_size_filter(self):
+        cmd = "heap chunks --min-size 16"
+        target = _target("heap")
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertIn("Chunk(addr=", res)
+
+    def test_cmd_heap_chunks_max_size_filter(self):
+        cmd = "heap chunks --max-size 32"
+        target = _target("heap")
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertIn("Chunk(addr=", res)
+
     def test_cmd_heap_bins_fast(self):
         cmd = "heap bins fast"
         before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
