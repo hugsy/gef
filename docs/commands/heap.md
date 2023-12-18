@@ -62,6 +62,14 @@ re-aligns the chunks data start addresses to match Glibc's behavior. To be able 
 chunks as well, you can disable this with the `--allow-unaligned` flag. Note that this might result
 in incorrect output.
 
+To get a higher level overview of the chunks you can use the `--summary` flag too.
+
+```text
+gef➤ heap chunks --summary
+```
+
+![heap-chunks-summary](https://i.imgur.com/3HTgtwX.png)
+
 ### `heap chunk` command
 
 This command gives visual information of a Glibc malloc-ed chunked. Simply provide the address to
