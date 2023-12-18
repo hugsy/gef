@@ -164,6 +164,8 @@ __registered_functions__ : Set[Type["GenericFunction"]]                         
 __registered_architectures__ : Dict[Union["Elf.Abi", str], Type["Architecture"]]              = {}
 __registered_file_formats__ : Set[ Type["FileFormat"] ]                                       = set()
 
+GefMemoryMapProvider = Callable[[], Generator["Section", None, None]]
+
 
 def reset_all_caches() -> None:
     """Free all caches. If an object is cached, it will have a callable attribute `cache_clear`
@@ -644,12 +646,20 @@ class Permission(enum.Flag):
         return perm
 
     @classmethod
-    def from_info_mem(cls, perm_str: str) -> "Permission":
+    def from_monitor_info_mem(cls, perm_str: str) -> "Permission":
         perm = cls(0)
         # perm_str[0] shows if this is a user page, which
         # we don't track
         if perm_str[1] == "r": perm |= Permission.READ
         if perm_str[2] == "w": perm |= Permission.WRITE
+        return perm
+
+    @classmethod
+    def from_info_mem(cls, perm_str: str) -> "Permission":
+        perm = cls(0)
+        if "r" in perm_str: perm |= Permission.READ
+        if "w" in perm_str: perm |= Permission.WRITE
+        if "x" in perm_str: perm |= Permission.EXECUTE
         return perm
 
 
@@ -2259,6 +2269,7 @@ class Architecture(ArchitectureBase):
     _ptrsize: Optional[int] = None
     _endianness: Optional[Endianness] = None
     special_registers: Union[Tuple[()], Tuple[str, ...]] = ()
+    maps: Optional[GefMemoryMapProvider] = None
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -10421,23 +10432,38 @@ class GefMemoryManager(GefManager):
     @property
     def maps(self) -> List[Section]:
         if not self.__maps:
-            self.__maps = self.__parse_maps()
+            self.__maps = self._parse_maps()
         return self.__maps
 
-    def __parse_maps(self) -> List[Section]:
-        """Return the mapped memory sections"""
-        try:
-            if is_qemu_system():
-                return list(self.__parse_info_mem())
-        except gdb.error:
-            # Target may not support this command
-            pass
-        try:
-            return list(self.__parse_procfs_maps())
-        except FileNotFoundError:
-            return list(self.__parse_gdb_info_sections())
+    @classmethod
+    def _parse_maps(cls) -> List[Section]:
+        """Return the mapped memory sections. If the current arch has its maps
+        method defined, then defer to that to generated maps, otherwise, try to
+        figure it out from procfs, then info sections, then monitor info
+        mem."""
+        if gef.arch.maps is not None:
+            return list(gef.arch.maps())
 
-    def __parse_procfs_maps(self) -> Generator[Section, None, None]:
+        try:
+            return list(cls.parse_procfs_maps())
+        except:
+            pass
+
+        try:
+            return list(cls.parse_gdb_info_sections())
+        except:
+            pass
+
+        try:
+            return list(cls.parse_monitor_info_mem())
+        except:
+            pass
+
+        warn("Cannot get memory map")
+        return None
+
+    @staticmethod
+    def parse_procfs_maps() -> Generator[Section, None, None]:
         """Get the memory mapping from procfs."""
         procfs_mapfile = gef.session.maps
         if not procfs_mapfile:
@@ -10460,14 +10486,15 @@ class GefMemoryManager(GefManager):
                 perm = Permission.from_process_maps(perm)
                 inode = int(inode)
                 yield Section(page_start=addr_start,
-                            page_end=addr_end,
-                            offset=off,
-                            permission=perm,
-                            inode=inode,
-                            path=pathname)
+                              page_end=addr_end,
+                              offset=off,
+                              permission=perm,
+                              inode=inode,
+                              path=pathname)
         return
 
-    def __parse_gdb_info_sections(self) -> Generator[Section, None, None]:
+    @staticmethod
+    def parse_gdb_info_sections() -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
         stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
 
@@ -10481,14 +10508,11 @@ class GefMemoryManager(GefManager):
                 off = int(parts[3][:-1], 16)
                 path = parts[4]
                 perm = Permission.from_info_sections(parts[5:])
-                yield Section(
-                    page_start=addr_start,
-                    page_end=addr_end,
-                    offset=off,
-                    permission=perm,
-                    inode="",
-                    path=path
-                )
+                yield Section(page_start=addr_start,
+                              page_end=addr_end,
+                              offset=off,
+                              permission=perm,
+                              path=path)
 
             except IndexError:
                 continue
@@ -10496,11 +10520,15 @@ class GefMemoryManager(GefManager):
                 continue
         return
 
-    def __parse_info_mem(self) -> Generator[Section, None, None]:
-        """Get the memory mapping from GDB's command `monitor info mem`"""
-        for line in StringIO(gdb.execute("monitor info mem", to_string=True)):
-            if not line:
-                break
+    @staticmethod
+    def parse_monitor_info_mem() -> Generator[Section, None, None]:
+        """Get the memory mapping from GDB's command `monitor info mem`
+        This can raise an exception, which the memory manager takes to mean
+        that this method does not work to get a map.
+        """
+        stream = StringIO(gdb.execute("monitor info mem", to_string=True))
+
+        for line in stream:
             try:
                 ranges, off, perms = line.split()
                 off = int(off, 16)
@@ -10508,14 +10536,32 @@ class GefMemoryManager(GefManager):
             except ValueError as e:
                 continue
 
-            perm = Permission.from_info_mem(perms)
-            yield Section(
-                page_start=start,
-                page_end=end,
-                offset=off,
-                permission=perm,
-                inode="",
-            )
+            perm = Permission.from_monitor_info_mem(perms)
+            yield Section(page_start=start,
+                          page_end=end,
+                          offset=off,
+                          permission=perm)
+
+    @staticmethod
+    def parse_info_mem():
+        """Get the memory mapping from GDB's command `info mem`. This can be
+        provided by certain gdbserver implementations."""
+        for line in StringIO(gdb.execute("info mem", to_string=True)):
+            # Using memory regions provided by the target.
+            # Num Enb Low Addr   High Addr  Attrs
+            # 0   y   0x10000000 0x10200000 flash blocksize 0x1000 nocache
+            # 1   y   0x20000000 0x20042000 rw nocache
+            _, en, start, end, *attrs = line.split()
+            if en != "y":
+                continue
+
+            if "flash" in attrs:
+                perm = Permission.from_info_mem("r")
+            else:
+                perm = Permission.from_info_mem("rw")
+            yield Section(page_start=int(start, 0),
+                          page_end=int(end, 0),
+                          permission=perm)
 
 
 class GefHeapManager(GefManager):

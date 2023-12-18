@@ -12,7 +12,12 @@ from tests.utils import (
     _target,
     gdb_start_silent_cmd,
     gdb_test_python_method,
+    gdb_run_cmd,
+    gdbserver_session,
+    qemuuser_session,
     GefUnitTestGeneric,
+    GDBSERVER_DEFAULT_HOST,
+    GDBSERVER_DEFAULT_PORT,
 )
 
 
@@ -25,7 +30,6 @@ class MiscFunctionTest(GefUnitTestGeneric):
         self.assertIn("/gdb", lines[-1])
         res = gdb_test_python_method("which('__IDontExist__')")
         self.assertIn("Missing file `__IDontExist__`", res)
-
 
     def test_func_gef_convenience(self):
         func = "gef_convenience('meh')"
@@ -41,18 +45,70 @@ class MiscFunctionTest(GefUnitTestGeneric):
         res = gdb_test_python_method(func)
         self.assertException(res)
 
+    def test_func_parse_permissions(self):
+        func = "Permission.from_info_sections('ALLOC LOAD READONLY CODE HAS_CONTENTS')"
+        res = gdb_test_python_method(func)
+        self.assertNoException(res)
+
+        func = "Permission.from_process_maps('r--')"
+        res = gdb_test_python_method(func)
+        self.assertNoException(res)
+
+        func = "Permission.from_monitor_info_mem('-r-')"
+        res = gdb_test_python_method(func)
+        self.assertNoException(res)
+
+        func = "Permission.from_info_mem('rw')"
+        res = gdb_test_python_method(func)
+        self.assertNoException(res)
+
     def test_func_parse_maps(self):
-        func = "Permission.from_info_sections(' [10]     0x555555574000->0x55555557401b at 0x00020000: .init ALLOC LOAD READONLY CODE HAS_CONTENTS')"
+        func = "list(GefMemoryManager.parse_procfs_maps())"
         res = gdb_test_python_method(func)
         self.assertNoException(res)
+        assert "Section" in res
 
-        func = "Permission.from_process_maps('0x0000555555554000 0x0000555555574000 0x0000000000000000 r-- /usr/bin/bash')"
+        func = "list(GefMemoryManager.parse_gdb_info_sections())"
         res = gdb_test_python_method(func)
         self.assertNoException(res)
+        assert "Section" in res
 
-        func = "Permission.from_info_mem('ffffff2a65e0b000-ffffff2a65e0c000 0000000000001000 -r-')"
+        # When in a gef-remote session `parse_gdb_info_sections` should work to
+        # query the memory maps
+        port = GDBSERVER_DEFAULT_PORT + 1
+        before = [f"gef-remote {GDBSERVER_DEFAULT_HOST} {port}"]
+        with gdbserver_session(port=port) as _:
+            func = "list(GefMemoryManager.parse_gdb_info_sections())"
+            res = gdb_test_python_method(func)
+            self.assertNoException(res)
+            assert "Section" in res
+
+        # When in a gef-remote qemu-user session `parse_gdb_info_sections`
+        # should work to query the memory maps
+        port = GDBSERVER_DEFAULT_PORT + 2
+        target = _target("default")
+        before = [
+            f"gef-remote --qemu-user --qemu-binary {target} {GDBSERVER_DEFAULT_HOST} {port}"]
+        with qemuuser_session(port=port) as _:
+            func = "list(GefMemoryManager.parse_gdb_info_sections())"
+            res = gdb_test_python_method(func)
+            self.assertNoException(res)
+            assert "Section" in res
+
+        # Running the _parse_maps method should just find the correct one
+        func = "list(GefMemoryManager._parse_maps())"
         res = gdb_test_python_method(func)
         self.assertNoException(res)
+        assert "Section" in res
+
+        # The parse maps function should automatically get called when we start
+        # up, and we should be able to view the maps via the `gef.memory.maps`
+        # property.
+        func = "gef.memory.maps"
+        res = gdb_test_python_method(func)
+        self.assertNoException(res)
+        assert "Section" in res
+
 
     @pytest.mark.slow
     @pytest.mark.online
