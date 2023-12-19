@@ -6411,7 +6411,7 @@ class GlibcHeapChunksCommand(GenericCommand):
             if heap_corrupted:
                 err("Corrupted heap, cannot continue.")
                 return False
-            
+
             if not should_process:
                 continue
 
@@ -6431,7 +6431,7 @@ class GlibcHeapChunksCommand(GenericCommand):
     def should_process_chunk(self, chunk: GlibcChunk, min_size: int, max_size: int) -> bool:
         if chunk.size < min_size:
             return False
-        
+
         if max_size > 0 and chunk.size > max_size:
             return False
 
