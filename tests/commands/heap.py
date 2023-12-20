@@ -141,6 +141,21 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertNotIn("Chunk(addr=", res)
 
+    def test_cmd_heap_chunks_with_count(self):
+        cmd = "heap chunks --count 1"
+        target = _target("heap")
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertIn("Chunk(addr=", res)
+
+        cmd = "heap chunks --count 0"
+        target = _target("heap")
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertNotIn("Chunk(addr=", res)
+
     def test_cmd_heap_bins_fast(self):
         cmd = "heap bins fast"
         before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
