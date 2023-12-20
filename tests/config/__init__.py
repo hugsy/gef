@@ -49,3 +49,19 @@ class TestGefConfigUnit(GefUnitTestGeneric):
         res = gdb_run_cmd("gef config gef.debug 0")
         self.assertNoException(res)
         self.assertNotIn("[!]", res)
+
+    def test_config_libc_version(self):
+        """Check setting libc version."""
+        res = gdb_run_cmd("gef config gef.libc_version")
+        self.assertNoException(res)
+        self.assertNotIn("[!]", res)
+
+        res = gdb_run_cmd("gef config gef.libc_version", before=["gef config gef.libc_version 2.31"])
+        self.assertNoException(res)
+        self.assertNotIn("[!]", res)
+        self.assertIn('gef.libc_version (str) = "2.31"', res)
+
+        res = gdb_run_cmd("gef config gef.libc_version", before=["gef config gef.libc_version 2.31", "gef config gef.libc_version ''"])
+        self.assertNoException(res)
+        self.assertNotIn("[!]", res)
+        self.assertIn('gef.libc_version (str) = ""', res)
