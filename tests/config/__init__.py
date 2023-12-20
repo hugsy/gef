@@ -2,7 +2,7 @@
 Test GEF configuration parameters.
 """
 
-from tests.utils import gdb_run_cmd
+from tests.utils import gdb_run_cmd, gdb_start_silent_cmd
 from tests.utils import GefUnitTestGeneric
 
 
@@ -65,3 +65,8 @@ class TestGefConfigUnit(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertNotIn("[!]", res)
         self.assertIn('gef.libc_version (str) = ""', res)
+
+        res = gdb_start_silent_cmd("python print(gef.libc.version)", before=["gef config gef.libc_version 2.31"])
+        self.assertNoException(res)
+        self.assertNotIn("[!]", res)
+        self.assertIn('(2, 31)', res)
