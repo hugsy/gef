@@ -6401,12 +6401,11 @@ class GlibcHeapChunksCommand(GenericCommand):
             heap_corrupted = chunk.base_address > end
             should_process = self.should_process_chunk(chunk, min_size, max_size)
 
-            if not summary:
-                if chunk.base_address == arena.top:
-                    if should_process:
-                        gef_print(
-                            f"{chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
-                    break
+            if not summary and chunk.base_address == arena.top:
+                if should_process:
+                    gef_print(
+                        f"{chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
+                break
 
             if heap_corrupted:
                 err("Corrupted heap, cannot continue.")
@@ -6432,7 +6431,7 @@ class GlibcHeapChunksCommand(GenericCommand):
         if chunk.size < min_size:
             return False
 
-        if max_size > 0 and chunk.size > max_size:
+        if 0 < max_size < chunk.size:
             return False
 
         return True

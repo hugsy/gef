@@ -111,6 +111,13 @@ class HeapCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         self.assertIn("Chunk(addr=", res)
 
+        cmd = "heap chunks --min-size 1048576"
+        target = _target("heap")
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertNotIn("Chunk(addr=", res)
+
     def test_cmd_heap_chunks_max_size_filter(self):
         cmd = "heap chunks --max-size 160"
         target = _target("heap")
@@ -118,6 +125,13 @@ class HeapCommand(GefUnitTestGeneric):
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
         self.assertIn("Chunk(addr=", res)
+
+        cmd = "heap chunks --max-size 16"
+        target = _target("heap")
+        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
+        res = gdb_run_silent_cmd(cmd, target=target)
+        self.assertNoException(res)
+        self.assertNotIn("Chunk(addr=", res)
 
     def test_cmd_heap_bins_fast(self):
         cmd = "heap bins fast"
