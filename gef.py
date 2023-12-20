@@ -7379,6 +7379,9 @@ class ContextCommand(GenericCommand):
         if redirect and os.access(redirect, os.W_OK):
             enable_redirect_output(to_file=redirect)
 
+        if self["clear_screen"] and len(argv) == 0:
+            clear_screen(redirect)
+
         for section in current_layout:
             if section[0] == "-":
                 continue
@@ -7399,9 +7402,6 @@ class ContextCommand(GenericCommand):
                 pass
 
         self.context_title("")
-
-        if self["clear_screen"] and len(argv) == 0:
-            clear_screen(redirect)
 
         if redirect and os.access(redirect, os.W_OK):
             disable_redirect_output()
