@@ -30,6 +30,14 @@ gef➤ gef config gef.bruteforce_main_arena True
 Note that this might take a few seconds to complete. If GEF does find the symbol you can then
 calculate the offset to the libc base address and save it in the config.
 
+Sometimes, the dump might not contain proper info to help GEF find the libc version, which results in
+failure to parse the arena information. In this case, you can try to force GEF to use a specific libc
+version with the following command:
+
+```text
+gef➤ gef config gef.libc_version 2.31
+```
+
 ### `heap chunks` command
 
 Displays all the chunks from the `heap` section of the current arena.
