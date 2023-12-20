@@ -2011,10 +2011,10 @@ def gdb_get_location_from_symbol(address: int) -> Optional[Tuple[str, int]]:
         return None
 
     i = sym.find(" in section ")
-    sym = sym[:i].split()
+    sym = sym[:i].split('+')
     name, offset = sym[0], 0
-    if len(sym) == 3 and sym[2].isdigit():
-        offset = int(sym[2])
+    if len(sym) == 2 and sym[1].isdigit():
+        offset = int(sym[1])
     return name, offset
 
 

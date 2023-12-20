@@ -3,7 +3,7 @@ xinfo command test module
 """
 
 
-from tests.utils import GefUnitTestGeneric, gdb_run_cmd, gdb_start_silent_cmd
+from tests.utils import GefUnitTestGeneric, gdb_run_cmd, gdb_start_silent_cmd, gdb_run_silent_cmd, _target
 
 
 class XinfoCommand(GefUnitTestGeneric):
@@ -18,3 +18,10 @@ class XinfoCommand(GefUnitTestGeneric):
         res = gdb_start_silent_cmd("xinfo $sp")
         self.assertNoException(res)
         self.assertTrue(len(res.splitlines()) >= 7)
+
+    def test_cmd_xinfo_on_class(self):
+        cmd = "xinfo $pc"
+        target = _target("class")
+        res = gdb_run_silent_cmd(cmd, target=target, before=["b B<TraitA, TraitB>::Run()"])
+        self.assertNoException(res)
+        self.assertIn("Symbol: B<TraitA, TraitB>::Run", res)
