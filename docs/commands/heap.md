@@ -70,6 +70,17 @@ gef➤ heap chunks --summary
 
 ![heap-chunks-summary](https://i.imgur.com/3HTgtwX.png)
 
+Sometimes, multiple types of objects could have the same size, hence it might not be enough only
+knowing the chunk size when debugging issues like memory leaks. GEF supports using the vtable to
+determine the type of the object stored in the chunk. To enable this feature, use `--resolve` along
+with the `--summary` flag.
+
+```text
+gef➤ heap chunks --summary --resolve
+```
+
+![heap-chunks-summary-resolve](https://i.imgur.com/2Mm0JF6.png)
+
 Heap chunk command also supports filtering chunks by their size. To do so, simply provide the
 `--min-size` or `--max-size` argument:
 

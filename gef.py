@@ -1717,7 +1717,7 @@ class GlibcChunk:
             if sym is not None and "vtable for" in sym[0]:
                 return sym[0].replace("vtable for ", "")
 
-        return "<Unknown Type>"
+        return ""
 
 
 class GlibcFastChunk(GlibcChunk):
