@@ -70,6 +70,17 @@ gef➤ heap chunks --summary
 
 ![heap-chunks-summary](https://i.imgur.com/3HTgtwX.png)
 
+Heap chunk command also supports filtering chunks by their size. To do so, simply provide the
+`--min-size` or `--max-size` argument:
+
+```text
+gef➤ heap chunks --min-size 16 --max-size 32
+```
+
+![heap-chunks-size-filter](https://i.imgur.com/AWuCvFK.png)
+
+The range is inclusive, so the above command will display all chunks with size >=16 and <=32.
+
 ### `heap chunk` command
 
 This command gives visual information of a Glibc malloc-ed chunked. Simply provide the address to
