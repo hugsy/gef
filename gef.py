@@ -2011,7 +2011,7 @@ def gdb_get_location_from_symbol(address: int) -> Optional[Tuple[str, int]]:
         return None
 
     # gdb outputs symbols with format: "<symbol_name> + <offset> in section <section_name> of <file>",
-    # here, we are only interested in symbol name and offset. 
+    # here, we are only interested in symbol name and offset.
     i = sym.find(" in section ")
     sym = sym[:i].split("+")
     name, offset = sym[0].strip(), 0
