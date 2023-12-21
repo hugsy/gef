@@ -4,7 +4,7 @@
 
 import pytest
 
-from tests.utils import (ARCH, GefUnitTestGeneric, _target, findlines,
+from tests.utils import (ARCH, GefUnitTestGeneric, debug_target, findlines,
                          gdb_run_cmd, gdb_run_silent_cmd, gdb_start_silent_cmd)
 
 

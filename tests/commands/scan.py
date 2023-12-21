@@ -3,7 +3,7 @@ scan command test module
 """
 
 
-from tests.utils import GefUnitTestGeneric, _target, gdb_run_cmd, gdb_start_silent_cmd
+from tests.utils import GefUnitTestGeneric, debug_target, gdb_run_cmd, gdb_start_silent_cmd
 
 
 class ScanCommand(GefUnitTestGeneric):
@@ -12,7 +12,7 @@ class ScanCommand(GefUnitTestGeneric):
 
     def test_cmd_scan(self):
         cmd = "scan libc stack"
-        target = _target("checksec-no-pie")
+        target = debug_target("checksec-no-pie")
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
         res = gdb_start_silent_cmd(cmd, target=target)
         self.assertNoException(res)

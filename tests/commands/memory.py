@@ -6,7 +6,7 @@ from tests.utils import (
     GefUnitTestGeneric,
     gdb_run_cmd,
     gdb_start_silent_cmd,
-    _target,
+    debug_target,
 )
 
 
@@ -28,7 +28,7 @@ class MemoryCommand(GefUnitTestGeneric):
         self.assertNoException(res)
         res = gdb_start_silent_cmd("memory watch $pc")
         self.assertNoException(res)
-        target = _target("memwatch")
+        target = debug_target("memwatch")
         res = gdb_start_silent_cmd("memory watch &myglobal",
                                    before=["set args 0xdeadbeef"],
                                    after=["continue"],

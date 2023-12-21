@@ -4,7 +4,7 @@ from tests.utils import (
     GefUnitTestGeneric,
     gdb_start_silent_cmd,
     gdb_run_silent_cmd,
-    _target,
+    debug_target,
     ARCH
 )
 
@@ -33,7 +33,7 @@ class RegressionRegisterOrder(GefUnitTestGeneric):
     @pytest.mark.skipif(ARCH not in ["x86_64",], reason=f"Skipped for {ARCH}")
     def test_context_correct_registers_refresh_with_frames(self):
         """Ensure registers are correctly refreshed when changing frame (PR #668)"""
-        target = _target("nested")
+        target = debug_target("nested")
         lines = gdb_run_silent_cmd("registers", after=["frame 5", "registers"],
                                    target=target).splitlines()
         rips = [x for x in lines if x.startswith("$rip")]

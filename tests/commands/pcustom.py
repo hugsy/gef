@@ -9,7 +9,7 @@ from tests.utils import (
     gdb_run_cmd,
     gdb_run_silent_cmd,
     is_64b,
-    _target,
+    debug_target,
     GEF_DEFAULT_TEMPDIR,
     GefUnitTestGeneric,
 )
@@ -75,7 +75,7 @@ class PcustomCommand(GefUnitTestGeneric):
                     self.assertIn("0004   b                     c_long  /* size=0x4 */", res)
 
                 # with address
-                res = gdb_run_silent_cmd("pcustom goo_t 0x1337100", target=_target("pcustom"),
+                res = gdb_run_silent_cmd("pcustom goo_t 0x1337100", target=debug_target("pcustom"),
                                         before=[f"gef config pcustom.struct_path {dirpath}",])
                 self.assertNoException(res)
                 if is_64b():
@@ -102,7 +102,7 @@ class PcustomCommand(GefUnitTestGeneric):
                 self.assertIn("No structure named 'meh_t' found", res)
 
                 # bad structure name with address
-                res = gdb_run_silent_cmd("pcustom meh_t 0x1337100", target=_target("pcustom"),
+                res = gdb_run_silent_cmd("pcustom meh_t 0x1337100", target=debug_target("pcustom"),
                                         before=[f"gef config pcustom.struct_path {dirpath}",])
                 self.assertNoException(res)
                 self.assertIn("No structure named 'meh_t' found", res)

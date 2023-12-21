@@ -3,7 +3,7 @@ Pattern commands test module
 """
 import pytest
 
-from tests.utils import ARCH, GefUnitTestGeneric, _target, gdb_run_cmd, is_64b
+from tests.utils import ARCH, GefUnitTestGeneric, debug_target, gdb_run_cmd, is_64b
 
 
 class PatternCommand(GefUnitTestGeneric):
@@ -24,7 +24,7 @@ class PatternCommand(GefUnitTestGeneric):
     @pytest.mark.skipif(ARCH not in ("x86_64", "aarch64", "i686", "armv7l"),
                         reason=f"Skipped for {ARCH}")
     def test_cmd_pattern_search(self):
-        target = _target("pattern")
+        target = debug_target("pattern")
         if ARCH == "aarch64":
             lookup_register = "$x30"
             expected_offsets = (16, 16, 5, 9)

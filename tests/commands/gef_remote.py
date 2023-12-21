@@ -5,7 +5,7 @@
 
 from tests.utils import (
     GefUnitTestGeneric,
-    _target,
+    debug_target,
     gdb_run_cmd,
     gdbserver_session,
     qemuuser_session,
@@ -31,7 +31,7 @@ class GefRemoteCommand(GefUnitTestGeneric):
 
     def test_cmd_gef_remote_qemu_user(self):
         port = GDBSERVER_DEFAULT_PORT + 2
-        target = _target("default")
+        target = debug_target("default")
         before = [
             f"gef-remote --qemu-user --qemu-binary {target} {GDBSERVER_DEFAULT_HOST} {port}"]
         with qemuuser_session(port=port) as _:
