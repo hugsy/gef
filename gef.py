@@ -6358,12 +6358,12 @@ class GlibcHeapArenaSummary:
             gef_print("{:<15s}\t{:<10d}\t{:<d}".format(chunk_flag, chunk_summary.count, chunk_summary.total_bytes))
 
 class GlibcHeapWalkContext:
-    def __init__(self, args: Any) -> None:
-        self.min_size = args.min_size
-        self.max_size = args.max_size
-        self.remaining_chunk_count = args.count
-        self.summary = args.summary
-        self.resolve_type = args.resolve
+    def __init__(self, min_size: int = 0, max_size: int = 0, count: int = -1, resolve_type: bool = False, summary: bool = False) -> None:
+        self.min_size = min_size
+        self.max_size = max_size
+        self.remaining_chunk_count = count
+        self.summary = summary
+        self.resolve_type = resolve_type
 
 @register
 class GlibcHeapChunksCommand(GenericCommand):
@@ -6384,7 +6384,7 @@ class GlibcHeapChunksCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args = kwargs["arguments"]
-        ctx = GlibcHeapWalkContext(args)
+        ctx = GlibcHeapWalkContext(min_size=args.min_size, max_size=args.max_size, count=args.count, resolve_type=args.resolve, summary=args.summary)
         if args.all or not args.arena_address:
             for arena in gef.heap.arenas:
                 self.dump_chunks_arena(arena, print_arena=args.all, allow_unaligned=args.allow_unaligned, ctx=ctx)
@@ -6398,7 +6398,7 @@ class GlibcHeapChunksCommand(GenericCommand):
             err("Invalid arena")
             return
 
-    def dump_chunks_arena(self, arena: GlibcArena, print_arena: bool = False, allow_unaligned: bool = False, ctx: GlibcHeapWalkContext = None) -> None:
+    def dump_chunks_arena(self, arena: GlibcArena, print_arena: bool = False, allow_unaligned: bool = False, ctx: GlibcHeapWalkContext = GlibcHeapWalkContext()) -> None:
         heap_addr = arena.heap_addr(allow_unaligned=allow_unaligned)
         if heap_addr is None:
             err("Could not find heap for arena")
@@ -6415,7 +6415,7 @@ class GlibcHeapChunksCommand(GenericCommand):
                     break
         return
 
-    def dump_chunks_heap(self, start: int, end: int, arena: GlibcArena, allow_unaligned: bool = False, ctx: GlibcHeapWalkContext = None) -> bool:
+    def dump_chunks_heap(self, start: int, end: int, arena: GlibcArena, allow_unaligned: bool = False, ctx: GlibcHeapWalkContext = GlibcHeapWalkContext()) -> bool:
         nb = self["peek_nb_byte"]
         chunk_iterator = GlibcChunk(start, from_base=True, allow_unaligned=allow_unaligned)
         heap_summary = GlibcHeapArenaSummary(resolve_type=ctx.resolve_type)
