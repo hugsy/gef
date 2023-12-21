@@ -2,7 +2,9 @@ CC              =       gcc
 DEBUG           =       1
 CFLAGS          +=      -Wall
 SOURCES         =       $(wildcard *.c)
+SOURCES         +=      $(wildcard *.cpp)
 LINKED          =       $(SOURCES:.c=.out)
+LINKED          :=      $(LINKED:.cpp=.out)
 LDFLAGS         =
 EXTRA_FLAGS     =
 TMPDIR          ?=      /tmp
@@ -26,6 +28,10 @@ all: $(LINKED)
 %.out : %.c
 	@echo "[+] Building '$(TMPDIR)/$@'"
 	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -o $(TMPDIR)/$@ $? $(LDFLAGS)
+
+%.out : %.cpp
+	@echo "[+] Building '$(TMPDIR)/$@'"
+	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -o $(TMPDIR)/$@ $? $(LDFLAGS) -lstdc++
 
 clean :
 	@echo "[+] Cleaning stuff"
