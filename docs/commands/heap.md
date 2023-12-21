@@ -98,7 +98,9 @@ gef➤ heap chunks --min-size 16 --max-size 32
 
 ![heap-chunks-size-filter](https://i.imgur.com/AWuCvFK.png)
 
-If heap chunks command gives too many chunks, we can use `--count` argument to limit the number
+The range is inclusive, so the above command will display all chunks with size >=16 and <=32.
+
+If heap chunks command still gives too many chunks, we can use `--count` argument to limit the number
 of the chunks in the output:
 
 ```text
@@ -106,8 +108,6 @@ gef➤ heap chunks --count 1
 ```
 
 ![heap-chunks-size-filter](https://i.imgur.com/EinuDAt.png)
-
-The range is inclusive, so the above command will display all chunks with size >=16 and <=32.
 
 ### `heap chunk` command
 
