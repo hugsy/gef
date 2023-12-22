@@ -5,12 +5,12 @@
 import pytest
 import random
 
-from tests.utils import ARCH, _target, gdb_test_python_method, is_64b
+from tests.utils import ARCH, debug_target, gdb_test_python_method, is_64b
 from tests.utils import GefUnitTestGeneric
 
 
 def result_as_int(res: str) -> int:
-    return int(gdb_test_python_method(res, target=_target("heap")).splitlines()[-1])
+    return int(gdb_test_python_method(res, target=debug_target("heap")).splitlines()[-1])
 
 TCACHE_BINS = 64
 

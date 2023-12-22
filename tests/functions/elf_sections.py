@@ -3,7 +3,7 @@ GDB function test module for ELF section convenience functions
 """
 
 
-from tests.utils import _target, gdb_run_cmd, gdb_run_silent_cmd, gdb_start_silent_cmd, is_64b
+from tests.utils import debug_target, gdb_run_cmd, gdb_run_silent_cmd, gdb_start_silent_cmd, is_64b
 from tests.utils import GefUnitTestGeneric
 
 
@@ -31,7 +31,7 @@ class ElfSectionGdbFunction(GefUnitTestGeneric):
     def test_func_bss(self):
         """`$_bss()` GDB function test"""
         cmd = "deref $_bss()"
-        target = _target("bss")
+        target = debug_target("bss")
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
@@ -41,7 +41,7 @@ class ElfSectionGdbFunction(GefUnitTestGeneric):
     def test_func_got(self):
         """`$_got()` GDB function test"""
         cmd = "deref $_got()"
-        target = _target("heap")
+        target = debug_target("heap")
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
@@ -51,7 +51,7 @@ class ElfSectionGdbFunction(GefUnitTestGeneric):
     def test_func_heap(self):
         """`$_heap()` GDB function test"""
         cmd = "deref $_heap()"
-        target = _target("heap")
+        target = debug_target("heap")
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)

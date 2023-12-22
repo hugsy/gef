@@ -3,7 +3,7 @@ patch command test module
 """
 
 
-from tests.utils import _target, gdb_run_cmd, gdb_run_silent_cmd, gdb_start_silent_cmd_last_line
+from tests.utils import debug_target, gdb_run_cmd, gdb_run_silent_cmd, gdb_start_silent_cmd_last_line
 from tests.utils import GefUnitTestGeneric
 
 
@@ -46,7 +46,7 @@ class PatchCommand(GefUnitTestGeneric):
 
 
     def test_cmd_patch_qword_symbol(self):
-        target = _target("bss")
+        target = debug_target("bss")
         before = gdb_run_silent_cmd("deref -l 1 $sp", target=target)
         after = gdb_run_silent_cmd("patch qword $sp &msg", after=["deref -l 1 $sp"], target=target)
         self.assertNoException(before)

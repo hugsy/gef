@@ -3,7 +3,7 @@
 """
 
 
-from tests.utils import _target, gdb_run_cmd
+from tests.utils import debug_target, gdb_run_cmd
 from tests.utils import GefUnitTestGeneric
 
 
@@ -13,7 +13,7 @@ class FormatStringHelperCommand(GefUnitTestGeneric):
 
     def test_cmd_format_string_helper(self):
         cmd = "format-string-helper"
-        target = _target("format-string-helper")
+        target = debug_target("format-string-helper")
         res = gdb_run_cmd(cmd,
                           after=["set args testtest",
                                  "run",],

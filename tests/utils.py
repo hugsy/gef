@@ -222,7 +222,7 @@ def gdb_time_python_method(meth: str, setup: str,
     return float(lines[-1])
 
 
-def _target(name: str, extension: str = ".out") -> pathlib.Path:
+def debug_target(name: str, extension: str = ".out") -> pathlib.Path:
     target = TMPDIR / f"{name}{extension}"
     if not target.exists():
         subprocess.run(["make", "-C", "tests/binaries", target.name])
@@ -231,13 +231,13 @@ def _target(name: str, extension: str = ".out") -> pathlib.Path:
     return target
 
 
-def start_gdbserver(exe: Union[str, pathlib.Path] = _target("default"),
+def start_gdbserver(exe: Union[str, pathlib.Path] = debug_target("default"),
                     host: str = GDBSERVER_DEFAULT_HOST,
                     port: int = GDBSERVER_DEFAULT_PORT) -> subprocess.Popen:
     """Start a gdbserver on the target binary.
 
     Args:
-        exe (str, optional): the binary to execute. Defaults to _target("default").
+        exe (str, optional): the binary to execute. Defaults to debug_target("default").
         port (int, optional): the port to make gdbserver listen on. Defaults to 1234.
 
     Returns:
@@ -261,7 +261,7 @@ def stop_gdbserver(gdbserver: subprocess.Popen) -> None:
 
 @contextlib.contextmanager
 def gdbserver_session(*args, **kwargs):
-    exe = kwargs.get("exe", "") or _target("default")
+    exe = kwargs.get("exe", "") or debug_target("default")
     host = kwargs.get("host", GDBSERVER_DEFAULT_HOST)
     port = kwargs.get("port", GDBSERVER_DEFAULT_PORT)
     sess = start_gdbserver(exe, host, port)
@@ -272,7 +272,7 @@ def gdbserver_session(*args, **kwargs):
         stop_gdbserver(sess)
 
 
-def start_qemuuser(exe: Union[str, pathlib.Path] = _target("default"),
+def start_qemuuser(exe: Union[str, pathlib.Path] = debug_target("default"),
                    port: int = GDBSERVER_DEFAULT_PORT) -> subprocess.Popen:
     return subprocess.Popen(["qemu-x86_64", "-g", str(port), exe],
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -286,7 +286,7 @@ def stop_qemuuser(process: subprocess.Popen) -> None:
 
 @contextlib.contextmanager
 def qemuuser_session(*args, **kwargs):
-    exe = kwargs.get("exe", "") or _target("default")
+    exe = kwargs.get("exe", "") or debug_target("default")
     port = kwargs.get("port", 0) or GDBSERVER_DEFAULT_PORT
     sess = start_qemuuser(exe, port)
     try:

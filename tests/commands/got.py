@@ -6,7 +6,7 @@ import pytest
 
 from tests.utils import (
     ARCH,
-    _target,
+    debug_target,
     gdb_run_cmd,
     gdb_start_silent_cmd,
     GefUnitTestGeneric,
@@ -20,7 +20,7 @@ class GotCommand(GefUnitTestGeneric):
 
     def test_cmd_got(self):
         cmd = "got"
-        target = _target("format-string-helper")
+        target = debug_target("format-string-helper")
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_start_silent_cmd(cmd, target=target)
         self.assertIn("printf", res)

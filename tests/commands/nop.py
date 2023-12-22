@@ -4,7 +4,7 @@
 
 import pytest
 
-from tests.utils import (ARCH, GefUnitTestGeneric, _target, findlines,
+from tests.utils import (ARCH, GefUnitTestGeneric, debug_target, findlines,
                          gdb_run_cmd, gdb_run_silent_cmd, gdb_start_silent_cmd)
 
 
@@ -107,7 +107,7 @@ class NopCommand(GefUnitTestGeneric):
     def test_cmd_nop_invalid_end_address(self):
         res = gdb_run_silent_cmd(
             f"{self.cmd} --i 5 0x1337000+0x1000-4",
-            target=_target("mmap-known-address")
+            target=debug_target("mmap-known-address")
         )
         self.assertNoException(res)
         self.assertIn("reaching unmapped area", res)
@@ -293,7 +293,7 @@ class NopCommand(GefUnitTestGeneric):
         # Make sure we error out if writing nops into an unmapped or RO area
         res = gdb_run_silent_cmd(
             f"{self.cmd} --b --i 5 0x1337000+0x1000-4",
-            target=_target("mmap-known-address")
+            target=debug_target("mmap-known-address")
         )
         self.assertNoException(res)
         self.assertIn("Cannot patch instruction at 0x1337ffc: reaching unmapped area", res)
@@ -302,7 +302,7 @@ class NopCommand(GefUnitTestGeneric):
         # an unmapped area. Make sure that we can now.
         res = gdb_run_silent_cmd(
             f"{self.cmd} --b --i 4 0x1337000+0x1000-4",
-            target=_target("mmap-known-address"),
+            target=debug_target("mmap-known-address"),
             after="pi print(f'*** *mem={u32(gef.memory.read(0x1337ffc, 4)):#x}')",
         )
         self.assertNoException(res)

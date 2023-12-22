@@ -3,7 +3,7 @@
 """
 
 
-from tests.utils import _target, gdb_start_silent_cmd
+from tests.utils import debug_target, gdb_start_silent_cmd
 from tests.utils import GefUnitTestGeneric
 
 
@@ -12,7 +12,7 @@ class ProcessSearchCommand(GefUnitTestGeneric):
 
 
     def test_cmd_process_search(self):
-        target = _target("pattern")
+        target = debug_target("pattern")
         res = gdb_start_silent_cmd("process-search", target=target,
                                    before=["set args w00tw00t"])
         self.assertNoException(res)

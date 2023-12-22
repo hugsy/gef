@@ -9,7 +9,7 @@ import os
 import pytest
 
 from tests.utils import (
-    _target,
+    debug_target,
     gdb_start_silent_cmd,
     gdb_test_python_method,
     gdb_run_cmd,
@@ -33,7 +33,7 @@ class MiscFunctionTest(GefUnitTestGeneric):
 
     def test_func_gef_convenience(self):
         func = "gef_convenience('meh')"
-        res = gdb_test_python_method(func, target=_target("default"))
+        res = gdb_test_python_method(func, target=debug_target("default"))
         self.assertNoException(res)
 
     def test_func_parse_address(self):
@@ -86,7 +86,7 @@ class MiscFunctionTest(GefUnitTestGeneric):
         # When in a gef-remote qemu-user session `parse_gdb_info_sections`
         # should work to query the memory maps
         port = GDBSERVER_DEFAULT_PORT + 2
-        target = _target("default")
+        target = debug_target("default")
         before = [
             f"gef-remote --qemu-user --qemu-binary {target} {GDBSERVER_DEFAULT_HOST} {port}"]
         with qemuuser_session(port=port) as _:

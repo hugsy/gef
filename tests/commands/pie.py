@@ -2,7 +2,7 @@
 `pie` command test module
 """
 
-from tests.utils import (GefUnitTestGeneric, _target, find_symbol, gdb_run_cmd,
+from tests.utils import (GefUnitTestGeneric, debug_target, find_symbol, gdb_run_cmd,
                          removeuntil)
 
 
@@ -11,7 +11,7 @@ class PieCommand(GefUnitTestGeneric):
 
 
     def setUp(self) -> None:
-        target = _target("default")
+        target = debug_target("default")
         self.pie_offset = find_symbol(target, "main")
         self.assertGreater(self.pie_offset, 0)
         return super().setUp()
