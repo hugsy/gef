@@ -105,7 +105,7 @@ class HeapCommand(GefUnitTestGeneric):
 
     def test_cmd_heap_chunks_summary_with_type_resolved(self):
         cmd = "heap chunks --summary --resolve"
-        target = _target("class")
+        target = debug_target("class")
         res = gdb_run_silent_cmd(cmd, target=target, before=["b B<TraitA, TraitB>::Run()"])
         self.assertNoException(res)
         self.assertIn("== Chunk distribution by size", res)
