@@ -6358,7 +6358,9 @@ class GlibcHeapArenaSummary:
             gef_print("{:<15s}\t{:<10d}\t{:<d}".format(chunk_flag, chunk_summary.count, chunk_summary.total_bytes))
 
 class GlibcHeapWalkContext:
-    def __init__(self, min_size: int = 0, max_size: int = 0, count: int = -1, resolve_type: bool = False, summary: bool = False) -> None:
+    def __init__(self, print_arena: bool = False, allow_unaligned: bool = False, min_size: int = 0, max_size: int = 0, count: int = -1, resolve_type: bool = False, summary: bool = False) -> None:
+        self.print_arena = print_arena
+        self.allow_unaligned = allow_unaligned
         self.min_size = min_size
         self.max_size = max_size
         self.remaining_chunk_count = count
@@ -6384,40 +6386,40 @@ class GlibcHeapChunksCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args = kwargs["arguments"]
-        ctx = GlibcHeapWalkContext(min_size=args.min_size, max_size=args.max_size, count=args.count, resolve_type=args.resolve, summary=args.summary)
+        ctx = GlibcHeapWalkContext(print_arena=args.all, allow_unaligned=args.allow_unaligned, min_size=args.min_size, max_size=args.max_size, count=args.count, resolve_type=args.resolve, summary=args.summary)
         if args.all or not args.arena_address:
             for arena in gef.heap.arenas:
-                self.dump_chunks_arena(arena, ctx, print_arena=args.all, allow_unaligned=args.allow_unaligned)
+                self.dump_chunks_arena(arena, ctx)
                 if not args.all:
                     return
         try:
             arena_addr = parse_address(args.arena_address)
             arena = GlibcArena(f"*{arena_addr:#x}")
-            self.dump_chunks_arena(arena, ctx, allow_unaligned=args.allow_unaligned)
+            self.dump_chunks_arena(arena, ctx)
         except gdb.error:
             err("Invalid arena")
             return
 
-    def dump_chunks_arena(self, arena: GlibcArena, ctx: GlibcHeapWalkContext, print_arena: bool = False, allow_unaligned: bool = False) -> None:
-        heap_addr = arena.heap_addr(allow_unaligned=allow_unaligned)
+    def dump_chunks_arena(self, arena: GlibcArena, ctx: GlibcHeapWalkContext) -> None:
+        heap_addr = arena.heap_addr(allow_unaligned=ctx.allow_unaligned)
         if heap_addr is None:
             err("Could not find heap for arena")
             return
-        if print_arena:
+        if ctx.print_arena:
             gef_print(str(arena))
         if arena.is_main_arena():
             heap_end = arena.top + GlibcChunk(arena.top, from_base=True).size
-            self.dump_chunks_heap(heap_addr, heap_end, arena, ctx, allow_unaligned=allow_unaligned)
+            self.dump_chunks_heap(heap_addr, heap_end, arena, ctx)
         else:
             heap_info_structs = arena.get_heap_info_list() or []
             for heap_info in heap_info_structs:
-                if not self.dump_chunks_heap(heap_info.heap_start, heap_info.heap_end, arena, ctx, allow_unaligned=allow_unaligned):
+                if not self.dump_chunks_heap(heap_info.heap_start, heap_info.heap_end, arena, ctx):
                     break
         return
 
-    def dump_chunks_heap(self, start: int, end: int, arena: GlibcArena, ctx: GlibcHeapWalkContext, allow_unaligned: bool = False) -> bool:
+    def dump_chunks_heap(self, start: int, end: int, arena: GlibcArena, ctx: GlibcHeapWalkContext) -> bool:
         nb = self["peek_nb_byte"]
-        chunk_iterator = GlibcChunk(start, from_base=True, allow_unaligned=allow_unaligned)
+        chunk_iterator = GlibcChunk(start, from_base=True, allow_unaligned=ctx.allow_unaligned)
         heap_summary = GlibcHeapArenaSummary(resolve_type=ctx.resolve_type)
         for chunk in chunk_iterator:
             heap_corrupted = chunk.base_address > end
