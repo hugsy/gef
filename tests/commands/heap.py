@@ -143,14 +143,14 @@ class HeapCommand(GefUnitTestGeneric):
 
     def test_cmd_heap_chunks_with_count(self):
         cmd = "heap chunks --count 1"
-        target = _target("heap")
+        target = debug_target("heap")
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
         self.assertIn("Chunk(addr=", res)
 
         cmd = "heap chunks --count 0"
-        target = _target("heap")
+        target = debug_target("heap")
         self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
         res = gdb_run_silent_cmd(cmd, target=target)
         self.assertNoException(res)
