@@ -11170,7 +11170,7 @@ class GefLibcManager(GefManager):
 
         if not self._version:
             self._version = GefLibcManager.find_libc_version()
-        
+
         # Whenever auto-detection fails, we use the user-provided version.
         if self._version == (0, 0) and gef.config["gef.libc_version"] != "":
             return tuple([int(v) for v in gef.config["gef.libc_version"].split(".")])
