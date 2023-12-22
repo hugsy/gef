@@ -31,8 +31,8 @@ Note that this might take a few seconds to complete. If GEF does find the symbol
 calculate the offset to the libc base address and save it in the config.
 
 Sometimes, the dump might not contain proper info to help GEF find the libc version, which results in
-failure to parse the arena information. In this case, you can try to force GEF to use a specific libc
-version with the following command:
+failure to parse the arena information. In this case, you can try to provide GEF a specific libc
+version to use with the following command:
 
 ```text
 gef➤ gef config gef.libc_version 2.31
