@@ -6,9 +6,9 @@ curl_found=0
 wget_found=0
 
 # check dependencies
-if [ "$(which curl)" ]; then
+if [ "$(command -v curl)" ]; then
 	curl_found=1
-elif [ "$(which wget)" ]; then
+elif [ "$(command -v wget)" ]; then
 	wget_found=1
 else
 	echo "Please install cURL or wget and run again"
