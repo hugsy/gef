@@ -4147,7 +4147,8 @@ class StubBreakpoint(gdb.Breakpoint):
         return
 
     def stop(self) -> bool:
-        gdb.execute(f"return (unsigned int){self.retval:#x}")
+        size = "long" if gef.arch.ptrsize == 8 else "int"
+        gdb.execute(f"return (unsigned {size}){self.retval:#x}")
         ok(f"Ignoring call to '{self.func}' "
            f"(setting return value to {self.retval:#x})")
         return False
