@@ -101,11 +101,12 @@ near the bottom of the context. The order can be modified in the `GEF` context c
 ### Context Pane API
 
 The API demonstrated above requires very specific argument types:
-`register_external_context_pane(pane_name, display_pane_function, pane_title_function)`
+`register_external_context_pane(pane_name, display_pane_function, pane_title_function, condition=None)`
 
 *  `pane_name`: a string that will be used as the panes setting name
 *  `display_pane_function`: a function that uses `gef_print()` to print content in the pane
 *  `pane_title_function`: a function that returns the title string or None to hide the title
+*  `condition` (optional): a function that returns whether this context pane should be shown
 
 ## API
 
