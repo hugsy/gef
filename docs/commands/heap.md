@@ -100,6 +100,15 @@ gef➤ heap chunks --min-size 16 --max-size 32
 
 The range is inclusive, so the above command will display all chunks with size >=16 and <=32.
 
+If heap chunks command still gives too many chunks, we can use `--count` argument to limit the number
+of the chunks in the output:
+
+```text
+gef➤ heap chunks --count 1
+```
+
+![heap-chunks-size-filter](https://i.imgur.com/EinuDAt.png)
+
 ### `heap chunk` command
 
 This command gives visual information of a Glibc malloc-ed chunked. Simply provide the address to
