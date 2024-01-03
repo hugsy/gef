@@ -20,8 +20,8 @@ class XinfoCommand(GefUnitTestGeneric):
         self.assertTrue(len(res.splitlines()) >= 7)
 
     def test_cmd_xinfo_on_class(self):
-        cmd = "xinfo $pc"
+        cmd = "xinfo $pc+4"
         target = debug_target("class")
-        res = gdb_run_silent_cmd(cmd, target=target, before=["b B<TraitA, TraitB>::Run()"])
+        res = gdb_run_silent_cmd(cmd, target=target, before=["b *'B<TraitA, TraitB>::Run'"])
         self.assertNoException(res)
-        self.assertIn("Symbol: B<TraitA, TraitB>::Run", res)
+        self.assertIn("Symbol: B<TraitA, TraitB>::Run()+4", res)
