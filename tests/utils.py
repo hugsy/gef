@@ -35,6 +35,7 @@ GEF_PATH = pathlib.Path(os.getenv("GEF_PATH", "gef.py")).absolute()
 RPYC_GEF_PATH = GEF_PATH.parent / "scripts/remote_debug.py"
 RPYC_HOST = "localhost"
 RPYC_PORT = 18812
+RPYC_SPAWN_TIME = 1.0
 STRIP_ANSI_DEFAULT = True
 GDBSERVER_DEFAULT_HOST = "localhost"
 GDBSERVER_DEFAULT_PORT = 1234
@@ -117,7 +118,7 @@ pi start_rpyc_service({self._port})
         ]
         self._process = subprocess.Popen(self._command)
         assert self._process.pid > 0
-        time.sleep(0.5)
+        time.sleep(RPYC_SPAWN_TIME)
         self._conn = rpyc.connect(
             RPYC_HOST,
             self._port,
