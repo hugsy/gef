@@ -293,6 +293,10 @@ def bufferize(f: Callable) -> Callable:
 # Helpers
 #
 
+class ObsoleteException(Exception): pass
+
+class AlreadyRegisteredException(Exception): pass
+
 def p8(x: int, s: bool = False, e: Optional["Endianness"] = None) -> bytes:
     """Pack one byte respecting the current architecture endianness."""
     endian = e or gef.arch.endianness
@@ -729,7 +733,7 @@ class FileFormat:
     sections: List[FileFormatSection]
 
     def __init__(self, path: Union[str, pathlib.Path]) -> None:
-        raise NotImplemented
+        raise NotImplementedError
 
     def __init_subclass__(cls: Type["FileFormat"], **kwargs):
         global __registered_file_formats__
@@ -742,8 +746,8 @@ class FileFormat:
         return
 
     @classmethod
-    def is_valid(cls, path: pathlib.Path) -> bool:
-        raise NotImplemented
+    def is_valid(cls, _: pathlib.Path) -> bool:
+        raise NotImplementedError
 
     def __str__(self) -> str:
         return f"{self.name}('{self.path.absolute()}', entry @ {self.entry_point:#x})"
@@ -1956,7 +1960,7 @@ class DisableContextOutputContext:
 
 class RedirectOutputContext:
     def __init__(self, to_file: str = "/dev/null") -> None:
-        if " " in to_file: raise ValueEror("Target filepath cannot contain spaces")
+        if " " in to_file: raise ValueError("Target filepath cannot contain spaces")
         self.redirection_target_file = to_file
         return
 
@@ -1977,7 +1981,7 @@ class RedirectOutputContext:
 
 def enable_redirect_output(to_file: str = "/dev/null") -> None:
     """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
-    if " " in to_file: raise ValueEror("Target filepath cannot contain spaces")
+    if " " in to_file: raise ValueError("Target filepath cannot contain spaces")
     gdb.execute("set logging overwrite")
     gdb.execute(f"set logging file {to_file}")
     gdb.execute("set logging redirect on")
@@ -2290,6 +2294,9 @@ class Architecture(ArchitectureBase):
             raise NotImplementedError
 
     def __str__(self) -> str:
+        return f"Architecture({self.arch}, {self.mode or 'None'}, {repr(self.endianness)})"
+
+    def __repr__(self) -> str:
         return f"Architecture({self.arch}, {self.mode or 'None'}, {repr(self.endianness)})"
 
     @staticmethod
@@ -2834,7 +2841,7 @@ class X86(Architecture):
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         reg = self.flag_register
-        if not val:
+        if val is None:
             val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
@@ -3017,7 +3024,7 @@ class PowerPC(Architecture):
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         # https://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
-        if not val:
+        if val is None:
             reg = self.flag_register
             val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
@@ -3120,7 +3127,7 @@ class SPARC(Architecture):
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         # https://www.gaisler.com/doc/sparcv8.pdf
         reg = self.flag_register
-        if not val:
+        if val is None:
             val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
@@ -3396,7 +3403,7 @@ def is_qemu() -> bool:
     if not is_remote_debug():
         return False
     response = gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False)
-    return "ENABLE=" in response
+    return isinstance(response, str) and "ENABLE=" in response
 
 
 @lru_cache()
@@ -3404,7 +3411,7 @@ def is_qemu_usermode() -> bool:
     if not is_qemu():
         return False
     response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False)
-    return "Text=" in response
+    return isinstance(response, str) and "Text=" in response
 
 
 @lru_cache()
@@ -3412,7 +3419,7 @@ def is_qemu_system() -> bool:
     if not is_qemu():
         return False
     response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False)
-    return "received: \"\"" in response
+    return isinstance(response, str) and "received: \"\"" in response
 
 
 def get_filepath() -> Optional[str]:
@@ -4077,8 +4084,9 @@ class PieVirtualBreakpoint:
 
         try:
             res = gdb.execute(self.set_func(base), to_string=True)
+            if not res: return
         except gdb.error as e:
-            err(e)
+            err(str(e))
             return
 
         if "Breakpoint" not in res:
@@ -4499,16 +4507,18 @@ def register_priority_command(cls: Type["GenericCommand"]) -> Type["GenericComma
 def register(cls: Union[Type["GenericCommand"], Type["GenericFunction"]]) -> Union[Type["GenericCommand"], Type["GenericFunction"]]:
     global __registered_commands__, __registered_functions__
     if issubclass(cls, GenericCommand):
-        assert( hasattr(cls, "_cmdline_"))
-        assert( hasattr(cls, "do_invoke"))
-        assert( all(map(lambda x: x._cmdline_ != cls._cmdline_, __registered_commands__)))
+        assert hasattr(cls, "_cmdline_")
+        assert hasattr(cls, "do_invoke")
+        if any(map(lambda x: x._cmdline_ == cls._cmdline_, __registered_commands__)):
+            raise AlreadyRegisteredException(cls._cmdline_)
         __registered_commands__.add(cls)
         return cls
 
     if issubclass(cls, GenericFunction):
-        assert( hasattr(cls, "_function_"))
-        assert( hasattr(cls, "invoke"))
-        assert( all(map(lambda x: x._function_ != cls._function_, __registered_functions__)))
+        assert hasattr(cls, "_function_")
+        assert hasattr(cls, "invoke")
+        if any(map(lambda x: x._function_ == cls._function_, __registered_functions__)):
+            raise AlreadyRegisteredException(cls._function_)
         __registered_functions__.add(cls)
         return cls
 
@@ -4636,7 +4646,7 @@ class GenericCommand(gdb.Command):
             self.repeat_count = 0
             return
 
-        command = gdb.execute("show commands", to_string=True).strip().split("\n")[-1]
+        command = (gdb.execute("show commands", to_string=True) or "").strip().split("\n")[-1]
         self.repeat = self.__last_command == command
         self.repeat_count = self.repeat_count + 1 if self.repeat else 0
         self.__last_command = command
@@ -4750,9 +4760,9 @@ class PrintFormatCommand(GenericCommand):
             out = f"var buf = [{sdata}]"
         elif args.lang == "asm":
             asm_type = self.format_matrix[args.bitlen][2]
-            out = "buf {0} {1}".format(asm_type, sdata)
+            out = f"buf {asm_type} {sdata}"
         elif args.lang == "hex":
-            out = binascii.hexlify(gef.memory.read(start_addr, end_addr-start_addr)).decode()
+            out = gef.memory.read(start_addr, end_addr-start_addr).hex()
         else:
             raise ValueError(f"Invalid format: {args.lang}")
 
@@ -4929,7 +4939,7 @@ class PieAttachCommand(GenericCommand):
         try:
             gdb.execute(f"attach {' '.join(argv)}", to_string=True)
         except gdb.error as e:
-            err(e)
+            err(str(e))
             return
         # after attach, we are stopped so that we can
         # get base address to modify our breakpoint
@@ -7786,7 +7796,6 @@ class ContextCommand(GenericCommand):
 
         show_full_path_max = self["show_full_source_file_name_max_len"]
         show_basename_path_max = self["show_basename_source_file_name_max_len"]
-        show_prefix_path_len = self["show_prefix_source_path_name_len"]
 
         nb_line = self["nb_lines_code"]
         fn = symtab.filename
@@ -7875,6 +7884,7 @@ class ContextCommand(GenericCommand):
         frames = [current_frame]
         while current_frame != orig_frame:
             current_frame = current_frame.older()
+            if not current_frame: break
             frames.append(current_frame)
 
         nb_backtrace_before = self["nb_lines_backtrace_before"]
@@ -9623,7 +9633,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.autosave_breakpoints_file"] = GefSetting("", str, "Automatically save and restore breakpoints")
         gef.config["gef.disable_target_remote_overwrite"] = GefSetting(False, bool, "Disable the overwrite of `target remote`")
         plugins_dir = GefSetting("", str, "Autoload additional GEF commands from external directory", hooks={"on_write": GefSetting.no_spaces})
-        plugins_dir.add_hook("on_write", lambda _: self.load_extra_plugins())
+        plugins_dir.add_hook("on_write", lambda _: self.reload_extra_plugins())
         gef.config["gef.extra_plugins_dir"] = plugins_dir
         gef.config["gef.disable_color"] = GefSetting(False, bool, "Disable all colors in GEF")
         gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, str, "Directory to use for temporary/cache content", hooks={"on_write": GefSetting.no_spaces})
@@ -9639,19 +9649,19 @@ class GefCommand(gdb.Command):
         return
 
     @property
+    @deprecated()
     def loaded_commands(self) -> List[Tuple[str, Type[GenericCommand], Any]]:
-        print("Obsolete loaded_commands")
-        raise
+        raise ObsoleteException("Obsolete loaded_commands")
 
     @property
+    @deprecated()
     def loaded_functions(self) -> List[Type[GenericFunction]]:
-        print("Obsolete loaded_functions")
-        raise
+        raise ObsoleteException("Obsolete loaded_functions")
 
     @property
+    @deprecated()
     def missing_commands(self) -> Dict[str, Exception]:
-        print("Obsolete missing_commands")
-        raise
+        raise ObsoleteException("Obsolete missing_commands")
 
     def setup(self) -> None:
         self.load()
@@ -9673,6 +9683,8 @@ class GefCommand(gdb.Command):
             try:
                 dbg(f"Loading '{fpath}'")
                 gdb.execute(f"source {fpath}")
+            except AlreadyRegisteredException:
+                pass
             except Exception as e:
                 warn(f"Exception while loading {fpath}: {str(e)}")
                 return False
@@ -9713,6 +9725,12 @@ class GefCommand(gdb.Command):
         except gdb.error as e:
             err(f"failed: {e}")
         return nb_added
+
+    def reload_extra_plugins(self) -> int:
+        try:
+            return self.load_extra_plugins()
+        except:
+            return -1
 
     @property
     def loaded_command_names(self) -> Iterable[str]:
@@ -11313,11 +11331,11 @@ if __name__ == "__main__":
 
     try:
         pyenv = which("pyenv")
-        PYENV_ROOT = gef_pystring(subprocess.check_output([pyenv, "root"]).strip())
-        PYENV_VERSION = gef_pystring(subprocess.check_output([pyenv, "version-name"]).strip())
-        site_packages_dir = os.path.join(PYENV_ROOT, "versions", PYENV_VERSION, "lib",
-                                             f"python{PYENV_VERSION[:3]}", "site-packages")
-        site.addsitedir(site_packages_dir)
+        pyenv_root = gef_pystring(subprocess.check_output([pyenv, "root"]).strip())
+        pyenv_version = gef_pystring(subprocess.check_output([pyenv, "version-name"]).strip())
+        site_packages_dir = pathlib.Path(pyenv_root) / f"versions/{pyenv_version}/lib/python{pyenv_version[:3]}/site-packages"
+        assert site_packages_dir.is_dir()
+        site.addsitedir(str(site_packages_dir.absolute()))
     except FileNotFoundError:
         pass
 
@@ -11353,6 +11371,7 @@ if __name__ == "__main__":
 
     # load GEF, set up the managers and load the plugins, functions,
     reset()
+    assert isinstance(gef, Gef)
     gef.gdb.load()
     gef.gdb.show_banner()
 
