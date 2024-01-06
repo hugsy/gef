@@ -5,7 +5,8 @@
 
 import pytest
 
-from tests.utils import ARCH, is_64b, debug_target, RemoteGefUnitTestGeneric
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import ARCH, is_64b, debug_target
 
 
 class GefArchApi(RemoteGefUnitTestGeneric):
@@ -29,8 +30,11 @@ class GefArchApi(RemoteGefUnitTestGeneric):
 
         self._gdb.execute("start")
         assert arch.flag_register_to_human(0).startswith("[zero carry parity adjust")
-        assert arch.flag_register_to_human(None).lower().startswith("[zero carry parity adjust")
-
+        assert (
+            arch.flag_register_to_human(None)
+            .lower()
+            .startswith("[zero carry parity adjust")
+        )
 
     @pytest.mark.skipif(ARCH != "i686", reason=f"Skipped for {ARCH}")
     def test_api_gef_arch_x86(self):

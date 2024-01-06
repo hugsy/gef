@@ -2,18 +2,19 @@
 `gef.session` test module.
 """
 
-import pathlib
 import os
+import pathlib
 import random
+import re
+
+from tests.base import RemoteGefUnitTestGeneric
 
 from tests.utils import (
     debug_target,
-    RemoteGefUnitTestGeneric,
     gdbserver_session,
     qemuuser_session,
     GDBSERVER_DEFAULT_HOST,
 )
-import re
 
 
 class GefSessionApi(RemoteGefUnitTestGeneric):

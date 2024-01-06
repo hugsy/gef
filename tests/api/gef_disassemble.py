@@ -4,7 +4,8 @@
 
 import pytest
 
-from tests.utils import ARCH, debug_target, RemoteGefUnitTestGeneric
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import ARCH, debug_target
 
 
 class GefDisassembleApiFunction(RemoteGefUnitTestGeneric):

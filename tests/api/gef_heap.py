@@ -5,8 +5,8 @@
 import pytest
 import random
 
+from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import ARCH, debug_target, is_64b
-from tests.utils import RemoteGefUnitTestGeneric
 
 TCACHE_BINS = 64
 

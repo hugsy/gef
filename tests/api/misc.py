@@ -6,11 +6,12 @@ import pathlib
 import pytest
 import random
 
+from tests.base import RemoteGefUnitTestGeneric
+
 from tests.utils import (
     debug_target,
     gdbserver_session,
     qemuuser_session,
-    RemoteGefUnitTestGeneric,
     GDBSERVER_DEFAULT_HOST,
 )
 
@@ -82,6 +83,7 @@ class MiscFunctionTest(RemoteGefUnitTestGeneric):
         sections = root.eval("list(GefMemoryManager.parse_gdb_info_sections())")
         assert len(sections) > 0
 
+    @pytest.mark.slow
     def test_func_parse_maps_remote_gdbserver(self):
         root, gdb = self._conn.root, self._gdb
         # When in a gef-remote session `parse_gdb_info_sections` should work to

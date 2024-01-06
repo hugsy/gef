@@ -3,8 +3,8 @@ test module for deprecated functions
 """
 
 
-
-from tests.utils import WARNING_DEPRECATION_MESSAGE, RemoteGefUnitTestGeneric
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import WARNING_DEPRECATION_MESSAGE
 
 
 class GefFuncDeprecatedApi(RemoteGefUnitTestGeneric):
