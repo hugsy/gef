@@ -31,7 +31,7 @@ DEFAULT_CONTEXT = "-code -stack"
 DEFAULT_TARGET = TMPDIR / "default.out"
 GEF_DEFAULT_PROMPT = "gef➤  "
 GEF_DEFAULT_TEMPDIR = "/tmp/gef"
-GEF_PATH = pathlib.Path(os.getenv("GEF_PATH", "gef.py"))
+GEF_PATH = pathlib.Path(os.getenv("GEF_PATH", "gef.py")).absolute()
 RPYC_GEF_PATH = GEF_PATH.parent / "scripts/remote_debug.py"
 RPYC_HOST = "localhost"
 RPYC_PORT = 18812
@@ -75,32 +75,45 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
     """ """
 
     def setUp(self) -> None:
+        self._coverage_file = None
         if not hasattr(self, "_target"):
             setattr(self, "_target", debug_target("default"))
         else:
             assert isinstance(self._target, pathlib.Path)  # type: ignore pylint: disable=E1101
             assert self._target.exists()  # type: ignore pylint: disable=E1101
         self._port = random.randint(1025, 65535)
+        self._commands = f"""
+source {GEF_PATH}
+gef config gef.debug True
+gef config gef.disable_color True
+source {RPYC_GEF_PATH}
+"""
+        if COVERAGE_DIR:
+            self._coverage_file = pathlib.Path(COVERAGE_DIR) / os.getenv(
+                "PYTEST_XDIST_WORKER", "gw0"
+            )
+            self._commands += f"""
+pi import coverage
+pi cov = coverage.Coverage(data_file="{self._coverage_file}", auto_data=True, branch=True)
+pi cov.start()
+"""
+
+        self._commands += f"""
+pi start_rpyc_service({self._port})
+"""
+
+        self._initfile = tempfile.NamedTemporaryFile(mode="w", delete=False)
+        self._initfile.write(self._commands)
+        self._initfile.flush()
         self._command = [
             "gdb",
             "-q",
             "-nx",
             "-ex",
-            f"source {GEF_PATH}",
-            "-ex",
-            "gef config gef.debug True",
-            "-ex",
-            "gef config gef.disable_color True",
-            # TODO add coverage check
-            "-ex",
-            f"source {RPYC_GEF_PATH}",
-            "-ex",
-            f"pi start_rpyc_service({self._port})",
-        ]
-        self._command.append("--")
-        self._command.append(
+            f"source {self._initfile.name}",
+            "--",
             str(self._target.absolute()),  # type: ignore pylint: disable=E1101
-        )
+        ]
         self._process = subprocess.Popen(self._command)
         assert self._process.pid > 0
         time.sleep(0.5)
@@ -113,6 +126,9 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
         return super().setUp()
 
     def tearDown(self) -> None:
+        if COVERAGE_DIR:
+            self._gdb.execute("pi cov.stop()")
+            self._gdb.execute("pi cov.save()")
         self._conn.close()
         self._process.terminate()
         return super().tearDown()
