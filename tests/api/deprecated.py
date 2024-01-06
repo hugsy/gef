@@ -29,4 +29,4 @@ class GefFuncDeprecatedApi(RemoteGefUnitTestGeneric):
 
         for item in old_stuff:
             output = gdb.execute(f"pi {item}", to_string=True)
-            self.assertIn(WARNING_DEPRECATION_MESSAGE, output)
+            assert WARNING_DEPRECATION_MESSAGE in output

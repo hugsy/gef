@@ -34,6 +34,8 @@ STRIP_ANSI_DEFAULT = True
 GDBSERVER_DEFAULT_HOST = "localhost"
 GDBSERVER_DEFAULT_PORT = 1234
 
+GEF_RIGHT_ARROW = " → "
+
 CommandType = Union[str, Iterable[str]]
 
 
@@ -64,7 +66,6 @@ class Color(enum.Enum):
 
 class GdbAssertionError(AssertionError):
     pass
-
 
 
 class GefUnitTestGeneric(unittest.TestCase):

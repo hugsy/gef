@@ -25,8 +25,8 @@ class GefArchApi(RemoteGefUnitTestGeneric):
     @pytest.mark.skipif(ARCH != "x86_64", reason=f"Skipped for {ARCH}")
     def test_api_gef_arch_x86_64(self):
         arch = self._gef.arch
-        self.assertEqual(arch.arch, "X86")
-        self.assertEqual(arch.mode, "64")
+        assert arch.arch == "X86"
+        assert arch.mode == "64"
 
         self._gdb.execute("start")
         assert arch.flag_register_to_human(0).startswith("[zero carry parity adjust")
@@ -39,5 +39,5 @@ class GefArchApi(RemoteGefUnitTestGeneric):
     @pytest.mark.skipif(ARCH != "i686", reason=f"Skipped for {ARCH}")
     def test_api_gef_arch_x86(self):
         arch = self._gef.arch
-        self.assertEqual(arch.arch, "X86")
-        self.assertEqual(arch.mode, "32")
+        assert arch.arch == "X86"
+        assert arch.mode == "32"

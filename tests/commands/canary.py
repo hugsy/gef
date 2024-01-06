@@ -4,7 +4,7 @@
 
 
 from tests.utils import ARCH, ERROR_INACTIVE_SESSION_MESSAGE, debug_target, p64
-from tests.utils import RemoteGefUnitTestGeneric
+from tests.base import RemoteGefUnitTestGeneric
 import pytest
 
 class CanaryCommand(RemoteGefUnitTestGeneric):
@@ -19,8 +19,8 @@ class CanaryCommand(RemoteGefUnitTestGeneric):
         self.assertEqual(ERROR_INACTIVE_SESSION_MESSAGE, self._gdb.execute("canary", to_string=True))
         self._gdb.execute("start")
         res = self._gdb.execute("canary", to_string=True)
-        self.assertIn("The canary of process", res)
-        self.assertEqual(self._gef.session.canary[0], self._gef.session.original_canary[0])
+        assert "The canary of process" in res
+        assert self._gef.session.canary[0] == self._gef.session.original_canary[0]
 
 
     @pytest.mark.skipif(ARCH != "x86_64", reason=f"Not implemented for {ARCH}")
@@ -30,4 +30,4 @@ class CanaryCommand(RemoteGefUnitTestGeneric):
         gdb.execute("start")
         gef.memory.write(gef.arch.canary_address(), p64(0xdeadbeef))
         res = gef.memory.read(gef.arch.canary_address(), gef.arch.ptrsize)
-        self.assertEqual(0xdeadbeef, res)
+        assert 0xdeadbeef == res
