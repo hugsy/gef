@@ -10161,11 +10161,11 @@ class GefAlias(gdb.Command):
         if not p:
             return
 
-        if any(x for x in gef.session.aliases if x._alias == alias):
+        if any(x for x in gef.session.aliases if x.alias == alias):
             return
 
-        self._command = command
-        self._alias = alias
+        self.command = command
+        self.alias = alias
         c = command.split()[0]
         r = self.lookup_command(c)
         self.__doc__ = f"Alias for '{Color.greenify(command)}'"
@@ -10180,8 +10180,14 @@ class GefAlias(gdb.Command):
         gef.session.aliases.append(self)
         return
 
+    def __repr__(self) -> str:
+        return f"GefAlias(from={self.alias}, to={self.command})"
+
+    def __str__(self) -> str:
+        return f"GefAlias(from={self.alias}, to={self.command})"
+
     def invoke(self, args: Any, from_tty: bool) -> None:
-        gdb.execute(f"{self._command} {args}", from_tty=from_tty)
+        gdb.execute(f"{self.command} {args}", from_tty=from_tty)
         return
 
     def lookup_command(self, cmd: str) -> Optional[Tuple[str, GenericCommand]]:
@@ -10246,7 +10252,7 @@ class AliasesRmCommand(AliasesCommand):
             self.usage()
             return
         try:
-            alias_to_remove = next(filter(lambda x: x._alias == argv[0], gef.session.aliases))
+            alias_to_remove = next(filter(lambda x: x.alias == argv[0], gef.session.aliases))
             gef.session.aliases.remove(alias_to_remove)
         except (ValueError, StopIteration):
             err(f"{argv[0]} not found in aliases.")
@@ -10269,7 +10275,7 @@ class AliasesListCommand(AliasesCommand):
     def do_invoke(self, _: List[str]) -> None:
         ok("Aliases defined:")
         for a in gef.session.aliases:
-            gef_print(f"{a._alias:30s} {RIGHT_ARROW} {a._command}")
+            gef_print(f"{a.alias:30s} {RIGHT_ARROW} {a.command}")
         return
 
 
