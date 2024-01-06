@@ -2,79 +2,83 @@
 `gef.session` test module.
 """
 
-
+import pathlib
 import os
 import random
-import subprocess
+
 from tests.utils import (
-    TMPDIR,
-    gdb_test_python_method,
     debug_target,
-    GefUnitTestGeneric,
+    RemoteGefUnitTestGeneric,
     gdbserver_session,
-    gdb_run_cmd,
     qemuuser_session,
-    GDBSERVER_DEFAULT_HOST
+    GDBSERVER_DEFAULT_HOST,
 )
 import re
 
 
-class GefSessionApi(GefUnitTestGeneric):
+class GefSessionApi(RemoteGefUnitTestGeneric):
     """`gef.session` test module."""
 
-    def test_func_get_filepath(self):
-        res = gdb_test_python_method("gef.session.file", target=debug_target("default"))
-        self.assertNoException(res)
-        target = TMPDIR / "foo bar"
-        subprocess.call(["cp", debug_target("default"), target])
-        res = gdb_test_python_method("gef.session.file", target=target)
-        self.assertNoException(res)
-        subprocess.call(["rm", target])
+    def setUp(self) -> None:
+        self._target = debug_target("default")
+        return super().setUp()
 
+    def test_func_get_filepath(self):
+        gdb, gef = self._gdb, self._gef
+        gdb.execute("start")
+        assert isinstance(gef.session.file, pathlib.Path)
+        assert str(gef.session.file.absolute()) == str(self._target.absolute())
 
     def test_func_get_pid(self):
-        res = gdb_test_python_method("gef.session.pid", target=debug_target("default"))
-        self.assertNoException(res)
-        self.assertTrue(int(res.splitlines()[-1]))
+        gdb, gef = self._gdb, self._gef
+        gdb.execute("start")
 
+        pid_from_gdb = int(
+            gdb.execute("info proc", to_string=True).splitlines()[0].split()[1]
+        )
+        assert gef.session.pid == pid_from_gdb
 
     def test_func_auxiliary_vector(self):
-        func = "gef.session.auxiliary_vector"
-        res = gdb_test_python_method(func, target=debug_target("default"))
-        self.assertNoException(res)
-        # we need at least ("AT_PLATFORM", "AT_EXECFN") right now
-        self.assertTrue("'AT_PLATFORM'" in res)
-        self.assertTrue("'AT_EXECFN':" in res)
-        self.assertFalse("'AT_WHATEVER':" in res)
+        gdb, gef = self._gdb, self._gef
+        gdb.execute("start")
+
+        assert "AT_PLATFORM" in gef.session.auxiliary_vector
+        assert "AT_EXECFN" in gef.session.auxiliary_vector
+        assert "AT_WHATEVER" not in gef.session.auxiliary_vector
+        assert gef.session.auxiliary_vector["AT_PAGESZ"] == 0x1000
 
     def test_root_dir_local(self):
-        func = "(s.st_dev, s.st_ino)"
-        res = gdb_test_python_method(func, target=debug_target("default"), before="s=os.stat(gef.session.root)")
-        self.assertNoException(res)
-        st_dev, st_ino = eval(res.split("\n")[-1])
-        stat_root = os.stat("/")
+        gdb, gef = self._gdb, self._gef
+        gdb.execute("start")
+
+        assert gef.session.root
+        result = self._conn.root.eval("os.stat(gef.session.root)")
+        expected = os.stat("/")
         # Check that the `/` directory and the `session.root` directory are the same
-        assert (stat_root.st_dev == st_dev) and (stat_root.st_ino == st_ino)
+        assert (expected.st_dev == result.st_dev) and (expected.st_ino == result.st_ino)
 
     def test_root_dir_remote(self):
-        func = "(s.st_dev, s.st_ino)"
-        stat_root = os.stat("/")
+        gdb = self._gdb
+        gdb.execute("start")
+
+        expected = os.stat("/")
         host = GDBSERVER_DEFAULT_HOST
         port = random.randint(1025, 65535)
-        before = [f"gef-remote {host} {port}", "pi s=os.stat(gef.session.root)"]
         with gdbserver_session(port=port):
-            res = gdb_run_cmd(f"pi {func}", target=debug_target("default"), before=before)
-            self.assertNoException(res)
-            st_dev, st_ino = eval(res.split("\n")[-1])
-            assert (stat_root.st_dev == st_dev) and (stat_root.st_ino == st_ino)
+            gdb.execute(f"gef-remote {host} {port}")
+            result = self._conn.root.eval("os.stat(gef.session.root)")
+            assert (expected.st_dev == result.st_dev) and (
+                expected.st_ino == result.st_ino
+            )
 
     def test_root_dir_qemu(self):
+        gdb, gef = self._gdb, self._gef
+        gdb.execute("start")
+
         host = GDBSERVER_DEFAULT_HOST
         port = random.randint(1025, 65535)
         with qemuuser_session(port=port):
-            target = debug_target("default")
-            before = [
-                f"gef-remote --qemu-user --qemu-binary {target} {host} {port}"]
-            res = gdb_run_cmd(f"pi gef.session.root", target=debug_target("default"), before=before)
-            self.assertNoException(res)
-            assert re.search(r"\/proc\/[0-9]+/root", res)
+            gdb.execute(
+                f"gef-remote --qemu-user --qemu-binary {self._target} {host} {port}"
+            )
+            assert re.search(r"\/proc\/[0-9]+/root", str(gef.session.root))
