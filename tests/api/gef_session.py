@@ -73,7 +73,6 @@ class GefSessionApi(RemoteGefUnitTestGeneric):
 
     def test_root_dir_qemu(self):
         gdb, gef = self._gdb, self._gef
-        gdb.execute("start")
 
         host = GDBSERVER_DEFAULT_HOST
         port = random.randint(1025, 65535)
