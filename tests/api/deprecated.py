@@ -2,18 +2,18 @@
 test module for deprecated functions
 """
 
-import pytest
 
-from tests.utils import (
-    gdb_test_python_method,
-    GefUnitTestGeneric,
-)
 
-class GefFuncDeprecatedApi(GefUnitTestGeneric):
+from tests.utils import WARNING_DEPRECATION_MESSAGE, RemoteGefUnitTestGeneric
+
+
+class GefFuncDeprecatedApi(RemoteGefUnitTestGeneric):
     """Test class for deprecated functions and variables. Each of those tests expect to receive a
     deprecation warning."""
 
     def test_deprecated_elf_values(self):
+        gdb = self._gdb
+
         old_stuff = (
             "Elf.X86_64",
             "Elf.X86_32",
@@ -28,8 +28,5 @@ class GefFuncDeprecatedApi(GefUnitTestGeneric):
         )
 
         for item in old_stuff:
-            with pytest.warns(Warning) as record:
-                res = gdb_test_python_method(item)
-                self.assertNoException(res)
-                if not record:
-                    pytest.fail(f"Expected a warning for '{item}'!")
+            output = gdb.execute(f"pi {item}", to_string=True)
+            self.assertIn(WARNING_DEPRECATION_MESSAGE, output)
