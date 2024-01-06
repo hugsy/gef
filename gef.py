@@ -102,29 +102,17 @@ def http_get(url: str) -> Optional[bytes]:
 
 
 def update_gef(argv: List[str]) -> int:
-    """Try to update `gef` to the latest version pushed on GitHub main branch.
-    Return 0 on success, 1 on failure. """
-    ver = GEF_DEFAULT_BRANCH
-    latest_gef_data = http_get(f"https://raw.githubusercontent.com/hugsy/gef/{ver}/scripts/gef.sh")
-    if not latest_gef_data:
-        print("[-] Failed to get remote gef")
-        return 1
-    with tempfile.NamedTemporaryFile(suffix=".sh") as fd:
-        fd.write(latest_gef_data)
-        fd.flush()
-        fpath = pathlib.Path(fd.name)
-        return subprocess.run(["bash", fpath, ver], stdout=subprocess.DEVNULL,
-                              stderr=subprocess.DEVNULL).returncode
+    """Obsolete. Use the `gef.sh`."""
+    return -1
 
 
 try:
     import gdb  # type:ignore
 except ImportError:
-    # if out of gdb, the only action allowed is to update gef.py
     if len(sys.argv) >= 2 and sys.argv[1].lower() in ("--update", "--upgrade"):
-        sys.exit(update_gef(sys.argv[2:]))
+        print("[-] `update_gef` is obsolete. Use the `gef.sh` script to update gef from the command line.")
     print("[-] gef cannot run as standalone")
-    sys.exit(0)
+    sys.exit(1)
 
 
 GDB_MIN_VERSION                        = (8, 0)
@@ -702,6 +690,15 @@ class Section:
     def __str__(self) -> str:
         return (f"Section(page_start={self.page_start:#x}, page_end={self.page_end:#x}, "
                 f"permissions={self.permission!s})")
+
+    def __eq__(self, other: "Section") -> bool:
+        return \
+            self.page_start == other.page_start and \
+            self.page_end == other.page_end and \
+            self.offset == other.offset and \
+            self.permission == other.permission and \
+            self.inode == other.inode and \
+            self.path == other.path
 
 
 Zone = collections.namedtuple("Zone", ["name", "zone_start", "zone_end", "filename"])
@@ -4567,6 +4564,8 @@ class GenericCommand(gdb.Command):
             # catching generic Exception, but rather specific ones. This is allows a much cleaner use.
             if is_debug():
                 show_last_exception()
+                if gef.config["gef.propagate_debug_exception"] is True:
+                    raise
             else:
                 err(f"Command '{self._cmdline_}' failed to execute properly, reason: {e}")
         return
@@ -5821,7 +5820,7 @@ class SearchPatternCommand(GenericCommand):
 
             try:
                 mem = gef.memory.read(chunk_addr, chunk_size)
-            except gdb.MemoryError as e:
+            except gdb.MemoryError:
                 return []
 
             for match in re.finditer(_pattern, mem):
@@ -9642,6 +9641,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.bruteforce_main_arena"] = GefSetting(False, bool, "Allow bruteforcing main_arena symbol if everything else fails")
         gef.config["gef.libc_version"] = GefSetting("", str, "Specify libc version when auto-detection fails")
         gef.config["gef.main_arena_offset"] = GefSetting("", str, "Offset from libc base address to main_arena symbol (int or hex). Set to empty string to disable.")
+        gef.config["gef.propagate_debug_exception"] = GefSetting(False, bool, "If true, when debug mode is enabled, Python exceptions will be propagated all the way.")
 
         self.commands : Dict[str, GenericCommand] = collections.OrderedDict()
         self.functions : Dict[str, GenericFunction] = collections.OrderedDict()
@@ -10825,6 +10825,7 @@ class GefSetting:
         if not callable(func):
             raise ValueError("hook is not callable")
         self.hooks[access].append(func)
+        return self
 
     @staticmethod
     def no_spaces(value):

@@ -85,6 +85,7 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
         self._commands = f"""
 source {GEF_PATH}
 gef config gef.debug True
+gef config gef.propagate_debug_exception True
 gef config gef.disable_color True
 source {RPYC_GEF_PATH}
 """
@@ -396,10 +397,11 @@ def stop_gdbserver(gdbserver: subprocess.Popen) -> None:
 
 
 @contextlib.contextmanager
-def gdbserver_session(*args, **kwargs):
-    exe = kwargs.get("exe", "") or debug_target("default")
-    host = kwargs.get("host", GDBSERVER_DEFAULT_HOST)
-    port = kwargs.get("port", GDBSERVER_DEFAULT_PORT)
+def gdbserver_session(
+    port: int = GDBSERVER_DEFAULT_PORT,
+    host: str = GDBSERVER_DEFAULT_HOST,
+    exe: Union[str, pathlib.Path] = debug_target("default"),
+):
     sess = start_gdbserver(exe, host, port)
     try:
         time.sleep(1)  # forced delay to allow gdbserver to start listening
