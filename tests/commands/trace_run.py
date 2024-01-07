@@ -3,22 +3,21 @@ trace-run command test module
 """
 
 
-from tests.utils import TMPDIR, GefUnitTestGeneric, gdb_run_cmd, gdb_start_silent_cmd
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import TMPDIR, ERROR_INACTIVE_SESSION_MESSAGE
 
 
-class TraceRunCommand(GefUnitTestGeneric):
+class TraceRunCommand(RemoteGefUnitTestGeneric):
     """`trace-run` command test module"""
 
-
     def test_cmd_trace_run(self):
+        gdb = self._gdb
         cmd = "trace-run"
-        res = gdb_run_cmd(cmd)
-        self.assertFailIfInactiveSession(res)
+        res = gdb.execute(cmd, to_string=True)
+        self.assertEqual(ERROR_INACTIVE_SESSION_MESSAGE, res)
 
         cmd = "trace-run $pc+1"
-        res = gdb_start_silent_cmd(
-            cmd,
-            before=[f"gef config trace-run.tracefile_prefix {TMPDIR / 'gef-trace-'}"]
-        )
-        self.assertNoException(res)
+        gdb.execute("start")
+        gdb.execute(f"gef config trace-run.tracefile_prefix {TMPDIR / 'gef-trace-'}")
+        res = gdb.execute(cmd, to_string=True)
         self.assertIn("Tracing from", res)

@@ -3,16 +3,14 @@
 """
 
 
-from tests.utils import GefUnitTestGeneric, gdb_run_cmd
+from tests.base import RemoteGefUnitTestGeneric
 
 
-class VersionCommand(GefUnitTestGeneric):
+class VersionCommand(RemoteGefUnitTestGeneric):
     """`version` command test module"""
-
 
     cmd = "version"
 
-
     def test_cmd_version(self):
-        res = gdb_run_cmd(self.cmd)
-        self.assertNoException(res)
+        gdb = self._gdb
+        gdb.execute(self.cmd)

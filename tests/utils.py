@@ -475,33 +475,33 @@ def download_file(url: str) -> Optional[bytes]:
         return None
 
 
-def u8(x):
+def u8(x: bytes) -> int:
     return struct.unpack("<B", x)[0]
 
 
-def u16(x):
+def u16(x: bytes) -> int:
     return struct.unpack("<H", x)[0]
 
 
-def u32(x):
+def u32(x: bytes) -> int:
     return struct.unpack("<I", x)[0]
 
 
-def u64(x):
+def u64(x: bytes) -> int:
     return struct.unpack("<Q", x)[0]
 
 
-def p8(x):
-    return struct.unpack("<B", x)
+def p8(x: int) -> bytes:
+    return struct.pack("<B", x)
 
 
-def p16(x):
+def p16(x: int) -> bytes:
     return struct.pack("<H", x)
 
 
-def p32(x):
+def p32(x: int) -> bytes:
     return struct.pack("<I", x)
 
 
-def p64(x):
+def p64(x: int) -> bytes:
     return struct.pack("<Q", x)

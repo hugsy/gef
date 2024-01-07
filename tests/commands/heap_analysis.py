@@ -3,20 +3,28 @@
 """
 
 
-from tests.utils import debug_target, gdb_run_cmd, gdb_start_silent_cmd
-from tests.utils import GefUnitTestGeneric
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE, debug_target
 
 
-class HeapAnalysisCommand(GefUnitTestGeneric):
+class HeapAnalysisCommand(RemoteGefUnitTestGeneric):
     """`heap-analysis` command test module"""
 
+    def setUp(self) -> None:
+        self._target = debug_target("heap-analysis")
+        return super().setUp()
 
     def test_cmd_heap_analysis(self):
+        gdb = self._gdb
+
         cmd = "heap-analysis-helper"
-        target = debug_target("heap-analysis")
-        self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
-        res = gdb_start_silent_cmd(cmd, after=["continue"], target=target)
-        self.assertNoException(res)
+
+        self.assertEqual(
+            ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute(cmd, to_string=True)
+        )
+
+        gdb.execute("start")
+        res = gdb.execute(cmd, after=["continue"], to_string=True)
         self.assertIn("Tracking", res)
         self.assertIn("correctly setup", res)
         self.assertIn("malloc(16)=", res)

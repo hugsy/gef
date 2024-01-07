@@ -9,7 +9,7 @@ from tests.utils import (
 )
 
 
-class RegressionRegisterOrder(GefUnitTestGeneric):
+class RegressionRegisterOrder(RemoteGefUnitTestGeneric):
     """Tests for regression in the order registers are displayed by `registers` ."""
 
     @pytest.mark.skipif(ARCH not in ["x86_64", "i686"], reason=f"Skipped for {ARCH}")
@@ -25,7 +25,8 @@ class RegressionRegisterOrder(GefUnitTestGeneric):
                                           "$r13", "$r14", "$r15", "$eflags", "$cs"]
         else:
             raise ValueError("Unknown architecture")
-        lines = gdb_start_silent_cmd(cmd).splitlines()[-len(registers_in_correct_order):]
+        lines = gdb.execute("start")
+gdb.execute(cmd).splitlines()[-len(registers_in_correct_order, to_string=True):]
         lines = [line.split()[0].replace(':', '') for line in lines]
         self.assertEqual(registers_in_correct_order, lines)
 

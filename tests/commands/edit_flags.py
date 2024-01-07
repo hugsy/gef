@@ -5,48 +5,45 @@
 
 import pytest
 
-from tests.utils import (
-    ARCH,
-    GefUnitTestGeneric,
-    gdb_start_silent_cmd_last_line,
-    gdb_start_silent_cmd,
-)
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import ARCH
 
 
-@pytest.mark.skipif(ARCH not in ["i686", "x86_64", "armv7l", "aarch64"],
-                    reason=f"Skipped for {ARCH}")
-class EditFlagsCommand(GefUnitTestGeneric):
+@pytest.mark.skipif(ARCH in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
+class EditFlagsCommand(RemoteGefUnitTestGeneric):
     """`edit-flags` command test module"""
 
-    def setUp(self) -> None:
-        res = gdb_start_silent_cmd_last_line("edit-flags")
-        self.assertNoException(res)
-        flags = res[1:-1].split()
-        self.flag_name = "carry"
-        self.initial_value = [f for f in flags if f.lower() == self.flag_name][0]
-        return super().setUp()
-
-
     def test_cmd_edit_flags_disable(self):
-        res = gdb_start_silent_cmd_last_line("edit-flags",
-                                             after=(f"edit-flags +{self.flag_name}",
-                                                    f"edit-flags -{self.flag_name}"))
-        self.assertNoException(res)
-        self.assertIn(self.flag_name.lower(), res)
+        gdb = self._gdb
+        gef = self._gef
 
+        with pytest.raises(gdb.error):
+            gdb.execute("edit-flags")
+
+        gdb.execute("start")
+        res: str = gdb.execute("edit-flags", to_string=True).strip()
+        assert res.startswith("[") and res.endswith("]")
+
+        # pick first flag
+        idx, name = next(gef.arch.flags_table)
+        gdb.execute(f"edit-flags -{name}")
+        assert gef.arch.register(gef.arch.flag_register) & (1 << idx) == 0
 
     def test_cmd_edit_flags_enable(self):
-        res = gdb_start_silent_cmd("edit-flags",
-                                             after=(f"edit-flags -{self.flag_name}",
-                                                    f"edit-flags +{self.flag_name}"))
-        self.assertNoException(res)
-        self.assertIn(self.flag_name.upper(), res)
+        gdb = self._gdb
+        gef = self._gef
+        gdb.execute("start")
 
+        idx, name = next(gef.arch.flags_table)
+        gdb.execute(f"edit-flags +{name}")
+        assert gef.arch.register(gef.arch.flag_register) & (1 << idx) != 0
 
     def test_cmd_edit_flags_toggle(self):
-        res = gdb_start_silent_cmd_last_line(f"edit-flags ~{self.flag_name}")
-        self.assertNoException(res)
-        if self.initial_value == self.flag_name.upper():
-            self.assertIn(self.flag_name.lower(), res)
-        else:
-            self.assertIn(self.flag_name.upper(), res)
+        gdb = self._gdb
+        gef = self._gef
+
+        idx, name = next(gef.arch.flags_table)
+        init_val = gef.arch.register(gef.arch.flag_register) & (1 << idx)
+        gdb.execute(f"edit-flags ~{name}")
+        new_val = gef.arch.register(gef.arch.flag_register) & (1 << idx)
+        assert init_val != new_val

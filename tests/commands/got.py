@@ -4,28 +4,31 @@
 
 import pytest
 
+from tests.base import RemoteGefUnitTestGeneric
+
 from tests.utils import (
     ARCH,
+    ERROR_INACTIVE_SESSION_MESSAGE,
     debug_target,
-    gdb_run_cmd,
-    gdb_start_silent_cmd,
-    GefUnitTestGeneric,
 )
 
 
 @pytest.mark.skipif(ARCH in ("ppc64le",), reason=f"Skipped for {ARCH}")
-class GotCommand(GefUnitTestGeneric):
+class GotCommand(RemoteGefUnitTestGeneric):
     """`got` command test module"""
 
 
     def test_cmd_got(self):
-        cmd = "got"
+        gdb = self._gdb
+
         target = debug_target("format-string-helper")
-        self.assertFailIfInactiveSession(gdb_run_cmd(cmd, target=target))
-        res = gdb_start_silent_cmd(cmd, target=target)
+        self.assertEqual(ERROR_INACTIVE_SESSION_MESSAGE,gdb.execute("got", to_string=True))
+
+        gdb.execute("start")
+        res = gdb.execute("got", to_string=True)
         self.assertIn("printf", res)
         self.assertIn("strcpy", res)
 
-        res = gdb_start_silent_cmd("got printf", target=target)
+        res = gdb.execute("got printf", target=target, to_string=True)
         self.assertIn("printf", res)
         self.assertNotIn("strcpy", res)

@@ -3,27 +3,34 @@
 """
 
 
-from tests.utils import debug_target, gdb_start_silent_cmd
-from tests.utils import GefUnitTestGeneric
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import debug_target
 
 
-class ProcessSearchCommand(GefUnitTestGeneric):
+class ProcessSearchCommand(RemoteGefUnitTestGeneric):
     """`process-search` command test module"""
 
+    def setUp(self) -> None:
+        self._target = debug_target("pattern")
+        return super().setUp()
 
-    def test_cmd_process_search(self):
-        target = debug_target("pattern")
-        res = gdb_start_silent_cmd("process-search", target=target,
-                                   before=["set args w00tw00t"])
-        self.assertNoException(res)
-        self.assertIn(str(target), res)
+    def test_cmd_process_search1(self):
+        gdb = self._gdb
+        gdb.execute("set args w00tw00t")
+        gdb.execute("start")
+        res = gdb.execute("process-search", to_string=True)
+        self.assertIn(str(self._target), res)
 
-        res = gdb_start_silent_cmd("process-search gdb.*fakefake",
-                                   target=target, before=["set args w00tw00t"])
-        self.assertNoException(res)
+    def test_cmd_process_search2(self):
+        gdb = self._gdb
+        gdb.execute("set args w00tw00t")
+        gdb.execute("start")
+        res = gdb.execute("process-search gdb.*fakefake", to_string=True)
         self.assertIn("gdb", res)
 
-        res = gdb_start_silent_cmd("process-search --smart-scan gdb.*fakefake",
-                                   target=target, before=["set args w00tw00t"])
-        self.assertNoException(res)
+    def test_cmd_process_search3(self):
+        gdb = self._gdb
+        gdb.execute("set args w00tw00t")
+        gdb.execute("start")
+        res = gdb.execute("process-search --smart-scan gdb.*fakefake", to_string=True)
         self.assertNotIn("gdb", res)

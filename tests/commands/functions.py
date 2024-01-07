@@ -3,16 +3,13 @@
 """
 
 
-from tests.utils import gdb_run_cmd
-from tests.utils import GefUnitTestGeneric
+from tests.base import RemoteGefUnitTestGeneric
 
 
-class FunctionsCommand(GefUnitTestGeneric):
+class FunctionsCommand(RemoteGefUnitTestGeneric):
     """`functions` command test module"""
 
-
     def test_cmd_functions(self):
-        cmd = "functions"
-        res = gdb_run_cmd(cmd)
-        self.assertNoException(res)
+        gdb = self._gdb
+        res = gdb.execute("functions", to_string=True)
         self.assertIn("$_heap", res)

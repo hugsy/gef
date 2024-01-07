@@ -3,10 +3,10 @@
 """
 
 
-from tests.utils import GefUnitTestGeneric
+from tests.base import RemoteGefUnitTestGeneric
 
 
-class ContextCommand(GefUnitTestGeneric):
+class ContextCommand(RemoteGefUnitTestGeneric):
     """`context` command test module"""
 
 

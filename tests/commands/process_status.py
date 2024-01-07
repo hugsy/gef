@@ -3,18 +3,21 @@
 """
 
 
-from tests.utils import gdb_run_cmd, gdb_start_silent_cmd
-from tests.utils import GefUnitTestGeneric
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE
 
 
-class ProcessStatusCommand(GefUnitTestGeneric):
+class ProcessStatusCommand(RemoteGefUnitTestGeneric):
     """`process-status` command test module"""
 
-
     def test_cmd_process_status(self):
-        self.assertFailIfInactiveSession(gdb_run_cmd("process-status"))
-        res = gdb_start_silent_cmd("process-status")
-        self.assertNoException(res)
+        gdb = self._gdb
+        self.assertEqual(
+            ERROR_INACTIVE_SESSION_MESSAGE,
+            gdb.execute("process-status", to_string=True),
+        )
+        gdb.execute("start")
+        res = gdb.execute("process-status", to_string=True)
         self.assertIn("Process Information", res)
         self.assertIn("No child process", res)
         self.assertIn("No open connections", res)

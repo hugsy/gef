@@ -3,16 +3,15 @@ theme command test module
 """
 
 
-from tests.utils import GefUnitTestGeneric, gdb_run_cmd
+from tests.base import RemoteGefUnitTestGeneric
 
 
-class ThemeCommand(GefUnitTestGeneric):
+class ThemeCommand(RemoteGefUnitTestGeneric):
     """`theme` command test module"""
 
-
     def test_cmd_theme(self):
-        res = gdb_run_cmd("theme")
-        self.assertNoException(res)
+        gdb = self._gdb
+        res = gdb.execute("theme", to_string=True)
         possible_themes = (
             "context_title_line",
             "context_title_message",
@@ -34,16 +33,13 @@ class ThemeCommand(GefUnitTestGeneric):
         )
         for t in possible_themes:
             # testing command viewing
-            res = gdb_run_cmd(f"theme {t}")
-            self.assertNoException(res)
+            res = gdb.execute(f"theme {t}", to_string=True)
             self.assertNotIn("Invalid key", res, f"Invalid key '{t}'")
 
             # testing command setting
             v = "blue blah 10 -1 0xfff bold"
-            res = gdb_run_cmd(f"theme {t} {v}")
-            self.assertNoException(res)
+            res = gdb.execute(f"theme {t} {v}", to_string=True)
+            assert res
 
-        res = gdb_run_cmd(f"theme ___I_DONT_EXIST___")
-        self.assertNoException(res)
+        res = gdb.execute(f"theme ___I_DONT_EXIST___", to_string=True)
         self.assertIn("Invalid key", res)
-        return

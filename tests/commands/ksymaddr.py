@@ -3,17 +3,15 @@
 """
 
 
-from tests.utils import GefUnitTestGeneric, gdb_run_cmd
+from tests.base import RemoteGefUnitTestGeneric
 
 
-class KsymaddrCommand(GefUnitTestGeneric):
+class KsymaddrCommand(RemoteGefUnitTestGeneric):
     """`ksymaddr` command test module"""
-
 
     cmd = "ksymaddr"
 
-
     def test_cmd_ksymaddr(self):
-        res = gdb_run_cmd(f"{self.cmd} prepare_kernel_cred")
-        self.assertNoException(res)
+        gdb = self._gdb
+        res = gdb.execute(f"{self.cmd} prepare_kernel_cred", to_string=True)
         self.assertIn("Found matching symbol for 'prepare_kernel_cred'", res)
