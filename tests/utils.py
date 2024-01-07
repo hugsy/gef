@@ -476,7 +476,7 @@ def download_file(url: str) -> Optional[bytes]:
 
 
 def u8(x: bytes) -> int:
-    return struct.unpack("<B", x[0])[0]
+    return struct.unpack("<B", x[:1])[0]
 
 
 def u16(x: bytes) -> int:

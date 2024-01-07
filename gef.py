@@ -692,7 +692,7 @@ class Section:
                 f"permissions={self.permission!s})")
 
     def __eq__(self, other: "Section") -> bool:
-        return \
+        return other and \
             self.page_start == other.page_start and \
             self.page_end == other.page_end and \
             self.offset == other.offset and \
