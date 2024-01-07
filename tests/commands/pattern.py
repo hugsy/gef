@@ -58,7 +58,8 @@ class PatternCommand(RemoteGefUnitTestGeneric):
         # 1
         if is_64b():
             cmd = f"pattern search -n 8 {lookup_register}"
-            gdb.execute("set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa", "run")
+            gdb.execute("set args aaaaaaaabaaaaaaacaaaaaaadaaaaaaa")
+            gdb.execute("run")
             res = gdb.execute(cmd, to_string=True)
             self.assertIn(
                 f"Found at offset {expected_offsets[1]} (little-endian search) likely",
