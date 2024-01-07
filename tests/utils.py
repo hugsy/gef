@@ -476,19 +476,19 @@ def download_file(url: str) -> Optional[bytes]:
 
 
 def u8(x: bytes) -> int:
-    return struct.unpack("<B", x)[0]
+    return struct.unpack("<B", x[0])[0]
 
 
 def u16(x: bytes) -> int:
-    return struct.unpack("<H", x)[0]
+    return struct.unpack("<H", x[:2])[0]
 
 
 def u32(x: bytes) -> int:
-    return struct.unpack("<I", x)[0]
+    return struct.unpack("<I", x[:4])[0]
 
 
 def u64(x: bytes) -> int:
-    return struct.unpack("<Q", x)[0]
+    return struct.unpack("<Q", x[:8])[0]
 
 
 def p8(x: int) -> bytes:

@@ -39,7 +39,7 @@ class GefCommand(RemoteGefUnitTestGeneric):
 
     def test_cmd_gef_config_get(self):
         gdb = self._gdb
-        res = gdb.execute("gef config gef.debug")
+        res = gdb.execute("gef config gef.debug", to_string=True)
         self.assertIn("GEF configuration setting: gef.debug", res)
         # the `True` is automatically set by `gdb_run_cmd` so we know it's there
         self.assertIn(
@@ -51,9 +51,11 @@ class GefCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         root = self._conn.root
 
-        assert root.is_debug() == True
+        gdb.execute("gef config gef.debug 1")
+        assert root.eval("is_debug()")
+
         gdb.execute("gef config gef.debug 0")
-        assert root.is_debug() == False
+        assert not root.eval("is_debug()")
 
     def test_cmd_gef_help(self):
         gdb = self._gdb
@@ -75,10 +77,10 @@ class GefCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
 
         # valid
-        pattern = gdb.execute("pattern create -n 4", to_string=True).splitlines()[2]
+        pattern = gdb.execute("pattern create -n 4", to_string=True).splitlines()[1]
         assert len(pattern) == 1024
         res = gdb.execute("gef set args $_gef0")
-        res = gdb.execute("show args", to_string=True)
+        res = gdb.execute("show args", to_string=True).strip()
         assert (
             res
             == f'Argument list to give program being debugged when it is started is "{pattern}".'
@@ -93,7 +95,7 @@ class GefCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
 
         # check
-        res = gdb.execute("gef save", to_string=True)
+        res = gdb.execute("gef save", to_string=True).strip()
         self.assertIn("Configuration saved to '", res)
 
         gefrc_file = removeuntil("Configuration saved to '", res.rstrip("'"))

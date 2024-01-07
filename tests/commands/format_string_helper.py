@@ -7,7 +7,6 @@ from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import debug_target
 
 
-
 class FormatStringHelperCommand(RemoteGefUnitTestGeneric):
     """`format-string-helper` command test module"""
 
@@ -19,6 +18,10 @@ class FormatStringHelperCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
 
         gdb.execute("set args testtest")
-        gdb.execute("run")
         res = gdb.execute("format-string-helper", to_string=True)
+        assert res.endswith(
+            "[+] Enabled 5 FormatString breakpoints\n"
+        )
+
+        res = gdb.execute("run", to_string=True)
         assert "Possible insecure format string:" in res

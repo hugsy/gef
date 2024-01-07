@@ -10025,7 +10025,7 @@ class GefSaveCommand(gdb.Command):
         # save the aliases
         cfg.add_section("aliases")
         for alias in gef.session.aliases:
-            cfg.set("aliases", alias._alias, alias._command)
+            cfg.set("aliases", alias.alias, alias.command)
 
         with GEF_RC.open("w") as fd:
             cfg.write(fd)

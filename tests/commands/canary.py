@@ -3,7 +3,7 @@
 """
 
 
-from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE, debug_target, p64, p32, is_64b
+from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE, debug_target, p64, p32, is_64b, u32
 from tests.base import RemoteGefUnitTestGeneric
 
 class CanaryCommand(RemoteGefUnitTestGeneric):
@@ -30,5 +30,5 @@ class CanaryCommand(RemoteGefUnitTestGeneric):
             gef.memory.write(gef.arch.canary_address(), p64(0xdeadbeef))
         else:
             gef.memory.write(gef.arch.canary_address(), p32(0xdeadbeef))
-        res = gef.memory.read(gef.arch.canary_address(), gef.arch.ptrsize)
+        res = u32(gef.memory.read(gef.arch.canary_address(), gef.arch.ptrsize))
         assert 0xdeadbeef == res
