@@ -16,7 +16,7 @@ class XorMemoryCommand(RemoteGefUnitTestGeneric):
         self.assertEqual(ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute(cmd, to_string=True))
 
         gdb.execute("start")
-        res = gdb.execute(cmd)
+        res = gdb.execute(cmd, to_string=True)
         assert "Original block" in res
         assert "XOR-ed block" in res
 

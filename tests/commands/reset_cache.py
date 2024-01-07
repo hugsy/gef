@@ -14,5 +14,5 @@ class ResetCacheCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         gdb.execute("start")
         res = gdb.execute("reset-cache", to_string=True)
-        assert res
+        assert not res
         # TODO improve

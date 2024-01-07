@@ -20,7 +20,7 @@ class StubCommand(RemoteGefUnitTestGeneric):
             )
 
         gdb.execute("start")
-        res = gdb.execute("continue", to_string=True)
+        res = gdb.execute("continue", to_string=True).strip()
         self.assertIn("Hello World!", res)
 
         for cmd in cmds:

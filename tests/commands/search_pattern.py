@@ -31,8 +31,8 @@ class SearchPatternCommand(RemoteGefUnitTestGeneric):
         self.assertTrue(r"b'ABCDE'" in res)
 
         # this should not match because binary string is not null ended:
-        res = gdb.execute("set {char[6]} $sp = { 0x41, 0x42, 0x43, 0x44, 0x45, 0x03 }")
-        gdb.execute(
+        gdb.execute("set {char[6]} $sp = { 0x41, 0x42, 0x43, 0x44, 0x45, 0x03 }")
+        res = gdb.execute(
             r"search-pattern --regex $sp $sp+7 ([\\x20-\\x7E]{2,})(?=\\x00)",
             to_string=True
         )

@@ -20,8 +20,8 @@ class PieCommand(RemoteGefUnitTestGeneric):
         res = gdb.execute("pie", to_string=True)
         self.assertIn("pie (breakpoint|info|delete|run|attach|remote)", res)
         gdb.execute("pie info 42")
-        res = gdb.execute("pie delete 42", to_string=True)
-        assert res
+        res = gdb.execute("pie delete 42", to_string=True).strip()
+        assert not res
 
     def test_cmd_pie_breakpoint_check(self):
         gdb = self._gdb

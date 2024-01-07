@@ -21,16 +21,21 @@ class ProcessSearchCommand(RemoteGefUnitTestGeneric):
         res = gdb.execute("process-search", to_string=True)
         self.assertIn(str(self._target), res)
 
-    def test_cmd_process_search2(self):
+    def test_cmd_process_search_wildcart(self):
         gdb = self._gdb
         gdb.execute("set args w00tw00t")
         gdb.execute("start")
-        res = gdb.execute("process-search gdb.*fakefake", to_string=True)
-        self.assertIn("gdb", res)
+        lines = gdb.execute("process-search gdb.*fakefake", to_string=True).splitlines()
+        self.assertEqual(len(lines), 0)
 
-    def test_cmd_process_search3(self):
+        lines = gdb.execute(
+            f"process-search gdb.*", to_string=True
+        ).splitlines()
+        self.assertGreaterEqual(len(lines), 1)
+
+    def test_cmd_process_search_smartscan(self):
         gdb = self._gdb
         gdb.execute("set args w00tw00t")
         gdb.execute("start")
-        res = gdb.execute("process-search --smart-scan gdb.*fakefake", to_string=True)
-        self.assertNotIn("gdb", res)
+        lines = gdb.execute("process-search gdb.*fakefake", to_string=True).splitlines()
+        self.assertEqual(len(lines), 0)

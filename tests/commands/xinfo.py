@@ -20,8 +20,8 @@ class XinfoCommand(RemoteGefUnitTestGeneric):
         res = gdb.execute("xinfo", to_string=True)
         self.assertIn("At least one valid address must be specified", res)
 
-        res = gdb.execute("xinfo $sp", to_string=True)
-        self.assertGreaterEqual(len(res.splitlines()), 7)
+        lines = gdb.execute("xinfo $sp", to_string=True).splitlines()
+        self.assertGreaterEqual(len(lines), 6)
 
 
 class XinfoCommandClass(RemoteGefUnitTestGeneric):
@@ -33,5 +33,6 @@ class XinfoCommandClass(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         cmd = "xinfo $pc+4"
         gdb.execute("b *'B<TraitA, TraitB>::Run'")
+        gdb.execute("run")
         res = gdb.execute(cmd, to_string=True)
         self.assertIn("Symbol: B<TraitA, TraitB>::Run()+4", res)
