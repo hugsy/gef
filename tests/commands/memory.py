@@ -21,10 +21,12 @@ class MemoryCommand(RemoteGefUnitTestGeneric):
 
     def test_cmd_memory_watch_basic(self):
         gdb = self._gdb
+
         self.assertEqual(
             ERROR_INACTIVE_SESSION_MESSAGE,
             gdb.execute("memory watch $pc", to_string=True),
         )
+
         gdb.execute("start")
 
         # basic syntax checks
@@ -42,6 +44,8 @@ class MemoryCommand(RemoteGefUnitTestGeneric):
             ERROR_INACTIVE_SESSION_MESSAGE,
             gdb.execute("memory unwatch $pc", to_string=True),
         )
+
+        gdb.execute("start")
 
         gdb.execute("set args 0xdeadbeef")
         gdb.execute("memory watch &myglobal")

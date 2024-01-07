@@ -24,9 +24,11 @@ class HeapAnalysisCommand(RemoteGefUnitTestGeneric):
         )
 
         gdb.execute("start")
-        res = gdb.execute(cmd, after=["continue"], to_string=True)
+        res = gdb.execute(cmd, to_string=True)
         self.assertIn("Tracking", res)
         self.assertIn("correctly setup", res)
+
+        res = gdb.execute("continue", to_string=True)
         self.assertIn("malloc(16)=", res)
         self.assertIn("calloc(32)=", res)
         addr = int(res.split("calloc(32)=")[1].split("\n")[0], 0)

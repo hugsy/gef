@@ -17,11 +17,14 @@ from tests.utils import (
 class GotCommand(RemoteGefUnitTestGeneric):
     """`got` command test module"""
 
+    def setUp(self) -> None:
+        self._target = debug_target("format-string-helper")
+        return super().setUp()
+
 
     def test_cmd_got(self):
         gdb = self._gdb
 
-        target = debug_target("format-string-helper")
         self.assertEqual(ERROR_INACTIVE_SESSION_MESSAGE,gdb.execute("got", to_string=True))
 
         gdb.execute("start")
@@ -29,6 +32,6 @@ class GotCommand(RemoteGefUnitTestGeneric):
         self.assertIn("printf", res)
         self.assertIn("strcpy", res)
 
-        res = gdb.execute("got printf", target=target, to_string=True)
+        res = gdb.execute("got printf", to_string=True)
         self.assertIn("printf", res)
         self.assertNotIn("strcpy", res)

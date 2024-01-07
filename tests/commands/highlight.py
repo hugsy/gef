@@ -4,7 +4,7 @@
 
 
 from tests.base import RemoteGefUnitTestGeneric
-from tests.utils import Color, ansi_clean
+from tests.utils import Color
 
 
 class HighlightCommand(RemoteGefUnitTestGeneric):
@@ -13,6 +13,8 @@ class HighlightCommand(RemoteGefUnitTestGeneric):
     def test_cmd_highlight(self):
         gdb = self._gdb
 
+        gdb.execute("gef config context.layout stack")
+        gdb.execute("gef config gef.disable_color 0")
         gdb.execute("start")
 
         for cmd in [
@@ -25,7 +27,7 @@ class HighlightCommand(RemoteGefUnitTestGeneric):
         ]:
             gdb.execute(cmd)
 
-        res = ansi_clean(gdb.execute("context", to_string=True))
+        res = gdb.execute("context", to_string=True)
         self.assertIn(f"{Color.YELLOW.value}41414141{Color.NORMAL.value}", res)
         self.assertIn(f"{Color.BLUE.value}42424242{Color.NORMAL.value}", res)
         self.assertIn(f"{Color.GREEN.value}43434343{Color.NORMAL.value}", res)

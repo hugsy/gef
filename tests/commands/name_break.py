@@ -11,6 +11,7 @@ class NameBreakCommand(RemoteGefUnitTestGeneric):
 
     def test_cmd_name_break(self):
         gdb = self._gdb
+        gdb.execute("start")
         res = gdb.execute("nb foobar *main+10", to_string=True)
         res = gdb.execute("nb foobar *0xcafebabe", to_string=True)
         self.assertIn("at 0xcafebabe", res)

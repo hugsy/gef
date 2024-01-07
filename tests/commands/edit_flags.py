@@ -6,10 +6,10 @@
 import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
-from tests.utils import ARCH
+from tests.utils import ARCH, ERROR_INACTIVE_SESSION_MESSAGE
 
 
-@pytest.mark.skipif(ARCH in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
+@pytest.mark.skipif(ARCH not in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
 class EditFlagsCommand(RemoteGefUnitTestGeneric):
     """`edit-flags` command test module"""
 
@@ -17,7 +17,7 @@ class EditFlagsCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         gef = self._gef
 
-        with pytest.raises(gdb.error):
+        with pytest.raises(Exception, match="No debugging session active"):
             gdb.execute("edit-flags")
 
         gdb.execute("start")
@@ -25,7 +25,8 @@ class EditFlagsCommand(RemoteGefUnitTestGeneric):
         assert res.startswith("[") and res.endswith("]")
 
         # pick first flag
-        idx, name = next(gef.arch.flags_table)
+        idx = list(gef.arch.flags_table.keys())[0]
+        name = gef.arch.flags_table[idx]
         gdb.execute(f"edit-flags -{name}")
         assert gef.arch.register(gef.arch.flag_register) & (1 << idx) == 0
 
@@ -34,7 +35,8 @@ class EditFlagsCommand(RemoteGefUnitTestGeneric):
         gef = self._gef
         gdb.execute("start")
 
-        idx, name = next(gef.arch.flags_table)
+        idx = list(gef.arch.flags_table.keys())[0]
+        name = gef.arch.flags_table[idx]
         gdb.execute(f"edit-flags +{name}")
         assert gef.arch.register(gef.arch.flag_register) & (1 << idx) != 0
 
@@ -42,8 +44,11 @@ class EditFlagsCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         gef = self._gef
 
-        idx, name = next(gef.arch.flags_table)
+        gdb.execute("start")
+        idx = list(gef.arch.flags_table.keys())[0]
+        name = gef.arch.flags_table[idx]
         init_val = gef.arch.register(gef.arch.flag_register) & (1 << idx)
+
         gdb.execute(f"edit-flags ~{name}")
         new_val = gef.arch.register(gef.arch.flag_register) & (1 << idx)
         assert init_val != new_val
