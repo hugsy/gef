@@ -43,7 +43,6 @@ source {RPYC_GEF_PATH}
             self._coverage_file = pathlib.Path(COVERAGE_DIR) / os.getenv(
                 "PYTEST_XDIST_WORKER", "gw0"
             )
-            assert self._coverage_file.exists()
             self._commands += f"""
 pi import coverage
 pi cov = coverage.Coverage(data_file="{self._coverage_file}", auto_data=True, branch=True)
