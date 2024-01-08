@@ -5,9 +5,6 @@ Memory commands test module
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import (
     ERROR_INACTIVE_SESSION_MESSAGE,
-    GefUnitTestGeneric,
-    gdb_run_cmd,
-    gdb_start_silent_cmd,
     debug_target,
 )
 

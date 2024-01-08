@@ -12,8 +12,6 @@ import struct
 import subprocess
 import tempfile
 import time
-import unittest
-import warnings
 from typing import Iterable, List, Optional, Union
 from urllib.request import urlopen
 
@@ -62,56 +60,6 @@ class Color(enum.Enum):
     HIGHLIGHT_OFF = "\x1b[23m"
     BLINK = "\x1b[5m"
     BLINK_OFF = "\x1b[25m"
-
-
-class GdbAssertionError(AssertionError):
-    pass
-
-
-class GefUnitTestGeneric(unittest.TestCase):
-    """Generic class for command testing, that defines all helpers"""
-
-    @staticmethod
-    def assertException(buf):
-        """Assert that GEF raised an Exception."""
-        if not (
-            "Python Exception <" in buf
-            or "Traceback" in buf
-            or "'gdb.error'" in buf
-            or "Exception raised" in buf
-            or "failed to execute properly, reason:" in buf
-        ):
-            raise GdbAssertionError("GDB Exception expected, not raised")
-
-    @staticmethod
-    def assertNoException(buf):
-        """Assert that no Exception was raised from GEF."""
-        if (
-            "Python Exception <" in buf
-            or "Traceback" in buf
-            or "'gdb.error'" in buf
-            or "Exception raised" in buf
-            or "failed to execute properly, reason:" in buf
-        ):
-            raise GdbAssertionError(f"Unexpected GDB Exception raised in {buf}")
-
-        if "is deprecated and will be removed in a feature release." in buf:
-            lines = [
-                l
-                for l in buf.splitlines()
-                if "is deprecated and will be removed in a feature release." in l
-            ]
-            deprecated_api_names = {x.split()[1] for x in lines}
-            warnings.warn(
-                UserWarning(
-                    f"Use of deprecated API(s): {', '.join(deprecated_api_names)}"
-                )
-            )
-
-    @staticmethod
-    def assertFailIfInactiveSession(buf):
-        if "No debugging session active" not in buf:
-            raise AssertionError("No debugging session inactive warning")
 
 
 def is_64b() -> bool:
@@ -240,17 +188,6 @@ def gdb_start_silent_cmd(
         "entry-break",
     ]
     return gdb_run_cmd(cmd, before, after, target, strip_ansi)
-
-
-def gdb_start_silent_cmd_last_line(
-    cmd: CommandType,
-    before: CommandType = (),
-    after: CommandType = (),
-    target: pathlib.Path = DEFAULT_TARGET,
-    strip_ansi=STRIP_ANSI_DEFAULT,
-) -> str:
-    """Execute `gdb_start_silent_cmd()` and return only the last line of its output."""
-    return gdb_start_silent_cmd(cmd, before, after, target, strip_ansi).splitlines()[-1]
 
 
 def gdb_test_python_method(
