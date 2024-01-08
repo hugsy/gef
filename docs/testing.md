@@ -104,6 +104,33 @@ environment to help you get more information about the reason of failure.
 One of the most convenient ways to test `gef` properly is using the `pytest` integration of modern
 editors such as VisualStudio Code or PyCharm. Without proper tests, new code will not be integrated.
 
+Also note that GEF can be remotely control using the script `scripts/remote_debug.py` as such:
+
+```text
+$ gdb -q -nx
+(gdb) source /path/to/gef/gef.py
+[...]
+gef➤  source /path/to/gef/scripts/remote_debug.py
+gef➤  pi start_rpyc_service(4444)
+```
+
+Here RPyC will be started on the local host, and bound to the TCP port 4444. We can now connect
+using a regular Python REPL:
+
+```text
+>>> import rpyc
+>>> c = rpyc.connect("localhost", 4444)
+>>> gdb = c.root._gdb
+>>> gef = c.root._gef
+# We can now fully control the remote GDB
+>>> gdb.execute("file /bin/ls")
+>>> gdb.execute("start")
+>>> print(hex(gef.arch.pc))
+0x55555555aab0
+>>> print(hex(gef.arch.sp))
+0x7fffffffdcf0
+```
+
 ### Linting GEF
 
 You can use the Makefile at the root of the project to get the proper linting settings. For most
