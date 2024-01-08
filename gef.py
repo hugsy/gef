@@ -9659,41 +9659,31 @@ class GefCommand(gdb.Command):
                 return False
             return True
 
-        nb_added = -1
-        start_time = time.perf_counter()
-        try:
+        def load_plugins_from_directory(plugin_directory: pathlib.Path):
+            nb_added = -1
             nb_inital = len(__registered_commands__)
-            directories: List[str] = gef.config["gef.extra_plugins_dir"].split(";") or []
-            for d in directories:
-                d = d.strip()
-                if not d: continue
-                directory = pathlib.Path(d).expanduser()
-                if not directory.is_dir(): continue
-                sys.path.append(str(directory.absolute()))
-                for entry in directory.iterdir():
-                    if entry.is_dir():
-                        if entry.name in ('gdb', 'gef', '__pycache__'): continue
-                        load_plugin(entry / "__init__.py")
-                    else:
-                        if entry.suffix != ".py": continue
-                        if entry.name == "__init__.py": continue
-                        load_plugin(entry)
+            start_time = time.perf_counter()
+            for entry in plugin_directory.glob("**/*.py"):
+                load_plugin(entry)
 
-            nb_added = len(__registered_commands__) - nb_inital
-            if nb_added > 0:
-                self.load()
-                nb_failed = len(__registered_commands__) - len(self.commands)
-                end_time = time.perf_counter()
-                load_time = end_time - start_time
-                ok(f"{Color.colorify(str(nb_added), 'bold green')} extra commands added from "
-                   f"'{Color.colorify(', '.join(directories), 'bold blue')}' in {load_time:.2f} seconds")
-                if nb_failed != 0:
-                    warn(f"{Color.colorify(str(nb_failed), 'bold light_gray')} extra commands/functions failed to be added. "
-                    "Check `gef missing` to know why")
-
-        except gdb.error as e:
-            err(f"failed: {e}")
-        return nb_added
+            try:
+                nb_added = len(__registered_commands__) - nb_inital
+                if nb_added > 0:
+                    self.load()
+                    nb_failed = len(__registered_commands__) - len(self.commands)
+                    load_time = time.perf_counter() - start_time
+                    ok(f"{Color.colorify(str(nb_added), 'bold green')} extra commands added " \
+                       f"in {load_time:.2f} seconds")
+                    if nb_failed != 0:
+                        warn(f"{Color.colorify(str(nb_failed), 'bold light_gray')} extra commands/functions failed to be added. "
+                        "Check `gef missing` to know why")
+            except gdb.error as e:
+                err(f"failed: {e}")
+            return nb_added
+        directory = gef.config["gef.extra_plugins_dir"] or ""
+        if not directory:
+            return 0
+        return load_plugins_from_directory(pathlib.Path(directory).expanduser().absolute())
 
     def reload_extra_plugins(self) -> int:
         try:
