@@ -40,7 +40,7 @@ class HeapCommand(RemoteGefUnitTestGeneric):
 
         gdb.execute("run")
         gdb.execute(cmd)
-        res = gdb.execute("heap arenas")
+        res = gdb.execute("heap arenas", to_string=True)
         self.assertIn("Arena(base=", res)
 
     def test_cmd_heap_chunk_no_arg(self):
@@ -92,21 +92,17 @@ class HeapCommand(RemoteGefUnitTestGeneric):
 
     def test_cmd_heap_chunks_min_size_filter(self):
         gdb = self._gdb
-        cmd = "heap chunks --min-size 16"
         self.assertEqual(
-            ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute(cmd, to_string=True)
+            ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute("heap chunks", to_string=True)
         )
 
         gdb.execute("run")
+
+        cmd = "heap chunks --min-size 16"
         res = gdb.execute(cmd, to_string=True)
         self.assertIn("Chunk(addr=", res)
 
         cmd = "heap chunks --min-size 1048576"
-        self.assertEqual(
-            ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute(cmd, to_string=True)
-        )
-
-        gdb.execute("run")
         res = gdb.execute(cmd, to_string=True)
         self.assertNotIn("Chunk(addr=", res)
 
@@ -118,13 +114,11 @@ class HeapCommand(RemoteGefUnitTestGeneric):
         )
 
         gdb.execute("run")
+
         res = gdb.execute(cmd, to_string=True)
         self.assertIn("Chunk(addr=", res)
 
         cmd = "heap chunks --max-size 16"
-        self.assertEqual(
-            ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute(cmd, to_string=True)
-        )
 
         gdb.execute("run")
         res = gdb.execute(cmd, to_string=True)
@@ -142,9 +136,6 @@ class HeapCommand(RemoteGefUnitTestGeneric):
         self.assertIn("Chunk(addr=", res)
 
         cmd = "heap chunks --count 0"
-        self.assertEqual(
-            ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute(cmd, to_string=True)
-        )
 
         gdb.execute("run")
         res = gdb.execute(cmd, to_string=True)
@@ -180,14 +171,18 @@ class HeapCommandNonMain(RemoteGefUnitTestGeneric):
     def test_cmd_heap_bins_non_main(self):
         gdb = self._gdb
         gef = self._gef
+        gdb.execute("set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0")
+        gdb.execute("run")
+
         next_arena: int = gef.heap.main_arena.next
         cmd = f"python gdb.execute(f'heap bins fast {next_arena:#x}')"
-        gdb.execute("set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0")
         res = gdb.execute(cmd, to_string=True)
         self.assertIn("size=0x20", res)
 
     def test_cmd_heap_bins_tcache(self):
         gdb = self._gdb
+        gdb.execute("run")
+
         cmd = "heap bins tcache"
         res = gdb.execute(cmd, to_string=True)
         tcachelines = findlines("Tcachebins[idx=", res)
@@ -226,12 +221,13 @@ class HeapCommandClass(RemoteGefUnitTestGeneric):
     def test_cmd_heap_chunks_summary_with_type_resolved(self):
         gdb = self._gdb
         cmd = "heap chunks --summary --resolve"
-
-        gdb.execute("run")
         gdb.execute("b B<TraitA, TraitB>::Run()")
-        res = gdb.execute(cmd, to_string=True)
-        self.assertIn("== Chunk distribution by size", res)
-        self.assertIn("B<TraitA, TraitB>", res)
+        gdb.execute("run")
+        lines = gdb.execute(cmd, to_string=True).splitlines()
+        assert len(lines) > 0
+        self.assertEqual("== Chunk distribution by size ==", lines[0])
+        self.assertIn("== Chunk distribution by flag ==", lines)
+        assert any( map(lambda x: "B<TraitA, TraitB>" in x, lines))
 
 
 class HeapCommandFastBins(RemoteGefUnitTestGeneric):
@@ -246,6 +242,7 @@ class HeapCommandFastBins(RemoteGefUnitTestGeneric):
         self.assertEqual(
             ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute(cmd, to_string=True)
         )
+        gdb.execute("run")
         res = gdb.execute(cmd, to_string=True)
         # ensure fastbins is populated
         self.assertIn("Fastbins[idx=0, size=", res)
@@ -262,6 +259,7 @@ class HeapCommandBins(RemoteGefUnitTestGeneric):
 
     def test_cmd_heap_bins_large(self):
         gdb = self._gdb
+        gdb.execute("run")
         cmd = "heap bins large"
         res = gdb.execute(cmd, to_string=True)
         self.assertIn("Found 1 chunks in 1 large non-empty bins", res)
@@ -271,18 +269,18 @@ class HeapCommandBins(RemoteGefUnitTestGeneric):
     def test_cmd_heap_bins_small(self):
         gdb = self._gdb
         cmd = "heap bins small"
-        before = ["set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0"]
-        target = debug_target("heap-bins")
-        res = gdb.execute(cmd, before=before, target=target)
+        gdb.execute("set environment GLIBC_TUNABLES glibc.malloc.tcache_count=0")
+        gdb.execute("run")
+        res = gdb.execute(cmd, to_string=True)
         self.assertIn("Found 1 chunks in 1 small non-empty bins", res)
         self.assertIn("Chunk(addr=", res)
         self.assertIn(f"size={self.expected_small_bin_size:#x}", res)
 
     def test_cmd_heap_bins_unsorted(self):
         gdb = self._gdb
+        gdb.execute("run")
         cmd = "heap bins unsorted"
-        target = debug_target("heap-bins")
-        res = gdb.execute(cmd, target=target)
+        res = gdb.execute(cmd, to_string=True)
         self.assertIn("Found 1 chunks in unsorted bin", res)
         self.assertIn("Chunk(addr=", res)
         self.assertIn(f"size={self.expected_unsorted_bin_size:#x}", res)
@@ -296,8 +294,9 @@ class HeapCommandTcache(RemoteGefUnitTestGeneric):
 
     def test_cmd_heap_bins_tcache_all(self):
         gdb = self._gdb
-        cmd = "heap bins tcache all"
+        gdb.execute("run")
 
+        cmd = "heap bins tcache all"
         res = gdb.execute(cmd, to_string=True)
         # ensure there's 2 tcachebins
         tcachelines = findlines("Tcachebins[idx=", res)

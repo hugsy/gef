@@ -237,7 +237,7 @@ class NopCommand(RemoteGefUnitTestGeneric):
 
 class NopCommandMmapKnownAddress(RemoteGefUnitTestGeneric):
     def setUp(self) -> None:
-        self._target = (debug_target("mmap-known-address"),)
+        self._target = debug_target("mmap-known-address")
         return super().setUp()
 
     @pytest.mark.skipif(ARCH not in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
