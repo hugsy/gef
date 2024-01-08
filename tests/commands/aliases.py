@@ -14,7 +14,7 @@ class AliasesCommand(RemoteGefUnitTestGeneric):
 
         initial_nb = len(gef.session.aliases)
         gdb.execute("aliases add alias_function_test example")
-        assert initial_nb == len(gef.session.aliases) - 1
+        assert initial_nb + 1 == len(gef.session.aliases)
 
     def test_cmd_aliases_list(self):
         gdb = self._gdb

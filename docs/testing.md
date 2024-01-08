@@ -52,7 +52,7 @@ documentation for details.
 Adding new code __requires__ extensive testing. Tests can be added in their own module in the
 `tests/` folder. For example, if adding a new command to `gef`, a new test module should be created
 and located in `/root/of/gef/tests/commands/my_new_command.py`. The test class __must__ inherit
-`tests.base.RemoteGefUnitTestGeneric`. This class allows to manipulate gdb and gef through rpyc
+`tests.base.RemoteGefUnitTestGeneric`. This class allows one to manipulate gdb and gef through rpyc
 under their respective `self._gdb` and `self._gef` attributes.
 
 A skeleton of a test module would look something like:
@@ -104,7 +104,7 @@ environment to help you get more information about the reason of failure.
 One of the most convenient ways to test `gef` properly is using the `pytest` integration of modern
 editors such as VisualStudio Code or PyCharm. Without proper tests, new code will not be integrated.
 
-Also note that GEF can be remotely control using the script `scripts/remote_debug.py` as such:
+Also note that GEF can be remotely controlled using the script `scripts/remote_debug.py` as such:
 
 ```text
 $ gdb -q -nx
