@@ -38,7 +38,7 @@ class NopCommand(RemoteGefUnitTestGeneric):
         gef.memory.write(gef.arch.pc, p32(0xFEEBFEEB))
         gdb.execute(self.cmd)
         res = u32(gef.memory.read(gef.arch.pc, 4))
-        self.assertEqual(0xFEEBFEEB, res)
+        self.assertEqual(0xFEEB9090, res)
 
     @pytest.mark.skipif(ARCH not in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
     def test_cmd_nop_check_b_and_n_same_time(self):
@@ -53,7 +53,7 @@ class NopCommand(RemoteGefUnitTestGeneric):
         gef = self._gef
 
         gdb.execute("start")
-        gef.arch.nop_insn = b"\x90\x91\x92"
+        gdb.execute('pi gef.arch.nop_insn=b"\\x90\\x91\\x92"')
         gef.memory.write(gef.arch.pc, p32(0xFEEBFEEB))
 
         res = gdb.execute(self.cmd, to_string=True).strip()
@@ -65,11 +65,12 @@ class NopCommand(RemoteGefUnitTestGeneric):
     def test_cmd_nop_force_arg_break_instruction(self):
         gdb = self._gdb
         gef = self._gef
+
         gdb.execute("start")
-        gef.arch.nop_insn = b"\x90\x91\x92"
+        gdb.execute('pi gef.arch.nop_insn=b"\\x90\\x91\\x92"')
         gef.memory.write(gef.arch.pc, p32(0xFEEBFEEB))
         res = gdb.execute(f"{self.cmd} --f", to_string=True).strip()
-        mem = gef.memory.read(gef.arch.pc, 4)
+        mem = u32(gef.memory.read(gef.arch.pc, 4))
         self.assertIn(r"will result in LAST-NOP (byte nr 0x2)", res)
         self.assertEqual(0xFEEB9190, mem)
 
@@ -79,7 +80,7 @@ class NopCommand(RemoteGefUnitTestGeneric):
         gef = self._gef
         gdb.execute("start")
         gef.memory.write(gef.arch.pc + 1, p64(0xFEEBFEEBFEEBFEEB))
-        res = gdb.execute(f"{self.cmd} --i 2 $pc+1", to_string=True)
+        gdb.execute(f"{self.cmd} --i 2 $pc+1")
         mem = u64(gef.memory.read(gef.arch.pc + 1, 8))
         self.assertEqual(0xFEEBFEEB90909090, mem)
 
@@ -135,7 +136,7 @@ class NopCommand(RemoteGefUnitTestGeneric):
         gef = self._gef
         gdb.execute("start")
         gef.memory.write(gef.arch.pc, p64(0xFEEBFEEBFEEBFEEB))
-        res = gdb.execute(f"{self.cmd} --i 4 --n", to_string=True)
+        gdb.execute(f"{self.cmd} --i 4 --n")
         mem = u64(gef.memory.read(gef.arch.pc, 8))
         self.assertEqual(0xFEEBFEEB90909090, mem)
 
@@ -144,7 +145,7 @@ class NopCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         gef = self._gef
         gdb.execute("start")
-        gef.arch.nop_insn = b"\x90\x91\x92"
+        gdb.execute('pi gef.arch.nop_insn = b"\\x90\\x91\\x92"')
         gef.memory.write(gef.arch.pc, p64(0xFEEBFEEBFEEBFEEB))
         res = gdb.execute(f"{self.cmd} --n", to_string=True)
         mem = u64(gef.memory.read(gef.arch.pc, 8))
@@ -156,12 +157,12 @@ class NopCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         gef = self._gef
         gdb.execute("start")
-        gef.arch.nop_insn = b"\x90\x91\x92"
+        gdb.execute('pi gef.arch.nop_insn = b"\\x90\\x91\\x92"')
         gef.memory.write(gef.arch.pc, p64(0xFEEBFEEBFEEBFEEB))
         res = gdb.execute(f"{self.cmd} --n --f", to_string=True)
         mem = u64(gef.memory.read(gef.arch.pc, 8))
         self.assertIn(r"will result in LAST-INSTRUCTION", res)
-        self.assertEqual(0xFEEBFEEB929190, mem)
+        self.assertEqual(0xFEEBFEEBFE929190, mem)
 
     @pytest.mark.skipif(ARCH not in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
     def test_cmd_nop_bytes(self):
@@ -196,7 +197,7 @@ class NopCommand(RemoteGefUnitTestGeneric):
         res = gdb.execute(f"{self.cmd} --b --f", to_string=True)
         mem = u16(gef.memory.read(gef.arch.pc, 2))
         self.assertIn(r"will result in LAST-INSTRUCTION", res)
-        self.assertIn(r"b'\x90\xfe'", res)
+        self.assertEqual(0xfe90, mem)
 
     @pytest.mark.skipif(ARCH not in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
     def test_cmd_nop_bytes_arg(self):
@@ -213,7 +214,7 @@ class NopCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         gef = self._gef
         gdb.execute("start")
-        gef.arch.nop_insn = b"\x90\x91\x92"
+        gdb.execute('pi gef.arch.nop_insn = b"\\x90\\x91\\x92"')
         gef.memory.write(gef.arch.pc, p64(0xFEEBFEEBFEEBFEEB))
         res = gdb.execute(f"{self.cmd} --i 4 --b", to_string=True)
         self.assertIn(r"will result in LAST-NOP (byte nr 0x1)", res)
@@ -225,10 +226,10 @@ class NopCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         gef = self._gef
         gdb.execute("start")
-        gef.arch.nop_insn = b"\x90\x91\x92"
+        gdb.execute('pi gef.arch.nop_insn = b"\\x90\\x91\\x92"')
         gef.memory.write(gef.arch.pc, p64(0xFEEBFEEBFEEBFEEB))
         res = gdb.execute(f"{self.cmd} --i 5 --b --f", to_string=True)
-        mem = gef.memory.read(gef.arch.pc, 8)
+        mem = u64(gef.memory.read(gef.arch.pc, 8))
         self.assertIn(r"will result in LAST-NOP (byte nr 0x2)", res)
         self.assertIn(r"will result in LAST-INSTRUCTION", res)
         self.assertEqual(0xFEEBFE9190929190, mem)

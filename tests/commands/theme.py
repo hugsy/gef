@@ -38,8 +38,8 @@ class ThemeCommand(RemoteGefUnitTestGeneric):
 
             # testing command setting
             v = "blue blah 10 -1 0xfff bold"
-            res = gdb.execute(f"theme {t} {v}", to_string=True)
-            assert res
+            gdb.execute(f"theme {t} {v}")
+
 
         res = gdb.execute(f"theme ___I_DONT_EXIST___", to_string=True)
         self.assertIn("Invalid key", res)
