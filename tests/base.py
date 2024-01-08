@@ -32,13 +32,8 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
             assert isinstance(self._target, pathlib.Path)  # type: ignore pylint: disable=E1101
             assert self._target.exists()  # type: ignore pylint: disable=E1101
         self._port = random.randint(1025, 65535)
-        self._commands = f"""
-source {GEF_PATH}
-gef config gef.debug True
-gef config gef.propagate_debug_exception True
-gef config gef.disable_color True
-source {RPYC_GEF_PATH}
-"""
+        self._commands = ""
+
         if COVERAGE_DIR:
             self._coverage_file = pathlib.Path(COVERAGE_DIR) / os.getenv(
                 "PYTEST_XDIST_WORKER", "gw0"
@@ -50,6 +45,11 @@ pi cov.start()
 """
 
         self._commands += f"""
+source {GEF_PATH}
+gef config gef.debug True
+gef config gef.propagate_debug_exception True
+gef config gef.disable_color True
+source {RPYC_GEF_PATH}
 pi start_rpyc_service({self._port})
 """
 
