@@ -84,9 +84,12 @@ from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
-                    Iterator, List, NoReturn, Optional, Sequence, Set, Tuple, Type,
-                    Union)
+                    Iterator, List, Literal, NoReturn, Optional, Sequence, Set, Tuple, Type,
+                    Union, TYPE_CHECKING)
 from urllib.request import urlopen
+
+if TYPE_CHECKING:
+    import gdb
 
 GEF_DEFAULT_BRANCH                     = "main"
 GEF_EXTRAS_DEFAULT_BRANCH              = "main"
@@ -3399,24 +3402,24 @@ def get_os() -> str:
 def is_qemu() -> bool:
     if not is_remote_debug():
         return False
-    response = gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False)
-    return isinstance(response, str) and "ENABLE=" in response
+    response = gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False) or ""
+    return "ENABLE=" in response
 
 
 @lru_cache()
 def is_qemu_usermode() -> bool:
     if not is_qemu():
         return False
-    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False)
-    return isinstance(response, str) and "Text=" in response
+    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False) or ""
+    return "Text=" in response
 
 
 @lru_cache()
 def is_qemu_system() -> bool:
     if not is_qemu():
         return False
-    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False)
-    return isinstance(response, str) and "received: \"\"" in response
+    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False) or ""
+    return "received: \"\"" in response
 
 
 def get_filepath() -> Optional[str]:
@@ -3606,7 +3609,7 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
         warn(f"{bkp_fpath} exists, content will be overwritten")
 
     with bkp_fpath.open("w") as fd:
-        for bp in gdb.breakpoints():
+        for bp in list(gdb.breakpoints()):
             if not bp.enabled or not bp.is_valid:
                 continue
             fd.write(f"{'t' if bp.temporary else ''}break {bp.location}\n")
@@ -4080,7 +4083,7 @@ class PieVirtualBreakpoint:
             self.destroy()
 
         try:
-            res = gdb.execute(self.set_func(base), to_string=True)
+            res = gdb.execute(self.set_func(base), to_string=True) or ""
             if not res: return
         except gdb.error as e:
             err(str(e))
@@ -4089,6 +4092,7 @@ class PieVirtualBreakpoint:
         if "Breakpoint" not in res:
             err(res)
             return
+
         res_list = res.split()
         self.bp_num = res_list[1]
         self.bp_addr = res_list[3]
@@ -6850,41 +6854,6 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
 
 
 @register
-class SolveKernelSymbolCommand(GenericCommand):
-    """Solve kernel symbols from kallsyms table."""
-
-    _cmdline_ = "ksymaddr"
-    _syntax_  = f"{_cmdline_} SymbolToSearch"
-    _example_ = f"{_cmdline_} prepare_creds"
-
-    @parse_arguments({"symbol": ""}, {})
-    def do_invoke(self, _: List[str], **kwargs: Any) -> None:
-        def hex_to_int(num):
-            try:
-                return int(num, 16)
-            except ValueError:
-                return 0
-        args : argparse.Namespace = kwargs["arguments"]
-        if not args.symbol:
-            self.usage()
-            return
-        sym = args.symbol
-        with open("/proc/kallsyms", "r") as f:
-            syms = [line.strip().split(" ", 2) for line in f]
-        matches = [(hex_to_int(addr), sym_t, " ".join(name.split())) for addr, sym_t, name in syms if sym in name]
-        for addr, sym_t, name in matches:
-            if sym == name.split()[0]:
-                ok(f"Found matching symbol for '{name}' at {addr:#x} (type={sym_t})")
-            else:
-                warn(f"Found partial match for '{sym}' at {addr:#x} (type={sym_t}): {name}")
-        if not matches:
-            err(f"No match for '{sym}'")
-        elif matches[0][0] == 0:
-            err("Check that you have the correct permissions to view kernel symbol addresses")
-        return
-
-
-@register
 class DetailRegistersCommand(GenericCommand):
     """Display full details on one, many or all registers value from current architecture."""
 
@@ -7176,7 +7145,7 @@ class ElfInfoCommand(GenericCommand):
 
         try:
             elf = Elf(filename)
-        except ValueError as ve:
+        except ValueError:
             err(f"`{filename}` is an invalid value for ELF file")
             return
 
@@ -10926,7 +10895,7 @@ class GefSessionManager(GefManager):
             return None
         if not self._auxiliary_vector:
             auxiliary_vector = {}
-            auxv_info = gdb.execute("info auxv", to_string=True)
+            auxv_info = gdb.execute("info auxv", to_string=True) or ""
             if not auxv_info or "failed" in auxv_info:
                 err("Failed to query auxiliary variables")
                 return None

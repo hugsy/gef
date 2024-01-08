@@ -104,7 +104,8 @@ class NopCommand(RemoteGefUnitTestGeneric):
         gef = self._gef
         gdb.execute("start")
         gef.memory.write(gef.arch.pc, p32(0x9191))
-        res = gdb.execute(f"{self.cmd} --n", to_string=True)
+        res = gdb.execute(f"{self.cmd} --n", to_string=True) or ""
+        assert res
         mem = u16(gef.memory.read(gef.arch.pc, 2))
         self.assertEqual(0x9190, mem)
 
@@ -173,7 +174,8 @@ class NopCommand(RemoteGefUnitTestGeneric):
         res = gdb.execute(
             f"{self.cmd} --b",
             to_string=True,
-        )
+        ) or ""
+        assert res
         mem = u16(gef.memory.read(gef.arch.pc, 2))
         self.assertEqual(0x9190, mem)
 
@@ -205,7 +207,8 @@ class NopCommand(RemoteGefUnitTestGeneric):
         gef = self._gef
         gdb.execute("start")
         gef.memory.write(gef.arch.pc, p64(0xFEEBFEEBFEEBFEEB))
-        res = gdb.execute(f"{self.cmd} --i 2 --b --f", to_string=True)
+        res = gdb.execute(f"{self.cmd} --i 2 --b --f", to_string=True) or ""
+        assert res
         mem = u64(gef.memory.read(gef.arch.pc, 8))
         self.assertEqual(0xFEEBFEEBFEEB9090, mem)
 
