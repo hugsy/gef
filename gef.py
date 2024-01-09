@@ -105,7 +105,7 @@ def http_get(url: str) -> Optional[bytes]:
 
 
 def update_gef(argv: List[str]) -> int:
-    """Obsolete. Use the `gef.sh`."""
+    """Obsolete. Use `gef.sh`."""
     return -1
 
 
@@ -2297,7 +2297,7 @@ class Architecture(ArchitectureBase):
         return f"Architecture({self.arch}, {self.mode or 'None'}, {repr(self.endianness)})"
 
     def __repr__(self) -> str:
-        return f"Architecture({self.arch}, {self.mode or 'None'}, {repr(self.endianness)})"
+        return self.__str__()
 
     @staticmethod
     def supports_gdb_arch(gdb_arch: str) -> Optional[bool]:
