@@ -4,36 +4,36 @@ Simple benchmarking for pytest
 
 import pytest
 
-from tests.utils import gdb_test_python_method, gdb_time_python_method, gdb_start_silent_cmd
+from ..base import RemoteGefUnitTestGeneric
 
 
-def time_baseline(benchmark):
-    benchmark(gdb_test_python_method, "")
+class BenchmarkBasicApi(RemoteGefUnitTestGeneric):
+    @pytest.fixture(autouse=True)
+    def benchmark(self, benchmark):
+        self.__benchmark = benchmark
 
+    @pytest.mark.benchmark
+    def test_cmd_context(self):
+        gdb = self._gdb
+        gdb.execute("start")
+        self.__benchmark(gdb.execute, "context")
 
-def time_elf_parsing(benchmark):
-    benchmark(gdb_test_python_method, "Elf('/bin/ls')")
+    @pytest.mark.benchmark
+    def test_gef_memory_maps(self):
+        gdb = self._gdb
+        gdb.execute("start")
+        gef = self._gef
+        assert self.__benchmark
 
+        def vmmap():
+            return gef.memory.maps
 
-def time_cmd_context(benchmark):
-    benchmark(gdb_start_silent_cmd, "context")
+        self.__benchmark(vmmap)
 
-
-def _time_elf_parsing_using_timeit():
-    with pytest.raises(ValueError):
-        res = gdb_time_python_method(
-            "Elf('/bin/ls')",
-            "from __main__ import Elf"
-        )
-        pytest.fail(f"execution_time={res}s")
-
-
-def _time_cmd_context_using_timeit():
-    with pytest.raises(ValueError):
-        res = gdb_time_python_method(
-            "gdb.execute('context')",
-            "import gdb",
-            before=("entry-break",),
-            number=100
-        )
-        pytest.fail(f"execution_time={res}s")
+    @pytest.mark.benchmark
+    def test_elf_parsing(self):
+        root = self._conn.root
+        ElfCls = root.eval("Elf")
+        assert ElfCls
+        assert self.__benchmark
+        self.__benchmark(ElfCls, "/bin/ls")

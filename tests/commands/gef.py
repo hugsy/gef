@@ -41,7 +41,6 @@ class GefCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         res = gdb.execute("gef config gef.debug", to_string=True)
         self.assertIn("GEF configuration setting: gef.debug", res)
-        # the `True` is automatically set by `gdb_run_cmd` so we know it's there
         self.assertIn(
             """gef.debug (bool) = True\n\nDescription:\n\tEnable debug mode for gef""",
             res,
