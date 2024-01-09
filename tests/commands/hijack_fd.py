@@ -3,10 +3,10 @@
 """
 
 
-from tests.utils import GefUnitTestGeneric, gdb_run_cmd
+from tests.base import RemoteGefUnitTestGeneric
 
 
-class HijackFdCommand(GefUnitTestGeneric):
+class HijackFdCommand(RemoteGefUnitTestGeneric):
     """`hijack-fd` command test module"""
 
 
@@ -14,5 +14,5 @@ class HijackFdCommand(GefUnitTestGeneric):
 
 
     def test_cmd_hijack_fd(self):
-        res = gdb_run_cmd(f"{self.cmd}")
-        self.assertNoException(res)
+        gdb = self._gdb
+        res = gdb.execute(f"{self.cmd}", to_string=True)

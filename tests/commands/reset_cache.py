@@ -3,13 +3,16 @@
 """
 
 
-from tests.utils import GefUnitTestGeneric, gdb_start_silent_cmd
+from tests.base import RemoteGefUnitTestGeneric
 
 
-class ResetCacheCommand(GefUnitTestGeneric):
+class ResetCacheCommand(RemoteGefUnitTestGeneric):
     """`reset-cache` command test module"""
 
 
     def test_cmd_reset_cache(self):
-        res = gdb_start_silent_cmd("reset-cache")
-        self.assertNoException(res)
+        gdb = self._gdb
+        gdb.execute("start")
+        res = gdb.execute("reset-cache", to_string=True)
+        assert not res
+        # TODO improve

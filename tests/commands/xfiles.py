@@ -3,15 +3,18 @@
 """
 
 
-from tests.utils import GefUnitTestGeneric, gdb_run_cmd, gdb_start_silent_cmd
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE
 
 
-class XfilesCommand(GefUnitTestGeneric):
+class XfilesCommand(RemoteGefUnitTestGeneric):
     """`xfiles` command test module"""
 
-
     def test_cmd_xfiles(self):
-        self.assertFailIfInactiveSession(gdb_run_cmd("xfiles"))
-        res = gdb_start_silent_cmd("xfiles")
-        self.assertNoException(res)
-        self.assertTrue(len(res.splitlines()) >= 3)
+        gdb = self._gdb
+        self.assertEqual(
+            ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute("xfiles", to_string=True)
+        )
+        gdb.execute("start")
+        res = gdb.execute("xfiles", to_string=True)
+        self.assertGreaterEqual(len(res.splitlines()) , 3)

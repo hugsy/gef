@@ -2,40 +2,42 @@
 Shellcode commands test module
 """
 import pytest
+from tests.base import RemoteGefUnitTestGeneric
 
-from tests.utils import gdb_start_silent_cmd, GefUnitTestGeneric, BIN_SH
+from tests.utils import BIN_SH
 
 
-class ShellcodeCommand(GefUnitTestGeneric):
+class ShellcodeCommand(RemoteGefUnitTestGeneric):
     """`shellcode` command test module"""
 
     def test_cmd_shellcode(self):
-        res = gdb_start_silent_cmd("shellcode")
-        self.assertNoException(res)
+        gdb = self._gdb
+        gdb.execute("start")
+        res = gdb.execute("shellcode", to_string=True)
         self.assertIn("Missing sub-command (search|get)", res)
-
 
     @pytest.mark.online
     @pytest.mark.slow
     def test_cmd_shellcode_search(self):
+        gdb = self._gdb
         cmd = f"shellcode search execve {BIN_SH}"
-        res = gdb_start_silent_cmd(cmd)
-        self.assertNoException(res)
+        gdb.execute("start")
+        res = gdb.execute(cmd, to_string=True)
         self.assertIn(f"setuid(0) + execve({BIN_SH}) 49 bytes", res)
-
 
     @pytest.mark.online
     @pytest.mark.slow
     def test_cmd_shellcode_get_ok(self):
-        res = gdb_start_silent_cmd("shellcode get 77")
-        self.assertNoException(res)
+        gdb = self._gdb
+        gdb.execute("start")
+        res = gdb.execute("shellcode get 77", to_string=True)
         self.assertIn("Shellcode written to ", res)
-
 
     @pytest.mark.online
     @pytest.mark.slow
     def test_cmd_shellcode_get_nok(self):
+        gdb = self._gdb
         n = 1111111111111
-        res = gdb_start_silent_cmd(f"shellcode get {n}")
-        self.assertNoException(res)
+        gdb.execute("start")
+        res = gdb.execute(f"shellcode get {n}", to_string=True)
         self.assertIn(f"Failed to fetch shellcode #{n}", res)

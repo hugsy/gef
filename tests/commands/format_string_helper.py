@@ -3,20 +3,25 @@
 """
 
 
-from tests.utils import debug_target, gdb_run_cmd
-from tests.utils import GefUnitTestGeneric
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import debug_target
 
 
-class FormatStringHelperCommand(GefUnitTestGeneric):
+class FormatStringHelperCommand(RemoteGefUnitTestGeneric):
     """`format-string-helper` command test module"""
 
+    def setUp(self) -> None:
+        self._target = debug_target("format-string-helper")
+        return super().setUp()
 
     def test_cmd_format_string_helper(self):
-        cmd = "format-string-helper"
-        target = debug_target("format-string-helper")
-        res = gdb_run_cmd(cmd,
-                          after=["set args testtest",
-                                 "run",],
-                          target=target)
-        self.assertNoException(res)
-        self.assertIn("Possible insecure format string:", res)
+        gdb = self._gdb
+
+        gdb.execute("set args testtest")
+        res = gdb.execute("format-string-helper", to_string=True)
+        assert res.endswith(
+            "[+] Enabled 5 FormatString breakpoints\n"
+        )
+
+        res = gdb.execute("run", to_string=True)
+        assert "Possible insecure format string:" in res

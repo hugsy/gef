@@ -409,7 +409,25 @@ confidence=
 ;        anomalous-backslash-in-string,
 ;        bad-open-mode
 
-enable = F,E,unreachable,duplicate-key,unnecessary-semicolon,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode,dangerous-default-value,trailing-whitespace,unneeded-not,singleton-comparison,unused-import,line-too-long,multiple-statements,consider-using-f-string,global-variable-not-assigned
+enable =
+      F,
+      E,
+      anomalous-backslash-in-string,
+      bad-format-string,
+      bad-open-mode,
+      consider-using-f-string,
+      dangerous-default-value,
+      duplicate-key,
+      global-variable-not-assigned
+      line-too-long,
+      singleton-comparison,
+      trailing-whitespace,
+      unnecessary-semicolon,
+      unneeded-not,
+      unreachable,
+      unused-import,
+      unused-variable,
+      binary-op-exception
 disable = all
 
 [REPORTS]

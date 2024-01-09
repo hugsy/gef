@@ -5,17 +5,17 @@
 import pytest
 import random
 
-from tests.utils import ARCH, debug_target, gdb_test_python_method, is_64b
-from tests.utils import GefUnitTestGeneric
-
-
-def result_as_int(res: str) -> int:
-    return int(gdb_test_python_method(res, target=debug_target("heap")).splitlines()[-1])
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import ARCH, debug_target, is_64b
 
 TCACHE_BINS = 64
 
-class GefHeapApi(GefUnitTestGeneric):
+class GefHeapApi(RemoteGefUnitTestGeneric):
     """`gef.heap` test module."""
+
+    def setUp(self) -> None:
+        self._target = debug_target("heap")
+        return super().setUp()
 
    # from https://elixir.bootlin.com/glibc/latest/source/malloc/malloc.c#L326
    # With rounding and alignment, the bins are...
@@ -44,35 +44,44 @@ class GefHeapApi(GefUnitTestGeneric):
 
 
     def test_func_gef_heap_tidx2size(self):
+        gdb, gef = self._gdb, self._gef
+        gdb.execute("run")
         for _ in range(5):
             idx = random.choice(range(TCACHE_BINS))
-            size = result_as_int(f"gef.heap.tidx2size({idx})")
-            self.assertIn(size, self.valid_sizes, f"idx={idx}")
+            size = gef.heap.tidx2size(idx)
+            assert size in self.valid_sizes, f"idx={idx}"
 
 
     def test_func_gef_heap_csize2tidx(self):
+        gdb, gef = self._gdb, self._gef
+        gdb.execute("run")
         for _ in range(5):
             size = random.randint(0, 1032 if ARCH == "i686" or is_64b() else 516)
-            idx = result_as_int(f"gef.heap.csize2tidx({size})")
-            self.assertIn(idx, range(TCACHE_BINS), f"size={size}")
+            idx = gef.heap.csize2tidx(size)
+            assert idx in range(TCACHE_BINS), f"size={size}"
 
 
     @pytest.mark.skipif(ARCH not in ("x86_64",), reason=f"Skipped for {ARCH}")
     def test_func_gef_heap_malloc_align_address(self):
+        gdb, gef = self._gdb, self._gef
+        gdb.execute("run")
         values = (
             (0x08, 0x10),
             (0x11, 0x20),
             (0x23, 0x30),
             (0x13371337, 0x13371340),
         )
+
         for x, y in values:
-            res = result_as_int(f"gef.heap.malloc_align_address({x})")
-            self.assertEqual(res, y)
+            res = gef.heap.malloc_align_address(x)
+            assert res == y
 
 
     def test_class_glibcarena_main_arena(self):
-        addr1 = result_as_int("GlibcArena('main_arena').addr")
-        addr2 = result_as_int("search_for_main_arena()")
-        addr3 = result_as_int("int(gef.heap.main_arena)")
-        self.assertEqual(addr1, addr2)
-        self.assertEqual(addr2, addr3)
+        gdb, gef = self._gdb, self._gef
+        gdb.execute("run")
+        addr1 = self._conn.root.eval("GlibcArena('main_arena').addr")
+        addr2 = self._conn.root.eval("search_for_main_arena()")
+        addr3 = gef.heap.main_arena
+        assert addr1 == addr2
+        assert addr2 == addr3

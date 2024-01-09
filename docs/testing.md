@@ -49,8 +49,11 @@ You can then use `pytest` directly to help you fix each error specifically.
 GEF entirely relies on [`pytest`](https://pytest.org) for its testing. Refer to the project
 documentation for details.
 
-Adding a new command __requires__ for extensive testing in a new dedicated test module that should
-be located in `/root/of/gef/tests/commands/my_new_command.py`
+Adding new code __requires__ extensive testing. Tests can be added in their own module in the
+`tests/` folder. For example, if adding a new command to `gef`, a new test module should be created
+and located in `/root/of/gef/tests/commands/my_new_command.py`. The test class __must__ inherit
+`tests.base.RemoteGefUnitTestGeneric`. This class allows one to manipulate gdb and gef through rpyc
+under their respective `self._gdb` and `self._gef` attributes.
 
 A skeleton of a test module would look something like:
 
@@ -60,29 +63,73 @@ A skeleton of a test module would look something like:
 """
 
 
-from tests.utils import GefUnitTestGeneric, gdb_run_cmd, gdb_start_silent_cmd
+from tests.utils import RemoteGefUnitTestGeneric
 
 
-class MyCommandCommand(GefUnitTestGeneric):
+class MyCommandCommand(RemoteGefUnitTestGeneric):
     """`my-command` command test module"""
 
+    def setUp(self) -> None:
+        # By default, tests will be executed against the default.out binary
+        # You can change this behavior in the `setUp` function
+        self._target = debug_target("my-custom-binary-for-tests")
+        return super().setUp()
+
     def test_cmd_my_command(self):
-        # `my-command` is expected to fail if the session is not active
-        self.assertFailIfInactiveSession(gdb_run_cmd("my-command"))
+        # some convenience variables
+        root, gdb, gef = self._conn.root, self._gdb, self._gef
 
-        # `my-command` should never throw an exception in GDB when running
-        res = gdb_start_silent_cmd("my-command")
-        self.assertNoException(res)
+        # You can then interact with any command from gdb or any class/function/variable from gef
+        # For instance:
 
-        # it also must print out a "Hello World" message
-        self.assertIn("Hello World", res)
+        # * tests that  `my-command` is expected to fail if the session is not active
+        output = gdb.execute("my-command", to_string=True)
+        assert output == ERROR_INACTIVE_SESSION_MESSAGE
+
+        # * `my-command` must print "Hello World" message when executed in running context
+        gdb.execute("start")
+        output = gdb.execute("my-command", to_string=True)
+        assert "Hello World" == output
 ```
+
+You might want to refer to the following documentations:
+
+*  [`pytest`](https://docs.pytest.org/en/)
+*  [`gdb Python API`](https://sourceware.org/gdb/current/onlinedocs/gdb.html/Python-API.html)
+*  (maybe) [`rpyc`](https://rpyc.readthedocs.io/en/latest/)
 
 When running your test, you can summon `pytest` with the `--pdb` flag to enter the python testing
 environment to help you get more information about the reason of failure.
 
 One of the most convenient ways to test `gef` properly is using the `pytest` integration of modern
 editors such as VisualStudio Code or PyCharm. Without proper tests, new code will not be integrated.
+
+Also note that GEF can be remotely controlled using the script `scripts/remote_debug.py` as such:
+
+```text
+$ gdb -q -nx
+(gdb) source /path/to/gef/gef.py
+[...]
+gef➤  source /path/to/gef/scripts/remote_debug.py
+gef➤  pi start_rpyc_service(4444)
+```
+
+Here RPyC will be started on the local host, and bound to the TCP port 4444. We can now connect
+using a regular Python REPL:
+
+```text
+>>> import rpyc
+>>> c = rpyc.connect("localhost", 4444)
+>>> gdb = c.root._gdb
+>>> gef = c.root._gef
+# We can now fully control the remote GDB
+>>> gdb.execute("file /bin/ls")
+>>> gdb.execute("start")
+>>> print(hex(gef.arch.pc))
+0x55555555aab0
+>>> print(hex(gef.arch.sp))
+0x7fffffffdcf0
+```
 
 ### Linting GEF
 

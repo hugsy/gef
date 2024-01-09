@@ -5,27 +5,21 @@
 import pytest
 import pathlib
 
-from tests.utils import (
-    gdb_run_cmd,
-    GefUnitTestGeneric,
-    gdb_start_silent_cmd_last_line,
-    removeuntil,
-)
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import removeuntil
 
 
-class GefCommand(GefUnitTestGeneric):
+class GefCommand(RemoteGefUnitTestGeneric):
     """`gef` command test module"""
 
-
     def test_cmd_gef(self):
-        res = gdb_run_cmd("gef")
-        self.assertNoException(res)
+        gdb = self._gdb
+        res = gdb.execute("gef", to_string=True)
         self.assertIn("GEF - GDB Enhanced Features", res)
 
-
     def test_cmd_gef_config(self):
-        res = gdb_run_cmd("gef config")
-        self.assertNoException(res)
+        gdb = self._gdb
+        res = gdb.execute("gef config", to_string=True)
         self.assertIn("GEF configuration settings", res)
 
         known_patterns = (
@@ -43,27 +37,28 @@ class GefCommand(GefUnitTestGeneric):
         for pattern in known_patterns:
             self.assertIn(pattern, res)
 
-
     def test_cmd_gef_config_get(self):
-        res = gdb_run_cmd("gef config gef.debug")
-        self.assertNoException(res)
+        gdb = self._gdb
+        res = gdb.execute("gef config gef.debug", to_string=True)
         self.assertIn("GEF configuration setting: gef.debug", res)
-        # the `True` is automatically set by `gdb_run_cmd` so we know it's there
-        self.assertIn("""gef.debug (bool) = True\n\nDescription:\n\tEnable debug mode for gef""",
-                      res)
-
+        self.assertIn(
+            """gef.debug (bool) = True\n\nDescription:\n\tEnable debug mode for gef""",
+            res,
+        )
 
     def test_cmd_gef_config_set(self):
-        res = gdb_start_silent_cmd_last_line("gef config gef.debug 0",
-                                             after=("pi print(is_debug())", ))
-        self.assertNoException(res)
-        self.assertEqual("False", res)
+        gdb = self._gdb
+        root = self._conn.root
 
+        gdb.execute("gef config gef.debug 1")
+        assert root.eval("is_debug()")
+
+        gdb.execute("gef config gef.debug 0")
+        assert not root.eval("is_debug()")
 
     def test_cmd_gef_help(self):
-        res = gdb_run_cmd("help gef")
-        self.assertNoException(res)
-
+        gdb = self._gdb
+        res = gdb.execute("help gef", to_string=True)
         known_patterns = (
             "gef config",
             "gef help",
@@ -77,46 +72,53 @@ class GefCommand(GefUnitTestGeneric):
         for pattern in known_patterns:
             self.assertIn(pattern, res)
 
-
     def test_cmd_gef_run_and_run(self):
-        res = gdb_run_cmd("gef set args $_gef0",
-                          before=("pattern create -n 4", ),
-                          after=("show args"))
-        self.assertNoException(res)
-        self.assertIn("aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaan", res)
+        gdb = self._gdb
 
-        res = gdb_run_cmd("gef set args $_gef42",
-                          before=("pattern create -n 4", ),
-                          after=("show args"))
-        self.assertException(res)
+        # valid
+        pattern = gdb.execute("pattern create -n 4", to_string=True).splitlines()[1]
+        assert len(pattern) == 1024
+        res = gdb.execute("gef set args $_gef0")
+        res = gdb.execute("show args", to_string=True).strip()
+        assert (
+            res
+            == f'Argument list to give program being debugged when it is started is "{pattern}".'
+        )
 
+        # invalid
+        with pytest.raises(Exception):
+            gdb.execute("gef set args $_gef42")
 
     def test_cmd_gef_save(self):
+        root = self._conn.root
+        gdb = self._gdb
+
         # check
-        res = gdb_run_cmd("gef save")
-        self.assertNoException(res)
+        res = gdb.execute("gef save", to_string=True).strip()
         self.assertIn("Configuration saved to '", res)
 
         gefrc_file = removeuntil("Configuration saved to '", res.rstrip("'"))
+        assert gefrc_file == root.eval("str(GEF_RC)")
 
         # set & check
         for name in ("AAAABBBBCCCCDDDD", "gef"):
-            res = gdb_run_cmd("gef save", before=(f"gef config gef.tempdir /tmp/{name}", ))
-            self.assertNoException(res)
+            gdb.execute(f"gef config gef.tempdir /tmp/{name}")
+            res = gdb.execute("gef save")
             with pathlib.Path(gefrc_file).open() as f:
                 config = f.read()
-                self.assertIn(f'tempdir = /tmp/{name}\n', config)
-
+                self.assertIn(f"tempdir = /tmp/{name}\n", config)
 
     @pytest.mark.online
     def test_cmd_gef_install(self):
+        gdb = self._gdb
         test_commands = ("skel", "windbg", "stack")
-        res = gdb_run_cmd(f"gef install {' '.join(test_commands)}")
-        self.assertNoException(res)
+        res = gdb.execute(f"gef install {' '.join(test_commands)}", to_string=True)
         # we install 3 plugins, the pattern must be found 3 times
         pattern = "Installed file"
         for i in range(len(test_commands)):
             idx = res.find(pattern)
-            self.assertNotEqual(-1,  idx, f"Check {i}/{3} failed: missing '{pattern}' in\n{res}")
+            self.assertNotEqual(
+                -1, idx, f"Check {i}/{3} failed: missing '{pattern}' in\n{res}"
+            )
             self.assertIn("new command(s) available", res)
             res = res[idx:]

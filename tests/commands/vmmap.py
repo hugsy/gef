@@ -3,18 +3,21 @@ vmmap command test module
 """
 
 
-from tests.utils import GefUnitTestGeneric, gdb_run_cmd, gdb_start_silent_cmd
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE
 
 
-class VmmapCommand(GefUnitTestGeneric):
+class VmmapCommand(RemoteGefUnitTestGeneric):
     """`vmmap` command test module"""
 
     def test_cmd_vmmap(self):
-        self.assertFailIfInactiveSession(gdb_run_cmd("vmmap"))
-        res = gdb_start_silent_cmd("vmmap")
-        self.assertNoException(res)
-        self.assertTrue(len(res.splitlines()) > 1)
+        gdb = self._gdb
+        self.assertEqual(
+            ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute("vmmap", to_string=True)
+        )
+        gdb.execute("start")
+        res = gdb.execute("vmmap", to_string=True)
+        self.assertGreater(len(res.splitlines()), 1)
 
-        res = gdb_start_silent_cmd("vmmap stack")
-        self.assertNoException(res)
-        self.assertTrue(len(res.splitlines()) > 1)
+        res = gdb.execute("vmmap stack", to_string=True)
+        self.assertGreater(len(res.splitlines()), 1)

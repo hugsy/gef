@@ -84,9 +84,12 @@ from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
-                    Iterator, List, NoReturn, Optional, Sequence, Set, Tuple, Type,
-                    Union)
+                    Iterator, List, Literal, NoReturn, Optional, Sequence, Set, Tuple, Type,
+                    Union, TYPE_CHECKING)
 from urllib.request import urlopen
+
+if TYPE_CHECKING:
+    import gdb
 
 GEF_DEFAULT_BRANCH                     = "main"
 GEF_EXTRAS_DEFAULT_BRANCH              = "main"
@@ -102,29 +105,17 @@ def http_get(url: str) -> Optional[bytes]:
 
 
 def update_gef(argv: List[str]) -> int:
-    """Try to update `gef` to the latest version pushed on GitHub main branch.
-    Return 0 on success, 1 on failure. """
-    ver = GEF_DEFAULT_BRANCH
-    latest_gef_data = http_get(f"https://raw.githubusercontent.com/hugsy/gef/{ver}/scripts/gef.sh")
-    if not latest_gef_data:
-        print("[-] Failed to get remote gef")
-        return 1
-    with tempfile.NamedTemporaryFile(suffix=".sh") as fd:
-        fd.write(latest_gef_data)
-        fd.flush()
-        fpath = pathlib.Path(fd.name)
-        return subprocess.run(["bash", fpath, ver], stdout=subprocess.DEVNULL,
-                              stderr=subprocess.DEVNULL).returncode
+    """Obsolete. Use `gef.sh`."""
+    return -1
 
 
 try:
     import gdb  # type:ignore
 except ImportError:
-    # if out of gdb, the only action allowed is to update gef.py
     if len(sys.argv) >= 2 and sys.argv[1].lower() in ("--update", "--upgrade"):
-        sys.exit(update_gef(sys.argv[2:]))
+        print("[-] `update_gef` is obsolete. Use the `gef.sh` script to update gef from the command line.")
     print("[-] gef cannot run as standalone")
-    sys.exit(0)
+    sys.exit(1)
 
 
 GDB_MIN_VERSION                        = (8, 0)
@@ -292,6 +283,10 @@ def bufferize(f: Callable) -> Callable:
 #
 # Helpers
 #
+
+class ObsoleteException(Exception): pass
+
+class AlreadyRegisteredException(Exception): pass
 
 def p8(x: int, s: bool = False, e: Optional["Endianness"] = None) -> bytes:
     """Pack one byte respecting the current architecture endianness."""
@@ -699,6 +694,15 @@ class Section:
         return (f"Section(page_start={self.page_start:#x}, page_end={self.page_end:#x}, "
                 f"permissions={self.permission!s})")
 
+    def __eq__(self, other: "Section") -> bool:
+        return other and \
+            self.page_start == other.page_start and \
+            self.page_end == other.page_end and \
+            self.offset == other.offset and \
+            self.permission == other.permission and \
+            self.inode == other.inode and \
+            self.path == other.path
+
 
 Zone = collections.namedtuple("Zone", ["name", "zone_start", "zone_end", "filename"])
 
@@ -729,7 +733,7 @@ class FileFormat:
     sections: List[FileFormatSection]
 
     def __init__(self, path: Union[str, pathlib.Path]) -> None:
-        raise NotImplemented
+        raise NotImplementedError
 
     def __init_subclass__(cls: Type["FileFormat"], **kwargs):
         global __registered_file_formats__
@@ -742,8 +746,8 @@ class FileFormat:
         return
 
     @classmethod
-    def is_valid(cls, path: pathlib.Path) -> bool:
-        raise NotImplemented
+    def is_valid(cls, _: pathlib.Path) -> bool:
+        raise NotImplementedError
 
     def __str__(self) -> str:
         return f"{self.name}('{self.path.absolute()}', entry @ {self.entry_point:#x})"
@@ -1956,7 +1960,7 @@ class DisableContextOutputContext:
 
 class RedirectOutputContext:
     def __init__(self, to_file: str = "/dev/null") -> None:
-        if " " in to_file: raise ValueEror("Target filepath cannot contain spaces")
+        if " " in to_file: raise ValueError("Target filepath cannot contain spaces")
         self.redirection_target_file = to_file
         return
 
@@ -1977,7 +1981,7 @@ class RedirectOutputContext:
 
 def enable_redirect_output(to_file: str = "/dev/null") -> None:
     """Redirect all GDB output to `to_file` parameter. By default, `to_file` redirects to `/dev/null`."""
-    if " " in to_file: raise ValueEror("Target filepath cannot contain spaces")
+    if " " in to_file: raise ValueError("Target filepath cannot contain spaces")
     gdb.execute("set logging overwrite")
     gdb.execute(f"set logging file {to_file}")
     gdb.execute("set logging redirect on")
@@ -2291,6 +2295,9 @@ class Architecture(ArchitectureBase):
 
     def __str__(self) -> str:
         return f"Architecture({self.arch}, {self.mode or 'None'}, {repr(self.endianness)})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
     @staticmethod
     def supports_gdb_arch(gdb_arch: str) -> Optional[bool]:
@@ -2834,7 +2841,7 @@ class X86(Architecture):
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         reg = self.flag_register
-        if not val:
+        if val is None:
             val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
@@ -3017,7 +3024,7 @@ class PowerPC(Architecture):
 
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         # https://www.cebix.net/downloads/bebox/pem32b.pdf (% 2.1.3)
-        if not val:
+        if val is None:
             reg = self.flag_register
             val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
@@ -3120,7 +3127,7 @@ class SPARC(Architecture):
     def flag_register_to_human(self, val: Optional[int] = None) -> str:
         # https://www.gaisler.com/doc/sparcv8.pdf
         reg = self.flag_register
-        if not val:
+        if val is None:
             val = gef.arch.register(reg)
         return flags_to_human(val, self.flags_table)
 
@@ -3395,7 +3402,7 @@ def get_os() -> str:
 def is_qemu() -> bool:
     if not is_remote_debug():
         return False
-    response = gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False)
+    response = gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False) or ""
     return "ENABLE=" in response
 
 
@@ -3403,7 +3410,7 @@ def is_qemu() -> bool:
 def is_qemu_usermode() -> bool:
     if not is_qemu():
         return False
-    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False)
+    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False) or ""
     return "Text=" in response
 
 
@@ -3411,7 +3418,7 @@ def is_qemu_usermode() -> bool:
 def is_qemu_system() -> bool:
     if not is_qemu():
         return False
-    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False)
+    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False) or ""
     return "received: \"\"" in response
 
 
@@ -3602,7 +3609,7 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
         warn(f"{bkp_fpath} exists, content will be overwritten")
 
     with bkp_fpath.open("w") as fd:
-        for bp in gdb.breakpoints():
+        for bp in list(gdb.breakpoints()):
             if not bp.enabled or not bp.is_valid:
                 continue
             fd.write(f"{'t' if bp.temporary else ''}break {bp.location}\n")
@@ -4076,14 +4083,16 @@ class PieVirtualBreakpoint:
             self.destroy()
 
         try:
-            res = gdb.execute(self.set_func(base), to_string=True)
+            res = gdb.execute(self.set_func(base), to_string=True) or ""
+            if not res: return
         except gdb.error as e:
-            err(e)
+            err(str(e))
             return
 
         if "Breakpoint" not in res:
             err(res)
             return
+
         res_list = res.split()
         self.bp_num = res_list[1]
         self.bp_addr = res_list[3]
@@ -4499,16 +4508,18 @@ def register_priority_command(cls: Type["GenericCommand"]) -> Type["GenericComma
 def register(cls: Union[Type["GenericCommand"], Type["GenericFunction"]]) -> Union[Type["GenericCommand"], Type["GenericFunction"]]:
     global __registered_commands__, __registered_functions__
     if issubclass(cls, GenericCommand):
-        assert( hasattr(cls, "_cmdline_"))
-        assert( hasattr(cls, "do_invoke"))
-        assert( all(map(lambda x: x._cmdline_ != cls._cmdline_, __registered_commands__)))
+        assert hasattr(cls, "_cmdline_")
+        assert hasattr(cls, "do_invoke")
+        if any(map(lambda x: x._cmdline_ == cls._cmdline_, __registered_commands__)):
+            raise AlreadyRegisteredException(cls._cmdline_)
         __registered_commands__.add(cls)
         return cls
 
     if issubclass(cls, GenericFunction):
-        assert( hasattr(cls, "_function_"))
-        assert( hasattr(cls, "invoke"))
-        assert( all(map(lambda x: x._function_ != cls._function_, __registered_functions__)))
+        assert hasattr(cls, "_function_")
+        assert hasattr(cls, "invoke")
+        if any(map(lambda x: x._function_ == cls._function_, __registered_functions__)):
+            raise AlreadyRegisteredException(cls._function_)
         __registered_functions__.add(cls)
         return cls
 
@@ -4557,6 +4568,8 @@ class GenericCommand(gdb.Command):
             # catching generic Exception, but rather specific ones. This is allows a much cleaner use.
             if is_debug():
                 show_last_exception()
+                if gef.config["gef.propagate_debug_exception"] is True:
+                    raise
             else:
                 err(f"Command '{self._cmdline_}' failed to execute properly, reason: {e}")
         return
@@ -4636,7 +4649,7 @@ class GenericCommand(gdb.Command):
             self.repeat_count = 0
             return
 
-        command = gdb.execute("show commands", to_string=True).strip().split("\n")[-1]
+        command = (gdb.execute("show commands", to_string=True) or "").strip().split("\n")[-1]
         self.repeat = self.__last_command == command
         self.repeat_count = self.repeat_count + 1 if self.repeat else 0
         self.__last_command = command
@@ -4750,9 +4763,9 @@ class PrintFormatCommand(GenericCommand):
             out = f"var buf = [{sdata}]"
         elif args.lang == "asm":
             asm_type = self.format_matrix[args.bitlen][2]
-            out = "buf {0} {1}".format(asm_type, sdata)
+            out = f"buf {asm_type} {sdata}"
         elif args.lang == "hex":
-            out = binascii.hexlify(gef.memory.read(start_addr, end_addr-start_addr)).decode()
+            out = gef.memory.read(start_addr, end_addr-start_addr).hex()
         else:
             raise ValueError(f"Invalid format: {args.lang}")
 
@@ -4929,7 +4942,7 @@ class PieAttachCommand(GenericCommand):
         try:
             gdb.execute(f"attach {' '.join(argv)}", to_string=True)
         except gdb.error as e:
-            err(e)
+            err(str(e))
             return
         # after attach, we are stopped so that we can
         # get base address to modify our breakpoint
@@ -5545,7 +5558,7 @@ class PCustomListCommand(PCustomCommand):
         struct_color = gef.config["pcustom.structure_type"]
         filename_color = gef.config["pcustom.structure_name"]
         for module in manager.modules.values():
-            __modules = ", ".join([Color.colorify(structure_name, struct_color) for structure_name in module.values()])
+            __modules = ", ".join([Color.colorify(str(structure), struct_color) for structure in module.values()])
             __filename = Color.colorify(str(module.path), filename_color)
             gef_print(f"{RIGHT_ARROW} {__filename} ({__modules})")
         return
@@ -5811,7 +5824,7 @@ class SearchPatternCommand(GenericCommand):
 
             try:
                 mem = gef.memory.read(chunk_addr, chunk_size)
-            except gdb.MemoryError as e:
+            except gdb.MemoryError:
                 return []
 
             for match in re.finditer(_pattern, mem):
@@ -6841,41 +6854,6 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
 
 
 @register
-class SolveKernelSymbolCommand(GenericCommand):
-    """Solve kernel symbols from kallsyms table."""
-
-    _cmdline_ = "ksymaddr"
-    _syntax_  = f"{_cmdline_} SymbolToSearch"
-    _example_ = f"{_cmdline_} prepare_creds"
-
-    @parse_arguments({"symbol": ""}, {})
-    def do_invoke(self, _: List[str], **kwargs: Any) -> None:
-        def hex_to_int(num):
-            try:
-                return int(num, 16)
-            except ValueError:
-                return 0
-        args : argparse.Namespace = kwargs["arguments"]
-        if not args.symbol:
-            self.usage()
-            return
-        sym = args.symbol
-        with open("/proc/kallsyms", "r") as f:
-            syms = [line.strip().split(" ", 2) for line in f]
-        matches = [(hex_to_int(addr), sym_t, " ".join(name.split())) for addr, sym_t, name in syms if sym in name]
-        for addr, sym_t, name in matches:
-            if sym == name.split()[0]:
-                ok(f"Found matching symbol for '{name}' at {addr:#x} (type={sym_t})")
-            else:
-                warn(f"Found partial match for '{sym}' at {addr:#x} (type={sym_t}): {name}")
-        if not matches:
-            err(f"No match for '{sym}'")
-        elif matches[0][0] == 0:
-            err("Check that you have the correct permissions to view kernel symbol addresses")
-        return
-
-
-@register
 class DetailRegistersCommand(GenericCommand):
     """Display full details on one, many or all registers value from current architecture."""
 
@@ -7167,7 +7145,7 @@ class ElfInfoCommand(GenericCommand):
 
         try:
             elf = Elf(filename)
-        except ValueError as ve:
+        except ValueError:
             err(f"`{filename}` is an invalid value for ELF file")
             return
 
@@ -7786,7 +7764,6 @@ class ContextCommand(GenericCommand):
 
         show_full_path_max = self["show_full_source_file_name_max_len"]
         show_basename_path_max = self["show_basename_source_file_name_max_len"]
-        show_prefix_path_len = self["show_prefix_source_path_name_len"]
 
         nb_line = self["nb_lines_code"]
         fn = symtab.filename
@@ -7875,6 +7852,7 @@ class ContextCommand(GenericCommand):
         frames = [current_frame]
         while current_frame != orig_frame:
             current_frame = current_frame.older()
+            if not current_frame: break
             frames.append(current_frame)
 
         nb_backtrace_before = self["nb_lines_backtrace_before"]
@@ -9623,7 +9601,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.autosave_breakpoints_file"] = GefSetting("", str, "Automatically save and restore breakpoints")
         gef.config["gef.disable_target_remote_overwrite"] = GefSetting(False, bool, "Disable the overwrite of `target remote`")
         plugins_dir = GefSetting("", str, "Autoload additional GEF commands from external directory", hooks={"on_write": GefSetting.no_spaces})
-        plugins_dir.add_hook("on_write", lambda _: self.load_extra_plugins())
+        plugins_dir.add_hook("on_write", lambda _: self.reload_extra_plugins())
         gef.config["gef.extra_plugins_dir"] = plugins_dir
         gef.config["gef.disable_color"] = GefSetting(False, bool, "Disable all colors in GEF")
         gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, str, "Directory to use for temporary/cache content", hooks={"on_write": GefSetting.no_spaces})
@@ -9632,6 +9610,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.bruteforce_main_arena"] = GefSetting(False, bool, "Allow bruteforcing main_arena symbol if everything else fails")
         gef.config["gef.libc_version"] = GefSetting("", str, "Specify libc version when auto-detection fails")
         gef.config["gef.main_arena_offset"] = GefSetting("", str, "Offset from libc base address to main_arena symbol (int or hex). Set to empty string to disable.")
+        gef.config["gef.propagate_debug_exception"] = GefSetting(False, bool, "If true, when debug mode is enabled, Python exceptions will be propagated all the way.")
 
         self.commands : Dict[str, GenericCommand] = collections.OrderedDict()
         self.functions : Dict[str, GenericFunction] = collections.OrderedDict()
@@ -9639,19 +9618,19 @@ class GefCommand(gdb.Command):
         return
 
     @property
+    @deprecated()
     def loaded_commands(self) -> List[Tuple[str, Type[GenericCommand], Any]]:
-        print("Obsolete loaded_commands")
-        raise
+        raise ObsoleteException("Obsolete loaded_commands")
 
     @property
+    @deprecated()
     def loaded_functions(self) -> List[Type[GenericFunction]]:
-        print("Obsolete loaded_functions")
-        raise
+        raise ObsoleteException("Obsolete loaded_functions")
 
     @property
+    @deprecated()
     def missing_commands(self) -> Dict[str, Exception]:
-        print("Obsolete missing_commands")
-        raise
+        raise ObsoleteException("Obsolete missing_commands")
 
     def setup(self) -> None:
         self.load()
@@ -9673,46 +9652,44 @@ class GefCommand(gdb.Command):
             try:
                 dbg(f"Loading '{fpath}'")
                 gdb.execute(f"source {fpath}")
+            except AlreadyRegisteredException:
+                pass
             except Exception as e:
                 warn(f"Exception while loading {fpath}: {str(e)}")
                 return False
             return True
 
-        nb_added = -1
-        start_time = time.perf_counter()
-        try:
+        def load_plugins_from_directory(plugin_directory: pathlib.Path):
+            nb_added = -1
             nb_inital = len(__registered_commands__)
-            directories: List[str] = gef.config["gef.extra_plugins_dir"].split(";") or []
-            for d in directories:
-                d = d.strip()
-                if not d: continue
-                directory = pathlib.Path(d).expanduser()
-                if not directory.is_dir(): continue
-                sys.path.append(str(directory.absolute()))
-                for entry in directory.iterdir():
-                    if entry.is_dir():
-                        if entry.name in ('gdb', 'gef', '__pycache__'): continue
-                        load_plugin(entry / "__init__.py")
-                    else:
-                        if entry.suffix != ".py": continue
-                        if entry.name == "__init__.py": continue
-                        load_plugin(entry)
+            start_time = time.perf_counter()
+            for entry in plugin_directory.glob("**/*.py"):
+                load_plugin(entry)
 
-            nb_added = len(__registered_commands__) - nb_inital
-            if nb_added > 0:
-                self.load()
-                nb_failed = len(__registered_commands__) - len(self.commands)
-                end_time = time.perf_counter()
-                load_time = end_time - start_time
-                ok(f"{Color.colorify(str(nb_added), 'bold green')} extra commands added from "
-                   f"'{Color.colorify(', '.join(directories), 'bold blue')}' in {load_time:.2f} seconds")
-                if nb_failed != 0:
-                    warn(f"{Color.colorify(str(nb_failed), 'bold light_gray')} extra commands/functions failed to be added. "
-                    "Check `gef missing` to know why")
+            try:
+                nb_added = len(__registered_commands__) - nb_inital
+                if nb_added > 0:
+                    self.load()
+                    nb_failed = len(__registered_commands__) - len(self.commands)
+                    load_time = time.perf_counter() - start_time
+                    ok(f"{Color.colorify(str(nb_added), 'bold green')} extra commands added " \
+                       f"in {load_time:.2f} seconds")
+                    if nb_failed != 0:
+                        warn(f"{Color.colorify(str(nb_failed), 'bold light_gray')} extra commands/functions failed to be added. "
+                        "Check `gef missing` to know why")
+            except gdb.error as e:
+                err(f"failed: {e}")
+            return nb_added
+        directory = gef.config["gef.extra_plugins_dir"] or ""
+        if not directory:
+            return 0
+        return load_plugins_from_directory(pathlib.Path(directory).expanduser().absolute())
 
-        except gdb.error as e:
-            err(f"failed: {e}")
-        return nb_added
+    def reload_extra_plugins(self) -> int:
+        try:
+            return self.load_extra_plugins()
+        except:
+            return -1
 
     @property
     def loaded_command_names(self) -> Iterable[str]:
@@ -10007,7 +9984,7 @@ class GefSaveCommand(gdb.Command):
         # save the aliases
         cfg.add_section("aliases")
         for alias in gef.session.aliases:
-            cfg.set("aliases", alias._alias, alias._command)
+            cfg.set("aliases", alias.alias, alias.command)
 
         with GEF_RC.open("w") as fd:
             cfg.write(fd)
@@ -10143,11 +10120,11 @@ class GefAlias(gdb.Command):
         if not p:
             return
 
-        if any(x for x in gef.session.aliases if x._alias == alias):
+        if any(x for x in gef.session.aliases if x.alias == alias):
             return
 
-        self._command = command
-        self._alias = alias
+        self.command = command
+        self.alias = alias
         c = command.split()[0]
         r = self.lookup_command(c)
         self.__doc__ = f"Alias for '{Color.greenify(command)}'"
@@ -10162,8 +10139,14 @@ class GefAlias(gdb.Command):
         gef.session.aliases.append(self)
         return
 
+    def __repr__(self) -> str:
+        return f"GefAlias(from={self.alias}, to={self.command})"
+
+    def __str__(self) -> str:
+        return f"GefAlias(from={self.alias}, to={self.command})"
+
     def invoke(self, args: Any, from_tty: bool) -> None:
-        gdb.execute(f"{self._command} {args}", from_tty=from_tty)
+        gdb.execute(f"{self.command} {args}", from_tty=from_tty)
         return
 
     def lookup_command(self, cmd: str) -> Optional[Tuple[str, GenericCommand]]:
@@ -10228,7 +10211,7 @@ class AliasesRmCommand(AliasesCommand):
             self.usage()
             return
         try:
-            alias_to_remove = next(filter(lambda x: x._alias == argv[0], gef.session.aliases))
+            alias_to_remove = next(filter(lambda x: x.alias == argv[0], gef.session.aliases))
             gef.session.aliases.remove(alias_to_remove)
         except (ValueError, StopIteration):
             err(f"{argv[0]} not found in aliases.")
@@ -10251,7 +10234,7 @@ class AliasesListCommand(AliasesCommand):
     def do_invoke(self, _: List[str]) -> None:
         ok("Aliases defined:")
         for a in gef.session.aliases:
-            gef_print(f"{a._alias:30s} {RIGHT_ARROW} {a._command}")
+            gef_print(f"{a.alias:30s} {RIGHT_ARROW} {a.command}")
         return
 
 
@@ -10807,6 +10790,7 @@ class GefSetting:
         if not callable(func):
             raise ValueError("hook is not callable")
         self.hooks[access].append(func)
+        return self
 
     @staticmethod
     def no_spaces(value):
@@ -10901,7 +10885,7 @@ class GefSessionManager(GefManager):
             return None
         if not self._auxiliary_vector:
             auxiliary_vector = {}
-            auxv_info = gdb.execute("info auxv", to_string=True)
+            auxv_info = gdb.execute("info auxv", to_string=True) or ""
             if not auxv_info or "failed" in auxv_info:
                 err("Failed to query auxiliary variables")
                 return None
@@ -11313,11 +11297,11 @@ if __name__ == "__main__":
 
     try:
         pyenv = which("pyenv")
-        PYENV_ROOT = gef_pystring(subprocess.check_output([pyenv, "root"]).strip())
-        PYENV_VERSION = gef_pystring(subprocess.check_output([pyenv, "version-name"]).strip())
-        site_packages_dir = os.path.join(PYENV_ROOT, "versions", PYENV_VERSION, "lib",
-                                             f"python{PYENV_VERSION[:3]}", "site-packages")
-        site.addsitedir(site_packages_dir)
+        pyenv_root = gef_pystring(subprocess.check_output([pyenv, "root"]).strip())
+        pyenv_version = gef_pystring(subprocess.check_output([pyenv, "version-name"]).strip())
+        site_packages_dir = pathlib.Path(pyenv_root) / f"versions/{pyenv_version}/lib/python{pyenv_version[:3]}/site-packages"
+        assert site_packages_dir.is_dir()
+        site.addsitedir(str(site_packages_dir.absolute()))
     except FileNotFoundError:
         pass
 
@@ -11353,6 +11337,7 @@ if __name__ == "__main__":
 
     # load GEF, set up the managers and load the plugins, functions,
     reset()
+    assert isinstance(gef, Gef)
     gef.gdb.load()
     gef.gdb.show_banner()
 

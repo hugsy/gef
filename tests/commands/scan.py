@@ -3,21 +3,27 @@ scan command test module
 """
 
 
-from tests.utils import GefUnitTestGeneric, debug_target, gdb_run_cmd, gdb_start_silent_cmd
+from tests.base import RemoteGefUnitTestGeneric
+from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE, debug_target
 
 
-class ScanCommand(GefUnitTestGeneric):
+class ScanCommand(RemoteGefUnitTestGeneric):
     """`scan` command test module"""
 
+    def setUp(self) -> None:
+        self._target = debug_target("checksec-no-pie")
+        return super().setUp()
 
     def test_cmd_scan(self):
+        gdb = self._gdb
         cmd = "scan libc stack"
-        target = debug_target("checksec-no-pie")
-        self.assertFailIfInactiveSession(gdb_run_cmd(cmd))
-        res = gdb_start_silent_cmd(cmd, target=target)
-        self.assertNoException(res)
-        self.assertIn(str(target), res)
+        self.assertEqual(
+            ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute(cmd, to_string=True)
+        )
+        gdb.execute("start")
+        res = gdb.execute(cmd, to_string=True)
+        self.assertIn(str(self._target), res)
 
-        res = gdb_start_silent_cmd("scan binary libc")
-        self.assertNoException(res)
+        gdb.execute("start")
+        res = gdb.execute("scan binary libc", to_string=True)
         self.assertIn("__libc_start_main", res)

@@ -3,21 +3,18 @@
 """
 
 
-from tests.utils import gdb_run_cmd, gdb_start_silent_cmd
-from tests.utils import GefUnitTestGeneric
+from tests.base import RemoteGefUnitTestGeneric
 
 
-class NameBreakCommand(GefUnitTestGeneric):
+class NameBreakCommand(RemoteGefUnitTestGeneric):
     """`name-break` command test module"""
 
-
     def test_cmd_name_break(self):
-        res = gdb_run_cmd("nb foobar *main+10")
-        self.assertNoException(res)
-
-        res = gdb_run_cmd("nb foobar *0xcafebabe")
-        self.assertNoException(res)
+        gdb = self._gdb
+        gdb.execute("start")
+        res = gdb.execute("nb foobar *main+10", to_string=True)
+        res = gdb.execute("nb foobar *0xcafebabe", to_string=True)
         self.assertIn("at 0xcafebabe", res)
 
-        res = gdb_start_silent_cmd("nb foobar")
-        self.assertNoException(res)
+        res = gdb.execute("start")
+        gdb.execute("nb foobar", to_string=True)

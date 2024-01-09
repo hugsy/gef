@@ -6,3 +6,4 @@ pytest-benchmark
 pytest-forked
 coverage
 pre-commit
+rpyc>=5

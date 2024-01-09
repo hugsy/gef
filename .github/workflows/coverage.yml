@@ -80,10 +80,10 @@ jobs:
             * ${(forbidden_words.length === 0 || forbidden_words[0] === '') ? "**does not** include forbidden words" : "includes the forbidden words:" + forbidden_words.join(", ")}
           `;
 
-          const { owner, repo, number } = context.issue;
-          await github.rest.issues.createComment({ owner, repo, issue_number: number, body: comment });
-
           try {
+            const { owner, repo, number } = context.issue;
+            await github.rest.issues.createComment({ owner, repo, issue_number: number, body: comment });
+
             if(docs_changes > 0) {
               await github.rest.issues.addLabels({
                 owner: owner,
@@ -92,9 +92,7 @@ jobs:
                 labels: ['documentation']
               });
             }
-          } catch (err) { console.log(err); }
 
-          try {
             if(tests_changes > 0) {
               await github.rest.issues.addLabels({
                 owner: owner,

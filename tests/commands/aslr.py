@@ -3,48 +3,45 @@
 """
 
 
-from tests.utils import GefUnitTestGeneric, findlines, gdb_start_silent_cmd, removeuntil
+from tests.base import RemoteGefUnitTestGeneric
 
 
-class AslrCommand(GefUnitTestGeneric):
+class AslrCommand(RemoteGefUnitTestGeneric):
     """`aslr` command test module"""
-
 
     cmd = "aslr"
 
+    def __is_alsr_on_gdb(self):
+        gdb = self._gdb
+        gdb_output = gdb.execute("show disable-randomization", to_string=True).strip()
+        return gdb_output.endswith("off.")  # i.e. disabled
 
     def test_cmd_aslr_show(self):
-        # show
-        res = gdb_start_silent_cmd(self.cmd, after=("show disable-randomization",))
-        self.assertNoException(res)
-        self.assertIn("ASLR is currently ", res)
-        self.assertEqual(res.count("ASLR is currently "), 1)
+        gdb = self._gdb
 
-        # compare
-        pattern = "ASLR is currently "
-        cmd_output = removeuntil(pattern, findlines(pattern, res)[0])
-        pattern = "virtual address space is "
-        gdb_output = findlines(pattern, res)[0].split()[-1]
-        if gdb_output == "on.":
-            self.assertEqual(cmd_output, "disabled")
+        gef_output = gdb.execute(self.cmd, to_string=True).strip()
+
+        # basic check
+        if self.__is_alsr_on_gdb():
+            assert gef_output == "ASLR is currently enabled"
         else:
-            self.assertEqual(cmd_output, "enabled")
-
+            assert gef_output == "ASLR is currently disabled"
 
     def test_cmd_aslr_toggle(self):
+        gdb = self._gdb
+
         # current value
-        res = gdb_start_silent_cmd(self.cmd)
-        pattern = "ASLR is currently "
-        default_value = removeuntil(pattern, findlines(pattern, res)[0])
+        enabled = self.__is_alsr_on_gdb()
 
         # toggle
-        if default_value == "enabled":
-            res = gdb_start_silent_cmd(f"{self.cmd} off", after=(f"{self.cmd}"))
-            cmd_output = removeuntil(pattern, findlines(pattern, res)[0])
-            self.assertEqual(cmd_output, "disabled")
-        elif default_value == "disabled":
-            res = gdb_start_silent_cmd(f"{self.cmd} on", after=(f"{self.cmd}"))
-            cmd_output = removeuntil(pattern, findlines(pattern, res)[0])
-            self.assertEqual(cmd_output, "enabled")
+        if enabled:
+            # switch off and check
+            gdb.execute(f"{self.cmd} off")
+            res = gdb.execute(self.cmd, to_string=True).strip()
+            assert res == "ASLR is currently disabled"
+
         else:
-            raise Exception(f"incorrect value: {default_value}")
+            # switch on and check
+            gdb.execute(f"{self.cmd} on")
+            res = gdb.execute(self.cmd, to_string=True).strip()
+            assert res == "ASLR is currently enabled"
