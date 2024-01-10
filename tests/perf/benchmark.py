@@ -12,7 +12,7 @@ class BenchmarkBasicApi(RemoteGefUnitTestGeneric):
     def benchmark(self, benchmark):
         self.__benchmark = benchmark
 
-    @pytest.mark.benchmark
+    @pytest.mark.benchmark(warmup=True)
     def test_cmd_context(self):
         gdb = self._gdb
         gdb.execute("start")
@@ -23,7 +23,6 @@ class BenchmarkBasicApi(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         gdb.execute("start")
         gef = self._gef
-        assert self.__benchmark
 
         def vmmap():
             return gef.memory.maps
@@ -35,5 +34,4 @@ class BenchmarkBasicApi(RemoteGefUnitTestGeneric):
         root = self._conn.root
         ElfCls = root.eval("Elf")
         assert ElfCls
-        assert self.__benchmark
         self.__benchmark(ElfCls, "/bin/ls")
