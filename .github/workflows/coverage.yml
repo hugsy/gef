@@ -14,8 +14,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-      with:
-        fetch-depth: '0'
     - name: Setup
       run: |
         sudo apt-get -qq update
@@ -36,8 +34,8 @@ jobs:
         new_score=$(cat docs/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         diff_score=$(python -c "print(${new_score} - ${current_score})")
         commit=${{ github.event.pull_request.head.sha }}
-        include_tests=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --compact-summary | egrep --count '^ tests/' || 0)
-        include_docs=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --compact-summary | egrep --count '^ docs/' || 0)
+        include_tests=$((git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --compact-summary | egrep --count '^ tests/') || echo 0)
+        include_docs=$((git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --compact-summary | egrep --count '^ docs/') || echo 0)
         echo "commit=${commit}" >> $GITHUB_OUTPUT
         echo "new_coverage_score=${new_score}" >> $GITHUB_OUTPUT
         echo "current_coverage_score=${current_score}" >> $GITHUB_OUTPUT

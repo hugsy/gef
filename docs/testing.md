@@ -120,8 +120,8 @@ using a regular Python REPL:
 ```text
 >>> import rpyc
 >>> c = rpyc.connect("localhost", 4444)
->>> gdb = c.root._gdb
->>> gef = c.root._gef
+>>> gdb = c.root.gdb
+>>> gef = c.root.gef
 # We can now fully control the remote GDB
 >>> gdb.execute("file /bin/ls")
 >>> gdb.execute("start")
