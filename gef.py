@@ -11104,7 +11104,6 @@ class GefRemoteSessionManager(GefSessionManager):
         # refresh gef to consider the binary
         reset_all_caches()
 
-        print(self.file)
         if self.file.exists():
             gef.binary = Elf(self.lfile)
 
