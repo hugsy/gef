@@ -11092,10 +11092,12 @@ class GefRemoteSessionManager(GefSessionManager):
         # setup remote adequately depending on remote or qemu mode
         if self.in_qemu_user():
             dbg(f"Setting up as qemu session, target={self.__qemu}")
-            self.__setup_qemu()
+            if not self.__setup_qemu():
+                return False
         else:
             dbg(f"Setting up as remote session")
-            self.__setup_remote()
+            if not self.__setup_remote():
+                return False
 
         # refresh gef to consider the binary
         reset_all_caches()
