@@ -6045,12 +6045,12 @@ class RemoteCommand(GenericCommand):
 
         dbg(f"[remote] initializing remote session with {gef.session.remote.target} under {gef.session.remote.root}")
         if not gef.session.remote.connect(args.pid):
+            gef.session.remote_initializing = False
             raise EnvironmentError(f"Cannot connect to remote target {gef.session.remote.target}")
         if not gef.session.remote.setup():
+            gef.session.remote_initializing = False
             raise EnvironmentError(f"Failed to create a proper environment for {gef.session.remote.target}")
 
-        gef.session.remote_initializing = False
-        reset_all_caches()
         gdb.execute("context")
         return
 
@@ -11288,7 +11288,10 @@ def target_remote_posthook():
 
     gef.session.remote = GefRemoteSessionManager("", 0)
     if not gef.session.remote.setup():
-        raise EnvironmentError(f"Failed to create a proper environment for {gef.session.remote}")
+        warn(f"Failed to create a proper environment for {gef.session.remote}")
+        return False
+
+    return True
 
 if __name__ == "__main__":
     if sys.version_info[0] == 2:
@@ -11379,8 +11382,7 @@ if __name__ == "__main__":
                    f"`{disable_tr_overwrite_setting}` in the config.")
         hook = f"""
             define target hookpost-{{}}
-            pi target_remote_posthook()
-            context
+            pi if target_remote_posthook(): gdb.execute("context")
             pi if calling_function() != "connect": warn("{warnmsg}")
             end
         """
