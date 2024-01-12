@@ -11090,20 +11090,26 @@ class GefRemoteSessionManager(GefSessionManager):
 
     def setup(self) -> bool:
         # setup remote adequately depending on remote or qemu mode
+        success = True
+
         if self.in_qemu_user():
             dbg(f"Setting up as qemu session, target={self.__qemu}")
             if not self.__setup_qemu():
-                return False
+                success = False
         else:
             dbg(f"Setting up as remote session")
             if not self.__setup_remote():
-                return False
+                success = False
 
         # refresh gef to consider the binary
         reset_all_caches()
-        gef.binary = Elf(self.lfile)
+
+        print(self.file)
+        if self.file.exists():
+            gef.binary = Elf(self.lfile)
+
         reset_architecture()
-        return True
+        return success
 
     def __setup_qemu(self) -> bool:
         # setup emulated file in the chroot
@@ -11140,27 +11146,32 @@ class GefRemoteSessionManager(GefSessionManager):
         return True
 
     def __setup_remote(self) -> bool:
+        success = True
+
         # get the file
-        fpath = f"/proc/{self.pid}/exe"
-        if not self.sync(fpath, str(self.file)):
-            err(f"'{fpath}' could not be fetched on the remote system.")
-            return False
+        if not self.sync(str(self.file)):
+            warn(f"'{fpath}' could not be fetched on the remote system.")
+            success = False
 
-        # pseudo procfs
-        for _file in ("maps", "environ", "cmdline"):
-            fpath = f"/proc/{self.pid}/{_file}"
-            if not self.sync(fpath):
-                err(f"'{fpath}' could not be fetched on the remote system.")
-                return False
+        if not self.sync(f"/proc/{self.pid}/maps"):
+            warn(f"'{fpath}' could not be fetched on the remote system.")
+            success = False
 
-        # makeup a fake mem mapping in case we failed to retrieve it
-        maps = self.root / f"proc/{self.pid}/maps"
-        if not maps.exists():
+            # makeup a fake mem mapping in case we failed to retrieve it
+            maps = self.root / f"proc/{self.pid}/maps"
             with maps.open("w") as fd:
                 fname = self.file.absolute()
                 mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
                 fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
-        return True
+
+        # pseudo procfs
+        for _file in ("environ", "cmdline"):
+            fpath = f"/proc/{self.pid}/{_file}"
+            if not self.sync(fpath):
+                warn(f"'{fpath}' could not be fetched on the remote system.")
+                success = False
+
+        return success
 
     def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
         dbg(f"[remote] in remote_objfile_handler({evt.new_objfile.filename if evt else 'None'}))")
