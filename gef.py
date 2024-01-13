@@ -10877,6 +10877,9 @@ class GefSessionManager(GefManager):
     def __str__(self) -> str:
         return f"Session({'Local' if self.remote is None else 'Remote'}, pid={self.pid or 'Not running'}, os='{self.os}')"
 
+    def __repr__(self) -> str:
+        return str(self)
+
     @property
     def auxiliary_vector(self) -> Optional[Dict[str, int]]:
         if not is_alive():
@@ -10993,6 +10996,12 @@ class GefSessionManager(GefManager):
 class GefRemoteSessionManager(GefSessionManager):
     """Class for managing remote sessions with GEF. It will create a temporary environment
     designed to clone the remote one."""
+
+    class RemoteMode(enum.IntEnum):
+        GDBSERVER = 0
+        QEMU = 1
+        RR = 2
+
     def __init__(self, host: str, port: int, pid: int =-1, qemu: Optional[pathlib.Path] = None) -> None:
         super().__init__()
         self.__host = host
@@ -11014,7 +11023,10 @@ class GefRemoteSessionManager(GefSessionManager):
         return self.__qemu is not None
 
     def __str__(self) -> str:
-        return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid}, qemu_user={bool(self.in_qemu_user())})"
+        return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid}, mode={self.mode})"
+
+    def __repr__(self) -> str:
+        return str(self)
 
     @property
     def target(self) -> str:
@@ -11028,11 +11040,11 @@ class GefRemoteSessionManager(GefSessionManager):
     def file(self) -> pathlib.Path:
         """Path to the file being debugged as seen by the remote endpoint."""
         if not self._file:
-            filename = gdb.current_progspace().filename
-            if not filename:
+            progspace = gdb.current_progspace()
+            if not progspace or not progspace.filename:
                 raise RuntimeError("No session started")
-            start_idx = len("target:") if filename.startswith("target:") else 0
-            self._file = pathlib.Path(filename[start_idx:])
+            start_idx = len("target:") if progspace.filename.startswith("target:") else 0
+            self._file = pathlib.Path(progspace.filename[start_idx:])
         return self._file
 
     @property
@@ -11045,6 +11057,14 @@ class GefRemoteSessionManager(GefSessionManager):
         if not self._maps:
             self._maps = self.root / f"proc/{self.pid}/maps"
         return self._maps
+
+    @property
+    def mode(self) -> RemoteMode:
+        if self.in_qemu_user():
+            return GefRemoteSessionManager.RemoteMode.QEMU
+        if os.environ.get("GDB_UNDER_RR", None) == "1":
+            return GefRemoteSessionManager.RemoteMode.RR
+        return GefRemoteSessionManager.RemoteMode.GDBSERVER
 
     def sync(self, src: str, dst: Optional[str] = None) -> bool:
         """Copy the `src` into the temporary chroot. If `dst` is provided, that path will be
@@ -11090,13 +11110,17 @@ class GefRemoteSessionManager(GefSessionManager):
 
     def setup(self) -> bool:
         # setup remote adequately depending on remote or qemu mode
-        if self.in_qemu_user():
+        if self.mode == GefRemoteSessionManager.RemoteMode.QEMU:
             dbg(f"Setting up as qemu session, target={self.__qemu}")
             self.__setup_qemu()
-        else:
+        elif self.mode == GefRemoteSessionManager.RemoteMode.RR:
+            dbg(f"Setting up as rr session")
+            self.__setup_rr()
+        elif self.mode == GefRemoteSessionManager.RemoteMode.GDBSERVER:
             dbg(f"Setting up as remote session")
             self.__setup_remote()
-
+        else:
+            raise Exception
         # refresh gef to consider the binary
         reset_all_caches()
         gef.binary = Elf(self.lfile)
@@ -11152,12 +11176,20 @@ class GefRemoteSessionManager(GefSessionManager):
                 return False
 
         # makeup a fake mem mapping in case we failed to retrieve it
-        # maps = self.root / f"proc/{self.pid}/maps"
-        # if not maps.exists():
-        #     with maps.open("w") as fd:
-        #         fname = self.file.absolute()
-        #         mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
-        #         fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
+        maps = self.root / f"proc/{self.pid}/maps"
+        if not maps.exists():
+            with maps.open("w") as fd:
+                fname = self.file.absolute()
+                mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
+                fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
+        return True
+
+    def __setup_rr(self) -> bool:
+        #
+        # Simply override the local root path, the binary must exist
+        # on the host.
+        #
+        self.__local_root_path = pathlib.Path("/")
         return True
 
     def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
