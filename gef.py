@@ -3551,6 +3551,10 @@ def continue_handler(_: "gdb.ContinueEvent") -> None:
 
 def hook_stop_handler(_: "gdb.StopEvent") -> None:
     """GDB event handler for stop cases."""
+    if gef.session.remote:
+        gef.session.remote.maps.unlink()
+        gef.session.remote.sync(f"/proc/{gef.session.remote.pid}/maps")
+
     reset_all_caches()
     gdb.execute("context")
     return
@@ -6045,12 +6049,12 @@ class RemoteCommand(GenericCommand):
 
         dbg(f"[remote] initializing remote session with {gef.session.remote.target} under {gef.session.remote.root}")
         if not gef.session.remote.connect(args.pid):
+            gef.session.remote_initializing = False
             raise EnvironmentError(f"Cannot connect to remote target {gef.session.remote.target}")
         if not gef.session.remote.setup():
+            gef.session.remote_initializing = False
             raise EnvironmentError(f"Failed to create a proper environment for {gef.session.remote.target}")
 
-        gef.session.remote_initializing = False
-        reset_all_caches()
         gdb.execute("context")
         return
 
@@ -11056,7 +11060,12 @@ class GefRemoteSessionManager(GefSessionManager):
             return True
         tgt.parent.mkdir(parents=True, exist_ok=True)
         dbg(f"[remote] downloading '{src}' -> '{tgt}'")
-        gdb.execute(f"remote get '{src}' '{tgt.absolute()}'")
+
+        try:
+            gdb.execute(f"remote get '{src}' '{tgt.absolute()}'")
+        except gdb.error:
+            return False
+
         return tgt.exists()
 
     def connect(self, pid: int) -> bool:
@@ -11085,18 +11094,25 @@ class GefRemoteSessionManager(GefSessionManager):
 
     def setup(self) -> bool:
         # setup remote adequately depending on remote or qemu mode
+        success = True
+
         if self.in_qemu_user():
             dbg(f"Setting up as qemu session, target={self.__qemu}")
-            self.__setup_qemu()
+            if not self.__setup_qemu():
+                success = False
         else:
             dbg(f"Setting up as remote session")
-            self.__setup_remote()
+            if not self.__setup_remote():
+                success = False
 
         # refresh gef to consider the binary
         reset_all_caches()
-        gef.binary = Elf(self.lfile)
+
+        if self.file.exists():
+            gef.binary = Elf(self.lfile)
+
         reset_architecture()
-        return True
+        return success
 
     def __setup_qemu(self) -> bool:
         # setup emulated file in the chroot
@@ -11133,27 +11149,32 @@ class GefRemoteSessionManager(GefSessionManager):
         return True
 
     def __setup_remote(self) -> bool:
+        success = True
+
         # get the file
-        fpath = f"/proc/{self.pid}/exe"
-        if not self.sync(fpath, str(self.file)):
-            err(f"'{fpath}' could not be fetched on the remote system.")
-            return False
+        if not self.sync(str(self.file)):
+            warn(f"'{fpath}' could not be fetched on the remote system.")
+            success = False
 
-        # pseudo procfs
-        for _file in ("maps", "environ", "cmdline"):
-            fpath = f"/proc/{self.pid}/{_file}"
-            if not self.sync(fpath):
-                err(f"'{fpath}' could not be fetched on the remote system.")
-                return False
+        if not self.sync(f"/proc/{self.pid}/maps"):
+            warn(f"'{fpath}' could not be fetched on the remote system.")
+            success = False
 
-        # makeup a fake mem mapping in case we failed to retrieve it
-        maps = self.root / f"proc/{self.pid}/maps"
-        if not maps.exists():
+            # makeup a fake mem mapping in case we failed to retrieve it
+            maps = self.root / f"proc/{self.pid}/maps"
             with maps.open("w") as fd:
                 fname = self.file.absolute()
                 mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
                 fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
-        return True
+
+        # pseudo procfs
+        for _file in ("environ", "cmdline"):
+            fpath = f"/proc/{self.pid}/{_file}"
+            if not self.sync(fpath):
+                warn(f"'{fpath}' could not be fetched on the remote system.")
+                success = False
+
+        return success
 
     def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
         dbg(f"[remote] in remote_objfile_handler({evt.new_objfile.filename if evt else 'None'}))")
@@ -11281,7 +11302,10 @@ def target_remote_posthook():
 
     gef.session.remote = GefRemoteSessionManager("", 0)
     if not gef.session.remote.setup():
-        raise EnvironmentError(f"Failed to create a proper environment for {gef.session.remote}")
+        warn(f"Failed to create a proper environment for {gef.session.remote}")
+        return False
+
+    return True
 
 if __name__ == "__main__":
     if sys.version_info[0] == 2:
@@ -11372,8 +11396,7 @@ if __name__ == "__main__":
                    f"`{disable_tr_overwrite_setting}` in the config.")
         hook = f"""
             define target hookpost-{{}}
-            pi target_remote_posthook()
-            context
+            pi if target_remote_posthook(): gdb.execute("context")
             pi if calling_function() != "connect": warn("{warnmsg}")
             end
         """
