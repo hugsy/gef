@@ -682,7 +682,7 @@ class Section:
     @property
     def size(self) -> int:
         if self.page_end is None or self.page_start is None:
-            return -1
+            raise AttributeError
         return self.page_end - self.page_start
 
     @property
@@ -691,16 +691,17 @@ class Section:
         return self.path if gef.session.remote is None else f"/tmp/gef/{gef.session.remote:d}/{self.path}"
 
     def __str__(self) -> str:
-        return (f"Section(page_start={self.page_start:#x}, page_end={self.page_end:#x}, "
-                f"permissions={self.permission!s})")
+        return (f"Section(start={self.page_start:#x}, end={self.page_end:#x}, "
+                f"perm={self.permission!s})")
+
+    def __repr__(self) -> str:
+        return str(self)
 
     def __eq__(self, other: "Section") -> bool:
         return other and \
             self.page_start == other.page_start and \
-            self.page_end == other.page_end and \
-            self.offset == other.offset and \
+            self.size == other.size and \
             self.permission == other.permission and \
-            self.inode == other.inode and \
             self.path == other.path
 
 
@@ -10460,10 +10461,12 @@ class GefMemoryManager(GefManager):
     def maps(self) -> List[Section]:
         if not self.__maps:
             self.__maps = self._parse_maps()
+            if not self.__maps:
+                raise RuntimeError("Failed to get memory layout")
         return self.__maps
 
     @classmethod
-    def _parse_maps(cls) -> List[Section]:
+    def _parse_maps(cls) -> Optional[List[Section]]:
         """Return the mapped memory sections. If the current arch has its maps
         method defined, then defer to that to generated maps, otherwise, try to
         figure it out from procfs, then info sections, then monitor info
@@ -10472,12 +10475,12 @@ class GefMemoryManager(GefManager):
             return list(gef.arch.maps())
 
         try:
-            return list(cls.parse_procfs_maps())
+            return list(cls.parse_gdb_info_proc_maps())
         except:
             pass
 
         try:
-            return list(cls.parse_gdb_info_sections())
+            return list(cls.parse_procfs_maps())
         except:
             pass
 
@@ -10486,7 +10489,6 @@ class GefMemoryManager(GefManager):
         except:
             pass
 
-        warn("Cannot get memory map")
         return None
 
     @staticmethod
@@ -10521,30 +10523,27 @@ class GefMemoryManager(GefManager):
         return
 
     @staticmethod
-    def parse_gdb_info_sections() -> Generator[Section, None, None]:
+    def parse_gdb_info_proc_maps() -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
-        stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
-
-        for line in stream:
+        lines = (gdb.execute("info proc mappings", to_string=True) or "").splitlines()
+        if len(lines) < 5:
+            # See expected format in tests/api/gef_memory.py:test_api_gef_memory_parse_info_proc_maps*
+            return
+        for line in lines[4:]:
             if not line:
                 break
 
-            try:
-                parts = [x for x in line.split()]
-                addr_start, addr_end = [int(x, 16) for x in parts[1].split("->")]
-                off = int(parts[3][:-1], 16)
-                path = parts[4]
-                perm = Permission.from_info_sections(parts[5:])
-                yield Section(page_start=addr_start,
-                              page_end=addr_end,
-                              offset=off,
-                              permission=perm,
-                              path=path)
-
-            except IndexError:
-                continue
-            except ValueError:
-                continue
+            parts = [x.strip() for x in line.split()]
+            addr_start, addr_end, offset, _ = list(map(lambda x: int(x, 16), parts[0:4]))
+            perm = Permission.from_process_maps(parts[4])
+            path = " ".join(parts[5:]) if len(parts) >= 5 else ""
+            yield Section(
+                page_start=addr_start,
+                page_end=addr_end,
+                offset=offset,
+                permission=perm,
+                path=path,
+            )
         return
 
     @staticmethod
@@ -10560,7 +10559,7 @@ class GefMemoryManager(GefManager):
                 ranges, off, perms = line.split()
                 off = int(off, 16)
                 start, end = [int(s, 16) for s in ranges.split("-")]
-            except ValueError as e:
+            except ValueError:
                 continue
 
             perm = Permission.from_monitor_info_mem(perms)
@@ -11147,12 +11146,12 @@ class GefRemoteSessionManager(GefSessionManager):
                 return False
 
         # makeup a fake mem mapping in case we failed to retrieve it
-        maps = self.root / f"proc/{self.pid}/maps"
-        if not maps.exists():
-            with maps.open("w") as fd:
-                fname = self.file.absolute()
-                mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
-                fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
+        # maps = self.root / f"proc/{self.pid}/maps"
+        # if not maps.exists():
+        #     with maps.open("w") as fd:
+        #         fname = self.file.absolute()
+        #         mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
+        #         fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
         return True
 
     def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:

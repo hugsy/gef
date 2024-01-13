@@ -71,22 +71,19 @@ class MiscFunctionTest(RemoteGefUnitTestGeneric):
             assert section.page_start & ~0xFFF
             assert section.page_end & ~0xFFF
 
-        # The parse maps function should automatically get called when we start
-        # up, and we should be able to view the maps via the `gef.memory.maps`
-        # property. So check the alias
-        assert gef.memory.maps == sections
-
-    def test_func_parse_maps_local_info_section(self):
-        root, gdb = self._conn.root, self._gdb
-        gdb.execute("start")
-
-        sections = root.eval("list(GefMemoryManager.parse_gdb_info_sections())")
-        assert len(sections) > 0
+            #
+            # The parse maps function should automatically get called when we start
+            # up, and we should be able to view the maps via the `gef.memory.maps`
+            # property. So check the alias `gef.memory.maps`
+            # However, since `gef.memory.maps` has more info, use it as source of
+            # trust
+            #
+            assert section in gef.memory.maps
 
     @pytest.mark.slow
     def test_func_parse_maps_remote_gdbserver(self):
         root, gdb = self._conn.root, self._gdb
-        # When in a gef-remote session `parse_gdb_info_sections` should work to
+        # When in a gef-remote session `parse_gdb_info_proc_maps` should work to
         # query the memory maps
         while True:
             port = random.randint(1025, 65535)
@@ -98,12 +95,12 @@ class MiscFunctionTest(RemoteGefUnitTestGeneric):
 
         with gdbserver_session(port=port) as _:
             gdb.execute(f"gef-remote {GDBSERVER_DEFAULT_HOST} {port}")
-            sections = root.eval("list(GefMemoryManager.parse_gdb_info_sections())")
+            sections = root.eval("list(GefMemoryManager.parse_gdb_info_proc_maps())")
             assert len(sections) > 0
 
     def test_func_parse_maps_remote_qemu(self):
         root, gdb = self._conn.root, self._gdb
-        # When in a gef-remote qemu-user session `parse_gdb_info_sections`
+        # When in a gef-remote qemu-user session `parse_gdb_info_proc_maps`
         # should work to query the memory maps
         while True:
             port = random.randint(1025, 65535)
@@ -113,7 +110,7 @@ class MiscFunctionTest(RemoteGefUnitTestGeneric):
         with qemuuser_session(port=port) as _:
             cmd = f"gef-remote --qemu-user --qemu-binary {self._target} {GDBSERVER_DEFAULT_HOST} {port}"
             gdb.execute(cmd)
-            sections = root.eval("list(GefMemoryManager.parse_gdb_info_sections())")
+            sections = root.eval("list(GefMemoryManager.parse_gdb_info_proc_maps())")
             assert len(sections) > 0
 
     def test_func_show_last_exception(self):
