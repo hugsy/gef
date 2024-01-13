@@ -6042,15 +6042,16 @@ class RemoteCommand(GenericCommand):
         # calls `is_remote_debug` which checks if `remote_initializing` is True or `.remote` is None
         # This prevents some spurious errors being thrown during startup
         gef.session.remote_initializing = True
-        gef.session.remote = GefRemoteSessionManager(args.host, args.port, args.pid, qemu_binary)
+        session = GefRemoteSessionManager(args.host, args.port, args.pid, qemu_binary)
 
-        dbg(f"[remote] initializing remote session with {gef.session.remote.target} under {gef.session.remote.root}")
-        if not gef.session.remote.connect(args.pid):
-            raise EnvironmentError(f"Cannot connect to remote target {gef.session.remote.target}")
-        if not gef.session.remote.setup():
-            raise EnvironmentError(f"Failed to create a proper environment for {gef.session.remote.target}")
+        dbg(f"[remote] initializing remote session with {session.target} under {session.root}")
+        if not session.connect(args.pid) or not session.setup():
+            gef.session.remote = None
+            gef.session.remote_initializing = False
+            raise EnvironmentError("Failed to setup remote target")
 
         gef.session.remote_initializing = False
+        gef.session.remote = session
         reset_all_caches()
         gdb.execute("context")
         return
@@ -6061,7 +6062,7 @@ class SkipiCommand(GenericCommand):
     """Skip N instruction(s) execution"""
 
     _cmdline_ = "skipi"
-    _syntax_  = ("{_cmdline_} [LOCATION] [--n NUM_INSTRUCTIONS]"
+    _syntax_  = (f"{_cmdline_} [LOCATION] [--n NUM_INSTRUCTIONS]"
                 "\n\tLOCATION\taddress/symbol from where to skip"
                  "\t--n NUM_INSTRUCTIONS\tSkip the specified number of instructions instead of the default 1.")
 
@@ -6096,7 +6097,7 @@ class NopCommand(GenericCommand):
     aware."""
 
     _cmdline_ = "nop"
-    _syntax_  = ("{_cmdline_} [LOCATION] [--i ITEMS] [--f] [--n] [--b]"
+    _syntax_  = (f"{_cmdline_} [LOCATION] [--i ITEMS] [--f] [--n] [--b]"
                  "\n\tLOCATION\taddress/symbol to patch (by default this command replaces whole instructions)"
                  "\t--i ITEMS\tnumber of items to insert (default 1)"
                  "\t--f\tForce patch even when the selected settings could overwrite partial instructions"
@@ -11062,7 +11063,12 @@ class GefRemoteSessionManager(GefSessionManager):
         """Connect to remote target. If in extended mode, also attach to the given PID."""
         # before anything, register our new hook to download files from the remote target
         dbg(f"[remote] Installing new objfile handlers")
-        gef_on_new_unhook(new_objfile_handler)
+        try:
+            gef_on_new_unhook(new_objfile_handler)
+        except SystemError:
+            # the default objfile handler might already have been removed, ignore failure
+            pass
+
         gef_on_new_hook(self.remote_objfile_event_handler)
 
         # then attempt to connect
