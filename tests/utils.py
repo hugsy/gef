@@ -7,7 +7,6 @@ import enum
 import os
 import pathlib
 import platform
-import re
 import struct
 import subprocess
 import tempfile
