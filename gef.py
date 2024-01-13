@@ -3551,6 +3551,10 @@ def continue_handler(_: "gdb.ContinueEvent") -> None:
 
 def hook_stop_handler(_: "gdb.StopEvent") -> None:
     """GDB event handler for stop cases."""
+    if gef.session.remote:
+        gef.session.remote.maps.unlink()
+        gef.session.remote.sync(f"/proc/{gef.session.remote.pid}/maps")
+
     reset_all_caches()
     gdb.execute("context")
     return
