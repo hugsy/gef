@@ -36,46 +36,27 @@ jobs:
         current_score=$(curl --silent https://hugsy.github.io/gef/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         bash scripts/generate-coverage-docs.sh
         new_score=$(cat docs/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
-        score_diff=$(python -c "print(${new_score} - ${current_score})")
+        score_diff=$(python -c "print(f'{${new_score} - ${current_score}:.04f}')")
         echo "new_score=${new_score}" >> $GITHUB_OUTPUT
         echo "current_score=${current_score}" >> $GITHUB_OUTPUT
         echo "score_diff=${score_diff}" >> $GITHUB_OUTPUT
 
     - name: Post comment
       uses: actions/github-script@v7
-      env:
-        COMMIT:
       with:
         script: |
           const old_score   = ${{ steps.get_coverage.outputs.current_score }};
           const new_score   = ${{ steps.get_coverage.outputs.new_score }};
           const score_diff  = ${{ steps.get_coverage.outputs.score_diff }};
-          const comment = `## 🤖 Coverage update for ${{ github.event.pull_request.head.sha }}
+          const comment = `## 🤖 Coverage update for ${{ github.event.pull_request.head.sha }} ${(score_diff >= 0) ? "🟢" : "🔴"}
 
-            * Diff Commit: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
-            * Current vs New Coverage Score: ${old_score}% / ${new_score}%
-            * Difference: ${score_diff} ${(score_diff >= 0) ? "🟢" : "🔴"}
+          |        | Old | New |
+          |--------|-----|-----|
+          | Commit | ${{ github.event.pull_request.base.sha }} | ${{ github.event.pull_request.head.sha }} |
+          | Score  | ${old_score}% | ${new_score}% (${score_diff}) |
           `;
 
           try {
             const { owner, repo, number } = context.issue;
             await github.rest.issues.createComment({ owner, repo, issue_number: number, body: comment });
-
-            if(docs_changes > 0) {
-              await github.rest.issues.addLabels({
-                owner: owner,
-                repo: repo,
-                issue_number: number,
-                labels: ['documentation']
-              });
-            }
-
-            if(tests_changes > 0) {
-              await github.rest.issues.addLabels({
-                owner: owner,
-                repo: repo,
-                issue_number: number,
-                labels: ['automation/ci']
-              });
-            }
           } catch (err) { console.log(err); }
