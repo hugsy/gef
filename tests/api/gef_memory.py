@@ -33,7 +33,7 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
         assert gef.memory.maps is not None
 
     def test_api_gef_memory_parse_info_proc_maps_expected_format(self):
-        if self.gdb_version < (10, 0):
+        if self.gdb_version < (11, 0):
             pytest.skip(f"Skipping test for version {self.gdb_version} (min 10.0)")
 
         gdb, root = self._gdb, self._conn.root
@@ -81,7 +81,7 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
 
         Section = root.eval("Section")
 
-        if self.gdb_version < (10, 0):
+        if self.gdb_version < (11, 0):
             # expect an exception
             with pytest.raises(AttributeError):
                 next(gef.memory.parse_gdb_info_proc_maps())
