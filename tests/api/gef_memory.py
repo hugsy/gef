@@ -39,19 +39,6 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
         gdb, root = self._gdb, self._conn.root
         gdb.execute("start")
 
-        #
-        # The function assumes the following output format (as of GDB 10+) for `info proc mappings`
-        # """"
-        # process 61789
-        # Mapped address spaces:
-        #
-        #           Start Addr           End Addr       Size     Offset  Perms  objfile
-        #       0x555555554000     0x555555558000     0x4000        0x0  r--p   /usr/bin/ls
-        #       0x555555558000     0x55555556c000    0x14000     0x4000  r-xp   /usr/bin/ls
-        # [...]
-        # """
-        #
-
         # Check output format
         lines = (gdb.execute("info proc mappings", to_string=True) or "").splitlines()
         assert len(lines) >= 5
@@ -122,7 +109,7 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             # up, and we should be able to view the maps via the `gef.memory.maps`
             # property. So check the alias `gef.memory.maps`
             # However, since `gef.memory.maps` has more info, use it as source of
-            # trust
+            # truth
             #
             assert section in gef.memory.maps
 

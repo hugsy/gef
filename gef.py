@@ -10533,7 +10533,17 @@ class GefMemoryManager(GefManager):
 
         lines = (gdb.execute("info proc mappings", to_string=True) or "").splitlines()
 
-        # See expected format in tests/api/gef_memory.py:test_api_gef_memory_parse_info_proc_maps*
+        # The function assumes the following output format (as of GDB 11+) for `info proc mappings`
+        # ```
+        # process 61789
+        # Mapped address spaces:
+        #
+        #           Start Addr           End Addr       Size     Offset  Perms  objfile
+        #       0x555555554000     0x555555558000     0x4000        0x0  r--p   /usr/bin/ls
+        #       0x555555558000     0x55555556c000    0x14000     0x4000  r-xp   /usr/bin/ls
+        # [...]
+        # ```
+
         if len(lines) < 5:
             raise AttributeError
 
@@ -10543,7 +10553,7 @@ class GefMemoryManager(GefManager):
                 break
 
             parts = [x.strip() for x in line.split()]
-            addr_start, addr_end, offset, _ = list(map(lambda x: int(x, 16), parts[0:4]))
+            addr_start, addr_end, offset = [int(x, 16) for x in parts[0:3]]
             perm = Permission.from_process_maps(parts[4])
             path = " ".join(parts[5:]) if len(parts) >= 5 else ""
             yield Section(
@@ -11158,13 +11168,6 @@ class GefRemoteSessionManager(GefSessionManager):
                 err(f"'{fpath}' could not be fetched on the remote system.")
                 return False
 
-        # makeup a fake mem mapping in case we failed to retrieve it
-        # maps = self.root / f"proc/{self.pid}/maps"
-        # if not maps.exists():
-        #     with maps.open("w") as fd:
-        #         fname = self.file.absolute()
-        #         mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
-        #         fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
         return True
 
     def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
