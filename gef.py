@@ -10499,6 +10499,7 @@ class GefMemoryManager(GefManager):
         if not procfs_mapfile:
             is_remote = gef.session.remote is not None
             raise FileNotFoundError(f"Missing {'remote ' if is_remote else ''}procfs map file")
+
         with procfs_mapfile.open("r") as fd:
             for line in fd:
                 line = line.strip()
@@ -10526,10 +10527,17 @@ class GefMemoryManager(GefManager):
     @staticmethod
     def parse_gdb_info_proc_maps() -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
+
+        if GDB_VERSION < (10, 0):
+            raise AttributeError("Disregarding old format")
+
         lines = (gdb.execute("info proc mappings", to_string=True) or "").splitlines()
+
+        # See expected format in tests/api/gef_memory.py:test_api_gef_memory_parse_info_proc_maps*
         if len(lines) < 5:
-            # See expected format in tests/api/gef_memory.py:test_api_gef_memory_parse_info_proc_maps*
-            return
+            raise AttributeError
+
+        # Format seems valid, iterate to generate sections
         for line in lines[4:]:
             if not line:
                 break
@@ -10967,7 +10975,6 @@ class GefSessionManager(GefManager):
         canary = gef.memory.read_integer(canary_location)
         canary &= ~0xFF
         return canary, canary_location
-
 
     @property
     def maps(self) -> Optional[pathlib.Path]:

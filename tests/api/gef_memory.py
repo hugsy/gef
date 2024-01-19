@@ -33,11 +33,14 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
         assert gef.memory.maps is not None
 
     def test_api_gef_memory_parse_info_proc_maps_expected_format(self):
+        if self.gdb_version < (10, 0):
+            pytest.skip(f"Skipping test for version {self.gdb_version} (min 10.0)")
+
         gdb, root = self._gdb, self._conn.root
         gdb.execute("start")
 
         #
-        # The function assumes the following output format (as of GDB 8.3+) for `info proc mappings`
+        # The function assumes the following output format (as of GDB 10+) for `info proc mappings`
         # """"
         # process 61789
         # Mapped address spaces:
@@ -60,7 +63,7 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             size = int(parts[2], 16)
             int(parts[3], 16)
             assert end_addr == start_addr + size
-            assert len(parts[4]) == 4
+            assert len(parts[4]) == 4, parts[4]
             Permission = root.eval("Permission")
             Permission.from_process_maps(parts[4])
 
@@ -78,8 +81,14 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
 
         Section = root.eval("Section")
 
-        for section in gef.memory.parse_gdb_info_proc_maps():
-            assert isinstance(section, Section)
+        if self.gdb_version < (10, 0):
+            # expect an exception
+            with pytest.raises(AttributeError):
+                next(gef.memory.parse_gdb_info_proc_maps())
+
+        else:
+            for section in gef.memory.parse_gdb_info_proc_maps():
+                assert isinstance(section, Section)
 
     def test_func_parse_permissions(self):
         root = self._conn.root

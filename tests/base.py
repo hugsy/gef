@@ -1,9 +1,11 @@
 import os
 import pathlib
 import random
+import re
 import subprocess
 import tempfile
 import time
+from typing import Tuple
 import unittest
 
 import rpyc
@@ -26,7 +28,6 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
     """
 
     def setUp(self) -> None:
-
         attempt = RPYC_MAX_REMOTE_CONNECTION_ATTEMPTS
         while True:
             try:
@@ -106,3 +107,11 @@ pi start_rpyc_service({self._port})
         self._conn.close()
         self._process.terminate()
         return super().tearDown()
+
+    @property
+    def gdb_version(self) -> Tuple[int, int]:
+        res = tuple(
+            map(int, re.search(r"(\d+)[^\d]+(\d+)", self._gdb.VERSION).groups())
+        )
+        assert len(res) > 2
+        return (res[0], res[1])
