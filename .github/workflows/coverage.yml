@@ -1,6 +1,10 @@
 name: CI Coverage for PR
 
 on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
   pull_request_target:
     types:
       - opened
@@ -20,7 +24,8 @@ jobs:
         sudo apt-get -qq install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user curl
         sudo python3 -m pip install --upgrade pip --quiet
     - name: Run test coverage
-      id: get_coverage
+      id: coverage
+      continue-on-error: true
       env:
         ALLOWED_MARGIN: 0.01
         MIN_COVERAGE: 70
@@ -51,31 +56,29 @@ jobs:
         done
         echo "words_found=${WORDS_FOUND}" >> $GITHUB_OUTPUT
 
-    - name: Post comment
-      uses: actions/github-script@v7
-      env:
-        COMMIT: ${{ steps.get_coverage.outputs.commit }}
-        SCORE_OLD: ${{ steps.get_coverage.outputs.current_coverage_score }}
-        SCORE_NEW: ${{ steps.get_coverage.outputs.new_coverage_score }}
-        SCORE_DIFF: ${{ steps.get_coverage.outputs.diff_score }}
-        WORDS_FOUND: ${{ steps.get_coverage.outputs.words_found }}
+  post_comment:
+    runs-on: ubuntu-latest
+    needs: coverage
+    if: success()
+    steps:
+    - uses: actions/github-script@v7
       with:
         script: |
-          const diff_score = ${{ steps.get_coverage.outputs.diff_score }};
-          const tests_changes = ${{ steps.get_coverage.outputs.include_tests }};
-          const docs_changes  = ${{ steps.get_coverage.outputs.include_docs }};
-          const forbiddenWordsString = process.env.WORDS_FOUND || '';
+          const diff_score = ${{ needs.coverage.outputs.diff_score }};
+          const tests_changes = ${{ needs.coverage.outputs.include_tests }};
+          const docs_changes  = ${{ needs.coverage.outputs.include_docs }};
+          const forbiddenWordsString = "${{ needs.coverage.outputs.words_found }}" || '';
           const forbidden_words = forbiddenWordsString.split(" ").filter(word => word.trim() !== '');
-          const comment = `## 🤖 Coverage update for ${process.env.COMMIT}
+          const comment = `## 🤖 Coverage update for ${{ needs.coverage.outputs.commit }}
 
             * Diff Commit: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
-            * Current vs New Coverage Score: ${process.env.SCORE_OLD}% / ${process.env.SCORE_NEW}%
-            * Difference: ${process.env.SCORE_DIFF} ${(diff_score >= 0) ? "🟢" : "🔴"}
+            * Current vs New Coverage Score: ${score_old}% / ${score_new}%
+            * Difference: ${diff_score} ${(diff_score >= 0) ? "🟢" : "🔴"}
 
           To this point, this PR:
             * ${(tests_changes > 0) ? "includes" : "**does not** include" } changes to tests
             * ${(docs_changes > 0)  ? "includes" : "**does not** include" } changes to documentation
-            * ${(forbidden_words.length === 0 || forbidden_words[0] === '') ? "**does not** include forbidden words" : "includes the forbidden words:" + forbidden_words.join(", ")}
+            * ${(forbidden_words.length === 0 || forbidden_words[0] === '') ? "does not include forbidden words" : "**includes** the forbidden words:" + forbidden_words.join(", ")}
           `;
 
           try {
