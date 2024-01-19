@@ -113,5 +113,5 @@ pi start_rpyc_service({self._port})
         res = tuple(
             map(int, re.search(r"(\d+)[^\d]+(\d+)", self._gdb.VERSION).groups())
         )
-        assert len(res) > 2
+        assert len(res) >= 2
         return (res[0], res[1])
