@@ -5,6 +5,10 @@ on:
     types:
       - opened
       - synchronize
+  pull_request:
+    types:
+      - opened
+      - synchronize
 
 jobs:
   coverage:
