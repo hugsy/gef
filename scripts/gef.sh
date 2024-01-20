@@ -42,4 +42,3 @@ fi
 
 echo "GEF was not properly downloaded"
 exit 1
-
