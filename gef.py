@@ -11367,9 +11367,9 @@ if __name__ == "__main__":
 
         if not gef.config[disable_tr_overwrite_setting]:
             warnmsg = ("Using `target remote` with GEF should work in most cases, "
-                    "but use `gef-remote` if you can. You can disable the "
-                    "overwrite of the `target remote` command by toggling "
-                    f"`{disable_tr_overwrite_setting}` in the config.")
+                       "but use `gef-remote` if you can. You can disable the "
+                       "overwrite of the `target remote` command by toggling "
+                       f"`{disable_tr_overwrite_setting}` in the config.")
             hook = f"""
                 define target hookpost-{{}}
                 pi target_remote_posthook()
@@ -11383,8 +11383,8 @@ if __name__ == "__main__":
             gdb.execute(hook.format("extended-remote"))
         else:
             errmsg = ("Using `target remote` does not work, use `gef-remote` "
-                    f"instead. You can toggle `{disable_tr_overwrite_setting}` "
-                    "if this is not desired.")
+                      f"instead. You can toggle `{disable_tr_overwrite_setting}` "
+                      "if this is not desired.")
             hook = f"""pi if calling_function() != "connect": err("{errmsg}")"""
             gdb.execute(f"define target hook-remote\n{hook}\nend")
             gdb.execute(f"define target hook-extended-remote\n{hook}\nend")
