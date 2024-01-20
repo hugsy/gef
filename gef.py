@@ -682,7 +682,7 @@ class Section:
     @property
     def size(self) -> int:
         if self.page_end is None or self.page_start is None:
-            return -1
+            raise AttributeError
         return self.page_end - self.page_start
 
     @property
@@ -691,16 +691,17 @@ class Section:
         return self.path if gef.session.remote is None else f"/tmp/gef/{gef.session.remote:d}/{self.path}"
 
     def __str__(self) -> str:
-        return (f"Section(page_start={self.page_start:#x}, page_end={self.page_end:#x}, "
-                f"permissions={self.permission!s})")
+        return (f"Section(start={self.page_start:#x}, end={self.page_end:#x}, "
+                f"perm={self.permission!s})")
+
+    def __repr__(self) -> str:
+        return str(self)
 
     def __eq__(self, other: "Section") -> bool:
         return other and \
             self.page_start == other.page_start and \
-            self.page_end == other.page_end and \
-            self.offset == other.offset and \
+            self.size == other.size and \
             self.permission == other.permission and \
-            self.inode == other.inode and \
             self.path == other.path
 
 
@@ -6041,15 +6042,16 @@ class RemoteCommand(GenericCommand):
         # calls `is_remote_debug` which checks if `remote_initializing` is True or `.remote` is None
         # This prevents some spurious errors being thrown during startup
         gef.session.remote_initializing = True
-        gef.session.remote = GefRemoteSessionManager(args.host, args.port, args.pid, qemu_binary)
+        session = GefRemoteSessionManager(args.host, args.port, args.pid, qemu_binary)
 
-        dbg(f"[remote] initializing remote session with {gef.session.remote.target} under {gef.session.remote.root}")
-        if not gef.session.remote.connect(args.pid):
-            raise EnvironmentError(f"Cannot connect to remote target {gef.session.remote.target}")
-        if not gef.session.remote.setup():
-            raise EnvironmentError(f"Failed to create a proper environment for {gef.session.remote.target}")
+        dbg(f"[remote] initializing remote session with {session.target} under {session.root}")
+        if not session.connect(args.pid) or not session.setup():
+            gef.session.remote = None
+            gef.session.remote_initializing = False
+            raise EnvironmentError("Failed to setup remote target")
 
         gef.session.remote_initializing = False
+        gef.session.remote = session
         reset_all_caches()
         gdb.execute("context")
         return
@@ -6060,7 +6062,7 @@ class SkipiCommand(GenericCommand):
     """Skip N instruction(s) execution"""
 
     _cmdline_ = "skipi"
-    _syntax_  = ("{_cmdline_} [LOCATION] [--n NUM_INSTRUCTIONS]"
+    _syntax_  = (f"{_cmdline_} [LOCATION] [--n NUM_INSTRUCTIONS]"
                 "\n\tLOCATION\taddress/symbol from where to skip"
                  "\t--n NUM_INSTRUCTIONS\tSkip the specified number of instructions instead of the default 1.")
 
@@ -6095,7 +6097,7 @@ class NopCommand(GenericCommand):
     aware."""
 
     _cmdline_ = "nop"
-    _syntax_  = ("{_cmdline_} [LOCATION] [--i ITEMS] [--f] [--n] [--b]"
+    _syntax_  = (f"{_cmdline_} [LOCATION] [--i ITEMS] [--f] [--n] [--b]"
                  "\n\tLOCATION\taddress/symbol to patch (by default this command replaces whole instructions)"
                  "\t--i ITEMS\tnumber of items to insert (default 1)"
                  "\t--f\tForce patch even when the selected settings could overwrite partial instructions"
@@ -10460,10 +10462,12 @@ class GefMemoryManager(GefManager):
     def maps(self) -> List[Section]:
         if not self.__maps:
             self.__maps = self._parse_maps()
+            if not self.__maps:
+                raise RuntimeError("Failed to get memory layout")
         return self.__maps
 
     @classmethod
-    def _parse_maps(cls) -> List[Section]:
+    def _parse_maps(cls) -> Optional[List[Section]]:
         """Return the mapped memory sections. If the current arch has its maps
         method defined, then defer to that to generated maps, otherwise, try to
         figure it out from procfs, then info sections, then monitor info
@@ -10472,12 +10476,12 @@ class GefMemoryManager(GefManager):
             return list(gef.arch.maps())
 
         try:
-            return list(cls.parse_procfs_maps())
+            return list(cls.parse_gdb_info_proc_maps())
         except:
             pass
 
         try:
-            return list(cls.parse_gdb_info_sections())
+            return list(cls.parse_procfs_maps())
         except:
             pass
 
@@ -10486,7 +10490,6 @@ class GefMemoryManager(GefManager):
         except:
             pass
 
-        warn("Cannot get memory map")
         return None
 
     @staticmethod
@@ -10496,6 +10499,7 @@ class GefMemoryManager(GefManager):
         if not procfs_mapfile:
             is_remote = gef.session.remote is not None
             raise FileNotFoundError(f"Missing {'remote ' if is_remote else ''}procfs map file")
+
         with procfs_mapfile.open("r") as fd:
             for line in fd:
                 line = line.strip()
@@ -10521,30 +10525,44 @@ class GefMemoryManager(GefManager):
         return
 
     @staticmethod
-    def parse_gdb_info_sections() -> Generator[Section, None, None]:
+    def parse_gdb_info_proc_maps() -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
-        stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
 
-        for line in stream:
+        if GDB_VERSION < (11, 0):
+            raise AttributeError("Disregarding old format")
+
+        lines = (gdb.execute("info proc mappings", to_string=True) or "").splitlines()
+
+        # The function assumes the following output format (as of GDB 11+) for `info proc mappings`
+        # ```
+        # process 61789
+        # Mapped address spaces:
+        #
+        #           Start Addr           End Addr       Size     Offset  Perms  objfile
+        #       0x555555554000     0x555555558000     0x4000        0x0  r--p   /usr/bin/ls
+        #       0x555555558000     0x55555556c000    0x14000     0x4000  r-xp   /usr/bin/ls
+        # [...]
+        # ```
+
+        if len(lines) < 5:
+            raise AttributeError
+
+        # Format seems valid, iterate to generate sections
+        for line in lines[4:]:
             if not line:
                 break
 
-            try:
-                parts = [x for x in line.split()]
-                addr_start, addr_end = [int(x, 16) for x in parts[1].split("->")]
-                off = int(parts[3][:-1], 16)
-                path = parts[4]
-                perm = Permission.from_info_sections(parts[5:])
-                yield Section(page_start=addr_start,
-                              page_end=addr_end,
-                              offset=off,
-                              permission=perm,
-                              path=path)
-
-            except IndexError:
-                continue
-            except ValueError:
-                continue
+            parts = [x.strip() for x in line.split()]
+            addr_start, addr_end, offset = [int(x, 16) for x in parts[0:3]]
+            perm = Permission.from_process_maps(parts[4])
+            path = " ".join(parts[5:]) if len(parts) >= 5 else ""
+            yield Section(
+                page_start=addr_start,
+                page_end=addr_end,
+                offset=offset,
+                permission=perm,
+                path=path,
+            )
         return
 
     @staticmethod
@@ -10560,7 +10578,7 @@ class GefMemoryManager(GefManager):
                 ranges, off, perms = line.split()
                 off = int(off, 16)
                 start, end = [int(s, 16) for s in ranges.split("-")]
-            except ValueError as e:
+            except ValueError:
                 continue
 
             perm = Permission.from_monitor_info_mem(perms)
@@ -10968,7 +10986,6 @@ class GefSessionManager(GefManager):
         canary &= ~0xFF
         return canary, canary_location
 
-
     @property
     def maps(self) -> Optional[pathlib.Path]:
         """Returns the Path to the procfs entry for the memory mapping."""
@@ -11063,7 +11080,12 @@ class GefRemoteSessionManager(GefSessionManager):
         """Connect to remote target. If in extended mode, also attach to the given PID."""
         # before anything, register our new hook to download files from the remote target
         dbg(f"[remote] Installing new objfile handlers")
-        gef_on_new_unhook(new_objfile_handler)
+        try:
+            gef_on_new_unhook(new_objfile_handler)
+        except SystemError:
+            # the default objfile handler might already have been removed, ignore failure
+            pass
+
         gef_on_new_hook(self.remote_objfile_event_handler)
 
         # then attempt to connect
@@ -11146,13 +11168,6 @@ class GefRemoteSessionManager(GefSessionManager):
                 err(f"'{fpath}' could not be fetched on the remote system.")
                 return False
 
-        # makeup a fake mem mapping in case we failed to retrieve it
-        maps = self.root / f"proc/{self.pid}/maps"
-        if not maps.exists():
-            with maps.open("w") as fd:
-                fname = self.file.absolute()
-                mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
-                fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
         return True
 
     def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:

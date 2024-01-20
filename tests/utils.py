@@ -4,16 +4,26 @@ Utility functions for testing
 
 import contextlib
 import enum
+import logging
 import os
 import pathlib
 import platform
-import re
 import struct
 import subprocess
 import tempfile
 import time
+
 from typing import Iterable, List, Optional, Union
 from urllib.request import urlopen
+
+
+def which(program: str) -> pathlib.Path:
+    for path in os.environ["PATH"].split(os.pathsep):
+        dirname = pathlib.Path(path)
+        fpath = dirname / program
+        if os.access(fpath, os.X_OK):
+            return fpath
+    raise FileNotFoundError(f"Missing file `{program}`")
 
 
 TMPDIR = pathlib.Path(tempfile.gettempdir())
@@ -31,6 +41,11 @@ GEF_PATH = pathlib.Path(os.getenv("GEF_PATH", "gef.py")).absolute()
 STRIP_ANSI_DEFAULT = True
 GDBSERVER_DEFAULT_HOST = "localhost"
 GDBSERVER_DEFAULT_PORT = 1234
+GDBSERVER_BINARY = which("gdbserver")
+assert GDBSERVER_BINARY.exists()
+
+QEMU_USER_X64_BINARY = which("qemu-x86_64")
+assert QEMU_USER_X64_BINARY.exists()
 
 GEF_RIGHT_ARROW = " → "
 
@@ -93,11 +108,9 @@ def start_gdbserver(
     Returns:
         subprocess.Popen: a Popen object for the gdbserver process.
     """
-    return subprocess.Popen(
-        ["gdbserver", f"{host}:{port}", exe],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    cmd = [GDBSERVER_BINARY, f"{host}:{port}", exe]
+    logging.debug(f"Starting {cmd}")
+    return subprocess.Popen(cmd)
 
 
 def stop_gdbserver(gdbserver: subprocess.Popen) -> None:
@@ -131,7 +144,7 @@ def start_qemuuser(
     port: int = GDBSERVER_DEFAULT_PORT,
 ) -> subprocess.Popen:
     return subprocess.Popen(
-        ["qemu-x86_64", "-g", str(port), exe],
+        [QEMU_USER_X64_BINARY, "-g", str(port), exe],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
