@@ -84,7 +84,7 @@ from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
-                    Iterator, List, Literal, NoReturn, Optional, Sequence, Set, Tuple, Type,
+                    Iterator, List, NoReturn, Optional, Sequence, Set, Tuple, Type,
                     Union, TYPE_CHECKING)
 from urllib.request import urlopen
 
