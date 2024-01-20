@@ -110,8 +110,6 @@ pi start_rpyc_service({self._port})
 
     @property
     def gdb_version(self) -> Tuple[int, int]:
-        res = tuple(
-            map(int, re.search(r"(\d+)[^\d]+(\d+)", self._gdb.VERSION).groups())
-        )
+        res = [int(d) for d in re.search(r"(\d+)\D(\d+)", self._gdb.VERSION).groups()] 
         assert len(res) >= 2
-        return (res[0], res[1])
+        return res

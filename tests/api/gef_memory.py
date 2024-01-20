@@ -50,7 +50,7 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             size = int(parts[2], 16)
             int(parts[3], 16)
             assert end_addr == start_addr + size
-            assert len(parts[4]) == 4, parts[4]
+            assert len(parts[4]) == 4, f"Expected permission string, got {parts[4]}"
             Permission = root.eval("Permission")
             Permission.from_process_maps(parts[4])
 
