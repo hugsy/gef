@@ -1,6 +1,10 @@
 name: CI Coverage for PR
 
 on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
   pull_request:
     types:
       - opened
@@ -32,71 +36,27 @@ jobs:
         current_score=$(curl --silent https://hugsy.github.io/gef/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         bash scripts/generate-coverage-docs.sh
         new_score=$(cat docs/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
-        diff_score=$(python -c "print(${new_score} - ${current_score})")
-        commit=${{ github.event.pull_request.head.sha }}
-        include_tests=$((git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --compact-summary | egrep --count '^ tests/') || echo 0)
-        include_docs=$((git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --compact-summary | egrep --count '^ docs/') || echo 0)
-        echo "commit=${commit}" >> $GITHUB_OUTPUT
-        echo "new_coverage_score=${new_score}" >> $GITHUB_OUTPUT
-        echo "current_coverage_score=${current_score}" >> $GITHUB_OUTPUT
-        echo "diff_score=${diff_score}" >> $GITHUB_OUTPUT
-        echo "include_tests=${include_tests}" >> $GITHUB_OUTPUT
-        echo "include_docs=${include_docs}" >> $GITHUB_OUTPUT
-        WORDS=("pycharm" "debugpy" "ptvsd" "breakpoint" "pdb")
-        WORDS_FOUND=""
-        for word in "${WORDS[@]}"; do
-          if git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- "gef.py" | grep "^+" | grep -q "$word"; then
-            WORDS_FOUND+="'$word' "
-          fi
-        done
-        echo "words_found=${WORDS_FOUND}" >> $GITHUB_OUTPUT
+        score_diff=$(python -c "print(f'{${new_score} - ${current_score}:.04f}')")
+        echo "new_score=${new_score}" >> $GITHUB_OUTPUT
+        echo "current_score=${current_score}" >> $GITHUB_OUTPUT
+        echo "score_diff=${score_diff}" >> $GITHUB_OUTPUT
 
     - name: Post comment
       uses: actions/github-script@v7
-      env:
-        COMMIT: ${{ steps.get_coverage.outputs.commit }}
-        SCORE_OLD: ${{ steps.get_coverage.outputs.current_coverage_score }}
-        SCORE_NEW: ${{ steps.get_coverage.outputs.new_coverage_score }}
-        SCORE_DIFF: ${{ steps.get_coverage.outputs.diff_score }}
-        WORDS_FOUND: ${{ steps.get_coverage.outputs.words_found }}
       with:
         script: |
-          const diff_score = ${{ steps.get_coverage.outputs.diff_score }};
-          const tests_changes = ${{ steps.get_coverage.outputs.include_tests }};
-          const docs_changes  = ${{ steps.get_coverage.outputs.include_docs }};
-          const forbiddenWordsString = process.env.WORDS_FOUND || '';
-          const forbidden_words = forbiddenWordsString.split(" ").filter(word => word.trim() !== '');
-          const comment = `## 🤖 Coverage update for ${process.env.COMMIT}
+          const old_score   = ${{ steps.get_coverage.outputs.current_score }};
+          const new_score   = ${{ steps.get_coverage.outputs.new_score }};
+          const score_diff  = ${{ steps.get_coverage.outputs.score_diff }};
+          const comment = `## 🤖 Coverage update for ${{ github.event.pull_request.head.sha }} ${(score_diff >= 0) ? "🟢" : "🔴"}
 
-            * Diff Commit: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
-            * Current vs New Coverage Score: ${process.env.SCORE_OLD}% / ${process.env.SCORE_NEW}%
-            * Difference: ${process.env.SCORE_DIFF} ${(diff_score >= 0) ? "🟢" : "🔴"}
-
-          To this point, this PR:
-            * ${(tests_changes > 0) ? "includes" : "**does not** include" } changes to tests
-            * ${(docs_changes > 0)  ? "includes" : "**does not** include" } changes to documentation
-            * ${(forbidden_words.length === 0 || forbidden_words[0] === '') ? "**does not** include forbidden words" : "includes the forbidden words:" + forbidden_words.join(", ")}
+          |        | Old | New |
+          |--------|-----|-----|
+          | Commit | ${{ github.event.pull_request.base.sha }} | ${{ github.event.pull_request.head.sha }} |
+          | Score  | ${old_score}% | ${new_score}% (${score_diff}) |
           `;
 
           try {
             const { owner, repo, number } = context.issue;
             await github.rest.issues.createComment({ owner, repo, issue_number: number, body: comment });
-
-            if(docs_changes > 0) {
-              await github.rest.issues.addLabels({
-                owner: owner,
-                repo: repo,
-                issue_number: number,
-                labels: ['documentation']
-              });
-            }
-
-            if(tests_changes > 0) {
-              await github.rest.issues.addLabels({
-                owner: owner,
-                repo: repo,
-                issue_number: number,
-                labels: ['automation/ci']
-              });
-            }
           } catch (err) { console.log(err); }
