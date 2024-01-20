@@ -84,7 +84,7 @@ from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
-                    Iterator, List, Literal, NoReturn, Optional, Sequence, Set, Tuple, Type,
+                    Iterator, List, NoReturn, Optional, Sequence, Set, Tuple, Type,
                     Union, TYPE_CHECKING)
 from urllib.request import urlopen
 
@@ -11377,32 +11377,32 @@ if __name__ == "__main__":
 
     GefTmuxSetup()
 
+    if GDB_VERSION > (9, 0):
+        disable_tr_overwrite_setting = "gef.disable_target_remote_overwrite"
 
-    disable_tr_overwrite_setting = "gef.disable_target_remote_overwrite"
+        if not gef.config[disable_tr_overwrite_setting]:
+            warnmsg = ("Using `target remote` with GEF should work in most cases, "
+                       "but use `gef-remote` if you can. You can disable the "
+                       "overwrite of the `target remote` command by toggling "
+                       f"`{disable_tr_overwrite_setting}` in the config.")
+            hook = f"""
+                define target hookpost-{{}}
+                pi target_remote_posthook()
+                context
+                pi if calling_function() != "connect": warn("{warnmsg}")
+                end
+            """
 
-    if not gef.config[disable_tr_overwrite_setting]:
-        warnmsg = ("Using `target remote` with GEF should work in most cases, "
-                   "but use `gef-remote` if you can. You can disable the "
-                   "overwrite of the `target remote` command by toggling "
-                   f"`{disable_tr_overwrite_setting}` in the config.")
-        hook = f"""
-            define target hookpost-{{}}
-            pi target_remote_posthook()
-            context
-            pi if calling_function() != "connect": warn("{warnmsg}")
-            end
-        """
-
-        # Register a post-hook for `target remote` that initialize the remote session
-        gdb.execute(hook.format("remote"))
-        gdb.execute(hook.format("extended-remote"))
-    else:
-        errmsg = ("Using `target remote` does not work, use `gef-remote` "
-                  f"instead. You can toggle `{disable_tr_overwrite_setting}` "
-                  "if this is not desired.")
-        hook = f"""pi if calling_function() != "connect": err("{errmsg}")"""
-        gdb.execute(f"define target hook-remote\n{hook}\nend")
-        gdb.execute(f"define target hook-extended-remote\n{hook}\nend")
+            # Register a post-hook for `target remote` that initialize the remote session
+            gdb.execute(hook.format("remote"))
+            gdb.execute(hook.format("extended-remote"))
+        else:
+            errmsg = ("Using `target remote` does not work, use `gef-remote` "
+                      f"instead. You can toggle `{disable_tr_overwrite_setting}` "
+                      "if this is not desired.")
+            hook = f"""pi if calling_function() != "connect": err("{errmsg}")"""
+            gdb.execute(f"define target hook-remote\n{hook}\nend")
+            gdb.execute(f"define target hook-extended-remote\n{hook}\nend")
 
     # restore saved breakpoints (if any)
     bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
