@@ -84,7 +84,7 @@ from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
-                    Iterator, List, Literal, NoReturn, Optional, Sequence, Set, Tuple, Type,
+                    Iterator, List, NoReturn, Optional, Sequence, Set, Tuple, Type,
                     Union, TYPE_CHECKING)
 from urllib.request import urlopen
 
@@ -10499,6 +10499,7 @@ class GefMemoryManager(GefManager):
         if not procfs_mapfile:
             is_remote = gef.session.remote is not None
             raise FileNotFoundError(f"Missing {'remote ' if is_remote else ''}procfs map file")
+
         with procfs_mapfile.open("r") as fd:
             for line in fd:
                 line = line.strip()
@@ -10526,16 +10527,32 @@ class GefMemoryManager(GefManager):
     @staticmethod
     def parse_gdb_info_proc_maps() -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
+        if GDB_VERSION < (11, 0):
+            raise AttributeError("Disregarding old format")
+
         lines = (gdb.execute("info proc mappings", to_string=True) or "").splitlines()
+
+        # The function assumes the following output format (as of GDB 11+) for `info proc mappings`
+        # ```
+        # process 61789
+        # Mapped address spaces:
+        #
+        #           Start Addr           End Addr       Size     Offset  Perms  objfile
+        #       0x555555554000     0x555555558000     0x4000        0x0  r--p   /usr/bin/ls
+        #       0x555555558000     0x55555556c000    0x14000     0x4000  r-xp   /usr/bin/ls
+        # [...]
+        # ```
+
         if len(lines) < 5:
-            # See expected format in tests/api/gef_memory.py:test_api_gef_memory_parse_info_proc_maps*
-            return
+            raise AttributeError
+
+        # Format seems valid, iterate to generate sections
         for line in lines[4:]:
             if not line:
                 break
 
             parts = [x.strip() for x in line.split()]
-            addr_start, addr_end, offset, _ = list(map(lambda x: int(x, 16), parts[0:4]))
+            addr_start, addr_end, offset = [int(x, 16) for x in parts[0:3]]
             perm = Permission.from_process_maps(parts[4])
             path = " ".join(parts[5:]) if len(parts) >= 5 else ""
             yield Section(
@@ -10971,7 +10988,6 @@ class GefSessionManager(GefManager):
         canary &= ~0xFF
         return canary, canary_location
 
-
     @property
     def maps(self) -> Optional[pathlib.Path]:
         """Returns the Path to the procfs entry for the memory mapping."""
@@ -11175,13 +11191,6 @@ class GefRemoteSessionManager(GefSessionManager):
                 err(f"'{fpath}' could not be fetched on the remote system.")
                 return False
 
-        # makeup a fake mem mapping in case we failed to retrieve it
-        maps = self.root / f"proc/{self.pid}/maps"
-        if not maps.exists():
-            with maps.open("w") as fd:
-                fname = self.file.absolute()
-                mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
-                fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
         return True
 
     def __setup_rr(self) -> bool:
@@ -11399,32 +11408,32 @@ if __name__ == "__main__":
 
     GefTmuxSetup()
 
+    if GDB_VERSION > (9, 0):
+        disable_tr_overwrite_setting = "gef.disable_target_remote_overwrite"
 
-    disable_tr_overwrite_setting = "gef.disable_target_remote_overwrite"
+        if not gef.config[disable_tr_overwrite_setting]:
+            warnmsg = ("Using `target remote` with GEF should work in most cases, "
+                       "but use `gef-remote` if you can. You can disable the "
+                       "overwrite of the `target remote` command by toggling "
+                       f"`{disable_tr_overwrite_setting}` in the config.")
+            hook = f"""
+                define target hookpost-{{}}
+                pi target_remote_posthook()
+                context
+                pi if calling_function() != "connect": warn("{warnmsg}")
+                end
+            """
 
-    if not gef.config[disable_tr_overwrite_setting]:
-        warnmsg = ("Using `target remote` with GEF should work in most cases, "
-                   "but use `gef-remote` if you can. You can disable the "
-                   "overwrite of the `target remote` command by toggling "
-                   f"`{disable_tr_overwrite_setting}` in the config.")
-        hook = f"""
-            define target hookpost-{{}}
-            pi target_remote_posthook()
-            context
-            pi if calling_function() != "connect": warn("{warnmsg}")
-            end
-        """
-
-        # Register a post-hook for `target remote` that initialize the remote session
-        gdb.execute(hook.format("remote"))
-        gdb.execute(hook.format("extended-remote"))
-    else:
-        errmsg = ("Using `target remote` does not work, use `gef-remote` "
-                  f"instead. You can toggle `{disable_tr_overwrite_setting}` "
-                  "if this is not desired.")
-        hook = f"""pi if calling_function() != "connect": err("{errmsg}")"""
-        gdb.execute(f"define target hook-remote\n{hook}\nend")
-        gdb.execute(f"define target hook-extended-remote\n{hook}\nend")
+            # Register a post-hook for `target remote` that initialize the remote session
+            gdb.execute(hook.format("remote"))
+            gdb.execute(hook.format("extended-remote"))
+        else:
+            errmsg = ("Using `target remote` does not work, use `gef-remote` "
+                      f"instead. You can toggle `{disable_tr_overwrite_setting}` "
+                      "if this is not desired.")
+            hook = f"""pi if calling_function() != "connect": err("{errmsg}")"""
+            gdb.execute(f"define target hook-remote\n{hook}\nend")
+            gdb.execute(f"define target hook-extended-remote\n{hook}\nend")
 
     # restore saved breakpoints (if any)
     bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()

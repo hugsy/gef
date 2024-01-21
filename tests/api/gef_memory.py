@@ -33,21 +33,11 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
         assert gef.memory.maps is not None
 
     def test_api_gef_memory_parse_info_proc_maps_expected_format(self):
+        if self.gdb_version < (11, 0):
+            pytest.skip(f"Skipping test for version {self.gdb_version} (min 10.0)")
+
         gdb, root = self._gdb, self._conn.root
         gdb.execute("start")
-
-        #
-        # The function assumes the following output format (as of GDB 8.3+) for `info proc mappings`
-        # """"
-        # process 61789
-        # Mapped address spaces:
-        #
-        #           Start Addr           End Addr       Size     Offset  Perms  objfile
-        #       0x555555554000     0x555555558000     0x4000        0x0  r--p   /usr/bin/ls
-        #       0x555555558000     0x55555556c000    0x14000     0x4000  r-xp   /usr/bin/ls
-        # [...]
-        # """
-        #
 
         # Check output format
         lines = (gdb.execute("info proc mappings", to_string=True) or "").splitlines()
@@ -60,7 +50,8 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             size = int(parts[2], 16)
             int(parts[3], 16)
             assert end_addr == start_addr + size
-            assert len(parts[4]) == 4
+            assert len(parts[4]) == 4, f"Expected permission string, got {parts[4]}"
+
             Permission = root.eval("Permission")
             Permission.from_process_maps(parts[4])
 
@@ -78,8 +69,14 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
 
         Section = root.eval("Section")
 
-        for section in gef.memory.parse_gdb_info_proc_maps():
-            assert isinstance(section, Section)
+        if self.gdb_version < (11, 0):
+            # expect an exception
+            with pytest.raises(AttributeError):
+                next(gef.memory.parse_gdb_info_proc_maps())
+
+        else:
+            for section in gef.memory.parse_gdb_info_proc_maps():
+                assert isinstance(section, Section)
 
     def test_func_parse_permissions(self):
         root = self._conn.root
@@ -113,7 +110,7 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             # up, and we should be able to view the maps via the `gef.memory.maps`
             # property. So check the alias `gef.memory.maps`
             # However, since `gef.memory.maps` has more info, use it as source of
-            # trust
+            # truth
             #
             assert section in gef.memory.maps
 
