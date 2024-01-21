@@ -1616,6 +1616,7 @@ class GlibcChunk:
         return gef.memory.read_integer(self.prev_size_addr)
 
     def __iter__(self) -> Generator["GlibcChunk", None, None]:
+        assert gef.heap.main_arena
         current_chunk = self
         top = gef.heap.main_arena.top
 
@@ -1671,14 +1672,15 @@ class GlibcChunk:
         failed = False
 
         try:
-            msg.append("Chunk size: {0:d} ({0:#x})".format(self.size))
-            msg.append("Usable size: {0:d} ({0:#x})".format(self.usable_size))
+            msg.append(f"Chunk size: {self.size:d} ({self.size:#x})")
+            msg.append(f"Usable size: {self.usable_size:d} ({self.usable_size:#x})")
             failed = True
         except gdb.MemoryError:
             msg.append(f"Chunk size: Cannot read at {self.size_addr:#x} (corrupted?)")
 
         try:
-            msg.append("Previous chunk size: {0:d} ({0:#x})".format(self.get_prev_chunk_size()))
+            prev_chunk_sz = self.get_prev_chunk_size()
+            msg.append(f"Previous chunk size: {prev_chunk_sz:d} ({prev_chunk_sz:#x})")
             failed = True
         except gdb.MemoryError:
             msg.append(f"Previous chunk size: Cannot read at {self.base_address:#x} (corrupted?)")
@@ -1922,7 +1924,7 @@ def hexdump(source: ByteString, length: int = 0x10, separator: str = ".", show_r
         text = "".join([chr(b) if 0x20 <= b < 0x7F else separator for b in chunk])
         if show_symbol:
             sym = gdb_get_location_from_symbol(base + i)
-            sym = "<{:s}+{:04x}>".format(*sym) if sym else ""
+            sym = f"<{sym[0]:s}+{sym[1]:04x}>" if sym else ""
         else:
             sym = ""
 
@@ -2064,7 +2066,7 @@ def gdb_disassemble(start_pc: int, **kwargs: int) -> Generator[Instruction, None
             mnemo, operands = asm[0], []
 
         loc = gdb_get_location_from_symbol(address)
-        location = "<{}+{}>".format(*loc) if loc else ""
+        location = f"<{loc[0]}+{loc[1]:04x}>" if loc else ""
 
         opcodes = gef.memory.read(insn["addr"], insn["length"])
 
@@ -3300,21 +3302,21 @@ class MIPS(Architecture):
         taken, reason = False, ""
 
         if mnemo == "beq":
-            taken, reason = gef.arch.register(ops[0]) == gef.arch.register(ops[1]), "{0[0]} == {0[1]}".format(ops)
+            taken, reason = gef.arch.register(ops[0]) == gef.arch.register(ops[1]), f"{ops[0]} == {ops[1]}"
         elif mnemo == "bne":
-            taken, reason = gef.arch.register(ops[0]) != gef.arch.register(ops[1]), "{0[0]} != {0[1]}".format(ops)
+            taken, reason = gef.arch.register(ops[0]) != gef.arch.register(ops[1]), f"{ops[0]} != {ops[1]}"
         elif mnemo == "beqz":
-            taken, reason = gef.arch.register(ops[0]) == 0, "{0[0]} == 0".format(ops)
+            taken, reason = gef.arch.register(ops[0]) == 0, f"{ops[0]} == 0"
         elif mnemo == "bnez":
-            taken, reason = gef.arch.register(ops[0]) != 0, "{0[0]} != 0".format(ops)
+            taken, reason = gef.arch.register(ops[0]) != 0, f"{ops[0]} != 0"
         elif mnemo == "bgtz":
-            taken, reason = gef.arch.register(ops[0]) > 0, "{0[0]} > 0".format(ops)
+            taken, reason = gef.arch.register(ops[0]) > 0, f"{ops[0]} > 0"
         elif mnemo == "bgez":
-            taken, reason = gef.arch.register(ops[0]) >= 0, "{0[0]} >= 0".format(ops)
+            taken, reason = gef.arch.register(ops[0]) >= 0, f"{ops[0]} >= 0"
         elif mnemo == "bltz":
-            taken, reason = gef.arch.register(ops[0]) < 0, "{0[0]} < 0".format(ops)
+            taken, reason = gef.arch.register(ops[0]) < 0, f"{ops[0]} < 0"
         elif mnemo == "blez":
-            taken, reason = gef.arch.register(ops[0]) <= 0, "{0[0]} <= 0".format(ops)
+            taken, reason = gef.arch.register(ops[0]) <= 0, f"{ops[0]} <= 0"
         return taken, reason
 
     def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> Optional[int]:
@@ -3794,11 +3796,7 @@ def format_address(addr: int) -> str:
     """Format the address according to its size."""
     memalign_size = gef.arch.ptrsize
     addr = align_address(addr)
-
-    if memalign_size == 4:
-        return f"0x{addr:08x}"
-
-    return f"0x{addr:016x}"
+    return f"0x{addr:016x}" if memalign_size == 8 else f"0x{addr:08x}"
 
 
 def format_address_spaces(addr: int, left: bool = True) -> str:
@@ -3814,10 +3812,7 @@ def format_address_spaces(addr: int, left: bool = True) -> str:
 
 def align_address(address: int) -> int:
     """Align the provided address to the process's native length."""
-    if gef.arch.ptrsize == 4:
-        return address & 0xFFFFFFFF
-
-    return address & 0xFFFFFFFFFFFFFFFF
+    return address & 0xFFFFFFFFFFFFFFFF if gef.arch.ptrsize == 8 else address & 0xFFFFFFFF
 
 
 def align_address_to_size(address: int, align: int) -> int:
@@ -3912,7 +3907,7 @@ def gef_convenience(value: Union[str, bytes]) -> str:
     if isinstance(value, str):
         gdb.execute(f"""set {var_name} = "{value}" """)
     elif isinstance(value, bytes):
-        value_as_array = "{" + ", ".join(["%#.02x" % x for x in value]) + "}"
+        value_as_array = "{" + ", ".join([f"0x{x:#.02x}" for x in value]) + "}"
         gdb.execute(f"""set {var_name} = {value_as_array} """)
     else:
         raise TypeError
@@ -4316,14 +4311,13 @@ class TraceReallocRetBreakpoint(gdb.FinishBreakpoint):
         else:
             newloc = parse_address(gef.arch.return_register)
 
+        title = Color.colorify("Heap-Analysis", "yellow bold")
         if newloc != self:
-            ok("{} - realloc({:#x}, {})={}".format(Color.colorify("Heap-Analysis", "yellow bold"),
-                                                   self.ptr, self.size,
-                                                   Color.colorify(f"{newloc:#x}", "green"),))
+            loc = Color.colorify(f"{newloc:#x}", "green")
+            ok(f"{title} - realloc({self.ptr:#x}, {self.size})={loc}")
         else:
-            ok("{} - realloc({:#x}, {})={}".format(Color.colorify("Heap-Analysis", "yellow bold"),
-                                                   self.ptr, self.size,
-                                                   Color.colorify(f"{newloc:#x}", "red"),))
+            loc = Color.colorify(f"{newloc:#x}", "red")
+            ok(f"{title} - realloc({self.ptr:#x}, {self.size})={loc}")
 
         item = (newloc, self.size)
 
@@ -4865,7 +4859,7 @@ class PieInfoCommand(GenericCommand):
                    for x in args.breakpoints
                    if x in gef.session.pie_breakpoints]
 
-        lines = ["{:6s}  {:6s}  {:18s}".format("VNum","Num","Addr")]
+        lines = [f"{'VNum':6s}  {'Num':6s}  {'Addr':18s}"]
         lines += [
             f"{x.vbp_num:6d}  {str(x.bp_num) if x.bp_num else 'N/A':6s}  {x.addr:18s}" for x in bps
         ]
@@ -5875,7 +5869,7 @@ class SearchPatternCommand(GenericCommand):
 
             try:
                 mem = gef.memory.read(chunk_addr, chunk_size)
-            except gdb.MemoryError as e:
+            except gdb.MemoryError:
                 return []
             preview_size = self["max_size_preview"]
             for match in re.finditer(binpattern, mem):
@@ -6386,12 +6380,12 @@ class GlibcHeapArenaSummary:
         gef_print("== Chunk distribution by size ==")
         gef_print(f"{'ChunkBytes':<10s}\t{'Count':<10s}\t{'TotalBytes':15s}\t{'Description':s}")
         for chunk_info, chunk_summary in sorted(self.size_distribution.items(), key=lambda x: x[1].total_bytes, reverse=True):
-            gef_print("{:<10d}\t{:<10d}\t{:<15d}\t{:s}".format(chunk_info[0], chunk_summary.count, chunk_summary.total_bytes, chunk_summary.desc))
+            gef_print(f"{chunk_info[0]:<10d}\t{chunk_summary.count:<10d}\t{chunk_summary.total_bytes:<15d}\t{chunk_summary.desc:s}")
 
         gef_print("\n== Chunk distribution by flag ==")
-        gef_print("{:<15s}\t{:<10s}\t{:s}".format("Flag", "TotalCount", "TotalBytes"))
+        gef_print(f"{'Flag':<15s}\t{'TotalCount':<10s}\t{'TotalBytes':s}")
         for chunk_flag, chunk_summary in self.flag_distribution.items():
-            gef_print("{:<15s}\t{:<10d}\t{:<d}".format(chunk_flag, chunk_summary.count, chunk_summary.total_bytes))
+            gef_print(f"{chunk_flag:<15s}\t{chunk_summary.count:<10d}\t{chunk_summary.total_bytes:<d}")
 
 class GlibcHeapWalkContext:
     def __init__(self, print_arena: bool = False, allow_unaligned: bool = False, min_size: int = 0, max_size: int = 0, count: int = -1, resolve_type: bool = False, summary: bool = False) -> None:
@@ -7186,7 +7180,7 @@ class ElfInfoCommand(GenericCommand):
             ("Section Header Table", f"{format_address(elf.e_shoff)}"),
             ("Header Table", f"{format_address(elf.e_phoff)}"),
             ("ELF Version", f"{elf.e_version:#x}"),
-            ("Header size", "{0} ({0:#x})".format(elf.e_ehsize)),
+            ("Header size", f"{elf.e_ehsize} ({elf.e_ehsize:#x})"),
             ("Entry point", f"{format_address(elf.e_entry)}"),
         ]
 
@@ -7196,20 +7190,20 @@ class ElfInfoCommand(GenericCommand):
         gef_print("")
         gef_print(titlify("Program Header"))
 
-        gef_print("  [{:>2s}] {:12s} {:>8s} {:>10s} {:>10s} {:>8s} {:>8s} {:5s} {:>8s}".format(
-            "#", "Type", "Offset", "Virtaddr", "Physaddr", "FileSiz", "MemSiz", "Flags", "Align"))
+        gef_print(f"  [{'#':>2s}] {'Type':12s} {'Offset':>8s} {'Virtaddr':>10s} {'Physaddr':>10s}"
+                  f" {'FileSiz':>8s} {'MemSiz':>8s} {'Flags':5s} {'Align':>8s}")
 
         for i, p in enumerate(elf.phdrs):
             p_type = p.p_type.name if p.p_type else ""
             p_flags = str(p.p_flags.name).lstrip("Flag.") if p.p_flags else "???"
 
-            gef_print("  [{:2d}] {:12s} {:#8x} {:#10x} {:#10x} {:#8x} {:#8x} {:5s} {:#8x}".format(
-                i, p_type, p.p_offset, p.p_vaddr, p.p_paddr, p.p_filesz, p.p_memsz, p_flags, p.p_align))
+            gef_print(f"  [{i:2d}] {p_type:12s} {p.p_offset:#8x} {p.p_vaddr:#10x} {p.p_paddr:#10x}"
+                      f" {p.p_filesz:#8x} {p.p_memsz:#8x} {p_flags:5s} {p.p_align:#8x}")
 
         gef_print("")
         gef_print(titlify("Section Header"))
-        gef_print("  [{:>2s}] {:20s} {:>15s} {:>10s} {:>8s} {:>8s} {:>8s} {:5s} {:4s} {:4s} {:>8s}".format(
-            "#", "Name", "Type", "Address", "Offset", "Size", "EntSiz", "Flags", "Link", "Info", "Align"))
+        gef_print(f"  [{'#':>2s}] {'Name':20s} {'Type':>15s} {'Address':>10s} {'Offset':>8s}"
+                  f" {'Size':>8s} {'EntSiz':>8s} {'Flags':5s} {'Link':4s} {'Info':4s} {'Align':>8s}")
 
         for i, s in enumerate(elf.shdrs):
             sh_type = s.sh_type.name if s.sh_type else "UNKN"
@@ -7388,17 +7382,12 @@ class ContextCommand(GenericCommand):
     def show_legend(self) -> None:
         if gef.config["gef.disable_color"] is True:
             return
-        str_color = gef.config["theme.dereference_string"]
-        code_addr_color = gef.config["theme.address_code"]
-        stack_addr_color = gef.config["theme.address_stack"]
-        heap_addr_color = gef.config["theme.address_heap"]
-        changed_register_color = gef.config["theme.registers_value_changed"]
-
-        gef_print("[ Legend: {} | {} | {} | {} | {} ]".format(Color.colorify("Modified register", changed_register_color),
-                                                              Color.colorify("Code", code_addr_color),
-                                                              Color.colorify("Heap", heap_addr_color),
-                                                              Color.colorify("Stack", stack_addr_color),
-                                                              Color.colorify("String", str_color)))
+        changed_register_title = Color.colorify("Modified register", gef.config["theme.registers_value_changed"])
+        code_title = Color.colorify("Code", gef.config["theme.address_code"])
+        heap_title = Color.colorify("Heap", gef.config["theme.address_heap"])
+        stack_title = Color.colorify("Stack", gef.config["theme.address_stack"])
+        str_title = Color.colorify("String", gef.config["theme.dereference_string"])
+        gef_print(f"[ Legend: {changed_register_title} | {code_title} | {heap_title} | {stack_title} | {str_title} ]")
         return
 
     @only_if_gdb_running
@@ -7467,13 +7456,11 @@ class ContextCommand(GenericCommand):
 
         trail_len = len(m) + 6
         title = ""
-        title += Color.colorify("{:{padd}<{width}} ".format("",
-                                                            width=max(self.tty_columns - trail_len, 0),
-                                                            padd=HORIZONTAL_LINE),
-                                line_color)
+        width = max(self.tty_columns - trail_len, 0)
+        padd = HORIZONTAL_LINE
+        title += Color.colorify(f"{'':{padd}<{width}} ", line_color)
         title += Color.colorify(m, msg_color)
-        title += Color.colorify(" {:{padd}<4}".format("", padd=HORIZONTAL_LINE),
-                                line_color)
+        title += Color.colorify(f" {'':{padd}<4}", line_color)
         gef_print(title)
         return
 
@@ -7888,15 +7875,14 @@ class ContextCommand(GenericCommand):
             if not current_frame.is_valid():
                 continue
 
-            pc = current_frame.pc()
+            pc = int(current_frame.pc())
             name = current_frame.name()
             items = []
             items.append(f"{pc:#x}")
             if name:
                 frame_args = gdb.FrameDecorator.FrameDecorator(current_frame).frame_args() or []
-                m = "{}({})".format(Color.greenify(name),
-                                    ", ".join(["{}={!s}".format(Color.yellowify(x.sym),
-                                                                x.sym.value(current_frame)) for x in frame_args]))
+                symstr= ", ".join([f"{Color.yellowify(x.sym)}={x.sym.value(current_frame)!s}" for x in frame_args])
+                m = f"{Color.greenify(name)}({symstr})"
                 items.append(m)
             else:
                 try:
@@ -7913,8 +7899,8 @@ class ContextCommand(GenericCommand):
 
                 items.append(Color.redify(f"{symbol}{insn.mnemonic} {', '.join(insn.operands)}"))
 
-            gef_print("[{}] {}".format(Color.colorify(f"#{level}", "bold green" if current_frame == orig_frame else "bold pink"),
-                                       RIGHT_ARROW.join(items)))
+            title = Color.colorify(f"#{level}", "bold green" if current_frame == orig_frame else "bold pink")
+            gef_print(f"[{title}] {RIGHT_ARROW.join(items)}")
             current_frame = current_frame.older()
             level += 1
             nb_backtrace -= 1
@@ -8207,7 +8193,7 @@ class HexdumpCommand(GenericCommand):
         while i < length:
             cur_addr = start_addr + (i + offset) * l
             sym = gdb_get_location_from_symbol(cur_addr)
-            sym = "<{:s}+{:04x}> ".format(*sym) if sym else ""
+            sym = f"<{sym[0]:s}+{sym[1]:04x}> " if sym else ""
             mem = gef.memory.read(cur_addr, l)
             val = struct.unpack(fmt_pack, mem)[0]
             if show_ascii:
@@ -8471,8 +8457,7 @@ def dereference_from(address: int) -> List[str]:
                     break
 
         # if not able to parse cleanly, simply display and break
-        val = "{:#0{ma}x}".format(int(deref & 0xFFFFFFFFFFFFFFFF), ma=(gef.arch.ptrsize * 2 + 2))
-        msg.append(val)
+        msg.append(format_address(deref))
         break
 
     return msg
@@ -8504,11 +8489,12 @@ class DereferenceCommand(GenericCommand):
         offset = idx * memalign
         current_address = align_address(addr + offset)
         addrs = dereference_from(current_address)
-        l = ""
         addr_l = format_address(int(addrs[0], 16))
-        l += "{}{}{:+#07x}: {:{ma}s}".format(Color.colorify(addr_l, base_address_color),
-                                             VERTICAL_LINE, base_offset+offset,
-                                             sep.join(addrs[1:]), ma=(memalign*2 + 2))
+        ma = (memalign*2 + 2)
+        l = (
+            f"{Color.colorify(addr_l, base_address_color)}{VERTICAL_LINE}"
+            f"{base_offset+offset:+#07x}: {sep.join(addrs[1:]):{ma}s}"
+        )
 
         register_hints = []
 
@@ -8687,14 +8673,10 @@ class VMMapCommand(GenericCommand):
         return
 
     def show_legend(self) -> None:
-        code_addr_color = gef.config["theme.address_code"]
-        stack_addr_color = gef.config["theme.address_stack"]
-        heap_addr_color = gef.config["theme.address_heap"]
-
-        gef_print("[ Legend:  {} | {} | {} ]".format(Color.colorify("Code", code_addr_color),
-                                                     Color.colorify("Heap", heap_addr_color),
-                                                     Color.colorify("Stack", stack_addr_color)
-        ))
+        code_title = Color.colorify("Code", gef.config["theme.address_code"])
+        stack_title = Color.colorify("Heap", gef.config["theme.address_stack"])
+        heap_title = Color.colorify("Stack", gef.config["theme.address_heap"])
+        gef_print(f"[ Legend:  {code_title} | {stack_title} | {heap_title} ]")
         return
 
     def is_integer(self, n: str) -> bool:
@@ -9154,6 +9136,7 @@ class GotCommand(GenericCommand):
         readelf = gef.session.constants["readelf"]
 
         if is_remote_debug():
+            assert gef.session.remote
             elf_file = str(gef.session.remote.lfile)
             elf_virtual_path = str(gef.session.remote.file)
         else:
@@ -9514,6 +9497,7 @@ class SectionBaseFunction(GenericFunction):
         try:
             name = args[0].string()
         except IndexError:
+            assert gef.session.file
             name = gef.session.file.name
         except gdb.error:
             err(f"Invalid arg: {args[0]}")
@@ -11195,7 +11179,7 @@ class GefRemoteSessionManager(GefSessionManager):
 
         return True
 
-    def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
+    def remote_objfile_event_handler(self, evt: "gdb.events.NewObjFileEvent") -> None:
         dbg(f"[remote] in remote_objfile_handler({evt.new_objfile.filename if evt else 'None'}))")
         if not evt or not evt.new_objfile.filename:
             return
