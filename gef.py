@@ -11026,6 +11026,13 @@ class GefRemoteSessionManager(GefSessionManager):
         self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
         self.__qemu = qemu
 
+        if self.__qemu is not None:
+            self.__mode = GefRemoteSessionManager.RemoteMode.QEMU
+        elif os.environ.get("GDB_UNDER_RR", None) == "1":
+            self.__mode =  GefRemoteSessionManager.RemoteMode.RR
+        else:
+            self.__mode =  GefRemoteSessionManager.RemoteMode.GDBSERVER
+
     def close(self) -> None:
         self.__local_root_fd.cleanup()
         try:
@@ -11034,9 +11041,6 @@ class GefRemoteSessionManager(GefSessionManager):
         except Exception as e:
             warn(f"Exception while restoring local context: {str(e)}")
         return
-
-    def in_qemu_user(self) -> bool:
-        return self.__qemu is not None
 
     def __str__(self) -> str:
         return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid}, mode={self.mode})"
@@ -11076,11 +11080,7 @@ class GefRemoteSessionManager(GefSessionManager):
 
     @property
     def mode(self) -> RemoteMode:
-        if self.in_qemu_user():
-            return GefRemoteSessionManager.RemoteMode.QEMU
-        if os.environ.get("GDB_UNDER_RR", None) == "1":
-            return GefRemoteSessionManager.RemoteMode.RR
-        return GefRemoteSessionManager.RemoteMode.GDBSERVER
+        return self.__mode
 
     def sync(self, src: str, dst: Optional[str] = None) -> bool:
         """Copy the `src` into the temporary chroot. If `dst` is provided, that path will be
