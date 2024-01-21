@@ -26,7 +26,7 @@ class GefRemoteCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         gef = self._gef
         root = self._conn.root
-        gdbserver_mode = 0
+        gdbserver_mode = "GDBSERVER"
         while True:
             port = random.randint(1025, 65535)
             if port != self._port:
@@ -43,7 +43,7 @@ class GefRemoteCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         gef = self._gef
         root = self._conn.root
-        qemu_mode = 1
+        qemu_mode = "QEMU"
         while True:
             port = random.randint(1025, 65535)
             if port != self._port:
@@ -60,7 +60,7 @@ class GefRemoteCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         gef = self._gef
         root = self._conn.root
-        gdbserver_mode = 0
+        gdbserver_mode = "GDBSERVER"
         while True:
             port = random.randint(1025, 65535)
             if port != self._port:
