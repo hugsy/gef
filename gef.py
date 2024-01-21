@@ -10970,7 +10970,7 @@ class GefSessionManager(GefManager):
         try:
             canary_location = gef.arch.canary_address()
             canary = gef.memory.read_integer(canary_location)
-        except NotImplementedError:
+        except (NotImplementedError, gdb.error):
             # Fall back to `AT_RANDOM`, which is the original source
             # of the canary value but not the canonical location
             return self.original_canary
@@ -11017,6 +11017,12 @@ class GefRemoteSessionManager(GefSessionManager):
         GDBSERVER = 0
         QEMU = 1
         RR = 2
+
+        def __str__(self):
+            return self.name
+
+        def __repr__(self):
+            return f"RemoteMode = {str(self)} ({int(self)})"
 
     def __init__(self, host: str, port: int, pid: int =-1, qemu: Optional[pathlib.Path] = None) -> None:
         super().__init__()
