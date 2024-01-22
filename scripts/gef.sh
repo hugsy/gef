@@ -34,11 +34,10 @@ elif [ $curl_found -eq 1 ]; then
     curl --silent --location --output "${HOME}/.gef-${tag}.py" "https://github.com/hugsy/gef/raw/${tag}/gef.py"
 fi
 
-if [ -f "${HOME}/.gef-${tag}.py}" ]; then
-    # Create the new gdbinit
+if [ -f "${HOME}/.gef-${tag}.py" ]; then
     echo "source ~/.gef-${tag}.py" > ~/.gdbinit
     exit 0
+else
+    echo "GEF was not properly downloaded"
+    exit 1
 fi
-
-echo "GEF was not properly downloaded"
-exit 1
