@@ -5695,6 +5695,9 @@ class ChangeFdCommand(GenericCommand):
 
             info(f"Trying to connect to {new_output}")
             res = gdb.execute(f"""call (int)connect({new_fd}, {stack_addr}, {16})""", to_string=True)
+            if res is None:
+                err("Call to `connect` failed")
+                return
 
             # recover stack state
             gef.memory.write(stack_addr, original_contents, 8)
@@ -5707,6 +5710,9 @@ class ChangeFdCommand(GenericCommand):
             info(f"Connected to {new_output}")
         else:
             res = gdb.execute(f"""call (int)open("{new_output}", 66, 0666)""", to_string=True)
+            if res is None:
+                err("Call to `open` failed")
+                return
             new_fd = self.get_fd_from_result(res)
 
         info(f"Opened '{new_output}' as fd #{new_fd:d}")
@@ -5745,11 +5751,13 @@ class ScanSectionCommand(GenericCommand):
         info(f"Searching for addresses in '{Color.yellowify(haystack)}' "
              f"that point to '{Color.yellowify(needle)}'")
 
+        fpath = get_filepath() or ""
+
         if haystack == "binary":
-            haystack = get_filepath()
+            haystack = fpath
 
         if needle == "binary":
-            needle = get_filepath()
+            needle = fpath
 
         needle_sections = []
         haystack_sections = []
@@ -5763,6 +5771,8 @@ class ScanSectionCommand(GenericCommand):
             needle_sections.append((start, end))
 
         for sect in gef.memory.maps:
+            if sect.path is None:
+                continue
             if haystack in sect.path:
                 haystack_sections.append((sect.page_start, sect.page_end, os.path.basename(sect.path)))
             if needle in sect.path:
@@ -8392,12 +8402,10 @@ class PatchStringCommand(GenericCommand):
         addr = align_address(parse_address(location))
 
         try:
-            s = codecs.escape_decode(msg)[0]
-        except binascii.Error:
-            gef_print(f"Could not decode '\\xXX' encoded string \"{msg}\"")
-            return
-
-        gef.memory.write(addr, s, len(s))
+            msg_as_bytes = codecs.escape_decode(msg, "utf-8")[0]
+            gef.memory.write(addr, msg_as_bytes, len(msg_as_bytes))
+        except (binascii.Error, gdb.error):
+            err(f"Could not decode '\\xXX' encoded string \"{msg}\"")
         return
 
 
@@ -9024,10 +9032,10 @@ class PatternSearchCommand(GenericCommand):
         # 1. check if it's a symbol (like "$sp" or "0x1337")
         symbol = safe_parse_and_eval(pattern)
         if symbol:
-            addr = int(abs(symbol))
+            addr = int(abs(to_unsigned_long(symbol)))
             dereferenced_value = dereference(addr)
             if dereferenced_value:
-                addr = int(abs(dereferenced_value))
+                addr = int(abs(to_unsigned_long(dereferenced_value)))
             mask = (1<<(8 * period))-1
             addr &= mask
             pattern_le = addr.to_bytes(period, 'little')
@@ -9391,7 +9399,7 @@ class HeapAnalysisCommand(GenericCommand):
             ok("No free() chunk tracked")
         return
 
-    def clean(self, _: "gdb.events.Event") -> None:
+    def clean(self, _: "gdb.events.ExitedEvent") -> None:
         global gef
 
         ok(f"{Color.colorify('Heap-Analysis', 'yellow bold')} - Cleaning up")
