@@ -1858,7 +1858,7 @@ def gef_pystring(x: bytes) -> str:
     """Returns a sanitized version as string of the bytes list given in input."""
     res = str(x, encoding="utf-8")
     substs = [("\n", "\\n"), ("\r", "\\r"), ("\t", "\\t"), ("\v", "\\v"), ("\b", "\\b"), ]
-    for x, y in substs: res = res.replace(x, y)
+    for _x, _y in substs: res = res.replace(_x, _y)
     return res
 
 
@@ -3453,7 +3453,7 @@ def get_filepath() -> Optional[str]:
 
 def get_function_length(sym: str) -> int:
     """Attempt to get the length of the raw bytes of a function."""
-    dis = gdb.execute(f"disassemble '{sym}'", to_string=True).splitlines()
+    dis = (gdb.execute(f"disassemble '{sym}'", to_string=True) or "").splitlines()
     start_addr = int(dis[1].split()[0], 16)
     end_addr = int(dis[-2].split()[0], 16)
     return end_addr - start_addr
@@ -3462,7 +3462,7 @@ def get_function_length(sym: str) -> int:
 @lru_cache()
 def get_info_files() -> List[Zone]:
     """Retrieve all the files loaded by debuggee."""
-    lines = gdb.execute("info files", to_string=True).splitlines()
+    lines = (gdb.execute("info files", to_string=True) or "").splitlines()
     infos = []
     for line in lines:
         line = line.strip()
@@ -3564,22 +3564,23 @@ def is_hex(pattern: str) -> bool:
     return len(pattern) % 2 == 0 and all(c in string.hexdigits for c in pattern[2:])
 
 
-def continue_handler(_: "gdb.ContinueEvent") -> None:
+def continue_handler(_: "gdb.events.ContinueEvent") -> None:
     """GDB event handler for new object continue cases."""
     return
 
 
-def hook_stop_handler(_: "gdb.StopEvent") -> None:
+def hook_stop_handler(_: "gdb.events.StopEvent") -> None:
     """GDB event handler for stop cases."""
     reset_all_caches()
     gdb.execute("context")
     return
 
 
-def new_objfile_handler(evt: Optional["gdb.NewObjFileEvent"]) -> None:
+def new_objfile_handler(evt: Optional["gdb.events.NewObjFileEvent"]) -> None:
     """GDB event handler for new object file cases."""
     reset_all_caches()
     path = evt.new_objfile.filename if evt else gdb.current_progspace().filename
+    assert path is not None
     try:
         if gef.session.root and path.startswith("target:"):
             # If the process is in a container, replace the "target:" prefix
@@ -3605,7 +3606,7 @@ def new_objfile_handler(evt: Optional["gdb.NewObjFileEvent"]) -> None:
     return
 
 
-def exit_handler(_: "gdb.ExitedEvent") -> None:
+def exit_handler(_: "gdb.events.ExitedEvent") -> None:
     """GDB event handler for exit cases."""
     global gef
     # flush the caches
@@ -3636,13 +3637,13 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
     return
 
 
-def memchanged_handler(_: "gdb.MemoryChangedEvent") -> None:
+def memchanged_handler(_: "gdb.events.MemoryChangedEvent") -> None:
     """GDB event handler for mem changes cases."""
     reset_all_caches()
     return
 
 
-def regchanged_handler(_: "gdb.RegisterChangedEvent") -> None:
+def regchanged_handler(_: "gdb.events.RegisterChangedEvent") -> None:
     """GDB event handler for reg changes cases."""
     reset_all_caches()
     return
@@ -7668,7 +7669,7 @@ class ContextCommand(GenericCommand):
             self.print_guessed_arguments(target)
             return
 
-        if sym.type.code != gdb.TYPE_CODE_FUNC:
+        if sym.type and sym.type.code != gdb.TYPE_CODE_FUNC:
             err(f"Symbol '{target}' is not a function: type={sym.type.code}")
             return
 
