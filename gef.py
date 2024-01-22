@@ -3907,7 +3907,7 @@ def gef_convenience(value: Union[str, bytes]) -> str:
     if isinstance(value, str):
         gdb.execute(f"""set {var_name} = "{value}" """)
     elif isinstance(value, bytes):
-        value_as_array = "{" + ", ".join([f"0x{x:#.02x}" for x in value]) + "}"
+        value_as_array = "{" + ", ".join([f"0x{b:02x}" for b in value]) + "}"
         gdb.execute(f"""set {var_name} = {value_as_array} """)
     else:
         raise TypeError
