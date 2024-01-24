@@ -200,7 +200,7 @@ A basic example would be as follow:
 class MyCommand(GenericCommand):
     [...]
 
-    @parse_arguments({"foo": [1,]}, {"--bleh": "", ("--blah", "-l): True})
+    @parse_arguments({"foo": [1,]}, {"--bleh": "", ("--blah", "-l): False})
     def do_invoke(self, argv, *args, **kwargs):
       args = kwargs["arguments"]
       if args.foo == 1: ...
@@ -216,9 +216,9 @@ gef➤ mycommand --blah 3 14 159 2653
 The function `MyCommand!do_invoke()` can use the command line argument value
 
 ```python
-args.foo --> [3, 14, 159, 2653] # a List(int) from user input
-args.bleh --> "" # the default value
-args.blah --> True # set to True because user input declared the option (would have been False otherwise)
+args.foo == [3, 14, 159, 2653] # a List(int) from user input
+args.bleh == "" # the default value
+args.blah == True # set to True because user input declared the option (would have been False otherwise)
 ```
 
 ### Adding new architectures
