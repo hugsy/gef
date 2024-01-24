@@ -84,7 +84,7 @@ from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
-                    Iterator, List, NoReturn, Optional, Sequence, Set, Tuple, Type,
+                    Iterator, List, NoReturn, Optional, OrderedDict, Sequence, Set, Tuple, Type, TypeVar,
                     Union, TYPE_CHECKING)
 from urllib.request import urlopen
 
@@ -3853,7 +3853,7 @@ def de_bruijn(alphabet: bytes, n: int) -> Generator[str, None, None]:
         if t > n:
             if n % p == 0:
                 for j in range(1, p + 1):
-                    yield alphabet[a[j]]
+                    yield str(alphabet[a[j]])
         else:
             a[t] = a[t - p]
             yield from db(t + 1, p)
@@ -3876,8 +3876,8 @@ def safe_parse_and_eval(value: str) -> Optional["gdb.Value"]:
     gdb.error if the eval failed."""
     try:
         return gdb.parse_and_eval(value)
-    except gdb.error:
-        pass
+    except gdb.error as e:
+        dbg(f"gdb.parse_and_eval() failed, reason: {str(e)}")
     return None
 
 
@@ -4206,6 +4206,7 @@ class TraceMallocBreakpoint(gdb.Breakpoint):
     def stop(self) -> bool:
         reset_all_caches()
         _, size = gef.arch.get_ith_parameter(0)
+        assert size
         self.retbp = TraceMallocRetBreakpoint(size, self.name)
         return False
 
@@ -4354,7 +4355,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
         check_uaf = gef.config["heap-analysis-helper.check_uaf"]
 
         ok(f"{Color.colorify('Heap-Analysis', 'yellow bold')} - free({addr:#x})")
-        if addr == 0:
+        if not addr:
             if check_free_null:
                 msg.append(Color.colorify("Heap-Analysis", "yellow bold"))
                 msg.append(f"Attempting to free(NULL) at {gef.arch.pc:#x}")
@@ -4363,7 +4364,7 @@ class TraceFreeBreakpoint(gdb.Breakpoint):
                 return True
             return False
 
-        if addr in [x for (x, y) in gef.session.heap_freed_chunks]:
+        if addr in [x for (x, _) in gef.session.heap_freed_chunks]:
             if check_double_free:
                 msg.append(Color.colorify("Heap-Analysis", "yellow bold"))
                 msg.append(f"Double-free detected {RIGHT_ARROW} free({addr:#x}) is called at {gef.arch.pc:#x} but is already in the free-ed list")
@@ -4434,6 +4435,7 @@ class UafWatchpoint(gdb.Breakpoint):
         # software watchpoints stop after the next statement (see
         # https://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html)
         pc = gdb_get_nth_previous_instruction_address(gef.arch.pc, 2)
+        assert pc
         insn = gef_current_instruction(pc)
         msg = []
         msg.append(Color.colorify("Heap-Analysis", "yellow bold"))
@@ -4518,7 +4520,10 @@ def register_priority_command(cls: Type["GenericCommand"]) -> Type["GenericComma
     return cls
 
 
-def register(cls: Union[Type["GenericCommand"], Type["GenericFunction"]]) -> Union[Type["GenericCommand"], Type["GenericFunction"]]:
+ValidCommandType = TypeVar("ValidCommandType", bound="GenericCommand")
+ValidFunctionType = TypeVar("ValidFunctionType", bound="GenericFunction")
+
+def register(cls: Union[Type["ValidCommandType"], Type["ValidFunctionType"]]) -> Union[Type["ValidCommandType"], Type["ValidFunctionType"]]:
     global __registered_commands__, __registered_functions__
     if issubclass(cls, GenericCommand):
         assert hasattr(cls, "_cmdline_")
@@ -4545,6 +4550,7 @@ class GenericCommand(gdb.Command):
     _cmdline_: str
     _syntax_: str
     _example_: Union[str, List[str]] = ""
+    _aliases_: List[str] = []
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -4560,7 +4566,7 @@ class GenericCommand(gdb.Command):
             example += "\n\t".join(self._example_)
         elif isinstance(self._example_, str):
             example += self._example_
-        self.__doc__ = self.__doc__.replace(" "*4, "") + syntax + example
+        self.__doc__ = (self.__doc__ or "").replace(" "*4, "") + syntax + example
         self.repeat = False
         self.repeat_count = 0
         self.__last_command = None
@@ -4939,7 +4945,7 @@ class PieRunCommand(GenericCommand):
         try:
             gdb.execute("continue")
         except gdb.error as e:
-            err(e)
+            err(str(e))
             gdb.execute("kill")
         return
 
@@ -4979,7 +4985,7 @@ class PieRemoteCommand(GenericCommand):
         try:
             gdb.execute(f"gef-remote {' '.join(argv)}")
         except gdb.error as e:
-            err(e)
+            err(str(e))
             return
         # after remote attach, we are stopped so that we can
         # get base address to modify our breakpoint
@@ -5048,7 +5054,7 @@ class SmartEvalCommand(GenericCommand):
             gef_print(" ".join(parsed_expr))
         return
 
-    def distance(self, args: Tuple[str, str]) -> None:
+    def distance(self, args: List[str]) -> None:
         try:
             x = int(args[0], 16) if is_hex(args[0]) else int(args[0])
             y = int(args[1], 16) if is_hex(args[1]) else int(args[1])
@@ -5069,7 +5075,9 @@ class CanaryCommand(GenericCommand):
     def do_invoke(self, argv: List[str]) -> None:
         self.dont_repeat()
 
-        has_canary = Elf(get_filepath()).checksec["Canary"]
+        fname = get_filepath()
+        assert fname
+        has_canary = Elf(fname).checksec["Canary"]
         if not has_canary:
             warn("This binary was not compiled with SSP.")
             return
@@ -5295,6 +5303,9 @@ class GefThemeCommand(GenericCommand):
         return
 
 
+class GefStructure(ctypes.Structure):
+    _values_: List[Tuple]
+
 class ExternalStructureManager:
     class Structure:
         def __init__(self, manager: "ExternalStructureManager", mod_path: pathlib.Path, struct_name: str) -> None:
@@ -5303,8 +5314,8 @@ class ExternalStructureManager:
             self.name = struct_name
             self.class_type = self.__get_structure_class()
             # if the symbol points to a class factory method and not a class
-            if not hasattr(self.class_type, "_fields_") and callable(self.class_type):
-                self.class_type = self.class_type(gef)
+            assert issubclass(self.class_type, GefStructure)
+            self.class_insn = self.class_type(gef)
             return
 
         def __str__(self) -> str:
@@ -5312,6 +5323,7 @@ class ExternalStructureManager:
 
         def pprint(self) -> None:
             res = []
+            assert isinstance(self.class_type._fields_, tuple)
             for _name, _type in self.class_type._fields_:
                 size = ctypes.sizeof(_type)
                 name = Color.colorify(_name, gef.config["pcustom.structure_name"])
@@ -5322,10 +5334,11 @@ class ExternalStructureManager:
             gef_print("\n".join(res))
             return
 
-        def __get_structure_class(self) -> Type:
+        def __get_structure_class(self) -> Type[GefStructure]:
             """Returns a tuple of (class, instance) if modname!classname exists"""
             fpath = self.module_path
             spec = importlib.util.spec_from_file_location(fpath.stem, fpath)
+            assert spec and spec.loader, "Failed to determine module specification"
             module = importlib.util.module_from_spec(spec)
             sys.modules[fpath.stem] = module
             spec.loader.exec_module(module)
@@ -5781,6 +5794,9 @@ class ScanSectionCommand(GenericCommand):
         step = gef.arch.ptrsize
         unpack = u32 if step == 4 else u64
 
+        dereference_cmd = gef.gdb.commands["dereference"]
+        assert isinstance(dereference_cmd, DereferenceCommand)
+
         for hstart, hend, hname in haystack_sections:
             try:
                 mem = gef.memory.read(hstart, hend - hstart)
@@ -5791,7 +5807,7 @@ class ScanSectionCommand(GenericCommand):
                 target = unpack(mem[i:i+step])
                 for nstart, nend in needle_sections:
                     if target >= nstart and target < nend:
-                        deref = DereferenceCommand.pprint_dereferenced(hstart, int(i / step))
+                        deref = dereference_cmd.pprint_dereferenced(hstart, int(i / step))
                         if hname != "":
                             name = Color.colorify(hname, "yellow")
                             gef_print(f"{name}: {deref}")
@@ -6534,8 +6550,7 @@ class GlibcHeapBinsCommand(GenericCommand):
         gdb.execute(f"heap bins {bin_t}")
         return
 
-    @staticmethod
-    def pprint_bin(arena_addr: str, index: int, _type: str = "") -> int:
+    def pprint_bin(self, arena_addr: str, index: int, _type: str = "") -> int:
         arena = GlibcArena(arena_addr)
 
         fd, bk = arena.bin(index)
@@ -6808,7 +6823,9 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
             return
         arena_addr = args.arena_address if args.arena_address else f"{gef.heap.selected_arena.addr:#x}"
         gef_print(titlify(f"Unsorted Bin for arena at {arena_addr}"))
-        nb_chunk = GlibcHeapBinsCommand.pprint_bin(f"*{arena_addr}", 0, "unsorted_")
+        heap_bins_cmd = gef.gdb.commands["heap bins"]
+        assert isinstance(heap_bins_cmd, GlibcHeapBinsCommand)
+        nb_chunk = heap_bins_cmd.pprint_bin(f"*{arena_addr}", 0, "unsorted_")
         if nb_chunk >= 0:
             info(f"Found {nb_chunk:d} chunks in unsorted bin.")
         return
@@ -6835,10 +6852,11 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
 
         arena_address = args.arena_address or f"{gef.heap.selected_arena.address:#x}"
         gef_print(titlify(f"Small Bins for arena at {arena_address}"))
-        bins = {}
-        heap_bin_cmd: GlibcHeapBinsCommand = gef.gdb.commands["heap bins"]
+        bins: Dict[int, int] = {}
+        heap_bins_cmd = gef.gdb.commands["heap bins"]
+        assert isinstance (heap_bins_cmd, GlibcHeapBinsCommand)
         for i in range(1, 63):
-            nb_chunk = heap_bin_cmd.pprint_bin(f"*{arena_address}", i, "small_")
+            nb_chunk = heap_bins_cmd.pprint_bin(f"*{arena_address}", i, "small_")
             if nb_chunk < 0:
                 break
             if nb_chunk > 0:
@@ -6869,8 +6887,10 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
         arena_addr = args.arena_address if args.arena_address else f"{gef.heap.selected_arena.addr:#x}"
         gef_print(titlify(f"Large Bins for arena at {arena_addr}"))
         bins = {}
+        heap_bins_cmd = gef.gdb.commands["heap bins"]
+        assert isinstance(heap_bins_cmd, GlibcHeapBinsCommand)
         for i in range(63, 126):
-            nb_chunk = GlibcHeapBinsCommand.pprint_bin(f"*{arena_addr}", i, "large_")
+            nb_chunk = heap_bins_cmd.pprint_bin(f"*{arena_addr}", i, "large_")
             if nb_chunk < 0:
                 break
             if nb_chunk > 0:
@@ -8559,8 +8579,10 @@ class DereferenceCommand(GenericCommand):
         start_address = align_address(target_addr)
         base_offset = start_address - align_address(ref_addr)
 
+        dereference_cmd = gef.gdb.commands["dereference"]
+        assert isinstance(dereference_cmd, DereferenceCommand)
         for i in range(from_insnum, to_insnum, insnum_step):
-            gef_print(DereferenceCommand.pprint_dereferenced(start_address, i, base_offset))
+            gef_print(dereference_cmd.pprint_dereferenced(start_address, i, base_offset))
 
         return
 
@@ -9632,8 +9654,8 @@ class GefCommand(gdb.Command):
         gef.config["gef.main_arena_offset"] = GefSetting("", str, "Offset from libc base address to main_arena symbol (int or hex). Set to empty string to disable.")
         gef.config["gef.propagate_debug_exception"] = GefSetting(False, bool, "If true, when debug mode is enabled, Python exceptions will be propagated all the way.")
 
-        self.commands : Dict[str, GenericCommand] = collections.OrderedDict()
-        self.functions : Dict[str, GenericFunction] = collections.OrderedDict()
+        self.commands : OrderedDict[str, GenericCommand] = collections.OrderedDict()
+        self.functions : OrderedDict[str, GenericFunction] = collections.OrderedDict()
         self.missing: Dict[str, Exception] = {}
         return
 
@@ -9751,6 +9773,7 @@ class GefCommand(gdb.Command):
         for name in sorted(new_functions):
             for function_cls in __registered_functions__:
                 if function_cls._function_ == name:
+                    assert issubclass(function_cls, GenericFunction)
                     self.functions[name] = function_cls()
                     break
 
@@ -9759,6 +9782,7 @@ class GefCommand(gdb.Command):
             try:
                 for command_cls in __registered_commands__:
                     if command_cls._cmdline_ == name:
+                        assert issubclass(command_cls, GenericCommand)
                         command_instance = command_cls()
 
                         # create the aliases if any
