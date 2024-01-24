@@ -85,11 +85,10 @@ from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
                     Iterator, List, NoReturn, Optional, OrderedDict, Sequence, Set, Tuple, Type, TypeVar,
-                    Union, TYPE_CHECKING)
+                    Union)
 from urllib.request import urlopen
 
-if TYPE_CHECKING:
-    import gdb
+import gdb
 
 GEF_DEFAULT_BRANCH                     = "main"
 GEF_EXTRAS_DEFAULT_BRANCH              = "main"
@@ -3844,16 +3843,16 @@ def is_remote_debug() -> bool:
     return gef.session.remote_initializing or gef.session.remote is not None
 
 
-def de_bruijn(alphabet: bytes, n: int) -> Generator[str, None, None]:
+def de_bruijn(alphabet: bytes, n: int) -> Generator[int, None, None]:
     """De Bruijn sequence for alphabet and subsequences of length n (for compat. w/ pwnlib)."""
     k = len(alphabet)
     a = [0] * k * n
 
-    def db(t: int, p: int) -> Generator[str, None, None]:
+    def db(t: int, p: int) -> Generator[int, None, None]:
         if t > n:
             if n % p == 0:
                 for j in range(1, p + 1):
-                    yield str(alphabet[a[j]])
+                    yield alphabet[a[j]]
         else:
             a[t] = a[t - p]
             yield from db(t + 1, p)
@@ -5303,9 +5302,6 @@ class GefThemeCommand(GenericCommand):
         return
 
 
-class GefStructure(ctypes.Structure):
-    _values_: List[Tuple]
-
 class ExternalStructureManager:
     class Structure:
         def __init__(self, manager: "ExternalStructureManager", mod_path: pathlib.Path, struct_name: str) -> None:
@@ -5314,8 +5310,8 @@ class ExternalStructureManager:
             self.name = struct_name
             self.class_type = self.__get_structure_class()
             # if the symbol points to a class factory method and not a class
-            assert issubclass(self.class_type, GefStructure)
-            self.class_insn = self.class_type(gef)
+            if not hasattr(self.class_type, "_fields_") and callable(self.class_type):
+                self.class_type = self.class_type(gef)
             return
 
         def __str__(self) -> str:
@@ -5323,7 +5319,6 @@ class ExternalStructureManager:
 
         def pprint(self) -> None:
             res: List[str] = []
-            assert isinstance(self.class_type._fields_, tuple)
             for _name, _type in self.class_type._fields_:
                 size = ctypes.sizeof(_type)
                 name = Color.colorify(_name, gef.config["pcustom.structure_name"])
@@ -5334,7 +5329,7 @@ class ExternalStructureManager:
             gef_print("\n".join(res))
             return
 
-        def __get_structure_class(self) -> Type[GefStructure]:
+        def __get_structure_class(self) -> Type[ctypes.Structure]:
             """Returns a tuple of (class, instance) if modname!classname exists"""
             fpath = self.module_path
             spec = importlib.util.spec_from_file_location(fpath.stem, fpath)
@@ -5494,7 +5489,7 @@ class ExternalStructureManager:
     @property
     def path(self) -> pathlib.Path:
         if not self._path:
-            self._path = pathlib.Path(gef.config["pcustom.struct_path"]).expanduser().absolute()
+            self._path = gef.config["pcustom.struct_path"].expanduser().absolute()
         return self._path
 
     @property
@@ -5526,12 +5521,15 @@ class PCustomCommand(GenericCommand):
     _syntax_  = f"{_cmdline_} [list|edit <StructureName>|show <StructureName>]|<StructureName> 0xADDRESS]"
 
     def __init__(self) -> None:
+        global gef
         super().__init__(prefix=True)
-        self["struct_path"] = (gef.config["gef.tempdir"] / "structs", "Path to store/load the structure ctypes files")
         self["max_depth"] = (4, "Maximum level of recursion supported")
         self["structure_name"] = ("bold blue", "Color of the structure name")
         self["structure_type"] = ("bold red", "Color of the attribute type")
         self["structure_size"] = ("green", "Color of the attribute size")
+        gef.config[f"{self._cmdline_}.struct_path"] = GefSetting( gef.config["gef.tempdir"] / "structs", pathlib.Path,
+                                                       "Path to store/load the structure ctypes files",
+                                                       hooks={"on_write": [GefSetting.create_folder_tree,]})
         return
 
     @parse_arguments({"type": "", "address": ""}, {})
@@ -5642,7 +5640,7 @@ class PCustomEditCommand(PCustomCommand):
         return
 
     def __create_or_edit_structure(self, mod_name: str, struct_name: str) -> int:
-        path = pathlib.Path(gef.config["pcustom.struct_path"]).expanduser() / f"{mod_name}.py"
+        path = gef.config["pcustom.struct_path"].expanduser() / f"{mod_name}.py"
         if path.is_file():
             info(f"Editing '{path}'")
         else:
@@ -6944,7 +6942,7 @@ class DetailRegistersCommand(GenericCommand):
                 continue
 
             value = align_address(int(reg))
-            ctx_cmd: ContextCommand = gef.gdb.commands["context"]
+            ctx_cmd = gef.gdb.commands["context"]
             assert isinstance(ctx_cmd, ContextCommand)
             old_value = ctx_cmd.old_registers.get(regname, 0)
             if value == old_value:
@@ -7390,7 +7388,7 @@ class ContextCommand(GenericCommand):
         self["libc_args"] = (False, "[DEPRECATED - Unused] Show libc function call args description")
         self["libc_args_path"] = ("", "[DEPRECATED - Unused] Path to libc function call args json files, provided via gef-extras")
 
-        self.layout_mapping: Dict[str, Tuple[Callable, Optional[Callable], Optional[Callbable]]] = {
+        self.layout_mapping: Dict[str, Tuple[Callable, Optional[Callable], Optional[Callable]]] = {
             "legend": (self.show_legend, None, None),
             "regs": (self.context_regs, None, None),
             "stack": (self.context_stack, None, None),
@@ -9006,9 +9004,12 @@ class PatternCreateCommand(GenericCommand):
 
     _cmdline_ = "pattern create"
     _syntax_  = f"{_cmdline_} [-h] [-n N] [length]"
-    _example_ = f"{_cmdline_} 4096"
+    _example_ = [
+        f"{_cmdline_} 4096",
+        f"{_cmdline_} -n 4 128"
+    ]
 
-    @parse_arguments({"length": 0}, {("-n", "--n"): 0})
+    @parse_arguments({"length": 0}, {"-n": 0,})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
         length = args.length or gef.config["pattern.length"]
@@ -9909,7 +9910,14 @@ class GefConfigCommand(gdb.Command):
                     for name in names: self.print_setting(name)
             return
 
-        self.set_setting(argv)
+        if not is_debug():
+            try:
+                self.set_setting(argv)
+            except ValueError as e:
+                err(str(e))
+        else:
+            # Let exceptions (if any) propagate
+            self.set_setting(argv)
         return
 
     def print_setting(self, plugin_name: str, verbose: bool = False) -> None:
@@ -9939,7 +9947,7 @@ class GefConfigCommand(gdb.Command):
             self.print_setting(x)
         return
 
-    def set_setting(self, argv: Tuple[str, Any]) -> None:
+    def set_setting(self, argv: List[str]) -> None:
         global gef
         key, new_value = argv
 
@@ -9958,24 +9966,19 @@ class GefConfigCommand(gdb.Command):
             return
 
         _type = gef.config.raw_entry(key).type
-        try:
-            if _type == bool:
-                if new_value.upper() in ("TRUE", "T", "1"):
-                    _newval = True
-                elif new_value.upper() in ("FALSE", "F", "0"):
-                    _newval = False
-                else:
-                    raise ValueError(f"cannot parse '{new_value}' as bool")
-            else:
-                _newval = new_value
-        except Exception as e:
-            err(f"'{key}' expects type '{_type.__name__}', got {type(new_value).__name__}: reason {str(e)}")
-            return
 
-        try:
-            gef.config[key] = _newval
-        except Exception as e:
-            err(f"Cannot set '{key}': {e}")
+        # Attempt to parse specific values for known types
+        if _type == bool:
+            if new_value.upper() in ("TRUE", "T", "1"):
+                _newval = True
+            elif new_value.upper() in ("FALSE", "F", "0"):
+                _newval = False
+            else:
+                raise ValueError(f"Cannot parse '{new_value}' as bool")
+        else:
+            _newval = _type(new_value)
+
+        gef.config[key] = _newval
 
         reset_all_caches()
         return
