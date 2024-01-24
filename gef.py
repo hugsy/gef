@@ -129,7 +129,7 @@ DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
 GEF_RC                                 = (pathlib.Path(os.getenv("GEF_RC", "")).absolute()
                                           if os.getenv("GEF_RC")
                                           else pathlib.Path().home() / ".gef.rc")
-GEF_TEMP_DIR                           = os.path.join(tempfile.gettempdir(), "gef")
+GEF_TEMP_DIR                           = pathlib.Path(tempfile.gettempdir())/ "gef"
 GEF_MAX_STRING_LENGTH                  = 50
 
 LIBC_HEAP_MAIN_ARENA_DEFAULT_NAME      = "main_arena"
@@ -2001,7 +2001,7 @@ def disable_redirect_output() -> None:
     gdb.execute("set logging redirect off")
     return
 
-
+@deprecated("use `pathlib.Path(...).mkdir()`")
 def gef_makedirs(path: str, mode: int = 0o755) -> pathlib.Path:
     """Recursive mkdir() creation. If successful, return the absolute path of the directory created."""
     fpath = pathlib.Path(path)
@@ -5322,7 +5322,7 @@ class ExternalStructureManager:
             return self.name
 
         def pprint(self) -> None:
-            res = []
+            res: List[str] = []
             assert isinstance(self.class_type._fields_, tuple)
             for _name, _type in self.class_type._fields_:
                 size = ctypes.sizeof(_type)
@@ -5430,6 +5430,7 @@ class ExternalStructureManager:
             """Load a custom module, and return it."""
             fpath = self.path
             spec = importlib.util.spec_from_file_location(fpath.stem, fpath)
+            assert spec and spec.loader
             module = importlib.util.module_from_spec(spec)
             sys.modules[fpath.stem] = module
             spec.loader.exec_module(module)
@@ -5526,7 +5527,7 @@ class PCustomCommand(GenericCommand):
 
     def __init__(self) -> None:
         super().__init__(prefix=True)
-        self["struct_path"] = (str(pathlib.Path(gef.config["gef.tempdir"]) / "structs"), "Path to store/load the structure ctypes files")
+        self["struct_path"] = (gef.config["gef.tempdir"] / "structs", "Path to store/load the structure ctypes files")
         self["max_depth"] = (4, "Maximum level of recursion supported")
         self["structure_name"] = ("bold blue", "Color of the structure name")
         self["structure_type"] = ("bold red", "Color of the attribute type")
@@ -7389,7 +7390,7 @@ class ContextCommand(GenericCommand):
         self["libc_args"] = (False, "[DEPRECATED - Unused] Show libc function call args description")
         self["libc_args_path"] = ("", "[DEPRECATED - Unused] Path to libc function call args json files, provided via gef-extras")
 
-        self.layout_mapping = {
+        self.layout_mapping: Dict[str, Tuple[Callable, Optional[Callable], Optional[Callbable]]] = {
             "legend": (self.show_legend, None, None),
             "regs": (self.context_regs, None, None),
             "stack": (self.context_stack, None, None),
@@ -9642,11 +9643,11 @@ class GefCommand(gdb.Command):
         gef.config["gef.debug"] = GefSetting(False, bool, "Enable debug mode for gef")
         gef.config["gef.autosave_breakpoints_file"] = GefSetting("", str, "Automatically save and restore breakpoints")
         gef.config["gef.disable_target_remote_overwrite"] = GefSetting(False, bool, "Disable the overwrite of `target remote`")
-        plugins_dir = GefSetting("", str, "Autoload additional GEF commands from external directory", hooks={"on_write": GefSetting.no_spaces})
-        plugins_dir.add_hook("on_write", lambda _: self.reload_extra_plugins())
+        plugins_dir = GefSetting("", str, "Autoload additional GEF commands from external directory", hooks={"on_write": [GefSetting.no_spaces,]})
+        plugins_dir.add_hook("on_write", [lambda _: self.reload_extra_plugins(),])
         gef.config["gef.extra_plugins_dir"] = plugins_dir
         gef.config["gef.disable_color"] = GefSetting(False, bool, "Disable all colors in GEF")
-        gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, str, "Directory to use for temporary/cache content", hooks={"on_write": GefSetting.no_spaces})
+        gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, pathlib.Path, "Directory to use for temporary/cache content", hooks={"on_write": [GefSetting.no_spaces, GefSetting.create_folder_tree]})
         gef.config["gef.show_deprecation_warnings"] = GefSetting(True, bool, "Toggle the display of the `deprecated` warnings")
         gef.config["gef.buffer"] = GefSetting(True, bool, "Internally buffer command output until completion")
         gef.config["gef.bruteforce_main_arena"] = GefSetting(False, bool, "Allow bruteforcing main_arena symbol if everything else fails")
@@ -9745,16 +9746,11 @@ class GefCommand(gdb.Command):
 
     def add_context_pane(self, pane_name: str, display_pane_function: Callable, pane_title_function: Callable, condition: Optional[Callable]) -> None:
         """Add a new context pane to ContextCommand."""
-        for _, class_instance in self.commands.items():
-            if isinstance(class_instance, ContextCommand):
-                context = class_instance
-                break
-        else:
-            err("Cannot find ContextCommand")
-            return
+        context = self.commands["context"]
+        assert isinstance(context, ContextCommand)
 
         # assure users can toggle the new context
-        corrected_settings_name = pane_name.replace(" ", "_")
+        corrected_settings_name: str = pane_name.replace(" ", "_")
         gef.config["context.layout"] += f" {corrected_settings_name}"
 
         # overload the printing of pane title
@@ -10375,7 +10371,7 @@ class GefInstallExtraScriptCommand(gdb.Command):
             subprocess.run(["xdg-open", f"https://github.com/hugsy/gef-extras/{self.branch}/"])
             return
 
-        self.dirpath = pathlib.Path(gef.config["gef.tempdir"]).expanduser().absolute()
+        self.dirpath = gef.config["gef.tempdir"].expanduser().absolute()
         if not self.dirpath.is_dir():
             err("'gef.tempdir' is not a valid directory")
             return
@@ -10828,34 +10824,39 @@ class GefHeapManager(GefManager):
 class GefSetting:
     """Basic class for storing gef settings as objects"""
 
-    def __init__(self, value: Any, cls: Optional[type] = None, description: Optional[str] = None, hooks: Optional[Dict[str, Callable]] = None)  -> None:
+    def __init__(self, value: Any, cls: Optional[type] = None, description: Optional[str] = None, hooks: Optional[Dict[str, List[Callable]]] = None)  -> None:
         self.value = value
         self.type = cls or type(value)
         self.description = description or ""
         self.hooks: Dict[str, List[Callable]] = collections.defaultdict(list)
         if not hooks:
-            hooks = {}
+            hooks = {"on_read": [], "on_write": []}
 
-        for access, func in hooks.items():
-            self.add_hook(access, func)
+        for access, funcs in hooks.items():
+            self.add_hook(access, funcs)
         return
 
     def __str__(self) -> str:
         return f"Setting(type={self.type.__name__}, value='{self.value}', desc='{self.description[:10]}...', " \
                 f"read_hooks={len(self.hooks['on_read'])}, write_hooks={len(self.hooks['on_write'])})"
 
-    def add_hook(self, access, func):
-        if access != "on_read" and access != "on_write":
+    def add_hook(self, access: str, funcs: List[Callable]):
+        if access not in ("on_read", "on_write"):
             raise ValueError("invalid access type")
-        if not callable(func):
-            raise ValueError("hook is not callable")
-        self.hooks[access].append(func)
+        for func in funcs:
+            if not callable(func):
+                raise ValueError("hook is not callable")
+            self.hooks[access].append(func)
         return self
 
     @staticmethod
-    def no_spaces(value):
-        if " " in value:
+    def no_spaces(value: pathlib.Path):
+        if " " in str(value):
             raise ValueError("setting cannot contain spaces")
+
+    @staticmethod
+    def create_folder_tree(value: pathlib.Path):
+        value.mkdir(0o755, exist_ok=True, parents=True)
 
 
 class GefSettingsManager(dict):
@@ -11319,9 +11320,7 @@ class Gef:
         self.reinitialize_managers()
         self.gdb = GefCommand()
         self.gdb.setup()
-        tempdir = self.config["gef.tempdir"]
-        gef_makedirs(tempdir)
-        gdb.execute(f"save gdb-index '{tempdir}'")
+        gdb.execute(f"save gdb-index '{self.config['gef.tempdir']}'")
         return
 
     def reset_caches(self) -> None:
