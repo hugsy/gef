@@ -3352,7 +3352,7 @@ class MIPS64(MIPS):
 
     @staticmethod
     def supports_gdb_arch(gdb_arch: str) -> Optional[bool]:
-        if not gef.binary or not hasattr(gef.binary, "e_class"):
+        if not gef.binary or not isinstance(gef.binary, Elf):
             return False
         return gdb_arch.startswith("mips") and gef.binary.e_class == Elf.Class.ELF_64_BITS
 
@@ -3731,15 +3731,14 @@ def reset_architecture(arch: Optional[str] = None) -> None:
 
     # check for bin running
     if is_alive():
-        arch = gdb.selected_frame().architecture()
-        gdb_arch = arch.name()
+        gdb_arch = gdb.selected_frame().architecture().name()
         preciser_arch = next((a for a in arches.values() if a.supports_gdb_arch(gdb_arch)), None)
         if preciser_arch:
             gef.arch = preciser_arch()
             return
 
     # last resort, use the info from elf header to find it from the known architectures
-    if gef.binary and hasattr(gef.binary, "e_machine"):
+    if gef.binary and isinstance(gef.binary, Elf):
         try:
             gef.arch = arches[gef.binary.e_machine]()
         except KeyError:
@@ -5585,7 +5584,7 @@ class PCustomShowCommand(PCustomCommand):
 
     _cmdline_ = "pcustom show"
     _syntax_ = f"{_cmdline_} StructureName"
-    __aliases__ = ["pcustom create", "pcustom update"]
+    _aliases_ = ["pcustom create", "pcustom update"]
 
     def __init__(self) -> None:
         super().__init__()
@@ -7276,6 +7275,7 @@ class EntryPointBreakCommand(GenericCommand):
         if bp:
             bp.delete()
 
+        assert gef.binary
         # break at entry point
         entry = gef.binary.entry_point
 
