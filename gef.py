@@ -85,10 +85,10 @@ from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
                     Iterator, List, NoReturn, Optional, OrderedDict, Sequence, Set, Tuple, Type, TypeVar,
-                    Union)
+                    Union, cast)
 from urllib.request import urlopen
 
-import gdb
+import gdb # type: ignore
 
 GEF_DEFAULT_BRANCH                     = "main"
 GEF_EXTRAS_DEFAULT_BRANCH              = "main"
@@ -146,9 +146,6 @@ GEF_PROMPT                             = "gef➤  "
 GEF_PROMPT_ON                          = f"\001\033[1;32m\002{GEF_PROMPT}\001\033[0m\002"
 GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\033[0m\002"
 
-PATTERN_LIBC_VERSION                   = re.compile(rb"glibc (\d+)\.(\d+)")
-
-gef : "Gef"
 __registered_commands__ : Set[Type["GenericCommand"]]                                        = set()
 __registered_functions__ : Set[Type["GenericFunction"]]                                      = set()
 __registered_architectures__ : Dict[Union["Elf.Abi", str], Type["Architecture"]]              = {}
@@ -1753,7 +1750,6 @@ class GlibcFastChunk(GlibcChunk):
         return gef.memory.read_integer(pointer) ^ (pointer >> 12)
 
 class GlibcTcacheChunk(GlibcFastChunk):
-
     pass
 
 @deprecated("Use GefLibcManager.find_libc_version()")
@@ -2013,9 +2009,7 @@ def gef_makedirs(path: str, mode: int = 0o755) -> pathlib.Path:
 def gdb_lookup_symbol(sym: str) -> Optional[Tuple[gdb.Symtab_and_line, ...]]:
     """Fetch the proper symbol or None if not defined."""
     try:
-        res = gdb.decode_line(sym)[1]
-        if not isinstance(res, tuple):
-            return None
+        res = gdb.decode_line(sym)[1] # pylint: disable=E1136
         return res
     except gdb.error:
         return None
@@ -2190,7 +2184,7 @@ def get_arch() -> str:
         arch = gdb.selected_frame().architecture()
         return arch.name()
 
-    arch_str = gdb.execute("show architecture", to_string=True).strip()
+    arch_str = (gdb.execute("show architecture", to_string=True) or "").strip()
     pat = "The target architecture is set automatically (currently "
     if arch_str.startswith(pat):
         arch_str = arch_str[len(pat):].rstrip(")")
@@ -2396,7 +2390,7 @@ class Architecture(ArchitectureBase):
     @property
     def endianness(self) -> Endianness:
         if not self._endianness:
-            output = gdb.execute("show endian", to_string=True).strip().lower()
+            output = (gdb.execute("show endian", to_string=True) or "").strip().lower()
             if "little endian" in output:
                 self._endianness = Endianness.LITTLE_ENDIAN
             elif "big endian" in output:
@@ -2540,8 +2534,10 @@ class RISCV(Architecture):
         ra = None
         if self.is_ret(insn):
             ra = gef.arch.register("$ra")
-        elif frame.older():
-            ra = to_unsigned_long(frame.older().pc())
+        else:
+            older = frame.older()
+            if older:
+                ra = to_unsigned_long(older.pc())
         return ra
 
 
@@ -2662,7 +2658,10 @@ class ARM(Architecture):
 
     def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> Optional[int]:
         if not self.is_ret(insn):
-            return int(frame.older().pc()) if frame.older() else None
+            older = frame.older()
+            if not older:
+                return None
+            return int(older.pc())
 
         # If it's a pop, we have to peek into the stack, otherwise use lr
         if insn.mnemonic == "pop":
@@ -2926,9 +2925,10 @@ class X86(Architecture):
         ra = None
         if self.is_ret(insn):
             ra = dereference(gef.arch.sp)
-        elif frame.older():
-            ra = frame.older().pc()
-
+        else:
+            older = frame.older()
+            if older:
+                ra = older.pc()
         if ra is None:
             return None
         return to_unsigned_long(ra)
@@ -3073,8 +3073,10 @@ class PowerPC(Architecture):
         ra = None
         if self.is_ret(insn):
             ra = gef.arch.register("$lr")
-        elif frame.older():
-            ra = to_unsigned_long(frame.older().pc())
+        else:
+            older = frame.older()
+            if older:
+                ra = to_unsigned_long(older.pc())
         return ra
 
     @classmethod
@@ -3190,8 +3192,10 @@ class SPARC(Architecture):
         ra = None
         if self.is_ret(insn):
             ra = gef.arch.register("$o7")
-        elif frame.older():
-            ra = to_unsigned_long(frame.older().pc())
+        else:
+            older = frame.older()
+            if older:
+                ra = to_unsigned_long(older.pc())
         return ra
 
     @classmethod
@@ -3322,8 +3326,10 @@ class MIPS(Architecture):
         ra = None
         if self.is_ret(insn):
             ra = gef.arch.register("$ra")
-        elif frame.older():
-            ra = to_unsigned_long(frame.older().pc())
+        else:
+            older = frame.older()
+            if older:
+                ra = to_unsigned_long(older.pc())
         return ra
 
     @classmethod
@@ -3401,12 +3407,12 @@ def use_rust_type() -> str:
 
 def to_unsigned_long(v: gdb.Value) -> int:
     """Cast a gdb.Value to unsigned long."""
-    mask = (1 << 64) - 1
+    mask = (1 << (gef.arch.ptrsize*8)) - 1
     return int(v.cast(gdb.Value(mask).type)) & mask
 
 
 def get_path_from_info_proc() -> Optional[str]:
-    for x in gdb.execute("info proc", to_string=True).splitlines():
+    for x in (gdb.execute("info proc", to_string=True) or "").splitlines():
         if x.startswith("exe = "):
             return x.split(" = ")[1].replace("'", "")
     return None
@@ -3654,7 +3660,7 @@ def get_terminal_size() -> Tuple[int, int]:
         return 600, 100
 
     if platform.system() == "Windows":
-        from ctypes import create_string_buffer, windll
+        from ctypes import create_string_buffer, windll # type: ignore
         hStdErr = -12
         herr = windll.kernel32.GetStdHandle(hStdErr)
         csbi = create_string_buffer(22)
@@ -5319,7 +5325,8 @@ class ExternalStructureManager:
 
         def pprint(self) -> None:
             res: List[str] = []
-            for _name, _type in self.class_type._fields_:
+            assert isinstance(self.class_type._fields_, tuple)
+            for _name, _type in self.class_type._fields_: # type: ignore
                 size = ctypes.sizeof(_type)
                 name = Color.colorify(_name, gef.config["pcustom.structure_name"])
                 type = Color.colorify(_type.__name__, gef.config["pcustom.structure_type"])
@@ -5347,6 +5354,7 @@ class ExternalStructureManager:
                 return
 
             # read the data at the specified address
+            assert isinstance(self.class_type, type)
             _structure = self.class_type()
             _sizeof_structure = ctypes.sizeof(_structure)
 
@@ -5534,12 +5542,12 @@ class PCustomCommand(GenericCommand):
 
     @parse_arguments({"type": "", "address": ""}, {})
     def do_invoke(self, *_: Any, **kwargs: Dict[str, Any]) -> None:
-        args : argparse.Namespace = kwargs["arguments"]
+        args = cast(argparse.Namespace, kwargs["arguments"])
         if not args.type:
             gdb.execute("pcustom list")
             return
 
-        _, structname = self.explode_type(args.type)
+        structname = self.explode_type(args.type)[1]
 
         if not args.address:
             gdb.execute(f"pcustom show {structname}")
@@ -5556,7 +5564,7 @@ class PCustomCommand(GenericCommand):
             err(f"No structure named '{structname}' found")
             return
 
-        _, structure = result
+        structure = result[1]
         structure.apply_at(address, self["max_depth"])
         return
 
@@ -5692,7 +5700,7 @@ class ChangeFdCommand(GenericCommand):
 
             AF_INET = 2
             SOCK_STREAM = 1
-            res = gdb.execute(f"""call (int)socket({AF_INET}, {SOCK_STREAM}, 0)""", to_string=True)
+            res = gdb.execute(f"call (int)socket({AF_INET}, {SOCK_STREAM}, 0)", to_string=True) or ""
             new_fd = self.get_fd_from_result(res)
 
             # fill in memory with sockaddr_in struct contents
@@ -5737,7 +5745,7 @@ class ChangeFdCommand(GenericCommand):
 
     def get_fd_from_result(self, res: str) -> int:
         # Output example: $1 = 3
-        res = gdb.execute(f"""p/d {int(res.split()[2], 0)}""", to_string=True)
+        res = gdb.execute(f"p/d {int(res.split()[2], 0)}", to_string=True) or ""
         return int(res.split()[2], 0)
 
 
@@ -5849,7 +5857,7 @@ class SearchPatternCommand(GenericCommand):
         gef_print(f"""  {loc[0]:#x} - {loc[1]:#x} {RIGHT_ARROW}  "{Color.pinkify(loc[2])}" """)
         return
 
-    def search_pattern_by_address(self, pattern: str, start_address: int, end_address: int) -> List[Tuple[int, int, Optional[str]]]:
+    def search_pattern_by_address(self, pattern: str, start_address: int, end_address: int) -> List[Tuple[int, int, str]]:
         """Search a pattern within a range defined by arguments."""
         _pattern = gef_pybytes(pattern)
         step = self["nr_pages_chunk"] * gef.session.pagesize
@@ -5868,6 +5876,7 @@ class SearchPatternCommand(GenericCommand):
 
             for match in re.finditer(_pattern, mem):
                 start = chunk_addr + match.start()
+                ustr = ""
                 if is_ascii_string(start):
                     ustr = gef.memory.read_ascii_string(start) or ""
                     end = start + len(ustr)
@@ -5880,7 +5889,7 @@ class SearchPatternCommand(GenericCommand):
 
         return locations
 
-    def search_binpattern_by_address(self, binpattern: bytes, start_address: int, end_address: int) -> List[Tuple[int, int, Optional[str]]]:
+    def search_binpattern_by_address(self, binpattern: bytes, start_address: int, end_address: int) -> List[Tuple[int, int, str]]:
         """Search a binary pattern within a range defined by arguments."""
 
         step = self["nr_pages_chunk"] * gef.session.pagesize
@@ -5897,6 +5906,7 @@ class SearchPatternCommand(GenericCommand):
             except gdb.MemoryError:
                 return []
             preview_size = self["max_size_preview"]
+            preview = ""
             for match in re.finditer(binpattern, mem):
                 start = chunk_addr + match.start()
                 preview = str(mem[slice(*match.span())][0:preview_size]) + "..."
@@ -5904,7 +5914,6 @@ class SearchPatternCommand(GenericCommand):
                 if size_match > 0:
                     size_match -= 1
                 end = start + size_match
-
                 locations.append((start, end, preview))
 
             del mem
@@ -6449,6 +6458,7 @@ class GlibcHeapChunksCommand(GenericCommand):
                     return
         try:
             arena_addr = parse_address(args.arena_address)
+            print(f"{arena_addr=:#x}")
             arena = GlibcArena(f"*{arena_addr:#x}")
             self.dump_chunks_arena(arena, ctx)
         except gdb.error:
@@ -6860,7 +6870,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
                 break
             if nb_chunk > 0:
                 bins[i] = nb_chunk
-        info(f"Found {sum(bins.values()):d} chunks in {len(bins):d} small non-empty bins.")
+        info(f"Found {sum(list(bins.values())):d} chunks in {len(bins):d} small non-empty bins.")
         return
 
 
@@ -6879,7 +6889,7 @@ class GlibcHeapLargeBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, *_: Any, **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
-        if gef.heap.main_arena is None:
+        if not gef.heap.main_arena or not gef.heap.selected_arena:
             err("Heap not initialized")
             return
 
@@ -7891,7 +7901,7 @@ class ContextCommand(GenericCommand):
         orig_frame: gdb.Frame = gdb.selected_frame()
         current_frame: gdb.Frame = gdb.newest_frame()
         frames = [current_frame,]
-        while current_frame != orig_frame:
+        while current_frame != orig_frame and current_frame:
             current_frame = current_frame.older()
             if not current_frame: break
             frames.append(current_frame)
@@ -7910,7 +7920,7 @@ class ContextCommand(GenericCommand):
             items = []
             items.append(f"{pc:#x}")
             if name:
-                frame_args = gdb.FrameDecorator.FrameDecorator(current_frame).frame_args() or []
+                frame_args = gdb.FrameDecorator.FrameDecorator(current_frame).frame_args() or [] # type: ignore
                 symstr= ", ".join([f"{Color.yellowify(x.sym)}={x.sym.value(current_frame)!s}" for x in frame_args])
                 m = f"{Color.greenify(name)}({symstr})"
                 items.append(m)
@@ -7931,11 +7941,14 @@ class ContextCommand(GenericCommand):
 
             title = Color.colorify(f"#{level}", "bold green" if current_frame == orig_frame else "bold pink")
             gef_print(f"[{title}] {RIGHT_ARROW.join(items)}")
-            current_frame = current_frame.older()
+            older = current_frame.older()
             level += 1
             nb_backtrace -= 1
             if nb_backtrace == 0:
                 break
+            if not older:
+                break
+            current_frame = older
 
         orig_frame.select()
         return
@@ -8240,8 +8253,8 @@ class HexdumpQwordCommand(HexdumpCommand):
     """Display SIZE lines of hexdump as QWORD from the memory location pointed by ADDRESS."""
 
     _cmdline_ = "hexdump qword"
-    _syntax_  = f"{_cmdline_} [ADDRESS] [[L][SIZE]] [REVERSE]"
-    _example_ = f"{_cmdline_} qword $rsp L16 REVERSE"
+    _syntax_  = f"{_cmdline_} [ADDRESS] [--size SIZE] [--reverse]"
+    _example_ = f"{_cmdline_} qword $rsp -s 16 --reverse"
 
     def __init__(self) -> None:
         super().__init__()
@@ -8254,8 +8267,8 @@ class HexdumpDwordCommand(HexdumpCommand):
     """Display SIZE lines of hexdump as DWORD from the memory location pointed by ADDRESS."""
 
     _cmdline_ = "hexdump dword"
-    _syntax_  = f"{_cmdline_} [ADDRESS] [[L][SIZE]] [REVERSE]"
-    _example_ = f"{_cmdline_} $esp L16 REVERSE"
+    _syntax_  = f"{_cmdline_} [ADDRESS] [--size SIZE] [--reverse]"
+    _example_ = f"{_cmdline_} $esp -s 16 --reverse"
 
     def __init__(self) -> None:
         super().__init__()
@@ -8268,8 +8281,8 @@ class HexdumpWordCommand(HexdumpCommand):
     """Display SIZE lines of hexdump as WORD from the memory location pointed by ADDRESS."""
 
     _cmdline_ = "hexdump word"
-    _syntax_  = f"{_cmdline_} [ADDRESS] [[L][SIZE]] [REVERSE]"
-    _example_ = f"{_cmdline_} $esp L16 REVERSE"
+    _syntax_  = f"{_cmdline_} [ADDRESS] [--size SIZE] [--reverse]"
+    _example_ = f"{_cmdline_} $esp -s 16 --reverse"
 
     def __init__(self) -> None:
         super().__init__()
@@ -8282,8 +8295,8 @@ class HexdumpByteCommand(HexdumpCommand):
     """Display SIZE lines of hexdump as BYTE from the memory location pointed by ADDRESS."""
 
     _cmdline_ = "hexdump byte"
-    _syntax_  = f"{_cmdline_} [ADDRESS] [[L][SIZE]] [REVERSE]"
-    _example_ = f"{_cmdline_} $rsp L16"
+    _syntax_  = f"{_cmdline_} [ADDRESS] [--size SIZE] [--reverse]"
+    _example_ = f"{_cmdline_} $rsp -s 16"
 
     def __init__(self) -> None:
         super().__init__()
@@ -10691,7 +10704,7 @@ class GefHeapManager(GefManager):
         if gef.config["gef.main_arena_offset"]:
             try:
                 libc_base = get_section_base_address("libc")
-                offset = parse_address(gef.config["gef.main_arena_offset"])
+                offset: int = gef.config["gef.main_arena_offset"]
                 if libc_base:
                     dbg(f"Using main_arena_offset={offset:#x} from config")
                     addr = libc_base + offset
@@ -10986,7 +10999,9 @@ class GefSessionManager(GefManager):
         """Return a Path object of the target process."""
         if gef.session.remote is not None:
             return gef.session.remote.file
-        fpath: str = gdb.current_progspace().filename
+        progspace = gdb.current_progspace()
+        assert progspace
+        fpath: str = progspace.filename
         if fpath and not self._file:
             self._file = pathlib.Path(fpath).expanduser()
         return self._file
@@ -11091,7 +11106,10 @@ class GefRemoteSessionManager(GefSessionManager):
     def file(self) -> pathlib.Path:
         """Path to the file being debugged as seen by the remote endpoint."""
         if not self._file:
-            filename = gdb.current_progspace().filename
+            progspace = gdb.current_progspace()
+            if not progspace:
+                raise RuntimeError("No session started")
+            filename = progspace.filename
             if not filename:
                 raise RuntimeError("No session started")
             start_idx = len("target:") if filename.startswith("target:") else 0
@@ -11244,8 +11262,13 @@ class GefUiManager(GefManager):
 
 class GefLibcManager(GefManager):
     """Class managing everything libc-related (except heap)."""
+    PATTERN_LIBC_VERSION_MEMORY = re.compile(rb"glibc (\d+)\.(\d+)")
+    PATTERN_LIBC_VERSION_FILENAME = re.compile(r"libc6?[-_](\d+)\.(\d+)\.so")
+
     def __init__(self) -> None:
         self._version : Optional[Tuple[int, int]] = None
+        self._patch: Optional[int] = None
+        self._release: Optional[str] = None
         return
 
     def __str__(self) -> str:
@@ -11259,29 +11282,35 @@ class GefLibcManager(GefManager):
         if not self._version:
             self._version = GefLibcManager.find_libc_version()
 
-        # Whenever auto-detection fails, we use the user-provided version.
-        if self._version == (0, 0) and gef.config["gef.libc_version"] != "":
-            return tuple([int(v) for v in gef.config["gef.libc_version"].split(".")])
+        # Whenever auto-detection fails, try use the user-provided version.
+        if self._version == (0, 0):
+            if gef.config["gef.libc_version"]:
+                ver = [int(v) for v in gef.config["gef.libc_version"].split(".", 1)]
+                assert len(ver) >= 2
+                self._version = ver[0], ver[1]
 
         return self._version
 
     @staticmethod
     @lru_cache()
-    def find_libc_version() -> Tuple[int, ...]:
-        sections = gef.memory.maps
-        for section in sections:
-            match = re.search(r"libc6?[-_](\d+)\.(\d+)\.so", section.path)
+    def find_libc_version() -> Tuple[int, int]:
+        """Attempt to determine the libc version. This operation can be long."""
+        libc_sections = (m for m in gef.memory.maps if "libc" in m.path and m.permission == Permission.READ)
+        for section in libc_sections:
+            # Try to determine from the filepath
+            match = re.search(GefLibcManager.PATTERN_LIBC_VERSION_FILENAME, section.path)
             if match:
-                return tuple(int(_) for _ in match.groups())
-            if "libc" in section.path:
-                try:
-                    with open(section.path, "rb") as f:
-                        data = f.read()
-                except OSError:
-                    continue
-                match = re.search(PATTERN_LIBC_VERSION, data)
+                return int(match.group(1)), int(match.group(2))
+
+            # Try to determine from memory
+            try:
+                mem = gef.memory.read(section.page_start, section.size)
+                match = re.search(GefLibcManager.PATTERN_LIBC_VERSION_MEMORY, mem)
                 if match:
-                    return tuple(int(_) for _ in match.groups())
+                    return int(match.group(1)), int(match.group(2))
+            except gdb.MemoryError:
+                continue
+
         return 0, 0
 
 
@@ -11395,6 +11424,7 @@ if __name__ == "__main__":
             pass
 
     # load GEF, set up the managers and load the plugins, functions,
+    gef = Gef()
     reset()
     assert isinstance(gef, Gef)
     gef.gdb.load()
