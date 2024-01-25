@@ -116,10 +116,10 @@ except ImportError:
     sys.exit(1)
 
 
-GDB_MIN_VERSION                        = (8, 0)
-PYTHON_MIN_VERSION                     = (3, 6)
-PYTHON_VERSION                         = sys.version_info[0:2]
-GDB_VERSION : Tuple[int, int]           = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups())) # type:ignore
+GDB_MIN_VERSION: Tuple[int, int]       = (8, 0)
+PYTHON_MIN_VERSION: Tuple[int, int]    = (3, 6)
+PYTHON_VERSION: Tuple[int, int]        = sys.version_info[0:2]
+GDB_VERSION: Tuple[int, int]           = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups())) # type:ignore
 
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
