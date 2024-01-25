@@ -77,7 +77,7 @@ class GefCommand(RemoteGefUnitTestGeneric):
 
         # valid
         pattern = gdb.execute("pattern create -n 4", to_string=True).splitlines()[1]
-        assert len(pattern) == 1024, f"Unexpected pattern {pattern}"
+        assert len(pattern) == 1024, f"Unexpected pattern length {len(pattern)}"
         res = gdb.execute("gef set args $_gef0")
         res = gdb.execute("show args", to_string=True).strip()
         assert (
