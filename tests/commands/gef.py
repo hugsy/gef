@@ -30,7 +30,7 @@ class GefCommand(RemoteGefUnitTestGeneric):
             "gef.follow_child (bool)",
             "gef.readline_compat (bool)",
             "gef.show_deprecation_warnings (bool)",
-            "gef.tempdir (str)",
+            "gef.tempdir (Path)",
             "got.function_not_resolved (str)",
             "got.function_resolved (str)",
         )
@@ -77,7 +77,7 @@ class GefCommand(RemoteGefUnitTestGeneric):
 
         # valid
         pattern = gdb.execute("pattern create -n 4", to_string=True).splitlines()[1]
-        assert len(pattern) == 1024
+        assert len(pattern) == 1024, f"Unexpected pattern length {len(pattern)}"
         res = gdb.execute("gef set args $_gef0")
         res = gdb.execute("show args", to_string=True).strip()
         assert (
