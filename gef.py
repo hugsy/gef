@@ -88,7 +88,6 @@ from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
                     Union, cast)
 from urllib.request import urlopen
 
-import gdb # type: ignore
 
 GEF_DEFAULT_BRANCH                     = "main"
 GEF_EXTRAS_DEFAULT_BRANCH              = "main"
@@ -118,9 +117,9 @@ except ImportError:
 
 
 GDB_MIN_VERSION                        = (8, 0)
-GDB_VERSION                            = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
 PYTHON_MIN_VERSION                     = (3, 6)
 PYTHON_VERSION                         = sys.version_info[0:2]
+GDB_VERSION : Tuple[int, int]           = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups())) # type:ignore
 
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
@@ -1497,7 +1496,9 @@ class GlibcArena:
         if is_32bit():
             default_mmap_threshold_max = 512 * 1024
         else:  # 64bit
-            default_mmap_threshold_max = 4 * 1024 * 1024 * cached_lookup_type("long").sizeof
+            val = cached_lookup_type("long")
+            sz = val.sizeof if val else gef.arch.ptrsize
+            default_mmap_threshold_max = 4 * 1024 * 1024 * sz
         heap_max_size = 2 * default_mmap_threshold_max
         return ptr & ~(heap_max_size - 1)
 
@@ -3584,8 +3585,13 @@ def hook_stop_handler(_: "gdb.events.StopEvent") -> None:
 def new_objfile_handler(evt: Optional["gdb.events.NewObjFileEvent"]) -> None:
     """GDB event handler for new object file cases."""
     reset_all_caches()
-    path = evt.new_objfile.filename if evt else gdb.current_progspace().filename
-    assert path is not None
+    progspace = gdb.current_progspace()
+    if evt:
+        path = evt.new_objfile.filename or ""
+    elif progspace:
+        path = progspace.filename
+    else:
+        raise RuntimeError("Cannot determine file path")
     try:
         if gef.session.root and path.startswith("target:"):
             # If the process is in a container, replace the "target:" prefix
@@ -3894,13 +3900,15 @@ def dereference(addr: int) -> Optional["gdb.Value"]:
                   cached_lookup_type(use_default_type()) or \
                   cached_lookup_type(use_golang_type()) or \
                   cached_lookup_type(use_rust_type())
+        if not ulong_t:
+            raise gdb.MemoryError("Failed to determine unsigned long type")
         unsigned_long_type = ulong_t.pointer()
         res = gdb.Value(addr).cast(unsigned_long_type).dereference()
         # GDB does lazy fetch by default so we need to force access to the value
         res.fetch_lazy()
         return res
-    except gdb.MemoryError:
-        pass
+    except gdb.MemoryError as e:
+        dbg(str(e))
     return None
 
 
@@ -3978,6 +3986,7 @@ def get_pid() -> int:
 
 @deprecated("Use `gef.session.file.name`")
 def get_filename() -> str:
+    assert gef.session.file
     return gef.session.file.name
 
 
@@ -5325,7 +5334,6 @@ class ExternalStructureManager:
 
         def pprint(self) -> None:
             res: List[str] = []
-            assert isinstance(self.class_type._fields_, tuple)
             for _name, _type in self.class_type._fields_: # type: ignore
                 size = ctypes.sizeof(_type)
                 name = Color.colorify(_name, gef.config["pcustom.structure_name"])
@@ -6827,9 +6835,10 @@ class GlibcHeapUnsortedBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, *_: Any, **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
-        if gef.heap.main_arena is None:
+        if not gef.heap.main_arena or not gef.heap.selected_arena:
             err("Heap not initialized")
             return
+
         arena_addr = args.arena_address if args.arena_address else f"{gef.heap.selected_arena.addr:#x}"
         gef_print(titlify(f"Unsorted Bin for arena at {arena_addr}"))
         heap_bins_cmd = gef.gdb.commands["heap bins"]
@@ -6855,7 +6864,7 @@ class GlibcHeapSmallBinsCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, *_: Any, **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
-        if not gef.heap.main_arena:
+        if not gef.heap.main_arena or not gef.heap.selected_arena:
             err("Heap not initialized")
             return
 
@@ -7708,8 +7717,8 @@ class ContextCommand(GenericCommand):
     def print_arguments_from_symbol(self, function_name: str, symbol: "gdb.Symbol") -> None:
         """If symbols were found, parse them and print the argument adequately."""
         args = []
-
-        for i, f in enumerate(symbol.type.fields()):
+        fields = symbol.type.fields() if symbol.type else []
+        for i, f in enumerate(fields):
             _value = gef.arch.get_ith_parameter(i, in_func=False)[1]
             _value = RIGHT_ARROW.join(dereference_from(_value))
             _name = f.name or f"var_{i}"
