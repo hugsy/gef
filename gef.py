@@ -487,10 +487,10 @@ def parse_arguments(required_arguments: Dict[Union[str, Tuple[str, str]], Any],
                     argname = [argname,]
                 if argtype is int:
                     argtype = int_wrapper
-                if argtype is bool:
-                    parser.add_argument(*argname, action="store_true" if argvalue else "store_false")
-                else:
-                    parser.add_argument(*argname, type=argtype, default=argvalue)
+                elif argtype is bool:
+                    parser.add_argument(*argname, action="store_false" if argvalue else "store_true")
+                    continue
+                parser.add_argument(*argname, type=argtype, default=argvalue)
 
             parsed_args = parser.parse_args(*(args[1:]))
             kwargs["arguments"] = parsed_args
@@ -4754,7 +4754,7 @@ class PrintFormatCommand(GenericCommand):
         }
 
     @only_if_gdb_running
-    @parse_arguments({"location": "$pc", }, {("--length", "-l"): 256, "--bitlen": 0, "--lang": "py", "--clip": True,})
+    @parse_arguments({"location": "$pc", }, {("--length", "-l"): 256, "--bitlen": 0, "--lang": "py", "--clip": False,})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         """Default value for print-format command."""
         args: argparse.Namespace = kwargs["arguments"]
@@ -6070,7 +6070,7 @@ class RemoteCommand(GenericCommand):
         super().__init__(prefix=False)
         return
 
-    @parse_arguments({"host": "", "port": 0}, {"--pid": -1, "--qemu-user": True, "--qemu-binary": ""})
+    @parse_arguments({"host": "", "port": 0}, {"--pid": -1, "--qemu-user": False, "--qemu-binary": ""})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         if gef.session.remote is not None:
             err("You already are in remote session. Close it first before opening a new one...")
@@ -6172,7 +6172,7 @@ class NopCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    @parse_arguments({"address": "$pc"}, {"--i": 1, "--b": True, "--f": True, "--n": True})
+    @parse_arguments({"address": "$pc"}, {"--i": 1, "--b": False, "--f": False, "--n": False})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
         address = parse_address(args.address)
@@ -6293,7 +6293,7 @@ class GlibcHeapSetArenaCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    @parse_arguments({"addr": ""}, {"--reset": True})
+    @parse_arguments({"addr": ""}, {"--reset": False})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         global gef
 
@@ -6349,7 +6349,7 @@ class GlibcHeapChunkCommand(GenericCommand):
         super().__init__(complete=gdb.COMPLETE_LOCATION)
         return
 
-    @parse_arguments({"address": ""}, {"--allow-unaligned": True, "--number": 1})
+    @parse_arguments({"address": ""}, {"--allow-unaligned": False, "--number": 1})
     @only_if_gdb_running
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
@@ -6454,7 +6454,7 @@ class GlibcHeapChunksCommand(GenericCommand):
         self["peek_nb_byte"] = (16, "Hexdump N first byte(s) inside the chunk data (0 to disable)")
         return
 
-    @parse_arguments({"arena_address": ""}, {("--all", "-a"): True, "--allow-unaligned": True, "--min-size": 0, "--max-size": 0, ("--count", "-n"): -1, ("--summary", "-s"): True, "--resolve": True})
+    @parse_arguments({"arena_address": ""}, {("--all", "-a"): False, "--allow-unaligned": False, "--min-size": 0, "--max-size": 0, ("--count", "-n"): -1, ("--summary", "-s"): False, "--resolve": False})
     @only_if_gdb_running
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args = kwargs["arguments"]
@@ -7134,7 +7134,7 @@ class ProcessListingCommand(GenericCommand):
         self["ps_command"] = (f"{gef.session.constants['ps']} auxww", "`ps` command to get process information")
         return
 
-    @parse_arguments({"pattern": ""}, {"--attach": True, "--smart-scan": True})
+    @parse_arguments({"pattern": ""}, {"--attach": False, "--smart-scan": False})
     def do_invoke(self, _: List, **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
         do_attach = args.attach
@@ -8195,7 +8195,7 @@ class HexdumpCommand(GenericCommand):
         return
 
     @only_if_gdb_running
-    @parse_arguments({"address": "",}, {("--reverse", "-r"): True, ("--size", "-s"): 0})
+    @parse_arguments({"address": "",}, {("--reverse", "-r"): False, ("--size", "-s"): 0})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         valid_formats = ["byte", "word", "dword", "qword"]
         if not self.format or self.format not in valid_formats:
@@ -11076,6 +11076,7 @@ class GefSessionManager(GefManager):
         if not self._root:
             self._root = pathlib.Path(f"/proc/{self.pid}/root")
         return self._root
+
 
 class GefRemoteSessionManager(GefSessionManager):
     """Class for managing remote sessions with GEF. It will create a temporary environment
