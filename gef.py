@@ -11489,5 +11489,12 @@ if __name__ == "__main__":
 
     # restore saved breakpoints (if any)
     bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
-    if bkp_fpath.exists() and bkp_fpath.is_file():
+    if bkp_fpath.is_file():
         gdb.execute(f"source {bkp_fpath}")
+
+    # Add a `source` post hook to force gef recheck the registered plugins and
+    # eventually load the missing one(s)
+    cmd = """define hookpost-source
+        pi gef.gdb.load()
+        end"""
+    gdb.execute(cmd)
