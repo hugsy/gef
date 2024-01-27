@@ -11397,7 +11397,7 @@ if __name__ == "__main__":
         pyenv = which("pyenv")
         pyenv_root = gef_pystring(subprocess.check_output([pyenv, "root"]).strip())
         pyenv_version = gef_pystring(subprocess.check_output([pyenv, "version-name"]).strip())
-        site_packages_dir = pathlib.Path(pyenv_root) / f"versions/{pyenv_version}/lib/python{pyenv_version[:3]}/site-packages"
+        site_packages_dir = pathlib.Path(pyenv_root) / f"versions/{pyenv_version}/lib/python{pathlib.Path(pyenv_version).stem}/site-packages"
         assert site_packages_dir.is_dir()
         site.addsitedir(str(site_packages_dir.absolute()))
     except FileNotFoundError:
