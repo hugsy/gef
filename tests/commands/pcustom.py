@@ -45,7 +45,7 @@ class PcustomCommand(RemoteGefUnitTestGeneric):
                 #
                 gdb.execute(f"gef config pcustom.struct_path {dirpath}")
                 res = gdb.execute("gef config pcustom.struct_path", to_string=True)
-                self.assertIn(f'pcustom.struct_path (str) = "{dirpath}"', res)
+                self.assertIn(f'pcustom.struct_path (Path) = {dirpath}', res)
 
                 #
                 # List the structures in the files inside dirpath

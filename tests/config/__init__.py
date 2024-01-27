@@ -2,6 +2,7 @@
 Test GEF configuration parameters.
 """
 
+import pathlib
 from typing import List
 
 import pytest
@@ -45,31 +46,37 @@ class TestGefConfigUnit(RemoteGefUnitTestGeneric):
         """Check that a GefSetting hook can prevent setting a config."""
         gdb = self._gdb
 
-        res = gdb.execute(
-            "gef config gef.tempdir '/tmp/path with space'", to_string=True
-        )
-        # Validators just use `err` to print an error
-        self.assertRegex(res, r"[!].+Cannot set.+setting cannot contain spaces")
+        with pytest.raises(Exception, match="setting cannot contain spaces"):
+            # Validators just use `err` to print an error
+            res = gdb.execute(
+                "gef config gef.tempdir '/tmp/path with space'", to_string=True
+            )
 
         gdb.execute("gef config gef.tempdir '/tmp/valid-path'")
-        res = gdb.execute("gef config gef.tempdir", to_string=True).splitlines()[1]
-        assert res == 'gef.tempdir (str) = "/tmp/valid-path"'
+        res = (
+            gdb.execute("gef config gef.tempdir", to_string=True) or ""
+        ).splitlines()[1]
+        assert res == "gef.tempdir (Path) = /tmp/valid-path"
+
+        # Must have been created by the validator
+        assert pathlib.Path("/tmp/valid-path").exists()
 
     def test_config_type_validator(self):
         """Check that a GefSetting type can prevent setting a config."""
         gdb = self._gdb
 
-        res = gdb.execute("gef config gef.debug invalid", to_string=True)
-        self.assertRegex(res, r"[!].+expects type 'bool'")
+        pattern = "invalid"
+        with pytest.raises(Exception, match=f"Cannot parse '{pattern}' as bool"):
+            gdb.execute(f"gef config gef.debug {pattern}", to_string=True)
 
         gdb.execute("gef config gef.debug true")
         gdb.execute("gef config gef.debug 1")
         gdb.execute("gef config gef.debug F")
         gdb.execute("gef config gef.debug 0")
 
-        output = gdb.execute("gef config gef.debug 'fooo'", to_string=True).strip()
-        assert output == "[!] 'gef.debug' expects type 'bool', got str: reason cannot parse 'fooo' as bool"
-
+        # debug disable -> set setting should not raise but print error
+        output = (gdb.execute("gef config gef.debug 'fooo'", to_string=True) or "").strip()
+        assert output == "[!] Cannot parse 'fooo' as bool"
 
     def test_config_libc_version(self):
         """Check setting libc version."""
