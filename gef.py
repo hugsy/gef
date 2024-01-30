@@ -6049,10 +6049,10 @@ class RemoteCommand(GenericCommand):
 
         dbg(f"[remote] initializing remote session with {gef.session.remote.target} under {gef.session.remote.root}")
         if not gef.session.remote.connect(args.pid):
-            gef.session.remote_initializing = False
+            gef.session.reset_remote()
             raise EnvironmentError(f"Cannot connect to remote target {gef.session.remote.target}")
         if not gef.session.remote.setup():
-            gef.session.remote_initializing = False
+            gef.session.reset_remote()
             raise EnvironmentError(f"Failed to create a proper environment for {gef.session.remote.target}")
 
         gdb.execute("context")
@@ -10877,6 +10877,12 @@ class GefSessionManager(GefManager):
         self._maps: Optional[pathlib.Path] = None
         self._root: Optional[pathlib.Path] = None
         return
+
+    def reset_remote(self) -> None:
+        self.remote_initializing = False
+        self.remote = None
+        return
+
 
     def __str__(self) -> str:
         return f"Session({'Local' if self.remote is None else 'Remote'}, pid={self.pid or 'Not running'}, os='{self.os}')"
