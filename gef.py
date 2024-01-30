@@ -11159,26 +11159,40 @@ class GefRemoteSessionManager(GefSessionManager):
 
         # get the file
         if not self.sync(str(self.file)):
-            warn(f"'{fpath}' could not be fetched on the remote system.")
+            warn(f"'{str(self.file)}' could not be fetched on the remote system.")
             success = False
 
-        if not self.sync(f"/proc/{self.pid}/maps"):
+        fpath = f"/proc/{self.pid}/maps"
+        if not self.sync(fpath):
             warn(f"'{fpath}' could not be fetched on the remote system.")
             success = False
 
             # makeup a fake mem mapping in case we failed to retrieve it
-            maps = self.root / f"proc/{self.pid}/maps"
+            maps = self.root / fpath
             with maps.open("w") as fd:
                 fname = self.file.absolute()
                 mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
                 fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
 
-        # pseudo procfs
-        for _file in ("environ", "cmdline"):
-            fpath = f"/proc/{self.pid}/{_file}"
-            if not self.sync(fpath):
-                warn(f"'{fpath}' could not be fetched on the remote system.")
-                success = False
+        fpath = f"/proc/{self.pid}/environ"
+        if not self.sync(fpath):
+            warn(f"'{fpath}' could not be fetched on the remote system.")
+            success = False
+
+            # makeup a fake mem mapping in case we failed to retrieve it
+            environ = self.root / fpath
+            with environ.open("wb") as fd:
+                fd.write(b"PATH=/bin\x00HOME=/tmp\x00")
+
+        fpath = f"/proc/{self.pid}/cmdline"
+        if not self.sync(fpath):
+            warn(f"'{fpath}' could not be fetched on the remote system.")
+            success = False
+
+            # makeup a fake mem mapping in case we failed to retrieve it
+            cmdline = self.root / fpath
+            with cmdline.open("w") as fd:
+                fd.write("")
 
         return success
 
