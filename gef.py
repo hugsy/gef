@@ -11492,9 +11492,6 @@ if __name__ == "__main__":
     if bkp_fpath.is_file():
         gdb.execute(f"source {bkp_fpath}")
 
-    # Add a `source` post hook to force gef recheck the registered plugins and
+    # Add a `source` post hook to force gef to recheck the registered plugins and
     # eventually load the missing one(s)
-    cmd = """define hookpost-source
-        pi gef.gdb.load()
-        end"""
-    gdb.execute(cmd)
+    gdb.execute("define hookpost-source\npi gef.gdb.load()\nend")
