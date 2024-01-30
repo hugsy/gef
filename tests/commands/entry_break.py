@@ -13,9 +13,17 @@ class EntryBreakCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
 
         # run once (ok)
-        res = gdb.execute("entry-break", to_string=True).strip()
-        assert res.startswith("[+] Breaking at")
+        lines = (gdb.execute("entry-break", to_string=True) or "").strip().splitlines()
+
+        #
+        #
+        # "[+] Breaking at Breaking at entry-point" might be the 1st or 2nd line (depending on whether we target
+        # a PIC binary) start with
+        #
+        assert len(lines) >= 2
+        assert lines[0].startswith("[+] Breaking at entry-point") or \
+              lines[1].startswith("[+] Breaking at entry-point")
 
         # re-run while session running (nok)
-        res = gdb.execute("entry-break", to_string=True).strip()
+        res = (gdb.execute("entry-break", to_string=True).strip() or "").strip()
         assert "gdb is already running" in res
