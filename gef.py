@@ -3335,7 +3335,7 @@ class MIPS64(MIPS):
 
     @staticmethod
     def supports_gdb_arch(gdb_arch: str) -> Optional[bool]:
-        return gdb_arch.startswith("mips") and gef.binary.e_class == Elf.Class.ELF_64_BITS
+        return gdb_arch.startswith("mips") and gef.binary and gef.binary.e_class == Elf.Class.ELF_64_BITS
 
 
 def copy_to_clipboard(data: bytes) -> None:
@@ -3722,7 +3722,7 @@ def reset_architecture(arch: Optional[str] = None) -> None:
             return
 
     # last resort, use the info from elf header to find it from the known architectures
-    if gef.binary.e_machine:
+    if gef.binary and gef.binary.e_machine:
         try:
             gef.arch = arches[gef.binary.e_machine]()
         except KeyError:
@@ -7222,7 +7222,7 @@ class EntryPointBreakCommand(GenericCommand):
             return
 
         if not os.access(fpath, os.X_OK):
-            warn(f"The file '{fpath}' is not executable.")
+            warn(f"The file '{fpath}' does not exists or is not executable.")
             return
 
         if is_alive() and not gef.session.qemu_mode:
@@ -11114,8 +11114,9 @@ class GefRemoteSessionManager(GefSessionManager):
         # refresh gef to consider the binary
         reset_all_caches()
 
-        if self.file.exists():
+        if self.lfile.exists():
             gef.binary = Elf(self.lfile)
+
 
         reset_architecture()
         return success
