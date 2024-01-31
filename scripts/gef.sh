@@ -11,7 +11,7 @@ if [ "$(command -v curl)" ]; then
 elif [ "$(command -v wget)" ]; then
 	wget_found=1
 else
-	echo "Please install cURL or wget and run again"
+	echo "The installer requires cURL or wget installed."
 	exit 1
 fi
 
@@ -21,26 +21,23 @@ if [ -f "${HOME}/.gdbinit" ]; then
 fi
 
 if [ $wget_found -eq 1 ]; then
-    latest_tag=$(wget -q -O- "https://api.github.com/repos/hugsy/gef/tags" | grep "name" | head -1 | sed -e 's/"name": "\([^"]*\)",/\1/' -e 's/ *//')
-
-    # Get the hash of the commit
-    branch="${latest_tag}"
-    ref=$(wget -q -O- https://api.github.com/repos/hugsy/gef/git/ref/heads/${branch} | grep '"sha"' | tr -s ' ' | cut -d ' ' -f 3 | tr -d "," | tr -d '"')
+    # Get the tag of the latest stable
+    tag=$(wget -q -O- "https://api.github.com/repos/hugsy/gef/tags" | grep "name" | head -1 | sed -e 's/"name": "\([^"]*\)",/\1/' -e 's/ *//')
 
     # Download the file
-    wget -q "https://github.com/hugsy/gef/raw/${branch}/gef.py" -O "${HOME}/.gef-${ref}.py"
+    wget -q "https://github.com/hugsy/gef/raw/${tag}/gef.py" -O "${HOME}/.gef-${tag}.py"
 elif [ $curl_found -eq 1 ]; then
-    latest_tag=$(curl -s "https://api.github.com/repos/hugsy/gef/tags" | grep "name" | head -1 | sed -e 's/"name": "\([^"]*\)",/\1/' -e 's/ *//')
-
-    # Get the hash of the commit
-    branch="${latest_tag}"
-    ref=$(curl --silent https://api.github.com/repos/hugsy/gef/git/ref/heads/${branch} | grep '"sha"' | tr -s ' ' | cut -d ' ' -f 3 | tr -d "," | tr -d '"')
+    # Get the tag of the latest stable
+    tag=$(curl -s "https://api.github.com/repos/hugsy/gef/tags" | grep "name" | head -1 | sed -e 's/"name": "\([^"]*\)",/\1/' -e 's/ *//')
 
     # Download the file
-    curl --silent --location --output "${HOME}/.gef-${ref}.py" "https://github.com/hugsy/gef/raw/${branch}/gef.py"
+    curl --silent --location --output "${HOME}/.gef-${tag}.py" "https://github.com/hugsy/gef/raw/${tag}/gef.py"
 fi
 
-# Create the new gdbinit
-echo "source ~/.gef-${ref}.py" > ~/.gdbinit
-
-exit 0
+if [ -f "${HOME}/.gef-${tag}.py" ]; then
+    echo "source ~/.gef-${tag}.py" > ~/.gdbinit
+    exit 0
+else
+    echo "GEF was not properly downloaded"
+    exit 1
+fi
