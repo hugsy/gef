@@ -9190,13 +9190,8 @@ class GotCommand(GenericCommand):
     def do_invoke(self, argv: List[str]) -> None:
         readelf = gef.session.constants["readelf"]
 
-        if is_remote_debug():
-            assert gef.session.remote
-            elf_file = str(gef.session.remote.lfile)
-            elf_virtual_path = str(gef.session.remote.file)
-        else:
-            elf_file = str(gef.session.file)
-            elf_virtual_path = str(gef.session.file)
+        elf_file = str(gef.session.file)
+        elf_virtual_path = str(gef.session.file)
 
         func_names_filter = argv if argv else []
         vmmap = gef.memory.maps
@@ -10997,7 +10992,7 @@ class GefSessionManager(GefManager):
     def pid(self) -> int:
         """Return the PID of the target process."""
         if not self._pid:
-            pid = gdb.selected_inferior().pid if not gef.session.qemu_mode else gdb.selected_thread().ptid[1]
+            pid = gdb.selected_inferior().pid if not self.qemu_mode else gdb.selected_thread().ptid[1]
             if not pid:
                 raise RuntimeError("cannot retrieve PID for target process")
             self._pid = pid
@@ -11006,8 +11001,8 @@ class GefSessionManager(GefManager):
     @property
     def file(self) -> Optional[pathlib.Path]:
         """Return a Path object of the target process."""
-        if gef.session.remote is not None:
-            return gef.session.remote.file
+        if self.remote is not None:
+            return self.remote.file
         progspace = gdb.current_progspace()
         assert progspace
         fpath: str = progspace.filename
@@ -11017,8 +11012,8 @@ class GefSessionManager(GefManager):
 
     @property
     def cwd(self) -> Optional[pathlib.Path]:
-        if gef.session.remote is not None:
-            return gef.session.remote.root
+        if self.remote is not None:
+            return self.remote.root
         return self.file.parent if self.file else None
 
     @property
@@ -11062,8 +11057,8 @@ class GefSessionManager(GefManager):
         if not is_alive():
             return None
         if not self._maps:
-            if gef.session.remote is not None:
-                self._maps = gef.session.remote.maps
+            if self.remote is not None:
+                self._maps = self.remote.maps
             else:
                 self._maps = pathlib.Path(f"/proc/{self.pid}/maps")
         return self._maps
