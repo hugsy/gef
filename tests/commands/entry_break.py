@@ -15,11 +15,7 @@ class EntryBreakCommand(RemoteGefUnitTestGeneric):
         # run once (ok)
         lines = (gdb.execute("entry-break", to_string=True) or "").strip().splitlines()
 
-        #
-        #
-        # "[+] Breaking at Breaking at entry-point" might be the 1st or 2nd line (depending on whether we target
-        # a PIC binary) start with
-        #
+        # expect the entry point string pattern
         assert len(lines) >= 2
         assert any(line.startswith("[+] Breaking at entry-point") for line in lines)
 
