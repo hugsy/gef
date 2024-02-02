@@ -13,9 +13,10 @@ class HighlightCommand(RemoteGefUnitTestGeneric):
     def test_cmd_highlight(self):
         gdb = self._gdb
 
+        gdb.execute("start")
+
         gdb.execute("gef config context.layout stack")
         gdb.execute("gef config gef.disable_color 0")
-        gdb.execute("start")
 
         for cmd in [
             "highlight add 41414141 yellow",
@@ -23,12 +24,11 @@ class HighlightCommand(RemoteGefUnitTestGeneric):
             "highlight add 43434343 green",
             "highlight add 44444444 pink",
             'patch string $sp "AAAABBBBCCCCDDDD"',
-            "hexdump qword $sp -s 2",
         ]:
             gdb.execute(cmd)
 
-        res = gdb.execute("context", to_string=True)
-        self.assertIn(f"{Color.YELLOW.value}41414141{Color.NORMAL.value}", res)
-        self.assertIn(f"{Color.BLUE.value}42424242{Color.NORMAL.value}", res)
-        self.assertIn(f"{Color.GREEN.value}43434343{Color.NORMAL.value}", res)
-        self.assertIn(f"{Color.PINK.value}44444444{Color.NORMAL.value}", res)
+        res: str = (gdb.execute("hexdump qword $sp -s 2", to_string=True) or "").strip()
+        assert f"{Color.YELLOW.value}41414141{Color.NORMAL.value}" in res
+        assert f"{Color.BLUE.value}42424242{Color.NORMAL.value}" in res
+        assert f"{Color.GREEN.value}43434343{Color.NORMAL.value}" in res
+        assert f"{Color.PINK.value}44444444{Color.NORMAL.value}" in res
