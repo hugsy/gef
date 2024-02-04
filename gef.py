@@ -10958,7 +10958,8 @@ class GefSessionManager(GefManager):
         return
 
     def __str__(self) -> str:
-        return f"Session({'Local' if self.remote is None else 'Remote'}, pid={self.pid or 'Not running'}, os='{self.os}')"
+        _type = "Local" if self.remote is None else f"Remote/{self.remote.mode}"
+        return f"Session(type={_type}, pid={self.pid or 'Not running'}, os='{self.os}')"
 
     def __repr__(self) -> str:
         return str(self)
