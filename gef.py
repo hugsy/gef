@@ -10438,9 +10438,7 @@ def __gef_prompt__(current_prompt: Callable[[Callable], str]) -> str:
     """GEF custom prompt function."""
     if gef.config["gef.readline_compat"] is True: return GEF_PROMPT
     if gef.config["gef.disable_color"] is True: return GEF_PROMPT
-    prompt = ""
-    if gef.session.remote:
-        prompt += Color.boldify("(remote) ")
+    prompt = gef.session.remote.mode.prompt_string() if gef.session.remote else ""
     prompt += GEF_PROMPT_ON if is_alive() else GEF_PROMPT_OFF
     return prompt
 
@@ -11094,6 +11092,15 @@ class GefRemoteSessionManager(GefSessionManager):
 
         def __repr__(self):
             return f"RemoteMode = {str(self)} ({int(self)})"
+
+        def prompt_string(self) -> str:
+            if self == GefRemoteSessionManager.RemoteMode.QEMU:
+                return Color.boldify("(qemu) ")
+            if self == GefRemoteSessionManager.RemoteMode.RR:
+                return Color.boldify("(rr) ")
+            if self == GefRemoteSessionManager.RemoteMode.GDBSERVER:
+                return Color.boldify("(remote) ")
+            raise AttributeError("Unknown value")
 
     def __init__(self, host: str, port: int, pid: int =-1, qemu: Optional[pathlib.Path] = None) -> None:
         super().__init__()
