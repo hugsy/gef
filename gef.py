@@ -10585,31 +10585,49 @@ class GefMemoryManager(GefManager):
         if GDB_VERSION < (11, 0):
             raise AttributeError("Disregarding old format")
 
-        lines = (gdb.execute("info proc mappings", to_string=True) or "").splitlines()
+        output = (gdb.execute("info proc mappings", to_string=True) or "")
+        if not output:
+            raise AttributeError
 
-        # The function assumes the following output format (as of GDB 11+) for `info proc mappings`
+        start_idx = output.find("Start Addr")
+        if start_idx == -1:
+            raise AttributeError
+
+        output = output[start_idx:]
+        lines = output.splitlines()
+        if len(lines) < 2:
+            raise AttributeError
+
+        # The function assumes the following output format (as of GDB 11+) for `info proc mappings`:
+        # - live process (incl. remote)
         # ```
-        # process 61789
-        # Mapped address spaces:
-        #
         #           Start Addr           End Addr       Size     Offset  Perms  objfile
         #       0x555555554000     0x555555558000     0x4000        0x0  r--p   /usr/bin/ls
         #       0x555555558000     0x55555556c000    0x14000     0x4000  r-xp   /usr/bin/ls
         # [...]
         # ```
+        # or
+        # - coredump & rr
+        # ```
+        #          Start Addr           End Addr       Size     Offset objfile
+        #      0x555555554000     0x555555558000     0x4000        0x0 /usr/bin/ls
+        #      0x555555558000     0x55555556c000    0x14000     0x4000 /usr/bin/ls
+        # ```
+        # In the latter case, mock the Permission to `rwx` so `dereference` would still work
 
-        if len(lines) < 5:
-            raise AttributeError
-
-        # Format seems valid, iterate to generate sections
-        for line in lines[4:]:
+        mock_permission = all(map(lambda x: x.strip() != "Perms", lines[0].split()))
+        for line in lines[1:]:
             if not line:
                 break
 
             parts = [x.strip() for x in line.split()]
             addr_start, addr_end, offset = [int(x, 16) for x in parts[0:3]]
-            perm = Permission.from_process_maps(parts[4])
-            path = " ".join(parts[5:]) if len(parts) >= 5 else ""
+            if mock_permission:
+                perm = Permission(7)
+                path = " ".join(parts[4:]) if len(parts) >= 4 else ""
+            else:
+                perm = Permission.from_process_maps(parts[4])
+                path = " ".join(parts[5:]) if len(parts) >= 5 else ""
             yield Section(
                 page_start=addr_start,
                 page_end=addr_end,
