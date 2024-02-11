@@ -10516,13 +10516,12 @@ class GefMemoryManager(GefManager):
     @property
     def maps(self) -> List[Section]:
         if not self.__maps:
-            self.__maps = self._parse_maps()
+            self.__maps = self.__parse_maps()
             if not self.__maps:
                 raise RuntimeError("Failed to get memory layout")
         return self.__maps
 
-    @classmethod
-    def _parse_maps(cls) -> Optional[List[Section]]:
+    def __parse_maps(self) -> Optional[List[Section]]:
         """Return the mapped memory sections. If the current arch has its maps
         method defined, then defer to that to generated maps, otherwise, try to
         figure it out from procfs, then info sections, then monitor info
@@ -10531,24 +10530,23 @@ class GefMemoryManager(GefManager):
             return list(gef.arch.maps())
 
         try:
-            return list(cls.parse_gdb_info_proc_maps())
+            return list(self.__parse_gdb_info_proc_maps())
         except:
             pass
 
         try:
-            return list(cls.parse_procfs_maps())
+            return list(self.__parse_procfs_maps())
         except:
             pass
 
         try:
-            return list(cls.parse_monitor_info_mem())
+            return list(self.__parse_monitor_info_mem())
         except:
             pass
 
         return None
 
-    @staticmethod
-    def parse_procfs_maps() -> Generator[Section, None, None]:
+    def __parse_procfs_maps(self) -> Generator[Section, None, None]:
         """Get the memory mapping from procfs."""
         procfs_mapfile = gef.session.maps
         if not procfs_mapfile:
@@ -10579,8 +10577,7 @@ class GefMemoryManager(GefManager):
                               path=pathname)
         return
 
-    @staticmethod
-    def parse_gdb_info_proc_maps() -> Generator[Section, None, None]:
+    def __parse_gdb_info_proc_maps(self) -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
         if GDB_VERSION < (11, 0):
             raise AttributeError("Disregarding old format")
@@ -10637,8 +10634,7 @@ class GefMemoryManager(GefManager):
             )
         return
 
-    @staticmethod
-    def parse_monitor_info_mem() -> Generator[Section, None, None]:
+    def __parse_monitor_info_mem(self) -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `monitor info mem`
         This can raise an exception, which the memory manager takes to mean
         that this method does not work to get a map.
