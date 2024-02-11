@@ -84,7 +84,7 @@ from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Dict, Generator, Iterable,
-                    Iterator, List, NoReturn, Optional, OrderedDict, Sequence, Set, Tuple, Type, TypeVar,
+                    Iterator, List, NoReturn, Optional, Sequence, Set, Tuple, Type, TypeVar,
                     Union, cast)
 from urllib.request import urlopen
 
@@ -3841,7 +3841,7 @@ def parse_address(address: str) -> int:
     """Parse an address and return it as an Integer."""
     if is_hex(address):
         return int(address, 16)
-    return to_unsigned_long(gdb.parse_and_eval(address))
+    return int(gdb.parse_and_eval(address))
 
 
 def is_in_x86_kernel(address: int) -> bool:
@@ -6466,7 +6466,6 @@ class GlibcHeapChunksCommand(GenericCommand):
                     return
         try:
             arena_addr = parse_address(args.arena_address)
-            print(f"{arena_addr=:#x}")
             arena = GlibcArena(f"*{arena_addr:#x}")
             self.dump_chunks_arena(arena, ctx)
         except gdb.error:
@@ -9190,13 +9189,8 @@ class GotCommand(GenericCommand):
     def do_invoke(self, argv: List[str]) -> None:
         readelf = gef.session.constants["readelf"]
 
-        if is_remote_debug():
-            assert gef.session.remote
-            elf_file = str(gef.session.remote.lfile)
-            elf_virtual_path = str(gef.session.remote.file)
-        else:
-            elf_file = str(gef.session.file)
-            elf_virtual_path = str(gef.session.file)
+        elf_file = str(gef.session.file)
+        elf_virtual_path = str(gef.session.file)
 
         func_names_filter = argv if argv else []
         vmmap = gef.memory.maps
@@ -9678,8 +9672,8 @@ class GefCommand(gdb.Command):
         gef.config["gef.main_arena_offset"] = GefSetting("", str, "Offset from libc base address to main_arena symbol (int or hex). Set to empty string to disable.")
         gef.config["gef.propagate_debug_exception"] = GefSetting(False, bool, "If true, when debug mode is enabled, Python exceptions will be propagated all the way.")
 
-        self.commands : OrderedDict[str, GenericCommand] = collections.OrderedDict()
-        self.functions : OrderedDict[str, GenericFunction] = collections.OrderedDict()
+        self.commands : Dict[str, GenericCommand] = collections.OrderedDict()
+        self.functions : Dict[str, GenericFunction] = collections.OrderedDict()
         self.missing: Dict[str, Exception] = {}
         return
 
@@ -10121,13 +10115,13 @@ class GefMissingCommand(gdb.Command):
 
     def invoke(self, args: Any, from_tty: bool) -> None:
         self.dont_repeat()
-        missing_commands = gef.gdb.missing
+        missing_commands: Dict[str, Exception] = gef.gdb.missing
         if not missing_commands:
             ok("No missing command")
             return
 
-        for missing_command, reason in missing_commands.items():
-            warn(f"Command `{missing_command}` is missing, reason {RIGHT_ARROW} {reason}")
+        for cmd, reason in missing_commands.items():
+            warn(f"Missing `{cmd}`, reason: {str(reason)}")
         return
 
 
@@ -10998,7 +10992,7 @@ class GefSessionManager(GefManager):
     def pid(self) -> int:
         """Return the PID of the target process."""
         if not self._pid:
-            pid = gdb.selected_inferior().pid if not gef.session.qemu_mode else gdb.selected_thread().ptid[1]
+            pid = gdb.selected_inferior().pid if not self.qemu_mode else gdb.selected_thread().ptid[1]
             if not pid:
                 raise RuntimeError("cannot retrieve PID for target process")
             self._pid = pid
@@ -11007,8 +11001,8 @@ class GefSessionManager(GefManager):
     @property
     def file(self) -> Optional[pathlib.Path]:
         """Return a Path object of the target process."""
-        if gef.session.remote is not None:
-            return gef.session.remote.file
+        if self.remote is not None:
+            return self.remote.file
         progspace = gdb.current_progspace()
         assert progspace
         fpath: str = progspace.filename
@@ -11018,8 +11012,8 @@ class GefSessionManager(GefManager):
 
     @property
     def cwd(self) -> Optional[pathlib.Path]:
-        if gef.session.remote is not None:
-            return gef.session.remote.root
+        if self.remote is not None:
+            return self.remote.root
         return self.file.parent if self.file else None
 
     @property
@@ -11063,8 +11057,8 @@ class GefSessionManager(GefManager):
         if not is_alive():
             return None
         if not self._maps:
-            if gef.session.remote is not None:
-                self._maps = gef.session.remote.maps
+            if self.remote is not None:
+                self._maps = self.remote.maps
             else:
                 self._maps = pathlib.Path(f"/proc/{self.pid}/maps")
         return self._maps
@@ -11535,5 +11529,9 @@ if __name__ == "__main__":
 
     # restore saved breakpoints (if any)
     bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
-    if bkp_fpath.exists() and bkp_fpath.is_file():
+    if bkp_fpath.is_file():
         gdb.execute(f"source {bkp_fpath}")
+
+    # Add a `source` post hook to force gef to recheck the registered plugins and
+    # eventually load the missing one(s)
+    gdb.execute("define hookpost-source\npi gef.gdb.load()\nend")

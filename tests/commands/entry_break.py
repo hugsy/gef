@@ -13,9 +13,12 @@ class EntryBreakCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
 
         # run once (ok)
-        res = gdb.execute("entry-break", to_string=True).strip()
-        assert res.startswith("[+] Breaking at")
+        lines = (gdb.execute("entry-break", to_string=True) or "").strip().splitlines()
+
+        # expect the entry point string pattern
+        assert len(lines) >= 2
+        assert any(line.startswith("[+] Breaking at entry-point") for line in lines)
 
         # re-run while session running (nok)
-        res = gdb.execute("entry-break", to_string=True).strip()
+        res = (gdb.execute("entry-break", to_string=True) or "").strip()
         assert "gdb is already running" in res

@@ -7,3 +7,4 @@ pytest-forked
 coverage
 pre-commit
 rpyc>=5
+requests
