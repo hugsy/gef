@@ -10655,27 +10655,6 @@ class GefMemoryManager(GefManager):
                           offset=off,
                           permission=perm)
 
-    @staticmethod
-    def parse_info_mem():
-        """Get the memory mapping from GDB's command `info mem`. This can be
-        provided by certain gdbserver implementations."""
-        for line in StringIO(gdb.execute("info mem", to_string=True)):
-            # Using memory regions provided by the target.
-            # Num Enb Low Addr   High Addr  Attrs
-            # 0   y   0x10000000 0x10200000 flash blocksize 0x1000 nocache
-            # 1   y   0x20000000 0x20042000 rw nocache
-            _, en, start, end, *attrs = line.split()
-            if en != "y":
-                continue
-
-            if "flash" in attrs:
-                perm = Permission.from_info_mem("r")
-            else:
-                perm = Permission.from_info_mem("rw")
-            yield Section(page_start=int(start, 0),
-                          page_end=int(end, 0),
-                          permission=perm)
-
 
 class GefHeapManager(GefManager):
     """Class managing session heap."""
