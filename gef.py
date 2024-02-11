@@ -700,6 +700,12 @@ class Section:
             self.permission == other.permission and \
             self.path == other.path
 
+    def overlaps(self, other: "Section") -> bool:
+        return max(self.page_start, other.page_start) <= min(self.page_end, other.page_end)
+
+    def contains(self, addr: int) -> bool:
+        return addr in range(self.page_start, self.page_end)
+
 
 Zone = collections.namedtuple("Zone", ["name", "zone_start", "zone_end", "filename"])
 
@@ -10459,7 +10465,7 @@ class GefMemoryManager(GefManager):
 
     def reset_caches(self) -> None:
         super().reset_caches()
-        self.__maps = None
+        self.__maps: Optional[List[Section]] = None
         return
 
     def write(self, address: int, buffer: ByteString, length: Optional[int] = None) -> None:
@@ -10654,6 +10660,22 @@ class GefMemoryManager(GefManager):
                           page_end=end,
                           offset=off,
                           permission=perm)
+
+    def append(self, section: Section):
+        if not self.maps:
+            raise AttributeError("No mapping defined")
+        if not isinstance(section, Section):
+            raise TypeError("section has an invalid type")
+
+        assert self.__maps
+        for s in self.__maps:
+            if section.overlaps(s):
+                raise RuntimeError(f"{section} overlaps {s}")
+        self.__maps.append(section)
+        return self
+
+    def __iadd__(self, section: Section):
+        return self.append(section)
 
 
 class GefHeapManager(GefManager):
