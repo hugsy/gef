@@ -16,6 +16,7 @@ contributions, no restrictions and the most valuable ones will be integrated int
 Here is the most basic skeleton for creating a new `GEF` command named `newcmd`:
 
 ```python
+@register
 class NewCommand(GenericCommand):
     """Dummy new command."""
     _cmdline_ = "newcmd"
@@ -27,9 +28,6 @@ class NewCommand(GenericCommand):
         print(f"gef.arch={gef.arch}")
         # or showing the current $pc
         print(f"gef.arch.pc={gef.arch.pc:#x}")
-        return
-
-register_external_command(NewCommand())
 ```
 
 Loading it in `GEF` is as easy as
