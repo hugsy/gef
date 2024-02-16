@@ -927,7 +927,7 @@ class Elf(FileFormat):
                 return False
 
             abspath = str(self.path.absolute())
-            readelf = gef.session.constants["readelf"]
+            readelf = gef.session.constants["x86_64-elf-readelf"]
             self.__checksec["Canary"] = __check_security_property("-rs", abspath, r"__stack_chk_fail") is True
             has_gnu_stack = __check_security_property("-W -l", abspath, r"GNU_STACK") is True
             if has_gnu_stack:
@@ -9187,7 +9187,7 @@ class GotCommand(GenericCommand):
 
     @only_if_gdb_running
     def do_invoke(self, argv: List[str]) -> None:
-        readelf = gef.session.constants["readelf"]
+        readelf = gef.session.constants["x86_64-elf-readelf"]
 
         elf_file = str(gef.session.file)
         elf_virtual_path = str(gef.session.file)
@@ -10939,7 +10939,7 @@ class GefSessionManager(GefManager):
         self.aliases: List[GefAlias] = []
         self.modules: List[FileFormat] = []
         self.constants = {} # a dict for runtime constants (like 3rd party file paths)
-        for constant in ("python3", "readelf", "file", "ps"):
+        for constant in ("python3", "x86_64-elf-readelf", "file", "ps"):
             self.constants[constant] = which(constant)
         return
 
