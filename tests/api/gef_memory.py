@@ -145,3 +145,20 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             gdb.execute(cmd)
             sections = gef.memory.maps
             assert len(sections) > 0
+
+    def test_func_parse_maps_old_remote_gdbserver(self):
+        gef, gdb = self._gef, self._gdb
+        # When in a gdb remote session objfile handlers should
+        # trigger memory map updates
+        while True:
+            port = random.randint(1025, 65535)
+            if port != self._port:
+                break
+
+        with gdbserver_session(port=port) as _:
+            gdb.execute(f"target remote {GDBSERVER_DEFAULT_HOST}:{port}")
+            initial_cnt = len(gef.memory.maps)
+            gdb.execute(f"break _start")
+            gdb.execute(f"continue")
+            start_cnt = len(gef.memory.maps)
+            assert start_cnt > initial_cnt
