@@ -11160,7 +11160,7 @@ class GefRemoteSessionManager(GefSessionManager):
             filename = progspace.filename
             if not filename:
                 raise RuntimeError("No session started")
-            start_idx = len("target:") if progspace.filename.startswith("target:") else 0
+            start_idx = len("target:") if filename.startswith("target:") else 0
             self._file = pathlib.Path(progspace.filename[start_idx:])
         return self._file
 

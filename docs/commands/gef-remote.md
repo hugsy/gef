@@ -127,7 +127,7 @@ source ~/code/gef/gef.py
 gef config gef.extra_plugins_dir ~/code/gef-extras/scripts
 gef config pcustom.struct_path ~/code/gef-extras/structs
 
-$ sudo rr record /usr/bin/date
+$ rr record /usr/bin/date
 [...]
 
 $ rr replay -x ~/load-with-gef-extras
