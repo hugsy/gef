@@ -11117,7 +11117,6 @@ class GefRemoteSessionManager(GefSessionManager):
         if self.lfile.exists():
             gef.binary = Elf(self.lfile)
 
-
         reset_architecture()
         return success
 
@@ -11168,7 +11167,7 @@ class GefRemoteSessionManager(GefSessionManager):
             warn(f"'{fpath}' could not be fetched on the remote system.")
             success = False
 
-            # makeup a fake mem mapping in case we failed to retrieve it
+            # make up a fake mem mapping in case we failed to retrieve it
             maps = self.root / fpath
             with maps.open("w") as fd:
                 fname = self.file.absolute()
@@ -11180,7 +11179,7 @@ class GefRemoteSessionManager(GefSessionManager):
             warn(f"'{fpath}' could not be fetched on the remote system.")
             success = False
 
-            # makeup a fake mem mapping in case we failed to retrieve it
+            # make up a fake environ in case we failed to retrieve it
             environ = self.root / fpath
             with environ.open("wb") as fd:
                 fd.write(b"PATH=/bin\x00HOME=/tmp\x00")
@@ -11190,9 +11189,8 @@ class GefRemoteSessionManager(GefSessionManager):
             warn(f"'{fpath}' could not be fetched on the remote system.")
             success = False
 
-            # makeup a fake mem mapping in case we failed to retrieve it
-            cmdline = self.root / fpath
-            with cmdline.open("w") as fd:
+            # make up a fake cmdline in case we failed to retrieve it
+            with (self.root / fpath).open("w") as fd:
                 fd.write("")
 
         return success
