@@ -111,3 +111,50 @@ To test locally, you can use the mini image linux x64 vm
  2.  Use `--qemu-user` and `--qemu-binary vmlinuz` when starting `gef-remote`
 
 ![qemu-system](https://user-images.githubusercontent.com/590234/175071351-8e06aa27-dc61-4fd7-9215-c345dcebcd67.png)
+
+### `rr` support
+
+GEF can be used with the time-travel tool [`rr`](https://rr-project.org/) as it will act as a
+remote session. Most of the commands will work as long as the debugged binary is present on the
+target.
+
+GEF can be loaded from `rr` as such in a very similar way it is loaded gdb. The `-x` command line
+toggle can be passed load it as it would be for any gdbinit script
+
+```text
+$ cat ~/load-with-gef-extras
+source ~/code/gef/gef.py
+gef config gef.extra_plugins_dir ~/code/gef-extras/scripts
+gef config pcustom.struct_path ~/code/gef-extras/structs
+
+$ rr record /usr/bin/date
+[...]
+
+$ rr replay -x ~/load-with-gef-extras
+[...]
+(remote) gef➤  pi gef.binary
+ELF('/usr/bin/date', ELF_64_BITS, X86_64)
+(remote) gef➤  pi gef.session
+Session(Remote, pid=3068, os='linux')
+(remote) gef➤  pi gef.session.remote
+RemoteSession(target=':0', local='/', pid=3068, mode=RR)
+(remote) gef➤  vmmap
+[ Legend:  Code | Heap | Stack ]
+Start              End                Offset             Perm Path
+0x0000000068000000 0x0000000068200000 0x0000000000200000 rwx
+0x000000006fffd000 0x0000000070001000 0x0000000000004000 r-x /usr/lib/rr/librrpage.so
+0x0000000070001000 0x0000000070002000 0x0000000000001000 rw- /tmp/rr-shared-preload_thread_locals-801763-0
+0x00005580b30a3000 0x00005580b30a6000 0x0000000000003000 r-- /usr/bin/date
+0x00005580b30a6000 0x00005580b30b6000 0x0000000000010000 r-x /usr/bin/date
+0x00005580b30b6000 0x00005580b30bb000 0x0000000000005000 r-- /usr/bin/date
+0x00005580b30bc000 0x00005580b30be000 0x0000000000002000 rw- /usr/bin/date
+0x00007f21107c7000 0x00007f21107c9000 0x0000000000002000 r-- /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+0x00007f21107c9000 0x00007f21107f3000 0x000000000002a000 r-x /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+0x00007f21107f3000 0x00007f21107fe000 0x000000000000b000 r-- /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+0x00007f21107ff000 0x00007f2110803000 0x0000000000004000 rw- /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+0x00007ffcc951a000 0x00007ffcc953c000 0x0000000000022000 rw- [stack]
+0x00007ffcc95ab000 0x00007ffcc95ad000 0x0000000000002000 r-x [vdso]
+0xffffffffff600000 0xffffffffff601000 0x0000000000001000 --x [vsyscall]
+(remote) gef➤  pi len(gef.memory.maps)
+14
+```

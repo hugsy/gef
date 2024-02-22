@@ -700,6 +700,12 @@ class Section:
             self.permission == other.permission and \
             self.path == other.path
 
+    def overlaps(self, other: "Section") -> bool:
+        return max(self.page_start, other.page_start) <= min(self.page_end, other.page_end)
+
+    def contains(self, addr: int) -> bool:
+        return addr in range(self.page_start, self.page_end)
+
 
 Zone = collections.namedtuple("Zone", ["name", "zone_start", "zone_end", "filename"])
 
@@ -10432,9 +10438,7 @@ def __gef_prompt__(current_prompt: Callable[[Callable], str]) -> str:
     """GEF custom prompt function."""
     if gef.config["gef.readline_compat"] is True: return GEF_PROMPT
     if gef.config["gef.disable_color"] is True: return GEF_PROMPT
-    prompt = ""
-    if gef.session.remote:
-        prompt += Color.boldify("(remote) ")
+    prompt = gef.session.remote.mode.prompt_string() if gef.session.remote else ""
     prompt += GEF_PROMPT_ON if is_alive() else GEF_PROMPT_OFF
     return prompt
 
@@ -10461,7 +10465,7 @@ class GefMemoryManager(GefManager):
 
     def reset_caches(self) -> None:
         super().reset_caches()
-        self.__maps = None
+        self.__maps: Optional[List[Section]] = None
         return
 
     def write(self, address: int, buffer: ByteString, length: Optional[int] = None) -> None:
@@ -10518,13 +10522,10 @@ class GefMemoryManager(GefManager):
     @property
     def maps(self) -> List[Section]:
         if not self.__maps:
-            self.__maps = self._parse_maps()
-            if not self.__maps:
-                raise RuntimeError("Failed to get memory layout")
+            self.__maps = self.__parse_maps()
         return self.__maps
 
-    @classmethod
-    def _parse_maps(cls) -> Optional[List[Section]]:
+    def __parse_maps(self) -> Optional[List[Section]]:
         """Return the mapped memory sections. If the current arch has its maps
         method defined, then defer to that to generated maps, otherwise, try to
         figure it out from procfs, then info sections, then monitor info
@@ -10533,24 +10534,24 @@ class GefMemoryManager(GefManager):
             return list(gef.arch.maps())
 
         try:
-            return list(cls.parse_gdb_info_proc_maps())
+            return list(self.parse_gdb_info_proc_maps())
         except:
             pass
 
         try:
-            return list(cls.parse_procfs_maps())
+            return list(self.parse_procfs_maps())
         except:
             pass
 
         try:
-            return list(cls.parse_monitor_info_mem())
+            return list(self.parse_monitor_info_mem())
         except:
             pass
 
-        return None
+        raise RuntimeError("Failed to get memory layout")
 
-    @staticmethod
-    def parse_procfs_maps() -> Generator[Section, None, None]:
+    @classmethod
+    def parse_procfs_maps(cls) -> Generator[Section, None, None]:
         """Get the memory mapping from procfs."""
         procfs_mapfile = gef.session.maps
         if not procfs_mapfile:
@@ -10581,38 +10582,56 @@ class GefMemoryManager(GefManager):
                               path=pathname)
         return
 
-    @staticmethod
-    def parse_gdb_info_proc_maps() -> Generator[Section, None, None]:
+    @classmethod
+    def parse_gdb_info_proc_maps(cls) -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
-
         if GDB_VERSION < (11, 0):
             raise AttributeError("Disregarding old format")
 
-        lines = (gdb.execute("info proc mappings", to_string=True) or "").splitlines()
+        output = (gdb.execute("info proc mappings", to_string=True) or "")
+        if not output:
+            raise AttributeError
 
-        # The function assumes the following output format (as of GDB 11+) for `info proc mappings`
+        start_idx = output.find("Start Addr")
+        if start_idx == -1:
+            raise AttributeError
+
+        output = output[start_idx:]
+        lines = output.splitlines()
+        if len(lines) < 2:
+            raise AttributeError
+
+        # The function assumes the following output format (as of GDB 11+) for `info proc mappings`:
+        # - live process (incl. remote)
         # ```
-        # process 61789
-        # Mapped address spaces:
-        #
         #           Start Addr           End Addr       Size     Offset  Perms  objfile
         #       0x555555554000     0x555555558000     0x4000        0x0  r--p   /usr/bin/ls
         #       0x555555558000     0x55555556c000    0x14000     0x4000  r-xp   /usr/bin/ls
         # [...]
         # ```
+        # or
+        # - coredump & rr
+        # ```
+        #          Start Addr           End Addr       Size     Offset objfile
+        #      0x555555554000     0x555555558000     0x4000        0x0 /usr/bin/ls
+        #      0x555555558000     0x55555556c000    0x14000     0x4000 /usr/bin/ls
+        # ```
+        # In the latter case the 'Perms' header is missing, so mock the Permission to `rwx` so
+        # `dereference` will still work.
 
-        if len(lines) < 5:
-            raise AttributeError
-
-        # Format seems valid, iterate to generate sections
-        for line in lines[4:]:
+        mock_permission = all(map(lambda x: x.strip() != "Perms", lines[0].split()))
+        for line in lines[1:]:
             if not line:
                 break
 
             parts = [x.strip() for x in line.split()]
             addr_start, addr_end, offset = [int(x, 16) for x in parts[0:3]]
-            perm = Permission.from_process_maps(parts[4])
-            path = " ".join(parts[5:]) if len(parts) >= 5 else ""
+            if mock_permission:
+                perm = Permission(7)
+                path = " ".join(parts[4:]) if len(parts) >= 4 else ""
+            else:
+                perm = Permission.from_process_maps(parts[4])
+                path = " ".join(parts[5:]) if len(parts) >= 5 else ""
             yield Section(
                 page_start=addr_start,
                 page_end=addr_end,
@@ -10622,8 +10641,8 @@ class GefMemoryManager(GefManager):
             )
         return
 
-    @staticmethod
-    def parse_monitor_info_mem() -> Generator[Section, None, None]:
+    @classmethod
+    def parse_monitor_info_mem(cls) -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `monitor info mem`
         This can raise an exception, which the memory manager takes to mean
         that this method does not work to get a map.
@@ -10664,6 +10683,22 @@ class GefMemoryManager(GefManager):
             yield Section(page_start=int(start, 0),
                           page_end=int(end, 0),
                           permission=perm)
+
+    def append(self, section: Section):
+        if not self.maps:
+            raise AttributeError("No mapping defined")
+        if not isinstance(section, Section):
+            raise TypeError("section has an invalid type")
+
+        assert self.__maps
+        for s in self.__maps:
+            if section.overlaps(s):
+                raise RuntimeError(f"{section} overlaps {s}")
+        self.__maps.append(section)
+        return self
+
+    def __iadd__(self, section: Section):
+        return self.append(section)
 
 
 class GefHeapManager(GefManager):
@@ -10955,7 +10990,11 @@ class GefSessionManager(GefManager):
         return
 
     def __str__(self) -> str:
-        return f"Session({'Local' if self.remote is None else 'Remote'}, pid={self.pid or 'Not running'}, os='{self.os}')"
+        _type = "Local" if self.remote is None else f"Remote/{self.remote.mode}"
+        return f"Session(type={_type}, pid={self.pid or 'Not running'}, os='{self.os}')"
+
+    def __repr__(self) -> str:
+        return str(self)
 
     @property
     def auxiliary_vector(self) -> Optional[Dict[str, int]]:
@@ -11032,7 +11071,7 @@ class GefSessionManager(GefManager):
         try:
             canary_location = gef.arch.canary_address()
             canary = gef.memory.read_integer(canary_location)
-        except NotImplementedError:
+        except (NotImplementedError, gdb.error):
             # Fall back to `AT_RANDOM`, which is the original source
             # of the canary value but not the canonical location
             return self.original_canary
@@ -11075,6 +11114,27 @@ class GefSessionManager(GefManager):
 class GefRemoteSessionManager(GefSessionManager):
     """Class for managing remote sessions with GEF. It will create a temporary environment
     designed to clone the remote one."""
+
+    class RemoteMode(enum.IntEnum):
+        GDBSERVER = 0
+        QEMU = 1
+        RR = 2
+
+        def __str__(self):
+            return self.name
+
+        def __repr__(self):
+            return f"RemoteMode = {str(self)} ({int(self)})"
+
+        def prompt_string(self) -> str:
+            if self == GefRemoteSessionManager.RemoteMode.QEMU:
+                return Color.boldify("(qemu) ")
+            if self == GefRemoteSessionManager.RemoteMode.RR:
+                return Color.boldify("(rr) ")
+            if self == GefRemoteSessionManager.RemoteMode.GDBSERVER:
+                return Color.boldify("(remote) ")
+            raise AttributeError("Unknown value")
+
     def __init__(self, host: str, port: int, pid: int =-1, qemu: Optional[pathlib.Path] = None) -> None:
         super().__init__()
         self.__host = host
@@ -11082,6 +11142,13 @@ class GefRemoteSessionManager(GefSessionManager):
         self.__local_root_fd = tempfile.TemporaryDirectory()
         self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
         self.__qemu = qemu
+
+        if self.__qemu is not None:
+            self._mode = GefRemoteSessionManager.RemoteMode.QEMU
+        elif os.environ.get("GDB_UNDER_RR", None) == "1":
+            self._mode =  GefRemoteSessionManager.RemoteMode.RR
+        else:
+            self._mode =  GefRemoteSessionManager.RemoteMode.GDBSERVER
 
     def close(self) -> None:
         self.__local_root_fd.cleanup()
@@ -11092,11 +11159,11 @@ class GefRemoteSessionManager(GefSessionManager):
             warn(f"Exception while restoring local context: {str(e)}")
         return
 
-    def in_qemu_user(self) -> bool:
-        return self.__qemu is not None
-
     def __str__(self) -> str:
-        return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid}, qemu_user={bool(self.in_qemu_user())})"
+        return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid}, mode={self.mode})"
+
+    def __repr__(self) -> str:
+        return str(self)
 
     @property
     def target(self) -> str:
@@ -11117,7 +11184,7 @@ class GefRemoteSessionManager(GefSessionManager):
             if not filename:
                 raise RuntimeError("No session started")
             start_idx = len("target:") if filename.startswith("target:") else 0
-            self._file = pathlib.Path(filename[start_idx:])
+            self._file = pathlib.Path(progspace.filename[start_idx:])
         return self._file
 
     @property
@@ -11130,6 +11197,10 @@ class GefRemoteSessionManager(GefSessionManager):
         if not self._maps:
             self._maps = self.root / f"proc/{self.pid}/maps"
         return self._maps
+
+    @property
+    def mode(self) -> RemoteMode:
+        return self._mode
 
     def sync(self, src: str, dst: Optional[str] = None) -> bool:
         """Copy the `src` into the temporary chroot. If `dst` is provided, that path will be
@@ -11175,13 +11246,17 @@ class GefRemoteSessionManager(GefSessionManager):
 
     def setup(self) -> bool:
         # setup remote adequately depending on remote or qemu mode
-        if self.in_qemu_user():
+        if self.mode == GefRemoteSessionManager.RemoteMode.QEMU:
             dbg(f"Setting up as qemu session, target={self.__qemu}")
             self.__setup_qemu()
-        else:
+        elif self.mode == GefRemoteSessionManager.RemoteMode.RR:
+            dbg(f"Setting up as rr session")
+            self.__setup_rr()
+        elif self.mode == GefRemoteSessionManager.RemoteMode.GDBSERVER:
             dbg(f"Setting up as remote session")
             self.__setup_remote()
-
+        else:
+            raise Exception
         # refresh gef to consider the binary
         reset_all_caches()
         gef.binary = Elf(self.lfile)
@@ -11236,6 +11311,14 @@ class GefRemoteSessionManager(GefSessionManager):
                 err(f"'{fpath}' could not be fetched on the remote system.")
                 return False
 
+        return True
+
+    def __setup_rr(self) -> bool:
+        #
+        # Simply override the local root path, the binary must exist
+        # on the host.
+        #
+        self.__local_root_path = pathlib.Path("/")
         return True
 
     def remote_objfile_event_handler(self, evt: "gdb.events.NewObjFileEvent") -> None:
