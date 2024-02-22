@@ -10523,8 +10523,6 @@ class GefMemoryManager(GefManager):
     def maps(self) -> List[Section]:
         if not self.__maps:
             self.__maps = self.__parse_maps()
-            if not self.__maps:
-                raise RuntimeError("Failed to get memory layout")
         return self.__maps
 
     def __parse_maps(self) -> Optional[List[Section]]:
@@ -10550,7 +10548,7 @@ class GefMemoryManager(GefManager):
         except:
             pass
 
-        return None
+        raise RuntimeError("Failed to get memory layout")
 
     @classmethod
     def parse_procfs_maps(cls) -> Generator[Section, None, None]:
