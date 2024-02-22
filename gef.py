@@ -10536,23 +10536,24 @@ class GefMemoryManager(GefManager):
             return list(gef.arch.maps())
 
         try:
-            return list(self.__parse_gdb_info_proc_maps())
+            return list(self.parse_gdb_info_proc_maps())
         except:
             pass
 
         try:
-            return list(self.__parse_procfs_maps())
+            return list(self.parse_procfs_maps())
         except:
             pass
 
         try:
-            return list(self.__parse_monitor_info_mem())
+            return list(self.parse_monitor_info_mem())
         except:
             pass
 
         return None
 
-    def __parse_procfs_maps(self) -> Generator[Section, None, None]:
+    @classmethod
+    def parse_procfs_maps(cls) -> Generator[Section, None, None]:
         """Get the memory mapping from procfs."""
         procfs_mapfile = gef.session.maps
         if not procfs_mapfile:
@@ -10583,7 +10584,8 @@ class GefMemoryManager(GefManager):
                               path=pathname)
         return
 
-    def __parse_gdb_info_proc_maps(self) -> Generator[Section, None, None]:
+    @classmethod
+    def parse_gdb_info_proc_maps(cls) -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
         if GDB_VERSION < (11, 0):
             raise AttributeError("Disregarding old format")
@@ -10640,7 +10642,8 @@ class GefMemoryManager(GefManager):
             )
         return
 
-    def __parse_monitor_info_mem(self) -> Generator[Section, None, None]:
+    @classmethod
+    def parse_monitor_info_mem(cls) -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `monitor info mem`
         This can raise an exception, which the memory manager takes to mean
         that this method does not work to get a map.
@@ -10659,6 +10662,27 @@ class GefMemoryManager(GefManager):
             yield Section(page_start=start,
                           page_end=end,
                           offset=off,
+                          permission=perm)
+
+    @staticmethod
+    def parse_info_mem():
+        """Get the memory mapping from GDB's command `info mem`. This can be
+        provided by certain gdbserver implementations."""
+        for line in StringIO(gdb.execute("info mem", to_string=True)):
+            # Using memory regions provided by the target.
+            # Num Enb Low Addr   High Addr  Attrs
+            # 0   y   0x10000000 0x10200000 flash blocksize 0x1000 nocache
+            # 1   y   0x20000000 0x20042000 rw nocache
+            _, en, start, end, *attrs = line.split()
+            if en != "y":
+                continue
+
+            if "flash" in attrs:
+                perm = Permission.from_info_mem("r")
+            else:
+                perm = Permission.from_info_mem("rw")
+            yield Section(page_start=int(start, 0),
+                          page_end=int(end, 0),
                           permission=perm)
 
     def append(self, section: Section):
