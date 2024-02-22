@@ -10616,7 +10616,8 @@ class GefMemoryManager(GefManager):
         #      0x555555554000     0x555555558000     0x4000        0x0 /usr/bin/ls
         #      0x555555558000     0x55555556c000    0x14000     0x4000 /usr/bin/ls
         # ```
-        # In the latter case, mock the Permission to `rwx` so `dereference` would still work
+        # In the latter case the 'Perms' header is missing, so mock the Permission to `rwx` so
+        # `dereference` will still work.
 
         mock_permission = all(map(lambda x: x.strip() != "Perms", lines[0].split()))
         for line in lines[1:]:
