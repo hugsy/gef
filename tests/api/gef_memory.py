@@ -72,10 +72,10 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
         if self.gdb_version < (11, 0):
             # expect an exception
             with pytest.raises(AttributeError):
-                next(root.eval("gef.memory._GefMemoryManager__parse_gdb_info_proc_maps()") )
+                next(root.eval("gef.memory.parse_gdb_info_proc_maps()") )
 
         else:
-            for section in root.eval("gef.memory._GefMemoryManager__parse_gdb_info_proc_maps()"):
+            for section in root.eval("gef.memory.parse_gdb_info_proc_maps()"):
                 assert isinstance(section, Section)
 
     def test_func_parse_permissions(self):
@@ -96,11 +96,11 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
         root, gdb, gef = self._conn.root, self._gdb, self._gef
 
         with pytest.raises(FileNotFoundError):
-            root.eval("list(gef.memory._GefMemoryManager__parse_procfs_maps())")
+            root.eval("list(gef.memory.parse_procfs_maps())")
 
         gdb.execute("start")
 
-        sections = root.eval("list(gef.memory._GefMemoryManager__parse_procfs_maps())")
+        sections = root.eval("list(gef.memory.parse_procfs_maps())")
         for section in sections:
             assert section.page_start & ~0xFFF
             assert section.page_end & ~0xFFF
