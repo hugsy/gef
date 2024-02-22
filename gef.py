@@ -11145,11 +11145,11 @@ class GefRemoteSessionManager(GefSessionManager):
         self.__qemu = qemu
 
         if self.__qemu is not None:
-            self.__mode = GefRemoteSessionManager.RemoteMode.QEMU
+            self._mode = GefRemoteSessionManager.RemoteMode.QEMU
         elif os.environ.get("GDB_UNDER_RR", None) == "1":
-            self.__mode =  GefRemoteSessionManager.RemoteMode.RR
+            self._mode =  GefRemoteSessionManager.RemoteMode.RR
         else:
-            self.__mode =  GefRemoteSessionManager.RemoteMode.GDBSERVER
+            self._mode =  GefRemoteSessionManager.RemoteMode.GDBSERVER
 
     def close(self) -> None:
         self.__local_root_fd.cleanup()
@@ -11201,7 +11201,7 @@ class GefRemoteSessionManager(GefSessionManager):
 
     @property
     def mode(self) -> RemoteMode:
-        return self.__mode
+        return self._mode
 
     def sync(self, src: str, dst: Optional[str] = None) -> bool:
         """Copy the `src` into the temporary chroot. If `dst` is provided, that path will be
