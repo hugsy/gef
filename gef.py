@@ -10590,9 +10590,6 @@ class GefMemoryManager(GefManager):
     @classmethod
     def parse_gdb_info_proc_maps(cls) -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
-        if GDB_VERSION < (11, 0):
-            raise AttributeError("Disregarding old format")
-
         output = (gdb.execute("info proc mappings", to_string=True) or "")
         if not output:
             raise AttributeError
