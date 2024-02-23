@@ -7619,7 +7619,12 @@ class ContextCommand(GenericCommand):
         cur_insn_color = gef.config["theme.disassemble_current_instruction"]
         pc = gef.arch.pc
         breakpoints = gdb.breakpoints() or []
-        bp_locations = [b.location for b in breakpoints if b.location and b.location.startswith("*")]
+        # breakpoint.locations was introduced in gdb 13.1
+        if len(breakpoints) and hasattr(breakpoints[-1], "locations"):
+            bp_locations = [hex(location.address) for b in breakpoints for location in b.locations if location is not None]
+        else:
+            # location relies on the user setting the breakpoints with "b *{hex(address)}"
+            bp_locations = [b.location for b in breakpoints if b.location and b.location.startswith("*")]
 
         frame = gdb.selected_frame()
         arch_name = f"{gef.arch.arch.lower()}:{gef.arch.mode}"
