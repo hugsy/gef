@@ -8508,8 +8508,8 @@ def dereference_from(address: int) -> List[str]:
                     s = gef.memory.read_cstring(addr.value)
                     if len(s) < gef.arch.ptrsize:
                         txt = f'{format_address(deref)} ("{Color.colorify(s, string_color)}"?)'
-                    elif len(s) > 50:
-                        txt = Color.colorify(f'"{s[:50]}[...]"', string_color)
+                    elif len(s) > GEF_MAX_STRING_LENGTH:
+                        txt = Color.colorify(f'"{s[:GEF_MAX_STRING_LENGTH]}[...]"', string_color)
                     else:
                         txt = Color.colorify(f'"{s}"', string_color)
 
