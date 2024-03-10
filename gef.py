@@ -11213,16 +11213,12 @@ class GefRemoteSessionManager(GefSessionManager):
         if not dst:
             dst = src
         tgt = self.root / dst.lstrip("/")
-        if tgt.exists():
-            return True
         tgt.parent.mkdir(parents=True, exist_ok=True)
         dbg(f"[remote] downloading '{src}' -> '{tgt}'")
         gdb.execute(f"remote get '{src}' '{tgt.absolute()}'")
         return tgt.exists()
 
-    def connect(self, pid: int) -> bool:
-        """Connect to remote target. If in extended mode, also attach to the given PID."""
-        # before anything, register our new hook to download files from the remote target
+    def __register_objfile_handlers(self):
         dbg(f"[remote] Installing new objfile handlers")
         try:
             gef_on_new_unhook(new_objfile_handler)
@@ -11231,6 +11227,11 @@ class GefRemoteSessionManager(GefSessionManager):
             pass
 
         gef_on_new_hook(self.remote_objfile_event_handler)
+
+    def connect(self, pid: int) -> bool:
+        """Connect to remote target. If in extended mode, also attach to the given PID."""
+        # before anything, register our new hook to download files from the remote target
+        self.__register_objfile_handlers()
 
         # then attempt to connect
         is_extended_mode = (pid > -1)
@@ -11250,6 +11251,7 @@ class GefRemoteSessionManager(GefSessionManager):
         return False
 
     def setup(self) -> bool:
+        self.__register_objfile_handlers()
         # setup remote adequately depending on remote or qemu mode
         if self.mode == GefRemoteSessionManager.RemoteMode.QEMU:
             dbg(f"Setting up as qemu session, target={self.__qemu}")
@@ -11334,6 +11336,9 @@ class GefRemoteSessionManager(GefSessionManager):
             warn(f"[remote] skipping '{evt.new_objfile.filename}'")
             return
         if evt.new_objfile.filename.startswith("target:"):
+            map_file = f"/proc/{self.pid}/maps"
+            if not self.sync(map_file):
+                raise FileNotFoundError(f"Failed to sync '{map_file}'")
             src: str = evt.new_objfile.filename[len("target:"):]
             if not self.sync(src):
                 raise FileNotFoundError(f"Failed to sync '{src}'")
