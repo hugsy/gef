@@ -16,10 +16,14 @@ contributions, no restrictions and the most valuable ones will be integrated int
 Here is the most basic skeleton for creating a new `GEF` command named `newcmd`:
 
 ```python
+@register
 class NewCommand(GenericCommand):
     """Dummy new command."""
     _cmdline_ = "newcmd"
     _syntax_  = f"{_cmdline_}"
+    # optionally
+    # _examples_ = [f"{_cmdline_} arg1 ...", ]
+    # _aliases_ = ["alias_to_cmdline", ]
 
     @only_if_gdb_running         # not required, ensures that the debug session is started
     def do_invoke(self, argv):
@@ -27,9 +31,6 @@ class NewCommand(GenericCommand):
         print(f"gef.arch={gef.arch}")
         # or showing the current $pc
         print(f"gef.arch.pc={gef.arch.pc:#x}")
-        return
-
-register_external_command(NewCommand())
 ```
 
 Loading it in `GEF` is as easy as
@@ -39,7 +40,7 @@ gef➤  source /path/to/newcmd.py
 [+] Loading 'NewCommand'
 ```
 
-We can call it:
+The new command is now loaded and part of GEF and can be invoked as such:
 
 ```text
 gef➤  newcmd
@@ -63,7 +64,7 @@ invoking the global function `register_external_command()`.
 
 Now you have a new GEF command which you can load, either from cli:
 
-```bash
+```text
 gef➤  source /path/to/newcmd.py
 ```
 
@@ -76,7 +77,10 @@ echo source /path/to/newcmd.py >> ~/.gdbinit
 ## Customizing context panes
 
 Sometimes you want something similar to a command to run on each break-like event and display itself
-as a part of the GEF context. Here is a simple example of how to make a custom context pane:
+as a part of the GEF context. This can be achieved using the following
+function `register_external_context_pane()`.
+
+Here is a simple example of how to make a custom context pane:
 
 ```python
 __start_time__ = int(time.time())
@@ -101,12 +105,21 @@ near the bottom of the context. The order can be modified in the `GEF` context c
 ### Context Pane API
 
 The API demonstrated above requires very specific argument types:
-`register_external_context_pane(pane_name, display_pane_function, pane_title_function, condition=None)`
 
-*  `pane_name`: a string that will be used as the panes setting name
-*  `display_pane_function`: a function that uses `gef_print()` to print content in the pane
-*  `pane_title_function`: a function that returns the title string or None to hide the title
-*  `condition` (optional): a function that returns whether this context pane should be shown
+```python
+def register_external_context_pane(
+    name: str,
+    context_callback: Callable[None,[]],
+    context_callback_title: Callable[str, []],
+    condition_callback: Optional[Callable[bool, []]] = None
+) -> None:
+```
+
+*  `name`: a string that will be used as the panes setting name
+*  `context_callback`: a function that uses `gef_print()` to print content in the pane
+*  `context_callback_title`: a function that returns the title string or None to hide the title
+*  `condition_callback` (optional): a function that returns a boolean deciding whether this context
+ pane should be shown
 
 ## API
 
