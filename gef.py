@@ -7586,7 +7586,9 @@ class ContextCommand(GenericCommand):
         if line:
             gef_print(line)
 
-        gef_print(f"Flags: {gef.arch.flag_register_to_human()}")
+        if gef.arch.flag_register:
+            gef_print(f"Flags: {gef.arch.flag_register_to_human()}")
+
         return
 
     def context_stack(self) -> None:
