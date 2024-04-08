@@ -624,7 +624,8 @@ Argument parsing decorator.
 search_for_main_arena() → int
 ```
 
-`search_for_main_arena` is **DEPRECATED** and will be removed in the future. Use GefHeapManager.find_main_arena_addr()
+`search_for_main_arena` is **DEPRECATED** and will be removed in the future.
+ Use GefHeapManager.find_main_arena_addr()
 
 
 ---
@@ -637,7 +638,8 @@ search_for_main_arena() → int
 get_libc_version() → Tuple[int, ...]
 ```
 
-`get_libc_version` is **DEPRECATED** and will be removed in the future. Use GefLibcManager.find_libc_version()
+`get_libc_version` is **DEPRECATED** and will be removed in the future.
+ Use GefLibcManager.find_libc_version()
 
 
 ---
@@ -1066,7 +1068,8 @@ Execute the parameter `source` as GDB command. This is done by writing `commands
 checksec(filename: str) → Dict[str, bool]
 ```
 
-`checksec` is **DEPRECATED** and will be removed in the future. Use Elf(fname).checksec()
+`checksec` is **DEPRECATED** and will be removed in the future.
+ Use Elf(fname).checksec()
 
 
 ---
@@ -1079,7 +1082,9 @@ checksec(filename: str) → Dict[str, bool]
 get_entry_point() → Optional[int]
 ```
 
-Return the binary entry point. `get_entry_point` is **DEPRECATED** and will be removed in the future. Use `gef.binary.entry_point` instead
+Return the binary entry point.
+ `get_entry_point` is **DEPRECATED** and will be removed in the future.
+ Use `gef.binary.entry_point` instead
 
 
 ---
@@ -1107,7 +1112,8 @@ is_pie(fpath: str) → bool
 is_big_endian() → bool
 ```
 
-`is_big_endian` is **DEPRECATED** and will be removed in the future. Prefer `gef.arch.endianness == Endianness.BIG_ENDIAN`
+`is_big_endian` is **DEPRECATED** and will be removed in the future.
+ Prefer `gef.arch.endianness == Endianness.BIG_ENDIAN`
 
 
 ---
@@ -1120,7 +1126,8 @@ is_big_endian() → bool
 is_little_endian() → bool
 ```
 
-`is_little_endian` is **DEPRECATED** and will be removed in the future. gef.arch.endianness == Endianness.LITTLE_ENDIAN
+`is_little_endian` is **DEPRECATED** and will be removed in the future.
+ gef.arch.endianness == Endianness.LITTLE_ENDIAN
 
 
 ---
@@ -1148,7 +1155,8 @@ register_architecture(
 ) → Type[ForwardRef('Architecture')]
 ```
 
-`register_architecture` is **DEPRECATED** and will be removed in the future. Using the decorator `register_architecture` is unecessary
+`register_architecture` is **DEPRECATED** and will be removed in the future.
+ Using the decorator `register_architecture` is unecessary
 
 
 ---
@@ -1262,7 +1270,8 @@ get_path_from_info_proc() → Optional[str]
 get_os() → str
 ```
 
-`get_os` is **DEPRECATED** and will be removed in the future. Use `gef.session.os`
+`get_os` is **DEPRECATED** and will be removed in the future.
+ Use `gef.session.os`
 
 
 ---
@@ -1444,7 +1453,9 @@ Sets the current architecture. If an architecture is explicitly specified by par
 get_memory_alignment(in_bits: bool = False) → int
 ```
 
-Try to determine the size of a pointer on this system.  First, try to parse it out of the ELF header.  Next, use the size of `size_t`.  Finally, try the size of $pc.  If `in_bits` is set to True, the result is returned in bits, otherwise in  bytes. `get_memory_alignment` is **DEPRECATED** and will be removed in the future. Use `gef.arch.ptrsize` instead
+Try to determine the size of a pointer on this system.  First, try to parse it out of the ELF header.  Next, use the size of `size_t`.  Finally, try the size of $pc.  If `in_bits` is set to True, the result is returned in bits, otherwise in  bytes.
+ `get_memory_alignment` is **DEPRECATED** and will be removed in the future.
+ Use `gef.arch.ptrsize` instead
 
 
 ---
@@ -1641,7 +1652,8 @@ Parses an address range (e.g. 0x400000-0x401000)
 gef_get_pie_breakpoint(num: int) → PieVirtualBreakpoint
 ```
 
-`gef_get_pie_breakpoint` is **DEPRECATED** and will be removed in the future. Use `gef.session.pie_breakpoints[num]`
+`gef_get_pie_breakpoint` is **DEPRECATED** and will be removed in the future.
+ Use `gef.session.pie_breakpoints[num]`
 
 
 ---
@@ -1654,7 +1666,8 @@ gef_get_pie_breakpoint(num: int) → PieVirtualBreakpoint
 endian_str() → str
 ```
 
-`endian_str` is **DEPRECATED** and will be removed in the future. Use `str(gef.arch.endianness)` instead
+`endian_str` is **DEPRECATED** and will be removed in the future.
+ Use `str(gef.arch.endianness)` instead
 
 
 ---
@@ -1667,7 +1680,8 @@ endian_str() → str
 get_gef_setting(name: str) → Any
 ```
 
-`get_gef_setting` is **DEPRECATED** and will be removed in the future. Use `gef.config[key]`
+`get_gef_setting` is **DEPRECATED** and will be removed in the future.
+ Use `gef.config[key]`
 
 
 ---
@@ -1680,7 +1694,8 @@ get_gef_setting(name: str) → Any
 set_gef_setting(name: str, value: Any) → None
 ```
 
-`set_gef_setting` is **DEPRECATED** and will be removed in the future. Use `gef.config[key] = value`
+`set_gef_setting` is **DEPRECATED** and will be removed in the future.
+ Use `gef.config[key] = value`
 
 
 ---
@@ -1693,7 +1708,8 @@ set_gef_setting(name: str, value: Any) → None
 gef_getpagesize() → int
 ```
 
-`gef_getpagesize` is **DEPRECATED** and will be removed in the future. Use `gef.session.pagesize`
+`gef_getpagesize` is **DEPRECATED** and will be removed in the future.
+ Use `gef.session.pagesize`
 
 
 ---
@@ -1706,7 +1722,8 @@ gef_getpagesize() → int
 gef_read_canary() → Optional[Tuple[int, int]]
 ```
 
-`gef_read_canary` is **DEPRECATED** and will be removed in the future. Use `gef.session.canary`
+`gef_read_canary` is **DEPRECATED** and will be removed in the future.
+ Use `gef.session.canary`
 
 
 ---
@@ -1719,7 +1736,8 @@ gef_read_canary() → Optional[Tuple[int, int]]
 get_pid() → int
 ```
 
-`get_pid` is **DEPRECATED** and will be removed in the future. Use `gef.session.pid`
+`get_pid` is **DEPRECATED** and will be removed in the future.
+ Use `gef.session.pid`
 
 
 ---
@@ -1732,7 +1750,8 @@ get_pid() → int
 get_filename() → str
 ```
 
-`get_filename` is **DEPRECATED** and will be removed in the future. Use `gef.session.file.name`
+`get_filename` is **DEPRECATED** and will be removed in the future.
+ Use `gef.session.file.name`
 
 
 ---
@@ -1745,7 +1764,8 @@ get_filename() → str
 get_glibc_arena() → Optional[__main__.GlibcArena]
 ```
 
-`get_glibc_arena` is **DEPRECATED** and will be removed in the future. Use `gef.heap.main_arena`
+`get_glibc_arena` is **DEPRECATED** and will be removed in the future.
+ Use `gef.heap.main_arena`
 
 
 ---
@@ -1758,7 +1778,8 @@ get_glibc_arena() → Optional[__main__.GlibcArena]
 get_register(regname) → Optional[int]
 ```
 
-`get_register` is **DEPRECATED** and will be removed in the future. Use `gef.arch.register(regname)`
+`get_register` is **DEPRECATED** and will be removed in the future.
+ Use `gef.arch.register(regname)`
 
 
 ---
@@ -1771,7 +1792,8 @@ get_register(regname) → Optional[int]
 get_process_maps() → List[__main__.Section]
 ```
 
-`get_process_maps` is **DEPRECATED** and will be removed in the future. Use `gef.memory.maps`
+`get_process_maps` is **DEPRECATED** and will be removed in the future.
+ Use `gef.memory.maps`
 
 
 ---
@@ -1784,7 +1806,8 @@ get_process_maps() → List[__main__.Section]
 set_arch(arch: Optional[str] = None, _: Optional[str] = None) → None
 ```
 
-`set_arch` is **DEPRECATED** and will be removed in the future. Use `reset_architecture`
+`set_arch` is **DEPRECATED** and will be removed in the future.
+ Use `reset_architecture`
 
 
 ---
@@ -1819,7 +1842,9 @@ register_external_command(
 ) → Type[ForwardRef('GenericCommand')]
 ```
 
-Registering function for new GEF (sub-)command to GDB. `register_external_command` is **DEPRECATED** and will be removed in the future. Use `register()`, and inherit from `GenericCommand` instead
+Registering function for new GEF (sub-)command to GDB.
+ `register_external_command` is **DEPRECATED** and will be removed in the future.
+ Use `register()`, and inherit from `GenericCommand` instead
 
 
 ---
@@ -1834,7 +1859,9 @@ register_command(
 ) → Type[ForwardRef('GenericCommand')]
 ```
 
-Decorator for registering new GEF (sub-)command to GDB. `register_command` is **DEPRECATED** and will be removed in the future. Use `register()`, and inherit from `GenericCommand` instead
+Decorator for registering new GEF (sub-)command to GDB.
+ `register_command` is **DEPRECATED** and will be removed in the future.
+ Use `register()`, and inherit from `GenericCommand` instead
 
 
 ---
@@ -1849,7 +1876,8 @@ register_priority_command(
 ) → Type[ForwardRef('GenericCommand')]
 ```
 
-Decorator for registering new command with priority, meaning that it must  loaded before the other generic commands. `register_priority_command` is **DEPRECATED** and will be removed in the future.
+Decorator for registering new command with priority, meaning that it must  loaded before the other generic commands.
+ `register_priority_command` is **DEPRECATED** and will be removed in the future.
 
 
 ---
@@ -1881,7 +1909,8 @@ register_function(
 ) → Type[ForwardRef('GenericFunction')]
 ```
 
-Decorator for registering a new convenience function to GDB. `register_function` is **DEPRECATED** and will be removed in the future.
+Decorator for registering a new convenience function to GDB.
+ `register_function` is **DEPRECATED** and will be removed in the future.
 
 
 ---
@@ -2456,7 +2485,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -2468,7 +2498,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -2494,7 +2525,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -2506,7 +2538,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -2690,7 +2723,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -2702,7 +2736,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -2728,7 +2763,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -2740,7 +2776,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -2839,7 +2876,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -2851,7 +2889,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -2877,7 +2916,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -2889,7 +2929,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -2988,7 +3029,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -3000,7 +3042,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -3026,7 +3069,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -3038,7 +3082,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -3137,7 +3182,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -3149,7 +3195,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -3175,7 +3222,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -3187,7 +3235,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -3579,7 +3628,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -3591,7 +3641,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -3617,7 +3668,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -3629,7 +3681,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -3728,7 +3781,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -3740,7 +3794,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -3780,7 +3835,8 @@ get_fd_from_result(res: str) → int
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -3792,7 +3848,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -3931,7 +3988,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -3943,7 +4001,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -3969,7 +4028,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -3981,7 +4041,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -4283,7 +4344,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -4449,7 +4511,8 @@ context_trace() → None
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -4503,7 +4566,8 @@ get_pc_context_info(pc: int, line: str) → str
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -4515,7 +4579,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -4684,7 +4749,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -4696,7 +4762,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -4722,7 +4789,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -4734,7 +4802,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -4847,7 +4916,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -4859,7 +4929,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -4885,7 +4956,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -4897,7 +4969,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -5104,7 +5177,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -5116,7 +5190,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -5142,7 +5217,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -5154,7 +5230,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -5297,7 +5374,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -5309,7 +5387,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -5335,7 +5414,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -5347,7 +5427,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -5587,7 +5668,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -5599,7 +5681,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -5625,7 +5708,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -5637,7 +5721,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -5771,7 +5856,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -5783,7 +5869,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -5809,7 +5896,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -5821,7 +5909,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -6299,7 +6388,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -6311,7 +6401,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -6337,7 +6428,8 @@ do_invoke(argv) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -6349,7 +6441,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -7367,7 +7460,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -7379,7 +7473,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -7405,7 +7500,8 @@ do_invoke(args: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -7417,7 +7513,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -7479,7 +7576,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GefTmuxSetup`
-Setup a confortable tmux debugging environment.
+Setup a comfortable tmux debugging environment.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefTmuxSetup.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -7831,7 +7928,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -7843,7 +7941,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -7869,7 +7968,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -7881,7 +7981,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -8814,7 +8915,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -8826,7 +8928,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -8852,7 +8955,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -8864,7 +8968,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -8963,7 +9068,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -8975,7 +9081,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -9001,7 +9108,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -9013,7 +9121,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -9126,7 +9235,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -9138,7 +9248,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -9164,7 +9275,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -9176,7 +9288,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -9275,7 +9388,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -9287,7 +9401,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -9350,7 +9465,8 @@ dump_chunks_heap(
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -9362,7 +9478,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -9461,7 +9578,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -9473,7 +9591,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -9499,7 +9618,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -9511,7 +9631,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -9610,7 +9731,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -9622,7 +9744,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -9648,7 +9771,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -9660,7 +9784,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -9848,7 +9973,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -9860,7 +9986,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -9886,7 +10013,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -9898,7 +10026,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -9997,7 +10126,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -10009,7 +10139,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -10035,7 +10166,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -10047,7 +10179,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -10146,7 +10279,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -10158,7 +10292,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -10184,7 +10319,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -10196,7 +10332,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -10295,7 +10432,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -10319,7 +10457,8 @@ Check the validity, dedup, and return all valid tids.
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -10357,7 +10496,8 @@ Return the location of the current thread's tcache.
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -10369,7 +10509,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -10483,7 +10624,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -10495,7 +10637,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -10521,7 +10664,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -10533,7 +10677,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -10964,7 +11109,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -10976,7 +11122,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -11002,7 +11149,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -11014,7 +11162,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -11117,7 +11266,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -11143,7 +11293,8 @@ clean(_: 'gdb.Event') → None
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -11183,7 +11334,8 @@ dump_tracked_allocations() → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -11195,7 +11347,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -11371,7 +11524,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -11383,7 +11537,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -11409,7 +11564,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -11421,7 +11577,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -11520,7 +11677,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -11532,7 +11690,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -11558,7 +11717,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -11570,7 +11730,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -11669,7 +11830,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -11681,7 +11843,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -11707,7 +11870,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -11719,7 +11883,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -11818,7 +11983,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -11830,7 +11996,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -11856,7 +12023,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -11868,7 +12036,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -11967,7 +12136,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -11979,7 +12149,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -12005,7 +12176,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -12017,7 +12189,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -12116,7 +12289,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -12128,7 +12302,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -12154,7 +12329,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -12166,7 +12342,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -12265,7 +12442,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -12277,7 +12455,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -12303,7 +12482,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -12315,7 +12495,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -12414,7 +12595,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -12426,7 +12608,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -12452,7 +12635,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -12464,7 +12648,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -12563,7 +12748,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -12575,7 +12761,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -12601,7 +12788,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -12613,7 +12801,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -12726,7 +12915,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -12738,7 +12928,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -12764,7 +12955,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -12776,7 +12968,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -13378,7 +13571,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -13390,7 +13584,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -13416,7 +13611,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -13428,7 +13624,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -13527,7 +13724,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -13539,7 +13737,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -13565,7 +13764,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -13577,7 +13777,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -13676,7 +13877,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -13688,7 +13890,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -13714,7 +13917,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -13726,7 +13930,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -13825,7 +14030,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -13837,7 +14043,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -13863,7 +14070,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -13875,7 +14083,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -13974,7 +14183,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -13986,7 +14196,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14012,7 +14223,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14024,7 +14236,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14158,7 +14371,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -14170,7 +14384,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14196,7 +14411,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14208,7 +14424,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14307,7 +14524,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -14319,7 +14537,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14345,7 +14564,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14357,7 +14577,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14456,7 +14677,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -14468,7 +14690,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14508,7 +14731,8 @@ explode_type(arg: str) → Tuple[str, str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14520,7 +14744,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14619,7 +14844,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -14631,7 +14857,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14671,7 +14898,8 @@ explode_type(arg: str) → Tuple[str, str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14683,7 +14911,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14782,7 +15011,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -14794,7 +15024,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14832,7 +15063,8 @@ explode_type(arg: str) → Tuple[str, str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -14844,7 +15076,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -14943,7 +15176,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -14955,7 +15189,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -14995,7 +15230,8 @@ explode_type(arg: str) → Tuple[str, str]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15007,7 +15243,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -15106,7 +15343,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15118,7 +15356,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -15144,7 +15383,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15156,7 +15396,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -15255,7 +15496,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15267,7 +15509,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -15293,7 +15536,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15305,7 +15549,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -15404,7 +15649,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15416,7 +15662,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -15442,7 +15689,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15454,7 +15702,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -15553,7 +15802,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15565,7 +15815,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -15591,7 +15842,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15603,7 +15855,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -15702,7 +15955,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15714,7 +15968,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -15740,7 +15995,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15752,7 +16008,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -15851,7 +16108,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -15863,7 +16121,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -15889,7 +16148,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -15901,7 +16161,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16000,7 +16261,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -16012,7 +16274,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -16038,7 +16301,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -16050,7 +16314,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16149,7 +16414,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -16161,7 +16427,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -16187,7 +16454,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -16199,7 +16467,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16298,7 +16567,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -16310,7 +16580,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -16336,7 +16607,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -16348,7 +16620,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16493,7 +16766,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -16505,7 +16779,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -16531,7 +16806,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -16543,7 +16819,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16642,7 +16919,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -16654,7 +16932,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -16680,7 +16959,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -16692,7 +16972,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16805,7 +17086,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -16817,7 +17099,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -16843,7 +17126,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -16855,7 +17139,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -16954,7 +17239,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -16966,7 +17252,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -17006,7 +17293,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -17018,7 +17306,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -17117,7 +17406,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -17129,7 +17419,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -17155,7 +17446,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -17167,7 +17459,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -17266,7 +17559,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -17278,7 +17572,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -17304,7 +17599,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -17316,7 +17612,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -17415,7 +17712,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -17427,7 +17725,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -17453,7 +17752,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -17465,7 +17765,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -18051,7 +18352,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -18063,7 +18365,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -18089,7 +18392,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -18101,7 +18405,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -18200,7 +18505,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -18212,7 +18518,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -18252,7 +18559,8 @@ get_processes() → Generator[Dict[str, str], NoneType, NoneType]
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -18264,7 +18572,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -18363,7 +18672,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -18375,7 +18685,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -18443,7 +18754,8 @@ get_process_path_of(pid: int) → str
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -18469,7 +18781,8 @@ get_state_of(pid: int) → Dict[str, str]
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -18920,7 +19233,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -18932,7 +19246,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -18958,7 +19273,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -18970,7 +19286,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -19069,7 +19386,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -19081,7 +19399,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -19107,7 +19426,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -19119,7 +19439,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -19663,7 +19984,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -19675,7 +19997,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -19701,7 +20024,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -19713,7 +20037,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -19812,7 +20137,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -19824,7 +20150,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -19850,7 +20177,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -19862,7 +20190,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -20198,7 +20527,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -20210,7 +20540,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -20236,7 +20567,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -20248,7 +20580,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -20347,7 +20680,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -20359,7 +20693,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -20385,7 +20720,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -20411,7 +20747,8 @@ get_shellcode(sid: int) → None
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -20510,7 +20847,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -20522,7 +20860,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -20548,7 +20887,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -20560,7 +20900,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -20673,7 +21014,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -20685,7 +21027,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -20739,7 +21082,8 @@ evaluate(expr: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -20751,7 +21095,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -20850,7 +21195,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -20862,7 +21208,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -20888,7 +21235,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -20900,7 +21248,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -21097,7 +21446,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -21109,7 +21459,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -21135,7 +21486,8 @@ wrapper(*args: Any, **kwargs: Any) → Callable
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -21147,7 +21499,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -21456,7 +21809,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -21468,7 +21822,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -21508,7 +21863,8 @@ get_frames_size() → int
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -21520,7 +21876,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -21680,7 +22037,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -21692,7 +22050,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -21718,7 +22077,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -21730,7 +22090,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -21871,7 +22232,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -21883,7 +22245,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -21909,7 +22272,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -21921,7 +22285,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -22468,7 +22833,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -22480,7 +22846,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -22506,7 +22873,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -22518,7 +22886,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -22631,7 +23000,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -22643,7 +23013,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -22669,7 +23040,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -22681,7 +23053,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -22780,7 +23153,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -22792,7 +23166,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -22818,7 +23193,8 @@ do_invoke(_: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -22830,7 +23206,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -22929,7 +23306,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -22941,7 +23319,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -22967,7 +23346,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -22979,7 +23359,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
@@ -23078,7 +23459,8 @@ add_setting(
 ) → None
 ```
 
-`add_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name] = value` instead
+`add_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name] = value` instead
 
 ---
 
@@ -23090,7 +23472,8 @@ add_setting(
 del_setting(name: str) → None
 ```
 
-`del_setting` is **DEPRECATED** and will be removed in the future. Use `del self[setting_name]` instead
+`del_setting` is **DEPRECATED** and will be removed in the future.
+ Use `del self[setting_name]` instead
 
 ---
 
@@ -23116,7 +23499,8 @@ do_invoke(argv: List[str]) → None
 get_setting(name: str) → Any
 ```
 
-`get_setting` is **DEPRECATED** and will be removed in the future. Use `self[setting_name]` instead
+`get_setting` is **DEPRECATED** and will be removed in the future.
+ Use `self[setting_name]` instead
 
 ---
 
@@ -23128,7 +23512,8 @@ get_setting(name: str) → Any
 has_setting(name: str) → bool
 ```
 
-`has_setting` is **DEPRECATED** and will be removed in the future. Use `setting_name in self` instead
+`has_setting` is **DEPRECATED** and will be removed in the future.
+ Use `setting_name in self` instead
 
 ---
 
