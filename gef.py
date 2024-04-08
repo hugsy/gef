@@ -2547,6 +2547,10 @@ class RISCV(Architecture):
                 ra = to_unsigned_long(older.pc())
         return ra
 
+    def flag_register_to_human(self, val: Optional[int] = None) -> str:
+        # RISC-V has no flags registers, return an empty string to
+        # preserve the Architecture API
+        return ""
 
 class ARM(Architecture):
     aliases = ("ARM", Elf.Abi.ARM)
