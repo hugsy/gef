@@ -10814,15 +10814,17 @@ class GefHeapManager(GefManager):
             try:
                 dbg("Trying to bruteforce main_arena address")
                 # setup search_range for `main_arena` to `.data` of glibc
-                search_filter = lambda f: "libc" in f.filename and f.name == ".data"
-                dotdata = list(filter(search_filter, get_info_files()))[0]
-                search_range = range(dotdata.zone_start, dotdata.zone_end, alignment)
-                # find first possible candidate
-                for addr in search_range:
-                    if GlibcArena.verify(addr):
-                        dbg(f"Found candidate at {addr:#x}")
-                        return addr
-                dbg("Bruteforce not successful")
+                search_filter = lambda f: "libc" in pathlib.Path(f.filename).name and f.name == ".data"
+                dotdatas = list(filter(search_filter, get_info_files()))
+
+                for dotdata in dotdatas:
+                    search_range = range(dotdata.zone_start, dotdata.zone_end, alignment)
+                    # find first possible candidate
+                    for addr in search_range:
+                        if GlibcArena.verify(addr):
+                            dbg(f"Found candidate at {addr:#x}")
+                            return addr
+                    dbg("Bruteforce not successful")
             except Exception:
                 pass
 
