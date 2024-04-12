@@ -3528,11 +3528,28 @@ def process_lookup_path(name: str, perm: Permission = Permission.ALL) -> Optiona
         err("Process is not running")
         return None
 
+    matches = set()
+    ret = None
     for sect in gef.memory.maps:
-        if name in sect.path and sect.permission & perm:
-            return sect
+        try:
+            filename = pathlib.Path(sect.path).name
+        except:
+            filename = sect.path
 
-    return None
+        if name in filename and sect.permission & perm:
+            if ret is None:
+                ret = sect
+            matches.add(sect.path)
+
+    matches_count = len(matches)
+
+    if matches_count > 1:
+        warn(f"{matches_count} matches! You should probably refine your search!")
+
+        for x in matches:
+            warn(f"- '{x}'")
+
+    return ret
 
 
 @lru_cache()
