@@ -3549,6 +3549,8 @@ def process_lookup_path(name: str, perm: Permission = Permission.ALL) -> Optiona
         for x in matches:
             warn(f"- '{x}'")
 
+        warn("Returning the first match")
+
     return ret
 
 
