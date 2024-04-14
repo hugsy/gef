@@ -3528,13 +3528,12 @@ def process_lookup_path(name: str, perm: Permission = Permission.ALL) -> Optiona
         err("Process is not running")
         return None
 
-    matches = set()
-    ret = None
+    matches: Set[str] = set()
+    ret: Optional[Section] = None
     for sect in gef.memory.maps:
-        try:
-            filename = pathlib.Path(sect.path).name
-        except:
-            filename = sect.path
+        # NOTE: There is apparently no way this line raises an exception, but if
+        # it does, add a `try/except` block :)
+        filename = pathlib.Path(sect.path).name
 
         if name in filename and sect.permission & perm:
             if ret is None:
@@ -10817,9 +10816,8 @@ class GefHeapManager(GefManager):
                 dbg("Trying to bruteforce main_arena address")
                 # setup search_range for `main_arena` to `.data` of glibc
                 search_filter = lambda f: "libc" in pathlib.Path(f.filename).name and f.name == ".data"
-                dotdatas = list(filter(search_filter, get_info_files()))
 
-                for dotdata in dotdatas:
+                for dotdata in list(filter(search_filter, get_info_files())):
                     search_range = range(dotdata.zone_start, dotdata.zone_end, alignment)
                     # find first possible candidate
                     for addr in search_range:
