@@ -16,3 +16,7 @@ page aims to track those changes.
 | `windbg` | Moved | [a933a5a](https://github.com/hugsy/gef-extras/commit/a933a5ac43933742d91f4e299eadf05e3e0670be) | [Link](https://github.com/hugsy/gef-extras/blob/main/scripts/windbg.py) | |
 | `is-syscall` | Moved | [3f79fb38](https://github.com/hugsy/gef-extras/commit/3f79fb382aa9052d073698d40237f98982c5d2de) | [Link](https://github.com/hugsy/gef-extras/blob/main/scripts/syscall_args) | |
 | `syscall-args` | Moved | [3f79fb38](https://github.com/hugsy/gef-extras/commit/3f79fb382aa9052d073698d40237f98982c5d2de) | [Link](https://github.com/hugsy/gef-extras/blob/main/scripts/syscall_args) | |
+
+## Removed support for pyenv
+
+Support for [pyenv](https://github.com/pyenv/pyenv) has been removed after `2024.05`, for more information see [#1078](https://github.com/hugsy/gef/issues/1078) and [#1062](https://github.com/hugsy/gef/issues/1062).
