@@ -11479,16 +11479,6 @@ if __name__ == "__main__":
             f"(with Python {'.'.join(map(str, PYTHON_MIN_VERSION))} or higher).")
         exit(1)
 
-    try:
-        pyenv = which("pyenv")
-        pyenv_root = gef_pystring(subprocess.check_output([pyenv, "root"]).strip())
-        pyenv_version = gef_pystring(subprocess.check_output([pyenv, "version-name"]).strip())
-        site_packages_dir = pathlib.Path(pyenv_root) / f"versions/{pyenv_version}/lib/python{pathlib.Path(pyenv_version).stem}/site-packages"
-        assert site_packages_dir.is_dir()
-        site.addsitedir(str(site_packages_dir.absolute()))
-    except FileNotFoundError:
-        pass
-
     # When using a Python virtual environment, GDB still loads the system-installed Python
     # so GEF doesn't load site-packages dir from environment
     # In order to fix it, from the shell with venv activated we run the python binary,
