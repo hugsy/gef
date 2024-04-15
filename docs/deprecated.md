@@ -19,4 +19,5 @@ page aims to track those changes.
 
 ## Removed support for pyenv
 
-Support for [pyenv](https://github.com/pyenv/pyenv) has been removed after `2024.05`, for more information see [#1078](https://github.com/hugsy/gef/issues/1078) and [#1062](https://github.com/hugsy/gef/issues/1062).
+Support for [pyenv](https://github.com/pyenv/pyenv) has been removed after `2024.05`, for more
+information see [#1078](https://github.com/hugsy/gef/issues/1078) and [#1062](https://github.com/hugsy/gef/issues/1062).
