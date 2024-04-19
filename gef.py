@@ -4498,6 +4498,15 @@ class NamedBreakpoint(gdb.Breakpoint):
         return True
 
 
+class JustSilentStopBreakpoint(gdb.Breakpoint):
+    """When hit, this temporary breakpoint stop the execution."""
+
+    def __init__(self, loc: str) -> None:
+        super().__init__(loc, gdb.BP_BREAKPOINT, temporary=True)
+        self.silent = True
+        return
+
+
 #
 # Context Panes
 #
@@ -6154,6 +6163,28 @@ class SkipiCommand(GenericCommand):
 
         info(f"skipping {num_instructions} instructions ({total_bytes} bytes) from {address:#x} to {target_addr:#x}")
         gdb.execute(f"set $pc = {target_addr:#x}")
+        return
+
+
+@register
+class SoCommand(GenericCommand):
+    """Breaks on the instruction immediately following this one. Ex: Step over call instruction"""
+
+    _cmdline_ = "so"
+    _syntax_  = (f"{_cmdline_}"
+                "\n\tBreaks on the instruction immediately following this one. Ex: Step over call instruction.")
+
+    _example_ = [f"{_cmdline_}",]
+
+    def __init__(self) -> None:
+        super().__init__(complete=gdb.COMPLETE_LOCATION)
+        return
+
+    @only_if_gdb_running
+    def do_invoke(self, _: List[str]) -> None:
+        target_addr = gef_next_instruction(parse_address("$pc")).address
+        JustSilentStopBreakpoint("".join(["*",  str(target_addr)]))
+        gdb.execute("continue")
         return
 
 
