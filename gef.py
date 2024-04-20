@@ -6167,13 +6167,13 @@ class SkipiCommand(GenericCommand):
 
 
 @register
-class SoCommand(GenericCommand):
+class StepoverCommand(GenericCommand):
     """Breaks on the instruction immediately following this one. Ex: Step over call instruction"""
 
-    _cmdline_ = "so"
+    _cmdline_ = "stepover"
     _syntax_  = (f"{_cmdline_}"
                 "\n\tBreaks on the instruction immediately following this one. Ex: Step over call instruction.")
-
+    _aliases_ = ["so",]
     _example_ = [f"{_cmdline_}",]
 
     def __init__(self) -> None:
