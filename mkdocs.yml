@@ -63,6 +63,7 @@ nav:
   - search-pattern: commands/search-pattern.md
   - shellcode: commands/shellcode.md
   - stub: commands/stub.md
+  - skipi: commands/skipi.md
   - theme: commands/theme.md
   - tmux-setup: commands/tmux-setup.md
   - trace-run: commands/trace-run.md
