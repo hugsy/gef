@@ -20,10 +20,6 @@ class RegressionFilenameCollisionLookup(RemoteGefUnitTestGeneric):
         program = root.eval("process_lookup_path('collision')")
         libc = root.eval("process_lookup_path('libc')")
 
-        print(program)
-        print(libc)
-
         assert program is not None
         assert libc is not None
-        # TODO: Check if we can compare sections directly
-        assert program.page_start != libc.page_start
+        assert program != libc
