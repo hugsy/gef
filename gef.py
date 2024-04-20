@@ -8711,6 +8711,10 @@ class VMMapCommand(GenericCommand):
                 addr = int(argv[0], 0)
                 if addr >= entry.page_start and addr < entry.page_end:
                     self.print_entry(entry)
+            else:
+                addr = safe_parse_and_eval(argv[0])
+                if addr is not None and addr >= entry.page_start and addr < entry.page_end:
+                    self.print_entry(entry)
         return
 
     def print_entry(self, entry: Section) -> None:

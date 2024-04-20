@@ -15,3 +15,7 @@ determine which section it belongs to.
 ![vmmap-grep](https://i.imgur.com/ZFF4QVf.png)
 
 ![vmmap-address](https://i.imgur.com/hfcs1jH.png)
+
+The address can be also be given in the form of a register or variable.
+
+![vmmap-register](https://i.imgur.com/RlZA6NU.png)
