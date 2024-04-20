@@ -58,4 +58,3 @@ heap-bins.out: EXTRA_FLAGS := -Wno-unused-result
 default.out: EXTRA_FLAGS := -fstack-protector-all -fpie -pie
 
 collision.out: TMPDIR := $(TMPDIR)/collision-libc
-
