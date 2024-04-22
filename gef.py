@@ -10989,8 +10989,9 @@ class GefSettingsManager(dict):
             if not isinstance(setting, GefSetting): raise TypeError
             new_value = setting.type(value)
             dbg(f"in __invoke_changed_hooks(\"{name}\"), {setting.value=} -> {new_value=}, changing={bool(setting.value != new_value)}")
-            if self.__invoke_changed_hooks(setting, new_value):
-                setting.value = new_value
+            self.__invoke_changed_hooks(setting, new_value)
+            self.__invoke_write_hooks(setting, new_value)
+            setting.value = new_value
             return
 
         # if not, assert `value` is a GefSetting, then insert it
@@ -10999,8 +11000,8 @@ class GefSettingsManager(dict):
         if not value.description: raise AttributeError("Invalid description")
         setting = value
         value = setting.value
-        if self.__invoke_write_hooks(setting, value):
-            super().__setitem__(name, setting)
+        self.__invoke_write_hooks(setting, value)
+        super().__setitem__(name, setting)
         return
 
     def __delitem__(self, name: str) -> None:
@@ -11014,26 +11015,16 @@ class GefSettingsManager(dict):
             callback()
         return
 
-    def __invoke_changed_hooks(self, setting: GefSetting, new_value: Any) -> bool:
+    def __invoke_changed_hooks(self, setting: GefSetting, new_value: Any) -> None:
         old_value = setting.value
         if old_value == new_value:
-            return True
+            return
         for callback in setting.hooks["on_changed"]:
-            try:
-                callback(old_value, new_value)
-            except ValidationError as e:
-                warn(f"Failed to validate new value (reason: {e}), discarding value")
-                return False
-        return True
+            callback(old_value, new_value)
 
-    def __invoke_write_hooks(self, setting: GefSetting, new_value: Any) -> bool:
+    def __invoke_write_hooks(self, setting: GefSetting, new_value: Any) -> None:
         for callback in setting.hooks["on_write"]:
-            try:
-                callback(new_value)
-            except ValidationError as e:
-                warn(f"Failed to validate new value (reason: {e}), discarding value")
-                return False
-        return True
+            callback(new_value)
 
 
 class GefSessionManager(GefManager):
