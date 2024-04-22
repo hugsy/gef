@@ -3528,29 +3528,28 @@ def process_lookup_path(name: str, perm: Permission = Permission.ALL) -> Optiona
         err("Process is not running")
         return None
 
-    matches: Set[str] = set()
-    ret: Optional[Section] = None
+    matches: Dict[str, Section] = dict()
     for sect in gef.memory.maps:
-        # NOTE: There is apparently no way this line raises an exception, but if
-        # it does, add a `try/except` block :)
         filename = pathlib.Path(sect.path).name
 
         if name in filename and sect.permission & perm:
-            if ret is None:
-                ret = sect
-            matches.add(sect.path)
+            if sect.path not in matches.keys():
+                matches[sect.path] = sect
 
     matches_count = len(matches)
+
+    if matches_count == 0:
+        return None
 
     if matches_count > 1:
         warn(f"{matches_count} matches! You should probably refine your search!")
 
-        for x in matches:
+        for x in matches.keys():
             warn(f"- '{x}'")
 
         warn("Returning the first match")
 
-    return ret
+    return list(matches.values())[0]
 
 
 @lru_cache()
