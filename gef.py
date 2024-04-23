@@ -3529,11 +3529,28 @@ def process_lookup_path(name: str, perm: Permission = Permission.ALL) -> Optiona
         err("Process is not running")
         return None
 
+    matches: Dict[str, Section] = dict()
     for sect in gef.memory.maps:
-        if name in sect.path and sect.permission & perm:
-            return sect
+        filename = pathlib.Path(sect.path).name
 
-    return None
+        if name in filename and sect.permission & perm:
+            if sect.path not in matches.keys():
+                matches[sect.path] = sect
+
+    matches_count = len(matches)
+
+    if matches_count == 0:
+        return None
+
+    if matches_count > 1:
+        warn(f"{matches_count} matches! You should probably refine your search!")
+
+        for x in matches.keys():
+            warn(f"- '{x}'")
+
+        warn("Returning the first match")
+
+    return list(matches.values())[0]
 
 
 @lru_cache()
@@ -10840,15 +10857,16 @@ class GefHeapManager(GefManager):
             try:
                 dbg("Trying to bruteforce main_arena address")
                 # setup search_range for `main_arena` to `.data` of glibc
-                search_filter = lambda f: "libc" in f.filename and f.name == ".data"
-                dotdata = list(filter(search_filter, get_info_files()))[0]
-                search_range = range(dotdata.zone_start, dotdata.zone_end, alignment)
-                # find first possible candidate
-                for addr in search_range:
-                    if GlibcArena.verify(addr):
-                        dbg(f"Found candidate at {addr:#x}")
-                        return addr
-                dbg("Bruteforce not successful")
+                search_filter = lambda f: "libc" in pathlib.Path(f.filename).name and f.name == ".data"
+
+                for dotdata in list(filter(search_filter, get_info_files())):
+                    search_range = range(dotdata.zone_start, dotdata.zone_end, alignment)
+                    # find first possible candidate
+                    for addr in search_range:
+                        if GlibcArena.verify(addr):
+                            dbg(f"Found candidate at {addr:#x}")
+                            return addr
+                    dbg("Bruteforce not successful")
             except Exception:
                 pass
 

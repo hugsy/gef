@@ -65,3 +65,15 @@ class MiscFunctionTest(RemoteGefUnitTestGeneric):
         gdb.execute("gef config gef.propagate_debug_exception True")
         with pytest.raises(Exception):
             gdb.execute("hexdump byte *0")
+
+    def test_func_process_lookup_path(self):
+        root, gdb = self._conn.root, self._gdb
+        gdb.execute("start")
+
+        assert root.eval("process_lookup_path('meh')") is None
+
+        libc = root.eval("process_lookup_path('libc')")
+        assert libc is not None
+        assert "libc" in pathlib.Path(libc.path).name
+
+        assert root.eval("process_lookup_path('stack')") is not None

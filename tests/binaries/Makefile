@@ -27,6 +27,7 @@ all: $(LINKED)
 
 %.out : %.c
 	@echo "[+] Building '$(TMPDIR)/$@'"
+	@mkdir -p $(TMPDIR)
 	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -o $(TMPDIR)/$@ $? $(LDFLAGS)
 
 %.out : %.cpp
@@ -55,3 +56,5 @@ heap-non-main.out heap-tcache.out heap-multiple-heaps.out: EXTRA_FLAGS := -pthre
 heap-bins.out: EXTRA_FLAGS := -Wno-unused-result
 
 default.out: EXTRA_FLAGS := -fstack-protector-all -fpie -pie
+
+collision.out: TMPDIR := $(TMPDIR)/collision-libc
