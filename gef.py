@@ -4551,23 +4551,6 @@ def register_external_context_pane(pane_name: str, display_pane_function: Callab
     return
 
 def register_external_context_layout_mapping(current_pane_name: str, display_pane_function: Callable[[], None], pane_title_function: Callable[[], Optional[str]], condition : Optional[Callable[[], bool]] = None) -> None:
-    """
-    Registering function for new GEF Context View.
-    current_pane_name: a previously registered (in "layout") pane name.
-    display_pane_function: a function that uses gef_print() to print strings
-    pane_title_function: a function that returns a string or None, which will be displayed as the title.
-    If None, no title line is displayed.
-    condition: an optional callback: if not None, the callback will be executed first. If it returns true,
-      then only the pane title and content will displayed. Otherwise, it's simply skipped.
-
-    Example usage for a simple text to show when we hit a syscall:
-    def only_syscall(): return gef_current_instruction(gef.arch.pc).is_syscall()
-    def display_pane():
-      gef_print("Wow, I am a context pane!")
-    def pane_title():
-      return "example:pane"
-    register_external_context_pane("example_pane", display_pane, pane_title, only_syscall)
-    """
     gef.gdb.add_context_layout_mapping(current_pane_name, display_pane_function, pane_title_function, condition)
     return
 
