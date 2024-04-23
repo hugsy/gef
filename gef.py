@@ -9827,7 +9827,7 @@ class GefCommand(gdb.Command):
         directory = pathlib.Path(directory).expanduser().absolute()
         if not directory.exists():
             return 0
-        dbg(f"Loading extra plugins from {directory=}")
+        dbg(f"Loading extra plugins from directory={directory}")
         return load_plugins_from_directory(directory)
 
     @property
@@ -11017,7 +11017,7 @@ class GefSettingsManager(dict):
             setting = super().__getitem__(name)
             if not isinstance(setting, GefSetting): raise TypeError
             new_value = setting.type(value)
-            dbg(f"in __invoke_changed_hooks(\"{name}\"), {setting.value=} -> {new_value=}, changing={bool(setting.value != new_value)}")
+            dbg(f"in __invoke_changed_hooks(\"{name}\"), setting.value={setting.value} -> new_value={new_value}, changing={bool(setting.value != new_value)}")
             self.__invoke_changed_hooks(setting, new_value)
             self.__invoke_write_hooks(setting, new_value)
             setting.value = new_value
