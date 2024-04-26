@@ -121,6 +121,31 @@ def register_external_context_pane(
 *  `condition_callback` (optional): a function that returns a boolean deciding whether this context
  pane should be shown
 
+### Context Layout Mapping API
+
+This API is designed for registering a new layout mapping for a GEF Context View. It specifies
+the interface for the function register_external_context_layout_mapping which operates similarly
+to the previously discussed register_external_context_pane. Pane must have been previously
+established in the layout configuration.
+
+```python
+def register_external_context_layout_mapping(
+    current_pane_name: str,
+    display_pane_function: Callable[[], None],
+    pane_title_function: Callable[[], Optional[str]],
+    condition: Optional[Callable[[], bool]] = None
+) -> None:
+```
+
+Registers a new mapping for an existing pane within the GEF Context View.
+
+*  `current_pane_name`: the name of an already registered pane in the layout
+*  `display_pane_function`: a function that prints content in the pane using `gef_print()`
+*  `pane_title_function`: a function that returns a string to be used as the pane title or
+None if no title should be displayed
+*  `condition`: (optional) a predicate function that must return True for the pane content
+and title to be displayed; if it returns False, the pane is skipped
+
 ## API
 
 Some of the most important parts of the API for creating new commands are mentioned (but not limited

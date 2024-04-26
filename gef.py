@@ -4550,6 +4550,10 @@ def register_external_context_pane(pane_name: str, display_pane_function: Callab
     gef.gdb.add_context_pane(pane_name, display_pane_function, pane_title_function, condition)
     return
 
+def register_external_context_layout_mapping(current_pane_name: str, display_pane_function: Callable[[], None], pane_title_function: Callable[[], Optional[str]], condition : Optional[Callable[[], bool]] = None) -> None:
+    gef.gdb.add_context_layout_mapping(current_pane_name, display_pane_function, pane_title_function, condition)
+    return
+
 
 #
 # Commands
@@ -9836,6 +9840,14 @@ class GefCommand(gdb.Command):
         gdb.execute("gef help")
         return
 
+    def add_context_layout_mapping(self, current_pane_name: str, display_pane_function: Callable, pane_title_function: Callable, condition: Optional[Callable]) -> None:
+        """Add a new context layout mapping."""
+        context = self.commands["context"]
+        assert isinstance(context, ContextCommand)
+
+        # overload the printing of pane title
+        context.layout_mapping[current_pane_name] = (display_pane_function, pane_title_function, condition)
+
     def add_context_pane(self, pane_name: str, display_pane_function: Callable, pane_title_function: Callable, condition: Optional[Callable]) -> None:
         """Add a new context pane to ContextCommand."""
         context = self.commands["context"]
@@ -9845,8 +9857,7 @@ class GefCommand(gdb.Command):
         corrected_settings_name: str = pane_name.replace(" ", "_")
         gef.config["context.layout"] += f" {corrected_settings_name}"
 
-        # overload the printing of pane title
-        context.layout_mapping[corrected_settings_name] = (display_pane_function, pane_title_function, condition)
+        add_context_layout_mapping(corrected_settings_name, display_pane_function, pane_title_function, condition)
 
     def load(self) -> None:
         """Load all the commands and functions defined by GEF into GDB."""

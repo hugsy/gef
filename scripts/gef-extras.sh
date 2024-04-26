@@ -38,7 +38,9 @@ fi
 git clone --branch ${branch} https://github.com/hugsy/gef-extras.git "${DIR}"
 ver=$(gdb -q -nx -ex 'pi print(f"{sys.version_info.major}.{sys.version_info.minor}", end="")' -ex quit)
 python${ver} -m pip install --requirement "${DIR}"/requirements.txt --upgrade
-gdb -q -ex "gef config gef.extra_plugins_dir '${DIR}/scripts'" \
+gdb -q -ex "pi gef.config['context.layout'] += ' syscall_args'" \
+       -ex "pi gef.config['context.layout'] += ' libc_function_args'" \
+       -ex "gef config gef.extra_plugins_dir '${DIR}/scripts'" \
        -ex "gef config pcustom.struct_path '${DIR}/structs'" \
        -ex "gef config syscall-args.path '${DIR}/syscall-tables'" \
        -ex "gef config context.libc_args True" \
