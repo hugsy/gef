@@ -9263,7 +9263,7 @@ class GotCommand(GenericCommand):
                                          "Line color of the got command output for unresolved function")
         return
 
-    def build_line(self, name: str, color: str, address_val: int, got_address: int):
+    def build_line(self, name: str, color: str, address_val: int, got_address: int) -> str:
         line = f"[{hex(address_val)}] "
         line += Color.colorify(f"{name} {RIGHT_ARROW} {hex(got_address)}", color)
         return line
