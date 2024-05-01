@@ -10705,7 +10705,7 @@ class GefMemoryManager(GefManager):
                 break
 
             parts = [x.strip() for x in line.split()]
-            addr_start, addr_end, offset = [int(x, 16) for x in parts[0:3]]
+            addr_start, addr_end, _, offset = [int(x, 16) for x in parts[0:4]]
             if mock_permission:
                 perm = Permission(7)
                 path = " ".join(parts[4:]) if len(parts) >= 4 else ""
