@@ -9263,6 +9263,11 @@ class GotCommand(GenericCommand):
                                          "Line color of the got command output for unresolved function")
         return
 
+    def build_line(self, name: str, color: str, address_val: int, got_address: int) -> str:
+        line = f"[{hex(address_val)}] "
+        line += Color.colorify(f"{name} {RIGHT_ARROW} {hex(got_address)}", color)
+        return line
+
     @only_if_gdb_running
     def do_invoke(self, argv: List[str]) -> None:
         readelf = gef.session.constants["readelf"]
@@ -9289,7 +9294,7 @@ class GotCommand(GenericCommand):
                 relro_status = "No RelRO"
 
         # retrieve jump slots using readelf
-        lines = gef_execute_external([readelf, "--relocs", elf_file], as_list=True)
+        lines = gef_execute_external([readelf, "--wide", "--relocs", elf_file], as_list=True)
         jmpslots = [line for line in lines if "JUMP" in line]
 
         gef_print(f"\nGOT protection: {relro_status} | GOT functions: {len(jmpslots)}\n ")
@@ -9317,8 +9322,7 @@ class GotCommand(GenericCommand):
             else:
                 color = self["function_resolved"]
 
-            line = f"[{hex(address_val)}] "
-            line += Color.colorify(f"{name} {RIGHT_ARROW} {hex(got_address)}", color)
+            line = self.build_line(name, color, address_val, got_address)
             gef_print(line)
         return
 
@@ -11072,7 +11076,7 @@ class GefSessionManager(GefManager):
         self.aliases: List[GefAlias] = []
         self.modules: List[FileFormat] = []
         self.constants = {} # a dict for runtime constants (like 3rd party file paths)
-        for constant in ("python3", "readelf", "file", "ps"):
+        for constant in ("python3", "readelf", "nm", "file", "ps"):
             self.constants[constant] = which(constant)
         return
 
