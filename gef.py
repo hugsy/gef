@@ -502,6 +502,13 @@ def parse_arguments(required_arguments: Dict[Union[str, Tuple[str, str]], Any],
 
 class Color:
     """Used to colorify terminal output."""
+
+    ### Special chars:
+    # \001      ->  Tell the readline library that we start a special sequence
+    #               which won't be displayed (takes no column in the output)
+    # \002      ->  Tell the readline library that we end a special sequence
+    #               started with \001
+    # \033      ->  Start an ANSI escape code for displaying colors
     colors = {
         "normal"         : "\001\033[0m\002",
         "gray"           : "\001\033[1;38;5;240m\002",
