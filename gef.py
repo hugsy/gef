@@ -4550,6 +4550,10 @@ def register_external_context_pane(pane_name: str, display_pane_function: Callab
     gef.gdb.add_context_pane(pane_name, display_pane_function, pane_title_function, condition)
     return
 
+def register_external_context_layout_mapping(current_pane_name: str, display_pane_function: Callable[[], None], pane_title_function: Callable[[], Optional[str]], condition : Optional[Callable[[], bool]] = None) -> None:
+    gef.gdb.add_context_layout_mapping(current_pane_name, display_pane_function, pane_title_function, condition)
+    return
+
 
 #
 # Commands
@@ -9259,6 +9263,11 @@ class GotCommand(GenericCommand):
                                          "Line color of the got command output for unresolved function")
         return
 
+    def build_line(self, name: str, color: str, address_val: int, got_address: int) -> str:
+        line = f"[{hex(address_val)}] "
+        line += Color.colorify(f"{name} {RIGHT_ARROW} {hex(got_address)}", color)
+        return line
+
     @only_if_gdb_running
     def do_invoke(self, argv: List[str]) -> None:
         readelf = gef.session.constants["readelf"]
@@ -9285,7 +9294,7 @@ class GotCommand(GenericCommand):
                 relro_status = "No RelRO"
 
         # retrieve jump slots using readelf
-        lines = gef_execute_external([readelf, "--relocs", elf_file], as_list=True)
+        lines = gef_execute_external([readelf, "--wide", "--relocs", elf_file], as_list=True)
         jmpslots = [line for line in lines if "JUMP" in line]
 
         gef_print(f"\nGOT protection: {relro_status} | GOT functions: {len(jmpslots)}\n ")
@@ -9313,8 +9322,7 @@ class GotCommand(GenericCommand):
             else:
                 color = self["function_resolved"]
 
-            line = f"[{hex(address_val)}] "
-            line += Color.colorify(f"{name} {RIGHT_ARROW} {hex(got_address)}", color)
+            line = self.build_line(name, color, address_val, got_address)
             gef_print(line)
         return
 
@@ -9836,6 +9844,14 @@ class GefCommand(gdb.Command):
         gdb.execute("gef help")
         return
 
+    def add_context_layout_mapping(self, current_pane_name: str, display_pane_function: Callable, pane_title_function: Callable, condition: Optional[Callable]) -> None:
+        """Add a new context layout mapping."""
+        context = self.commands["context"]
+        assert isinstance(context, ContextCommand)
+
+        # overload the printing of pane title
+        context.layout_mapping[current_pane_name] = (display_pane_function, pane_title_function, condition)
+
     def add_context_pane(self, pane_name: str, display_pane_function: Callable, pane_title_function: Callable, condition: Optional[Callable]) -> None:
         """Add a new context pane to ContextCommand."""
         context = self.commands["context"]
@@ -9845,8 +9861,7 @@ class GefCommand(gdb.Command):
         corrected_settings_name: str = pane_name.replace(" ", "_")
         gef.config["context.layout"] += f" {corrected_settings_name}"
 
-        # overload the printing of pane title
-        context.layout_mapping[corrected_settings_name] = (display_pane_function, pane_title_function, condition)
+        add_context_layout_mapping(corrected_settings_name, display_pane_function, pane_title_function, condition)
 
     def load(self) -> None:
         """Load all the commands and functions defined by GEF into GDB."""
@@ -11061,7 +11076,7 @@ class GefSessionManager(GefManager):
         self.aliases: List[GefAlias] = []
         self.modules: List[FileFormat] = []
         self.constants = {} # a dict for runtime constants (like 3rd party file paths)
-        for constant in ("python3", "readelf", "file", "ps"):
+        for constant in ("python3", "readelf", "nm", "file", "ps"):
             self.constants[constant] = which(constant)
         return
 

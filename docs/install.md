@@ -7,6 +7,7 @@ Therefore it requires the following binaries to be present:
 
 *  `file`
 *  `readelf`
+*  `nm`
 *  `ps`
 *  `python3`
 
