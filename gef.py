@@ -1978,12 +1978,20 @@ class RedirectOutputContext:
         gdb.execute("set logging overwrite")
         gdb.execute(f"set logging file {self.redirection_target_file}")
         gdb.execute("set logging redirect on")
-        gdb.execute("set logging enabled on")
+
+        if GDB_VERSION >= (12, 0):
+            gdb.execute("set logging enabled on")
+        else:
+            gdb.execute("set logging on")
         return
 
     def __exit__(self, *exc: Any) -> None:
         """Disable the output redirection, if any."""
-        gdb.execute("set logging enabled off")
+        if GDB_VERSION >= (12, 0):
+            gdb.execute("set logging enabled off")
+        else:
+            gdb.execute("set logging off")
+        
         gdb.execute("set logging redirect off")
         return
 
@@ -1994,13 +2002,21 @@ def enable_redirect_output(to_file: str = "/dev/null") -> None:
     gdb.execute("set logging overwrite")
     gdb.execute(f"set logging file {to_file}")
     gdb.execute("set logging redirect on")
-    gdb.execute("set logging enabled on")
+
+    if GDB_VERSION >= (12, 0):
+        gdb.execute("set logging enabled on")
+    else:
+        gdb.execute("set logging on")
     return
 
 
 def disable_redirect_output() -> None:
     """Disable the output redirection, if any."""
-    gdb.execute("set logging enabled off")
+    if GDB_VERSION >= (12, 0):
+        gdb.execute("set logging enabled off")
+    else:
+        gdb.execute("set logging off")
+    
     gdb.execute("set logging redirect off")
     return
 
