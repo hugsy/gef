@@ -1991,7 +1991,6 @@ class RedirectOutputContext:
             gdb.execute("set logging enabled off")
         else:
             gdb.execute("set logging off")
-        
         gdb.execute("set logging redirect off")
         return
 
@@ -2016,7 +2015,6 @@ def disable_redirect_output() -> None:
         gdb.execute("set logging enabled off")
     else:
         gdb.execute("set logging off")
-    
     gdb.execute("set logging redirect off")
     return
 
