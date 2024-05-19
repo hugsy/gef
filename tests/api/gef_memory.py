@@ -75,8 +75,11 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
                 next(root.eval("gef.memory.parse_gdb_info_proc_maps()") )
 
         else:
-            for section in root.eval("gef.memory.parse_gdb_info_proc_maps()"):
-                assert isinstance(section, Section)
+            sections = list(root.eval("gef.memory.parse_gdb_info_proc_maps()"))
+            with open(f"/proc/{gef.session.pid}/maps") as f:
+                for section, line in zip(sections, f.read().splitlines()):
+                    assert isinstance(section, Section)
+                    assert section.offset == int(line.split()[2], 16)
 
     def test_func_parse_permissions(self):
         root = self._conn.root
