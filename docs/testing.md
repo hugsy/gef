@@ -148,6 +148,38 @@ compiled against. To obtain this version, you can execute the following command:
 gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit
 ```
 
+### Code quality
+
+To ensure a consistent code quality and make it easy for both contributors and developers, GEF and GEF-Extras both rely on [`pre-commit`](https://pre-commit.com). The `pre-commit` tool is a framework used to manage and maintain multi-language pre-commit hooks. These hooks are scripts that run automatically before each commit to identify issues in code, such as missing semicolons, trailing whitespace, and debug statements. This helps in ensuring code quality and consistency before submission to code review, and therefore is triggered automatically when submitting a Pull Request to GEF. This check is treated equally with the unit tests and therefore failing to pass will result in your PR not being merged.
+
+`pre-commit` is part of the [dev package requirements](https://github.com/hugsy/gef/blob/main/tests/requirements.txt) 
+
+```console
+cd /root/to/gef/repo
+python -m pip install --user -r tests/requirements.txt
+```
+
+But if you need to install separately it can be done using 
+
+```console
+python -m pip install pre-commit
+```
+
+And to enable it
+
+```console
+pre-commit install
+```
+
+By default, `pre-commit` will use git hook to run the validation checks after each commit but you can modify this behavior as wanted or even run it manually
+
+```console
+pre-commit run --all-files
+```
+
+By default, `pre-commit` will report and attempt to fix the code to match what is being currently defined with GEF.    
+
+
 ### Benchmarking GEF
 
 Benchmarking relies on `pytest-benchmark` and is experimental for now.
