@@ -10402,7 +10402,7 @@ class AliasesListCommand(AliasesCommand):
 
 
 class GefTmuxSetup(gdb.Command):
-    """Setup a confortable tmux debugging environment."""
+    """Setup a comfortable tmux debugging environment."""
 
     def __init__(self) -> None:
         super().__init__("tmux-setup", gdb.COMMAND_NONE, gdb.COMPLETE_NONE)
