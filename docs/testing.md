@@ -179,13 +179,13 @@ pre-commit install
 ```
 
 By default, `pre-commit` will use git hook to run the validation checks after each commit but you
-can modify this behavior as wanted or even run it manually
+can modify this behavior as desired or even run it manually
 
 ```console
 pre-commit run --all-files
 ```
 
-By default, `pre-commit` will report and attempt to fix the code to match what is being currently
+By default, `pre-commit` will report and attempt to fix the code to match what the coding style
 defined with GEF.
 
 
