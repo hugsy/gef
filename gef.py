@@ -502,23 +502,30 @@ def parse_arguments(required_arguments: Dict[Union[str, Tuple[str, str]], Any],
 
 class Color:
     """Used to colorify terminal output."""
+
+    ### Special chars:
+    # \001      ->  Tell the readline library that we start a special sequence
+    #               which won't be displayed (takes no column in the output)
+    # \002      ->  Tell the readline library that we end a special sequence
+    #               started with \001
+    # \033      ->  Start an ANSI escape code for displaying colors
     colors = {
-        "normal"         : "\033[0m",
-        "gray"           : "\033[1;38;5;240m",
-        "light_gray"     : "\033[0;37m",
-        "red"            : "\033[31m",
-        "green"          : "\033[32m",
-        "yellow"         : "\033[33m",
-        "blue"           : "\033[34m",
-        "pink"           : "\033[35m",
-        "cyan"           : "\033[36m",
-        "bold"           : "\033[1m",
-        "underline"      : "\033[4m",
-        "underline_off"  : "\033[24m",
-        "highlight"      : "\033[3m",
-        "highlight_off"  : "\033[23m",
-        "blink"          : "\033[5m",
-        "blink_off"      : "\033[25m",
+        "normal"         : "\001\033[0m\002",
+        "gray"           : "\001\033[1;38;5;240m\002",
+        "light_gray"     : "\001\033[0;37m\002",
+        "red"            : "\001\033[31m\002",
+        "green"          : "\001\033[32m\002",
+        "yellow"         : "\001\033[33m\002",
+        "blue"           : "\001\033[34m\002",
+        "pink"           : "\001\033[35m\002",
+        "cyan"           : "\001\033[36m\002",
+        "bold"           : "\001\033[1m\002",
+        "underline"      : "\001\033[4m\002",
+        "underline_off"  : "\001\033[24m\002",
+        "highlight"      : "\001\033[3m\002",
+        "highlight_off"  : "\001\033[23m\002",
+        "blink"          : "\001\033[5m\002",
+        "blink_off"      : "\001\033[25m\002",
     }
 
     @staticmethod
