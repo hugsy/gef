@@ -149,3 +149,30 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             gdb.execute(cmd)
             sections = gef.memory.maps
             assert len(sections) > 0
+
+    def test_func_parse_maps_realpath(self):
+        gef, gdb = self._gef, self._gdb
+        # When in a gef-remote session `parse_gdb_info_proc_maps` should work to
+        # query the memory maps
+        while True:
+            port = random.randint(1025, 65535)
+            if port != self._port:
+                break
+
+        with gdbserver_session(port=port) as _:
+            gdb.execute(f"gef-remote {GDBSERVER_DEFAULT_HOST} {port}")
+            gdb.execute("b main")
+            gdb.execute("continue")
+            sections = gef.memory.maps
+            assert len(sections) > 0
+            #
+            # Iterate over each of the maps, checking each path.  If the path from
+            # the /proc/pid/maps file indicates a path that starts with /usr, but
+            # realpath does not include "/usr", then _search_for_realpath has
+            # probably corrected the path to account for gdb bug #23764
+            #
+            for section in sections:
+                if(section.is_executable() and section.path.startswith("/usr") and
+                   "/usr" not in section.realpath):
+                    assert pathlib.Path(section.realpath).is_file() is True
+                    break
