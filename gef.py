@@ -692,7 +692,7 @@ class Section:
     @property
     def realpath(self) -> str:
         # when in a `gef-remote` session, realpath returns the path to the binary on the local disk, not remote
-        return self.path if gef.session.remote is None else f"/tmp/gef/{gef.session.remote:d}/{self.path}"
+        return self.path if gef.session.remote is None else f"{gef.session.remote.root}/{self.path}"
 
     def __str__(self) -> str:
         return (f"Section(start={self.page_start:#x}, end={self.page_end:#x}, "
@@ -9295,18 +9295,18 @@ class GotCommand(GenericCommand):
         args : argparse.Namespace = kwargs["arguments"]
         if args.all:
             vmmap = gef.memory.maps
-            mapfiles = set(mapfile.path for mapfile in vmmap if
+            mapfiles = set((mapfile.path, mapfile.realpath) for mapfile in vmmap if
                            pathlib.Path(mapfile.realpath).is_file() and
                            mapfile.permission & Permission.EXECUTE)
             for mapfile in mapfiles:
-                self.print_got_for(mapfile, args.symbols)
+                self.print_got_for(mapfile[0], mapfile[1], args.symbols)
         else:
-            self.print_got_for(str(gef.session.file), args.symbols)
+            self.print_got_for(str(gef.session.file), get_filepath(), args.symbols)
 
-    def print_got_for(self, file: str, argv: List[str]) -> None:
+    def print_got_for(self, file: str, realpath: str, argv: List[str]) -> None:
         readelf = gef.session.constants["readelf"]
 
-        elf_file = file
+        elf_file = realpath
         elf_virtual_path = file
 
         func_names_filter = argv if argv else []
