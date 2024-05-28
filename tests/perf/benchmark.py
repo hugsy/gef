@@ -18,6 +18,24 @@ class BenchmarkBasicApi(RemoteGefUnitTestGeneric):
         gdb.execute("start")
         self.__benchmark(gdb.execute, "context")
 
+    @pytest.mark.benchmark(warmup=True)
+    def test_cmd_context_regs(self):
+        gdb = self._gdb
+        gdb.execute("start")
+        self.__benchmark(gdb.execute, "context regs")
+
+    @pytest.mark.benchmark(warmup=True)
+    def test_cmd_context_stack(self):
+        gdb = self._gdb
+        gdb.execute("start")
+        self.__benchmark(gdb.execute, "context stack")
+
+    @pytest.mark.benchmark(warmup=True)
+    def test_cmd_context_code(self):
+        gdb = self._gdb
+        gdb.execute("start")
+        self.__benchmark(gdb.execute, "context code")
+
     @pytest.mark.benchmark
     def test_gef_memory_maps(self):
         gdb = self._gdb
