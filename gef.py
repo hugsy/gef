@@ -11505,7 +11505,7 @@ class GefLibcManager(GefManager):
     @lru_cache()
     def find_libc_version() -> Tuple[int, int]:
         """Attempt to determine the libc version. This operation can be long."""
-        libc_sections = (m for m in gef.memory.maps if "libc" in m.path and m.permission == Permission.READ)
+        libc_sections = (m for m in gef.memory.maps if "libc" in m.path and m.permission & Permission.READ)
         for section in libc_sections:
             # Try to determine from the filepath
             match = re.search(GefLibcManager.PATTERN_LIBC_VERSION_FILENAME, section.path)
