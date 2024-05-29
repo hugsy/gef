@@ -10,7 +10,7 @@ place). For example, you can learn that ELF running on SPARC architectures alway
 and `heap` sections set as Read/Write/Execute.
 
 `vmmap` can accept multiple arguments, either patterns to match again mapping names, or addresses
-to determine which section it belongs to:
+to determine which section it belongs to, or the permissions of the sections to match:
 
 1.  `-a` / `--addr`:
     -  filter by address -> parses the next argument as an integer or asks gdb to interpret the value
