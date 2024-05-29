@@ -10734,10 +10734,34 @@ class GefMemoryManager(GefManager):
         encoding = encoding or "unicode-escape"
         length = min(address | (DEFAULT_PAGE_SIZE-1), max_length+1)
 
+        while not self.get_section(address + length - 1) and length > 0:
+            # We want the new end address to be just before the end of the
+            # previous page
+            # - If the current end address is aligned, we want to decrease it of
+            #   one entire page length
+            # - If the current end address is not aligned, we want to decrease
+            #   it of just the offset between the page start and the current end
+            #   address
+            # For doing this, we decrease the end address, and apply a page
+            # mask.
+            #
+            # For instance:
+            # - 0x555555557320 -> 0x55555555731f -> 0x555555557000
+            # - 0x555555557000 -> 0x555555556fff -> 0x555555556000
+
+            new_end_addr = address + length - 1
+            page_mask = ((1 << gef.arch.ptrsize * 8) - 1) ^ (DEFAULT_PAGE_SIZE - 1)
+
+            length = (new_end_addr & page_mask) - address
+
+        if length <= 0:
+            err(f"Can't read memory at '{address:#x}'")
+            return ""
+
         try:
             res_bytes = self.read(address, length)
         except gdb.error:
-            err(f"Can't read memory at '{address}'")
+            err(f"Can't read memory at '{address:#x}'")
             return ""
         try:
             with warnings.catch_warnings():
@@ -10766,6 +10790,13 @@ class GefMemoryManager(GefManager):
         if not self.__maps:
             self.__maps = self.__parse_maps()
         return self.__maps
+
+    def get_section(self, addr: int) -> Optional[Section]:
+        """Return the section of the provided address if it exists, `None`
+        otherwise."""
+        for section in self.maps:
+            if section.page_start <= addr and section.page_end > addr:
+                return section
 
     def __parse_maps(self) -> Optional[List[Section]]:
         """Return the mapped memory sections. If the current arch has its maps
