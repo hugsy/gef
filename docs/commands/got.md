@@ -36,3 +36,6 @@ gef➤ got --all str get
 ```
 
 Print relocatable symbols matching "str" or "get" in the executable and all shared object files.
+
+**Note**: Because gdbserver does not canonicalize paths, the --all option does not work correctly
+for remote debugging.  See gdb bug [23764](https://sourceware.org/bugzilla/show_bug.cgi?id=23764)
