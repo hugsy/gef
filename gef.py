@@ -2277,12 +2277,6 @@ def get_zone_base_address(name: str) -> Optional[int]:
 #
 # Architecture classes
 #
-class ArchitectureReason(enum.StrEnum):
-    DEFAULT = "This default architecture"
-    MANUAL = "The architecture has been set manually"
-    GDB = "The architecture has been detected by GDB"
-    ELF = "The architecture has been detected via the ELF headers"
-
 
 @deprecated("Using the decorator `register_architecture` is unecessary")
 def register_architecture(cls: Type["Architecture"]) -> Type["Architecture"]:
@@ -3792,7 +3786,7 @@ def reset_architecture(arch: Optional[str] = None) -> None:
     if arch:
         try:
             gef.arch = arches[arch]()
-            gef.arch_reason = ArchitectureReason.MANUAL
+            gef.arch_reason = "The architecture has been set manually"
         except KeyError:
             raise OSError(f"Specified arch {arch.upper()} is not supported")
         return
@@ -3803,14 +3797,14 @@ def reset_architecture(arch: Optional[str] = None) -> None:
         preciser_arch = next((a for a in arches.values() if a.supports_gdb_arch(gdb_arch)), None)
         if preciser_arch:
             gef.arch = preciser_arch()
-            gef.arch_reason = ArchitectureReason.GDB
+            gef.arch_reason = "The architecture has been detected by GDB"
             return
 
     # last resort, use the info from elf header to find it from the known architectures
     if gef.binary and isinstance(gef.binary, Elf):
         try:
             gef.arch = arches[gef.binary.e_machine]()
-            gef.arch_reason = ArchitectureReason.ELF
+            gef.arch_reason = "The architecture has been detected via the ELF headers"
         except KeyError:
             raise OSError(f"CPU type is currently not supported: {gef.binary.e_machine}")
         return
@@ -11620,7 +11614,7 @@ class Gef:
     def __init__(self) -> None:
         self.binary: Optional[FileFormat] = None
         self.arch: Architecture = GenericArchitecture() # see PR #516, will be reset by `new_objfile_handler`
-        self.arch_reason = ArchitectureReason.DEFAULT
+        self.arch_reason = "This default architecture"
         self.config = GefSettingsManager()
         self.ui = GefUiManager()
         self.libc = GefLibcManager()
