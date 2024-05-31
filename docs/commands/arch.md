@@ -9,4 +9,3 @@ There are 3 available sub-commands:
   gef do magic to detect the architecture by not providing arguments.
 
 ![arch](https://imgur.com/a/6JUoOmS)
-

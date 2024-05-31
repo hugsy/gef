@@ -4769,29 +4769,55 @@ class GenericCommand(gdb.Command):
 
 
 @register
-class ArchCommand(GenericCommand):
+class PieCommand(GenericCommand):
     """Manage the current loaded architecture"""
 
     _cmdline_ = "arch"
     _syntax_ = f"{_cmdline_} (list|get|set) ..."
     _example_ = f"{_cmdline_}"
 
+    def __init__(self) -> None:
+        super().__init__(prefix=True)
+        return
+
+    def do_invoke(self, argv: List[str]) -> None:
+        if not argv:
+            self.usage()
+        return
+
+@register
+class ArchGetCommand(GenericCommand):
+    """Get the current loaded architecture"""
+
+    _cmdline_ = "arch get"
+    _syntax_ = f"{_cmdline_}"
+    _example_ = f"{_cmdline_}"
+
     def do_invoke(self, args: List[str]) -> None:
-        if len(args) == 0 or args[0] == 'get':
-            self._get_cmd()
-        elif args[0] == 'set':
-            self._set_cmd(*args[1:])
-        elif args[0] == 'list':
-            self._list_cmd()
+        gef_print(f"{Color.greenify('Arch')}: {gef.arch}")
+        gef_print(f"{Color.greenify('Reason')}: {gef.arch_reason}")
 
-    def _get_cmd(self) -> None:
-        gef_print(f"{Color.greenify("Arch")}: {gef.arch}")
-        gef_print(f"{Color.greenify("Reason")}: {gef.arch_reason}")
 
-    def _set_cmd(self, arch = None, *args) -> None:
-        reset_architecture(arch)
+@register
+class ArchSetCommand(GenericCommand):
+    """Set the current loaded architecture"""
 
-    def _list_cmd(self) -> None:
+    _cmdline_ = "arch set"
+    _syntax_ = f"{_cmdline_} <arch>"
+    _example_ = f"{_cmdline_}"
+
+    def do_invoke(self, args: List[str]) -> None:
+        reset_architecture(args[0] if args else None)
+
+@register
+class ArchListCommand(GenericCommand):
+    """List the available architectures"""
+
+    _cmdline_ = "arch list"
+    _syntax_ = f"{_cmdline_}"
+    _example_ = f"{_cmdline_}"
+
+    def do_invoke(self, args: List[str]) -> None:
         gef_print(Color.greenify("Available architectures:"))
         for arch in __registered_architectures__.keys():
             if type(arch) == str:
