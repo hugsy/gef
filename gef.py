@@ -2277,6 +2277,13 @@ def get_zone_base_address(name: str) -> Optional[int]:
 #
 # Architecture classes
 #
+class ArchitectureReason(enum.StrEnum):
+    DEFAULT = "This default architecture"
+    MANUAL = "The architecture has been set manually"
+    GDB = "The architecture has been detected by GDB"
+    ELF = "The architecture has been detected via the ELF headers"
+
+
 @deprecated("Using the decorator `register_architecture` is unecessary")
 def register_architecture(cls: Type["Architecture"]) -> Type["Architecture"]:
     return cls
@@ -3785,6 +3792,7 @@ def reset_architecture(arch: Optional[str] = None) -> None:
     if arch:
         try:
             gef.arch = arches[arch]()
+            gef.arch_reason = ArchitectureReason.MANUAL
         except KeyError:
             raise OSError(f"Specified arch {arch.upper()} is not supported")
         return
@@ -3795,12 +3803,14 @@ def reset_architecture(arch: Optional[str] = None) -> None:
         preciser_arch = next((a for a in arches.values() if a.supports_gdb_arch(gdb_arch)), None)
         if preciser_arch:
             gef.arch = preciser_arch()
+            gef.arch_reason = ArchitectureReason.GDB
             return
 
     # last resort, use the info from elf header to find it from the known architectures
     if gef.binary and isinstance(gef.binary, Elf):
         try:
             gef.arch = arches[gef.binary.e_machine]()
+            gef.arch_reason = ArchitectureReason.ELF
         except KeyError:
             raise OSError(f"CPU type is currently not supported: {gef.binary.e_machine}")
         return
@@ -4756,6 +4766,36 @@ class GenericCommand(gdb.Command):
         self.repeat_count = self.repeat_count + 1 if self.repeat else 0
         self.__last_command = command
         return
+
+
+@register
+class ArchCommand(GenericCommand):
+    """Manage the current loaded architecture"""
+
+    _cmdline_ = "arch"
+    _syntax_ = f"{_cmdline_} (list|get|set) ..."
+    _example_ = f"{_cmdline_}"
+
+    def do_invoke(self, args: List[str]) -> None:
+        if len(args) == 0 or args[0] == 'get':
+            self._get_cmd()
+        elif args[0] == 'set':
+            self._set_cmd(*args[1:])
+        elif args[0] == 'list':
+            self._list_cmd()
+
+    def _get_cmd(self) -> None:
+        gef_print(f"{Color.greenify("Arch")}: {gef.arch}")
+        gef_print(f"{Color.greenify("Reason")}: {gef.arch_reason}")
+
+    def _set_cmd(self, arch = None, *args) -> None:
+        reset_architecture(arch)
+
+    def _list_cmd(self) -> None:
+        gef_print(Color.greenify("Available architectures:"))
+        for arch in __registered_architectures__.keys():
+            if type(arch) == str:
+                gef_print(f"- {arch}")
 
 
 @register
@@ -11554,6 +11594,7 @@ class Gef:
     def __init__(self) -> None:
         self.binary: Optional[FileFormat] = None
         self.arch: Architecture = GenericArchitecture() # see PR #516, will be reset by `new_objfile_handler`
+        self.arch_reason = ArchitectureReason.DEFAULT
         self.config = GefSettingsManager()
         self.ui = GefUiManager()
         self.libc = GefLibcManager()
