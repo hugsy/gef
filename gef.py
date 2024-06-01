@@ -9313,15 +9313,13 @@ class GotCommand(GenericCommand):
     @parse_arguments({"symbols": [""]}, {"--all": False})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
-        if args.all:
-            vmmap = gef.memory.maps
-            mapfiles = set((mapfile.path, mapfile.realpath) for mapfile in vmmap if
-                           pathlib.Path(mapfile.realpath).is_file() and
-                           mapfile.permission & Permission.EXECUTE)
-            for mapfile in mapfiles:
-                self.print_got_for(mapfile[0], mapfile[1], args.symbols)
-        else:
-            self.print_got_for(str(gef.session.file), get_filepath(), args.symbols)
+        vmmap = gef.memory.maps
+        mapfiles = [mapfile for mapfile in vmmap if
+                    (True if args.all else mapfile.path == str(gef.session.file)) and
+                    pathlib.Path(mapfile.realpath).is_file() and
+                    mapfile.permission & Permission.EXECUTE]
+        for mapfile in mapfiles:
+            self.print_got_for(mapfile.path, mapfile.realpath, args.symbols)
 
     def print_got_for(self, file: str, realpath: str, argv: List[str]) -> None:
         readelf = gef.session.constants["readelf"]
