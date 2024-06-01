@@ -4763,12 +4763,12 @@ class GenericCommand(gdb.Command):
 
 
 @register
-class PieCommand(GenericCommand):
-    """Manage the current loaded architecture"""
+class ArchCommand(GenericCommand):
+    """Manage the current loaded architecture."""
 
     _cmdline_ = "arch"
     _syntax_ = f"{_cmdline_} (list|get|set) ..."
-    _example_ = f"{_cmdline_}"
+    _example_ = f"{_cmdline_} set X86"
 
     def __init__(self) -> None:
         super().__init__(prefix=True)
@@ -4781,7 +4781,7 @@ class PieCommand(GenericCommand):
 
 @register
 class ArchGetCommand(GenericCommand):
-    """Get the current loaded architecture"""
+    """Get the current loaded architecture."""
 
     _cmdline_ = "arch get"
     _syntax_ = f"{_cmdline_}"
@@ -4794,18 +4794,18 @@ class ArchGetCommand(GenericCommand):
 
 @register
 class ArchSetCommand(GenericCommand):
-    """Set the current loaded architecture"""
+    """Set the current loaded architecture."""
 
     _cmdline_ = "arch set"
     _syntax_ = f"{_cmdline_} <arch>"
-    _example_ = f"{_cmdline_}"
+    _example_ = f"{_cmdline_} X86"
 
     def do_invoke(self, args: List[str]) -> None:
         reset_architecture(args[0] if args else None)
 
 @register
 class ArchListCommand(GenericCommand):
-    """List the available architectures"""
+    """List the available architectures."""
 
     _cmdline_ = "arch list"
     _syntax_ = f"{_cmdline_}"
