@@ -9290,11 +9290,24 @@ class GotCommand(GenericCommand):
         return line
 
     @only_if_gdb_running
-    def do_invoke(self, argv: List[str]) -> None:
+    @parse_arguments({"symbols": [""]}, {"--all": False})
+    def do_invoke(self, _: List[str], **kwargs: Any) -> None:
+        args : argparse.Namespace = kwargs["arguments"]
+        if args.all:
+            vmmap = gef.memory.maps
+            mapfiles = set(mapfile.path for mapfile in vmmap if
+                           pathlib.Path(mapfile.realpath).is_file() and
+                           mapfile.permission & Permission.EXECUTE)
+            for mapfile in mapfiles:
+                self.print_got_for(mapfile, args.symbols)
+        else:
+            self.print_got_for(str(gef.session.file), args.symbols)
+
+    def print_got_for(self, file: str, argv: List[str]) -> None:
         readelf = gef.session.constants["readelf"]
 
-        elf_file = str(gef.session.file)
-        elf_virtual_path = str(gef.session.file)
+        elf_file = file
+        elf_virtual_path = file
 
         func_names_filter = argv if argv else []
         vmmap = gef.memory.maps
@@ -9318,7 +9331,7 @@ class GotCommand(GenericCommand):
         lines = gef_execute_external([readelf, "--wide", "--relocs", elf_file], as_list=True)
         jmpslots = [line for line in lines if "JUMP" in line]
 
-        gef_print(f"\nGOT protection: {relro_status} | GOT functions: {len(jmpslots)}\n ")
+        gef_print(f"{titlify(file)}\n\nGOT protection: {relro_status} | GOT functions: {len(jmpslots)}\n ")
 
         for line in jmpslots:
             address, _, _, _, name = line.split()[:5]
