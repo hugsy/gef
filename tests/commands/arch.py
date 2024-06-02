@@ -43,5 +43,5 @@ class ArchCommand(RemoteGefUnitTestGeneric):
         res = gdb.execute("arch list", to_string=True)
         self.assertNotIn("- GenericArchitecture", res)
         self.assertIn(" Architecture(X86, 64, LITTLE_ENDIAN)", res)
-        self.assertIn("  x86", res)
-        self.assertIn("  x86_64", res)
+        self.assertIn("  X86", res)
+        self.assertIn("  X86_64", res)
