@@ -27,6 +27,10 @@ class VmmapCommand(RemoteGefUnitTestGeneric):
         assert "`$pc` has no type specified. We guessed it was an address filter." in res
         self.assertEqual(len(res.splitlines()), 8)
 
+        res = gdb.execute("vmmap r-?", to_string=True)
+        assert "`r-?` has no type specified. We guessed it was a perm filter." in res
+        self.assertGreater(len(res.splitlines()), 3)
+
     def test_cmd_vmmap_addr(self):
         gef, gdb = self._gef, self._gdb
         gdb.execute("start")
@@ -48,3 +52,20 @@ class VmmapCommand(RemoteGefUnitTestGeneric):
 
         res = gdb.execute("vmmap --name stack", to_string=True)
         self.assertEqual(len(res.splitlines()), 5)
+
+    def test_cmd_vmmap_perm(self):
+        gdb = self._gdb
+        gdb.execute("start")
+
+        res = gdb.execute("vmmap -p r?-", to_string=True)
+        self.assertEqual(len(res.splitlines()), 5)
+
+        res = gdb.execute("vmmap --perms r?-", to_string=True)
+        self.assertEqual(len(res.splitlines()), 5)
+
+        res = gdb.execute("vmmap -p rw-", to_string=True)
+        self.assertEqual(len(res.splitlines()), 5)
+
+        res = gdb.execute("vmmap --perms rw-", to_string=True)
+        self.assertEqual(len(res.splitlines()), 5)
+
