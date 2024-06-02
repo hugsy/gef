@@ -4805,7 +4805,7 @@ class ArchSetCommand(GenericCommand):
 
     def complete(self, text: str, word: str) -> List[str]:
         return sorted(x for x in __registered_architectures__.keys() if
-                       isinstance(x, str) and x.startswith(text.strip()))
+                       isinstance(x, str) and x.lower().startswith(text.lower().strip()))
 
 @register
 class ArchListCommand(GenericCommand):
@@ -4818,7 +4818,7 @@ class ArchListCommand(GenericCommand):
     def do_invoke(self, args: List[str]) -> None:
         gef_print(Color.greenify("Available architectures:"))
         for arch in __registered_architectures__.keys():
-            if type(arch) == str:
+            if type(arch) == str and arch != "GenericArchitecture":
                 gef_print(f"- {arch}")
 
 
@@ -11618,7 +11618,7 @@ class Gef:
     def __init__(self) -> None:
         self.binary: Optional[FileFormat] = None
         self.arch: Architecture = GenericArchitecture() # see PR #516, will be reset by `new_objfile_handler`
-        self.arch_reason = "This default architecture"
+        self.arch_reason: str = "This default architecture"
         self.config = GefSettingsManager()
         self.ui = GefUiManager()
         self.libc = GefLibcManager()
