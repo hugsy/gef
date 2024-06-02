@@ -4824,7 +4824,7 @@ class ArchListCommand(GenericCommand):
         gef_print(Color.greenify("Available architectures:"))
         for arch in sorted(set(__registered_architectures__.values()), key=lambda x: x.arch):
             if arch != GenericArchitecture:
-                gef_print(' ' + Color.yellowify(arch()))
+                gef_print(' ' + Color.yellowify(str(arch())))
                 for alias in filter(lambda x: isinstance(x, str), arch.aliases):
                     gef_print(f"  {alias}")
 

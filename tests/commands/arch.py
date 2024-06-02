@@ -30,6 +30,13 @@ class ArchCommand(RemoteGefUnitTestGeneric):
         self.assertIn(" Architecture(X86, 32, LITTLE_ENDIAN)", res)
         self.assertIn(" The architecture has been set manually", res)
 
+
+        gdb.execute("arch set ppc")
+
+        res = gdb.execute("arch get", to_string=True)
+        self.assertIn(" Architecture(PPC, PPC32, LITTLE_ENDIAN)", res)
+        self.assertIn(" The architecture has been set manually", res)
+
     def test_cmd_arch_list(self):
         gdb = self._gdb
 
