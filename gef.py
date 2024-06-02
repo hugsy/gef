@@ -4800,8 +4800,16 @@ class ArchSetCommand(GenericCommand):
     _syntax_ = f"{_cmdline_} <arch>"
     _example_ = f"{_cmdline_} X86"
 
+    def __init__(self):
+        super().__init__(complete=-1) # -1 is the default for gdb but not for gef.
+                                      # It means we use the complete method for autocompletion.
+
     def do_invoke(self, args: List[str]) -> None:
         reset_architecture(args[0] if args else None)
+
+    def complete(self, text: str, word: str) -> List[str]:
+        return sorted(x for x in __registered_architectures__.keys() if
+                       isinstance(x, str) and x.startswith(text.strip()))
 
 @register
 class ArchListCommand(GenericCommand):
