@@ -10,7 +10,7 @@ There are 3 available sub-commands:
   gef do magic to detect the architecture by not providing arguments.
 
 > [!WARNING]
-> Setting manually should be done as a last resort as GEF expects to find the architecture 
+> Setting manually should be done as a last resort as GEF expects to find the architecture
 > automatically. Force-setting the architecture can lead to unexpected behavior if not done correctly.
 
 
