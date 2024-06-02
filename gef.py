@@ -4822,7 +4822,7 @@ class ArchListCommand(GenericCommand):
 
     def do_invoke(self, args: List[str]) -> None:
         gef_print(Color.greenify("Available architectures:"))
-        for arch in set(__registered_architectures__.values()):
+        for arch in sorted(set(__registered_architectures__.values()), key=lambda x: x.arch):
             if arch != GenericArchitecture:
                 gef_print(' ' + Color.yellowify(arch()))
                 for alias in filter(lambda x: isinstance(x, str), arch.aliases):
