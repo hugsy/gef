@@ -15,6 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
+          - ubuntu-24.04
           - ubuntu-22.04
           - ubuntu-20.04
     name: "Run Unit tests on ${{ matrix.os }}"
