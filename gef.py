@@ -4823,9 +4823,12 @@ class ArchListCommand(GenericCommand):
     def do_invoke(self, args: List[str]) -> None:
         gef_print(Color.greenify("Available architectures:"))
         for arch in sorted(set(__registered_architectures__.values()), key=lambda x: x.arch):
-            if arch != GenericArchitecture:
-                gef_print(' ' + Color.yellowify(str(arch())))
-                for alias in filter(lambda x: isinstance(x, str), arch.aliases):
+            if arch is GenericArchitecture:
+                continue
+
+            gef_print(' ' + Color.yellowify(str(arch())))
+            for alias in arch.aliases:
+                if isinstance(alias, str):
                     gef_print(f"  {alias}")
 
 
@@ -11625,7 +11628,7 @@ class Gef:
     def __init__(self) -> None:
         self.binary: Optional[FileFormat] = None
         self.arch: Architecture = GenericArchitecture() # see PR #516, will be reset by `new_objfile_handler`
-        self.arch_reason: str = "This default architecture"
+        self.arch_reason: str = "This is the default architecture"
         self.config = GefSettingsManager()
         self.ui = GefUiManager()
         self.libc = GefLibcManager()
