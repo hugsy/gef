@@ -3,6 +3,7 @@ Arch commands test module
 """
 
 from tests.base import RemoteGefUnitTestGeneric
+import pytest
 
 
 class ArchCommand(RemoteGefUnitTestGeneric):
