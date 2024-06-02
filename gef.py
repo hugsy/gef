@@ -665,6 +665,30 @@ class Permission(enum.Flag):
         if "x" in perm_str: perm |= Permission.EXECUTE
         return perm
 
+    @classmethod
+    def from_filter_repr(cls, filter_str: str) -> List["Permission"]:
+        perms = [cls(0)]
+        if perm_str[0] == "r":
+            for i, x in enumerate(perms):
+                perms[i] = x | Permission.READ
+        elif perm_str[0] == "?":
+            for x in perms:
+                perms.append(x | Permission.READ)
+        if perm_str[1] == "w":
+            for i, x in enumerate(perms):
+                perms[i] = x | Permission.WRITE
+        elif perm_str[1] == "?":
+            for x in perms:
+                perms.append(x | Permission.WRITE)
+        if perm_str[2] == "x":
+            for i, x in enumerate(perms):
+                perms[i] = x | Permission.EXECUTE
+        elif perm_str[2] == "?":
+            for x in perms:
+                perms.append(x | Permission.EXECUTE)
+        return perm
+
+
 
 class Section:
     """GEF representation of process memory sections."""
@@ -8907,7 +8931,10 @@ class VMMapCommand(GenericCommand):
 
         addrs: Dict[str, int] = {x: parse_address(x) for x in args.addr}
         names: List[str] = [x for x in args.name]
-        perms: List[Permission] = [Permission.from_process_maps(x) for x in args.perms]
+        perms: Set[Permission] = {}
+
+        for x in args.perms:
+            perms.union(Permission.from_filter_repr(x))
 
         for arg in args.unknown_types:
             if not arg:
@@ -8922,7 +8949,7 @@ class VMMapCommand(GenericCommand):
                 if arg[0] in 'r-' and \
                         arg[1] in 'w-' and \
                         arg[2] in 'x-':
-                    perms.append(Permission.from_process_maps(arg))
+                    perms.union(Permission.from_filter_repr(arg))
                     continue
 
                 names.append(arg)
