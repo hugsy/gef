@@ -23,15 +23,15 @@ class ArchCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
 
         res = gdb.execute("arch get", to_string=True)
-        self.assertIn(" Architecture(Generic, None, LITTLE_ENDIAN)", res)
-        self.assertIn(" This default architecture", res)
+        self.assertIn(" Architecture(X86, 64, LITTLE_ENDIAN)", res)
+        self.assertIn(" The architecture has been detected via the ELF headers", res)
 
     def test_cmd_arch_set(self):
         gdb = self._gdb
 
         res = gdb.execute("arch get", to_string=True)
-        self.assertIn(" Architecture(Generic, None, LITTLE_ENDIAN)", res)
-        self.assertIn(" This default architecture", res)
+        self.assertIn(" Architecture(X86, 64, LITTLE_ENDIAN)", res)
+        self.assertIn(" The architecture has been detected via the ELF headers", res)
 
         gdb.execute("arch set X86")
 
