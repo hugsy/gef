@@ -4646,10 +4646,11 @@ class GenericCommand(gdb.Command):
         self.repeat = False
         self.repeat_count = 0
         self.__last_command = None
-        command_type = kwargs.setdefault("command", gdb.COMMAND_OBSCURE)
-        complete_type = kwargs.setdefault("complete", gdb.COMPLETE_NONE)
+        command_type = kwargs.setdefault("command", gdb.COMMAND_USER)
+        complete_type = kwargs.setdefault("complete", -1) # -1=allow user-defined `complete()`
         prefix = kwargs.setdefault("prefix", False)
-        super().__init__(self._cmdline_, command_type, complete_type, prefix)
+        super().__init__(name=self._cmdline_, command_class=command_type,
+                         completer_class=complete_type, prefix=prefix)
         self.post_load()
         return
 
