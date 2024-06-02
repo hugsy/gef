@@ -3812,6 +3812,8 @@ def reset_architecture(arch: Optional[str] = None) -> None:
             raise OSError(f"CPU type is currently not supported: {gef.binary.e_machine}")
         return
 
+    warn("Did not find any way to guess the correct architecture :(")
+
 
 @lru_cache()
 def cached_lookup_type(_type: str) -> Optional[gdb.Type]:
