@@ -690,9 +690,11 @@ class Section:
         return self.page_end - self.page_start
 
     def search_for_realpath(self) -> str:
-        # This function is a workaround for gdb bug #23764
-        # path might be wrong for remote sessions, so try a simple search for files
-        # that aren't found at the path indicated, which should be canonical.
+        """This function is a workaround for gdb bug #23764
+
+        path might be wrong for remote sessions, so try a simple search for files
+        that aren't found at the path indicated, which should be canonical.
+        """
 
         # First, try the canonical path in the remote session root.
         candidate1 = f"{gef.session.remote.root}/{self.path}"
@@ -702,7 +704,7 @@ class Section:
         # On some systems, /lib(64) might be a symlink to /usr/lib(64), so try removing
         # the /usr prefix.
         if self.path.startswith("/usr"):
-            candidate = f"{gef.session.remote.root}/{self.path[4:]}"
+            candidate = f"{gef.session.remote.root}/{self.path[len('/usr'):]}"
             if pathlib.Path(candidate).is_file():
                 return candidate
 
@@ -9315,7 +9317,7 @@ class GotCommand(GenericCommand):
         args : argparse.Namespace = kwargs["arguments"]
         vmmap = gef.memory.maps
         mapfiles = [mapfile for mapfile in vmmap if
-                    (True if args.all else mapfile.path == str(gef.session.file)) and
+                    (args.all or mapfile.path == str(gef.session.file)) and
                     pathlib.Path(mapfile.realpath).is_file() and
                     mapfile.permission & Permission.EXECUTE]
         for mapfile in mapfiles:
