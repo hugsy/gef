@@ -2291,7 +2291,10 @@ class ArchitectureBase:
         super().__init_subclass__(**kwargs)
         for key in getattr(cls, "aliases"):
             if issubclass(cls, Architecture):
-                __registered_architectures__[key] = cls
+                if isinstance(key, str):
+                    __registered_architectures__[key.lower()] = cls
+                else:
+                    __registered_architectures__[key] = cls
         return
 
 
@@ -4801,7 +4804,7 @@ class ArchSetCommand(GenericCommand):
     _example_ = f"{_cmdline_} X86"
 
     def do_invoke(self, args: List[str]) -> None:
-        reset_architecture(args[0] if args else None)
+        reset_architecture(args[0].lower() if args else None)
 
     def complete(self, text: str, word: str) -> List[str]:
         return sorted(x for x in __registered_architectures__.keys() if
@@ -4817,9 +4820,11 @@ class ArchListCommand(GenericCommand):
 
     def do_invoke(self, args: List[str]) -> None:
         gef_print(Color.greenify("Available architectures:"))
-        for arch in __registered_architectures__.keys():
-            if type(arch) == str and arch != "GenericArchitecture":
-                gef_print(f"- {arch}")
+        for arch in set(__registered_architectures__.values()):
+            if arch != GenericArchitecture:
+                gef_print(' ' + Color.yellowify(arch()))
+                for alias in filter(lambda x: isinstance(x, str), arch.aliases):
+                    gef_print(f"  {alias}")
 
 
 @register
