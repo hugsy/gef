@@ -8,6 +8,7 @@ import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import (
+    ARCH,
     debug_target,
     gdbserver_session,
     qemuuser_session,
@@ -39,6 +40,7 @@ class GefRemoteCommand(RemoteGefUnitTestGeneric):
             assert res.endswith(f"pid={gef.session.pid}, mode={gdbserver_mode})")
 
     @pytest.mark.slow
+    @pytest.mark.skipif(ARCH not in ("x86_64",), reason=f"Skipped for {ARCH}")
     def test_cmd_gef_remote_qemu_user(self):
         gdb = self._gdb
         gef = self._gef

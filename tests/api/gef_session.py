@@ -6,10 +6,12 @@ import os
 import pathlib
 import random
 import re
+import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
 
 from tests.utils import (
+    ARCH,
     debug_target,
     gdbserver_session,
     qemuuser_session,
@@ -72,6 +74,7 @@ class GefSessionApi(RemoteGefUnitTestGeneric):
                 expected.st_ino == result.st_ino
             )
 
+    @pytest.mark.skipif(ARCH not in ("x86_64",), reason=f"Skipped for {ARCH}")
     def test_root_dir_qemu(self):
         gdb, gef = self._gdb, self._gef
 

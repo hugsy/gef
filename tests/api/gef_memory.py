@@ -9,6 +9,7 @@ import pytest
 from tests.base import RemoteGefUnitTestGeneric
 
 from tests.utils import (
+    ARCH,
     debug_target,
     gdbserver_session,
     qemuuser_session,
@@ -135,6 +136,7 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             sections = gef.memory.maps
             assert len(sections) > 0
 
+    @pytest.mark.skipif(ARCH not in ("x86_64",), reason=f"Skipped for {ARCH}")
     def test_func_parse_maps_remote_qemu(self):
         gdb, gef = self._gdb, self._gef
         # When in a gef-remote qemu-user session `parse_gdb_info_proc_maps`
