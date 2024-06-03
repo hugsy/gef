@@ -11,7 +11,7 @@ class ScanCommand(RemoteGefUnitTestGeneric):
     """`scan` command test module"""
 
     def setUp(self) -> None:
-        self._target = debug_target("checksec-no-pie")
+        self._target = debug_target("default")
         return super().setUp()
 
     def test_cmd_scan(self):
