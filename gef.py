@@ -696,20 +696,21 @@ class Section:
         that aren't found at the path indicated, which should be canonical.
         """
 
+        remote_path = pathlib.Path(self.path)
         # First, try the canonical path in the remote session root.
-        candidate1 = f"{gef.session.remote.root}/{self.path}"
-        if pathlib.Path(candidate1).is_file():
-            return candidate1
+        candidate1 = gef.session.remote.root / remote_path.relative_to(remote_path.anchor)
+        if candidate1.is_file():
+            return str(candidate1)
 
         # On some systems, /lib(64) might be a symlink to /usr/lib(64), so try removing
         # the /usr prefix.
-        if self.path.startswith("/usr"):
-            candidate = f"{gef.session.remote.root}/{self.path[len('/usr'):]}"
-            if pathlib.Path(candidate).is_file():
-                return candidate
+        if remote_path.is_relative_to("/usr"):
+            candidate = gef.session.remote.root / remote_path.relative_to("/usr")
+            if candidate.is_file():
+                return str(candidate)
 
         # Base case, return the original realpath
-        return candidate1
+        return str(candidate1)
 
     @property
     def realpath(self) -> str:
