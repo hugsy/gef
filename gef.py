@@ -8899,6 +8899,60 @@ class VMMapCommand(GenericCommand):
             err("No address mapping information found")
             return
 
+        # Parse args:
+        #  - `-a` / `--addr`:
+        #    - filter by address -> parses the next arg as an int or asks gdb
+        #    the value
+        #  - `-n` / `--name`:
+        #    - filter based on section name
+        #  - If nothing is specified, print a warning and guess the type
+        current_type = 0 # 0:None, 1:Address, 2:Name
+
+        addrs = {}
+        names = []
+
+        for arg in argv:
+            if arg in ("-a", "--addr"):
+                current_type = 1
+                continue
+            if arg in ("-n", "--name"):
+                current_type = 2
+                continue
+
+            if current_type == 1: # Address
+                if self.is_integer(arg):
+                    addr = int(arg, 0)
+                else:
+                    addr = safe_parse_and_eval(arg)
+
+                if addr is None:
+                    warn(f"Failed to parse `{arg}` as an address")
+                else:
+                    addrs[arg] = int(addr)
+
+            elif current_type == 2:
+                names.append(arg)
+
+            elif current_type == 0:
+                if self.is_integer(arg):
+                    addr = int(arg, 0)
+                else:
+                    addr = safe_parse_and_eval(arg)
+
+                if addr is None:
+                    names.append(arg)
+                    warn(f"`{arg}` has no type specified. We guessed it was a name filter.")
+                else:
+                    addrs[arg] = int(addr)
+                    warn(f"`{arg}` has no type specified. We guessed it was an address filter.")
+                warn("You can use --name or --addr before the filter value for specifying its type manually.")
+                gef_print()
+
+            current_type = 0
+
+        if current_type:
+            warn("The last filter seems to have no value associated, we ignore it .. :/")
+
         if not gef.config["gef.disable_color"]:
             self.show_legend()
 
@@ -8907,21 +8961,32 @@ class VMMapCommand(GenericCommand):
         headers = ["Start", "End", "Offset", "Perm", "Path"]
         gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<{w}s}{:<4s} {:s}".format(*headers, w=gef.arch.ptrsize*2+3), color))
 
+        last_printed_filter = None
+
         for entry in vmmap:
+            names_filter = [f"name = '{x}'" for x in names if x in entry.path]
+            addrs_filter = [f"addr = " + self.format_addr_filter(arg, addr) for arg, addr in addrs.items()
+                if addr >= entry.page_start and addr < entry.page_end]
+            filters = names_filter + addrs_filter
+            filter_content = f"[{' & '.join(filters)}]"
+
             if not argv:
                 self.print_entry(entry)
-                continue
-            if argv[0] in entry.path:
+
+            elif any(filters):
+                if filter_content != last_printed_filter:
+                    gef_print() # skip a line between different filters
+                    gef_print(Color.greenify(filter_content))
+                    last_printed_filter = filter_content
                 self.print_entry(entry)
-            elif self.is_integer(argv[0]):
-                addr = int(argv[0], 0)
-                if addr >= entry.page_start and addr < entry.page_end:
-                    self.print_entry(entry)
-            else:
-                addr = safe_parse_and_eval(argv[0])
-                if addr is not None and addr >= entry.page_start and addr < entry.page_end:
-                    self.print_entry(entry)
+
+        gef_print()
         return
+
+    def format_addr_filter(self, arg, addr):
+        if self.is_integer(arg):
+            return f"`{arg}`"
+        return f"`{arg}` ({addr:#x})"
 
     def print_entry(self, entry: Section) -> None:
         line_color = ""
