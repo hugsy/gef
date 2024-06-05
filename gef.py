@@ -9948,8 +9948,8 @@ class GefCommand(gdb.Command):
 
 
     def load_virtualenv(self, new_path: Optional[pathlib.Path] = None):
-        path = new_path or pathlib.Path(gef.config["gef.virtualenv_path"])
-        activate_script_path = path / "bin" / "activate_this.py"
+        path = new_path or gef.config["gef.virtualenv_path"]
+        activate_script_path = pathlib.Path(path) / "bin" / "activate_this.py"
         if path:
             exec(open(activate_script_path).read(), {'__file__': activate_script_path})
 
