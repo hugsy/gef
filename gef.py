@@ -11718,7 +11718,9 @@ if __name__ == "__main__":
     gef.gdb.show_banner()
 
     # load config
-    gef.gdb.load_extra_plugins()
+    if gef.gdb.load_extra_plugins():
+        # reload settings
+        gdb.execute("gef restore")
 
     # setup gdb prompt
     gdb.prompt_hook = __gef_prompt__
