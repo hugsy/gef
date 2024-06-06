@@ -33,7 +33,7 @@ jobs:
         sudo apt-get update
         sudo apt-get remove -y python3-pip python3-wheel python3-setuptools
         sudo apt-get install -y gdb-multiarch python3-dev git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user
-        wget /-O /tmp/get-pip.py https://bootstrap.pypa.io/get-pip.py
+        wget -O /tmp/get-pip.py https://bootstrap.pypa.io/get-pip.py
         python3 /tmp/get-pip.py --user
         python3 -m pip install --upgrade pip wheel build setuptools
 
