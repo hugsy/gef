@@ -8963,8 +8963,8 @@ class VMMapCommand(GenericCommand):
 
         for entry in vmmap:
             names_filter = [f"name = '{x}'" for x in names if x in entry.path]
-            addrs_filter = [f"addr = " + self.format_addr_filter(arg, addr) for arg, addr in addrs.items()
-                if addr >= entry.page_start and addr < entry.page_end]
+            addrs_filter = [f"addr = {self.format_addr_filter(arg, addr)}" for arg, addr in addrs.items()
+                if entry.page_start <= addr < entry.page_end]
             filters = names_filter + addrs_filter
             filter_content = f"[{' & '.join(filters)}]"
 
@@ -8981,10 +8981,8 @@ class VMMapCommand(GenericCommand):
         gef_print()
         return
 
-    def format_addr_filter(self, arg, addr):
-        if self.is_integer(arg):
-            return f"`{arg}`"
-        return f"`{arg}` ({addr:#x})"
+    def format_addr_filter(self, arg: str, addr: int):
+        return f"`{arg}`" if self.is_integer(arg) else f"`{arg}` ({addr:#x})"
 
     def print_entry(self, entry: Section) -> None:
         line_color = ""
