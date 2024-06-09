@@ -14,4 +14,4 @@ There are 3 available sub-commands:
 > automatically. Force-setting the architecture can lead to unexpected behavior if not done correctly.
 
 
-![arch](https://github.com/hugsy/gef/assets/590234/c4481a78-9311-43ba-929f-2817c5c9290e)
+![arch](https://github.com/hugsy/gef/assets/11377623/e364ecec-0b8e-4bee-b3cb-aae83eaca439)

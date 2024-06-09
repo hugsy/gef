@@ -25,6 +25,7 @@ nav:
   - Coverage: https://hugsy.github.io/gef/coverage/
 - Commands:
   - aliases: commands/aliases.md
+  - arch: commands/arch.md
   - aslr: commands/aslr.md
   - canary: commands/canary.md
   - checksec: commands/checksec.md
