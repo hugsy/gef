@@ -8899,19 +8899,25 @@ class VMMapCommand(GenericCommand):
             err("No address mapping information found")
             return
 
+        class ArgType(enum.Enum):
+            NONE    : enum.auto()
+            ADDRESS : enum.auto()
+            NAME    : enum.auto()
+
+        current_type: ArgType = ArgType.NONE
 
         addrs = {}
         names = []
 
         for arg in argv:
             if arg in ("-a", "--addr"):
-                current_type = 1
+                current_type = ArgType.ADDRESS
                 continue
             if arg in ("-n", "--name"):
-                current_type = 2
+                current_type = ArgType.NAME
                 continue
 
-            if current_type == 1: # Address
+            if current_type is ArgType.ADDRESS:
                 if self.is_integer(arg):
                     addr = int(arg, 0)
                 else:
@@ -8922,10 +8928,10 @@ class VMMapCommand(GenericCommand):
                 else:
                     addrs[arg] = int(addr)
 
-            elif current_type == 2:
+            elif current_type is ArgType.NAME:
                 names.append(arg)
 
-            elif current_type == 0:
+            elif current_type is ArgType.NONE:
                 if self.is_integer(arg):
                     addr = int(arg, 0)
                 else:
@@ -8940,9 +8946,9 @@ class VMMapCommand(GenericCommand):
                 warn("You can use --name or --addr before the filter value for specifying its type manually.")
                 gef_print()
 
-            current_type = 0
+            current_type = ArgType.NONE
 
-        if current_type:
+        if current_type is not ArgType.NONE:
             warn("The last filter seems to have no value associated, we ignore it .. :/")
 
         if not gef.config["gef.disable_color"]:
