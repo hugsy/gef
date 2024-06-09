@@ -12,10 +12,14 @@ and `heap` sections set as Read/Write/Execute.
 `vmmap` accepts one argument, either a pattern to match again mapping names, or an address to
 determine which section it belongs to.
 
-![vmmap-grep](https://i.imgur.com/ZFF4QVf.png)
+![vmmap-grep](https://github.com/hugsy/gef/assets/11377623/a3dbaa3e-88b0-407f-a0dd-07e65c4a3f73)
 
-![vmmap-address](https://i.imgur.com/hfcs1jH.png)
+![vmmap-address](https://github.com/hugsy/gef/assets/11377623/4dffe491-f927-4f03-b842-4d941140e66c)
 
 The address can be also be given in the form of a register or variable.
 
-![vmmap-register](https://i.imgur.com/RlZA6NU.png)
+![vmmap-register](https://github.com/hugsy/gef/assets/11377623/aed7ecdc-7ad9-4ba5-ae03-329e66432731)
+
+And you can do all of them in one command :)
+
+![vmmap-all-in-one](https://github.com/hugsy/gef/assets/11377623/b043f61b-48b3-4316-9f84-eb83822149ac)
