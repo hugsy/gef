@@ -13,9 +13,9 @@ and `heap` sections set as Read/Write/Execute.
 to determine which section it belongs to:
 
 -  `-a` / `--addr`:
-  -  filter by address -> parses the next argument as an integer or asks gdb to interpret the value
+  +  filter by address -> parses the next argument as an integer or asks gdb to interpret the value
 -  `-n` / `--name`:
-  -  filter based on section name
+  +  filter based on section name
 -  If nothing is specified, it prints a warning and guesses the type
 
 ![vmmap-grep](https://github.com/hugsy/gef/assets/11377623/a3dbaa3e-88b0-407f-a0dd-07e65c4a3f73)
