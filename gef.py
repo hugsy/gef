@@ -8899,14 +8899,6 @@ class VMMapCommand(GenericCommand):
             err("No address mapping information found")
             return
 
-        # Parse args:
-        #  - `-a` / `--addr`:
-        #    - filter by address -> parses the next arg as an int or asks gdb
-        #    the value
-        #  - `-n` / `--name`:
-        #    - filter based on section name
-        #  - If nothing is specified, print a warning and guess the type
-        current_type = 0 # 0:None, 1:Address, 2:Name
 
         addrs = {}
         names = []
