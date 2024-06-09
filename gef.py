@@ -8900,9 +8900,9 @@ class VMMapCommand(GenericCommand):
             return
 
         class ArgType(enum.Enum):
-            NONE    : enum.auto()
-            ADDRESS : enum.auto()
-            NAME    : enum.auto()
+            NONE    = enum.auto()
+            ADDRESS = enum.auto()
+            NAME    = enum.auto()
 
         current_type: ArgType = ArgType.NONE
 
