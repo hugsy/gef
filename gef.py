@@ -8906,8 +8906,8 @@ class VMMapCommand(GenericCommand):
 
         current_type: ArgType = ArgType.NONE
 
-        addrs = {}
-        names = []
+        addrs: Dict[str, int] = {}
+        names: List[str] = []
 
         for arg in argv:
             if arg in ("-a", "--addr"):
