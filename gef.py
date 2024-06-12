@@ -689,7 +689,7 @@ class Section:
             raise AttributeError
         return self.page_end - self.page_start
 
-    def search_for_realpath(self) -> str:
+    def _search_for_realpath(self) -> str:
         """This function is a workaround for gdb bug #23764
 
         path might be wrong for remote sessions, so try a simple search for files
@@ -715,7 +715,7 @@ class Section:
     @property
     def realpath(self) -> str:
         # when in a `gef-remote` session, realpath returns the path to the binary on the local disk, not remote
-        return self.path if gef.session.remote is None else self.search_for_realpath()
+        return self.path if gef.session.remote is None else self._search_for_realpath()
 
     def __str__(self) -> str:
         return (f"Section(start={self.page_start:#x}, end={self.page_end:#x}, "
