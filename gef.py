@@ -704,7 +704,7 @@ class Section:
 
         # On some systems, /lib(64) might be a symlink to /usr/lib(64), so try removing
         # the /usr prefix.
-        if remote_path.is_relative_to("/usr"):
+        if self.path.startswith("/usr"):
             candidate = gef.session.remote.root / remote_path.relative_to("/usr")
             if candidate.is_file():
                 return str(candidate)
