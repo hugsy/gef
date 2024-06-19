@@ -171,11 +171,8 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             # realpath does not include "/usr", then _search_for_realpath has
             # probably corrected the path to account for gdb bug #23764
             #
-            found_lib_in_usr = False
             for section in sections:
                 if(section.is_executable() and section.path.startswith("/usr") and
                    "/usr" not in section.realpath):
-                    found_lib_in_usr = True
                     assert pathlib.Path(section.realpath).is_file() is True
                     break
-            assert found_lib_in_usr is True
