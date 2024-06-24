@@ -491,6 +491,10 @@ def parse_arguments(required_arguments: Dict[Union[str, Tuple[str, str]], Any],
                 elif argtype is bool:
                     parser.add_argument(*argname, action="store_false" if argvalue else "store_true")
                     continue
+                elif argtype in (list, tuple):
+                    parser.add_argument(*argname, type=type(argvalue[0]),
+                                        default=[], action="append")
+                    continue
                 parser.add_argument(*argname, type=argtype, default=argvalue)
 
             parsed_args = parser.parse_args(*(args[1:]))
