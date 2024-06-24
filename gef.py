@@ -493,7 +493,7 @@ def parse_arguments(required_arguments: Dict[Union[str, Tuple[str, str]], Any],
                     continue
                 elif argtype in (list, tuple):
                     parser.add_argument(*argname, type=type(argvalue[0]),
-                                        default=[], action='append')
+                                        default=[], action="append")
                     continue
                 parser.add_argument(*argname, type=argtype, default=argvalue)
 
