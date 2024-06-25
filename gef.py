@@ -8893,7 +8893,7 @@ class VMMapCommand(GenericCommand):
     _example_ = f"{_cmdline_} libc"
 
     @only_if_gdb_running
-    @parse_arguments({'unknown_types': ['']}, {('--addr', '-a'): [''], ('--name', '-n'): ['']})
+    @parse_arguments({"unknown_types": [""]}, {("--addr", "-a"): [""], ("--name", "-n"): [""]})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
         vmmap = gef.memory.maps
