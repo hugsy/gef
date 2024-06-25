@@ -8893,63 +8893,34 @@ class VMMapCommand(GenericCommand):
     _example_ = f"{_cmdline_} libc"
 
     @only_if_gdb_running
-    def do_invoke(self, argv: List[str]) -> None:
+    @parse_arguments({'unknown_types': ['']}, {('--addr', '-a'): [''], ('--name', '-n'): ['']})
+    def do_invoke(self, _: List[str], **kwargs: Any) -> None:
+        args : argparse.Namespace = kwargs["arguments"]
         vmmap = gef.memory.maps
         if not vmmap:
             err("No address mapping information found")
             return
 
-        class ArgType(enum.Enum):
-            NONE    = enum.auto()
-            ADDRESS = enum.auto()
-            NAME    = enum.auto()
+        addrs: Dict[str, int] = {x: parse_address(x) for x in args.addr}
+        names: List[str] = [x for x in args.name]
 
-        current_type: ArgType = ArgType.NONE
-
-        addrs: Dict[str, int] = {}
-        names: List[str] = []
-
-        for arg in argv:
-            if arg in ("-a", "--addr"):
-                current_type = ArgType.ADDRESS
-                continue
-            if arg in ("-n", "--name"):
-                current_type = ArgType.NAME
+        for arg in args.unknown_types:
+            if arg is '':
                 continue
 
-            if current_type is ArgType.ADDRESS:
-                if self.is_integer(arg):
-                    addr = int(arg, 0)
-                else:
-                    addr = safe_parse_and_eval(arg)
+            if self.is_integer(arg):
+                addr = int(arg, 0)
+            else:
+                addr = safe_parse_and_eval(arg)
 
-                if addr is None:
-                    warn(f"Failed to parse `{arg}` as an address")
-                else:
-                    addrs[arg] = int(addr)
-
-            elif current_type is ArgType.NAME:
+            if addr is None:
                 names.append(arg)
-
-            elif current_type is ArgType.NONE:
-                if self.is_integer(arg):
-                    addr = int(arg, 0)
-                else:
-                    addr = safe_parse_and_eval(arg)
-
-                if addr is None:
-                    names.append(arg)
-                    warn(f"`{arg}` has no type specified. We guessed it was a name filter.")
-                else:
-                    addrs[arg] = int(addr)
-                    warn(f"`{arg}` has no type specified. We guessed it was an address filter.")
-                warn("You can use --name or --addr before the filter value for specifying its type manually.")
-                gef_print()
-
-            current_type = ArgType.NONE
-
-        if current_type is not ArgType.NONE:
-            warn("The last filter seems to have no value associated, we ignore it .. :/")
+                warn(f"`{arg}` has no type specified. We guessed it was a name filter.")
+            else:
+                addrs[arg] = int(addr)
+                warn(f"`{arg}` has no type specified. We guessed it was an address filter.")
+            warn("You can use --name or --addr before the filter value for specifying its type manually.")
+            gef_print()
 
         if not gef.config["gef.disable_color"]:
             self.show_legend()
@@ -8968,7 +8939,7 @@ class VMMapCommand(GenericCommand):
             filters = names_filter + addrs_filter
             filter_content = f"[{' & '.join(filters)}]"
 
-            if not argv:
+            if len(names) + len(addrs) == 0:
                 self.print_entry(entry)
 
             elif any(filters):
