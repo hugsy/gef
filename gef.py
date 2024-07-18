@@ -9974,7 +9974,7 @@ class GefCommand(gdb.Command):
         corrected_settings_name: str = pane_name.replace(" ", "_")
         gef.config["context.layout"] += f" {corrected_settings_name}"
 
-        add_context_layout_mapping(corrected_settings_name, display_pane_function, pane_title_function, condition)
+        self.add_context_layout_mapping(corrected_settings_name, display_pane_function, pane_title_function, condition)
 
     def load(self) -> None:
         """Load all the commands and functions defined by GEF into GDB."""
