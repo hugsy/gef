@@ -9,8 +9,8 @@ differs from one architecture to another (this is one of the main reasons I star
 place). For example, you can learn that ELF running on SPARC architectures always have their `.data`
 and `heap` sections set as Read/Write/Execute.
 
-`vmmap` accepts one argument, either a pattern to match again mapping names, or an address to
-determine which section it belongs to.
+`vmmap` accepts one argument, either a pattern to match again mapping names, an address to determine
+which section it belongs to, or the permissions of the sections to match.
 
 ![vmmap-grep](https://i.imgur.com/ZFF4QVf.png)
 

@@ -24,3 +24,6 @@ class VmmapCommand(RemoteGefUnitTestGeneric):
 
         res = gdb.execute("vmmap $pc", to_string=True)
         self.assertEqual(len(res.splitlines()), 2)
+
+        res = gdb.execute("vmmap r-?", to_string=True)
+        self.assertGreater(len(res.splitlines()), 1)
