@@ -41,9 +41,13 @@ jobs:
       run: |
         sudo apt-get install -y python3-full
 
-    - name: Set runtime environment variables
+    - name: Install python and toolchain
+      if: matrix.runner != 'ubuntu-24.04'
       run: |
         python3 -m pip install pip -U
+
+    - name: Set runtime environment variables
+      run: |
         echo PY_VER=`gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit` >> $GITHUB_ENV
         echo GEF_CI_NB_CPU="`grep -c ^processor /proc/cpuinfo`" >> $GITHUB_ENV
         echo GEF_CI_ARCH="`uname --processor`" >> $GITHUB_ENV
