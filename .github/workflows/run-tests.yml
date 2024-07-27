@@ -72,6 +72,7 @@ jobs:
         python${{ env.PY_VER }} -m pip install --user --upgrade -r tests/requirements.txt
 
     - name: Install Python Requirements
+      if: ${{ runner.os }} == 'ubuntu-24.04'
       run: |
         test "${{ env.PY_VER }}" == "0" && exit 1
         mkdir -p ${{ env.GEF_CI_CACHE_DIR }}
