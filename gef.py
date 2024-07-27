@@ -689,7 +689,7 @@ class Section:
             raise AttributeError
         return self.page_end - self.page_start
 
-    def _search_for_realpath_without_versions(self, path: pathlib.Path) -> str:
+    def _search_for_realpath_without_versions(self, path: pathlib.Path) -> Optional[str]:
         """Given a path, search for a file that exists without numeric suffixes."""
 
         # Match the path string against a regex that will remove a suffix
@@ -704,7 +704,7 @@ class Section:
             candidate = re.match(r"^(.*)\.(\d*)$", candidate)
         return None
 
-    def _search_for_realpath(self) -> str:
+    def _search_for_realpath(self) -> Optional[str]:
         """This function is a workaround for gdb bug #23764
 
         path might be wrong for remote sessions, so try a simple search for files

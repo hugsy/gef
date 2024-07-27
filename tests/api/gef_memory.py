@@ -174,5 +174,5 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             for section in sections:
                 if(section.is_executable() and section.path.startswith("/usr") and
                    "/usr" not in section.realpath):
-                    assert pathlib.Path(section.realpath).is_file() is True
+                    assert pathlib.Path(section.realpath).is_file()
                     break
