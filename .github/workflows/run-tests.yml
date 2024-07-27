@@ -66,6 +66,7 @@ jobs:
 
     - name: Install Python Requirements
       run: |
+        test "${{ env.PY_VER }}" -eq "0" && exit 1
         mkdir -p ${{ env.GEF_CI_CACHE_DIR }}
         python${{ env.PY_VER }} -m pip install --break-system-packages --user --upgrade -r tests/requirements.txt
 
