@@ -1,4 +1,9 @@
-name: CI Test for GEF
+name: Tests
+
+env:
+  GEF_CI_CACHE_DIR: /tmp
+  PY_VER: 0
+  GEF_CI_NB_CPU: 1
 
 on:
   push:
@@ -31,7 +36,12 @@ jobs:
       run: |
         export NEEDRESTART_MODE=n
         sudo apt-get update
-        sudo apt-get install -y gdb-multiarch python3-full python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user
+        sudo apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user
+
+    - name: Install python and toolchain
+      if: ${{ runner.os }} == 'ubuntu-24.04'
+      run: |
+        sudo apt-get install -y python3-full
 
     - name: Set runtime environment variables
       run: |
