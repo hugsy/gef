@@ -693,10 +693,57 @@ class Section:
             raise AttributeError
         return self.page_end - self.page_start
 
+    def _search_for_realpath_without_versions(self, path: pathlib.Path) -> Optional[str]:
+        """Given a path, search for a file that exists without numeric suffixes."""
+
+        # Match the path string against a regex that will remove a suffix
+        # consisting of a dot followed by numbers.
+        candidate = re.match(r"^(.*)\.(\d*)$", str(path))
+        while candidate:
+            candidate = candidate.group(1)
+            # If the prefix from the regex match is a file, return that path.
+            if pathlib.Path(candidate).is_file():
+                return candidate
+            # Otherwise, try to match again.
+            candidate = re.match(r"^(.*)\.(\d*)$", candidate)
+        return None
+
+    def _search_for_realpath(self) -> Optional[str]:
+        """This function is a workaround for gdb bug #23764
+
+        path might be wrong for remote sessions, so try a simple search for files
+        that aren't found at the path indicated, which should be canonical.
+        """
+
+        assert gef.session.remote
+        remote_path = pathlib.Path(self.path)
+        # First, try the canonical path in the remote session root.
+        candidate1 = gef.session.remote.root / remote_path.relative_to(remote_path.anchor)
+        if candidate1.is_file():
+            return str(candidate1)
+        # Also try that path without version suffixes.
+        candidate = self._search_for_realpath_without_versions(candidate1)
+        if candidate:
+            return candidate
+
+        # On some systems, /lib(64) might be a symlink to /usr/lib(64), so try removing
+        # the /usr prefix.
+        if self.path.startswith("/usr"):
+            candidate = gef.session.remote.root / remote_path.relative_to("/usr")
+            if candidate.is_file():
+                return str(candidate)
+            # Also try that path without version suffixes.
+            candidate = self._search_for_realpath_without_versions(candidate)
+            if candidate:
+                return candidate
+
+        # Base case, return the original realpath
+        return str(candidate1)
+
     @property
     def realpath(self) -> str:
         # when in a `gef-remote` session, realpath returns the path to the binary on the local disk, not remote
-        return self.path if gef.session.remote is None else f"/tmp/gef/{gef.session.remote:d}/{self.path}"
+        return self.path if gef.session.remote is None else self._search_for_realpath()
 
     def __str__(self) -> str:
         return (f"Section(start={self.page_start:#x}, end={self.page_end:#x}, "
@@ -9372,20 +9419,18 @@ class GotCommand(GenericCommand):
     @parse_arguments({"symbols": [""]}, {"--all": False})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
-        if args.all:
-            vmmap = gef.memory.maps
-            mapfiles = set(mapfile.path for mapfile in vmmap if
-                           pathlib.Path(mapfile.realpath).is_file() and
-                           mapfile.permission & Permission.EXECUTE)
-            for mapfile in mapfiles:
-                self.print_got_for(mapfile, args.symbols)
-        else:
-            self.print_got_for(str(gef.session.file), args.symbols)
+        vmmap = gef.memory.maps
+        mapfiles = [mapfile for mapfile in vmmap if
+                    (args.all or mapfile.path == str(gef.session.file)) and
+                    pathlib.Path(mapfile.realpath).is_file() and
+                    mapfile.permission & Permission.EXECUTE]
+        for mapfile in mapfiles:
+            self.print_got_for(mapfile.path, mapfile.realpath, args.symbols)
 
-    def print_got_for(self, file: str, argv: List[str]) -> None:
+    def print_got_for(self, file: str, realpath: str, argv: List[str]) -> None:
         readelf = gef.session.constants["readelf"]
 
-        elf_file = file
+        elf_file = realpath
         elf_virtual_path = file
 
         func_names_filter = argv if argv else []
