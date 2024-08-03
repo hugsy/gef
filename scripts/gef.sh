@@ -13,8 +13,8 @@ if [ -f "${HOME}/.gdbinit" ]; then
     mv "${HOME}/.gdbinit" "${HOME}/.gdbinit.old"
 fi
 
-tag=$(python3 -c 'import urllib.request as r,json as j; x=j.loads(r.urlopen("https://api.github.com/repos/hugsy/gef/tags").read()); print(x[0]["name"])')
-python3 -c "import urllib.request as r; x=r.urlopen('https://github.com/hugsy/gef/raw/${tag}/gef.py').read(); print(x.decode('utf-8'))" > ${HOME}/.gef-${tag}.py
+tag=$(python3 -X utf8 -c 'import urllib.request as r,json as j; x=j.loads(r.urlopen("https://api.github.com/repos/hugsy/gef/tags").read()); print(x[0]["name"])')
+python3 -X utf8 -c "import urllib.request as r; x=r.urlopen('https://github.com/hugsy/gef/raw/${tag}/gef.py').read(); print(x.decode('utf-8'))" > ${HOME}/.gef-${tag}.py
 
 if [ -f "${HOME}/.gef-${tag}.py" ]; then
     echo "source ~/.gef-${tag}.py" > ~/.gdbinit
