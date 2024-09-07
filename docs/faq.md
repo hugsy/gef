@@ -19,8 +19,8 @@ GDB was introduced with its Python support early 2011 with the release of GDB 7.
 has gone since and the Python API has been massively improved, and GEF is taking advantage of them
 to provide the coolest features with as little performance impact as possible.
 
-Currently, GEF is optimized for running against GDB version 10.0+, and Python 3.10+. This allows for a
-best performance and best use of the GDB Python API. However, GEF can run on older versions too,
+Currently, GEF is optimized for running against GDB version 10.0+, and Python 3.10+. This allows for
+a best performance and best use of the GDB Python API. However, GEF can run on older versions too,
 check out [the version compatibility matrix](compat.md). For really older versions of GDB, you can
 use [`gef-legacy`](https://github.com/hugsy/gef-legacy) which supports a lot of older GDB, and a
 Python 2/3 compatibility layer.

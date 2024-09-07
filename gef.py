@@ -744,10 +744,10 @@ class Section:
     def realpath(self) -> str:
         # when in a `gef-remote` session, realpath returns the path to the binary on the local disk, not remote
         if gef.session.remote is None:
-            return self.path        
+            return self.path
         default = self._search_for_realpath()
         if default:
-            return default 
+            return default
         raise FileNotFoundError
 
     def __str__(self) -> str:
