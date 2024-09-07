@@ -13,20 +13,20 @@ new architectures very easily as well!
 Also, PEDA development has been quite idle for a few years now, and many new interesting features a
 debugger can provide simply do not exist.
 
-## What if my GDB is < 8.0 ?
+## What if my GDB is < 10.0 ?
 
 GDB was introduced with its Python support early 2011 with the release of GDB 7. A (very) long way
 has gone since and the Python API has been massively improved, and GEF is taking advantage of them
 to provide the coolest features with as little performance impact as possible.
 
-Currently, GEF is optimized for running against GDB version 8.0+, and Python 3.6+. This allows for a
+Currently, GEF is optimized for running against GDB version 10.0+, and Python 3.10+. This allows for a
 best performance and best use of the GDB Python API. However, GEF can run on older versions too,
 check out [the version compatibility matrix](compat.md). For really older versions of GDB, you can
 use [`gef-legacy`](https://github.com/hugsy/gef-legacy) which supports a lot of older GDB, and a
 Python 2/3 compatibility layer.
 
 Therefore, it is highly recommended to run GEF with the latest version of GDB. However, all
-functions should work on a GDB 8.0 and up. If not, send a [bug
+functions should work on a GDB 10.0 and up. If not, send a [bug
 report](https://github.com/hugsy/gef/issues) and provide as much details as possible.
 
 If you are running an obsolete version, GEF will show a error and message and exit.
@@ -36,7 +36,7 @@ Some pre-compiled static binaries for both recent GDB and GDBServer can be downl
 
 ## I cannot get GEF setup
 
-GEF will work on any GDB 8+ compiled with Python 3.6+ support. You can view that commands that
+GEF will work on any GDB 8+ compiled with Python 3.10+ support. You can view that commands that
 failed to load using `gef missing`, but this will not affect GEF generally.
 
 If you experience problems setting it up on your host, first go to the [Discord
@@ -45,8 +45,8 @@ channel](https://discord.gg/HCS8Hg7) for that. You will find great people there 
 Note that the GitHub issue section is to be used to **report bugs** and **GEF issues** (like
 unexpected crash, improper error handling, weird edge case, etc.), not a place to ask for help.
 
-All recent distributions ship packaged GDB that should be ready-to-go, with a GDB >= 8.0 and Python
-3.6+. Any version higher or equal will work just fine. So you might actually only need to run `apt
+All recent distributions ship packaged GDB that should be ready-to-go, with a GDB >= 10.0 and Python
+3.10+. Any version higher or equal will work just fine. So you might actually only need to run `apt
 install gdb` to get the full-force of GEF.
 
 ## I get a SegFault when starting GDB with GEF

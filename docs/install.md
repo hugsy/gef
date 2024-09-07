@@ -16,7 +16,7 @@ your OS package manager to install them.
 
 ### GDB
 
-Only [GDB 8 and higher](https://www.gnu.org/s/gdb) is required. It must be compiled with Python 3.6
+Only [GDB 8 and higher](https://www.gnu.org/s/gdb) is required. It must be compiled with Python 3.10
 or higher support. For most people, simply using your distribution package manager should be enough.
 
 As of January 2020, GEF officially doesn't support Python 2 any longer, due to Python 2 becoming
@@ -36,8 +36,7 @@ This should display your version of Python compiled with `gdb`.
 
 ```bash
 $ gdb -nx -ex 'pi print(sys.version)' -ex quit
-3.6.9 (default, Nov  7 2019, 10:44:02)
-[GCC 8.3.0]
+3.12.3 (main, Jul 31 2024, 17:43:48) [GCC 13.2.0]
 ```
 
 ### Python dependencies
@@ -56,7 +55,7 @@ easily extended via
 ### Quick install
 
 The quickest way to get started with GEF is through the installation script available. Simply make
-sure you have [GDB 8.0 or higher](https://www.gnu.org/s/gdb), compiled with Python 3.6 or higher,
+sure you have [GDB 10.0 or higher](https://www.gnu.org/s/gdb), compiled with Python 3.10 or higher,
 and run
 
 ```bash
