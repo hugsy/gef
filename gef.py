@@ -8950,8 +8950,8 @@ class VMMapCommand(GenericCommand):
 
     def show_legend(self) -> None:
         code_title = Color.colorify("Code", gef.config["theme.address_code"])
-        stack_title = Color.colorify("Heap", gef.config["theme.address_stack"])
-        heap_title = Color.colorify("Stack", gef.config["theme.address_heap"])
+        stack_title = Color.colorify("Stack", gef.config["theme.address_stack"])
+        heap_title = Color.colorify("Heap", gef.config["theme.address_heap"])
         gef_print(f"[ Legend:  {code_title} | {stack_title} | {heap_title} ]")
         return
 
