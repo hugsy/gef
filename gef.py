@@ -10750,7 +10750,7 @@ class GefMemoryManager(GefManager):
             # - 0x555555557000 -> 0x555555556fff -> 0x555555556000
 
             new_end_addr = address + length - 1
-            page_mask = ~(DEFAULT_PAGE_SIZE - 1)
+            page_mask = ((1 << gef.arch.ptrsize * 8) - 1) ^ (DEFAULT_PAGE_SIZE - 1)
 
             length = (new_end_addr & page_mask) - address
 
