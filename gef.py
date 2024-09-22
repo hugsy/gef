@@ -8917,6 +8917,24 @@ class VMMapCommand(GenericCommand):
                 addr = int(argv[0], 0)
                 if addr >= entry.page_start and addr < entry.page_end:
                     self.print_entry(entry)
+            elif argv[0][0] in 'r-?' and \
+                    argv[0][1] in 'w-?' and \
+                    argv[0][2] in 'x-?':
+                correct = True
+                perms_dict = [Permission.READ, Permission.WRITE,
+                                  Permission.EXECUTE]
+
+                for c, perm in zip(argv[0], perms_dict):
+                    if c == '?':
+                        continue
+                    elif c == '-':
+                        correct = correct and not entry.permission & perm
+                    else:
+                        correct = correct and entry.permission & perm
+
+
+                if correct:
+                    self.print_entry(entry)
             else:
                 addr = safe_parse_and_eval(argv[0])
                 if addr is not None and addr >= entry.page_start and addr < entry.page_end:
