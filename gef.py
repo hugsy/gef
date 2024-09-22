@@ -353,7 +353,8 @@ def calling_function() -> Optional[str]:
     try:
         stack_info = traceback.extract_stack()[-3]
         return stack_info.name
-    except:
+    except Exception as e:
+        dbg(f"traceback failed with {str(e)}")
         return None
 
 
@@ -743,7 +744,12 @@ class Section:
     @property
     def realpath(self) -> str:
         # when in a `gef-remote` session, realpath returns the path to the binary on the local disk, not remote
-        return self.path if gef.session.remote is None else self._search_for_realpath()
+        if gef.session.remote is None:
+            return self.path
+        default = self._search_for_realpath()
+        if default:
+            return default
+        raise FileNotFoundError
 
     def __str__(self) -> str:
         return (f"Section(start={self.page_start:#x}, end={self.page_end:#x}, "
@@ -1594,7 +1600,7 @@ class GlibcChunk:
         NON_MAIN_ARENA = 4
 
         def __str__(self) -> str:
-            return f" | ".join([
+            return " | ".join([
                 Color.greenify("PREV_INUSE") if self.value & self.PREV_INUSE else Color.redify("PREV_INUSE"),
                 Color.greenify("IS_MMAPPED") if self.value & self.IS_MMAPPED else Color.redify("IS_MMAPPED"),
                 Color.greenify("NON_MAIN_ARENA") if self.value & self.NON_MAIN_ARENA else Color.redify("NON_MAIN_ARENA")
@@ -1881,9 +1887,9 @@ def show_last_exception() -> None:
 
     gef_print("")
     exc_type, exc_value, exc_traceback = sys.exc_info()
-
+    exc_name = exc_type.__name__ if exc_type else "Unknown"
     gef_print(" Exception raised ".center(80, HORIZONTAL_LINE))
-    gef_print(f"{Color.colorify(exc_type.__name__, 'bold underline red')}: {exc_value}")
+    gef_print(f"{Color.colorify(exc_name, 'bold underline red')}: {exc_value}")
     gef_print(" Detailed stacktrace ".center(80, HORIZONTAL_LINE))
 
     for fs in traceback.extract_tb(exc_traceback)[::-1]:
@@ -3516,7 +3522,7 @@ def is_qemu() -> bool:
     if not is_remote_debug():
         return False
     response = gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False) or ""
-    return "ENABLE=" in response
+    return "ENABLE=1" in response
 
 
 @lru_cache()
@@ -3674,19 +3680,19 @@ def is_hex(pattern: str) -> bool:
     return len(pattern) % 2 == 0 and all(c in string.hexdigits for c in pattern[2:])
 
 
-def continue_handler(_: "gdb.events.ContinueEvent") -> None:
+def continue_handler(_: "gdb.ContinueEvent") -> None:
     """GDB event handler for new object continue cases."""
     return
 
 
-def hook_stop_handler(_: "gdb.events.StopEvent") -> None:
+def hook_stop_handler(_: "gdb.StopEvent") -> None:
     """GDB event handler for stop cases."""
     reset_all_caches()
     gdb.execute("context")
     return
 
 
-def new_objfile_handler(evt: Optional["gdb.events.NewObjFileEvent"]) -> None:
+def new_objfile_handler(evt: Optional["gdb.NewObjFileEvent"]) -> None:
     """GDB event handler for new object file cases."""
     reset_all_caches()
     progspace = gdb.current_progspace()
@@ -3721,7 +3727,7 @@ def new_objfile_handler(evt: Optional["gdb.events.NewObjFileEvent"]) -> None:
     return
 
 
-def exit_handler(_: "gdb.events.ExitedEvent") -> None:
+def exit_handler(_: "gdb.ExitedEvent") -> None:
     """GDB event handler for exit cases."""
     global gef
     # flush the caches
@@ -3752,13 +3758,13 @@ def exit_handler(_: "gdb.events.ExitedEvent") -> None:
     return
 
 
-def memchanged_handler(_: "gdb.events.MemoryChangedEvent") -> None:
+def memchanged_handler(_: "gdb.MemoryChangedEvent") -> None:
     """GDB event handler for mem changes cases."""
     reset_all_caches()
     return
 
 
-def regchanged_handler(_: "gdb.events.RegisterChangedEvent") -> None:
+def regchanged_handler(_: "gdb.RegisterChangedEvent") -> None:
     """GDB event handler for reg changes cases."""
     reset_all_caches()
     return
@@ -3888,7 +3894,7 @@ def get_memory_alignment(in_bits: bool = False) -> int:
 
     try:
         return gdb.parse_and_eval("$pc").type.sizeof
-    except:
+    except Exception:
         pass
 
     raise OSError("GEF is running under an unsupported mode")
@@ -4123,72 +4129,72 @@ def set_arch(arch: Optional[str] = None, _: Optional[str] = None) -> None:
 #
 
 @only_if_events_supported("cont")
-def gef_on_continue_hook(func: Callable[["gdb.events.ContinueEvent"], None]) -> None:
+def gef_on_continue_hook(func: Callable[["gdb.ContinueEvent"], None]) -> None:
     gdb.events.cont.connect(func)
 
 
 @only_if_events_supported("cont")
-def gef_on_continue_unhook(func: Callable[["gdb.events.ThreadEvent"], None]) -> None:
+def gef_on_continue_unhook(func: Callable[["gdb.ThreadEvent"], None]) -> None:
     gdb.events.cont.disconnect(func)
 
 
 @only_if_events_supported("stop")
-def gef_on_stop_hook(func: Callable[["gdb.events.StopEvent"], None]) -> None:
+def gef_on_stop_hook(func: Callable[["gdb.StopEvent"], None]) -> None:
     gdb.events.stop.connect(func)
 
 
 @only_if_events_supported("stop")
-def gef_on_stop_unhook(func: Callable[["gdb.events.StopEvent"], None]) -> None:
+def gef_on_stop_unhook(func: Callable[["gdb.StopEvent"], None]) -> None:
     gdb.events.stop.disconnect(func)
 
 
 @only_if_events_supported("exited")
-def gef_on_exit_hook(func: Callable[["gdb.events.ExitedEvent"], None]) -> None:
+def gef_on_exit_hook(func: Callable[["gdb.ExitedEvent"], None]) -> None:
     gdb.events.exited.connect(func)
 
 
 @only_if_events_supported("exited")
-def gef_on_exit_unhook(func: Callable[["gdb.events.ExitedEvent"], None]) -> None:
+def gef_on_exit_unhook(func: Callable[["gdb.ExitedEvent"], None]) -> None:
     gdb.events.exited.disconnect(func)
 
 
 @only_if_events_supported("new_objfile")
-def gef_on_new_hook(func: Callable[["gdb.events.NewObjFileEvent"], None]) -> None:
+def gef_on_new_hook(func: Callable[["gdb.NewObjFileEvent"], None]) -> None:
     gdb.events.new_objfile.connect(func)
 
 
 @only_if_events_supported("new_objfile")
-def gef_on_new_unhook(func: Callable[["gdb.events.NewObjFileEvent"], None]) -> None:
+def gef_on_new_unhook(func: Callable[["gdb.NewObjFileEvent"], None]) -> None:
     gdb.events.new_objfile.disconnect(func)
 
 
 @only_if_events_supported("clear_objfiles")
-def gef_on_unload_objfile_hook(func: Callable[["gdb.events.ClearObjFilesEvent"], None]) -> None:
+def gef_on_unload_objfile_hook(func: Callable[["gdb.ClearObjFilesEvent"], None]) -> None:
     gdb.events.clear_objfiles.connect(func)
 
 
 @only_if_events_supported("clear_objfiles")
-def gef_on_unload_objfile_unhook(func: Callable[["gdb.events.ClearObjFilesEvent"], None]) -> None:
+def gef_on_unload_objfile_unhook(func: Callable[["gdb.ClearObjFilesEvent"], None]) -> None:
     gdb.events.clear_objfiles.disconnect(func)
 
 
 @only_if_events_supported("memory_changed")
-def gef_on_memchanged_hook(func: Callable[["gdb.events.MemoryChangedEvent"], None]) -> None:
+def gef_on_memchanged_hook(func: Callable[["gdb.MemoryChangedEvent"], None]) -> None:
     gdb.events.memory_changed.connect(func)
 
 
 @only_if_events_supported("memory_changed")
-def gef_on_memchanged_unhook(func: Callable[["gdb.events.MemoryChangedEvent"], None]) -> None:
+def gef_on_memchanged_unhook(func: Callable[["gdb.MemoryChangedEvent"], None]) -> None:
     gdb.events.memory_changed.disconnect(func)
 
 
 @only_if_events_supported("register_changed")
-def gef_on_regchanged_hook(func: Callable[["gdb.events.RegisterChangedEvent"], None]) -> None:
+def gef_on_regchanged_hook(func: Callable[["gdb.RegisterChangedEvent"], None]) -> None:
     gdb.events.register_changed.connect(func)
 
 
 @only_if_events_supported("register_changed")
-def gef_on_regchanged_unhook(func: Callable[["gdb.events.RegisterChangedEvent"], None]) -> None:
+def gef_on_regchanged_unhook(func: Callable[["gdb.RegisterChangedEvent"], None]) -> None:
     gdb.events.register_changed.disconnect(func)
 
 
@@ -4757,7 +4763,7 @@ class GenericCommand(gdb.Command):
         """Return the list of settings for this command."""
         return list(iter(self))
 
-    @deprecated(f"Use `self[setting_name]` instead")
+    @deprecated("Use `self[setting_name]` instead")
     def get_setting(self, name: str) -> Any:
         return self.__getitem__(name)
 
@@ -4765,14 +4771,14 @@ class GenericCommand(gdb.Command):
         key = self.__get_setting_name(name)
         return gef.config[key]
 
-    @deprecated(f"Use `setting_name in self` instead")
+    @deprecated("Use `setting_name in self` instead")
     def has_setting(self, name: str) -> bool:
         return self.__contains__(name)
 
     def __contains__(self, name: str) -> bool:
         return self.__get_setting_name(name) in gef.config
 
-    @deprecated(f"Use `self[setting_name] = value` instead")
+    @deprecated("Use `self[setting_name] = value` instead")
     def add_setting(self, name: str, value: Tuple[Any, type, str], description: str = "") -> None:
         return self.__setitem__(name, (value, description))
 
@@ -4797,7 +4803,7 @@ class GenericCommand(gdb.Command):
                 gef.config[key] = GefSetting(value[0], description=value[1])
         return
 
-    @deprecated(f"Use `del self[setting_name]` instead")
+    @deprecated("Use `del self[setting_name]` instead")
     def del_setting(self, name: str) -> None:
         return self.__delitem__(name)
 
@@ -5239,7 +5245,7 @@ class SmartEvalCommand(GenericCommand):
                 gef_print("0b" + comp2_b(res))
                 gef_print(f"{binascii.unhexlify(s_i)}")
                 gef_print(f"{binascii.unhexlify(s_i)[::-1]}")
-            except:
+            except Exception:
                 pass
             return
 
@@ -5463,6 +5469,7 @@ class GefThemeCommand(GenericCommand):
 
     _cmdline_ = "theme"
     _syntax_ = f"{_cmdline_} [KEY [VALUE]]"
+    _examples_ = (f"{_cmdline_} address_stack green")
 
     def __init__(self) -> None:
         super().__init__(self._cmdline_)
@@ -5497,7 +5504,7 @@ class GefThemeCommand(GenericCommand):
             return
 
         setting_name = args[0]
-        if not setting_name in self:
+        if setting_name not in self:
             err("Invalid key")
             return
 
@@ -5506,8 +5513,8 @@ class GefThemeCommand(GenericCommand):
             gef_print(f"{setting_name:40s}: {Color.colorify(value, value)}")
             return
 
-        colors = [color for color in args[1:] if color in Color.colors]
-        self[setting_name] = " ".join(colors)
+        colors = (color for color in args[1:] if color in Color.colors)
+        self[setting_name][0] = " ".join(colors)
         return
 
 
@@ -5574,6 +5581,7 @@ class ExternalStructureManager:
             ptrsize = gef.arch.ptrsize
             unpack = u32 if ptrsize == 4 else u64
             for field in _structure._fields_:
+                assert len(field) == 2
                 _name, _type = field
                 _value = getattr(_structure, _name)
                 _offset = getattr(self.class_type, _name).offset
@@ -6127,7 +6135,7 @@ class SearchPatternCommand(GenericCommand):
         for section in gef.memory.maps:
             if not section.permission & Permission.READ: continue
             if section.path == "[vvar]": continue
-            if not section_name in section.path: continue
+            if section_name not in section.path: continue
 
             start = section.page_start
             end = section.page_end - 1
@@ -6264,7 +6272,7 @@ class RemoteCommand(GenericCommand):
         super().__init__(prefix=False)
         return
 
-    @parse_arguments({"host": "", "port": 0}, {"--pid": -1, "--qemu-user": False, "--qemu-binary": ""})
+    @parse_arguments({"host": "", "port": 0}, {"--pid": 0, "--qemu-user": ""})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         if gef.session.remote is not None:
             err("You already are in remote session. Close it first before opening a new one...")
@@ -6277,15 +6285,15 @@ class RemoteCommand(GenericCommand):
             return
 
         # qemu-user support
-        qemu_binary: Optional[pathlib.Path] = None
         if args.qemu_user:
+            dbg("Setting up qemu-user session")
             try:
-                qemu_binary = pathlib.Path(args.qemu_binary).expanduser().absolute() if args.qemu_binary else gef.session.file
+                qemu_binary = pathlib.Path(args.qemu_user).expanduser().absolute() if args.qemu_user else gef.session.file
                 if not qemu_binary or not qemu_binary.exists():
-                    raise FileNotFoundError(f"{qemu_binary} does not exist")
+                    raise FileNotFoundError(f"qemu-user session was specified, but binary '{qemu_binary}' does not exist")
             except Exception as e:
                 err(f"Failed to initialize qemu-user mode, reason: {str(e)}")
-                return
+                raise e
 
         # Try to establish the remote session, throw on error
         # Set `.remote_initializing` to True here - `GefRemoteSessionManager` invokes code which
@@ -6411,8 +6419,8 @@ class NopCommand(GenericCommand):
             try:
                 last_insn = gef_instruction_n(address, num_items-1)
                 last_addr = last_insn.address
-            except:
-                err(f"Cannot patch instruction at {address:#x} reaching unmapped area")
+            except Exception as e:
+                err(f"Cannot patch instruction at {address:#x} reaching unmapped area, reason: {e}")
                 return
             total_bytes = (last_addr - address) + gef_get_instruction_at(last_addr).size()
 
@@ -7739,10 +7747,10 @@ class ContextCommand(GenericCommand):
             gdb.execute(f"registers {printable_registers}")
             return
 
-        widest = l = max(map(len, gef.arch.all_registers))
-        l += 5
-        l += gef.arch.ptrsize * 2
-        nb = get_terminal_size()[1] // l
+        widest = curlen = max(map(len, gef.arch.all_registers))
+        curlen += 5
+        curlen += gef.arch.ptrsize * 2
+        nb = get_terminal_size()[1] // curlen
         i = 1
         line = ""
         changed_color = gef.config["theme.registers_value_changed"]
@@ -7831,7 +7839,7 @@ class ContextCommand(GenericCommand):
         breakpoints = gdb.breakpoints() or []
         # breakpoint.locations was introduced in gdb 13.1
         if len(breakpoints) and hasattr(breakpoints[-1], "locations"):
-            bp_locations = [hex(location.address) for b in breakpoints for location in b.locations if location is not None]
+            bp_locations = [hex(location.address) for b in breakpoints for location in b.locations if location is not None] # type: ignore
         else:
             # location relies on the user setting the breakpoints with "b *{hex(address)}"
             bp_locations = [b.location for b in breakpoints if b.location and b.location.startswith("*")]
@@ -7939,6 +7947,8 @@ class ContextCommand(GenericCommand):
         args = []
         fields = symbol.type.fields() if symbol.type else []
         for i, f in enumerate(fields):
+            if not f.type:
+                continue
             _value = gef.arch.get_ith_parameter(i, in_func=False)[1]
             _value = RIGHT_ARROW.join(dereference_from(_value))
             _name = f.name or f"var_{i}"
@@ -8030,9 +8040,8 @@ class ContextCommand(GenericCommand):
             if not symtab.is_valid():
                 return
 
-            fpath = symtab.fullname()
-            with open(fpath, "r") as f:
-                lines = [l.rstrip() for l in f.readlines()]
+            fpath = pathlib.Path(symtab.fullname())
+            lines = [curline.rstrip() for curline in fpath.read_text().splitlines()]
 
         except Exception:
             return
@@ -8455,23 +8464,23 @@ class HexdumpCommand(GenericCommand):
             "word": ("H", 2),
         }
 
-        r, l = formats[arrange_as]
-        fmt_str = f"{{base}}{VERTICAL_LINE}+{{offset:#06x}}   {{sym}}{{val:#0{l*2+2}x}}   {{text}}"
-        fmt_pack = f"{endianness!s}{r}"
+        formatter, width = formats[arrange_as]
+        fmt_str = f"{{base}}{VERTICAL_LINE}+{{offset:#06x}}   {{sym}}{{val:#0{width*2+2}x}}   {{text}}"
+        fmt_pack = f"{endianness!s}{formatter}"
         lines = []
 
         i = 0
         text = ""
         while i < length:
-            cur_addr = start_addr + (i + offset) * l
+            cur_addr = start_addr + (i + offset) * width
             sym = gdb_get_location_from_symbol(cur_addr)
             sym = f"<{sym[0]:s}+{sym[1]:04x}> " if sym else ""
-            mem = gef.memory.read(cur_addr, l)
+            mem = gef.memory.read(cur_addr, width)
             val = struct.unpack(fmt_pack, mem)[0]
             if show_ascii:
                 text = "".join([chr(b) if 0x20 <= b < 0x7F else "." for b in mem])
             lines.append(fmt_str.format(base=Color.colorify(format_address(cur_addr), base_address_color),
-                                        offset=(i + offset) * l, sym=sym, val=val, text=text))
+                                        offset=(i + offset) * width, sym=sym, val=val, text=text))
             i += 1
 
         return lines
@@ -8573,9 +8582,9 @@ class PatchCommand(GenericCommand):
                 var_name = values[0]
                 try:
                     values = str(gdb.parse_and_eval(var_name)).lstrip("{").rstrip("}").replace(",","").split(" ")
-                except:
+                except Exception as e:
                     gef_print(f"Bad variable specified, check value with command: p {var_name}")
-                    return
+                    raise e
 
         d = str(gef.arch.endianness)
         for value in values:
@@ -8761,7 +8770,7 @@ class DereferenceCommand(GenericCommand):
         addrs = dereference_from(current_address)
         addr_l = format_address(int(addrs[0], 16))
         ma = (memalign*2 + 2)
-        l = (
+        line = (
             f"{Color.colorify(addr_l, base_address_color)}{VERTICAL_LINE}"
             f"{base_offset+offset:+#07x}: {sep.join(addrs[1:]):{ma}s}"
         )
@@ -8775,10 +8784,10 @@ class DereferenceCommand(GenericCommand):
 
         if register_hints:
             m = f"\t{LEFT_ARROW}{', '.join(list(register_hints))}"
-            l += Color.colorify(m, registers_color)
+            line += Color.colorify(m, registers_color)
 
         offset += memalign
-        return l
+        return line
 
     @only_if_gdb_running
     @parse_arguments({"address": "$sp"}, {("-r", "--reference"): "", ("-l", "--length"): 10})
@@ -8932,18 +8941,18 @@ class VMMapCommand(GenericCommand):
         elif entry.permission & Permission.READ and entry.permission & Permission.EXECUTE:
             line_color = gef.config["theme.address_code"]
 
-        l = [
+        line_parts = [
             Color.colorify(format_address(entry.page_start), line_color),
             Color.colorify(format_address(entry.page_end), line_color),
             Color.colorify(format_address(entry.offset), line_color),
         ]
         if entry.permission == Permission.ALL:
-            l.append(Color.colorify(str(entry.permission), "underline " + line_color))
+            line_parts.append(Color.colorify(str(entry.permission), "underline " + line_color))
         else:
-            l.append(Color.colorify(str(entry.permission), line_color))
+            line_parts.append(Color.colorify(str(entry.permission), line_color))
 
-        l.append(Color.colorify(entry.path, line_color))
-        line = " ".join(l)
+        line_parts.append(Color.colorify(entry.path, line_color))
+        line = " ".join(line_parts)
 
         gef_print(line)
         return
@@ -8990,13 +8999,13 @@ class XFilesCommand(GenericCommand):
                 if filter_by_name and filter_by_name not in xfile.name:
                     continue
 
-            l = [
+            line_parts = [
                 format_address(xfile.zone_start),
                 format_address(xfile.zone_end),
                 f"{xfile.name:<21s}",
                 xfile.filename,
             ]
-            gef_print(" ".join(l))
+            gef_print(" ".join(line_parts))
         return
 
 
@@ -9680,7 +9689,7 @@ class HeapAnalysisCommand(GenericCommand):
             ok("No free() chunk tracked")
         return
 
-    def clean(self, _: "gdb.events.ExitedEvent") -> None:
+    def clean(self, _: "gdb.ExitedEvent") -> None:
         global gef
 
         ok(f"{Color.colorify('Heap-Analysis', 'yellow bold')} - Cleaning up")
@@ -9911,6 +9920,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.libc_version"] = GefSetting("", str, "Specify libc version when auto-detection fails")
         gef.config["gef.main_arena_offset"] = GefSetting("", str, "Offset from libc base address to main_arena symbol (int or hex). Set to empty string to disable.")
         gef.config["gef.propagate_debug_exception"] = GefSetting(False, bool, "If true, when debug mode is enabled, Python exceptions will be propagated all the way.")
+        gef.config["gef.extra_python_package_paths"] = GefSetting("", str, "Semi-colon separate list of extra paths to include for python packages")
 
         self.commands : Dict[str, GenericCommand] = collections.OrderedDict()
         self.functions : Dict[str, GenericFunction] = collections.OrderedDict()
@@ -10232,7 +10242,7 @@ class GefConfigCommand(gdb.Command):
         _type = gef.config.raw_entry(key).type
 
         # Attempt to parse specific values for known types
-        if _type == bool:
+        if _type is bool:
             if new_value.upper() in ("TRUE", "T", "1"):
                 _newval = True
             elif new_value.upper() in ("FALSE", "F", "0"):
@@ -10340,7 +10350,7 @@ class GefRestoreCommand(gdb.Command):
                 except Exception:
                     continue
                 new_value = cfg.get(section, optname)
-                if setting.type == bool:
+                if setting.type is bool:
                     new_value = True if new_value.upper() in ("TRUE", "T", "1") else False
                 setting.value = setting.type(new_value)
 
@@ -10694,7 +10704,7 @@ class GefManager(metaclass=abc.ABCMeta):
                 if not hasattr(obj, "cache_clear"):
                     continue
                 obj.cache_clear()
-            except: # we're reseting the cache here, we don't care if (or which) exception triggers
+            except Exception: # we're reseting the cache here, we don't care if (or which) exception triggers
                 continue
         return
 
@@ -10764,7 +10774,10 @@ class GefMemoryManager(GefManager):
     @property
     def maps(self) -> List[Section]:
         if not self.__maps:
-            self.__maps = self.__parse_maps()
+            maps = self.__parse_maps()
+            if not maps:
+                raise RuntimeError("Failed to determine memory layout")
+            self.__maps = maps
         return self.__maps
 
     def __parse_maps(self) -> Optional[List[Section]]:
@@ -10777,17 +10790,17 @@ class GefMemoryManager(GefManager):
 
         try:
             return list(self.parse_gdb_info_proc_maps())
-        except:
+        except Exception:
             pass
 
         try:
             return list(self.parse_procfs_maps())
-        except:
+        except Exception:
             pass
 
         try:
             return list(self.parse_monitor_info_mem())
-        except:
+        except Exception:
             pass
 
         raise RuntimeError("Failed to get memory layout")
@@ -10964,7 +10977,7 @@ class GefHeapManager(GefManager):
                 # the initialization of `main_arena` also defined `selected_arena`, so
                 # by default, `main_arena` == `selected_arena`
                 self.selected_arena = self.__libc_main_arena
-            except:
+            except Exception:
                 # the search for arena can fail when the session is not started
                 pass
         return self.__libc_main_arena
@@ -11030,7 +11043,8 @@ class GefHeapManager(GefManager):
             try:
                 dbg("Trying to bruteforce main_arena address")
                 # setup search_range for `main_arena` to `.data` of glibc
-                search_filter = lambda f: "libc" in pathlib.Path(f.filename).name and f.name == ".data"
+                def search_filter(zone: Zone) -> bool:
+                    return "libc" in pathlib.Path(zone.filename).name and zone.name == ".data"
 
                 for dotdata in list(filter(search_filter, get_info_files())):
                     search_range = range(dotdata.zone_start, dotdata.zone_end, alignment)
@@ -11113,9 +11127,10 @@ class GefHeapManager(GefManager):
 
     def malloc_align_address(self, address: int) -> int:
         """Align addresses according to glibc's MALLOC_ALIGNMENT. See also Issue #689 on Github"""
+        def ceil(n: int) -> int:
+            return int(-1 * n // 1 * -1)
         malloc_alignment = self.malloc_alignment
-        ceil = lambda n: int(-1 * n // 1 * -1)
-        return malloc_alignment * ceil((address / malloc_alignment))
+        return malloc_alignment * ceil((address // malloc_alignment))
 
 
 class GefSetting:
@@ -11387,12 +11402,13 @@ class GefRemoteSessionManager(GefSessionManager):
             return f"RemoteMode = {str(self)} ({int(self)})"
 
         def prompt_string(self) -> str:
-            if self == GefRemoteSessionManager.RemoteMode.QEMU:
-                return Color.boldify("(qemu) ")
-            if self == GefRemoteSessionManager.RemoteMode.RR:
-                return Color.boldify("(rr) ")
-            if self == GefRemoteSessionManager.RemoteMode.GDBSERVER:
-                return Color.boldify("(remote) ")
+            match self:
+                case GefRemoteSessionManager.RemoteMode.QEMU:
+                    return Color.boldify("(qemu) ")
+                case GefRemoteSessionManager.RemoteMode.RR:
+                    return Color.boldify("(rr) ")
+                case GefRemoteSessionManager.RemoteMode.GDBSERVER:
+                    return Color.boldify("(remote) ")
             raise AttributeError("Unknown value")
 
     def __init__(self, host: str, port: int, pid: int =-1, qemu: Optional[pathlib.Path] = None) -> None:
@@ -11402,6 +11418,8 @@ class GefRemoteSessionManager(GefSessionManager):
         self.__local_root_fd = tempfile.TemporaryDirectory()
         self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
         self.__qemu = qemu
+        if pid > 0:
+            self._pid = pid
 
         if self.__qemu is not None:
             self._mode = GefRemoteSessionManager.RemoteMode.QEMU
@@ -11417,7 +11435,7 @@ class GefRemoteSessionManager(GefSessionManager):
             gef_on_new_hook(new_objfile_handler)
         except Exception as e:
             warn(f"Exception while restoring local context: {str(e)}")
-        return
+            raise e
 
     def __str__(self) -> str:
         return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid}, mode={self.mode})"
@@ -11478,7 +11496,7 @@ class GefRemoteSessionManager(GefSessionManager):
     def connect(self, pid: int) -> bool:
         """Connect to remote target. If in extended mode, also attach to the given PID."""
         # before anything, register our new hook to download files from the remote target
-        dbg(f"[remote] Installing new objfile handlers")
+        dbg("[remote] Installing new objfile handlers")
         try:
             gef_on_new_unhook(new_objfile_handler)
         except SystemError:
@@ -11506,17 +11524,19 @@ class GefRemoteSessionManager(GefSessionManager):
 
     def setup(self) -> bool:
         # setup remote adequately depending on remote or qemu mode
-        if self.mode == GefRemoteSessionManager.RemoteMode.QEMU:
-            dbg(f"Setting up as qemu session, target={self.__qemu}")
-            self.__setup_qemu()
-        elif self.mode == GefRemoteSessionManager.RemoteMode.RR:
-            dbg(f"Setting up as rr session")
-            self.__setup_rr()
-        elif self.mode == GefRemoteSessionManager.RemoteMode.GDBSERVER:
-            dbg(f"Setting up as remote session")
-            self.__setup_remote()
-        else:
-            raise Exception
+        match self.mode:
+            case GefRemoteSessionManager.RemoteMode.QEMU:
+                dbg(f"Setting up as qemu session, target={self.__qemu}")
+                self.__setup_qemu()
+            case GefRemoteSessionManager.RemoteMode.RR:
+                dbg("Setting up as rr session")
+                self.__setup_rr()
+            case GefRemoteSessionManager.RemoteMode.GDBSERVER:
+                dbg("Setting up as remote session")
+                self.__setup_remote()
+            case _:
+                raise ValueError
+
         # refresh gef to consider the binary
         reset_all_caches()
         gef.binary = Elf(self.lfile)
@@ -11581,7 +11601,7 @@ class GefRemoteSessionManager(GefSessionManager):
         self.__local_root_path = pathlib.Path("/")
         return True
 
-    def remote_objfile_event_handler(self, evt: "gdb.events.NewObjFileEvent") -> None:
+    def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
         dbg(f"[remote] in remote_objfile_handler({evt.new_objfile.filename if evt else 'None'}))")
         if not evt or not evt.new_objfile.filename:
             return
@@ -11710,10 +11730,30 @@ class Gef:
 
 
 def target_remote_posthook():
-    if gef.session.remote_initializing:
-        return
+    conn = gdb.selected_inferior().connection
+    # if here, the connection should be established
+    if not isinstance(conn, gdb.RemoteTargetConnection):
+        raise EnvironmentError("Failed to create a remote session")
 
-    gef.session.remote = GefRemoteSessionManager("", 0)
+    # if gef.session.remote_initializing:
+    #     dbg(f"remote session already initializing: {gef.session}")
+    #     return
+
+    print(f"{conn.description=}")
+    print(f"{conn.details=}")
+    print(f"{conn.type=}")
+
+    assert conn.details
+    host, port = conn.details.split(":")
+    pid = (
+        gdb.selected_inferior().pid
+        if False
+        else gdb.selected_thread().ptid[1]
+    )
+    print(host, port, pid)
+    gef.session.remote = GefRemoteSessionManager(host, int(port), pid)
+    gef.session.remote._mode = GefRemoteSessionManager.RemoteMode.GDBSERVER
+
     if not gef.session.remote.setup():
         raise EnvironmentError(f"Failed to create a proper environment for {gef.session.remote}")
 
@@ -11728,17 +11768,6 @@ if __name__ == "__main__":
             f"Consider updating to GDB {'.'.join(map(str, GDB_MIN_VERSION))} or higher "
             f"(with Python {'.'.join(map(str, PYTHON_MIN_VERSION))} or higher).")
         exit(1)
-
-    # When using a Python virtual environment, GDB still loads the system-installed Python
-    # so GEF doesn't load site-packages dir from environment
-    # In order to fix it, from the shell with venv activated we run the python binary,
-    # take and parse its path, add the path to the current python process using sys.path.extend
-    PYTHONBIN = which("python3")
-    PREFIX = gef_pystring(subprocess.check_output([PYTHONBIN, '-c', 'import os, sys;print((sys.prefix))'])).strip("\\n")
-    if PREFIX != sys.base_prefix:
-        SITE_PACKAGES_DIRS = subprocess.check_output(
-            [PYTHONBIN, "-c", "import os, sys;print(os.linesep.join(sys.path).strip())"]).decode("utf-8").split()
-        sys.path.extend(SITE_PACKAGES_DIRS)
 
     # setup config
     gdb_initial_settings = (
@@ -11771,6 +11800,14 @@ if __name__ == "__main__":
         # reload settings
         gdb.execute("gef restore")
 
+    # extend `sys.path` for venv compat
+    if gef.config["gef.extra_python_package_paths"]:
+        for path in map(pathlib.Path, gef.config["gef.extra_python_package_paths"].split(";")):
+            if not path.exists():
+                warn(f"Skipping invalid directory {path}")
+                continue
+            sys.path.extend(str(path.absolute()))
+
     # setup gdb prompt
     gdb.prompt_hook = __gef_prompt__
 
@@ -11789,32 +11826,16 @@ if __name__ == "__main__":
 
     GefTmuxSetup()
 
-    if GDB_VERSION > (9, 0):
-        disable_tr_overwrite_setting = "gef.disable_target_remote_overwrite"
-
-        if not gef.config[disable_tr_overwrite_setting]:
-            warnmsg = ("Using `target remote` with GEF should work in most cases, "
-                       "but use `gef-remote` if you can. You can disable the "
-                       "overwrite of the `target remote` command by toggling "
-                       f"`{disable_tr_overwrite_setting}` in the config.")
-            hook = f"""
-                define target hookpost-{{}}
-                pi target_remote_posthook()
-                context
-                pi if calling_function() != "connect": warn("{warnmsg}")
-                end
-            """
-
-            # Register a post-hook for `target remote` that initialize the remote session
-            gdb.execute(hook.format("remote"))
-            gdb.execute(hook.format("extended-remote"))
-        else:
-            errmsg = ("Using `target remote` does not work, use `gef-remote` "
-                      f"instead. You can toggle `{disable_tr_overwrite_setting}` "
-                      "if this is not desired.")
-            hook = f"""pi if calling_function() != "connect": err("{errmsg}")"""
-            gdb.execute(f"define target hook-remote\n{hook}\nend")
-            gdb.execute(f"define target hook-extended-remote\n{hook}\nend")
+    # Register a post-hook for `target remote` that initialize the remote session
+    hook = """
+    define target hookpost-{}
+        pi target_remote_posthook()
+        context
+        pi res = calling_function(); if res != "connect": err("Failed to initialize remote session: " + str(res))
+    end
+    """
+    gdb.execute(hook.format("remote"))
+    gdb.execute(hook.format("extended-remote"))
 
     # restore saved breakpoints (if any)
     bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
