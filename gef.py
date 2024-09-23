@@ -10741,9 +10741,9 @@ class GefMemoryManager(GefManager):
             res_bytes = b""
             while len(res_bytes) < length:
                 try:
-                    new_end_addr = current_address + DEFAULT_PAGE_SIZE
+                    next_page = current_address + DEFAULT_PAGE_SIZE
                     page_mask = ~(DEFAULT_PAGE_SIZE - 1)
-                    size = (new_end_addr & page_mask) - current_address
+                    size = (next_page & page_mask) - current_address
 
                     res_bytes += self.read(current_address, size)
 
