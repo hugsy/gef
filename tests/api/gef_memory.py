@@ -178,3 +178,17 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
                    "/usr" not in section.realpath):
                     assert pathlib.Path(section.realpath).is_file()
                     break
+
+    def test_func_read_cstring_oob(self):
+        gef, gdb = self._gef, self._gdb
+
+        gdb.execute("b main")
+        gdb.execute("start")
+
+        section = gef.memory.maps[0]
+        oob_val = gef.memory.read_cstring(section.page_start, section.page_end -
+                                section.page_start + 0x100)
+        val = gef.memory.read_cstring(section.page_start, section.page_end -
+                                section.page_start)
+
+        assert val == oob_val
