@@ -10741,10 +10741,12 @@ class GefMemoryManager(GefManager):
             res_bytes = b""
             while len(res_bytes) < length:
                 try:
+                    # Calculate how much bytes there is until next page
                     next_page = current_address + DEFAULT_PAGE_SIZE
                     page_mask = ~(DEFAULT_PAGE_SIZE - 1)
                     size = (next_page & page_mask) - current_address
 
+                    # Read until the end of the current page
                     res_bytes += self.read(current_address, size)
 
                     current_address += size
