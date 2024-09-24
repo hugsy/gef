@@ -20,14 +20,14 @@ has gone since and the Python API has been massively improved, and GEF is taking
 to provide the coolest features with as little performance impact as possible.
 
 Currently, GEF is optimized for running against GDB version 10.0+, and Python 3.10+. This allows for
-a best performance and best use of the GDB Python API. However, GEF can run on older versions too,
+the best performance and use of the GDB Python API. However, GEF can run on older versions too,
 check out [the version compatibility matrix](compat.md). For really older versions of GDB, you can
 use [`gef-legacy`](https://github.com/hugsy/gef-legacy) which supports a lot of older GDB, and a
 Python 2/3 compatibility layer.
 
 Therefore, it is highly recommended to run GEF with the latest version of GDB. However, all
 functions should work on a GDB 10.0 and up. If not, send a [bug
-report](https://github.com/hugsy/gef/issues) and provide as much details as possible.
+report](https://github.com/hugsy/gef/issues) and provide as many details as possible.
 
 If you are running an obsolete version, GEF will show a error and message and exit.
 
@@ -36,7 +36,7 @@ Some pre-compiled static binaries for both recent GDB and GDBServer can be downl
 
 ## I cannot get GEF setup
 
-GEF will work on any GDB 8+ compiled with Python 3.10+ support. You can view that commands that
+GEF will work on any GDB 10+ compiled with Python 3.10+ support. You can view that commands that
 failed to load using `gef missing`, but this will not affect GEF generally.
 
 If you experience problems setting it up on your host, first go to the [Discord
