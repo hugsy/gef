@@ -36,7 +36,7 @@ Some pre-compiled static binaries for both recent GDB and GDBServer can be downl
 
 ## I cannot get GEF setup
 
-GEF will work on any GDB 8+ compiled with Python 3.10+ support. You can view that commands that
+GEF will work on any GDB 8+ compiled with Python 3.10+ support. You can view the commands that
 failed to load using `gef missing`, but this will not affect GEF generally.
 
 If you experience problems setting it up on your host, first go to the [Discord
@@ -45,7 +45,7 @@ channel](https://discord.gg/HCS8Hg7) for that. You will find great people there 
 Note that the GitHub issue section is to be used to **report bugs** and **GEF issues** (like
 unexpected crash, improper error handling, weird edge case, etc.), not a place to ask for help.
 
-All recent distributions ship packaged GDB that should be ready-to-go, with a GDB >= 10.0 and Python
+All recent distributions ship packaged GDB that should be ready-to-go, with GDB >= 10.0 and Python
 3.10+. Any version higher or equal will work just fine. So you might actually only need to run `apt
 install gdb` to get the full-force of GEF.
 
