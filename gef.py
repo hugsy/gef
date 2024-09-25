@@ -8905,7 +8905,7 @@ class VMMapCommand(GenericCommand):
         names: List[str] = [x for x in args.name]
 
         for arg in args.unknown_types:
-            if arg is '':
+            if not arg:
                 continue
 
             if self.is_integer(arg):

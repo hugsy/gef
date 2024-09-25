@@ -26,6 +26,6 @@ The address can be also be given in the form of a register or variable.
 
 ![vmmap-register](https://github.com/hugsy/gef/assets/11377623/aed7ecdc-7ad9-4ba5-ae03-329e66432731)
 
-And you can do all of them in one command :)
+And you can do all of them in one command 🙂
 
 ![vmmap-all-in-one](https://github.com/hugsy/gef/assets/11377623/b043f61b-48b3-4316-9f84-eb83822149ac)
