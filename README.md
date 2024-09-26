@@ -17,7 +17,7 @@ from the debugging runtime.
 
 ## Instant Setup
 
-Simply make sure you have [GDB 8.0 or higher](https://www.gnu.org/s/gdb) compiled with Python3.6+
+Simply make sure you have [GDB 10.0 or higher](https://www.gnu.org/s/gdb) compiled with Python3.10+
 bindings, then:
 
 ```bash
