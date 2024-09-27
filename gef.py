@@ -8936,7 +8936,7 @@ class VMMapCommand(GenericCommand):
             names_filter = [f"name = '{x}'" for x in names if x in entry.path]
             addrs_filter = [f"addr = {self.format_addr_filter(arg, addr)}" for arg, addr in addrs.items()
                 if entry.page_start <= addr < entry.page_end]
-            filter_content = f"[{' & '.join([*names filter, *addrs_filter])}]"
+            filter_content = f"[{' & '.join([*names_filter, *addrs_filter])}]"
 
             if len(names) + len(addrs) == 0:
                 self.print_entry(entry)
