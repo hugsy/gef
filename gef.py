@@ -10750,9 +10750,9 @@ class GefMemoryManager(GefManager):
                     res_bytes += self.read(current_address, size)
 
                     current_address += size
-                except:
+                except gdb.error:
                     if not res_bytes:
-                        err(f"Can't read memory at '{address}'")
+                        err(f"Can't read memory at '{address:#x}'")
                         return ""
                     break
         try:
