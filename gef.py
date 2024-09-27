@@ -8941,7 +8941,7 @@ class VMMapCommand(GenericCommand):
             if len(names) + len(addrs) == 0:
                 self.print_entry(entry)
 
-            elif filters:
+            elif names_filter or addrs_filter:
                 if filter_content != last_printed_filter:
                     gef_print() # skip a line between different filters
                     gef_print(Color.greenify(filter_content))
