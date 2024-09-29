@@ -10742,8 +10742,24 @@ class GefMemoryManager(GefManager):
         try:
             res_bytes = self.read(address, length)
         except gdb.error:
-            err(f"Can't read memory at '{address}'")
-            return ""
+            current_address = address
+            res_bytes = b""
+            while len(res_bytes) < length:
+                try:
+                    # Calculate how many bytes there are until next page
+                    next_page = current_address + DEFAULT_PAGE_SIZE
+                    page_mask = ~(DEFAULT_PAGE_SIZE - 1)
+                    size = (next_page & page_mask) - current_address
+
+                    # Read until the end of the current page
+                    res_bytes += self.read(current_address, size)
+
+                    current_address += size
+                except gdb.error:
+                    if not res_bytes:
+                        err(f"Can't read memory at '{address:#x}'")
+                        return ""
+                    break
         try:
             with warnings.catch_warnings():
                 # ignore DeprecationWarnings (see #735)
