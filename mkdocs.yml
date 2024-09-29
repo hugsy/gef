@@ -47,7 +47,6 @@ nav:
   - hexdump: commands/hexdump.md
   - highlight: commands/highlight.md
   - hijack-fd: commands/hijack-fd.md
-  - ksymaddr: commands/ksymaddr.md
   - memory: commands/memory.md
   - name-break: commands/name-break.md
   - nop: commands/nop.md
