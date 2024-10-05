@@ -1,0 +1,2 @@
+[lint.per-file-ignores]
+"gef.py" = ["E701"]

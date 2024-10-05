@@ -41,5 +41,5 @@ class ThemeCommand(RemoteGefUnitTestGeneric):
             gdb.execute(f"theme {t} {v}")
 
 
-        res = gdb.execute(f"theme ___I_DONT_EXIST___", to_string=True)
+        res = gdb.execute("theme ___I_DONT_EXIST___", to_string=True)
         self.assertIn("Invalid key", res)
