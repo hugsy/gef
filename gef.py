@@ -8938,7 +8938,7 @@ class VMMapCommand(GenericCommand):
                 if entry.page_start <= addr < entry.page_end]
             filter_content = f"[{' & '.join([*names_filter, *addrs_filter])}]"
 
-            if len(names) + len(addrs) == 0:
+            if not names and not addrs:
                 self.print_entry(entry)
 
             elif names_filter or addrs_filter:
