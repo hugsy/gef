@@ -8898,11 +8898,34 @@ class VMMapCommand(GenericCommand):
     _example_ = f"{_cmdline_} libc"
 
     @only_if_gdb_running
-    def do_invoke(self, argv: List[str]) -> None:
+    @parse_arguments({"unknown_types": [""]}, {("--addr", "-a"): [""], ("--name", "-n"): [""]})
+    def do_invoke(self, _: List[str], **kwargs: Any) -> None:
+        args : argparse.Namespace = kwargs["arguments"]
         vmmap = gef.memory.maps
         if not vmmap:
             err("No address mapping information found")
             return
+
+        addrs: Dict[str, int] = {x: parse_address(x) for x in args.addr}
+        names: List[str] = [x for x in args.name]
+
+        for arg in args.unknown_types:
+            if not arg:
+                continue
+
+            if self.is_integer(arg):
+                addr = int(arg, 0)
+            else:
+                addr = safe_parse_and_eval(arg)
+
+            if addr is None:
+                names.append(arg)
+                warn(f"`{arg}` has no type specified. We guessed it was a name filter.")
+            else:
+                addrs[arg] = int(addr)
+                warn(f"`{arg}` has no type specified. We guessed it was an address filter.")
+            warn("You can use --name or --addr before the filter value for specifying its type manually.")
+            gef_print()
 
         if not gef.config["gef.disable_color"]:
             self.show_legend()
@@ -8912,21 +8935,29 @@ class VMMapCommand(GenericCommand):
         headers = ["Start", "End", "Offset", "Perm", "Path"]
         gef_print(Color.colorify("{:<{w}s}{:<{w}s}{:<{w}s}{:<4s} {:s}".format(*headers, w=gef.arch.ptrsize*2+3), color))
 
+        last_printed_filter = None
+
         for entry in vmmap:
-            if not argv:
+            names_filter = [f"name = '{x}'" for x in names if x in entry.path]
+            addrs_filter = [f"addr = {self.format_addr_filter(arg, addr)}" for arg, addr in addrs.items()
+                if entry.page_start <= addr < entry.page_end]
+            filter_content = f"[{' & '.join([*names_filter, *addrs_filter])}]"
+
+            if not names and not addrs:
                 self.print_entry(entry)
-                continue
-            if argv[0] in entry.path:
+
+            elif names_filter or addrs_filter:
+                if filter_content != last_printed_filter:
+                    gef_print() # skip a line between different filters
+                    gef_print(Color.greenify(filter_content))
+                    last_printed_filter = filter_content
                 self.print_entry(entry)
-            elif self.is_integer(argv[0]):
-                addr = int(argv[0], 0)
-                if addr >= entry.page_start and addr < entry.page_end:
-                    self.print_entry(entry)
-            else:
-                addr = safe_parse_and_eval(argv[0])
-                if addr is not None and addr >= entry.page_start and addr < entry.page_end:
-                    self.print_entry(entry)
+
+        gef_print()
         return
+
+    def format_addr_filter(self, arg: str, addr: int):
+        return f"`{arg}`" if self.is_integer(arg) else f"`{arg}` ({addr:#x})"
 
     def print_entry(self, entry: Section) -> None:
         line_color = ""
