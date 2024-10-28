@@ -1936,10 +1936,9 @@ def gef_pybytes(x: str) -> bytes:
 @lru_cache()
 def which(program: str) -> pathlib.Path:
     """Locate a command on the filesystem."""
-    path = shutil.which(program)
-    if path:
-        return pathlib.Path(path)
-    else:
+    try:
+        return pathlib.Path(shutil.which(program))
+    except TypeError:
         raise FileNotFoundError(f"Missing file `{program}`")
 
 
