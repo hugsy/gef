@@ -348,6 +348,14 @@ def is_alive() -> bool:
         return False
 
 
+def is_wine() -> bool:
+    """Check we're running under winedbg."""
+    try:
+        return "hwnd" in gdb.execute("monitor wnd", to_string=True)
+    except Exception:
+        return False
+
+
 def calling_function() -> Optional[str]:
     """Return the name of the calling function"""
     try:
@@ -655,6 +663,15 @@ class Permission(enum.Flag):
         # we don't track
         if perm_str[1] == "r": perm |= Permission.READ
         if perm_str[2] == "w": perm |= Permission.WRITE
+        return perm
+
+    @classmethod
+    def from_monitor_mem(cls, perm_str: str) -> "Permission":
+        perm = cls(0)
+        perm_str = perm_str.ljust(3)
+        if perm_str[0] == "R": perm |= Permission.READ
+        if perm_str[1] == "W": perm |= Permission.WRITE
+        if perm_str[2] == "X": perm |= Permission.EXECUTE
         return perm
 
     @classmethod
@@ -2911,7 +2928,7 @@ class AARCH64(ARM):
 
 
 class X86(Architecture):
-    aliases: Tuple[Union[str, Elf.Abi], ...] = ("X86", Elf.Abi.X86_32)
+    aliases: Tuple[Union[str, Elf.Abi], ...] = ("X86", "i386", Elf.Abi.X86_32)
     arch = "X86"
     mode = "32"
 
@@ -3850,6 +3867,8 @@ def reset_architecture(arch: Optional[str] = None) -> None:
     # check for bin running
     if is_alive():
         gdb_arch = gdb.selected_frame().architecture().name()
+        if gdb_arch in arches:
+            gef.arch = arches[gdb_arch]()
         preciser_arch = next((a for a in arches.values() if a.supports_gdb_arch(gdb_arch)), None)
         if preciser_arch:
             gef.arch = preciser_arch()
@@ -7661,6 +7680,9 @@ class ContextCommand(GenericCommand):
         if not self["enable"] or gef.ui.context_hidden:
             return
 
+        if type(gef.arch) == GenericArchitecture:
+            return
+
         if not all(_ in self.layout_mapping for _ in argv):
             self.usage()
             return
@@ -10839,6 +10861,11 @@ class GefMemoryManager(GefManager):
         except:
             pass
 
+        try:
+            return list(self.parse_monitor_mem())
+        except:
+            pass
+
         raise RuntimeError("Failed to get memory layout")
 
     @classmethod
@@ -10952,6 +10979,37 @@ class GefMemoryManager(GefManager):
             yield Section(page_start=start,
                           page_end=end,
                           offset=off,
+                          permission=perm)
+
+    @classmethod
+    def parse_monitor_mem(cls) -> Generator[Section, None, None]:
+        """If we're running under winedbg, we can use `monitor mem` to get memory mappings
+        This can raise an exception, which the memory manager takes to mean
+        that this method does not work to get a map.
+        """
+
+        # Expected output format:
+        # Address  Size     State   Type    RWX
+        # 00000000 00110000 free
+        # 00110000 00003000 commit  mapped  R X
+        # ...
+
+        stream = StringIO(gdb.execute("monitor mem", to_string=True))
+        for line in stream:
+            if line.startswith("Address"):
+                continue
+            try:
+                start, size, _, _, perms = line.split(maxsplit=5)
+                start = int(start, 16)
+                size = int(size, 16)
+                perms = perms.ljust(3)
+                end = start + size
+            except ValueError:
+                continue
+
+            perm = Permission.from_monitor_mem(perms)
+            yield Section(page_start=start,
+                          page_end=end,
                           permission=perm)
 
     @staticmethod
@@ -11311,6 +11369,8 @@ class GefSessionManager(GefManager):
             return None
         if is_qemu_system():
             return None
+        if is_wine():
+            return None
         if not self._auxiliary_vector:
             auxiliary_vector = {}
             auxv_info = gdb.execute("info auxv", to_string=True) or ""
@@ -11428,6 +11488,7 @@ class GefRemoteSessionManager(GefSessionManager):
         GDBSERVER = 0
         QEMU = 1
         RR = 2
+        WINEDBG = 3
 
         def __str__(self):
             return self.name
@@ -11442,6 +11503,8 @@ class GefRemoteSessionManager(GefSessionManager):
                 return Color.boldify("(rr) ")
             if self == GefRemoteSessionManager.RemoteMode.GDBSERVER:
                 return Color.boldify("(remote) ")
+            if self == GefRemoteSessionManager.RemoteMode.WINEDBG:
+                return Color.boldify("(winedbg) ")
             raise AttributeError("Unknown value")
 
     def __init__(self, host: str, port: int, pid: int =-1, qemu: Optional[pathlib.Path] = None) -> None:
@@ -11456,6 +11519,8 @@ class GefRemoteSessionManager(GefSessionManager):
             self._mode = GefRemoteSessionManager.RemoteMode.QEMU
         elif os.environ.get("GDB_UNDER_RR", None) == "1":
             self._mode =  GefRemoteSessionManager.RemoteMode.RR
+        elif is_wine():
+            self._mode =  GefRemoteSessionManager.RemoteMode.WINEDBG
         else:
             self._mode =  GefRemoteSessionManager.RemoteMode.GDBSERVER
 
@@ -11561,6 +11626,9 @@ class GefRemoteSessionManager(GefSessionManager):
         elif self.mode == GefRemoteSessionManager.RemoteMode.RR:
             dbg(f"Setting up as rr session")
             self.__setup_rr()
+        elif self.mode == GefRemoteSessionManager.RemoteMode.WINEDBG:
+            dbg(f"Setting up as winedbg session")
+            self.__setup_winedbg()
         elif self.mode == GefRemoteSessionManager.RemoteMode.GDBSERVER:
             dbg(f"Setting up as remote session")
             self.__setup_remote()
@@ -11620,6 +11688,10 @@ class GefRemoteSessionManager(GefSessionManager):
                 err(f"'{fpath}' could not be fetched on the remote system.")
                 return False
 
+        return True
+
+    def __setup_winedbg(self) -> bool:
+        reset_architecture()
         return True
 
     def __setup_rr(self) -> bool:
