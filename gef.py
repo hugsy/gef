@@ -3900,7 +3900,8 @@ def clear_screen(tty: str = "") -> None:
     """Clear the screen."""
     global gef
     if not tty:
-        gdb.execute("shell clear -x")
+        cmd: str = gef.config["gef.clear_screen_command"]
+        gdb.execute(f"shell {cmd}")
         return
 
     # Since the tty can be closed at any time, a PermissionError exception can
@@ -9944,6 +9945,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.libc_version"] = GefSetting("", str, "Specify libc version when auto-detection fails")
         gef.config["gef.main_arena_offset"] = GefSetting("", str, "Offset from libc base address to main_arena symbol (int or hex). Set to empty string to disable.")
         gef.config["gef.propagate_debug_exception"] = GefSetting(False, bool, "If true, when debug mode is enabled, Python exceptions will be propagated all the way.")
+        gef.config["gef.clear_screen_command"] = GefSetting("clear -x", str, "Command to use to clear the screen.")
 
         self.commands : Dict[str, GenericCommand] = collections.OrderedDict()
         self.functions : Dict[str, GenericFunction] = collections.OrderedDict()
