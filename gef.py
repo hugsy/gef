@@ -83,8 +83,8 @@ from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
 from typing import (Any, ByteString, Callable, Generator, Iterable,
-                    Iterator, NoReturn, Optional, Sequence, Set, Tuple, Type, TypeVar,
-                    Union, cast)
+                    Iterator, NoReturn, Optional, Sequence, Type, TypeVar,
+                    cast)
 from urllib.request import urlopen
 
 
@@ -146,7 +146,7 @@ GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\03
 
 __registered_commands__ : set[Type["GenericCommand"]]                                        = set()
 __registered_functions__ : set[Type["GenericFunction"]]                                      = set()
-__registered_architectures__ : dict[Union["Elf.Abi", str], Type["Architecture"]]              = {}
+__registered_architectures__ : dict["Elf.Abi" | str, Type["Architecture"]]              = {}
 __registered_file_formats__ : set[ Type["FileFormat"] ]                                       = set()
 
 GefMemoryMapProvider = Callable[[], Generator["Section", None, None]]
@@ -446,8 +446,8 @@ def FakeExit(*args: Any, **kwargs: Any) -> NoReturn:
 sys.exit = FakeExit
 
 
-def parse_arguments(required_arguments: dict[Union[str, tuple[str, str]], Any],
-                    optional_arguments: dict[Union[str, tuple[str, str]], Any]) -> Callable:
+def parse_arguments(required_arguments: dict[str | tuple[str, str], Any],
+                    optional_arguments: dict[str | tuple[str, str], Any]) -> Callable:
     """Argument parsing decorator."""
 
     def int_wrapper(x: str) -> int: return int(x, 0)
@@ -799,7 +799,7 @@ class FileFormat:
     checksec: dict[str, bool]
     sections: list[FileFormatSection]
 
-    def __init__(self, path: Union[str, pathlib.Path]) -> None:
+    def __init__(self, path: str | pathlib.Path) -> None:
         raise NotImplementedError
 
     def __init_subclass__(cls: Type["FileFormat"], **kwargs):
@@ -892,7 +892,7 @@ class Elf(FileFormat):
 
     __checksec : dict[str, bool]
 
-    def __init__(self, path: Union[str, pathlib.Path]) -> None:
+    def __init__(self, path: str | pathlib.Path) -> None:
         """Instantiate an ELF object. A valid ELF must be provided, or an exception will be thrown."""
 
         if isinstance(path, str):
@@ -1314,7 +1314,7 @@ class GlibcHeapInfo:
         heap_info_cls._fields_ = fields
         return heap_info_cls
 
-    def __init__(self, addr: Union[str, int]) -> None:
+    def __init__(self, addr: str |  int) -> None:
         self.__address : int = parse_address(f"&{addr}") if isinstance(addr, str) else addr
         self.reset()
         return
@@ -2236,7 +2236,7 @@ def gef_disassemble(addr: int, nb_insn: int, nb_prev: int = 0) -> Generator[Inst
         yield insn
 
 
-def gef_execute_external(command: Sequence[str], as_list: bool = False, **kwargs: Any) -> Union[str, list[str]]:
+def gef_execute_external(command: Sequence[str], as_list: bool = False, **kwargs: Any) -> str |  list[str]:
     """Execute an external command and return the result."""
     res = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=kwargs.get("shell", False))
     return [gef_pystring(_) for _ in res.splitlines()] if as_list else gef_pystring(res)
@@ -2340,7 +2340,7 @@ def register_architecture(cls: Type["Architecture"]) -> Type["Architecture"]:
 
 class ArchitectureBase:
     """Class decorator for declaring an architecture to GEF."""
-    aliases: Union[tuple[()], tuple[Union[str, Elf.Abi], ...]] = ()
+    aliases: tuple[()] |  tuple[str | Elf.Abi | ...] = ()
 
     def __init_subclass__(cls: Type["ArchitectureBase"], **kwargs):
         global __registered_architectures__
@@ -2360,20 +2360,20 @@ class Architecture(ArchitectureBase):
     # Mandatory defined attributes by inheriting classes
     arch: str
     mode: str
-    all_registers: Union[tuple[()], tuple[str, ...]]
+    all_registers: tuple[()] |  tuple[str, ...]
     nop_insn: bytes
     return_register: str
     flag_register: Optional[str]
     instruction_length: Optional[int]
     flags_table: dict[int, str]
     syscall_register: Optional[str]
-    syscall_instructions: Union[tuple[()], tuple[str, ...]]
-    function_parameters: Union[tuple[()], tuple[str, ...]]
+    syscall_instructions: tuple[()] |  tuple[str, ...]
+    function_parameters: tuple[()] |  tuple[str, ...]
 
     # Optionally defined attributes
     _ptrsize: Optional[int] = None
     _endianness: Optional[Endianness] = None
-    special_registers: Union[tuple[()], tuple[str, ...]] = ()
+    special_registers: tuple[()] |  tuple[str, ...] = ()
     maps: Optional[GefMemoryMapProvider] = None
 
     def __init_subclass__(cls, **kwargs):
@@ -2914,7 +2914,7 @@ class AARCH64(ARM):
 
 
 class X86(Architecture):
-    aliases: tuple[Union[str, Elf.Abi], ...] = ("X86", Elf.Abi.X86_32)
+    aliases: tuple[str |  Elf.Abi, ...] = ("X86", Elf.Abi.X86_32)
     arch = "X86"
     mode = "32"
 
@@ -3358,7 +3358,7 @@ class SPARC64(SPARC):
 
 
 class MIPS(Architecture):
-    aliases: tuple[Union[str, Elf.Abi], ...] = ("MIPS", Elf.Abi.MIPS)
+    aliases: tuple[str |  Elf.Abi, ...] = ("MIPS", Elf.Abi.MIPS)
     arch = "MIPS"
     mode = "MIPS32"
 
@@ -4026,7 +4026,7 @@ def dereference(addr: int) -> Optional["gdb.Value"]:
     return None
 
 
-def gef_convenience(value: Union[str, bytes]) -> str:
+def gef_convenience(value: str |  bytes) -> str:
     """Defines a new convenience value."""
     global gef
     var_name = f"$_gef{gef.session.convenience_vars_index:d}"
@@ -4048,7 +4048,7 @@ def parse_string_range(s: str) -> Iterator[int]:
 
 
 @lru_cache()
-def is_syscall(instruction: Union[Instruction,int]) -> bool:
+def is_syscall(instruction: Instruction | int) -> bool:
     """Checks whether an instruction or address points to a system call."""
     if isinstance(instruction, int):
         instruction = gef_current_instruction(instruction)
@@ -4214,7 +4214,7 @@ class PieVirtualBreakpoint:
         self.bp_addr = 0
         # this address might be a symbol, just to know where to break
         if isinstance(addr, int):
-            self.addr: Union[int, str] = hex(addr)
+            self.addr: int |  str = hex(addr)
         else:
             self.addr = addr
         return
@@ -4664,7 +4664,7 @@ def register_priority_command(cls: Type["GenericCommand"]) -> Type["GenericComma
 ValidCommandType = TypeVar("ValidCommandType", bound="GenericCommand")
 ValidFunctionType = TypeVar("ValidFunctionType", bound="GenericFunction")
 
-def register(cls: Union[Type["ValidCommandType"], Type["ValidFunctionType"]]) -> Union[Type["ValidCommandType"], Type["ValidFunctionType"]]:
+def register(cls: Type["ValidCommandType"] |  Type["ValidFunctionType"]) -> Type["ValidCommandType"] |  Type["ValidFunctionType"]:
     global __registered_commands__, __registered_functions__
     if issubclass(cls, GenericCommand):
         assert hasattr(cls, "_cmdline_")
@@ -4690,7 +4690,7 @@ class GenericCommand(gdb.Command):
 
     _cmdline_: str
     _syntax_: str
-    _example_: Union[str, list[str]] = ""
+    _example_: str |  list[str] = ""
     _aliases_: list[str] = []
 
     def __init_subclass__(cls, **kwargs):
@@ -4781,7 +4781,7 @@ class GenericCommand(gdb.Command):
     def add_setting(self, name: str, value: tuple[Any, type, str], description: str = "") -> None:
         return self.__setitem__(name, (value, description))
 
-    def __setitem__(self, name: str, value: Union["GefSetting", tuple[Any, str]]) -> None:
+    def __setitem__(self, name: str, value: "GefSetting" |  tuple[Any, str]) -> None:
         # make sure settings are always associated to the root command (which derives from GenericCommand)
         if "GenericCommand" not in [x.__name__ for x in self.__class__.__bases__]:
             return
@@ -6283,6 +6283,7 @@ class RemoteCommand(GenericCommand):
             return
 
         # qemu-user support
+        qemu_binary = None
         if args.qemu_user:
             dbg("Setting up qemu-user session")
             try:
