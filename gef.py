@@ -115,10 +115,10 @@ except ImportError:
     sys.exit(1)
 
 
-GDB_MIN_VERSION: Tuple[int, int]       = (8, 0)
-PYTHON_MIN_VERSION: Tuple[int, int]    = (3, 6)
-PYTHON_VERSION: Tuple[int, int]        = sys.version_info[0:2]
-GDB_VERSION: Tuple[int, int]           = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups())) # type:ignore
+GDB_MIN_VERSION: tuple[int, int]       = (8, 0)
+PYTHON_MIN_VERSION: tuple[int, int]    = (3, 6)
+PYTHON_VERSION: tuple[int, int]        = sys.version_info[0:2]
+GDB_VERSION: tuple[int, int]           = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups())) # type:ignore
 
 DEFAULT_PAGE_ALIGN_SHIFT               = 12
 DEFAULT_PAGE_SIZE                      = 1 << DEFAULT_PAGE_ALIGN_SHIFT
@@ -144,10 +144,10 @@ GEF_PROMPT                             = "gef➤  "
 GEF_PROMPT_ON                          = f"\001\033[1;32m\002{GEF_PROMPT}\001\033[0m\002"
 GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\033[0m\002"
 
-__registered_commands__ : Set[Type["GenericCommand"]]                                        = set()
-__registered_functions__ : Set[Type["GenericFunction"]]                                      = set()
+__registered_commands__ : set[Type["GenericCommand"]]                                        = set()
+__registered_functions__ : set[Type["GenericFunction"]]                                      = set()
 __registered_architectures__ : dict[Union["Elf.Abi", str], Type["Architecture"]]              = {}
-__registered_file_formats__ : Set[ Type["FileFormat"] ]                                       = set()
+__registered_file_formats__ : set[ Type["FileFormat"] ]                                       = set()
 
 GefMemoryMapProvider = Callable[[], Generator["Section", None, None]]
 
@@ -446,8 +446,8 @@ def FakeExit(*args: Any, **kwargs: Any) -> NoReturn:
 sys.exit = FakeExit
 
 
-def parse_arguments(required_arguments: dict[Union[str, Tuple[str, str]], Any],
-                    optional_arguments: dict[Union[str, Tuple[str, str]], Any]) -> Callable:
+def parse_arguments(required_arguments: dict[Union[str, tuple[str, str]], Any],
+                    optional_arguments: dict[Union[str, tuple[str, str]], Any]) -> Callable:
     """Argument parsing decorator."""
 
     def int_wrapper(x: str) -> int: return int(x, 0)
@@ -953,7 +953,7 @@ class Elf(FileFormat):
     def read(self, size: int) -> bytes:
         return self.fd.read(size)
 
-    def read_and_unpack(self, fmt: str) -> Tuple[Any, ...]:
+    def read_and_unpack(self, fmt: str) -> tuple[Any, ...]:
         size = struct.calcsize(fmt)
         data = self.fd.read(size)
         return struct.unpack(fmt, data)
@@ -1523,7 +1523,7 @@ class GlibcArena:
             return None
         return GlibcFastChunk(addr + 2 * gef.arch.ptrsize)
 
-    def bin(self, i: int) -> Tuple[int, int]:
+    def bin(self, i: int) -> tuple[int, int]:
         idx = i * 2
         fd = int(self.bins[idx])
         bk = int(self.bins[idx + 1])
@@ -1824,7 +1824,7 @@ class GlibcTcacheChunk(GlibcFastChunk):
     pass
 
 @deprecated("Use GefLibcManager.find_libc_version()")
-def get_libc_version() -> Tuple[int, ...]:
+def get_libc_version() -> tuple[int, ...]:
     return GefLibcManager.find_libc_version()
 
 def titlify(text: str, color: Optional[str] = None, msg_color: Optional[str] = None) -> str:
@@ -2091,7 +2091,7 @@ def gef_makedirs(path: str, mode: int = 0o755) -> pathlib.Path:
 
 
 @lru_cache()
-def gdb_lookup_symbol(sym: str) -> Optional[Tuple[gdb.Symtab_and_line, ...]]:
+def gdb_lookup_symbol(sym: str) -> Optional[tuple[gdb.Symtab_and_line, ...]]:
     """Fetch the proper symbol or None if not defined."""
     try:
         res = gdb.decode_line(sym)[1] # pylint: disable=E1136
@@ -2100,7 +2100,7 @@ def gdb_lookup_symbol(sym: str) -> Optional[Tuple[gdb.Symtab_and_line, ...]]:
         return None
 
 @lru_cache(maxsize=512)
-def gdb_get_location_from_symbol(address: int) -> Optional[Tuple[str, int]]:
+def gdb_get_location_from_symbol(address: int) -> Optional[tuple[str, int]]:
     """Retrieve the location of the `address` argument from the symbol table.
     Return a tuple with the name and offset if found, None otherwise."""
     # this is horrible, ugly hack and shitty perf...
@@ -2340,7 +2340,7 @@ def register_architecture(cls: Type["Architecture"]) -> Type["Architecture"]:
 
 class ArchitectureBase:
     """Class decorator for declaring an architecture to GEF."""
-    aliases: Union[Tuple[()], Tuple[Union[str, Elf.Abi], ...]] = ()
+    aliases: Union[tuple[()], tuple[Union[str, Elf.Abi], ...]] = ()
 
     def __init_subclass__(cls: Type["ArchitectureBase"], **kwargs):
         global __registered_architectures__
@@ -2360,20 +2360,20 @@ class Architecture(ArchitectureBase):
     # Mandatory defined attributes by inheriting classes
     arch: str
     mode: str
-    all_registers: Union[Tuple[()], Tuple[str, ...]]
+    all_registers: Union[tuple[()], tuple[str, ...]]
     nop_insn: bytes
     return_register: str
     flag_register: Optional[str]
     instruction_length: Optional[int]
     flags_table: dict[int, str]
     syscall_register: Optional[str]
-    syscall_instructions: Union[Tuple[()], Tuple[str, ...]]
-    function_parameters: Union[Tuple[()], Tuple[str, ...]]
+    syscall_instructions: Union[tuple[()], tuple[str, ...]]
+    function_parameters: Union[tuple[()], tuple[str, ...]]
 
     # Optionally defined attributes
     _ptrsize: Optional[int] = None
     _endianness: Optional[Endianness] = None
-    special_registers: Union[Tuple[()], Tuple[str, ...]] = ()
+    special_registers: Union[tuple[()], tuple[str, ...]] = ()
     maps: Optional[GefMemoryMapProvider] = None
 
     def __init_subclass__(cls, **kwargs):
@@ -2409,7 +2409,7 @@ class Architecture(ArchitectureBase):
     def is_conditional_branch(self, insn: Instruction) -> bool:
         raise NotImplementedError
 
-    def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:
+    def is_branch_taken(self, insn: Instruction) -> tuple[bool, str]:
         raise NotImplementedError
 
     def get_ra(self, insn: Instruction, frame: "gdb.Frame") -> Optional[int]:
@@ -2488,7 +2488,7 @@ class Architecture(ArchitectureBase):
                 raise OSError(f"No valid endianess found in '{output}'")
         return self._endianness
 
-    def get_ith_parameter(self, i: int, in_func: bool = True) -> Tuple[str, Optional[int]]:
+    def get_ith_parameter(self, i: int, in_func: bool = True) -> tuple[str, Optional[int]]:
         """Retrieves the correct parameter used for the current function call."""
         reg = self.function_parameters[i]
         val = self.register(reg)
@@ -2563,7 +2563,7 @@ class RISCV(Architecture):
     def is_conditional_branch(self, insn: Instruction) -> bool:
         return insn.mnemonic.startswith("b")
 
-    def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:
+    def is_branch_taken(self, insn: Instruction) -> tuple[bool, str]:
         def long_to_twos_complement(v: int) -> int:
             """Convert a python long value to its two's complement."""
             if is_32bit():
@@ -2716,7 +2716,7 @@ class ARM(Architecture):
         conditions = {"eq", "ne", "lt", "le", "gt", "ge", "vs", "vc", "mi", "pl", "hi", "ls", "cc", "cs"}
         return insn.mnemonic[-2:] in conditions
 
-    def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:
+    def is_branch_taken(self, insn: Instruction) -> tuple[bool, str]:
         mnemo = insn.mnemonic
         # ref: https://www.davespace.co.uk/arm/introduction-to-arm/conditional.html
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
@@ -2882,7 +2882,7 @@ class AARCH64(ARM):
         branch_mnemos = {"cbnz", "cbz", "tbnz", "tbz"}
         return mnemo.startswith("b.") or mnemo in branch_mnemos
 
-    def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:
+    def is_branch_taken(self, insn: Instruction) -> tuple[bool, str]:
         mnemo, operands = insn.mnemonic, insn.operands
         taken, reason = False, ""
 
@@ -2914,7 +2914,7 @@ class AARCH64(ARM):
 
 
 class X86(Architecture):
-    aliases: Tuple[Union[str, Elf.Abi], ...] = ("X86", Elf.Abi.X86_32)
+    aliases: tuple[Union[str, Elf.Abi], ...] = ("X86", Elf.Abi.X86_32)
     arch = "X86"
     mode = "32"
 
@@ -2969,7 +2969,7 @@ class X86(Architecture):
         }
         return mnemo in branch_mnemos
 
-    def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:
+    def is_branch_taken(self, insn: Instruction) -> tuple[bool, str]:
         mnemo = insn.mnemonic
         # all kudos to fG! (https://github.com/gdbinit/Gdbinit/blob/master/gdbinit#L1654)
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
@@ -3042,7 +3042,7 @@ class X86(Architecture):
         ]
         return "; ".join(insns)
 
-    def get_ith_parameter(self, i: int, in_func: bool = True) -> Tuple[str, Optional[int]]:
+    def get_ith_parameter(self, i: int, in_func: bool = True) -> tuple[str, Optional[int]]:
         if in_func:
             i += 1  # Account for RA being at the top of the stack
         sp = gef.arch.sp
@@ -3149,7 +3149,7 @@ class PowerPC(Architecture):
         branch_mnemos = {"beq", "bne", "ble", "blt", "bgt", "bge"}
         return mnemo in branch_mnemos
 
-    def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:
+    def is_branch_taken(self, insn: Instruction) -> tuple[bool, str]:
         mnemo = insn.mnemonic
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = gef.arch.register(self.flag_register)
@@ -3257,7 +3257,7 @@ class SPARC(Architecture):
         }
         return mnemo in branch_mnemos
 
-    def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:
+    def is_branch_taken(self, insn: Instruction) -> tuple[bool, str]:
         mnemo = insn.mnemonic
         flags = dict((self.flags_table[k], k) for k in self.flags_table)
         val = gef.arch.register(self.flag_register)
@@ -3358,7 +3358,7 @@ class SPARC64(SPARC):
 
 
 class MIPS(Architecture):
-    aliases: Tuple[Union[str, Elf.Abi], ...] = ("MIPS", Elf.Abi.MIPS)
+    aliases: tuple[Union[str, Elf.Abi], ...] = ("MIPS", Elf.Abi.MIPS)
     arch = "MIPS"
     mode = "MIPS32"
 
@@ -3393,7 +3393,7 @@ class MIPS(Architecture):
         branch_mnemos = {"beq", "bne", "beqz", "bnez", "bgtz", "bgez", "bltz", "blez"}
         return mnemo in branch_mnemos
 
-    def is_branch_taken(self, insn: Instruction) -> Tuple[bool, str]:
+    def is_branch_taken(self, insn: Instruction) -> tuple[bool, str]:
         mnemo, ops = insn.mnemonic, insn.operands
         taken, reason = False, ""
 
@@ -3769,7 +3769,7 @@ def regchanged_handler(_: "gdb.RegisterChangedEvent") -> None:
     return
 
 
-def get_terminal_size() -> Tuple[int, int]:
+def get_terminal_size() -> tuple[int, int]:
     """Return the current terminal size."""
     if is_debug():
         return 600, 100
@@ -4089,7 +4089,7 @@ def gef_getpagesize() -> int:
 
 
 @deprecated("Use `gef.session.canary`")
-def gef_read_canary() -> Optional[Tuple[int, int]]:
+def gef_read_canary() -> Optional[tuple[int, int]]:
     return gef.session.canary
 
 
@@ -4561,7 +4561,7 @@ class UafWatchpoint(gdb.Breakpoint):
             return False
 
         # software watchpoints stop after the next statement (see
-        # https://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html)
+        # https://sourceware.org/gdb/onlinedocs/gdb/set-Watchpoints.html)
         pc = gdb_get_nth_previous_instruction_address(gef.arch.pc, 2)
         assert pc
         insn = gef_current_instruction(pc)
@@ -4778,10 +4778,10 @@ class GenericCommand(gdb.Command):
         return self.__get_setting_name(name) in gef.config
 
     @deprecated("Use `self[setting_name] = value` instead")
-    def add_setting(self, name: str, value: Tuple[Any, type, str], description: str = "") -> None:
+    def add_setting(self, name: str, value: tuple[Any, type, str], description: str = "") -> None:
         return self.__setitem__(name, (value, description))
 
-    def __setitem__(self, name: str, value: Union["GefSetting", Tuple[Any, str]]) -> None:
+    def __setitem__(self, name: str, value: Union["GefSetting", tuple[Any, str]]) -> None:
         # make sure settings are always associated to the root command (which derives from GenericCommand)
         if "GenericCommand" not in [x.__name__ for x in self.__class__.__bases__]:
             return
@@ -4855,7 +4855,7 @@ class ArchGetCommand(GenericCommand):
 
 @register
 class ArchSetCommand(GenericCommand):
-    """Set the current loaded architecture."""
+    """set the current loaded architecture."""
 
     _cmdline_ = "arch set"
     _syntax_ = f"{_cmdline_} <arch>"
@@ -4943,7 +4943,7 @@ class PrintFormatCommand(GenericCommand):
         return
 
     @property
-    def format_matrix(self) -> dict[int, Tuple[str, str, str]]:
+    def format_matrix(self) -> dict[int, tuple[str, str, str]]:
         # `gef.arch.endianness` is a runtime property, should not be defined as a class property
         return {
             8:  (f"{gef.arch.endianness}B", "char", "db"),
@@ -5030,7 +5030,7 @@ class PieCommand(GenericCommand):
 
 @register
 class PieBreakpointCommand(GenericCommand):
-    """Set a PIE breakpoint at an offset from the target binaries base address."""
+    """set a PIE breakpoint at an offset from the target binaries base address."""
 
     _cmdline_ = "pie breakpoint"
     _syntax_ = f"{_cmdline_} OFFSET"
@@ -5410,7 +5410,7 @@ class ProcessStatusCommand(GenericCommand):
                 sockets.append(int(p))
         return sockets
 
-    def parse_ip_port(self, addr: str) -> Tuple[str, int]:
+    def parse_ip_port(self, addr: str) -> tuple[str, int]:
         ip, port = addr.split(":")
         return socket.inet_ntoa(struct.pack("<I", int(ip, 16))), int(port, 16)
 
@@ -5616,7 +5616,7 @@ class ExternalStructureManager:
             for name, values in struct._values_:
                 if name != item: continue
                 if callable(values):
-                    return values(value)
+                    return str(values(value))
                 try:
                     for val, desc in values:
                         if value == val: return desc
@@ -5709,14 +5709,14 @@ class ExternalStructureManager:
         return self._path
 
     @property
-    def structures(self) -> Generator[Tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"], None, None]:
+    def structures(self) -> Generator[tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"], None, None]:
         for module in self.modules.values():
             for structure in module.values():
                 yield module, structure
         return
 
     @lru_cache()
-    def find(self, structure_name: str) -> Optional[Tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"]]:
+    def find(self, structure_name: str) -> Optional[tuple["ExternalStructureManager.Module", "ExternalStructureManager.Structure"]]:
         """Return the module and structure for the given structure name; `None` if the structure name was not found."""
         for module in self.modules.values():
             if structure_name in module:
@@ -5776,7 +5776,7 @@ class PCustomCommand(GenericCommand):
         structure.apply_at(address, self["max_depth"])
         return
 
-    def explode_type(self, arg: str) -> Tuple[str, str]:
+    def explode_type(self, arg: str) -> tuple[str, str]:
         modname, structname = arg.split(":", 1) if ":" in arg else (arg, arg)
         structname = structname.split(".", 1)[0] if "." in structname else structname
         return modname, structname
@@ -6061,11 +6061,11 @@ class SearchPatternCommand(GenericCommand):
         ok(title)
         return
 
-    def print_loc(self, loc: Tuple[int, int, str]) -> None:
+    def print_loc(self, loc: tuple[int, int, str]) -> None:
         gef_print(f"""  {loc[0]:#x} - {loc[1]:#x} {RIGHT_ARROW}  "{Color.pinkify(loc[2])}" """)
         return
 
-    def search_pattern_by_address(self, pattern: str, start_address: int, end_address: int) -> list[Tuple[int, int, str]]:
+    def search_pattern_by_address(self, pattern: str, start_address: int, end_address: int) -> list[tuple[int, int, str]]:
         """Search a pattern within a range defined by arguments."""
         _pattern = gef_pybytes(pattern)
         step = self["nr_pages_chunk"] * gef.session.pagesize
@@ -6097,7 +6097,7 @@ class SearchPatternCommand(GenericCommand):
 
         return locations
 
-    def search_binpattern_by_address(self, binpattern: bytes, start_address: int, end_address: int) -> list[Tuple[int, int, str]]:
+    def search_binpattern_by_address(self, binpattern: bytes, start_address: int, end_address: int) -> list[tuple[int, int, str]]:
         """Search a binary pattern within a range defined by arguments."""
 
         step = self["nr_pages_chunk"] * gef.session.pagesize
@@ -6294,7 +6294,7 @@ class RemoteCommand(GenericCommand):
                 raise e
 
         # Try to establish the remote session, throw on error
-        # Set `.remote_initializing` to True here - `GefRemoteSessionManager` invokes code which
+        # set `.remote_initializing` to True here - `GefRemoteSessionManager` invokes code which
         # calls `is_remote_debug` which checks if `remote_initializing` is True or `.remote` is None
         # This prevents some spurious errors being thrown during startup
         gef.session.remote_initializing = True
@@ -6504,7 +6504,7 @@ class GlibcHeapCommand(GenericCommand):
 
 @register
 class GlibcHeapSetArenaCommand(GenericCommand):
-    """Set the address of the main_arena or the currently selected arena."""
+    """set the address of the main_arena or the currently selected arena."""
 
     _cmdline_ = "heap set-arena"
     _syntax_  = f"{_cmdline_} [address|&symbol]"
@@ -6939,7 +6939,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         existing_tids = set(t.num for t in gdb.selected_inferior().threads())
         return list(set(tids) & existing_tids)
 
-    def tcachebin(self, tcache_base: int, i: int) -> Tuple[Optional[GlibcTcacheChunk], int]:
+    def tcachebin(self, tcache_base: int, i: int) -> tuple[Optional[GlibcTcacheChunk], int]:
         """Return the head chunk in tcache[i] and the number of chunks in the bin."""
         if i >= self.TCACHE_MAX_BINS:
             err("Incorrect index value, index value must be between 0 and "
@@ -7624,7 +7624,7 @@ class ContextCommand(GenericCommand):
         self["libc_args"] = (False, "[DEPRECATED - Unused] Show libc function call args description")
         self["libc_args_path"] = ("", "[DEPRECATED - Unused] Path to libc function call args json files, provided via gef-extras")
 
-        self.layout_mapping: dict[str, Tuple[Callable, Optional[Callable], Optional[Callable]]] = {
+        self.layout_mapping: dict[str, tuple[Callable, Optional[Callable], Optional[Callable]]] = {
             "legend": (self.show_legend, None, None),
             "regs": (self.context_regs, None, None),
             "stack": (self.context_stack, None, None),
@@ -8668,7 +8668,7 @@ class PatchStringCommand(GenericCommand):
 
         try:
             msg_as_bytes = codecs.escape_decode(msg, "utf-8")[0]
-            gef.memory.write(addr, msg_as_bytes, len(msg_as_bytes))
+            gef.memory.write(addr, msg_as_bytes, len(msg_as_bytes)) # type: ignore
         except (binascii.Error, gdb.error):
             err(f"Could not decode '\\xXX' encoded string \"{msg}\"")
         return
@@ -9912,7 +9912,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.buffer"] = GefSetting(True, bool, "Internally buffer command output until completion")
         gef.config["gef.bruteforce_main_arena"] = GefSetting(False, bool, "Allow bruteforcing main_arena symbol if everything else fails")
         gef.config["gef.libc_version"] = GefSetting("", str, "Specify libc version when auto-detection fails")
-        gef.config["gef.main_arena_offset"] = GefSetting("", str, "Offset from libc base address to main_arena symbol (int or hex). Set to empty string to disable.")
+        gef.config["gef.main_arena_offset"] = GefSetting("", str, "Offset from libc base address to main_arena symbol (int or hex). set to empty string to disable.")
         gef.config["gef.propagate_debug_exception"] = GefSetting(False, bool, "If true, when debug mode is enabled, Python exceptions will be propagated all the way.")
         gef.config["gef.extra_python_package_paths"] = GefSetting("", str, "Semi-colon separate list of extra paths to include for python packages")
 
@@ -9923,7 +9923,7 @@ class GefCommand(gdb.Command):
 
     @property
     @deprecated()
-    def loaded_commands(self) -> list[Tuple[str, Type[GenericCommand], Any]]:
+    def loaded_commands(self) -> list[tuple[str, Type[GenericCommand], Any]]:
         raise ObsoleteException("Obsolete loaded_commands")
 
     @property
@@ -10115,7 +10115,7 @@ class GefHelpCommand(gdb.Command):
         self.should_refresh = False
         return
 
-    def __add__(self, command: Tuple[str, GenericCommand]):
+    def __add__(self, command: tuple[str, GenericCommand]):
         """Add command to GEF documentation."""
         cmd, class_obj = command
         if " " in cmd:
@@ -10127,7 +10127,7 @@ class GefHelpCommand(gdb.Command):
         self.docs.append(msg)
         return self
 
-    def __radd__(self, command: Tuple[str, GenericCommand]):
+    def __radd__(self, command: tuple[str, GenericCommand]):
         return self.__add__(command)
 
     def __str__(self) -> str:
@@ -10460,7 +10460,7 @@ class GefAlias(gdb.Command):
         gdb.execute(f"{self.command} {args}", from_tty=from_tty)
         return
 
-    def lookup_command(self, cmd: str) -> Optional[Tuple[str, GenericCommand]]:
+    def lookup_command(self, cmd: str) -> Optional[tuple[str, GenericCommand]]:
         global gef
         for _name, _instance in gef.gdb.commands.items():
             if cmd == _name:
@@ -11235,8 +11235,8 @@ class GefSessionManager(GefManager):
         self.remote_initializing: bool = False
         self.qemu_mode: bool = False
         self.convenience_vars_index: int = 0
-        self.heap_allocated_chunks: list[Tuple[int, int]] = []
-        self.heap_freed_chunks: list[Tuple[int, int]] = []
+        self.heap_allocated_chunks: list[tuple[int, int]] = []
+        self.heap_freed_chunks: list[tuple[int, int]] = []
         self.heap_uaf_watchpoints: list[UafWatchpoint] = []
         self.pie_breakpoints: dict[int, PieVirtualBreakpoint] = {}
         self.pie_counter: int = 1
@@ -11333,7 +11333,7 @@ class GefSessionManager(GefManager):
         return self._pagesize
 
     @property
-    def canary(self) -> Optional[Tuple[int, int]]:
+    def canary(self) -> Optional[tuple[int, int]]:
         """Return a tuple of the canary address and value, read from the canonical
         location if supported by the architecture. Otherwise, read from the auxiliary
         vector."""
@@ -11347,7 +11347,7 @@ class GefSessionManager(GefManager):
         return canary, canary_location
 
     @property
-    def original_canary(self) -> Optional[Tuple[int, int]]:
+    def original_canary(self) -> Optional[tuple[int, int]]:
         """Return a tuple of the initial canary address and value, read from the
         auxiliary vector."""
         auxval = self.auxiliary_vector
@@ -11616,8 +11616,8 @@ class GefUiManager(GefManager):
         self.context_hidden = False
         self.stream_buffer : Optional[StringIO] = None
         self.highlight_table: dict[str, str] = {}
-        self.watches: dict[int, Tuple[int, str]] = {}
-        self.context_messages: list[Tuple[str, str]] = []
+        self.watches: dict[int, tuple[int, str]] = {}
+        self.context_messages: list[tuple[str, str]] = []
         return
 
 
@@ -11627,7 +11627,7 @@ class GefLibcManager(GefManager):
     PATTERN_LIBC_VERSION_FILENAME = re.compile(r"libc6?[-_](\d+)\.(\d+)\.so")
 
     def __init__(self) -> None:
-        self._version : Optional[Tuple[int, int]] = None
+        self._version : Optional[tuple[int, int]] = None
         self._patch: Optional[int] = None
         self._release: Optional[str] = None
         return
@@ -11636,7 +11636,7 @@ class GefLibcManager(GefManager):
         return f"Libc(version='{self.version}')"
 
     @property
-    def version(self) -> Optional[Tuple[int, int]]:
+    def version(self) -> Optional[tuple[int, int]]:
         if not is_alive():
             return None
 
@@ -11654,7 +11654,7 @@ class GefLibcManager(GefManager):
 
     @staticmethod
     @lru_cache()
-    def find_libc_version() -> Tuple[int, int]:
+    def find_libc_version() -> tuple[int, int]:
         """Attempt to determine the libc version. This operation can be long."""
         libc_sections = (m for m in gef.memory.maps if "libc" in m.path and m.permission & Permission.READ)
         for section in libc_sections:
