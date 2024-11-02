@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
+        runner: [ubuntu-24.04, ubuntu-22.04]
 
     name: "Run Unit tests on ${{ matrix.runner }}"
     runs-on: ${{ matrix.runner }}
