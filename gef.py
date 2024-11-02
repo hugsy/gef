@@ -6279,16 +6279,15 @@ class RemoteCommand(GenericCommand):
             return
 
         # qemu-user support
-        qemu_binary = None
+        qemu_binary: pathlib.Path | None = None
         if args.qemu_user:
-            dbg("Setting up qemu-user session")
             try:
                 qemu_binary = pathlib.Path(args.qemu_user).expanduser().absolute() if args.qemu_user else gef.session.file
                 if not qemu_binary or not qemu_binary.exists():
                     raise FileNotFoundError(f"qemu-user session was specified, but binary '{qemu_binary}' does not exist")
             except Exception as e:
                 err(f"Failed to initialize qemu-user mode, reason: {str(e)}")
-                raise e
+                return
 
         # Try to establish the remote session, throw on error
         # set `.remote_initializing` to True here - `GefRemoteSessionManager` invokes code which
@@ -11773,9 +11772,7 @@ def target_remote_posthook():
 
     gef.session.remote = GefRemoteSessionManager("", 0)
     if not gef.session.remote.setup():
-        raise EnvironmentError(
-            f"Failed to create a proper environment for {gef.session.remote}"
-        )
+        raise EnvironmentError(f"Failed to create a proper environment for {gef.session.remote}")
 
 if __name__ == "__main__":
     if sys.version_info[0] == 2:
