@@ -114,8 +114,8 @@ except ImportError:
     sys.exit(1)
 
 
-GDB_MIN_VERSION: tuple[int, int]       = (8, 0)
-PYTHON_MIN_VERSION: tuple[int, int]    = (3, 6)
+GDB_MIN_VERSION: tuple[int, int]       = (10, 0)
+PYTHON_MIN_VERSION: tuple[int, int]    = (3, 10)
 PYTHON_VERSION: tuple[int, int]        = sys.version_info[0:2]
 GDB_VERSION: tuple[int, int]           = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups())) # type:ignore
 
@@ -143,10 +143,10 @@ GEF_PROMPT                             = "gef➤  "
 GEF_PROMPT_ON                          = f"\001\033[1;32m\002{GEF_PROMPT}\001\033[0m\002"
 GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\033[0m\002"
 
-__registered_commands__ : set[Type["GenericCommand"]]                                        = set()
-__registered_functions__ : set[Type["GenericFunction"]]                                      = set()
-__registered_architectures__ : dict["Elf.Abi | str", Type["Architecture"]]                   = {}
-__registered_file_formats__ : set[ Type["FileFormat"] ]                                      = set()
+__registered_commands__ : set[Type["GenericCommand"]]                               = set()
+__registered_functions__ : set[Type["GenericFunction"]]                             = set()
+__registered_architectures__ : dict["Elf.Abi | str", Type["Architecture"]]          = {}
+__registered_file_formats__ : set[ Type["FileFormat"] ]                             = set()
 
 GefMemoryMapProvider = Callable[[], Generator["Section", None, None]]
 
@@ -2910,7 +2910,7 @@ class AARCH64(ARM):
 
 
 class X86(Architecture):
-    aliases: tuple[str |  Elf.Abi, ...] = ("X86", Elf.Abi.X86_32)
+    aliases = ("X86", Elf.Abi.X86_32)
     arch = "X86"
     mode = "32"
 
@@ -3354,7 +3354,7 @@ class SPARC64(SPARC):
 
 
 class MIPS(Architecture):
-    aliases: tuple[str |  Elf.Abi, ...] = ("MIPS", Elf.Abi.MIPS)
+    aliases = ("MIPS", Elf.Abi.MIPS)
     arch = "MIPS"
     mode = "MIPS32"
 
@@ -3517,7 +3517,7 @@ def is_qemu() -> bool:
     if not is_remote_debug():
         return False
     response = gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False) or ""
-    return "ENABLE=1" in response
+    return "ENABLE=" in response
 
 
 @lru_cache()
@@ -4557,7 +4557,7 @@ class UafWatchpoint(gdb.Breakpoint):
             return False
 
         # software watchpoints stop after the next statement (see
-        # https://sourceware.org/gdb/onlinedocs/gdb/set-Watchpoints.html)
+        # https://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html)
         pc = gdb_get_nth_previous_instruction_address(gef.arch.pc, 2)
         assert pc
         insn = gef_current_instruction(pc)
@@ -4686,7 +4686,7 @@ class GenericCommand(gdb.Command):
 
     _cmdline_: str
     _syntax_: str
-    _example_: str |  list[str] = ""
+    _example_: str | list[str] = ""
     _aliases_: list[str] = []
 
     def __init_subclass__(cls, **kwargs):
@@ -4851,7 +4851,7 @@ class ArchGetCommand(GenericCommand):
 
 @register
 class ArchSetCommand(GenericCommand):
-    """set the current loaded architecture."""
+    """Set the current loaded architecture."""
 
     _cmdline_ = "arch set"
     _syntax_ = f"{_cmdline_} <arch>"
@@ -5026,7 +5026,7 @@ class PieCommand(GenericCommand):
 
 @register
 class PieBreakpointCommand(GenericCommand):
-    """set a PIE breakpoint at an offset from the target binaries base address."""
+    """Set a PIE breakpoint at an offset from the target binaries base address."""
 
     _cmdline_ = "pie breakpoint"
     _syntax_ = f"{_cmdline_} OFFSET"
@@ -5789,7 +5789,7 @@ class PCustomListCommand(PCustomCommand):
         super().__init__()
         return
 
-    def do_invoke(self, _: list) -> None:
+    def do_invoke(self, _: list[str]) -> None:
         """Dump the list of all the structures and their respective."""
         manager = ExternalStructureManager()
         info(f"Listing custom structures from '{manager.path}'")
@@ -6266,7 +6266,7 @@ class RemoteCommand(GenericCommand):
         super().__init__(prefix=False)
         return
 
-    @parse_arguments({"host": "", "port": 0}, {"--pid": 0, "--qemu-user": ""})
+    @parse_arguments({"host": "", "port": 0}, {"--pid": -1, "--qemu-user": False, "--qemu-binary": ""})
     def do_invoke(self, _: list[str], **kwargs: Any) -> None:
         if gef.session.remote is not None:
             err("You already are in remote session. Close it first before opening a new one...")
@@ -6282,15 +6282,15 @@ class RemoteCommand(GenericCommand):
         qemu_binary: pathlib.Path | None = None
         if args.qemu_user:
             try:
-                qemu_binary = pathlib.Path(args.qemu_user).expanduser().absolute() if args.qemu_user else gef.session.file
+                qemu_binary = pathlib.Path(args.qemu_binary).expanduser().absolute() if args.qemu_binary else gef.session.file
                 if not qemu_binary or not qemu_binary.exists():
-                    raise FileNotFoundError(f"qemu-user session was specified, but binary '{qemu_binary}' does not exist")
+                    raise FileNotFoundError(f"{qemu_binary} does not exist")
             except Exception as e:
                 err(f"Failed to initialize qemu-user mode, reason: {str(e)}")
                 return
 
         # Try to establish the remote session, throw on error
-        # set `.remote_initializing` to True here - `GefRemoteSessionManager` invokes code which
+        # Set `.remote_initializing` to True here - `GefRemoteSessionManager` invokes code which
         # calls `is_remote_debug` which checks if `remote_initializing` is True or `.remote` is None
         # This prevents some spurious errors being thrown during startup
         gef.session.remote_initializing = True
@@ -6500,7 +6500,7 @@ class GlibcHeapCommand(GenericCommand):
 
 @register
 class GlibcHeapSetArenaCommand(GenericCommand):
-    """set the address of the main_arena or the currently selected arena."""
+    """Set the address of the main_arena or the currently selected arena."""
 
     _cmdline_ = "heap set-arena"
     _syntax_  = f"{_cmdline_} [address|&symbol]"
@@ -8572,9 +8572,9 @@ class PatchCommand(GenericCommand):
                 var_name = values[0]
                 try:
                     values = str(gdb.parse_and_eval(var_name)).lstrip("{").rstrip("}").replace(",","").split(" ")
-                except Exception as e:
+                except Exception:
                     gef_print(f"Bad variable specified, check value with command: p {var_name}")
-                    raise e
+                    return
 
         d = str(gef.arch.endianness)
         for value in values:
@@ -9939,9 +9939,8 @@ class GefCommand(gdb.Command):
         gef.config["gef.buffer"] = GefSetting(True, bool, "Internally buffer command output until completion")
         gef.config["gef.bruteforce_main_arena"] = GefSetting(False, bool, "Allow bruteforcing main_arena symbol if everything else fails")
         gef.config["gef.libc_version"] = GefSetting("", str, "Specify libc version when auto-detection fails")
-        gef.config["gef.main_arena_offset"] = GefSetting("", str, "Offset from libc base address to main_arena symbol (int or hex). set to empty string to disable.")
+        gef.config["gef.main_arena_offset"] = GefSetting("", str, "Offset from libc base address to main_arena symbol (int or hex). Set to empty string to disable.")
         gef.config["gef.propagate_debug_exception"] = GefSetting(False, bool, "If true, when debug mode is enabled, Python exceptions will be propagated all the way.")
-        gef.config["gef.extra_python_package_paths"] = GefSetting("", str, "Semi-colon separate list of extra paths to include for python packages")
 
         self.commands : dict[str, GenericCommand] = {}
         self.functions : dict[str, GenericFunction] = {}
@@ -10725,7 +10724,8 @@ class GefManager(metaclass=abc.ABCMeta):
                 if not hasattr(obj, "cache_clear"):
                     continue
                 obj.cache_clear()
-            except Exception: # we're reseting the cache here, we don't care if (or which) exception triggers
+            except Exception:
+                # we're reseting the cache here, we don't care if (or which) exception triggers
                 continue
         return
 
@@ -11472,7 +11472,7 @@ class GefRemoteSessionManager(GefSessionManager):
             gef_on_new_hook(new_objfile_handler)
         except Exception as e:
             warn(f"Exception while restoring local context: {str(e)}")
-            raise e
+            raise
 
     def __str__(self) -> str:
         return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid}, mode={self.mode})"
