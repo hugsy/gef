@@ -146,8 +146,8 @@ GEF_PROMPT_OFF                         = f"\001\033[1;31m\002{GEF_PROMPT}\001\03
 
 __registered_commands__ : set[Type["GenericCommand"]]                                        = set()
 __registered_functions__ : set[Type["GenericFunction"]]                                      = set()
-__registered_architectures__ : dict["Elf.Abi" | str, Type["Architecture"]]              = {}
-__registered_file_formats__ : set[ Type["FileFormat"] ]                                       = set()
+__registered_architectures__ : dict["Elf.Abi | str", Type["Architecture"]]                   = {}
+__registered_file_formats__ : set[ Type["FileFormat"] ]                                      = set()
 
 GefMemoryMapProvider = Callable[[], Generator["Section", None, None]]
 
@@ -2337,7 +2337,7 @@ def register_architecture(cls: Type["Architecture"]) -> Type["Architecture"]:
 
 class ArchitectureBase:
     """Class decorator for declaring an architecture to GEF."""
-    aliases: tuple[()] |  tuple[str | Elf.Abi | ...] = ()
+    aliases: tuple[str | Elf.Abi, ...]
 
     def __init_subclass__(cls: Type["ArchitectureBase"], **kwargs):
         global __registered_architectures__
@@ -8895,15 +8895,15 @@ class VMMapCommand(GenericCommand):
 
     @only_if_gdb_running
     @parse_arguments({"unknown_types": [""]}, {("--addr", "-a"): [""], ("--name", "-n"): [""]})
-    def do_invoke(self, _: List[str], **kwargs: Any) -> None:
+    def do_invoke(self, _: list[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
         vmmap = gef.memory.maps
         if not vmmap:
             err("No address mapping information found")
             return
 
-        addrs: Dict[str, int] = {x: parse_address(x) for x in args.addr}
-        names: List[str] = [x for x in args.name]
+        addrs: dict[str, int] = {x: parse_address(x) for x in args.addr}
+        names: list[str] = [x for x in args.name]
 
         for arg in args.unknown_types:
             if not arg:
