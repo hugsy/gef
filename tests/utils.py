@@ -12,6 +12,7 @@ import struct
 import subprocess
 import tempfile
 import time
+import random
 
 from typing import Iterable, List, Optional, Union
 from urllib.request import urlopen
@@ -112,6 +113,13 @@ def start_gdbserver(
     logging.debug(f"Starting {cmd}")
     return subprocess.Popen(cmd)
 
+def start_gdbserver_multi(
+    host: str = GDBSERVER_DEFAULT_HOST,
+    port: int = GDBSERVER_DEFAULT_PORT,
+) -> subprocess.Popen:
+    cmd = [GDBSERVER_BINARY, "--multi", f"{host}:{port}"]
+    logging.debug(f"Starting {cmd}")
+    return subprocess.Popen(cmd)
 
 def stop_gdbserver(gdbserver: subprocess.Popen) -> None:
     """Stop the gdbserver and wait until it is terminated if it was
@@ -138,6 +146,17 @@ def gdbserver_session(
     finally:
         stop_gdbserver(sess)
 
+@contextlib.contextmanager
+def gdbserver_multi_session(
+    port: int = GDBSERVER_DEFAULT_PORT,
+    host: str = GDBSERVER_DEFAULT_HOST,
+):
+    sess = start_gdbserver_multi(host, port)
+    try:
+        time.sleep(1)  # forced delay to allow gdbserver to start listening
+        yield sess
+    finally:
+        stop_gdbserver(sess)
 
 def start_qemuuser(
     exe: Union[str, pathlib.Path] = debug_target("default"),
@@ -301,3 +320,14 @@ def p32(x: int) -> bytes:
 
 def p64(x: int) -> bytes:
     return struct.pack("<Q", x)
+
+
+__available_ports = list()
+def get_random_port() -> int:
+    global __available_ports
+    if len(__available_ports) < 2:
+        __available_ports = list( range(1024, 65535) )
+    idx = random.choice(range(len(__available_ports)))
+    port = __available_ports[idx]
+    __available_ports.pop(idx)
+    return port

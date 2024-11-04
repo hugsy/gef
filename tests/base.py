@@ -10,7 +10,7 @@ import unittest
 
 import rpyc
 
-from .utils import debug_target
+from .utils import debug_target, get_random_port
 
 COVERAGE_DIR = os.getenv("COVERAGE_DIR", "")
 GEF_PATH = pathlib.Path(os.getenv("GEF_PATH", "gef.py")).absolute()
@@ -58,7 +58,7 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
         #
         # Select a random tcp port for rpyc
         #
-        self._port = random.randint(1025, 65535)
+        self._port = get_random_port()
         self._commands = ""
 
         if COVERAGE_DIR:

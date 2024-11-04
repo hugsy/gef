@@ -3530,7 +3530,7 @@ def is_target_remote_or_extended(conn: gdb.TargetConnection | None = None) -> bo
     return is_target_remote(conn) or is_target_extended_remote(conn)
 
 
-def is_running_under_qemu() -> bool:
+def is_running_in_qemu() -> bool:
     "See https://www.qemu.org/docs/master/system/gdb.html "
     if not is_target_remote():
         return False
@@ -3538,15 +3538,15 @@ def is_running_under_qemu() -> bool:
     return "ENABLE=" in response
 
 
-def is_running_under_qemu_user() -> bool:
-    if not is_running_under_qemu():
+def is_running_in_qemu_user() -> bool:
+    if not is_running_in_qemu():
         return False
     response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False) or "" # Use `qAttached`?
     return "Text=" in response
 
 
-def is_running_under_qemu_system() -> bool:
-    if not is_running_under_qemu():
+def is_running_in_qemu_system() -> bool:
+    if not is_running_in_qemu():
         return False
     # Use "maintenance packet qqemu.PhyMemMode"?
     response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False) or ""
@@ -3554,9 +3554,7 @@ def is_running_under_qemu_system() -> bool:
 
 
 def is_running_in_gdbserver() -> bool:
-    if is_running_under_qemu():
-        return False
-    return not is_running_under_qemu()
+    return not is_running_in_qemu()
 
 
 def is_running_in_rr() -> bool:
@@ -7447,7 +7445,7 @@ class ElfInfoCommand(GenericCommand):
     def do_invoke(self, _: list[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
 
-        if is_running_under_qemu_system():
+        if is_running_in_qemu_system():
             err("Unsupported")
             return
 
@@ -11345,7 +11343,7 @@ class GefSessionManager(GefManager):
     def auxiliary_vector(self) -> dict[str, int] | None:
         if not is_alive():
             return None
-        if is_running_under_qemu_system():
+        if is_running_in_qemu_system():
             return None
         if not self._auxiliary_vector:
             auxiliary_vector = {}
@@ -11493,9 +11491,9 @@ class GefRemoteSessionManager(GefSessionManager):
 
         @staticmethod
         def init() -> "GefRemoteSessionManager.RemoteMode":
-            if is_running_under_qemu_system():
+            if is_running_in_qemu_system():
                 return GefRemoteSessionManager.RemoteMode.QEMU_SYSTEM
-            if is_running_under_qemu_user():
+            if is_running_in_qemu_user():
                 return GefRemoteSessionManager.RemoteMode.QEMU_USER
             if is_running_in_rr():
                 return GefRemoteSessionManager.RemoteMode.RR
@@ -11619,7 +11617,7 @@ class GefRemoteSessionManager(GefSessionManager):
 
     def setup(self) -> bool:
         # setup remote adequately depending on remote or qemu mode
-        dbg(f"Setting up the {self._mode} session")
+        info(f"Setting up remote session as '{self._mode}'")
         match self.mode:
             case GefRemoteSessionManager.RemoteMode.QEMU_USER:
                 self.__setup_qemu_user()
@@ -11826,20 +11824,23 @@ class Gef:
         return
 
 
+def target_remote_hook():
+    # disable the context until the session has been fully established
+    gef.config["context.enable"] = False
+
+
 def target_remote_posthook():
-    print(f"{is_target_remote()=}")
-    print(f"{is_target_remote_or_extended()=}")
-    print(f"{is_target_extended_remote()=}")
-    print(f"{is_running_under_qemu()=}")
-    print(f"{is_running_under_qemu_system()=}")
-    print(f"{is_running_under_qemu_user()=}")
-    print(f"{is_running_in_gdbserver()=}")
-    print(f"{is_running_in_rr()=}")
     conn = gdb.selected_inferior().connection
     if not isinstance(conn, gdb.RemoteTargetConnection):
         raise TypeError("Expected type gdb.RemoteTargetConnection")
     assert is_target_remote_or_extended(conn), "Target is not remote"
     gef.session.remote = GefRemoteSessionManager(conn)
+
+    # re-enable context
+    gef.config["context.enable"] = True
+
+    # if here, no exception was thrown, print context
+    gdb.execute("context")
 
 
 if __name__ == "__main__":
@@ -11903,14 +11904,18 @@ if __name__ == "__main__":
 
     GefTmuxSetup()
 
-    # Initialize `target *remote` post hooks
+    # Initialize `target *remote` pre/post hooks
     hook = """
-    define target hookpost-{0}
-        pi target_remote_posthook()
+    define target hook{1}-{0}
+        pi target_remote_{1}hook()
     end
     """
-    gdb.execute(hook.format("remote"))
-    gdb.execute(hook.format("extended-remote"))
+    # pre-hooks
+    gdb.execute(hook.format("remote", ""))
+    gdb.execute(hook.format("extended-remote", ""))
+    # post-hooks
+    gdb.execute(hook.format("remote", "post"))
+    gdb.execute(hook.format("extended-remote", "post"))
 
     # restore saved breakpoints (if any)
     bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()
