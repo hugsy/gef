@@ -42,7 +42,8 @@ GEF_PATH = pathlib.Path(os.getenv("GEF_PATH", "gef.py")).absolute()
 STRIP_ANSI_DEFAULT = True
 GDBSERVER_DEFAULT_HOST = "localhost"
 GDBSERVER_DEFAULT_PORT = 1234
-GDBSERVER_BINARY = which("gdbserver")
+GDBSERVER_BINARY: pathlib.Path = which("gdbserver")
+GDBSERVER_STARTUP_DELAY_SEC : float = 0.5
 assert GDBSERVER_BINARY.exists()
 
 QEMU_USER_X64_BINARY = which("qemu-x86_64")
@@ -141,7 +142,7 @@ def gdbserver_session(
 ):
     sess = start_gdbserver(exe, host, port)
     try:
-        time.sleep(1)  # forced delay to allow gdbserver to start listening
+        time.sleep(GDBSERVER_STARTUP_DELAY_SEC)
         yield sess
     finally:
         stop_gdbserver(sess)
@@ -153,7 +154,7 @@ def gdbserver_multi_session(
 ):
     sess = start_gdbserver_multi(host, port)
     try:
-        time.sleep(1)  # forced delay to allow gdbserver to start listening
+        time.sleep(GDBSERVER_STARTUP_DELAY_SEC)
         yield sess
     finally:
         stop_gdbserver(sess)
