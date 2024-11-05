@@ -14,6 +14,7 @@ from tests.utils import (
     ARCH,
     debug_target,
     gdbserver_session,
+    get_random_port,
     qemuuser_session,
     GDBSERVER_DEFAULT_HOST,
 )
@@ -63,12 +64,11 @@ class GefSessionApi(RemoteGefUnitTestGeneric):
     def test_root_dir_remote(self):
         gdb = self._gdb
         gdb.execute("start")
-
         expected = os.stat("/")
-        host = GDBSERVER_DEFAULT_HOST
-        port = random.randint(1025, 65535)
+        port = get_random_port()
+
         with gdbserver_session(port=port):
-            gdb.execute(f"gef-remote {host} {port}")
+            gdb.execute(f"target remote :{port}")
             result = self._conn.root.eval("os.stat(gef.session.root)")
             assert (expected.st_dev == result.st_dev) and (
                 expected.st_ino == result.st_ino
@@ -77,11 +77,8 @@ class GefSessionApi(RemoteGefUnitTestGeneric):
     @pytest.mark.skipif(ARCH not in ("x86_64",), reason=f"Skipped for {ARCH}")
     def test_root_dir_qemu(self):
         gdb, gef = self._gdb, self._gef
+        port = get_random_port()
 
-        host = GDBSERVER_DEFAULT_HOST
-        port = random.randint(1025, 65535)
         with qemuuser_session(port=port):
-            gdb.execute(
-                f"gef-remote --qemu-user --qemu-binary {self._target} {host} {port}"
-            )
+            gdb.execute(f"target remote :{port}")
             assert re.search(r"\/proc\/[0-9]+/root", str(gef.session.root))
