@@ -21,7 +21,7 @@ jobs:
       matrix:
         runner: [ubuntu-24.04, ubuntu-22.04]
 
-    name: "Run Unit tests on ${{ matrix.runner }}"
+    name: "Tests/${{ matrix.runner }}"
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
