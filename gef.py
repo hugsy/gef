@@ -10859,16 +10859,32 @@ class GefMemoryManager(GefManager):
 
         try:
             return list(self.parse_gdb_info_proc_maps())
-        except Exception:
-            pass
+        except Exception as e:
+            dbg(f"parse_gdb_info_proc_maps() failed, reason: {str(e)}")
 
         try:
             return list(self.parse_procfs_maps())
-        except Exception:
-            pass
+        except Exception as e:
+            dbg(f"parse_procfs_maps() failed, reason: {str(e)}")
 
         try:
             return list(self.parse_monitor_info_mem())
+        except Exception as e:
+            dbg(f"parse_monitor_info_mem() failed, reason: {str(e)}")
+
+        try:
+            # as a very last resort, use a mock rwx memory layout only if a session is running
+            assert gef.binary and gef.session.pid
+            warn("Could not determine memory layout accurately, using mock layout")
+            fname = gef.binary.path
+            if is_32bit():
+                page_start, page_end = 0x00000000, 0xffffffff
+            else:
+                page_start, page_end = 0x0000000000000000, 0xffffffffffffffff
+            return [Section(page_start=page_start,
+                    page_end=page_end,
+                    permission = Permission.ALL,
+                    path = str(fname)),]
         except Exception:
             pass
 
