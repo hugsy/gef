@@ -11596,8 +11596,7 @@ class GefRemoteSessionManager(GefSessionManager):
         return True
 
     def __setup_qemu_system(self) -> bool:
-        raise Exception("TODO")
-        return True
+        raise NotImplementedError("TODO")
 
     def __setup_qemu_user(self) -> bool:
         self.__local_root_path = pathlib.Path("/")
