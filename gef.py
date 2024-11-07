@@ -3723,6 +3723,8 @@ def new_objfile_handler(evt: "gdb.NewObjFileEvent | None") -> None:
         path = progspace.filename
     else:
         raise RuntimeError("Cannot determine file path")
+
+    assert path
     try:
         if gef.session.root and path.startswith("target:"):
             # If the process is in a container, replace the "target:" prefix
@@ -11385,7 +11387,7 @@ class GefSessionManager(GefManager):
             return self.remote.file
         progspace = gdb.current_progspace()
         assert progspace
-        fpath: str = progspace.filename
+        fpath: str = progspace.filename or ""
         if fpath and not self._file:
             self._file = pathlib.Path(fpath).expanduser()
         return self._file
@@ -11548,7 +11550,7 @@ class GefRemoteSessionManager(GefSessionManager):
             if not filename:
                 raise RuntimeError("No session started")
             start_idx = len("target:") if filename.startswith("target:") else 0
-            self._file = pathlib.Path(progspace.filename[start_idx:])
+            self._file = pathlib.Path(filename[start_idx:])
         return self._file
 
     @property
