@@ -18,6 +18,7 @@ RPYC_PORT = 18812
 RPYC_SPAWN_TIME = 1.0
 RPYC_MAX_REMOTE_CONNECTION_ATTEMPTS = 5
 GDB_BINARY_PATH = which("gdb-multiarch")
+RPYC_CONNECT_FAILURE_DELAY = 0.2
 
 
 class RemoteGefUnitTestGeneric(unittest.TestCase):
@@ -41,7 +42,7 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
                 attempt -= 1
                 if attempt == 0:
                     raise
-                time.sleep(0.2)
+                time.sleep(RPYC_CONNECT_FAILURE_DELAY)
                 continue
 
         self._gdb = self._conn.root.gdb
