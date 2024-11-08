@@ -8,6 +8,7 @@ import logging
 import os
 import pathlib
 import platform
+import shutil
 import struct
 import subprocess
 import tempfile
@@ -19,12 +20,10 @@ from urllib.request import urlopen
 
 
 def which(program: str) -> pathlib.Path:
-    for path in os.environ["PATH"].split(os.pathsep):
-        dirname = pathlib.Path(path)
-        fpath = dirname / program
-        if os.access(fpath, os.X_OK):
-            return fpath
-    raise FileNotFoundError(f"Missing file `{program}`")
+    fpath = shutil.which(program)
+    if not fpath:
+        raise FileNotFoundError(f"Missing file `{program}`")
+    return pathlib.Path(fpath)
 
 
 TMPDIR = pathlib.Path(tempfile.gettempdir())
@@ -162,9 +161,16 @@ def gdbserver_multi_session(
 def start_qemuuser(
     exe: Union[str, pathlib.Path] = debug_target("default"),
     port: int = GDBSERVER_DEFAULT_PORT,
+    qemu_exe: pathlib.Path = QEMU_USER_X64_BINARY,
+    args: list[str] | None = None
 ) -> subprocess.Popen:
+    cmd = [qemu_exe, "-g", str(port)]
+    if args:
+        cmd.extend(args)
+    cmd.append(exe)
+    logging.info(f"Starting '{cmd}' in {qemu_exe} on :{port}")
     return subprocess.Popen(
-        [QEMU_USER_X64_BINARY, "-g", str(port), exe],
+        cmd,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
@@ -179,9 +185,19 @@ def stop_qemuuser(process: subprocess.Popen) -> None:
 @contextlib.contextmanager
 def qemuuser_session(*args, **kwargs):
     exe = kwargs.get("exe", "") or debug_target("default")
-    port = kwargs.get("port", 0) or GDBSERVER_DEFAULT_PORT
-    sess = start_qemuuser(exe, port)
+    port = kwargs.get("port", GDBSERVER_DEFAULT_PORT)
+    qemu_exe = kwargs.get("qemu_exe", None) or QEMU_USER_X64_BINARY
+    args = kwargs.get("args", None)
+    if args:
+        # if specified, expect a list of strings
+        assert isinstance(args, list)
+        assert len(args)
+        for arg in args:
+            assert isinstance(arg, str)
+
+    sess = start_qemuuser(exe, port=port, qemu_exe=qemu_exe, args=args)
     try:
+        time.sleep(GDBSERVER_STARTUP_DELAY_SEC)
         yield sess
     finally:
         stop_qemuuser(sess)

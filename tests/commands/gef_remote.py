@@ -2,8 +2,6 @@
 `gef_remote` command test module
 """
 
-import random
-
 import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
