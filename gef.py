@@ -5221,7 +5221,7 @@ class PieRemoteCommand(GenericCommand):
 
     def do_invoke(self, argv: list[str]) -> None:
         try:
-            gdb.execute(f"gef-remote {' '.join(argv)}")
+            gdb.execute(f"target remote {' '.join(argv)}")
         except gdb.error as e:
             err(str(e))
             return
@@ -6283,7 +6283,12 @@ class RemoteCommand(GenericCommand):
     a local copy of the execution environment, including the target binary and its libraries
     in the local temporary directory (the value by default is in `gef.config.tempdir`). Additionally, it
     will fetch all the /proc/PID/maps and loads all its information. If procfs is not available remotely, the command
-    will likely fail. You can however still use the limited command provided by GDB `target remote`."""
+    will likely fail. You can however still use the limited command provided by GDB `target remote`.
+
+    **Important:**
+    As of 2024.09, the `gef-remote` is deprecated in favor of the native command `target remote` command. As it will be
+    removed in a future release, do not rely on it.
+    """
 
     _cmdline_ = "gef-remote"
     _syntax_  = f"{_cmdline_} [OPTIONS] TARGET"
@@ -6297,48 +6302,15 @@ class RemoteCommand(GenericCommand):
 
     @parse_arguments({"host": "", "port": 0}, {"--pid": -1, "--qemu-user": False, "--qemu-binary": ""})
     def do_invoke(self, _: list[str], **kwargs: Any) -> None:
-        if gef.session.remote is not None:
-            err("You already are in remote session. Close it first before opening a new one...")
-            return
-
-        # argument check
+        # for now, warn only and re-route to `target remote`
+        warn("`gef-remote` is now deprecated and will soon be removed. Use `target remote`")
         args : argparse.Namespace = kwargs["arguments"]
         if not args.host or not args.port:
-            err("Missing parameters")
+            err("Missing host/port parameters")
             return
-
-        # qemu-user support
-        qemu_binary: pathlib.Path | None = None
-        if args.qemu_user:
-            try:
-                qemu_binary = pathlib.Path(args.qemu_binary).expanduser().absolute() if args.qemu_binary else gef.session.file
-                if not qemu_binary or not qemu_binary.exists():
-                    raise FileNotFoundError(f"{qemu_binary} does not exist")
-            except Exception as e:
-                err(f"Failed to initialize qemu-user mode, reason: {str(e)}")
-                return
-
-        # Try to establish the remote session, throw on error
-        # Set `.remote_initializing` to True here - `GefRemoteSessionManager` invokes code which
-        # calls `is_remote_debug` which checks if `remote_initializing` is True or `.remote` is None
-        # This prevents some spurious errors being thrown during startup
-        gef.session.remote_initializing = True
-        # session = GefRemoteSessionManager(args.host, args.port, args.pid, qemu_binary)
-        conn = gdb.selected_inferior().connection
-        assert isinstance(conn, gdb.RemoteTargetConnection)
-        session = GefRemoteSessionManager(conn)
-
-        dbg(f"[remote] initializing remote session with {session.target} under {session.root}")
-        if not session.connect(args.pid) or not session.setup():
-            gef.session.remote = None
-            gef.session.remote_initializing = False
-            raise EnvironmentError("Failed to setup remote target")
-
-        gef.session.remote_initializing = False
-        gef.session.remote = session
-        reset_all_caches()
-        gdb.execute("context")
+        gdb.execute(f"target remote {args.host}:{args.port}")
         return
+
 
 
 @register
