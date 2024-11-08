@@ -1,16 +1,14 @@
 import os
 import pathlib
-import random
 import re
 import subprocess
-import tempfile
 import time
 
 import unittest
 
 import rpyc
 
-from .utils import debug_target, get_random_port
+from .utils import debug_target, get_random_port, which
 
 COVERAGE_DIR = os.getenv("COVERAGE_DIR", "")
 GEF_PATH = pathlib.Path(os.getenv("GEF_PATH", "gef.py")).absolute()
@@ -19,6 +17,7 @@ RPYC_HOST = "localhost"
 RPYC_PORT = 18812
 RPYC_SPAWN_TIME = 1.0
 RPYC_MAX_REMOTE_CONNECTION_ATTEMPTS = 5
+GDB_BINARY_PATH = which("gdb-multiarch")
 
 
 class RemoteGefUnitTestGeneric(unittest.TestCase):
@@ -28,6 +27,7 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
     """
 
     def setUp(self) -> None:
+        self._gdb_path = GDB_BINARY_PATH
         attempt = RPYC_MAX_REMOTE_CONNECTION_ATTEMPTS
         while True:
             try:
@@ -71,25 +71,20 @@ pi cov = coverage.Coverage(data_file="{self._coverage_file}", auto_data=True, br
 pi cov.start()
 """
 
-        self._commands += f"""
-source {GEF_PATH}
-gef config gef.debug True
-gef config gef.propagate_debug_exception True
-gef config gef.disable_color True
-source {RPYC_GEF_PATH}
-pi start_rpyc_service({self._port})
-"""
-
-        self._initfile = tempfile.NamedTemporaryFile(mode="w", delete=False)
-        self._initfile.write(self._commands)
-        self._initfile.flush()
+        # self._initfile = tempfile.NamedTemporaryFile(mode="w", delete=False)
+        # self._initfile.write(self._commands)
+        # self._initfile.flush()
         self._command = [
-            "gdb",
-            "-q",
-            "-nx",
-            "-ex",
-            f"source {self._initfile.name}",
+            # fmt: off
+            self._gdb_path, "-q", "-nx",
+            "-ex", f"source {GEF_PATH}",
+            "-ex", "gef config gef.debug True",
+            "-ex", "gef config gef.propagate_debug_exception True",
+            "-ex", "gef config gef.disable_color True",
+            "-ex", f"source {RPYC_GEF_PATH}",
+            "-ex", f"pi start_rpyc_service({self._port})",
             "--",
+            # fmt: off
             str(self._target.absolute()),  # type: ignore pylint: disable=E1101
         ]
         self._process = subprocess.Popen(self._command)
