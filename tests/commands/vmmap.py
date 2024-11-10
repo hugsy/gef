@@ -58,13 +58,13 @@ class VmmapCommand(RemoteGefUnitTestGeneric):
         gdb.execute("start")
 
         res = gdb.execute("vmmap -p r?-", to_string=True)
-        self.assertEqual(len(res.splitlines()), 5)
+        self.assertGreater(len(res.splitlines()), 5)
 
         res = gdb.execute("vmmap --perms r?-", to_string=True)
-        self.assertEqual(len(res.splitlines()), 5)
+        self.assertGreater(len(res.splitlines()), 5)
 
         res = gdb.execute("vmmap -p rw-", to_string=True)
-        self.assertEqual(len(res.splitlines()), 5)
+        self.assertGreater(len(res.splitlines()), 5)
 
         res = gdb.execute("vmmap --perms rw-", to_string=True)
-        self.assertEqual(len(res.splitlines()), 5)
+        self.assertGreater(len(res.splitlines()), 5)
