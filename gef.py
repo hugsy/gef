@@ -668,25 +668,25 @@ class Permission(enum.Flag):
     @classmethod
     def from_filter_repr(cls, filter_str: str) -> List["Permission"]:
         perms = [cls(0)]
-        if perm_str[0] == "r":
-            for i, x in enumerate(perms):
-                perms[i] = x | Permission.READ
-        elif perm_str[0] == "?":
-            for x in perms:
-                perms.append(x | Permission.READ)
-        if perm_str[1] == "w":
-            for i, x in enumerate(perms):
-                perms[i] = x | Permission.WRITE
-        elif perm_str[1] == "?":
-            for x in perms:
-                perms.append(x | Permission.WRITE)
-        if perm_str[2] == "x":
-            for i, x in enumerate(perms):
-                perms[i] = x | Permission.EXECUTE
-        elif perm_str[2] == "?":
-            for x in perms:
-                perms.append(x | Permission.EXECUTE)
-        return perm
+        if filter_str[0] == "r":
+            for i in range(len(perms)):
+                perms[i] |= Permission.READ
+        elif filter_str[0] == "?":
+            for i in range(len(perms)):
+                perms.append(perms[i] | Permission.READ)
+        if filter_str[1] == "w":
+            for i in range(len(perms)):
+                perms[i] |= Permission.WRITE
+        elif filter_str[1] == "?":
+            for i in range(len(perms)):
+                perms.append(perms[i] | Permission.WRITE)
+        if filter_str[2] == "x":
+            for i in range(len(perms)):
+                perms[i] |= Permission.EXECUTE
+        elif filter_str[2] == "?":
+            for i in range(len(perms)):
+                perms.append(perms[i] | Permission.EXECUTE)
+        return perms
 
 
 
@@ -8931,10 +8931,10 @@ class VMMapCommand(GenericCommand):
 
         addrs: Dict[str, int] = {x: parse_address(x) for x in args.addr}
         names: List[str] = [x for x in args.name]
-        perms: Set[Permission] = {}
+        perms: Set[Permission] = set()
 
         for x in args.perms:
-            perms.union(Permission.from_filter_repr(x))
+            perms = perms.union(Permission.from_filter_repr(x))
 
         for arg in args.unknown_types:
             if not arg:
@@ -8949,7 +8949,8 @@ class VMMapCommand(GenericCommand):
                 if arg[0] in 'r-?' and \
                         arg[1] in 'w-?' and \
                         arg[2] in 'x-?':
-                    perms.union(Permission.from_filter_repr(arg))
+                    perms = perms.union(Permission.from_filter_repr(arg))
+                    warn(f"`{arg}` has no type specified. We guessed it was a perm filter.")
                     continue
 
                 names.append(arg)
