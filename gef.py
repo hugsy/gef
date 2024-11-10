@@ -11736,7 +11736,7 @@ def target_remote_posthook():
     gef.session.remote = GefRemoteSessionManager(conn)
 
     # switch back context to its old context
-    gef.config["context.enable"] = gef.temp.pop("context_old_value", False)
+    gef.config["context.enable"] = gef.temp.pop("context_old_value", True)
 
     # if here, no exception was thrown, print context
     gdb.execute("context")
