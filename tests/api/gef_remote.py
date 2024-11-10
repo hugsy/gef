@@ -32,7 +32,6 @@ class GefRemoteApi(RemoteGefUnitTestGeneric):
             assert _root.eval("is_target_remote()")
             assert _root.eval("is_target_remote_or_extended()")
             assert _root.eval("is_running_in_gdbserver()")
-            assert _root.eval("is_running_in_gdbserver()")
 
             assert not _root.eval("is_target_extended_remote()")
             assert not _root.eval("is_running_in_qemu()")
