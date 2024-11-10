@@ -3898,19 +3898,12 @@ def get_memory_alignment(in_bits: bool = False) -> int:
 
 def clear_screen(tty: str = "") -> None:
     """Clear the screen."""
-    global gef
-    if not tty:
-        gdb.execute("shell clear -x")
-        return
+    clean_sequence = "\x1b[H\x1b[J"
+    if tty:
+        pathlib.Path(tty).write_text(clean_sequence)
+    else:
+        sys.stdout.write(clean_sequence)
 
-    # Since the tty can be closed at any time, a PermissionError exception can
-    # occur when `clear_screen` is called. We handle this scenario properly
-    try:
-        with open(tty, "wt") as f:
-            f.write("\x1b[H\x1b[J")
-    except PermissionError:
-        gef.ui.redirect_fd = None
-        gef.config["context.redirect"] = ""
     return
 
 
