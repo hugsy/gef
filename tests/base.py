@@ -85,7 +85,7 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
             str(self._target.absolute())  # type: ignore pylint: disable=E1101
             )
         )
-        # ]
+
         self._process = subprocess.Popen(self._command)
         assert self._process.pid > 0
         time.sleep(RPYC_SPAWN_TIME)
