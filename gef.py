@@ -665,6 +665,30 @@ class Permission(enum.Flag):
         if "x" in perm_str: perm |= Permission.EXECUTE
         return perm
 
+    @classmethod
+    def from_filter_repr(cls, filter_str: str) -> List["Permission"]:
+        perms = [cls(0)]
+        if filter_str[0] == "r":
+            for i in range(len(perms)):
+                perms[i] |= Permission.READ
+        elif filter_str[0] == "?":
+            for i in range(len(perms)):
+                perms.append(perms[i] | Permission.READ)
+        if filter_str[1] == "w":
+            for i in range(len(perms)):
+                perms[i] |= Permission.WRITE
+        elif filter_str[1] == "?":
+            for i in range(len(perms)):
+                perms.append(perms[i] | Permission.WRITE)
+        if filter_str[2] == "x":
+            for i in range(len(perms)):
+                perms[i] |= Permission.EXECUTE
+        elif filter_str[2] == "?":
+            for i in range(len(perms)):
+                perms.append(perms[i] | Permission.EXECUTE)
+        return perms
+
+
 
 class Section:
     """GEF representation of process memory sections."""
@@ -8895,7 +8919,9 @@ class VMMapCommand(GenericCommand):
     _example_ = f"{_cmdline_} libc"
 
     @only_if_gdb_running
-    @parse_arguments({"unknown_types": [""]}, {("--addr", "-a"): [""], ("--name", "-n"): [""]})
+    @parse_arguments({"unknown_types": [""]}, {("--addr", "-a"): [""],
+                                               ("--name", "-n"): [""],
+                                               ("--perms", "-p"): [""]})
     def do_invoke(self, _: List[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
         vmmap = gef.memory.maps
@@ -8905,6 +8931,10 @@ class VMMapCommand(GenericCommand):
 
         addrs: Dict[str, int] = {x: parse_address(x) for x in args.addr}
         names: List[str] = [x for x in args.name]
+        perms: Set[Permission] = set()
+
+        for x in args.perms:
+            perms = perms.union(Permission.from_filter_repr(x))
 
         for arg in args.unknown_types:
             if not arg:
@@ -8916,12 +8946,19 @@ class VMMapCommand(GenericCommand):
                 addr = safe_parse_and_eval(arg)
 
             if addr is None:
+                if arg[0] in 'r-?' and \
+                        arg[1] in 'w-?' and \
+                        arg[2] in 'x-?':
+                    perms = perms.union(Permission.from_filter_repr(arg))
+                    warn(f"`{arg}` has no type specified. We guessed it was a perm filter.")
+                    continue
+
                 names.append(arg)
                 warn(f"`{arg}` has no type specified. We guessed it was a name filter.")
             else:
                 addrs[arg] = int(addr)
                 warn(f"`{arg}` has no type specified. We guessed it was an address filter.")
-            warn("You can use --name or --addr before the filter value for specifying its type manually.")
+            warn("You can use --name, --addr or --perms before the filter value for specifying its type manually.")
             gef_print()
 
         if not gef.config["gef.disable_color"]:
@@ -8938,12 +8975,13 @@ class VMMapCommand(GenericCommand):
             names_filter = [f"name = '{x}'" for x in names if x in entry.path]
             addrs_filter = [f"addr = {self.format_addr_filter(arg, addr)}" for arg, addr in addrs.items()
                 if entry.page_start <= addr < entry.page_end]
-            filter_content = f"[{' & '.join([*names_filter, *addrs_filter])}]"
+            perms_filter = [f"perms = {x}" for x in perms if entry.permission == x]
+            filter_content = f"[{' & '.join([*names_filter, *addrs_filter, *perms_filter])}]"
 
-            if not names and not addrs:
+            if not names and not addrs and not perms:
                 self.print_entry(entry)
 
-            elif names_filter or addrs_filter:
+            elif names_filter or addrs_filter or perms_filter:
                 if filter_content != last_printed_filter:
                     gef_print() # skip a line between different filters
                     gef_print(Color.greenify(filter_content))
