@@ -80,23 +80,8 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
             self._command.extend(("-ex",
             f"""pi import coverage; cov = coverage.Coverage(data_file="{self._coverage_file}", auto_data=True, branch=True); cov.start()"""))
 
-
-        # self._initfile = tempfile.NamedTemporaryFile(mode="w", delete=False)
-        # self._initfile.write(self._commands)
-        # self._initfile.flush()
-        # self._command = [
-            # # fmt: off
-            # self._gdb_path, "-q", "-nx",
-            # "-ex", f"source {GEF_PATH}",
-            # "-ex", "gef config gef.debug True",
-            # "-ex", "gef config gef.propagate_debug_exception True",
-            # "-ex", "gef config gef.disable_color True",
-            # "-ex", f"source {RPYC_GEF_PATH}",
-            # "-ex", f"pi start_rpyc_service({self._port})",
-            # "--",
-            # # fmt: off
         self._command.extend(
-            ("-ex",
+            ("--",
             str(self._target.absolute())  # type: ignore pylint: disable=E1101
             )
         )
