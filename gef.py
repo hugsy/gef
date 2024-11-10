@@ -11683,6 +11683,7 @@ class Gef:
     heap : GefHeapManager
     session : GefSessionManager
     gdb: GefCommand
+    temp: dict[str, Any]
 
     def __init__(self) -> None:
         self.binary: FileFormat | None = None
@@ -11691,6 +11692,7 @@ class Gef:
         self.config = GefSettingsManager()
         self.ui = GefUiManager()
         self.libc = GefLibcManager()
+        self.temp = {}
         return
 
     def __str__(self) -> str:
@@ -11720,6 +11722,7 @@ class Gef:
     def reset_caches(self) -> None:
         """Recursively clean the cache of all the managers. Avoid calling this function directly, using `reset-cache`
         is preferred"""
+        self.temp.clear()
         for mgr in (self.memory, self.heap, self.session, self.arch):
             mgr.reset_caches()
         return
@@ -11727,6 +11730,7 @@ class Gef:
 
 def target_remote_hook():
     # disable the context until the session has been fully established
+    gef.temp["context_old_value"] = gef.config["context.enable"]
     gef.config["context.enable"] = False
 
 
@@ -11737,8 +11741,8 @@ def target_remote_posthook():
     assert is_target_remote_or_extended(conn), "Target is not remote"
     gef.session.remote = GefRemoteSessionManager(conn)
 
-    # re-enable context
-    gef.config["context.enable"] = True
+    # switch back context to its old context
+    gef.config["context.enable"] = gef.temp.pop("context_old_value", False)
 
     # if here, no exception was thrown, print context
     gdb.execute("context")
