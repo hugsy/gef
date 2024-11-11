@@ -14,14 +14,14 @@ jobs:
   coverage:
     env:
       PY_VER: ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Setup
       run: |
         sudo apt-get -qq update
-        sudo apt-get -qq install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user curl
+        sudo apt-get -qq install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user-static qemu-user curl
         sudo python3 -m pip install --upgrade pip --quiet
     - name: Run test coverage
       id: get_coverage
@@ -32,7 +32,7 @@ jobs:
         echo PY_VER=`gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit` >> $GITHUB_ENV
         echo GEF_CI_NB_CPU=`grep -c ^processor /proc/cpuinfo` >> $GITHUB_ENV
         echo GEF_CI_ARCH=`uname --processor` >> $GITHUB_ENV
-        python${{ env.PY_VER }} -m pip install --user --upgrade -r tests/requirements.txt --quiet
+        python${{ env.PY_VER }} -m pip install --user --upgrade -r tests/requirements.txt -r docs/requirements.txt  --quiet
         current_score=$(curl --silent https://hugsy.github.io/gef/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
         bash scripts/generate-coverage-docs.sh
         new_score=$(cat docs/coverage/gef_py.html | grep pc_cov | sed 's?.*<span class="pc_cov">\([^%]*\)%</span>?\1?g')
