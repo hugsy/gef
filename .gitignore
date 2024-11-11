@@ -14,3 +14,4 @@ debug.log
 htmlcov
 .benchmarks
 site/
+untracked/
