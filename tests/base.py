@@ -86,7 +86,7 @@ pi start_rpyc_service({self._port})
         self._initfile.write(self._commands)
         self._initfile.flush()
         self._command = [
-            "gdb",
+            GDB_BINARY_PATH,
             "-q",
             "-nx",
             "-ex",

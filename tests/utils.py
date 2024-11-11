@@ -168,7 +168,7 @@ def start_qemuuser(
     if args:
         cmd.extend(args)
     cmd.append(exe)
-    logging.info(f"Starting '{cmd}' in {qemu_exe} on :{port}")
+    logging.info(f"Starting '{cmd}'")
     return subprocess.Popen(
         cmd,
         stdout=subprocess.DEVNULL,
