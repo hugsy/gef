@@ -10038,13 +10038,13 @@ class GefCommand(gdb.Command):
 
     def add_context_pane(self, pane_name: str, display_pane_function: Callable, pane_title_function: Callable, condition: Optional[Callable]) -> None:
         """Add a new context pane to ContextCommand."""
-        context = self.commands["context"]
-        assert isinstance(context, ContextCommand)
-
         # assure users can toggle the new context
         corrected_settings_name: str = pane_name.replace(" ", "_")
-        gef.config["context.layout"] += f" {corrected_settings_name}"
+        if corrected_settings_name in gef.config["context.layout"]:
+            warn(f"Duplicate name for `{pane_name}` (`{corrected_settings_name}`), skipping")
+            return
 
+        gef.config["context.layout"] += f" {corrected_settings_name}"
         self.add_context_layout_mapping(corrected_settings_name, display_pane_function, pane_title_function, condition)
 
     def load(self) -> None:
