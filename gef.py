@@ -3536,6 +3536,16 @@ def is_qemu_system() -> bool:
     return "received: \"\"" in response
 
 
+def is_target_coredump() -> bool:
+    global gef
+    if gef.session.coredump_mode is not None:
+        return gef.session.coredump_mode
+    lines = (gdb.execute("maintenance info section", to_string=True) or "").splitlines()
+    is_coredump_mode = any(map(lambda line: line.startswith("Core file: "), lines))
+    gef.session.coredump_mode = is_coredump_mode
+    return is_coredump_mode
+
+
 def get_filepath() -> str | None:
     """Return the local absolute path of the file currently debugged."""
     if gef.session.remote:
@@ -10704,6 +10714,7 @@ def __gef_prompt__(current_prompt: Callable[[Callable], str]) -> str:
     if gef.config["gef.readline_compat"] is True: return GEF_PROMPT
     if gef.config["gef.disable_color"] is True: return GEF_PROMPT
     prompt = gef.session.remote.mode.prompt_string() if gef.session.remote else ""
+    prompt += "(core) " if is_target_coredump() else ""
     prompt += GEF_PROMPT_ON if is_alive() else GEF_PROMPT_OFF
     return prompt
 
@@ -10818,6 +10829,12 @@ class GefMemoryManager(GefManager):
         if gef.arch.maps is not None:
             return list(gef.arch.maps())
 
+        # Coredumps are the only case where `maintenance info sections` collected more
+        # info than `info proc sections`.so use this unconditionally. See #1154
+
+        if is_target_coredump():
+            return list(self.parse_gdb_maintenance_info_sections())
+
         try:
             return list(self.parse_gdb_info_proc_maps())
         except Exception:
@@ -10835,8 +10852,8 @@ class GefMemoryManager(GefManager):
 
         raise RuntimeError("Failed to get memory layout")
 
-    @classmethod
-    def parse_procfs_maps(cls) -> Generator[Section, None, None]:
+    @staticmethod
+    def parse_procfs_maps() -> Generator[Section, None, None]:
         """Get the memory mapping from procfs."""
         procfs_mapfile = gef.session.maps
         if not procfs_mapfile:
@@ -10867,9 +10884,9 @@ class GefMemoryManager(GefManager):
                               path=pathname)
         return
 
-    @classmethod
-    def parse_gdb_info_proc_maps(cls) -> Generator[Section, None, None]:
-        """Get the memory mapping from GDB's command `maintenance info sections` (limited info)."""
+    @staticmethod
+    def parse_gdb_info_proc_maps() -> Generator[Section, None, None]:
+        """Get the memory mapping from GDB's command `info proc mappings`."""
         if GDB_VERSION < (11, 0):
             raise AttributeError("Disregarding old format")
 
@@ -10926,8 +10943,8 @@ class GefMemoryManager(GefManager):
             )
         return
 
-    @classmethod
-    def parse_monitor_info_mem(cls) -> Generator[Section, None, None]:
+    @staticmethod
+    def parse_monitor_info_mem() -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `monitor info mem`
         This can raise an exception, which the memory manager takes to mean
         that this method does not work to get a map.
@@ -10947,6 +10964,39 @@ class GefMemoryManager(GefManager):
                           page_end=end,
                           offset=off,
                           permission=perm)
+
+    @staticmethod
+    def parse_gdb_maintenance_info_sections() -> Generator[Section, None, None]:
+        """Get the memory mapping from GDB's command `maintenance info sections` (limited info). In some cases (i.e. coredumps),
+        the memory info collected by `info proc sections` is insufficent."""
+        stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
+
+        for line in stream:
+            if not line:
+                break
+
+            try:
+                parts = line.split()
+                addr_start, addr_end = [int(x, 16) for x in parts[1].split("->")]
+                off = int(parts[3][:-1], 16)
+                path = parts[4]
+                perm = Permission.NONE
+                if "DATA" in parts[5:]:
+                    perm |= Permission.READ | Permission.WRITE
+                if "CODE" in parts[5:]:
+                    perm |= Permission.READ | Permission.EXECUTE
+                yield Section(
+                    page_start=addr_start,
+                    page_end=addr_end,
+                    offset=off,
+                    permission=perm,
+                    path=path,
+                )
+
+            except IndexError:
+                continue
+            except ValueError:
+                continue
 
     @staticmethod
     def parse_info_mem():
@@ -11270,6 +11320,7 @@ class GefSessionManager(GefManager):
         self.remote: "GefRemoteSessionManager | None" = None
         self.remote_initializing: bool = False
         self.qemu_mode: bool = False
+        self.coredump_mode: bool | None = None
         self.convenience_vars_index: int = 0
         self.heap_allocated_chunks: list[tuple[int, int]] = []
         self.heap_freed_chunks: list[tuple[int, int]] = []
