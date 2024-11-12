@@ -1878,9 +1878,8 @@ def show_last_exception() -> None:
     """Display the last Python exception."""
 
     def _show_code_line(fname: str, idx: int) -> str:
-        fname = os.path.expanduser(os.path.expandvars(fname))
-        with open(fname, "r") as f:
-            _data = f.readlines()
+        fpath = pathlib.Path(os.path.expanduser(os.path.expandvars(fname)))
+        _data = fpath.read_text().splitlines()
         return _data[idx - 1] if 0 < idx < len(_data) else ""
 
     gef_print("")
@@ -1912,7 +1911,7 @@ def show_last_exception() -> None:
         lsb_release = which("lsb_release")
         gdb.execute(f"!'{lsb_release}' -a")
     except FileNotFoundError:
-        gef_print("lsb_release is missing, cannot collect additional debug information")
+        pass
 
     gef_print(HORIZONTAL_LINE*80)
     gef_print("")
