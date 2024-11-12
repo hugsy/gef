@@ -4898,17 +4898,22 @@ class VersionCommand(GenericCommand):
     def do_invoke(self, argv: list[str]) -> None:
         gef_fpath = pathlib.Path(inspect.stack()[0][1]).expanduser().absolute()
         gef_dir = gef_fpath.parent
-        with gef_fpath.open("rb") as f:
-            gef_hash = hashlib.sha256(f.read()).hexdigest()
+        gef_hash = hashlib.sha256(gef_fpath.read_bytes()).hexdigest()
 
-        if os.access(f"{gef_dir}/.git", os.X_OK):
-            ver = subprocess.check_output("git log --format='%H' -n 1 HEAD", cwd=gef_dir, shell=True).decode("utf8").strip()
-            extra = "dirty" if len(subprocess.check_output("git ls-files -m", cwd=gef_dir, shell=True).decode("utf8").strip()) else "clean"
-            gef_print(f"GEF: rev:{ver} (Git - {extra})")
-        else:
-            gef_blob_hash = subprocess.check_output(f"git hash-object {gef_fpath}", shell=True).decode().strip()
-            gef_print("GEF: (Standalone)")
-            gef_print(f"Blob Hash({gef_fpath}): {gef_blob_hash}")
+        try:
+            git = which("git")
+        except:
+            git = None
+
+        if git:
+            if (gef_dir / ".git").is_dir():
+                ver = subprocess.check_output("git log --format='%H' -n 1 HEAD", cwd=gef_dir, shell=True).decode("utf8").strip()
+                extra = "dirty" if len(subprocess.check_output("git ls-files -m", cwd=gef_dir, shell=True).decode("utf8").strip()) else "clean"
+                gef_print(f"GEF: rev:{ver} (Git - {extra})")
+            else:
+                gef_blob_hash = subprocess.check_output(f"git hash-object {gef_fpath}", shell=True).decode().strip()
+                gef_print("GEF: (Standalone)")
+                gef_print(f"Blob Hash({gef_fpath}): {gef_blob_hash}")
         gef_print(f"SHA256({gef_fpath}): {gef_hash}")
         gef_print(f"GDB: {gdb.VERSION}")
         py_ver = f"{sys.version_info.major:d}.{sys.version_info.minor:d}"
