@@ -668,24 +668,15 @@ class Permission(enum.Flag):
     @classmethod
     def from_filter_repr(cls, filter_str: str) -> List["Permission"]:
         perms = [cls(0)]
-        if filter_str[0] == "r":
+
+        for k in range(3):
             for i in range(len(perms)):
-                perms[i] |= Permission.READ
-        elif filter_str[0] == "?":
-            for i in range(len(perms)):
-                perms.append(perms[i] | Permission.READ)
-        if filter_str[1] == "w":
-            for i in range(len(perms)):
-                perms[i] |= Permission.WRITE
-        elif filter_str[1] == "?":
-            for i in range(len(perms)):
-                perms.append(perms[i] | Permission.WRITE)
-        if filter_str[2] == "x":
-            for i in range(len(perms)):
-                perms[i] |= Permission.EXECUTE
-        elif filter_str[2] == "?":
-            for i in range(len(perms)):
-                perms.append(perms[i] | Permission.EXECUTE)
+                p = cls(1 << (2-k))
+                if filter_str[k] == "rwx"[k]:
+                    perms[i] |= p
+                elif filter_str[k] == "?":
+                    perms.append(perms[i] | p)
+
         return perms
 
 
