@@ -12,6 +12,7 @@ jobs:
         variants:
             - { os: fedora, version: 41 }
             - { os: debian, version: bookworm }
+            - { os: archlinux, version: base }
 
     name: "Tests on ${{ matrix.variants }}"
     runs-on: ubuntu-latest
