@@ -3849,7 +3849,7 @@ def reset_architecture(arch: str | None = None) -> None:
     # check if the architecture is forced by parameter
     if arch:
         try:
-            gef.arch = arches[arch]()
+            gef.arch = arches[arch.lower()]()
             gef.arch_reason = "The architecture has been set manually"
         except KeyError:
             raise OSError(f"Specified arch {arch.upper()} is not supported")
@@ -4860,7 +4860,7 @@ class ArchSetCommand(GenericCommand):
     _example_ = f"{_cmdline_} X86"
 
     def do_invoke(self, args: list[str]) -> None:
-        reset_architecture(args[0].lower() if args else None)
+        reset_architecture(args[0] if args else None)
 
     def complete(self, text: str, word: str) -> list[str]:
         return sorted(x for x in __registered_architectures__.keys() if
