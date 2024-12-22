@@ -5,7 +5,7 @@ register addresses, lengths, and grouping size.
 
 ![memory watch](https://i.imgur.com/NXYwSwW.png)
 
-_Note_: this command **shoud NOT** be mistaken with the [GDB `watch`
+_Note_: this command **should NOT** be mistaken with the [GDB `watch`
 command](https://sourceware.org/gdb/current/onlinedocs/gdb/Set-Watchpoints.html) meant to set
 breakpoints on memory access (read,write,exec).
 
