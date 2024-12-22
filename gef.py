@@ -2329,7 +2329,7 @@ def get_zone_base_address(name: str) -> int | None:
 # Architecture classes
 #
 
-@deprecated("Using the decorator `register_architecture` is unecessary")
+@deprecated("Using the decorator `register_architecture` is unnecessary")
 def register_architecture(cls: Type["Architecture"]) -> Type["Architecture"]:
     return cls
 
@@ -2480,7 +2480,7 @@ class Architecture(ArchitectureBase):
             elif "big endian" in output:
                 self._endianness = Endianness.BIG_ENDIAN
             else:
-                raise OSError(f"No valid endianess found in '{output}'")
+                raise OSError(f"No valid endianness found in '{output}'")
         return self._endianness
 
     def get_ith_parameter(self, i: int, in_func: bool = True) -> tuple[str, int | None]:
@@ -6046,7 +6046,7 @@ class SearchPatternCommand(GenericCommand):
     _example_ = [f"{_cmdline_} AAAAAAAA",
                  f"{_cmdline_} 0x555555554000 little stack",
                  f"{_cmdline_} AAAA 0x600000-0x601000",
-                 f"{_cmdline_} --regex 0x401000 0x401500 ([\\\\x20-\\\\x7E]{{2,}})(?=\\\\x00)   <-- It matchs null-end-printable(from x20-x7e) C strings (min size 2 bytes)"]
+                 f"{_cmdline_} --regex 0x401000 0x401500 ([\\\\x20-\\\\x7E]{{2,}})(?=\\\\x00)   <-- It matches null-end-printable(from x20-x7e) C strings (min size 2 bytes)"]
 
     def __init__(self) -> None:
         super().__init__()
@@ -9691,7 +9691,7 @@ class HeapAnalysisCommand(GenericCommand):
         gdb.execute("set can-use-hw-watchpoints 0")
 
         info("Dynamic breakpoints correctly setup, "
-             "GEF will break execution if a possible vulnerabity is found.")
+             "GEF will break execution if a possible vulnerability is found.")
         warn(f"{Color.colorify('Note', 'bold underline yellow')}: "
              "The heap analysis slows down the execution noticeably.")
 
@@ -10000,13 +10000,13 @@ class GefCommand(gdb.Command):
 
         def load_plugins_from_directory(plugin_directory: pathlib.Path):
             nb_added = -1
-            nb_inital = len(__registered_commands__)
+            nb_initial = len(__registered_commands__)
             start_time = time.perf_counter()
             for entry in plugin_directory.glob("**/*.py"):
                 load_plugin(entry)
 
             try:
-                nb_added = len(__registered_commands__) - nb_inital
+                nb_added = len(__registered_commands__) - nb_initial
                 if nb_added > 0:
                     self.load()
                     nb_failed = len(__registered_commands__) - len(self.commands)
@@ -10733,7 +10733,7 @@ class GefManager(metaclass=abc.ABCMeta):
                     continue
                 obj.cache_clear()
             except Exception:
-                # we're reseting the cache here, we don't care if (or which) exception triggers
+                # we're resetting the cache here, we don't care if (or which) exception triggers
                 continue
         return
 
@@ -10972,7 +10972,7 @@ class GefMemoryManager(GefManager):
     @staticmethod
     def parse_gdb_maintenance_info_sections() -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info). In some cases (i.e. coredumps),
-        the memory info collected by `info proc sections` is insufficent."""
+        the memory info collected by `info proc sections` is insufficient."""
         stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
 
         for line in stream:

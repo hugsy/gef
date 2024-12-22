@@ -2,7 +2,7 @@
 
 """
 Small script to generate the changelog for a new release. It uses information from
-both git and Github to create teh changelog in Markdown, which can be simply copy/pasted
+both git and Github to create the changelog in Markdown, which can be simply copy/pasted
 to the Github release page.
 
 The script requires a Github token to be set in the environment variable `GITHUB_REPO_TOKEN`.

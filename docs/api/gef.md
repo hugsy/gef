@@ -1156,7 +1156,7 @@ register_architecture(
 ```
 
 `register_architecture` is **DEPRECATED** and will be removed in the future.
- Using the decorator `register_architecture` is unecessary
+ Using the decorator `register_architecture` is unnecessary
 
 
 ---
@@ -7576,7 +7576,7 @@ usage() → None
 ---
 
 ## <kbd>class</kbd> `GefTmuxSetup`
-Setup a confortable tmux debugging environment.
+Setup a comfortable tmux debugging environment.
 
 <a href="https://cs.github.com/hugsy/gef?q=GefTmuxSetup.__init__"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 

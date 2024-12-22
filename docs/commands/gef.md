@@ -141,5 +141,5 @@ different branch through the `gef.default_branch` configuration setting:
 gef➤ gef config gef.default_branch my_other_branch
 ```
 
-The files will be dowloaded in the path configured in the `gef.extra_plugins_dir` setting, allowing
+The files will be downloaded in the path configured in the `gef.extra_plugins_dir` setting, allowing
 to reload it easily without having to re-download.

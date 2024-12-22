@@ -19,7 +19,7 @@ gef➤ heap-analysis
 [+] Tracking malloc()
 [+] Tracking free()
 [+] Disabling hardware watchpoints (this may increase the latency)
-[+] Dynamic breakpoints correctly setup, GEF will break execution if a possible vulnerabity is found.
+[+] Dynamic breakpoints correctly setup, GEF will break execution if a possible vulnerability is found.
 [+] To disable, clear the malloc/free breakpoints (`delete breakpoints`) and restore hardware breakpoints (`set can-use-hw-watchpoints 1`)
 ```
 
