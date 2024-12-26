@@ -1505,7 +1505,7 @@ def get_arch():
         arch_str = arch_str.replace("The target architecture is assumed to be ", "")
     elif "The target architecture is set to " in arch_str:
         # GDB version >= 10.1
-        arch_str = re.findall(r"\"(.+)\"", arch_str)[0]
+        arch_str = re.findall(r"\"(.+?)\"", arch_str)[-1]
     else:
         # Unknown, we throw an exception to be safe
         raise RuntimeError("Unknown architecture: {}".format(arch_str))
@@ -3393,7 +3393,7 @@ def set_arch(arch=None, default=None):
         elf = get_elf_headers()
         current_elf = elf if elf.is_valid() else None
 
-    arch_name = current_elf.e_machine if current_elf else get_arch()
+    arch_name = current_elf.e_machine if current_elf else get_arch().upper()
     try:
         current_arch = arches[arch_name]()
     except KeyError:
