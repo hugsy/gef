@@ -3,7 +3,7 @@
 The `dereference` command (also aliased `telescope` for PEDA former users) aims to simplify the
 dereferencing of an address in GDB to determine the content it actually points to.
 
-It is a useful convienence function to spare to process of manually tracking values with successive
+It is a useful convenience function to spare to process of manually tracking values with successive
 `x/x` in GDB.
 
 `dereference` takes three optional arguments, a start address (or symbol or register, etc) to
