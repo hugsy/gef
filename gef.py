@@ -2607,7 +2607,7 @@ class RISCV(Architecture):
             if rs1 <= rs2: taken, reason = True, f"{rs1}<={rs2}"
             else: taken, reason = False, f"{rs1}>{rs2}"
         elif condition == "ge":
-            if rs1 < rs2: taken, reason = True, f"{rs1}>={rs2}"
+            if rs1 >= rs2: taken, reason = True, f"{rs1}>={rs2}"
             else: taken, reason = False, f"{rs1}<{rs2}"
         else:
             raise OSError(f"RISC-V: Conditional instruction `{insn}` not supported yet")
