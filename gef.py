@@ -3703,7 +3703,7 @@ def new_objfile_handler(evt: "gdb.NewObjFileEvent | None") -> None:
     if evt:
         path = evt.new_objfile.filename or ""
     elif progspace:
-        path = progspace.filename
+        path = progspace.filename or ""
     else:
         raise RuntimeError("Cannot determine file path")
     try:
@@ -4901,7 +4901,7 @@ class VersionCommand(GenericCommand):
 
         try:
             git = which("git")
-        except:
+        except FileNotFoundError:
             git = None
 
         if git:
@@ -11403,7 +11403,7 @@ class GefSessionManager(GefManager):
             return self.remote.file
         progspace = gdb.current_progspace()
         assert progspace
-        fpath: str = progspace.filename
+        fpath: str = progspace.filename or ""
         if fpath and not self._file:
             self._file = pathlib.Path(fpath).expanduser()
         return self._file
@@ -11547,7 +11547,7 @@ class GefRemoteSessionManager(GefSessionManager):
             if not filename:
                 raise RuntimeError("No session started")
             start_idx = len("target:") if filename.startswith("target:") else 0
-            self._file = pathlib.Path(progspace.filename[start_idx:])
+            self._file = pathlib.Path(filename[start_idx:])
         return self._file
 
     @property
