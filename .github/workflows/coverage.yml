@@ -1,4 +1,4 @@
-name: CI Coverage for PR
+name: Coverage
 
 on:
   pull_request_target:
@@ -14,16 +14,18 @@ jobs:
   coverage:
     env:
       PY_VER: ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Setup
       run: |
-        sudo apt-get -qq update
-        sudo apt-get -qq install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user curl
-        sudo python3 -m pip install --upgrade pip --quiet
-    - name: Run test coverage
+        export NEEDRESTART_MODE=n
+        sudo apt-get update -qq
+        sudo apt-get install -qq -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user curl
+        sudo apt-get install -y python3-full
+
+    - name: Run coverage
       id: get_coverage
       env:
         ALLOWED_MARGIN: 0.01
@@ -41,7 +43,7 @@ jobs:
         echo "current_score=${current_score}" >> $GITHUB_OUTPUT
         echo "score_diff=${score_diff}" >> $GITHUB_OUTPUT
 
-    - name: Post comment
+    - name: Post results
       uses: actions/github-script@v7
       with:
         script: |
