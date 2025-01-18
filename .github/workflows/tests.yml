@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-24.04, ubuntu-22.04]
+        runner: [ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm]
 
     name: "Run Unit tests on ${{ matrix.runner }}"
     runs-on: ${{ matrix.runner }}
@@ -37,12 +37,12 @@ jobs:
         sudo apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user
 
     - name: Install python and toolchain
-      if: matrix.runner == 'ubuntu-24.04'
+      if: startsWith(matrix.runner, 'ubuntu-24.04')
       run: |
         sudo apt-get install -y python3-full
 
     - name: Install python and toolchain
-      if: matrix.runner != 'ubuntu-24.04'
+      if: startsWith(matrix.runner, 'ubuntu-24.04') == false
       run: |
         python3 -m pip install pip -U
 
@@ -68,14 +68,14 @@ jobs:
           ${{ matrix.runner }}-
 
     - name: Install python and toolchain
-      if: matrix.runner != 'ubuntu-24.04'
+      if: startsWith(matrix.runner, 'ubuntu-24.04') == false
       run: |
         test "${{ env.PY_VER }}" == "0" && exit 1
         mkdir -p ${{ env.GEF_CI_CACHE_DIR }}
         python${{ env.PY_VER }} -m pip install --user --upgrade -r tests/requirements.txt
 
     - name: Install Python Requirements
-      if: matrix.runner == 'ubuntu-24.04'
+      if: startsWith(matrix.runner, 'ubuntu-24.04')
       run: |
         test "${{ env.PY_VER }}" == "0" && exit 1
         mkdir -p ${{ env.GEF_CI_CACHE_DIR }}
