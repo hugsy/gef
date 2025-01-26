@@ -678,13 +678,13 @@ class Section:
         return
 
     def is_readable(self) -> bool:
-        return (self.permission & Permission.READ) != 0
+        return bool(self.permission & Permission.READ)
 
     def is_writable(self) -> bool:
-        return (self.permission & Permission.WRITE) != 0
+        return bool(self.permission & Permission.WRITE)
 
     def is_executable(self) -> bool:
-        return (self.permission & Permission.EXECUTE) != 0
+        return bool(self.permission & Permission.EXECUTE)
 
     @property
     def size(self) -> int:
