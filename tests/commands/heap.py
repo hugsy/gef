@@ -180,7 +180,7 @@ class HeapCommandNonMain(RemoteGefUnitTestGeneric):
         res = gdb.execute(cmd, to_string=True)
         self.assertIn("size=0x20", res)
 
-    @pytest.mark.skipif(ARCH in ("i686", "x86_64",), reason=f"Skipped for {ARCH}")
+    @pytest.mark.skipif(ARCH not in ("i686", "x86_64",), reason=f"Skipped for {ARCH}")
     def test_cmd_heap_bins_tcache(self):
         gdb = self._gdb
         gdb.execute("run")
