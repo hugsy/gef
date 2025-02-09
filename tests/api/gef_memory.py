@@ -152,6 +152,7 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             sections = gef.memory.maps
             assert len(sections) > 0
 
+    @pytest.mark.skipif(ARCH not in ("x86_64",), reason=f"Skipped for {ARCH}")
     def test_func_parse_maps_realpath(self):
         gef, gdb = self._gef, self._gdb
         # When in a gef-remote session `parse_gdb_info_proc_maps` should work to

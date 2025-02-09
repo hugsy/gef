@@ -2,6 +2,7 @@
 Heap commands test module
 """
 
+import pytest
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import (
     ARCH,
@@ -179,6 +180,7 @@ class HeapCommandNonMain(RemoteGefUnitTestGeneric):
         res = gdb.execute(cmd, to_string=True)
         self.assertIn("size=0x20", res)
 
+    @pytest.mark.skipif(ARCH not in ("i686", "x86_64",), reason=f"Skipped for {ARCH}")
     def test_cmd_heap_bins_tcache(self):
         gdb = self._gdb
         gdb.execute("run")
@@ -292,6 +294,7 @@ class HeapCommandTcache(RemoteGefUnitTestGeneric):
         self.expected_tcache_bin_size = 0x20 if ARCH == "i686" or is_64b() else 0x18
         return super().setUp()
 
+    @pytest.mark.skipif(ARCH not in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
     def test_cmd_heap_bins_tcache_all(self):
         gdb = self._gdb
         gdb.execute("run")
