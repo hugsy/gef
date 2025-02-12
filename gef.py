@@ -11853,6 +11853,18 @@ if __name__ == "__main__":
         except gdb.error:
             pass
 
+    # set fallback 'debug-file-directory' for gdbs that installed outside `/usr`.
+    try:
+        default_dbgsym_path = "/usr/lib/debug"
+        param_name = "debug-file-directory"
+        dbgsym_paths = gdb.parameter(param_name)
+        if default_dbgsym_path not in dbgsym_paths:
+            newpath = f"{dbgsym_paths}:" if dbgsym_paths else ""
+            newpath += default_dbgsym_path
+            gdb.execute(f"set {param_name} {newpath}")
+    except gdb.error:
+        pass
+
     # load GEF, set up the managers and load the plugins, functions,
     gef = Gef()
     reset()
