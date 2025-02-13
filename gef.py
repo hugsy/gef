@@ -11862,8 +11862,8 @@ if __name__ == "__main__":
             newpath = f"{dbgsym_paths}:" if dbgsym_paths else ""
             newpath += default_dbgsym_path
             gdb.execute(f"set {param_name} {newpath}")
-    except gdb.error:
-        pass
+    except gdb.error as e:
+        warn(f"Failed to set {param_name}, reason: {str(e)}")
 
     # load GEF, set up the managers and load the plugins, functions,
     gef = Gef()
