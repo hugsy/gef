@@ -9447,7 +9447,7 @@ class GotCommand(GenericCommand):
                                          "Line color of the got command output for unresolved function")
         return
 
-    def build_line(self, name: str, color: str, address_val: int, got_address: int) -> str:
+    def build_line(self, name: str, _path: str, color: str, address_val: int, got_address: int) -> str:
         line = f"[{hex(address_val)}] "
         line += Color.colorify(f"{name} {RIGHT_ARROW} {hex(got_address)}", color)
         return line
@@ -9517,7 +9517,7 @@ class GotCommand(GenericCommand):
             else:
                 color = self["function_resolved"]
 
-            line = self.build_line(name, color, address_val, got_address)
+            line = self.build_line(name, elf_virtual_path, color, address_val, got_address)
             gef_print(line)
         return
 
