@@ -6690,7 +6690,7 @@ class GlibcHeapChunksCommand(GenericCommand):
                 if not args.all:
                     return
         try:
-            if not args.arena_address or args.arena_address == "":
+            if not args.arena_address:
                 return
             arena_addr = parse_address(args.arena_address)
             arena = GlibcArena(f"*{arena_addr:#x}")
