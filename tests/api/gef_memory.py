@@ -137,7 +137,7 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             sections = gef.memory.maps
             assert len(sections) > 0
 
-    @pytest.mark.skipif(ARCH == "aarch64" and IN_GITHUB_ACTIONS, reason=f"Skipped for {ARCH}")
+    @pytest.mark.skipif(ARCH == "aarch64" and IN_GITHUB_ACTIONS, reason=f"Skipped for {ARCH} on CI")
     def test_func_parse_maps_remote_qemu(self):
         gdb, gef = self._gdb, self._gef
         # When in a gef-remote qemu-user session `parse_gdb_info_proc_maps`
