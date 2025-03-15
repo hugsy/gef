@@ -6755,6 +6755,7 @@ class GlibcHeapChunksCommand(GenericCommand):
         if not top_printed and ctx.print_arena:
             top_chunk =  GlibcChunk(arena.top, from_base=True, allow_unaligned=ctx.allow_unaligned)
             gef_print(f"{top_chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
+
         if ctx.summary:
             heap_summary.print()
 
