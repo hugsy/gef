@@ -6690,11 +6690,13 @@ class GlibcHeapChunksCommand(GenericCommand):
                 if not args.all:
                     return
         try:
+            if not args.arena_address:
+                return
             arena_addr = parse_address(args.arena_address)
             arena = GlibcArena(f"*{arena_addr:#x}")
             self.dump_chunks_arena(arena, ctx)
-        except gdb.error:
-            err("Invalid arena")
+        except gdb.error as e:
+            err(f"Invalid arena: {e}\nArena Address: {args.arena_address}")
             return
 
     def dump_chunks_arena(self, arena: GlibcArena, ctx: GlibcHeapWalkContext) -> None:
@@ -6718,6 +6720,7 @@ class GlibcHeapChunksCommand(GenericCommand):
         nb = self["peek_nb_byte"]
         chunk_iterator = GlibcChunk(start, from_base=True, allow_unaligned=ctx.allow_unaligned)
         heap_summary = GlibcHeapArenaSummary(resolve_type=ctx.resolve_type)
+        top_printed = False
         for chunk in chunk_iterator:
             heap_corrupted = chunk.base_address > end
             should_process = self.should_process_chunk(chunk, ctx)
@@ -6726,6 +6729,7 @@ class GlibcHeapChunksCommand(GenericCommand):
                 if should_process:
                     gef_print(
                         f"{chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
+                top_printed = True
                 break
 
             if heap_corrupted:
@@ -6747,6 +6751,10 @@ class GlibcHeapChunksCommand(GenericCommand):
                 gef_print(line)
 
             ctx.remaining_chunk_count -= 1
+
+        if not top_printed and ctx.print_arena:
+            top_chunk =  GlibcChunk(arena.top, from_base=True, allow_unaligned=ctx.allow_unaligned)
+            gef_print(f"{top_chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
 
         if ctx.summary:
             heap_summary.print()
