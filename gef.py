@@ -6729,7 +6729,6 @@ class GlibcHeapChunksCommand(GenericCommand):
                 if should_process:
                     gef_print(
                         f"{chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
-
                 top_printed = True
                 break
 
