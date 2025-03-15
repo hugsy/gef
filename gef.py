@@ -6696,7 +6696,7 @@ class GlibcHeapChunksCommand(GenericCommand):
             arena = GlibcArena(f"*{arena_addr:#x}")
             self.dump_chunks_arena(arena, ctx)
         except gdb.error as e:
-            err(f"Invalid arena: {e} \nArena Address: {args.arena_address}")
+            err(f"Invalid arena: {e}\nArena Address: {args.arena_address}")
             return
 
     def dump_chunks_arena(self, arena: GlibcArena, ctx: GlibcHeapWalkContext) -> None:
