@@ -11866,6 +11866,8 @@ if __name__ == "__main__":
         default_dbgsym_path = "/usr/lib/debug"
         param_name = "debug-file-directory"
         dbgsym_paths = gdb.parameter(param_name)
+        if not isinstance(dbgsym_paths, str):
+            raise TypeError
         if default_dbgsym_path not in dbgsym_paths:
             newpath = f"{dbgsym_paths}:" if dbgsym_paths else ""
             newpath += default_dbgsym_path
