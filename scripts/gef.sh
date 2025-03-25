@@ -11,6 +11,7 @@ fi
 # Backup gdbinit if any
 if [ -f "${HOME}/.gdbinit" ]; then
     cp "${HOME}/.gdbinit" "${HOME}/.gdbinit.old"
+    echo "Existing gdbinit saved as ${HOME}/.gdbinit.old"
 else
     touch "${HOME}/.gdbinit"
 fi
