@@ -680,13 +680,13 @@ class Section:
         return
 
     def is_readable(self) -> bool:
-        return (self.permission & Permission.READ) != 0
+        return bool(self.permission & Permission.READ)
 
     def is_writable(self) -> bool:
-        return (self.permission & Permission.WRITE) != 0
+        return bool(self.permission & Permission.WRITE)
 
     def is_executable(self) -> bool:
-        return (self.permission & Permission.EXECUTE) != 0
+        return bool(self.permission & Permission.EXECUTE)
 
     @property
     def size(self) -> int:
@@ -1880,9 +1880,8 @@ def show_last_exception() -> None:
     """Display the last Python exception."""
 
     def _show_code_line(fname: str, idx: int) -> str:
-        fname = os.path.expanduser(os.path.expandvars(fname))
-        with open(fname, "r") as f:
-            _data = f.readlines()
+        fpath = pathlib.Path(os.path.expanduser(os.path.expandvars(fname)))
+        _data = fpath.read_text().splitlines()
         return _data[idx - 1] if 0 < idx < len(_data) else ""
 
     gef_print("")
@@ -1914,7 +1913,7 @@ def show_last_exception() -> None:
         lsb_release = which("lsb_release")
         gdb.execute(f"!'{lsb_release}' -a")
     except FileNotFoundError:
-        gef_print("lsb_release is missing, cannot collect additional debug information")
+        pass
 
     gef_print(HORIZONTAL_LINE*80)
     gef_print("")
@@ -2332,7 +2331,7 @@ def get_zone_base_address(name: str) -> int | None:
 # Architecture classes
 #
 
-@deprecated("Using the decorator `register_architecture` is unecessary")
+@deprecated("Using the decorator `register_architecture` is unnecessary")
 def register_architecture(cls: Type["Architecture"]) -> Type["Architecture"]:
     return cls
 
@@ -2483,7 +2482,7 @@ class Architecture(ArchitectureBase):
             elif "big endian" in output:
                 self._endianness = Endianness.BIG_ENDIAN
             else:
-                raise OSError(f"No valid endianess found in '{output}'")
+                raise OSError(f"No valid endianness found in '{output}'")
         return self._endianness
 
     def get_ith_parameter(self, i: int, in_func: bool = True) -> tuple[str, int | None]:
@@ -2610,7 +2609,7 @@ class RISCV(Architecture):
             if rs1 <= rs2: taken, reason = True, f"{rs1}<={rs2}"
             else: taken, reason = False, f"{rs1}>{rs2}"
         elif condition == "ge":
-            if rs1 < rs2: taken, reason = True, f"{rs1}>={rs2}"
+            if rs1 >= rs2: taken, reason = True, f"{rs1}>={rs2}"
             else: taken, reason = False, f"{rs1}<{rs2}"
         else:
             raise OSError(f"RISC-V: Conditional instruction `{insn}` not supported yet")
@@ -3730,7 +3729,7 @@ def new_objfile_handler(evt: "gdb.NewObjFileEvent | None") -> None:
     if evt:
         path = evt.new_objfile.filename or ""
     elif progspace:
-        path = progspace.filename
+        path = progspace.filename or ""
     else:
         raise RuntimeError("Cannot determine file path")
 
@@ -3878,7 +3877,7 @@ def reset_architecture(arch: str | None = None) -> None:
     # check if the architecture is forced by parameter
     if arch:
         try:
-            gef.arch = arches[arch]()
+            gef.arch = arches[arch.lower()]()
             gef.arch_reason = "The architecture has been set manually"
         except KeyError:
             raise OSError(f"Specified arch {arch.upper()} is not supported")
@@ -4890,7 +4889,7 @@ class ArchSetCommand(GenericCommand):
     _example_ = f"{_cmdline_} X86"
 
     def do_invoke(self, args: list[str]) -> None:
-        reset_architecture(args[0].lower() if args else None)
+        reset_architecture(args[0] if args else None)
 
     def complete(self, text: str, word: str) -> list[str]:
         return sorted(x for x in __registered_architectures__.keys() if
@@ -4927,17 +4926,22 @@ class VersionCommand(GenericCommand):
     def do_invoke(self, argv: list[str]) -> None:
         gef_fpath = pathlib.Path(inspect.stack()[0][1]).expanduser().absolute()
         gef_dir = gef_fpath.parent
-        with gef_fpath.open("rb") as f:
-            gef_hash = hashlib.sha256(f.read()).hexdigest()
+        gef_hash = hashlib.sha256(gef_fpath.read_bytes()).hexdigest()
 
-        if os.access(f"{gef_dir}/.git", os.X_OK):
-            ver = subprocess.check_output("git log --format='%H' -n 1 HEAD", cwd=gef_dir, shell=True).decode("utf8").strip()
-            extra = "dirty" if len(subprocess.check_output("git ls-files -m", cwd=gef_dir, shell=True).decode("utf8").strip()) else "clean"
-            gef_print(f"GEF: rev:{ver} (Git - {extra})")
-        else:
-            gef_blob_hash = subprocess.check_output(f"git hash-object {gef_fpath}", shell=True).decode().strip()
-            gef_print("GEF: (Standalone)")
-            gef_print(f"Blob Hash({gef_fpath}): {gef_blob_hash}")
+        try:
+            git = which("git")
+        except FileNotFoundError:
+            git = None
+
+        if git:
+            if (gef_dir / ".git").is_dir():
+                ver = subprocess.check_output("git log --format='%H' -n 1 HEAD", cwd=gef_dir, shell=True).decode("utf8").strip()
+                extra = "dirty" if len(subprocess.check_output("git ls-files -m", cwd=gef_dir, shell=True).decode("utf8").strip()) else "clean"
+                gef_print(f"GEF: rev:{ver} (Git - {extra})")
+            else:
+                gef_blob_hash = subprocess.check_output(f"git hash-object {gef_fpath}", shell=True).decode().strip()
+                gef_print("GEF: (Standalone)")
+                gef_print(f"Blob Hash({gef_fpath}): {gef_blob_hash}")
         gef_print(f"SHA256({gef_fpath}): {gef_hash}")
         gef_print(f"GDB: {gdb.VERSION}")
         py_ver = f"{sys.version_info.major:d}.{sys.version_info.minor:d}"
@@ -6071,7 +6075,7 @@ class SearchPatternCommand(GenericCommand):
     _example_ = [f"{_cmdline_} AAAAAAAA",
                  f"{_cmdline_} 0x555555554000 little stack",
                  f"{_cmdline_} AAAA 0x600000-0x601000",
-                 f"{_cmdline_} --regex 0x401000 0x401500 ([\\\\x20-\\\\x7E]{{2,}})(?=\\\\x00)   <-- It matchs null-end-printable(from x20-x7e) C strings (min size 2 bytes)"]
+                 f"{_cmdline_} --regex 0x401000 0x401500 ([\\\\x20-\\\\x7E]{{2,}})(?=\\\\x00)   <-- It matches null-end-printable(from x20-x7e) C strings (min size 2 bytes)"]
 
     def __init__(self) -> None:
         super().__init__()
@@ -6691,11 +6695,13 @@ class GlibcHeapChunksCommand(GenericCommand):
                 if not args.all:
                     return
         try:
+            if not args.arena_address:
+                return
             arena_addr = parse_address(args.arena_address)
             arena = GlibcArena(f"*{arena_addr:#x}")
             self.dump_chunks_arena(arena, ctx)
-        except gdb.error:
-            err("Invalid arena")
+        except gdb.error as e:
+            err(f"Invalid arena: {e}\nArena Address: {args.arena_address}")
             return
 
     def dump_chunks_arena(self, arena: GlibcArena, ctx: GlibcHeapWalkContext) -> None:
@@ -6719,6 +6725,7 @@ class GlibcHeapChunksCommand(GenericCommand):
         nb = self["peek_nb_byte"]
         chunk_iterator = GlibcChunk(start, from_base=True, allow_unaligned=ctx.allow_unaligned)
         heap_summary = GlibcHeapArenaSummary(resolve_type=ctx.resolve_type)
+        top_printed = False
         for chunk in chunk_iterator:
             heap_corrupted = chunk.base_address > end
             should_process = self.should_process_chunk(chunk, ctx)
@@ -6727,6 +6734,7 @@ class GlibcHeapChunksCommand(GenericCommand):
                 if should_process:
                     gef_print(
                         f"{chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
+                top_printed = True
                 break
 
             if heap_corrupted:
@@ -6748,6 +6756,10 @@ class GlibcHeapChunksCommand(GenericCommand):
                 gef_print(line)
 
             ctx.remaining_chunk_count -= 1
+
+        if not top_printed and ctx.print_arena:
+            top_chunk =  GlibcChunk(arena.top, from_base=True, allow_unaligned=ctx.allow_unaligned)
+            gef_print(f"{top_chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
 
         if ctx.summary:
             heap_summary.print()
@@ -9448,7 +9460,7 @@ class GotCommand(GenericCommand):
                                          "Line color of the got command output for unresolved function")
         return
 
-    def build_line(self, name: str, color: str, address_val: int, got_address: int) -> str:
+    def build_line(self, name: str, _path: str, color: str, address_val: int, got_address: int) -> str:
         line = f"[{hex(address_val)}] "
         line += Color.colorify(f"{name} {RIGHT_ARROW} {hex(got_address)}", color)
         return line
@@ -9518,7 +9530,7 @@ class GotCommand(GenericCommand):
             else:
                 color = self["function_resolved"]
 
-            line = self.build_line(name, color, address_val, got_address)
+            line = self.build_line(name, elf_virtual_path, color, address_val, got_address)
             gef_print(line)
         return
 
@@ -9692,7 +9704,7 @@ class HeapAnalysisCommand(GenericCommand):
         gdb.execute("set can-use-hw-watchpoints 0")
 
         info("Dynamic breakpoints correctly setup, "
-             "GEF will break execution if a possible vulnerabity is found.")
+             "GEF will break execution if a possible vulnerability is found.")
         warn(f"{Color.colorify('Note', 'bold underline yellow')}: "
              "The heap analysis slows down the execution noticeably.")
 
@@ -10001,13 +10013,13 @@ class GefCommand(gdb.Command):
 
         def load_plugins_from_directory(plugin_directory: pathlib.Path):
             nb_added = -1
-            nb_inital = len(__registered_commands__)
+            nb_initial = len(__registered_commands__)
             start_time = time.perf_counter()
             for entry in plugin_directory.glob("**/*.py"):
                 load_plugin(entry)
 
             try:
-                nb_added = len(__registered_commands__) - nb_inital
+                nb_added = len(__registered_commands__) - nb_initial
                 if nb_added > 0:
                     self.load()
                     nb_failed = len(__registered_commands__) - len(self.commands)
@@ -10734,7 +10746,7 @@ class GefManager(metaclass=abc.ABCMeta):
                     continue
                 obj.cache_clear()
             except Exception:
-                # we're reseting the cache here, we don't care if (or which) exception triggers
+                # we're resetting the cache here, we don't care if (or which) exception triggers
                 continue
         return
 
@@ -10989,7 +11001,7 @@ class GefMemoryManager(GefManager):
     @staticmethod
     def parse_gdb_maintenance_info_sections() -> Generator[Section, None, None]:
         """Get the memory mapping from GDB's command `maintenance info sections` (limited info). In some cases (i.e. coredumps),
-        the memory info collected by `info proc sections` is insufficent."""
+        the memory info collected by `info proc sections` is insufficient."""
         stream = StringIO(gdb.execute("maintenance info sections", to_string=True))
 
         for line in stream:
@@ -11823,6 +11835,20 @@ if __name__ == "__main__":
             gdb.execute(cmd)
         except gdb.error:
             pass
+
+    # set fallback 'debug-file-directory' for gdbs that installed outside `/usr`.
+    try:
+        default_dbgsym_path = "/usr/lib/debug"
+        param_name = "debug-file-directory"
+        dbgsym_paths = gdb.parameter(param_name)
+        if not isinstance(dbgsym_paths, str):
+            raise TypeError
+        if default_dbgsym_path not in dbgsym_paths:
+            newpath = f"{dbgsym_paths}:" if dbgsym_paths else ""
+            newpath += default_dbgsym_path
+            gdb.execute(f"set {param_name} {newpath}")
+    except gdb.error as e:
+        warn(f"Failed to set {param_name}, reason: {str(e)}")
 
     # load GEF, set up the managers and load the plugins, functions,
     gef = Gef()

@@ -75,7 +75,7 @@ try to reach out for help on the Discord channel or submit an issue.
 
 | Documentation |License | Compatibility | CI Tests (`main`) |
 |:---:|:---:|:---|--|
-| [![Documentation](https://github.com/hugsy/gef/actions/workflows/generate-docs.yml/badge.svg)](https://github.com/hugsy/gef/actions/workflows/generate-docs.yml) | [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/main/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) | [![CI Test for GEF](https://github.com/hugsy/gef/actions/workflows/run-tests.yml/badge.svg)](https://github.com/hugsy/gef/actions/workflows/run-tests.yml) |
+| [![Documentation](https://github.com/hugsy/gef/actions/workflows/generate-docs.yml/badge.svg)](https://github.com/hugsy/gef/actions/workflows/generate-docs.yml) | [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/main/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) | [![CI Test for GEF](https://github.com/hugsy/gef/actions/workflows/tests.yml/badge.svg)](https://github.com/hugsy/gef/actions/workflows/tests.yml) |
 
 ## Contribute
 

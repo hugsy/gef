@@ -249,7 +249,7 @@ def findlines(substring: str, buffer: str) -> List[str]:
 
 def removeafter(substring: str, buffer: str, included: bool = False) -> str:
     """Returns a copy of `buffer` truncated after `substring` is found. If
-    `included` is True, the result also includes the subtring.
+    `included` is True, the result also includes the substring.
 
     Args:
         substring (str)
@@ -271,7 +271,7 @@ def removeafter(substring: str, buffer: str, included: bool = False) -> str:
 
 def removeuntil(substring: str, buffer: str, included: bool = False) -> str:
     """Returns a copy of `buffer` truncated until `substring` is found. If
-    `included` is True, the result also includes the subtring.
+    `included` is True, the result also includes the substring.
 
     Args:
         substring (str)

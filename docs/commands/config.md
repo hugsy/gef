@@ -19,7 +19,7 @@ gef➤  gef config pcustom.struct_path
 ```
 
 Of course you can edit the values. For example, if you want the screen to be cleared before
-displaying the current context when reaching a breakpoing:
+displaying the current context when reaching a breakpoint:
 
 ```text
 gef➤  gef config context.clear_screen 1

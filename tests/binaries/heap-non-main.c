@@ -8,7 +8,7 @@
 #include <pthread.h>
 #include "utils.h"
 
-void *thread()
+void *thread(void *arg)
 {
         void* p1 = malloc(0x18);
         void* p2 = malloc(0x18);
