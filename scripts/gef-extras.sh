@@ -42,7 +42,7 @@ gdb -q -ex "pi gef.config['context.layout'] += ' syscall_args'" \
        -ex "pi gef.config['context.layout'] += ' libc_function_args'" \
        -ex "gef config gef.extra_plugins_dir '${DIR}/scripts'" \
        -ex "gef config pcustom.struct_path '${DIR}/structs'" \
-       -ex "gef config syscall-args.path '${DIR}/syscall-tables'" \
+       -ex "gef config syscall-args.path '${DIR}/scripts/syscall_args/syscall-tables'" \
        -ex "gef config context.libc_args True" \
        -ex "gef config context.libc_args_path '${DIR}/glibc-function-args'" \
        -ex 'gef save' \
