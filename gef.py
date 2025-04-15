@@ -7974,19 +7974,22 @@ class ContextCommand(GenericCommand):
 
         def __get_current_block_start_address() -> int | None:
             pc = gef.arch.pc
+            max_distance = 10 * 16
             try:
                 block = gdb.block_for_pc(pc)
-                block_start = block.start if block else gdb_get_nth_previous_instruction_address(pc, 5)
+                block_start = block.start \
+                    if block is not None and (pc - block.start) <= max_distance \
+                    else gdb_get_nth_previous_instruction_address(pc, 5)
             except RuntimeError:
                 block_start = gdb_get_nth_previous_instruction_address(pc, 5)
             return block_start
 
-        parameter_set = set()
-        pc = gef.arch.pc
         block_start = __get_current_block_start_address()
         if not block_start:
             return
 
+        parameter_set: set[str] = set()
+        pc = gef.arch.pc
         function_parameters = gef.arch.function_parameters
         arg_key_color = gef.config["theme.registers_register_name"]
 
