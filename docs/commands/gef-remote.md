@@ -1,15 +1,7 @@
 ## Command `gef-remote`
 
-[`target remote`](https://sourceware.org/gdb/onlinedocs/gdb/Remote-Debugging.html#Remote-Debugging)
-is the traditional GDB way of debugging process or system remotely. However this command by itself
-does a limited job (80's bandwidth FTW) to collect more information about the target, making the
-process of debugging more cumbersome. GEF greatly improves that state with the `gef-remote` command.
-
-📝 **Note**: If using GEF, `gef-remote` **must** be your way or debugging remote processes, never
-`target remote`. Maintainers will provide minimal support or help if you decide to use the
-traditional `target remote` command. For many reasons, you **should not** use `target remote` alone
-with GEF. It is still important to note that the default `target remote` command has been
-overwritten by a minimal copy `gef-remote`, in order to make most tools relying on this command work.
+📝 **IMPORTANT NOTE**: `gef-remote` is deprecated since 2025.06 in favor of `target remote`. The
+command will be removed in a future release. Do not rely on it.
 
 `gef-remote` can function in 2 ways:
 
