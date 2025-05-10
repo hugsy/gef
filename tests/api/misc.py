@@ -77,3 +77,23 @@ class MiscFunctionTest(RemoteGefUnitTestGeneric):
         assert "libc" in pathlib.Path(libc.path).name
 
         assert root.eval("process_lookup_path('stack')") is not None
+
+    def test_func_from_filter_repr(self):
+        root = self._conn.root
+        Permission = root.eval("Permission")
+
+        none = Permission.from_filter_repr('---')
+        assert len(none) == 1
+        assert none[0] == Permission.NONE
+
+        all_readable_perms = Permission.from_filter_repr("r??")
+        assert all(x & Permission.READ for x in all_readable_perms)
+        assert len(all_readable_perms) == 4
+
+        all_writable_perms = Permission.from_filter_repr("?w?")
+        assert all(x & Permission.WRITE for x in all_writable_perms)
+        assert len(all_writable_perms) == 4
+
+        all_executable_perms = Permission.from_filter_repr("??x")
+        assert all(x & Permission.EXECUTE for x in all_executable_perms)
+        assert len(all_executable_perms) == 4
