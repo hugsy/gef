@@ -21,7 +21,7 @@
 /* The expected distance is the chunk size plus room for the metadata. */
 #define EXPECTED_CHUNK_DISTANCE     LESS_THAN_MMAP_THRESHOLD + 24
 
-void *thread()
+void *thread(void *arg)
 {
         void *pointers[NUM_ALLOCS];
         for (int i = 0; i < NUM_ALLOCS; i++) {

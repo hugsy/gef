@@ -71,5 +71,5 @@ class GefRemoteCommand(RemoteGefUnitTestGeneric):
         with gdbserver_session(port=port) as _:
             gdb.execute(f"target remote {GDBSERVER_DEFAULT_HOST}:{port}")
             res: str = root.eval("str(gef.session.remote)")
-            assert res.startswith(f"RemoteSession(target=':0', local='/tmp/")
+            assert res.startswith("RemoteSession(target=':0', local='/tmp/")
             assert res.endswith(f"pid={gef.session.pid}, mode={gdbserver_mode})")

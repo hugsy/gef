@@ -1,0 +1,23 @@
+name: Extended Tests
+
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        variants:
+            - { os: fedora, version: 41 }
+            - { os: debian, version: bookworm }
+            - { os: archlinux, version: base }
+
+    name: "Tests on ${{ matrix.variants }}"
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - run: |
+        docker run -v ${PWD}:/gef ${{ matrix.variants.os }}:${{ matrix.variants.version }} "bash /gef/tests/extended/${{ matrix.variants.os }}.sh"

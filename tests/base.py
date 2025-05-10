@@ -5,7 +5,7 @@ import re
 import subprocess
 import tempfile
 import time
-from typing import Tuple
+
 import unittest
 
 import rpyc
@@ -109,7 +109,9 @@ pi start_rpyc_service({self._port})
         return super().tearDown()
 
     @property
-    def gdb_version(self) -> Tuple[int, int]:
-        res = [int(d) for d in re.search(r"(\d+)\D(\d+)", self._gdb.VERSION).groups()]
-        assert len(res) >= 2
-        return tuple(res)
+    def gdb_version(self) -> tuple[int, int]:
+        res = re.search(r"(\d+)\D(\d+)", self._gdb.VERSION)
+        assert res
+        groups = [int(d) for d in res.groups()]
+        assert len(groups) == 2
+        return groups[0], groups[1]
