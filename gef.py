@@ -665,7 +665,7 @@ class Permission(enum.Flag):
         return perm
 
     @classmethod
-    def from_filter_repr(cls, filter_str: str) -> List["Permission"]:
+    def from_filter_repr(cls, filter_str: str) -> list["Permission"]:
         perms = [cls(0)]
 
         for k in range(3):
@@ -8937,13 +8937,12 @@ class VMMapCommand(GenericCommand):
 
         addrs: dict[str, int] = {x: parse_address(x) for x in args.addr}
         names: list[str] = [x for x in args.name]
-        perms: Set[Permission] = set()
+        perms: set[Permission] = set()
 
         for x in args.perms:
             perms = perms.union(Permission.from_filter_repr(x))
 
-            
-        f====r arg in args.unknown_types:
+        for arg in args.unknown_types:
             if not arg:
                 continue
 
