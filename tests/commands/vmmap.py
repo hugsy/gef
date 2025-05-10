@@ -58,9 +58,11 @@ class VmmapCommand(RemoteGefUnitTestGeneric):
         gdb.execute("start")
 
         res1 = gdb.execute("vmmap -p r?-", to_string=True)
-        lines1 = res.splitlines()
-        self.assertGreater(len(lines), 5)
+        lines1 = res1.splitlines()
+        self.assertGreater(len(lines1), 5)
         for line in lines1:
+            if line[:2] != "0x":
+                continue
             perm_str = line.split()[3]
             assert perm_str[0] == 'r'
             assert perm_str[1] in ('w', '-')
