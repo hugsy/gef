@@ -16,9 +16,9 @@ to determine which section it belongs to, or the permissions of the sections to 
     -  filter by address -> parses the next argument as an integer or asks gdb to interpret the value
 2.  `-n` / `--name`:
     -  filter based on section name
-2.  `-p` / `--perms`:
+3.  `-p` / `--perms`:
     -  filter based on section permissions
-3.  If nothing is specified, it prints a warning and guesses the type
+4.  If nothing is specified, it prints a warning and guesses the type
 
 ![vmmap-grep](https://github.com/hugsy/gef/assets/11377623/a3dbaa3e-88b0-407f-a0dd-07e65c4a3f73)
 
