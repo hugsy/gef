@@ -24,9 +24,13 @@ to determine which section it belongs to, or the permissions of the sections to 
 
 ![vmmap-address](https://github.com/hugsy/gef/assets/11377623/4dffe491-f927-4f03-b842-4d941140e66c)
 
-The address can be also be given in the form of a register or variable.
+The address can be also be given in the form of a register or variable:
 
 ![vmmap-register](https://github.com/hugsy/gef/assets/11377623/aed7ecdc-7ad9-4ba5-ae03-329e66432731)
+
+Using perms:
+
+![vmmap-perms](https://github.com/user-attachments/assets/c34822d3-2369-464f-aafa-87113b293174)
 
 And you can do all of them in one command 🙂
 
