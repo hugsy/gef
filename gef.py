@@ -9956,7 +9956,7 @@ class GefCommand(gdb.Command):
             path = pathlib.Path(path)
 
         activate_script_path = path/"bin/activate_this.py"
-        exec(activate_script_path.read_text(), {'__file__': activate_script_path})
+        exec(activate_script_path.read_text(), {"__file__": activate_script_path})
 
     @property
     def loaded_command_names(self) -> Iterable[str]:
