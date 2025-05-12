@@ -666,7 +666,7 @@ class Permission(enum.Flag):
 
     @classmethod
     def from_filter_repr(cls, filter_str: str) -> list["Permission"]:
-        perms = [cls(0)]
+        perms: list["Permission"] = [cls(0)]
 
         for k in range(3):
             for i in range(len(perms)):
