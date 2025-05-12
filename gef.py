@@ -8952,9 +8952,9 @@ class VMMapCommand(GenericCommand):
                 addr = safe_parse_and_eval(arg)
 
             if addr is None:
-                if arg[0] in 'r-?' and \
-                        arg[1] in 'w-?' and \
-                        arg[2] in 'x-?':
+                if arg[0] in "r-?" and \
+                        arg[1] in "w-?" and \
+                        arg[2] in "x-?":
                     perms = perms.union(Permission.from_filter_repr(arg))
                     warn(f"`{arg}` has no type specified. We guessed it was a perm filter.")
                     continue
