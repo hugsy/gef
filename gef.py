@@ -9949,9 +9949,10 @@ class GefCommand(gdb.Command):
 
     def load_virtualenv(self, new_path: Optional[pathlib.Path] = None):
         path = new_path or gef.config["gef.virtualenv_path"]
-        if path:
-            activate_script_path = pathlib.Path(path)/"bin"/"activate_this.py"
-            exec(open(activate_script_path).read(), {'__file__': activate_script_path})
+        if not path:
+            return
+        activate_script_path = pathlib.Path(path)/"bin"/"activate_this.py"
+        exec(open(activate_script_path).read(), {'__file__': activate_script_path})
 
     @property
     def loaded_command_names(self) -> Iterable[str]:
