@@ -9854,8 +9854,14 @@ class GefCommand(gdb.Command):
         plugins_dir = GefSetting("", str, "Autoload additional GEF commands from external directory", hooks={"on_write": [GefSetting.no_spaces, ]})
         plugins_dir.add_hook("on_changed", [lambda _, new_val: GefSetting.must_exist(new_val), lambda _, new_val: self.load_extra_plugins(new_val), ])
         gef.config["gef.extra_plugins_dir"] = plugins_dir
-        venv_path = GefSetting("", str, "Path to the virtualenv used by GEF", hooks={"on_write": [GefSetting.no_spaces, ]})
-        venv_path.add_hook("on_changed", [lambda _, new_val: GefSetting.must_exist(new_val), lambda _, new_val: self.load_virtualenv(new_val), ])
+        venv_path = GefSetting("", str, "Path to the virtualenv used by GEF", hooks={
+            "on_write": [GefSetting.no_spaces, ],
+            "on_changed": [
+                lambda _, new_val: GefSetting.must_exist(new_val),
+                lambda _, new_val: self.load_virtualenv(new_val),
+            ]
+        })
+        venv_path.add_hook()
         gef.config["gef.virtualenv_path"] = venv_path
         gef.config["gef.disable_color"] = GefSetting(False, bool, "Disable all colors in GEF")
         gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, pathlib.Path, "Directory to use for temporary/cache content", hooks={"on_write": [GefSetting.no_spaces, GefSetting.create_folder_tree]})
