@@ -9861,7 +9861,6 @@ class GefCommand(gdb.Command):
                 lambda _, new_val: self.load_virtualenv(new_val),
             ]
         })
-        venv_path.add_hook()
         gef.config["gef.virtualenv_path"] = venv_path
         gef.config["gef.disable_color"] = GefSetting(False, bool, "Disable all colors in GEF")
         gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, pathlib.Path, "Directory to use for temporary/cache content", hooks={"on_write": [GefSetting.no_spaces, GefSetting.create_folder_tree]})
