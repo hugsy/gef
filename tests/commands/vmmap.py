@@ -64,9 +64,9 @@ class VmmapCommand(RemoteGefUnitTestGeneric):
             if line[:2] != "0x":
                 continue
             perm_str = line.split()[3]
-            assert perm_str[0] == 'r'
-            assert perm_str[1] in ('w', '-')
-            assert perm_str[2] == '-'
+            assert perm_str[0] == "r"
+            assert perm_str[1] in ("w", "-")
+            assert perm_str[2] == "-"
 
         res2 = gdb.execute("vmmap --perms r?-", to_string=True)
         assert res1 == res2
