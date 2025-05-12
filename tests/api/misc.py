@@ -82,7 +82,7 @@ class MiscFunctionTest(RemoteGefUnitTestGeneric):
         root = self._conn.root
         Permission = root.eval("Permission")
 
-        none = Permission.from_filter_repr('---')
+        none = Permission.from_filter_repr("---")
         assert len(none) == 1
         assert none[0] == Permission.NONE
 
