@@ -8939,8 +8939,8 @@ class VMMapCommand(GenericCommand):
         names: list[str] = [x for x in args.name]
         perms: set[Permission] = set()
 
-        for x in args.perms:
-            perms = perms.union(Permission.from_filter_repr(x))
+        for p in args.perms:
+            perms = perms.union(Permission.from_filter_repr(p))
 
         for arg in args.unknown_types:
             if not arg:
