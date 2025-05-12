@@ -9951,7 +9951,11 @@ class GefCommand(gdb.Command):
         path = new_path or gef.config["gef.virtualenv_path"]
         if not path:
             return
-        activate_script_path = pathlib.Path(path)/"bin"/"activate_this.py"
+
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+
+        activate_script_path = path/"bin/activate_this.py"
         exec(activate_script_path.read_text(), {'__file__': activate_script_path})
 
     @property
