@@ -24,4 +24,4 @@ class VirtualenvConfig(RemoteGefUnitTestGeneric):
         gdb.execute(f"gef config gef.virtualenv_path {self.venv_path}")
 
         res = gdb.execute("pi __import__('numpy').test()", to_string=True)
-        assert 'NumPy version' in res
+        assert "NumPy version" in res
