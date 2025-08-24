@@ -82,8 +82,12 @@ import warnings
 from functools import lru_cache
 from io import StringIO, TextIOWrapper
 from types import ModuleType
-from typing import (Any, ByteString, Callable, Generator, Iterable, Iterator,
+from typing import (Any, Callable, Generator, Iterable, Iterator,
                     NoReturn, Sequence, Type, TypeVar, cast)
+try:
+    from typing import ByteString
+except ImportError:
+    from collections.abc import Buffer as ByteString
 from urllib.request import urlopen
 
 
