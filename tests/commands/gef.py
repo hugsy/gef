@@ -30,6 +30,7 @@ class GefCommand(RemoteGefUnitTestGeneric):
             "gef.follow_child (bool)",
             "gef.readline_compat (bool)",
             "gef.show_deprecation_warnings (bool)",
+            "gef.show_banner (bool)",
             "gef.tempdir (Path)",
             "got.function_not_resolved (str)",
             "got.function_resolved (str)",
