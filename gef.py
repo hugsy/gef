@@ -9954,6 +9954,7 @@ class GefCommand(gdb.Command):
         gef.config["gef.disable_color"] = GefSetting(False, bool, "Disable all colors in GEF")
         gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, pathlib.Path, "Directory to use for temporary/cache content", hooks={"on_write": [GefSetting.no_spaces, GefSetting.create_folder_tree]})
         gef.config["gef.show_deprecation_warnings"] = GefSetting(True, bool, "Toggle the display of the `deprecated` warnings")
+        gef.config["gef.show_banner"] = GefSetting(True, bool, "Show the banner when gef first loads")
         gef.config["gef.buffer"] = GefSetting(True, bool, "Internally buffer command output until completion")
         gef.config["gef.bruteforce_main_arena"] = GefSetting(False, bool, "Allow bruteforcing main_arena symbol if everything else fails")
         gef.config["gef.libc_version"] = GefSetting("", str, "Specify libc version when auto-detection fails")
@@ -11883,7 +11884,8 @@ if __name__ == "__main__":
     reset()
     assert isinstance(gef, Gef)
     gef.gdb.load()
-    gef.gdb.show_banner()
+    if gef.config["gef.show_banner"]:
+        gef.gdb.show_banner()
 
     # load config
     if gef.gdb.load_extra_plugins():
