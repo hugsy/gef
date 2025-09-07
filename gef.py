@@ -7584,13 +7584,20 @@ class NamedBreakpointCommand(GenericCommand):
         super().__init__()
         return
 
-    @parse_arguments({"name": "", "address": "*$pc"}, {})
+    @parse_arguments({"name": "", "address": ""}, {})
     def do_invoke(self, _: list[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
         if not args.name:
             err("Missing name for breakpoint")
             self.usage()
             return
+
+        if not args.address:
+            if not is_alive():
+                err("No debugging session active")
+                return
+
+            args.address = "*{}".format(hex(int(gdb.parse_and_eval("*$pc").address)))
 
         NamedBreakpoint(args.address, args.name)
         return
