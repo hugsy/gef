@@ -6981,6 +6981,11 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
             count = u16(gef.memory.read(tcache_base + tcache_count_size*i, 2))
 
         chunk = dereference(tcache_base + tcache_count_size*self.TCACHE_MAX_BINS + i*gef.arch.ptrsize)
+
+        # Real heap chunk pointers are always ptrsize-aligned, so we check
+        # the alignment to prevent following invalid addresses.
+        if chunk and (int(chunk) & (gef.arch.ptrsize - 1)):
+            return None, count
         chunk = GlibcTcacheChunk(int(chunk)) if chunk else None
         return chunk, count
 
