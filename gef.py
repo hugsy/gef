@@ -3796,7 +3796,7 @@ def get_terminal_size() -> tuple[int, int]:
         import fcntl
         import termios
         try:
-            tty_rows, tty_columns = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, "1234")) # type: ignore
+            tty_rows, tty_columns, _, _ = struct.unpack("hhhh", fcntl.ioctl(1, termios.TIOCGWINSZ, "12345678")) # type: ignore
             return tty_rows, tty_columns
         except OSError:
             return 600, 100
