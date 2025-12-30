@@ -20,8 +20,10 @@ fi
 
 # Backup gdbinit if any
 if [ -f "${target_init}" ] && [ -s "${target_init}" ]; then
-    cp "${target_init}" "${target_init}.old"
-    echo "[*] Existing gdbinit saved as ${target_init}.old"
+    timestamp=$(date +%Y%m%d_%H%M%S)
+    backup_file="${target_init}_${timestamp}.old"
+    cp "${target_init}" "${backup_file}"
+    echo "[*] Existing gdbinit saved as ${backup_file}"
 else
     touch "${target_init}"
 fi
