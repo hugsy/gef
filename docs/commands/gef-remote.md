@@ -104,8 +104,7 @@ makes now even more sense 😉 And using it is very straight forward.
 
 #### `qemu-system`
 
-To test locally, you can use the mini image linux x64 vm
-[here](https://mega.nz/file/ldQCDQiR#yJWJ8RXAHTxREKVmR7Hnfr70tIAQDFeWSYj96SvPO1k).
+To test locally, you can use [this mini image linux x64 vm](https://mega.nz/file/ldQCDQiR#yJWJ8RXAHTxREKVmR7Hnfr70tIAQDFeWSYj96SvPO1k).
 
  1.  Run `./run.sh`
  2.  Use `--qemu-user` and `--qemu-binary vmlinuz` when starting `gef-remote`
