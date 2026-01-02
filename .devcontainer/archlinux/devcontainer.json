@@ -1,0 +1,7 @@
+{
+  "name": "GEF - ArchLinux image",
+  "image": "archlinux:latest",
+  "forwardPorts": [3000],
+  "postCreateCommand": "pacman -Syu --noconfirm debuginfod gdb make cmake extra/gdb gcc qemu-full procps-ng file python3 python3-pip; python3 -m pip install --break-system-packages -r tests/requirements.txt",
+  "postStartCommand": "alias gef=\"gdb -q -nx -ex 'source gef.py' \" ; gef"
+}

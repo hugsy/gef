@@ -7,6 +7,7 @@ tests/pylint.html
 tests/pylint.txt
 tests/pylint3.html
 .vscode
+.zed
 _build
 debug.log
 .pytest_cache

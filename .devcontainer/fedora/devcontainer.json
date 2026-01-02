@@ -1,0 +1,7 @@
+{
+  "name": "GEF - Fedora image",
+  "image": "fedora:latest",
+  "forwardPorts": [3000],
+  "postCreateCommand": "dnf install -y gdb debuginfod debuginfo-install cmake gdbserver gcc qemu procps-ng file python-pip python-devel && python3 -m pip install --break-system-packages -r tests/requirements.txt",
+  "postStartCommand": "alias gef=\"gdb -q -nx -ex 'source gef.py' \" ; gef"
+}

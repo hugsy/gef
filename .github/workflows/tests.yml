@@ -19,74 +19,76 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-24.04, ubuntu-22.04]
+        runner: [ubuntu-24.04]
+        container: ["ubuntu", "archlinux", "fedora"]
 
-    name: "Run Unit tests on ${{ matrix.runner }}"
+    name: "${{ matrix.runner }}/${{ matrix.container }}"
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
         shell: bash
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install python and toolchain
-      run: |
-        export NEEDRESTART_MODE=n
-        sudo apt-get update
-        sudo apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user
+      - name: Install python and toolchain
+        run: |
+          export NEEDRESTART_MODE=n
+          sudo apt-get update
+          sudo apt-get install -y nodejs docker-ce # gdb-multiarch python3-full python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user
+          sudo npm install -g @devcontainers/cli
 
-    - name: Install python and toolchain
-      if: matrix.runner == 'ubuntu-24.04'
-      run: |
-        sudo apt-get install -y python3-full
+      # - name: Build  ${{matrix.container}} container
+      #   run: |
+      #     devcontainer up --workspace-folder `pwd` --config `pwd`/.devcontainer/${{ matrix.container }}/devcontainer.json
 
-    - name: Install python and toolchain
-      if: matrix.runner != 'ubuntu-24.04'
-      run: |
-        python3 -m pip install pip -U
+      - name: Set runtime environment variables
+        run: |
+          echo PY_VER=`gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit` >> $GITHUB_ENV
+          echo GEF_CI_NB_CPU="`grep -c ^processor /proc/cpuinfo`" >> $GITHUB_ENV
+          echo GEF_CI_ARCH="`uname --processor`" >> $GITHUB_ENV
+          echo GEF_CI_CACHE_DIR="`python3 -m pip cache dir`" >> $GITHUB_ENV
 
-    - name: Set runtime environment variables
-      run: |
-        echo PY_VER=`gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit` >> $GITHUB_ENV
-        echo GEF_CI_NB_CPU="`grep -c ^processor /proc/cpuinfo`" >> $GITHUB_ENV
-        echo GEF_CI_ARCH="`uname --processor`" >> $GITHUB_ENV
-        echo GEF_CI_CACHE_DIR="`python3 -m pip cache dir`" >> $GITHUB_ENV
+      - name: Pre-build image and run make ci-build in dev container
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ${{ matrix.container }}:latest
+          cacheFrom: ${{ matrix.container }}:latest
+          configFile: .devcontainer/${{ matrix.container }}/devcontainer.json
+          push: never
+          runCmd: python3 -m pytest -v tests/
+          inheritEnv: true
 
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      id: cache-deps
-      env:
-        cache-name: cache-deps
-      with:
-        key: ${{ matrix.runner }}-pip-${{ hashFiles('**/requirements.txt') }}
-        path: ${{ env.GEF_CI_CACHE_DIR }}
-        restore-keys:
-          ${{ matrix.runner }}-pip-${{ env.cache-name }}-
-          ${{ matrix.runner }}-pip-
-          ${{ matrix.runner }}-${{ env.cache-name }}-
-          ${{ matrix.runner }}-
+      # - name: Cache dependencies
+      #   uses: actions/cache@v4
+      #   id: cache-deps
+      #   env:
+      #     cache-name: cache-deps
+      #   with:
+      #     key: ${{ matrix.runner }}-pip-${{ hashFiles('**/requirements.txt') }}
+      #     path: ${{ env.GEF_CI_CACHE_DIR }}
+      #     restore-keys: ${{ matrix.runner }}-pip-${{ env.cache-name }}-
+      #       ${{ matrix.runner }}-pip-
+      #       ${{ matrix.runner }}-${{ env.cache-name }}-
+      #       ${{ matrix.runner }}-
 
-    - name: Install python and toolchain
-      if: matrix.runner != 'ubuntu-24.04'
-      run: |
-        test "${{ env.PY_VER }}" == "0" && exit 1
-        mkdir -p ${{ env.GEF_CI_CACHE_DIR }}
-        python${{ env.PY_VER }} -m pip install --user --upgrade -r tests/requirements.txt
+      # - name: Run tests in ${{matrix.container}} container
+      #   run: |
+      #     devcontainer exec --workspace-folder `pwd` --config `pwd`/.devcontainer/${{ matrix.container }}/devcontainer.json python3 -m pytest -v tests/
 
-    - name: Install Python Requirements
-      if: matrix.runner == 'ubuntu-24.04'
-      run: |
-        test "${{ env.PY_VER }}" == "0" && exit 1
-        mkdir -p ${{ env.GEF_CI_CACHE_DIR }}
-        python${{ env.PY_VER }} -m pip install --break-system-packages --user --upgrade -r tests/requirements.txt
+      # - name: Install Python Requirements
+      #   if: matrix.runner == 'ubuntu-24.04'
+      #   run: |
+      #     test "${{ env.PY_VER }}" == "0" && exit 1
+      #     mkdir -p ${{ env.GEF_CI_CACHE_DIR }}
+      #     python${{ env.PY_VER }} -m pip install --break-system-packages --user --upgrade -r tests/requirements.txt
 
-    - name: Setup GEF
-      run: |
-        echo "source $(pwd)/gef.py" > ~/.gdbinit
-        gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/pwd
+      # - name: Setup GEF
+      #   run: |
+      #     echo "source $(pwd)/gef.py" > ~/.gdbinit
+      #     gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/pwd
 
-    - name: Run Tests
-      run: |
-        make -C tests/binaries -j ${{ env.GEF_CI_NB_CPU }}
-        python${{ env.PY_VER }} -m pytest --forked -n ${{ env.GEF_CI_NB_CPU }} -v -m "not benchmark" tests/
+      # - name: Run Tests
+      #   run: |
+      #     make -C tests/binaries -j ${{ env.GEF_CI_NB_CPU }}
+      #     python${{ env.PY_VER }} -m pytest --forked -n ${{ env.GEF_CI_NB_CPU }} -v -m "not benchmark" tests/

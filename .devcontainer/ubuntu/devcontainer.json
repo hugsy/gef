@@ -1,0 +1,7 @@
+{
+  "name": "GEF - Ubuntu image",
+  "image": "ubuntu:latest",
+  "forwardPorts": [3000],
+  "postCreateCommand": "apt update && apt install -y libc6-dbg gdb cmake gdbserver gcc qemu-user file python3-pip python3-dev && python3 -m pip install --break-system-packages -r tests/requirements.txt",
+  "postStartCommand": "alias gef=\"gdb -q -nx -ex 'source gef.py' \" ; gef"
+}
