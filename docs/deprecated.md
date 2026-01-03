@@ -9,7 +9,7 @@ page aims to track those changes.
 | `cs-disassemble` | Moved | 2022.06 | [github.com/hugsy/gef-extras/blob/main/scripts/capstone.py](https://github.com/hugsy/gef-extras/blob/main/scripts/capstone.py) | Depends on `capstone` |
 | `assemble` | Moved | 2022.06 | [github.com/hugsy/gef-extras/blob/main/scripts/assemble.py](https://github.com/hugsy/gef-extras/blob/main/scripts/assemble.py) | Depends on `keystone` |
 | `emulate` | Moved | 2022.06 | [github.com/hugsy/gef-extras/blob/main/scripts/emulate/__init__.py](https://github.com/hugsy/gef-extras/blob/main/scripts/emulate/__init__.py) | Depends on `unicorn` and `capstone` |
-| `set-permission` | Moved | 2022.06 | [Link](https://github.com/hugsy/gef-extras/blob/main/scripts/emulate/__init__.py) | Depends on `keystone` |
+| `set-permission` | Moved | 2022.06 | [github.com/hugsy/gef-extras/blob/main/scripts/emulate/__init__.py](https://github.com/hugsy/gef-extras/blob/main/scripts/emulate/__init__.py) | Depends on `keystone` |
 | `ropper` | Moved | 2022.06 | [github.com/hugsy/gef-extras/blob/main/scripts/ropper.py](https://github.com/hugsy/gef-extras/blob/main/scripts/ropper.py) | Depends on `ropper` |
 | `ida-interact` | Moved | 2022.06 | [github.com/hugsy/gef-extras/blob/main/scripts/ida_interact.py](https://github.com/hugsy/gef-extras/blob/main/scripts/ida_interact.py) | Depends on `rpyc` |
 | `exploit-template` | Moved | [c402900](https://github.com/hugsy/gef-extras/commit/c4029007994d5e508cb3df900b60821b0b61e0e5) | [github.com/hugsy/gef-extras/blob/main/scripts/skel.py](https://github.com/hugsy/gef-extras/blob/main/scripts/skel.py) | |
