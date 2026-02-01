@@ -10,7 +10,7 @@ process of dynamic analysis and exploit development.
 It requires Python 3, but [`gef-legacy`](https://github.com/hugsy/gef-legacy) can be used if Python
 2 support is needed.
 
-![gef-context](https://i.imgur.com/E3EuQPs.png)
+![gef-context](docs/assets/images/gef-context.png)
 
 ## GDB Made Easy
 

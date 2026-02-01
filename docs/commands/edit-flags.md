@@ -20,4 +20,4 @@ instruction), but we want to have the Carry flag set, simply go with:
 gef➤ flags -ZERO +CARRY
 ```
 
-![flags](https://i.imgur.com/ro7iC5m.png)
+![flags](docs/assets/images/flags.png)
