@@ -55,6 +55,7 @@ CommandType = Union[str, Iterable[str]]
 ERROR_INACTIVE_SESSION_MESSAGE = "[*] No debugging session active\n"
 WARNING_DEPRECATION_MESSAGE = "is deprecated and will be removed in a feature release."
 
+IN_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
 class Color(enum.Enum):
     """Used to colorify terminal output."""
