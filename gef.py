@@ -678,13 +678,13 @@ class Section:
         return
 
     def is_readable(self) -> bool:
-        return (self.permission & Permission.READ) != 0
+        return bool(self.permission & Permission.READ)
 
     def is_writable(self) -> bool:
-        return (self.permission & Permission.WRITE) != 0
+        return bool(self.permission & Permission.WRITE)
 
     def is_executable(self) -> bool:
-        return (self.permission & Permission.EXECUTE) != 0
+        return bool(self.permission & Permission.EXECUTE)
 
     @property
     def size(self) -> int:
@@ -3796,7 +3796,7 @@ def get_terminal_size() -> tuple[int, int]:
         import fcntl
         import termios
         try:
-            tty_rows, tty_columns = struct.unpack("hh", fcntl.ioctl(1, termios.TIOCGWINSZ, "1234")) # type: ignore
+            tty_rows, tty_columns, _, _ = struct.unpack("hhhh", fcntl.ioctl(1, termios.TIOCGWINSZ, "12345678")) # type: ignore
             return tty_rows, tty_columns
         except OSError:
             return 600, 100
@@ -6690,11 +6690,13 @@ class GlibcHeapChunksCommand(GenericCommand):
                 if not args.all:
                     return
         try:
+            if not args.arena_address:
+                return
             arena_addr = parse_address(args.arena_address)
             arena = GlibcArena(f"*{arena_addr:#x}")
             self.dump_chunks_arena(arena, ctx)
-        except gdb.error:
-            err("Invalid arena")
+        except gdb.error as e:
+            err(f"Invalid arena: {e}\nArena Address: {args.arena_address}")
             return
 
     def dump_chunks_arena(self, arena: GlibcArena, ctx: GlibcHeapWalkContext) -> None:
@@ -6718,6 +6720,7 @@ class GlibcHeapChunksCommand(GenericCommand):
         nb = self["peek_nb_byte"]
         chunk_iterator = GlibcChunk(start, from_base=True, allow_unaligned=ctx.allow_unaligned)
         heap_summary = GlibcHeapArenaSummary(resolve_type=ctx.resolve_type)
+        top_printed = False
         for chunk in chunk_iterator:
             heap_corrupted = chunk.base_address > end
             should_process = self.should_process_chunk(chunk, ctx)
@@ -6726,6 +6729,7 @@ class GlibcHeapChunksCommand(GenericCommand):
                 if should_process:
                     gef_print(
                         f"{chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
+                top_printed = True
                 break
 
             if heap_corrupted:
@@ -6747,6 +6751,10 @@ class GlibcHeapChunksCommand(GenericCommand):
                 gef_print(line)
 
             ctx.remaining_chunk_count -= 1
+
+        if not top_printed and ctx.print_arena:
+            top_chunk =  GlibcChunk(arena.top, from_base=True, allow_unaligned=ctx.allow_unaligned)
+            gef_print(f"{top_chunk!s} {LEFT_ARROW} {Color.greenify('top chunk')}")
 
         if ctx.summary:
             heap_summary.print()
@@ -7966,19 +7974,22 @@ class ContextCommand(GenericCommand):
 
         def __get_current_block_start_address() -> int | None:
             pc = gef.arch.pc
+            max_distance = 10 * 16
             try:
                 block = gdb.block_for_pc(pc)
-                block_start = block.start if block else gdb_get_nth_previous_instruction_address(pc, 5)
+                block_start = block.start \
+                    if block is not None and (pc - block.start) <= max_distance \
+                    else gdb_get_nth_previous_instruction_address(pc, 5)
             except RuntimeError:
                 block_start = gdb_get_nth_previous_instruction_address(pc, 5)
             return block_start
 
-        parameter_set = set()
-        pc = gef.arch.pc
         block_start = __get_current_block_start_address()
         if not block_start:
             return
 
+        parameter_set: set[str] = set()
+        pc = gef.arch.pc
         function_parameters = gef.arch.function_parameters
         arg_key_color = gef.config["theme.registers_register_name"]
 
@@ -9447,7 +9458,7 @@ class GotCommand(GenericCommand):
                                          "Line color of the got command output for unresolved function")
         return
 
-    def build_line(self, name: str, color: str, address_val: int, got_address: int) -> str:
+    def build_line(self, name: str, _path: str, color: str, address_val: int, got_address: int) -> str:
         line = f"[{hex(address_val)}] "
         line += Color.colorify(f"{name} {RIGHT_ARROW} {hex(got_address)}", color)
         return line
@@ -9517,7 +9528,7 @@ class GotCommand(GenericCommand):
             else:
                 color = self["function_resolved"]
 
-            line = self.build_line(name, color, address_val, got_address)
+            line = self.build_line(name, elf_virtual_path, color, address_val, got_address)
             gef_print(line)
         return
 
@@ -11852,6 +11863,20 @@ if __name__ == "__main__":
             gdb.execute(cmd)
         except gdb.error:
             pass
+
+    # set fallback 'debug-file-directory' for gdbs that installed outside `/usr`.
+    try:
+        default_dbgsym_path = "/usr/lib/debug"
+        param_name = "debug-file-directory"
+        dbgsym_paths = gdb.parameter(param_name)
+        if not isinstance(dbgsym_paths, str):
+            raise TypeError
+        if default_dbgsym_path not in dbgsym_paths:
+            newpath = f"{dbgsym_paths}:" if dbgsym_paths else ""
+            newpath += default_dbgsym_path
+            gdb.execute(f"set {param_name} {newpath}")
+    except gdb.error as e:
+        warn(f"Failed to set {param_name}, reason: {str(e)}")
 
     # load GEF, set up the managers and load the plugins, functions,
     gef = Gef()
