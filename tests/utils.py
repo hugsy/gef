@@ -78,6 +78,14 @@ class Color(enum.Enum):
     BLINK_OFF       = "\001\033[25m\002"
 
 
+def is_glibc_ge(major, minor):
+    ver = platform.libc_ver()
+    if ver[0] == 'glibc':
+        (glibc_major, glibc_minor, *glibc_patch) = list(map(int, ver[1].split('.')))
+        return (glibc_major, glibc_minor) >= (major, minor)
+    return False
+
+
 def is_64b() -> bool:
     return ARCH in CI_VALID_ARCHITECTURES_64B
 
