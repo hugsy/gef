@@ -5,4 +5,4 @@
 
 ---
 
-![redirect](https://i.imgflip.com/1f0lcn.jpg)
+![redirect](assets/images/redirect.png)

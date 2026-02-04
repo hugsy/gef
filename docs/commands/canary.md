@@ -10,4 +10,4 @@ The command `canary` does not take any arguments.
 gef➤ canary
 ```
 
-![gef-canary](https://i.imgur.com/kPmsod2.png)
+![gef-canary](assets/images/gef-canary.png)

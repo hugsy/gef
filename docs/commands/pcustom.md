@@ -110,7 +110,7 @@ gef➤  dt person_t
 By providing an address or a GDB symbol, `gef` will apply this user-defined structure to the
 specified address:
 
-![gef-pcustom-with-address](https://i.imgur.com/vWGnu5g.png)
+![gef-pcustom-with-address](assets/images/gef-pcustom-with-address.png)
 
 This means that we can now create very easily new user-defined structures
 
@@ -120,8 +120,8 @@ For a full demo, watch the following tutorial:
 
 Additionally, if you have successfully configured your IDA settings, you can also directly import
 the structure(s) that was(were) reverse-engineered in IDA directly in your GDB session:
-![ida-structure-examples](https://i.imgur.com/Tnsf6nt.png) - (see `gef-extras/ida-rpyc`, which is
-the new improved version of `ida-interact`)
+![ida-structure-examples](assets/images/ida-structure-examples.png) - (see `gef-extras/ida-rpyc`,
+which is the new improved version of `ida-interact`)
 
 #### Dynamic `ctypes.Structure`-like classes
 

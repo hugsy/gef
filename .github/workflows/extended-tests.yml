@@ -18,6 +18,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6.0.1
     - run: |
         docker run -v ${PWD}:/gef ${{ matrix.variants.os }}:${{ matrix.variants.version }} "bash /gef/tests/extended/${{ matrix.variants.os }}.sh"

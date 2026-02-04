@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://i.imgur.com/o0L8lPN.png" alt="logo"/>
+  <img src="assets/images/logo.png" alt="logo"/>
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@ $ gdb -q
 
 You can immediately see that GEF is correctly installed by launching GDB:
 
-![gef-context](https://i.imgur.com/E3EuQPs.png)
+![gef-context](assets/images/gef-context.png)
 
 A few of `GEF` features include:
 
@@ -73,8 +73,8 @@ try to reach out for help on the Discord channel or submit an issue.
 
 ## Current status
 
-| Documentation |License | Compatibility | CI Tests (`main`) |
-|:---:|:---:|:---|--|
+|                                                                          Documentation                                                                           |                                                                  License                                                                   | Compatibility                                                                                 | CI Tests (`main`)                                                                                                                                  |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [![Documentation](https://github.com/hugsy/gef/actions/workflows/generate-docs.yml/badge.svg)](https://github.com/hugsy/gef/actions/workflows/generate-docs.yml) | [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/gef/blob/main/LICENSE) | [![Python 3](https://img.shields.io/badge/Python-3-green.svg)](https://github.com/hugsy/gef/) | [![CI Test for GEF](https://github.com/hugsy/gef/actions/workflows/tests.yml/badge.svg)](https://github.com/hugsy/gef/actions/workflows/tests.yml) |
 
 ## Contribute

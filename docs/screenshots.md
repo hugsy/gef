@@ -25,51 +25,51 @@ Currently `GEF` supports the following architectures:
 To this day, GDB doesn't come with a hexdump-like view. Well `GEF` fixes that for you via the
 `hexdump` command:
 
-![hexdump](https://i.imgur.com/qt77lFQ.png)
+![hexdump](assets/images/hexdump.png)
 
 ### Dereferencing data or registers
 
 No more endless manual pointer dereferencing `x/x` style. Just use `dereference` for that. Or for a
 comprehensive view of the registers, `registers` might become your best friend:
 
-![mipsel-deref-regs](https://i.imgur.com/f5ZaWDC.png)
+![mipsel-deref-regs](assets/images/mipsel-deref-regs.png)
 
 ### Heap analysis
 
 #### Detailed view of Glibc Chunks
 
-![x86-heap-chunks](https://i.imgur.com/zBSTUHb.png)
+![x86-heap-chunks](assets/images/x86-heap-chunks.png)
 
 #### Automatic detection of UaF during runtime
 
-![x86-heap-helper-uaf](https://i.imgur.com/NfV5Cu9.png)
+![x86-heap-helper-uaf](assets/images/x86-heap-helper-uaf.png)
 
 ### Display ELF information
 
 #### ELF structure
 
-![elf-info](https://i.imgur.com/AkWhJ3t.png)
+![elf-info](assets/images/elf-info.png)
 
 #### Security settings
 
-![elf-checksec](https://i.imgur.com/HXcwr2S.png)
+![elf-checksec](assets/images/elf-checksec.png)
 
 ### Automatic vulnerable string detection
 
-![aarch64-fmtstr](https://i.imgur.com/iF4l1R5.png)
+![aarch64-fmtstr](assets/images/aarch64-fmtstr.png)
 
 ### Code emulation with Unicorn-Engine (x86-64)
 
-![emu](https://i.imgur.com/n4Oy5D0.png)
+![emu](assets/images/emu.png)
 
 ### Comprehensive address space layout display
 
-![vmmap](https://i.imgur.com/V9zMLUt.png)
+![vmmap](assets/images/vmmap.png)
 
 ### Defining arbitrary custom structures
 
-![sparc-arb-struct](https://i.imgur.com/dEMUuP7.png)
+![sparc-arb-struct](assets/images/sparc-arb-struct.png)
 
 ### Highlight custom strings
 
-![highlight-command](https://i.imgur.com/UwSPXrV.png)
+![highlight-command](assets/images/highlight-command.png)
