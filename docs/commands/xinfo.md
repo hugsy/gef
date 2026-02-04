@@ -2,7 +2,7 @@
 
 `xinfo` displays all the information known to `gef` about the specific address given as argument:
 
-![xinfo-example](assets/images/xinfo-example.png)
+![xinfo-example](docs/assets/images/xinfo-example.png)
 
 **Important note** : For performance reasons, `gef` caches certain results. `gef` will try to
 automatically refresh its own cache to avoid relying on obsolete information of the debugged

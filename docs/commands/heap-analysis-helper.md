@@ -33,12 +33,12 @@ The following settings are accepted:
 -  `check_null_free`: to break execution when a free(NULL) is encountered (disabled by default);
 -  `check_double_free`: to break execution when a double free is encountered;
 
-![double-free](assets/images/double-free.png)
+![double-free](docs/assets/images/double-free.png)
 
 -  `check_weird_free`: to execution when `free()` is called against a non-tracked pointer;
 -  `check_uaf`: to break execution when a possible Use-after-Free condition is found.
 
-![uaf](assets/images/uaf.png)
+![uaf](docs/assets/images/uaf.png)
 
 Just like the format string vulnerability helper, the `heap-analysis-helper` can fail to detect
 complex heap scenarios and/or provide some false positive alerts. Each finding must of course be
@@ -57,7 +57,7 @@ gef➤  gef config heap-analysis-helper.check_uaf False
 Then `gef` will not notify you of any inconsistency detected, but simply display a clear message
 when a chunk is allocated/freed.
 
-![heap-track](assets/images/heap-track.png)
+![heap-track](docs/assets/images/heap-track.png)
 
 To get information regarding the currently tracked chunks, use the `show` subcommand:
 
@@ -65,4 +65,4 @@ To get information regarding the currently tracked chunks, use the `show` subcom
 gef➤  heap-analysis-helper show
 ```
 
-![heap-analysis-helper-show](assets/images/heap-analysis-helper-show.png)
+![heap-analysis-helper-show](docs/assets/images/heap-analysis-helper-show.png)

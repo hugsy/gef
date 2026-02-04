@@ -7,7 +7,7 @@ memory layout. The command `search-pattern`, alias `grep`, aims to be straight-f
 gef➤  search-pattern MyPattern
 ```
 
-![grep](assets/images/grep.png)
+![grep](docs/assets/images/grep.png)
 
 It will provide an easily understandable to spot occurrences of the specified pattern, including the
 section it/they was/were found, and the permission associated to that section.
@@ -19,7 +19,7 @@ starts with `0x` and is a valid hex address. For example:
 gef➤  search-pattern 0x4005f6
 ```
 
-![grep-address](assets/images/grep-address.png)
+![grep-address](docs/assets/images/grep-address.png)
 
 The `search-pattern` command can also be used as a way to search for cross-references to an address.
 For this reason, the alias `xref` also points to the command `search-pattern`.  Therefore the

@@ -3,7 +3,7 @@
 As long as the 'memory' section is enabled in your context layout (which it is by default), you can
 register addresses, lengths, and grouping size.
 
-![memory watch](assets/images/memory watch.png)
+![memory watch](docs/assets/images/memory watch.png)
 
 _Note_: this command **should NOT** be mistaken with the [GDB `watch`
 command](https://sourceware.org/gdb/current/onlinedocs/gdb/Set-Watchpoints.html) meant to set
@@ -38,7 +38,7 @@ gef ➤ memory watch $_got()+0x18 5
 
 Which, when the `context` is displayed, will show something like:
 
-![gef-context-memory](assets/images/gef-context-memory.png)
+![gef-context-memory](docs/assets/images/gef-context-memory.png)
 
 ### Removing a watch
 

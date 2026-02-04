@@ -5,4 +5,4 @@
 
 ---
 
-![redirect](assets/images/redirect.png)
+![redirect](docs/assets/images/redirect.png)

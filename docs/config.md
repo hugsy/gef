@@ -19,7 +19,7 @@ Once in GEF, the configuration settings can be set/unset/modified by the
 [command `gef config`](/docs/commands/config.md). Without argument the command
 will simply dump all known settings:
 
-![gef-config](assets/images/gef-config.png)
+![gef-config](docs/assets/images/gef-config.png)
 
 To update, follow the syntax
 

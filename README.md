@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/images/logo.png" alt="logo"/>
+  <img src="docs/assets/images/logo.png" alt="logo"/>
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@ $ gdb -q
 
 You can immediately see that GEF is correctly installed by launching GDB:
 
-![gef-context](assets/images/gef-context.png)
+![gef-context](docs/assets/images/gef-context.png)
 
 A few of `GEF` features include:
 
