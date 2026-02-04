@@ -11,7 +11,7 @@ gef➤ got [--all] [filters]
 
 `--all` Print the GOT for all shared objects in addition to the executable file
 
-![gef-got](assets/images/gef-got.png)
+![gef-got](docs/assets/images/gef-got.png)
 
 The applied filter partially matches the name of the functions, so you can do something like this.
 
@@ -21,7 +21,7 @@ gef➤ got print
 gef➤ got read
 ```
 
-![gef-got-one-filter](assets/images/gef-got-one-filter.png)
+![gef-got-one-filter](docs/assets/images/gef-got-one-filter.png)
 
 Example of multiple partial filters:
 
@@ -29,7 +29,7 @@ Example of multiple partial filters:
 gef➤ got str get
 ```
 
-![gef-got-multi-filter](assets/images/gef-got-multi-filter.png)
+![gef-got-multi-filter](docs/assets/images/gef-got-multi-filter.png)
 
 ```text
 gef➤ got --all str get

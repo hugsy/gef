@@ -23,8 +23,8 @@ Patching `fork()` calls:
 
 *  Without stub:
 
-![fork execution](assets/images/fork execution.png)
+![fork execution](docs/assets/images/fork execution.png)
 
 *  With stub:
 
-![stubbed fork](assets/images/stubbed fork.png)
+![stubbed fork](docs/assets/images/stubbed fork.png)

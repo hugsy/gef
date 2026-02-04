@@ -11,9 +11,9 @@ until the value provided as argument.
 gef> trace-run <address_of_last_instruction_to_trace>
 ```
 
-![trace-run-1](assets/images/trace-run-1.png)
+![trace-run-1](docs/assets/images/trace-run-1.png)
 
 By using the script `ida_color_gdb_trace.py` on the text file generated, it will color the path
 taken:
 
-![trace-run-2](assets/images/trace-run-2.png)
+![trace-run-2](docs/assets/images/trace-run-2.png)

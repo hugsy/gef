@@ -2,7 +2,7 @@
 
 `vmmap` displays the target process's entire memory space mapping.
 
-![vmmap](assets/images/vmmap.png)
+![vmmap](docs/assets/images/vmmap.png)
 
 Interestingly, it helps finding secret gems: as an aware reader might have seen, memory mapping
 differs from one architecture to another (this is one of the main reasons I started `GEF` in a first

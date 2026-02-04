@@ -4,4 +4,4 @@
 filter by pattern given in argument. For example, if you only want to show the code sections (i.e.
 `.text`):
 
-![xfiles-example](assets/images/xfiles-example.png)
+![xfiles-example](docs/assets/images/xfiles-example.png)

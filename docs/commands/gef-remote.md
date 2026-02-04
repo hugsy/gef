@@ -38,7 +38,7 @@ Process /tmp/default.out created; pid = 258932
 Listening on port 1234
 ```
 
-![gef-remote-1](assets/images/gef-remote-1.png)
+![gef-remote-1](docs/assets/images/gef-remote-1.png)
 
 On the client, when the original `gdb` would use `target remote`, GEF's syntax is roughly similar
 (shown running in debug mode for more verbose output, but you don't have to):
@@ -75,12 +75,12 @@ Reading /lib64/ld-linux-x86-64.so.2 from remote target...
 
 And finally breaking into the program, showing the current context:
 
-![gef-remote](assets/images/gef-remote.png)
+![gef-remote](docs/assets/images/gef-remote.png)
 
 You will also notice the prompt has changed to indicate the debugging mode is now "remote". Besides
 that, all of GEF features are available:
 
-![gef-remote-command](assets/images/gef-remote-command.png)
+![gef-remote-command](docs/assets/images/gef-remote-command.png)
 
 #### `remote-extended`
 

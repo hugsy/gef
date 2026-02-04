@@ -1,6 +1,6 @@
 ## Command `context`
 
-![gef-context](assets/images/gef-context.png)
+![gef-context](docs/assets/images/gef-context.png)
 
 `gef` (not unlike `PEDA` or `fG! famous gdbinit`) provides comprehensive context menu when hitting a
 breakpoint.
@@ -123,7 +123,7 @@ gef➤ gef config context.redirect /dev/pts/0
 ```
 
 Enjoy:
-![gef-context-redirect-section](assets/images/gef-context-redirect-section.png)
+![gef-context-redirect-section](docs/assets/images/gef-context-redirect-section.png)
 
 To go back to normal, remove the value:
 

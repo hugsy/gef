@@ -29,4 +29,4 @@ gef➤  scan stack libc
 To check mappings without a path associated, an address range (start-end) can be used. Note that
 ranges don't include whitespaces.
 
-![scan-address](assets/images/scan-address.png)
+![scan-address](docs/assets/images/scan-address.png)

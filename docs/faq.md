@@ -87,7 +87,7 @@ Some interesting plugins highly recommended too:
 -  [!exploitable](https://github.com/jfoote/exploitable/)
 -  [Voltron](https://github.com/snare/voltron)
 
-![voltron](assets/images/voltron.png)
+![voltron](docs/assets/images/voltron.png)
 Src: [@rick2600: terminator + gdb + gef + voltron cc: @snare @_hugsy_](https://twitter.com/rick2600/status/775926070566490113)
 
 ## I want to contribute, where should I head first?
@@ -107,7 +107,7 @@ unexpected behavior.
 In most locations, Python exceptions will be properly intercepted. If not, `gef` wraps all commands
 with a generic exception handler, to disturb as little as possible your debugging session. If it
 happens, you'll only get to see a message like this:
-![gef-exception](assets/images/gef-exception.png)
+![gef-exception](docs/assets/images/gef-exception.png)
 
 By switching to debug mode, `gef` will give much more information:
 
@@ -115,7 +115,7 @@ By switching to debug mode, `gef` will give much more information:
 gef➤  gef config gef.debug 1
 ```
 
-![gef-debug](assets/images/gef-debug.png)
+![gef-debug](docs/assets/images/gef-debug.png)
 
 If you think fixing it is in your skills, then send a [Pull
 Request](https://github.com/hugsy/gef/pulls) with your patched version, explaining your bug, and

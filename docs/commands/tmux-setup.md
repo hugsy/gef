@@ -10,7 +10,7 @@ Those commands will check whether GDB is being spawn from inside a `tmux` (resp.
 and if so, will split the pane vertically, and configure the context to be redirected to the new
 pane, looking something like:
 
-![gef-tmux-setup](assets/images/gef-tmux-setup.png)
+![gef-tmux-setup](docs/assets/images/gef-tmux-setup.png)
 
 To set it up, simply enter
 

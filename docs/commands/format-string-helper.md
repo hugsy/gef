@@ -28,4 +28,4 @@ gef➤ r
 If a potentially insecure entry is found, the breakpoint will trigger, stop the process execution,
 display the reason for trigger and the associated context.
 
-![fmtstr-helper-example](assets/images/fmtstr-helper-example.png)
+![fmtstr-helper-example](docs/assets/images/fmtstr-helper-example.png)

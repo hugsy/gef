@@ -46,7 +46,7 @@ Displays all the chunks from the `heap` section of the current arena.
 gef➤ heap chunks
 ```
 
-![heap-chunks](assets/images/heap-chunks.png)
+![heap-chunks](docs/assets/images/heap-chunks.png)
 
 To select from which arena to display chunks either use the `heap set-arena` command or provide the
 base address of the other arena like this:
@@ -55,7 +55,7 @@ base address of the other arena like this:
 gef➤ heap chunks [arena_address]
 ```
 
-![heap-chunks-arena](assets/images/heap-chunks-arena.png)
+![heap-chunks-arena](docs/assets/images/heap-chunks-arena.png)
 
 In order to display the chunks of all the available arenas at once use
 
@@ -63,7 +63,7 @@ In order to display the chunks of all the available arenas at once use
 gef➤ heap chunks -a
 ```
 
-![heap-chunks-all](assets/images/heap-chunks-all.png)
+![heap-chunks-all](docs/assets/images/heap-chunks-all.png)
 
 Because usually the heap chunks are aligned to a certain number of bytes in memory GEF automatically
 re-aligns the chunks data start addresses to match Glibc's behavior. To be able to view unaligned
@@ -76,7 +76,7 @@ To get a higher level overview of the chunks you can use the `--summary` flag to
 gef➤ heap chunks --summary
 ```
 
-![heap-chunks-summary](assets/images/heap-chunks-summary.png)
+![heap-chunks-summary](docs/assets/images/heap-chunks-summary.png)
 
 Sometimes, multiple types of objects could have the same size, hence it might not be enough only
 knowing the chunk size when debugging issues like memory leaks. GEF supports using the vtable to
@@ -87,7 +87,7 @@ with the `--summary` flag.
 gef➤ heap chunks --summary --resolve
 ```
 
-![heap-chunks-summary-resolve](assets/images/heap-chunks-summary-resolve.png)
+![heap-chunks-summary-resolve](docs/assets/images/heap-chunks-summary-resolve.png)
 
 Heap chunk command also supports filtering chunks by their size. To do so, simply provide the
 `--min-size` or `--max-size` argument:
@@ -96,7 +96,7 @@ Heap chunk command also supports filtering chunks by their size. To do so, simpl
 gef➤ heap chunks --min-size 16 --max-size 32
 ```
 
-![heap-chunks-size-filter](assets/images/heap-chunks-size-filter.png)
+![heap-chunks-size-filter](docs/assets/images/heap-chunks-size-filter.png)
 
 The range is inclusive, so the above command will display all chunks with size >=16 and <=32.
 
@@ -107,7 +107,7 @@ of the chunks in the output:
 gef➤ heap chunks --count 1
 ```
 
-![heap-chunks-size-filter](assets/images/heap-chunks-size-filter.png)
+![heap-chunks-size-filter](docs/assets/images/heap-chunks-size-filter.png)
 
 ### `heap chunk` command
 
@@ -118,7 +118,7 @@ the user memory pointer of the chunk to show the information related to a specif
 gef➤ heap chunk [address]
 ```
 
-![heap-chunk](assets/images/heap-chunk.png)
+![heap-chunk](docs/assets/images/heap-chunk.png)
 
 Because usually the heap chunks are aligned to a certain number of bytes in memory GEF automatically
 re-aligns the chunks data start addresses to match Glibc's behavior. To be able to view unaligned
@@ -145,7 +145,7 @@ Multi-threaded programs have different arenas, and the knowledge of the `main_ar
 `gef` therefore provides the `arena` sub-commands to help you list all the arenas allocated in your
 program **at the moment you call the command**.
 
-![heap-arenas](assets/images/heap-arenas.png)
+![heap-arenas](docs/assets/images/heap-arenas.png)
 
 ### `heap set-arena` command
 
