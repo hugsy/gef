@@ -9951,6 +9951,14 @@ class GefCommand(gdb.Command):
         plugins_dir = GefSetting("", str, "Autoload additional GEF commands from external directory", hooks={"on_write": [GefSetting.no_spaces, ]})
         plugins_dir.add_hook("on_changed", [lambda _, new_val: GefSetting.must_exist(new_val), lambda _, new_val: self.load_extra_plugins(new_val), ])
         gef.config["gef.extra_plugins_dir"] = plugins_dir
+        venv_path = GefSetting("", str, "Path to the virtualenv used by GEF", hooks={
+            "on_write": [GefSetting.no_spaces, ],
+            "on_changed": [
+                lambda _, new_val: GefSetting.must_exist(new_val),
+                lambda _, new_val: self.load_virtualenv(new_val),
+            ]
+        })
+        gef.config["gef.virtualenv_path"] = venv_path
         gef.config["gef.disable_color"] = GefSetting(False, bool, "Disable all colors in GEF")
         gef.config["gef.tempdir"] = GefSetting(GEF_TEMP_DIR, pathlib.Path, "Directory to use for temporary/cache content", hooks={"on_write": [GefSetting.no_spaces, GefSetting.create_folder_tree]})
         gef.config["gef.show_deprecation_warnings"] = GefSetting(True, bool, "Toggle the display of the `deprecated` warnings")
@@ -10039,6 +10047,21 @@ class GefCommand(gdb.Command):
             return 0
         dbg(f"Loading extra plugins from directory={directory}")
         return load_plugins_from_directory(directory)
+
+
+    def load_virtualenv(self, new_path: Optional[pathlib.Path] = None):
+        path = new_path or gef.config["gef.virtualenv_path"]
+        if not path:
+            return
+
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+
+        activate_script_path = path/"bin/activate_this.py"
+        assert activate_script_path.is_file()
+
+        exec(activate_script_path.read_text(), {"__file__": activate_script_path})
+
 
     @property
     def loaded_command_names(self) -> Iterable[str]:
@@ -11884,6 +11907,9 @@ if __name__ == "__main__":
     assert isinstance(gef, Gef)
     gef.gdb.load()
     gef.gdb.show_banner()
+
+    # load venv
+    gef.gdb.load_virtualenv()
 
     # load config
     if gef.gdb.load_extra_plugins():
