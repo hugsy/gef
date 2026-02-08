@@ -8,22 +8,22 @@ import logging
 import os
 import pathlib
 import platform
+import shutil
 import struct
 import subprocess
 import tempfile
 import time
+import random
 
 from typing import Iterable, List, Optional, Union
 from urllib.request import urlopen
 
 
 def which(program: str) -> pathlib.Path:
-    for path in os.environ["PATH"].split(os.pathsep):
-        dirname = pathlib.Path(path)
-        fpath = dirname / program
-        if os.access(fpath, os.X_OK):
-            return fpath
-    raise FileNotFoundError(f"Missing file `{program}`")
+    fpath = shutil.which(program)
+    if not fpath:
+        raise FileNotFoundError(f"Missing file `{program}`")
+    return pathlib.Path(fpath)
 
 
 TMPDIR = pathlib.Path(tempfile.gettempdir())
@@ -41,7 +41,8 @@ GEF_PATH = pathlib.Path(os.getenv("GEF_PATH", "gef.py")).absolute()
 STRIP_ANSI_DEFAULT = True
 GDBSERVER_DEFAULT_HOST = "localhost"
 GDBSERVER_DEFAULT_PORT = 1234
-GDBSERVER_BINARY = which("gdbserver")
+GDBSERVER_BINARY: pathlib.Path = which("gdbserver")
+GDBSERVER_STARTUP_DELAY_SEC : float = 0.5
 assert GDBSERVER_BINARY.exists()
 
 QEMU_USER_X64_BINARY = which("qemu-x86_64")
@@ -113,6 +114,13 @@ def start_gdbserver(
     logging.debug(f"Starting {cmd}")
     return subprocess.Popen(cmd)
 
+def start_gdbserver_multi(
+    host: str = GDBSERVER_DEFAULT_HOST,
+    port: int = GDBSERVER_DEFAULT_PORT,
+) -> subprocess.Popen:
+    cmd = [GDBSERVER_BINARY, "--multi", f"{host}:{port}"]
+    logging.debug(f"Starting {cmd}")
+    return subprocess.Popen(cmd)
 
 def stop_gdbserver(gdbserver: subprocess.Popen) -> None:
     """Stop the gdbserver and wait until it is terminated if it was
@@ -134,18 +142,36 @@ def gdbserver_session(
 ):
     sess = start_gdbserver(exe, host, port)
     try:
-        time.sleep(1)  # forced delay to allow gdbserver to start listening
+        time.sleep(GDBSERVER_STARTUP_DELAY_SEC)
         yield sess
     finally:
         stop_gdbserver(sess)
 
+@contextlib.contextmanager
+def gdbserver_multi_session(
+    port: int = GDBSERVER_DEFAULT_PORT,
+    host: str = GDBSERVER_DEFAULT_HOST,
+):
+    sess = start_gdbserver_multi(host, port)
+    try:
+        time.sleep(GDBSERVER_STARTUP_DELAY_SEC)
+        yield sess
+    finally:
+        stop_gdbserver(sess)
 
 def start_qemuuser(
     exe: Union[str, pathlib.Path] = debug_target("default"),
     port: int = GDBSERVER_DEFAULT_PORT,
+    qemu_exe: pathlib.Path = QEMU_USER_X64_BINARY,
+    args: list[str] | None = None
 ) -> subprocess.Popen:
+    cmd = [qemu_exe, "-g", str(port)]
+    if args:
+        cmd.extend(args)
+    cmd.append(exe)
+    logging.info(f"Starting '{cmd}'")
     return subprocess.Popen(
-        [QEMU_USER_X64_BINARY, "-g", str(port), exe],
+        cmd,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
@@ -160,9 +186,19 @@ def stop_qemuuser(process: subprocess.Popen) -> None:
 @contextlib.contextmanager
 def qemuuser_session(*args, **kwargs):
     exe = kwargs.get("exe", "") or debug_target("default")
-    port = kwargs.get("port", 0) or GDBSERVER_DEFAULT_PORT
-    sess = start_qemuuser(exe, port)
+    port = kwargs.get("port", GDBSERVER_DEFAULT_PORT)
+    qemu_exe = kwargs.get("qemu_exe", None) or QEMU_USER_X64_BINARY
+    args = kwargs.get("args", None)
+    if args:
+        # if specified, expect a list of strings
+        assert isinstance(args, list)
+        assert len(args)
+        for arg in args:
+            assert isinstance(arg, str)
+
+    sess = start_qemuuser(exe, port=port, qemu_exe=qemu_exe, args=args)
     try:
+        time.sleep(GDBSERVER_STARTUP_DELAY_SEC)
         yield sess
     finally:
         stop_qemuuser(sess)
@@ -302,3 +338,14 @@ def p32(x: int) -> bytes:
 
 def p64(x: int) -> bytes:
     return struct.pack("<Q", x)
+
+
+__available_ports = list()
+def get_random_port() -> int:
+    global __available_ports
+    if len(__available_ports) < 2:
+        __available_ports = list( range(1024, 65535) )
+    idx = random.choice(range(len(__available_ports)))
+    port = __available_ports[idx]
+    __available_ports.pop(idx)
+    return port

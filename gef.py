@@ -273,11 +273,13 @@ def bufferize(f: Callable) -> Callable:
     return wrapper
 
 
-class ValidationError(Exception): pass
 
 #
 # Helpers
 #
+class ValidationError(Exception): pass
+
+class InitializationError(Exception): pass
 
 class ObsoleteException(Exception): pass
 
@@ -347,10 +349,10 @@ def is_alive() -> bool:
         return False
 
 
-def calling_function() -> str | None:
+def calling_function(frame: int = 3) -> str | None:
     """Return the name of the calling function"""
     try:
-        stack_info = traceback.extract_stack()[-3]
+        stack_info = traceback.extract_stack()[-frame]
         return stack_info.name
     except Exception as e:
         dbg(f"traceback failed with {str(e)}")
@@ -3511,28 +3513,52 @@ def get_os() -> str:
     return gef.session.os
 
 
-@lru_cache()
-def is_qemu() -> bool:
-    if not is_remote_debug():
+def is_target_remote(conn: gdb.TargetConnection | None = None) -> bool:
+    "Returns True for `extended-remote` only."
+    _conn = conn or gdb.selected_inferior().connection
+    return isinstance(_conn, gdb.RemoteTargetConnection) and _conn.type == "remote"
+
+
+def is_target_extended_remote(conn: gdb.TargetConnection | None = None) -> bool:
+    "Returns True for `extended-remote` only."
+    _conn = conn or gdb.selected_inferior().connection
+    return isinstance(_conn, gdb.RemoteTargetConnection) and _conn.type == "extended-remote"
+
+
+def is_target_remote_or_extended(conn: gdb.TargetConnection | None = None) -> bool:
+    return is_target_remote(conn) or is_target_extended_remote(conn)
+
+
+def is_running_in_qemu() -> bool:
+    "See https://www.qemu.org/docs/master/system/gdb.html "
+    if not is_target_remote():
         return False
     response = gdb.execute("maintenance packet Qqemu.sstepbits", to_string=True, from_tty=False) or ""
     return "ENABLE=" in response
 
 
-@lru_cache()
-def is_qemu_usermode() -> bool:
-    if not is_qemu():
+def is_running_in_qemu_user() -> bool:
+    if not is_running_in_qemu():
         return False
-    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False) or ""
+    response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False) or "" # Use `qAttached`?
     return "Text=" in response
 
 
-@lru_cache()
-def is_qemu_system() -> bool:
-    if not is_qemu():
+def is_running_in_qemu_system() -> bool:
+    if not is_running_in_qemu():
         return False
+    # Use "maintenance packet qqemu.PhyMemMode"?
     response = gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False) or ""
     return "received: \"\"" in response
+
+
+def is_running_in_gdbserver() -> bool:
+    return is_target_remote_or_extended() and not is_running_in_qemu()
+
+
+def is_running_in_rr() -> bool:
+    return is_running_in_gdbserver() and \
+        os.environ.get("GDB_UNDER_RR", None) == "1"
 
 
 def is_target_coredump() -> bool:
@@ -3706,6 +3732,8 @@ def new_objfile_handler(evt: "gdb.NewObjFileEvent | None") -> None:
         path = progspace.filename or ""
     else:
         raise RuntimeError("Cannot determine file path")
+
+    assert path
     try:
         if gef.session.root and path.startswith("target:"):
             # If the process is in a container, replace the "target:" prefix
@@ -3756,7 +3784,7 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
 
     with bkp_fpath.open("w") as fd:
         for bp in list(gdb.breakpoints()):
-            if not bp.enabled or not bp.is_valid:
+            if not bp.enabled or not bp.is_valid():
                 continue
             fd.write(f"{'t' if bp.temporary else ''}break {bp.location}\n")
     return
@@ -3962,6 +3990,7 @@ def is_in_x86_kernel(address: int) -> bool:
     return (address >> memalign) == 0xF
 
 
+@deprecated("Use `is_target_remote()`")
 def is_remote_debug() -> bool:
     """"Return True is the current debugging session is running through GDB remote session."""
     return gef.session.remote_initializing or gef.session.remote is not None
@@ -5199,7 +5228,7 @@ class PieRemoteCommand(GenericCommand):
 
     def do_invoke(self, argv: list[str]) -> None:
         try:
-            gdb.execute(f"gef-remote {' '.join(argv)}")
+            gdb.execute(f"target remote {' '.join(argv)}")
         except gdb.error as e:
             err(str(e))
             return
@@ -6261,7 +6290,12 @@ class RemoteCommand(GenericCommand):
     a local copy of the execution environment, including the target binary and its libraries
     in the local temporary directory (the value by default is in `gef.config.tempdir`). Additionally, it
     will fetch all the /proc/PID/maps and loads all its information. If procfs is not available remotely, the command
-    will likely fail. You can however still use the limited command provided by GDB `target remote`."""
+    will likely fail. You can however still use the limited command provided by GDB `target remote`.
+
+    **Important:**
+    As of 2024.09, the `gef-remote` is deprecated in favor of the native command `target remote` command. As it will be
+    removed in a future release, do not rely on it.
+    """
 
     _cmdline_ = "gef-remote"
     _syntax_  = f"{_cmdline_} [OPTIONS] TARGET"
@@ -6275,45 +6309,16 @@ class RemoteCommand(GenericCommand):
 
     @parse_arguments({"host": "", "port": 0}, {"--pid": -1, "--qemu-user": False, "--qemu-binary": ""})
     def do_invoke(self, _: list[str], **kwargs: Any) -> None:
-        if gef.session.remote is not None:
-            err("You already are in remote session. Close it first before opening a new one...")
-            return
-
-        # argument check
+        # for now, warn only and re-route to `target remote`
+        warn("`gef-remote` is now deprecated and will soon be removed. Use `target remote`")
         args : argparse.Namespace = kwargs["arguments"]
         if not args.host or not args.port:
-            err("Missing parameters")
+            err("Missing host/port parameters")
             return
 
-        # qemu-user support
-        qemu_binary: pathlib.Path | None = None
-        if args.qemu_user:
-            try:
-                qemu_binary = pathlib.Path(args.qemu_binary).expanduser().absolute() if args.qemu_binary else gef.session.file
-                if not qemu_binary or not qemu_binary.exists():
-                    raise FileNotFoundError(f"{qemu_binary} does not exist")
-            except Exception as e:
-                err(f"Failed to initialize qemu-user mode, reason: {str(e)}")
-                return
-
-        # Try to establish the remote session, throw on error
-        # Set `.remote_initializing` to True here - `GefRemoteSessionManager` invokes code which
-        # calls `is_remote_debug` which checks if `remote_initializing` is True or `.remote` is None
-        # This prevents some spurious errors being thrown during startup
-        gef.session.remote_initializing = True
-        session = GefRemoteSessionManager(args.host, args.port, args.pid, qemu_binary)
-
-        dbg(f"[remote] initializing remote session with {session.target} under {session.root}")
-        if not session.connect(args.pid) or not session.setup():
-            gef.session.remote = None
-            gef.session.remote_initializing = False
-            raise EnvironmentError("Failed to setup remote target")
-
-        gef.session.remote_initializing = False
-        gef.session.remote = session
-        reset_all_caches()
-        gdb.execute("context")
+        gdb.execute(f"target remote {args.host}:{args.port}")
         return
+
 
 
 @register
@@ -7429,7 +7434,7 @@ class ElfInfoCommand(GenericCommand):
     def do_invoke(self, _: list[str], **kwargs: Any) -> None:
         args : argparse.Namespace = kwargs["arguments"]
 
-        if is_qemu_system():
+        if is_running_in_qemu_system():
             err("Unsupported")
             return
 
@@ -10852,16 +10857,32 @@ class GefMemoryManager(GefManager):
 
         try:
             return list(self.parse_gdb_info_proc_maps())
-        except Exception:
-            pass
+        except Exception as e:
+            dbg(f"parse_gdb_info_proc_maps() failed, reason: {str(e)}")
 
         try:
             return list(self.parse_procfs_maps())
-        except Exception:
-            pass
+        except Exception as e:
+            dbg(f"parse_procfs_maps() failed, reason: {str(e)}")
 
         try:
             return list(self.parse_monitor_info_mem())
+        except Exception as e:
+            dbg(f"parse_monitor_info_mem() failed, reason: {str(e)}")
+
+        try:
+            # as a very last resort, use a mock rwx memory layout only if a session is running
+            assert gef.binary and gef.session.pid
+            warn("Could not determine memory layout accurately, using mock layout")
+            fname = gef.binary.path
+            if is_32bit():
+                page_start, page_end = 0x00000000, 0xffffffff
+            else:
+                page_start, page_end = 0x0000000000000000, 0xffffffffffffffff
+            return [Section(page_start=page_start,
+                    page_end=page_end,
+                    permission = Permission.ALL,
+                    path = str(fname)),]
         except Exception:
             pass
 
@@ -11371,7 +11392,7 @@ class GefSessionManager(GefManager):
     def auxiliary_vector(self) -> dict[str, int] | None:
         if not is_alive():
             return None
-        if is_qemu_system():
+        if is_running_in_qemu_system():
             return None
         if not self._auxiliary_vector:
             auxiliary_vector = {}
@@ -11490,6 +11511,9 @@ class GefRemoteSessionManager(GefSessionManager):
         GDBSERVER = 0
         QEMU = 1
         RR = 2
+        GDBSERVER_MULTI = 3
+        QEMU_USER = 4
+        QEMU_SYSTEM = 5
 
         def __str__(self):
             return self.name
@@ -11499,42 +11523,58 @@ class GefRemoteSessionManager(GefSessionManager):
 
         def prompt_string(self) -> str:
             match self:
-                case GefRemoteSessionManager.RemoteMode.QEMU:
+                case (
+                    GefRemoteSessionManager.RemoteMode.QEMU |
+                    GefRemoteSessionManager.RemoteMode.QEMU_USER |
+                    GefRemoteSessionManager.RemoteMode.QEMU_SYSTEM
+                ):
                     return Color.boldify("(qemu) ")
                 case GefRemoteSessionManager.RemoteMode.RR:
                     return Color.boldify("(rr) ")
-                case GefRemoteSessionManager.RemoteMode.GDBSERVER:
+                case (
+                    GefRemoteSessionManager.RemoteMode.GDBSERVER |
+                    GefRemoteSessionManager.RemoteMode.GDBSERVER_MULTI
+                ):
                     return Color.boldify("(remote) ")
             raise AttributeError("Unknown value")
 
-    def __init__(self, host: str, port: int, pid: int =-1, qemu: pathlib.Path | None = None) -> None:
+        @staticmethod
+        def init() -> "GefRemoteSessionManager.RemoteMode":
+            if is_running_in_qemu_system():
+                return GefRemoteSessionManager.RemoteMode.QEMU_SYSTEM
+            if is_running_in_qemu_user():
+                return GefRemoteSessionManager.RemoteMode.QEMU_USER
+            if is_running_in_rr():
+                return GefRemoteSessionManager.RemoteMode.RR
+            if is_running_in_gdbserver():
+                if is_target_extended_remote():
+                    return GefRemoteSessionManager.RemoteMode.GDBSERVER_MULTI
+                return GefRemoteSessionManager.RemoteMode.GDBSERVER
+            raise AttributeError
+
+    def __init__(self, conn: gdb.RemoteTargetConnection) -> None:
         super().__init__()
-        self.__host = host
-        self.__port = port
+        assert is_target_remote_or_extended()
+        remote_host = conn.details
+        assert remote_host
+        host, port = remote_host.split(":", 1)
+        self.__host = host or "localhost"
+        self.__port = int(port)
         self.__local_root_fd = tempfile.TemporaryDirectory()
         self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
-        self.__qemu = qemu
-        if pid > 0:
-            self._pid = pid
+        self._mode = GefRemoteSessionManager.RemoteMode.init()
 
-        if self.__qemu is not None:
-            self._mode = GefRemoteSessionManager.RemoteMode.QEMU
-        elif os.environ.get("GDB_UNDER_RR", None) == "1":
-            self._mode =  GefRemoteSessionManager.RemoteMode.RR
-        else:
-            self._mode =  GefRemoteSessionManager.RemoteMode.GDBSERVER
+        self.setup()
 
     def close(self) -> None:
         self.__local_root_fd.cleanup()
-        try:
-            gef_on_new_unhook(self.remote_objfile_event_handler)
-            gef_on_new_hook(new_objfile_handler)
-        except Exception as e:
-            warn(f"Exception while restoring local context: {str(e)}")
-            raise
 
     def __str__(self) -> str:
-        return f"RemoteSession(target='{self.target}', local='{self.root}', pid={self.pid}, mode={self.mode})"
+        msg = f"RemoteSession(target='{self.target}', local='{self.root}', mode={self.mode}"
+        if self.mode == GefRemoteSessionManager.RemoteMode.GDBSERVER:
+            msg += f", pid={self.pid}"
+        msg += ")"
+        return msg
 
     def __repr__(self) -> str:
         return str(self)
@@ -11577,59 +11617,25 @@ class GefRemoteSessionManager(GefSessionManager):
         return self._mode
 
     def sync(self, src: str, dst: str | None = None) -> bool:
-        """Copy the `src` into the temporary chroot. If `dst` is provided, that path will be
-        used instead of `src`."""
-        if not dst:
-            dst = src
-        tgt = self.root / dst.lstrip("/")
-        if tgt.exists():
-            return True
-        tgt.parent.mkdir(parents=True, exist_ok=True)
-        dbg(f"[remote] downloading '{src}' -> '{tgt}'")
-        gdb.execute(f"remote get '{src}' '{tgt.absolute()}'")
-        return tgt.exists()
+        raise DeprecationWarning
 
     def connect(self, pid: int) -> bool:
-        """Connect to remote target. If in extended mode, also attach to the given PID."""
-        # before anything, register our new hook to download files from the remote target
-        dbg("[remote] Installing new objfile handlers")
-        try:
-            gef_on_new_unhook(new_objfile_handler)
-        except SystemError:
-            # the default objfile handler might already have been removed, ignore failure
-            pass
-
-        gef_on_new_hook(self.remote_objfile_event_handler)
-
-        # then attempt to connect
-        is_extended_mode = (pid > -1)
-        dbg(f"[remote] Enabling extended remote: {bool(is_extended_mode)}")
-        try:
-            with DisableContextOutputContext():
-                cmd = f"target {'extended-' if is_extended_mode else ''}remote {self.target}"
-                dbg(f"[remote] Executing '{cmd}'")
-                gdb.execute(cmd)
-                if is_extended_mode:
-                    gdb.execute(f"attach {pid:d}")
-            return True
-        except Exception as e:
-            err(f"Failed to connect to {self.target}: {e}")
-
-        # a failure will trigger the cleanup, deleting our hook anyway
-        return False
+        raise DeprecationWarning
 
     def setup(self) -> bool:
         # setup remote adequately depending on remote or qemu mode
+        info(f"Setting up remote session as '{self._mode}'")
         match self.mode:
-            case GefRemoteSessionManager.RemoteMode.QEMU:
-                dbg(f"Setting up as qemu session, target={self.__qemu}")
-                self.__setup_qemu()
+            case GefRemoteSessionManager.RemoteMode.QEMU_USER:
+                self.__setup_qemu_user()
+            case GefRemoteSessionManager.RemoteMode.QEMU_SYSTEM:
+                self.__setup_qemu_system()
             case GefRemoteSessionManager.RemoteMode.RR:
-                dbg("Setting up as rr session")
                 self.__setup_rr()
             case GefRemoteSessionManager.RemoteMode.GDBSERVER:
-                dbg("Setting up as remote session")
                 self.__setup_remote()
+            case GefRemoteSessionManager.RemoteMode.GDBSERVER_MULTI:
+                self.__setup_remote_multi()
             case _:
                 raise ValueError
 
@@ -11639,76 +11645,24 @@ class GefRemoteSessionManager(GefSessionManager):
         reset_architecture()
         return True
 
-    def __setup_qemu(self) -> bool:
-        # setup emulated file in the chroot
-        assert self.__qemu
-        target = self.root / str(self.__qemu.parent).lstrip("/")
-        target.mkdir(parents=True, exist_ok=False)
-        shutil.copy2(self.__qemu, target)
-        self._file = self.__qemu
-        assert self.lfile.exists()
+    def __setup_qemu_system(self) -> bool:
+        raise NotImplementedError("TODO")
 
-        # create a procfs
-        procfs = self.root / f"proc/{self.pid}/"
-        procfs.mkdir(parents=True, exist_ok=True)
-
-        ## /proc/pid/cmdline
-        cmdline = procfs / "cmdline"
-        if not cmdline.exists():
-            with cmdline.open("w") as fd:
-                fd.write("")
-
-        ## /proc/pid/environ
-        environ = procfs / "environ"
-        if not environ.exists():
-            with environ.open("wb") as fd:
-                fd.write(b"PATH=/bin\x00HOME=/tmp\x00")
-
-        ## /proc/pid/maps
-        maps = procfs / "maps"
-        if not maps.exists():
-            with maps.open("w") as fd:
-                fname = self.file.absolute()
-                mem_range = "00000000-ffffffff" if is_32bit() else "0000000000000000-ffffffffffffffff"
-                fd.write(f"{mem_range} rwxp 00000000 00:00 0                    {fname}\n")
-        return True
-
-    def __setup_remote(self) -> bool:
-        # get the file
-        fpath = f"/proc/{self.pid}/exe"
-        if not self.sync(fpath, str(self.file)):
-            err(f"'{fpath}' could not be fetched on the remote system.")
-            return False
-
-        # pseudo procfs
-        for _file in ("maps", "environ", "cmdline"):
-            fpath = f"/proc/{self.pid}/{_file}"
-            if not self.sync(fpath):
-                err(f"'{fpath}' could not be fetched on the remote system.")
-                return False
-
-        return True
-
-    def __setup_rr(self) -> bool:
-        #
-        # Simply override the local root path, the binary must exist
-        # on the host.
-        #
+    def __setup_qemu_user(self) -> bool:
         self.__local_root_path = pathlib.Path("/")
         return True
 
-    def remote_objfile_event_handler(self, evt: "gdb.NewObjFileEvent") -> None:
-        dbg(f"[remote] in remote_objfile_handler({evt.new_objfile.filename if evt else 'None'}))")
-        if not evt or not evt.new_objfile.filename:
-            return
-        if not evt.new_objfile.filename.startswith("target:") and not evt.new_objfile.filename.startswith("/"):
-            warn(f"[remote] skipping '{evt.new_objfile.filename}'")
-            return
-        if evt.new_objfile.filename.startswith("target:"):
-            src: str = evt.new_objfile.filename[len("target:"):]
-            if not self.sync(src):
-                raise FileNotFoundError(f"Failed to sync '{src}'")
-        return
+    def __setup_remote(self) -> bool:
+        self.__local_root_path = pathlib.Path("/")
+        return True
+
+    def __setup_remote_multi(self) -> bool:
+        self.__local_root_path = pathlib.Path("/")
+        return True
+
+    def __setup_rr(self) -> bool:
+        self.__local_root_path = pathlib.Path("/")
+        return True
 
 
 class GefUiManager(GefManager):
@@ -11789,6 +11743,7 @@ class Gef:
     heap : GefHeapManager
     session : GefSessionManager
     gdb: GefCommand
+    temp: dict[str, Any]
 
     def __init__(self) -> None:
         self.binary: FileFormat | None = None
@@ -11797,10 +11752,17 @@ class Gef:
         self.config = GefSettingsManager()
         self.ui = GefUiManager()
         self.libc = GefLibcManager()
+        self.temp = {}
         return
 
     def __str__(self) -> str:
         return f"Gef(binary='{self.binary or 'None'}', arch={self.arch})"
+
+    def __repr__(self) -> str:
+        binary = self.binary
+        arch = self.arch
+        session = self.session
+        return f"Gef({binary=:}, {arch=:}, {session=:})"
 
     def reinitialize_managers(self) -> None:
         """Reinitialize the managers. Avoid calling this function directly, using `pi reset()` is preferred"""
@@ -11820,18 +11782,31 @@ class Gef:
     def reset_caches(self) -> None:
         """Recursively clean the cache of all the managers. Avoid calling this function directly, using `reset-cache`
         is preferred"""
+        self.temp.clear()
         for mgr in (self.memory, self.heap, self.session, self.arch):
             mgr.reset_caches()
         return
 
 
-def target_remote_posthook():
-    if gef.session.remote_initializing:
-        return
+def target_remote_hook():
+    # disable the context until the session has been fully established
+    gef.temp["context_old_value"] = gef.config["context.enable"]
+    gef.config["context.enable"] = False
 
-    gef.session.remote = GefRemoteSessionManager("", 0)
-    if not gef.session.remote.setup():
-        raise EnvironmentError(f"Failed to create a proper environment for {gef.session.remote}")
+
+def target_remote_posthook():
+    conn = gdb.selected_inferior().connection
+    if not isinstance(conn, gdb.RemoteTargetConnection):
+        raise TypeError("Expected type gdb.RemoteTargetConnection")
+    assert is_target_remote_or_extended(conn), "Target is not remote"
+    gef.session.remote = GefRemoteSessionManager(conn)
+
+    # switch back context to its old context
+    gef.config["context.enable"] = gef.temp.pop("context_old_value", True)
+
+    # if here, no exception was thrown, print context
+    gdb.execute("context")
+
 
 if __name__ == "__main__":
     if sys.version_info[0] == 2:
@@ -11908,32 +11883,18 @@ if __name__ == "__main__":
 
     GefTmuxSetup()
 
-    if GDB_VERSION > (9, 0):
-        disable_tr_overwrite_setting = "gef.disable_target_remote_overwrite"
-
-        if not gef.config[disable_tr_overwrite_setting]:
-            warnmsg = ("Using `target remote` with GEF should work in most cases, "
-                       "but use `gef-remote` if you can. You can disable the "
-                       "overwrite of the `target remote` command by toggling "
-                       f"`{disable_tr_overwrite_setting}` in the config.")
-            hook = f"""
-                define target hookpost-{{}}
-                pi target_remote_posthook()
-                context
-                pi if calling_function() != "connect": warn("{warnmsg}")
-                end
-            """
-
-            # Register a post-hook for `target remote` that initialize the remote session
-            gdb.execute(hook.format("remote"))
-            gdb.execute(hook.format("extended-remote"))
-        else:
-            errmsg = ("Using `target remote` does not work, use `gef-remote` "
-                      f"instead. You can toggle `{disable_tr_overwrite_setting}` "
-                      "if this is not desired.")
-            hook = f"""pi if calling_function() != "connect": err("{errmsg}")"""
-            gdb.execute(f"define target hook-remote\n{hook}\nend")
-            gdb.execute(f"define target hook-extended-remote\n{hook}\nend")
+    # Initialize `target *remote` pre/post hooks
+    hook = """
+    define target hook{1}-{0}
+        pi target_remote_{1}hook()
+    end
+    """
+    # pre-hooks
+    gdb.execute(hook.format("remote", ""))
+    gdb.execute(hook.format("extended-remote", ""))
+    # post-hooks
+    gdb.execute(hook.format("remote", "post"))
+    gdb.execute(hook.format("extended-remote", "post"))
 
     # restore saved breakpoints (if any)
     bkp_fpath = pathlib.Path(gef.config["gef.autosave_breakpoints_file"]).expanduser().absolute()

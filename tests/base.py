@@ -1,6 +1,5 @@
 import os
 import pathlib
-import random
 import re
 import subprocess
 import tempfile
@@ -10,7 +9,7 @@ import unittest
 
 import rpyc
 
-from .utils import debug_target
+from .utils import debug_target, get_random_port, which
 
 COVERAGE_DIR = os.getenv("COVERAGE_DIR", "")
 GEF_PATH = pathlib.Path(os.getenv("GEF_PATH", "gef.py")).absolute()
@@ -19,6 +18,8 @@ RPYC_HOST = "localhost"
 RPYC_PORT = 18812
 RPYC_SPAWN_TIME = 1.0
 RPYC_MAX_REMOTE_CONNECTION_ATTEMPTS = 5
+GDB_BINARY_PATH = which("gdb-multiarch")
+RPYC_CONNECT_FAILURE_DELAY = 0.2
 
 
 class RemoteGefUnitTestGeneric(unittest.TestCase):
@@ -28,6 +29,7 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
     """
 
     def setUp(self) -> None:
+        self._gdb_path = GDB_BINARY_PATH
         attempt = RPYC_MAX_REMOTE_CONNECTION_ATTEMPTS
         while True:
             try:
@@ -41,7 +43,7 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
                 attempt -= 1
                 if attempt == 0:
                     raise
-                time.sleep(0.2)
+                time.sleep(RPYC_CONNECT_FAILURE_DELAY)
                 continue
 
         self._gdb = self._conn.root.gdb
@@ -58,7 +60,7 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
         #
         # Select a random tcp port for rpyc
         #
-        self._port = random.randint(1025, 65535)
+        self._port = get_random_port()
         self._commands = ""
 
         if COVERAGE_DIR:
@@ -84,7 +86,7 @@ pi start_rpyc_service({self._port})
         self._initfile.write(self._commands)
         self._initfile.flush()
         self._command = [
-            "gdb",
+            GDB_BINARY_PATH,
             "-q",
             "-nx",
             "-ex",
@@ -92,6 +94,7 @@ pi start_rpyc_service({self._port})
             "--",
             str(self._target.absolute()),  # type: ignore pylint: disable=E1101
         ]
+
         self._process = subprocess.Popen(self._command)
         assert self._process.pid > 0
         time.sleep(RPYC_SPAWN_TIME)
