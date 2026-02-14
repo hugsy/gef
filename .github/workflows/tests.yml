@@ -1,8 +1,6 @@
 name: Tests
 
 env:
-  GEF_CI_CACHE_DIR: /tmp
-  PY_VER: 0
   GEF_CI_NB_CPU: 1
 
 on:
@@ -19,14 +17,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner:
-        - ubuntu-24.04
-        - ubuntu-22.04
-        - ubuntu-24.04-arm
-        - ubuntu-22.04-arm
+        arch: [amd64, arm64]
+        os: [ubuntu-24.04, ubuntu-22.04, fedora-42, fedora-43, fedora-rawhide]
+        include:
+          - os: ubuntu-24.04
+            base_image: ubuntu:24.04
+          - os: ubuntu-22.04
+            base_image: ubuntu:22.04
+          - os: fedora-42
+            base_image: fedora:42
+          - os: fedora-43
+            base_image: fedora:43
+          - os: fedora-rawhide
+            base_image: fedora:rawhide
 
-    name: "Run Unit tests on ${{ matrix.runner }}"
-    runs-on: ${{ matrix.runner }}
+    name: "Run Unit tests on ${{ matrix.os }} (${{ matrix.arch }})"
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     defaults:
       run:
         shell: bash
@@ -34,63 +40,21 @@ jobs:
     steps:
     - uses: actions/checkout@v6.0.1
 
-    - name: Install python and toolchain
-      run: |
-        export NEEDRESTART_MODE=n
-        sudo apt-get update
-        sudo apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-    - name: Install python and toolchain
-      if: startsWith(matrix.runner, 'ubuntu-24.04')
-      run: |
-        sudo apt-get install -y python3-full
+    - name: Create Dockerfile
+      run: .github/tests/setup-dockerfile.sh ${{ matrix.base_image }}
 
-    - name: Install python and toolchain
-      if: startsWith(matrix.runner, 'ubuntu-24.04') == false
-      run: |
-        python3 -m pip install pip -U
-
-    - name: Set runtime environment variables
-      run: |
-        echo PY_VER=`gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit` >> $GITHUB_ENV
-        echo GEF_CI_NB_CPU="`grep -c ^processor /proc/cpuinfo`" >> $GITHUB_ENV
-        echo GEF_CI_ARCH="`uname --processor`" >> $GITHUB_ENV
-        echo GEF_CI_CACHE_DIR="`python3 -m pip cache dir`" >> $GITHUB_ENV
-
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      id: cache-deps
-      env:
-        cache-name: cache-deps
+    - name: Build container image
+      uses: docker/build-push-action@v6
       with:
-        key: ${{ matrix.runner }}-pip-${{ hashFiles('**/requirements.txt') }}
-        path: ${{ env.GEF_CI_CACHE_DIR }}
-        restore-keys:
-          ${{ matrix.runner }}-pip-${{ env.cache-name }}-
-          ${{ matrix.runner }}-pip-
-          ${{ matrix.runner }}-${{ env.cache-name }}-
-          ${{ matrix.runner }}-
+        context: .
+        push: false
+        load: true
+        tags: gef-test:${{ matrix.os }}-${{ matrix.arch }}
+        cache-from: type=gha,scope=${{ matrix.os }}-${{ matrix.arch }}
+        cache-to: type=gha,mode=max,scope=${{ matrix.os }}-${{ matrix.arch }}
 
-    - name: Install python and toolchain
-      if: startsWith(matrix.runner, 'ubuntu-24.04') == false
-      run: |
-        test "${{ env.PY_VER }}" == "0" && exit 1
-        mkdir -p ${{ env.GEF_CI_CACHE_DIR }}
-        python${{ env.PY_VER }} -m pip install --user --upgrade -r tests/requirements.txt
-
-    - name: Install Python Requirements
-      if: startsWith(matrix.runner, 'ubuntu-24.04')
-      run: |
-        test "${{ env.PY_VER }}" == "0" && exit 1
-        mkdir -p ${{ env.GEF_CI_CACHE_DIR }}
-        python${{ env.PY_VER }} -m pip install --break-system-packages --user --upgrade -r tests/requirements.txt
-
-    - name: Setup GEF
-      run: |
-        echo "source $(pwd)/gef.py" > ~/.gdbinit
-        gdb -q -ex 'gef missing' -ex 'gef help' -ex 'gef config' -ex start -ex continue -ex quit /bin/pwd
-
-    - name: Run Tests
-      run: |
-        make -C tests/binaries -j ${{ env.GEF_CI_NB_CPU }}
-        python${{ env.PY_VER }} -m pytest --forked -n ${{ env.GEF_CI_NB_CPU }} -v -m "not benchmark" tests/
+    - name: Run tests in container
+      run: .github/tests/run-tests.sh ${{ matrix.os }}-${{ matrix.arch }}
