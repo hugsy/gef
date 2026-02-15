@@ -6175,8 +6175,13 @@ class SearchPatternCommand(GenericCommand):
         endian = gef.arch.endianness
 
         if argc >= 2:
-            if argv[1].lower() == "big": endian = Endianness.BIG_ENDIAN
-            elif argv[1].lower() == "little": endian = Endianness.LITTLE_ENDIAN
+            if argv[1].lower() == "big":
+                endian = Endianness.BIG_ENDIAN
+            elif argv[1].lower() == "little":
+                endian = Endianness.LITTLE_ENDIAN
+            else: 
+                self.usage()
+                return
 
         if is_hex(pattern):
             if endian == Endianness.BIG_ENDIAN:
