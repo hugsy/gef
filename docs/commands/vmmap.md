@@ -10,21 +10,27 @@ place). For example, you can learn that ELF running on SPARC architectures alway
 and `heap` sections set as Read/Write/Execute.
 
 `vmmap` can accept multiple arguments, either patterns to match again mapping names, or addresses
-to determine which section it belongs to:
+to determine which section it belongs to, or the permissions of the sections to match:
 
 1.  `-a` / `--addr`:
     -  filter by address -> parses the next argument as an integer or asks gdb to interpret the value
 2.  `-n` / `--name`:
     -  filter based on section name
-3.  If nothing is specified, it prints a warning and guesses the type
+3.  `-p` / `--perms`:
+    -  filter based on section permissions
+4.  If nothing is specified, it prints a warning and guesses the type
 
 ![vmmap-grep](https://github.com/hugsy/gef/assets/11377623/a3dbaa3e-88b0-407f-a0dd-07e65c4a3f73)
 
 ![vmmap-address](https://github.com/hugsy/gef/assets/11377623/4dffe491-f927-4f03-b842-4d941140e66c)
 
-The address can be also be given in the form of a register or variable.
+The address can be also be given in the form of a register or variable:
 
 ![vmmap-register](https://github.com/hugsy/gef/assets/11377623/aed7ecdc-7ad9-4ba5-ae03-329e66432731)
+
+Using permissions:
+
+![vmmap-perms](https://github.com/user-attachments/assets/c34822d3-2369-464f-aafa-87113b293174)
 
 And you can do all of them in one command 🙂
 
