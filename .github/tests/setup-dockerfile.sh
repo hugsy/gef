@@ -11,7 +11,7 @@ RUN if [ -f /etc/debian_version ]; then \
   export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=n && \
   apt-get update && \
   apt-get install -y gdb-multiarch python3-dev python3-pip python3-wheel python3-setuptools \
-    git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user file; \
+    git cmake gcc g++ pkg-config libglib2.0-dev gdbserver qemu-user file curl wget unzip; \
 fi
 
 # Install python3-full for Ubuntu 24.04
@@ -22,7 +22,7 @@ fi
 # Install dependencies for Fedora-based images
 RUN if [ -f /etc/fedora-release ]; then \
   dnf install -y gdb gdb-gdbserver python3-devel python3-pip python3-wheel python3-setuptools python3-rpm \
-    git cmake gcc gcc-c++ pkg-config glib2-devel qemu-user qemu-user-static file procps-ng && \
+    git cmake gcc gcc-c++ pkg-config glib2-devel qemu-user qemu-user-static file procps-ng wget curl unzip && \
   dnf --enablerepo='*debug*' install -y glibc-debuginfo && \
   dnf clean all; \
   ln -s /usr/bin/gdb /usr/bin/gdb-multiarch; \
