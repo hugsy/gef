@@ -22,7 +22,7 @@ class MissingTargetRemoteRegisters(RemoteGefUnitTestGeneric):
         self._tempdir_path = pathlib.Path(self._tempdir.name)
         os.system(repro_script.format(self._tempdir_path))
         self._current_dir = self._tempdir_path / "repr"
-        # Save the previous working directory so it can be restored in tearDown
+        self._current_dir.mkdir(parents=True, exist_ok=False)
         self._previous_cwd = os.getcwd()
         os.chdir(self._current_dir)
         self._target = self._current_dir / "chal"
