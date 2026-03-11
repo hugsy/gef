@@ -28,7 +28,7 @@ class MissingTargetRemoteRegisters(RemoteGefUnitTestGeneric):
         self._previous_cwd = os.getcwd()
         os.chdir(self._current_dir)
         self._target = self._current_dir / "chal"
-        self._target.mkdir(parents=True, exist_ok=True)
+        # self._target.mkdir(exist_ok=True)
         return super().setUp()
 
     def tearDown(self) -> None:
