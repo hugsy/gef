@@ -25,6 +25,7 @@ RUN if [ -f /etc/fedora-release ]; then \
     git cmake gcc gcc-c++ pkg-config glib2-devel qemu-user qemu-user-static file procps-ng && \
   dnf --enablerepo='*debug*' install -y glibc-debuginfo && \
   dnf clean all; \
+  ln -s /usr/bin/gdb /usr/bin/gdb-multiarch; \
 fi
 
 # Copy only requirements.txt for caching
