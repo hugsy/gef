@@ -3514,7 +3514,7 @@ def get_os() -> str:
 
 
 def is_target_remote(conn: gdb.TargetConnection | None = None) -> bool:
-    "Returns True for `extended-remote` only."
+    "Returns True for `remote` only."
     _conn = conn or gdb.selected_inferior().connection
     return isinstance(_conn, gdb.RemoteTargetConnection) and _conn.type == "remote"
 

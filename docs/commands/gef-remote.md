@@ -1,6 +1,6 @@
 ## Command `gef-remote`
 
-📝 **IMPORTANT NOTE**: `gef-remote` is deprecated since 2025.06 in favor of `target remote`. The
+📝 **IMPORTANT NOTE**: `gef-remote` is deprecated since 2026.04 in favor of `target remote`. The
 command will be removed in a future release. Do not rely on it.
 
 `gef-remote` can function in 2 ways:

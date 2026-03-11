@@ -22,10 +22,24 @@ class MissingTargetRemoteRegisters(RemoteGefUnitTestGeneric):
         self._tempdir_path = pathlib.Path(self._tempdir.name)
         os.system(repro_script.format(self._tempdir_path))
         self._current_dir = self._tempdir_path / "repr"
+        # Save the previous working directory so it can be restored in tearDown
+        self._previous_cwd = os.getcwd()
         os.chdir(self._current_dir)
         self._target = self._current_dir / "chal"
         return super().setUp()
 
+    def tearDown(self) -> None:
+        # Restore the original working directory if it was saved
+        previous_cwd = getattr(self, "_previous_cwd", None)
+        if previous_cwd is not None:
+            os.chdir(previous_cwd)
+
+        # Ensure the temporary directory is cleaned up
+        tempdir = getattr(self, "_tempdir", None)
+        if tempdir is not None:
+            tempdir.cleanup()
+
+        return super().tearDown()
     def test_target_remote_validate_post_hook_registers_display(self):
         _gdb = self._gdb
         _gef = self._gef
