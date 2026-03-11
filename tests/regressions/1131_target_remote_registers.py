@@ -1,12 +1,14 @@
-import pathlib
-import pytest
 import os
+import pathlib
 import tempfile
+
+import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import get_random_port, qemuuser_session
 
 URL = "https://github.com/user-attachments/files/16913262/repr.zip"
+
 
 @pytest.mark.slow
 class MissingTargetRemoteRegisters(RemoteGefUnitTestGeneric):
@@ -26,6 +28,7 @@ class MissingTargetRemoteRegisters(RemoteGefUnitTestGeneric):
         self._previous_cwd = os.getcwd()
         os.chdir(self._current_dir)
         self._target = self._current_dir / "chal"
+        self._target.mkdir(parents=True)
         return super().setUp()
 
     def tearDown(self) -> None:
@@ -40,14 +43,23 @@ class MissingTargetRemoteRegisters(RemoteGefUnitTestGeneric):
             tempdir.cleanup()
 
         return super().tearDown()
+
     def test_target_remote_validate_post_hook_registers_display(self):
         _gdb = self._gdb
         _gef = self._gef
         port = get_random_port()
 
         # cmd: ./qemu-mipsel-static -g 1234 -L ./target ./chal
-        with qemuuser_session(exe=self._target, port=port, qemu_exe=self._current_dir / "qemu-mipsel-static", args=["-L", str(self._current_dir / "target")]):
+        with qemuuser_session(
+            exe=self._target,
+            port=port,
+            qemu_exe=self._current_dir / "qemu-mipsel-static",
+            args=["-L", str(self._current_dir / "target")],
+        ):
             _gdb.execute(f"target remote :{port}")
 
             res = str(_gef.session.remote)
-            assert f"RemoteSession(target='localhost:{port}', local='/', mode=QEMU_USER)" in res
+            assert (
+                f"RemoteSession(target='localhost:{port}', local='/', mode=QEMU_USER)"
+                in res
+            )
