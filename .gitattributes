@@ -1,2 +1,8 @@
 # https://help.github.com/articles/dealing-with-line-endings/
 * text eol=lf
+*.png diff=none binary
+*.jpg diff=none binary
+*.jpeg diff=none binary
+*.gif diff=none binary
+*.svg diff=none binary
+*.webp diff=none binary

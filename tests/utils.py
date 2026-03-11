@@ -56,6 +56,7 @@ CommandType = Union[str, Iterable[str]]
 ERROR_INACTIVE_SESSION_MESSAGE = "[*] No debugging session active\n"
 WARNING_DEPRECATION_MESSAGE = "is deprecated and will be removed in a feature release."
 
+IN_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
 class Color(enum.Enum):
     """Used to colorify terminal output."""
@@ -76,6 +77,14 @@ class Color(enum.Enum):
     HIGHLIGHT_OFF   = "\001\033[23m\002"
     BLINK           = "\001\033[5m\002"
     BLINK_OFF       = "\001\033[25m\002"
+
+
+def is_glibc_ge(major, minor):
+    ver = platform.libc_ver()
+    if ver[0] == 'glibc':
+        (glibc_major, glibc_minor, *glibc_patch) = list(map(int, ver[1].split('.')))
+        return (glibc_major, glibc_minor) >= (major, minor)
+    return False
 
 
 def is_64b() -> bool:

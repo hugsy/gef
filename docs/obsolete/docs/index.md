@@ -5,4 +5,4 @@
 
 ---
 
-![redirect](https://i.imgflip.com/1f0lcn.jpg)
+![redirect](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/redirect.png)

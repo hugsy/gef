@@ -30,7 +30,7 @@ Process /tmp/default.out created; pid = 258932
 Listening on port 1234
 ```
 
-![gef-remote-1](https://i.imgur.com/Zc4vnBd.png)
+![gef-remote-1](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/gef-remote-1.png)
 
 On the client, when the original `gdb` would use `target remote`, GEF's syntax is roughly similar
 (shown running in debug mode for more verbose output, but you don't have to):
@@ -67,12 +67,12 @@ Reading /lib64/ld-linux-x86-64.so.2 from remote target...
 
 And finally breaking into the program, showing the current context:
 
-![gef-remote](https://i.imgur.com/IfsRDvK.png)
+![gef-remote](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/gef-remote.png)
 
 You will also notice the prompt has changed to indicate the debugging mode is now "remote". Besides
 that, all of GEF features are available:
 
-![gef-remote-command](https://i.imgur.com/05epyX6.png)
+![gef-remote-command](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/gef-remote-command.png)
 
 #### `remote-extended`
 
@@ -96,8 +96,8 @@ makes now even more sense 😉 And using it is very straight forward.
 
 #### `qemu-system`
 
-To test locally, you can use the mini image linux x64 vm
-[here](https://mega.nz/file/ldQCDQiR#yJWJ8RXAHTxREKVmR7Hnfr70tIAQDFeWSYj96SvPO1k).
+To test locally, you can [download the mini image linux x64
+vm](https://mega.nz/file/ldQCDQiR#yJWJ8RXAHTxREKVmR7Hnfr70tIAQDFeWSYj96SvPO1k).
 
  1.  Run `./run.sh`
  2.  Use `--qemu-user` and `--qemu-binary vmlinuz` when starting `gef-remote`

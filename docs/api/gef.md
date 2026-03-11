@@ -5044,7 +5044,7 @@ usage() → None
 
 ## <kbd>class</kbd> `Elf`
 Basic ELF parsing. Ref:
-- http://www.skyfree.org/linux/references/ELF_Format.pdf
+- https://refspecs.linuxfoundation.org/elf/TIS1.1.pdf
 - https://refspecs.linuxfoundation.org/elf/elfspec_ppc.pdf
 - https://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi.html
 
@@ -19503,7 +19503,7 @@ usage() → None
 
 ## <kbd>class</kbd> `SPARC`
 Refs:
-- https://www.cse.scu.edu/~atkinson/teaching/sp05/259/sparc.pdf
+- https://math-atlas.sourceforge.net/devel/assembly/SunUS_isa.pdf
 
 
 ---
