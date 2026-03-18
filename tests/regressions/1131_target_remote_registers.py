@@ -5,12 +5,22 @@ import tempfile
 import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
-from tests.utils import get_random_port, qemuuser_session
+from tests.utils import OS, ARCH, get_random_port, qemuuser_session
 
 URL = "https://github.com/user-attachments/files/16913262/repr.zip"
 
 
+#
+# gdb-multiarch acts weird on arm64, and simply doesn't exist on fedora (ubuntu only), so we skip this test on arm64 on CI.
+# It cant either be run locally on arm64 if gdb-multiarch is available. We might want to revisit later, for now just skip.
+#
+
+
 @pytest.mark.slow
+@pytest.mark.skipif(
+    OS != "ubuntu" or ARCH != "x86_64",
+    reason=f"Skipped for {OS} on CI",
+)
 class MissingTargetRemoteRegisters(RemoteGefUnitTestGeneric):
     """@ref https://github.com/hugsy/gef/pull/1131"""
 

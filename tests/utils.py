@@ -26,8 +26,22 @@ def which(program: str) -> pathlib.Path:
     return pathlib.Path(fpath)
 
 
+def os_release() -> str:
+    return (
+        [
+            x
+            for x in pathlib.Path("/etc/os-release").read_text().splitlines()
+            if x.startswith("ID=")
+        ][0]
+        .strip()
+        .replace("ID=", "")
+        .replace('"', "")
+    )
+
+
 TMPDIR = pathlib.Path(tempfile.gettempdir())
 ARCH = (os.getenv("GEF_CI_ARCH") or platform.machine()).lower()
+OS = (os.getenv("GEF_CI_OS") or os_release()).lower()
 BIN_SH = pathlib.Path("/bin/sh")
 CI_VALID_ARCHITECTURES_32B = ("i686", "armv7l")
 CI_VALID_ARCHITECTURES_64B = ("x86_64", "aarch64", "mips64el", "ppc64le", "riscv64")
@@ -58,31 +72,32 @@ WARNING_DEPRECATION_MESSAGE = "is deprecated and will be removed in a feature re
 
 IN_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
+
 class Color(enum.Enum):
     """Used to colorify terminal output."""
 
-    NORMAL          = "\001\033[0m\002"
-    GRAY            = "\001\033[1;38;5;240m\002"
-    LIGHT_GRAY      = "\001\033[0;37m\002"
-    RED             = "\001\033[31m\002"
-    GREEN           = "\001\033[32m\002"
-    YELLOW          = "\001\033[33m\002"
-    BLUE            = "\001\033[34m\002"
-    PINK            = "\001\033[35m\002"
-    CYAN            = "\001\033[36m\002"
-    BOLD            = "\001\033[1m\002"
-    UNDERLINE       = "\001\033[4m\002"
-    UNDERLINE_OFF   = "\001\033[24m\002"
-    HIGHLIGHT       = "\001\033[3m\002"
-    HIGHLIGHT_OFF   = "\001\033[23m\002"
-    BLINK           = "\001\033[5m\002"
-    BLINK_OFF       = "\001\033[25m\002"
+    NORMAL = "\001\033[0m\002"
+    GRAY = "\001\033[1;38;5;240m\002"
+    LIGHT_GRAY = "\001\033[0;37m\002"
+    RED = "\001\033[31m\002"
+    GREEN = "\001\033[32m\002"
+    YELLOW = "\001\033[33m\002"
+    BLUE = "\001\033[34m\002"
+    PINK = "\001\033[35m\002"
+    CYAN = "\001\033[36m\002"
+    BOLD = "\001\033[1m\002"
+    UNDERLINE = "\001\033[4m\002"
+    UNDERLINE_OFF = "\001\033[24m\002"
+    HIGHLIGHT = "\001\033[3m\002"
+    HIGHLIGHT_OFF = "\001\033[23m\002"
+    BLINK = "\001\033[5m\002"
+    BLINK_OFF = "\001\033[25m\002"
 
 
 def is_glibc_ge(major, minor):
     ver = platform.libc_ver()
-    if ver[0] == 'glibc':
-        (glibc_major, glibc_minor, *glibc_patch) = list(map(int, ver[1].split('.')))
+    if ver[0] == "glibc":
+        (glibc_major, glibc_minor, *glibc_patch) = list(map(int, ver[1].split(".")))
         return (glibc_major, glibc_minor) >= (major, minor)
     return False
 
@@ -122,6 +137,7 @@ def start_gdbserver(
     logging.debug(f"Starting {cmd}")
     return subprocess.Popen(cmd)
 
+
 def start_gdbserver_multi(
     host: str = GDBSERVER_DEFAULT_HOST,
     port: int = GDBSERVER_DEFAULT_PORT,
@@ -129,6 +145,7 @@ def start_gdbserver_multi(
     cmd = [GDBSERVER_BINARY, "--multi", f"{host}:{port}"]
     logging.debug(f"Starting {cmd}")
     return subprocess.Popen(cmd)
+
 
 def stop_gdbserver(gdbserver: subprocess.Popen) -> None:
     """Stop the gdbserver and wait until it is terminated if it was
@@ -155,6 +172,7 @@ def gdbserver_session(
     finally:
         stop_gdbserver(sess)
 
+
 @contextlib.contextmanager
 def gdbserver_multi_session(
     port: int = GDBSERVER_DEFAULT_PORT,
@@ -167,11 +185,12 @@ def gdbserver_multi_session(
     finally:
         stop_gdbserver(sess)
 
+
 def start_qemuuser(
     exe: Union[str, pathlib.Path] = debug_target("default"),
     port: int = GDBSERVER_DEFAULT_PORT,
     qemu_exe: pathlib.Path = QEMU_USER_X64_BINARY,
-    args: list[str] | None = None
+    args: list[str] | None = None,
 ) -> subprocess.Popen:
     cmd = [qemu_exe, "-g", str(port)]
     if args:
@@ -349,10 +368,12 @@ def p64(x: int) -> bytes:
 
 
 __available_ports = list()
+
+
 def get_random_port() -> int:
     global __available_ports
     if len(__available_ports) < 2:
-        __available_ports = list( range(1024, 65535) )
+        __available_ports = list(range(1024, 65535))
     idx = random.choice(range(len(__available_ports)))
     port = __available_ports[idx]
     __available_ports.pop(idx)

@@ -16,3 +16,4 @@ htmlcov
 site/
 untracked/
 .zed/
+Dockerfile
