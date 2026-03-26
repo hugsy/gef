@@ -14,8 +14,8 @@ class RegressionGdbserverConnection(RemoteGefUnitTestGeneric):
         gdb = self._gdb
 
         with gdbserver_session(port=5001) as _, gdbserver_session(port=5002) as _:
-            gdb.execute("gef-remote 127.0.0.1 5001")
+            gdb.execute("target remote :5001")
             gdb.execute("detach")
 
-            gdb.execute("gef-remote 127.0.0.1 5002")
+            gdb.execute("target remote :5002")
             gdb.execute("continue")
