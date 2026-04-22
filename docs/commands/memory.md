@@ -3,7 +3,9 @@
 As long as the 'memory' section is enabled in your context layout (which it is by default), you can
 register addresses, lengths, and grouping size.
 
-![memory watch](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/memory watch.png)
+<!-- markdownlint-disable MD013,MD034 -->
+![memory watch](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/memory-watch.png)
+<!-- markdownlint-enable MD013,MD034 -->
 
 _Note_: this command **should NOT** be mistaken with the [GDB `watch`
 command](https://sourceware.org/gdb/current/onlinedocs/gdb/Set-Watchpoints.html) meant to set
@@ -23,9 +25,10 @@ If the format specified is `pointers`, then the output will be similar to execut
 `dereference $address`. For all other format, the output will be an hexdump of the designated
 location.
 
-Note that the address format is a GDB therefore a symbol can be passed to it. It also supports [GEF
-functions
-format](https://www.technovelty.org/linux/plt-and-got-the-key-to-code-sharing-and-dynamic-libraries.html)
+Note that the address format is a GDB therefore a symbol can be passed to it. It also supports
+<!-- markdownlint-disable MD013 -->
+[GEF functions format](https://www.technovelty.org/linux/plt-and-got-the-key-to-code-sharing-and-dynamic-libraries.html)
+<!-- markdownlint-enable MD013 -->
 allowing to easily track commonly used addresses:
 
 For example, to watch the first 5 entries of the [GOT](https://hugsy.github.io/gef/functions/got/)
@@ -37,8 +40,9 @@ gef ➤ memory watch $_got()+0x18 5
 ```
 
 Which, when the `context` is displayed, will show something like:
-
+<!-- markdownlint-disable MD013 -->
 ![gef-context-memory](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/gef-context-memory.png)
+<!-- markdownlint-enable MD013 -->
 
 ### Removing a watch
 
