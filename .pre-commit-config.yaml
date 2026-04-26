@@ -7,10 +7,12 @@ repos:
     - id: end-of-file-fixer
     - id: trailing-whitespace
 
-  - repo: https://github.com/pycqa/pylint
-    rev: v4.0.5
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.2
     hooks:
-    - id: pylint
+      - id: ruff-check
+        args: [ --fix ]
+      - id: ruff-format
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.48.0
