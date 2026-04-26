@@ -12,4 +12,4 @@ class HijackFdCommand(RemoteGefUnitTestGeneric):
 
     def test_cmd_hijack_fd(self):
         gdb = self._gdb
-        res = gdb.execute(f"{self.cmd}", to_string=True)
+        gdb.execute(f"{self.cmd}", to_string=True)

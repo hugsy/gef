@@ -19,9 +19,9 @@ class RemoteDebugService(rpyc.Service):
     def exposed_eval(self, cmd):
         return eval(cmd)
 
-    exposed_gdb = gdb
+    exposed_gdb = gdb  # noqa: F821
 
-    exposed_gef = gef
+    exposed_gef = gef  # noqa: F821
 
 
 def start_rpyc_service(port: int = RPYC_PORT):

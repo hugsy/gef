@@ -16,7 +16,7 @@ class HexdumpCommand(RemoteGefUnitTestGeneric):
         )
 
         gdb.execute("start")
-        res = gdb.execute("hexdump qword $pc", to_string=True)
-        res = gdb.execute("hexdump dword $pc -s 1", to_string=True)
-        res = gdb.execute("hexdump word $pc -s 5 -r", to_string=True)
-        res = gdb.execute("hexdump byte $sp -s 32", to_string=True)
+        gdb.execute("hexdump qword $pc", to_string=True)
+        gdb.execute("hexdump dword $pc -s 1", to_string=True)
+        gdb.execute("hexdump word $pc -s 5 -r", to_string=True)
+        gdb.execute("hexdump byte $sp -s 32", to_string=True)

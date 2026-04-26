@@ -88,4 +88,4 @@ class MemoryCommand(RemoteGefUnitTestGeneric):
             ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute("memory reset", to_string=True)
         )
         gdb.execute("start")
-        res = gdb.execute("memory reset", to_string=True)
+        gdb.execute("memory reset", to_string=True)
