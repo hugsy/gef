@@ -97,7 +97,6 @@ from typing import (
 )
 from urllib.request import urlopen
 
-
 GEF_DEFAULT_BRANCH = "main"
 GEF_EXTRAS_DEFAULT_BRANCH = "main"
 
@@ -7067,7 +7066,11 @@ class ScanSectionCommand(GenericCommand):
                 continue
             if haystack in sect.path:
                 haystack_sections.append(
-                    (sect.page_start, sect.page_end, os.path.basename(sect.path))
+                    (
+                        sect.page_start,
+                        sect.page_end,
+                        os.path.basename(sect.path),
+                    )
                 )
             if needle in sect.path:
                 needle_sections.append((sect.page_start, sect.page_end))
@@ -12237,7 +12240,10 @@ class GefInstallExtraScriptCommand(gdb.Command):
 
         if "--list" in args or "-l" in args:
             subprocess.run(
-                ["xdg-open", f"https://github.com/hugsy/gef-extras/{self.branch}/"]
+                [
+                    "xdg-open",
+                    f"https://github.com/hugsy/gef-extras/{self.branch}/",
+                ]
             )
             return
 
