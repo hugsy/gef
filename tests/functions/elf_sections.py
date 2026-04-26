@@ -2,7 +2,6 @@
 GDB function test module for ELF section convenience functions
 """
 
-
 import pytest
 
 from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE, debug_target, is_64b

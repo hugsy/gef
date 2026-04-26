@@ -57,31 +57,32 @@ WARNING_DEPRECATION_MESSAGE = "is deprecated and will be removed in a feature re
 
 IN_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
+
 class Color(enum.Enum):
     """Used to colorify terminal output."""
 
-    NORMAL          = "\001\033[0m\002"
-    GRAY            = "\001\033[1;38;5;240m\002"
-    LIGHT_GRAY      = "\001\033[0;37m\002"
-    RED             = "\001\033[31m\002"
-    GREEN           = "\001\033[32m\002"
-    YELLOW          = "\001\033[33m\002"
-    BLUE            = "\001\033[34m\002"
-    PINK            = "\001\033[35m\002"
-    CYAN            = "\001\033[36m\002"
-    BOLD            = "\001\033[1m\002"
-    UNDERLINE       = "\001\033[4m\002"
-    UNDERLINE_OFF   = "\001\033[24m\002"
-    HIGHLIGHT       = "\001\033[3m\002"
-    HIGHLIGHT_OFF   = "\001\033[23m\002"
-    BLINK           = "\001\033[5m\002"
-    BLINK_OFF       = "\001\033[25m\002"
+    NORMAL = "\001\033[0m\002"
+    GRAY = "\001\033[1;38;5;240m\002"
+    LIGHT_GRAY = "\001\033[0;37m\002"
+    RED = "\001\033[31m\002"
+    GREEN = "\001\033[32m\002"
+    YELLOW = "\001\033[33m\002"
+    BLUE = "\001\033[34m\002"
+    PINK = "\001\033[35m\002"
+    CYAN = "\001\033[36m\002"
+    BOLD = "\001\033[1m\002"
+    UNDERLINE = "\001\033[4m\002"
+    UNDERLINE_OFF = "\001\033[24m\002"
+    HIGHLIGHT = "\001\033[3m\002"
+    HIGHLIGHT_OFF = "\001\033[23m\002"
+    BLINK = "\001\033[5m\002"
+    BLINK_OFF = "\001\033[25m\002"
 
 
 def is_glibc_ge(major, minor):
     ver = platform.libc_ver()
-    if ver[0] == 'glibc':
-        (glibc_major, glibc_minor, *glibc_patch) = list(map(int, ver[1].split('.')))
+    if ver[0] == "glibc":
+        (glibc_major, glibc_minor, *glibc_patch) = list(map(int, ver[1].split(".")))
         return (glibc_major, glibc_minor) >= (major, minor)
     return False
 

@@ -74,7 +74,7 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
         if self.gdb_version < (11, 0):
             # expect an exception
             with pytest.raises(AttributeError):
-                next(root.eval("gef.memory.parse_gdb_info_proc_maps()") )
+                next(root.eval("gef.memory.parse_gdb_info_proc_maps()"))
 
         else:
             sections = list(root.eval("gef.memory.parse_gdb_info_proc_maps()"))
@@ -137,7 +137,9 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             sections = gef.memory.maps
             assert len(sections) > 0
 
-    @pytest.mark.skipif(ARCH == "aarch64" and IN_GITHUB_ACTIONS, reason=f"Skipped for {ARCH} on CI")
+    @pytest.mark.skipif(
+        ARCH == "aarch64" and IN_GITHUB_ACTIONS, reason=f"Skipped for {ARCH} on CI"
+    )
     def test_func_parse_maps_remote_qemu(self):
         gdb, gef = self._gdb, self._gef
         # When in a gef-remote qemu-user session `parse_gdb_info_proc_maps`
@@ -153,7 +155,9 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             sections = gef.memory.maps
             assert len(sections) > 0
 
-    @pytest.mark.skipif(ARCH == "aarch64" and IN_GITHUB_ACTIONS, reason=f"Skipped for {ARCH}")
+    @pytest.mark.skipif(
+        ARCH == "aarch64" and IN_GITHUB_ACTIONS, reason=f"Skipped for {ARCH}"
+    )
     def test_func_parse_maps_realpath(self):
         gef, gdb = self._gef, self._gdb
         # When in a gef-remote session `parse_gdb_info_proc_maps` should work to
@@ -176,8 +180,11 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
             # probably corrected the path to account for gdb bug #23764
             #
             for section in sections:
-                if(section.is_executable() and section.path.startswith("/usr") and
-                   "/usr" not in section.realpath):
+                if (
+                    section.is_executable()
+                    and section.path.startswith("/usr")
+                    and "/usr" not in section.realpath
+                ):
                     assert pathlib.Path(section.realpath).is_file()
                     break
 
@@ -188,9 +195,11 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
         gdb.execute("start")
 
         section = gef.memory.maps[0]
-        oob_val = gef.memory.read_cstring(section.page_start, section.page_end -
-                                section.page_start + 0x100)
-        val = gef.memory.read_cstring(section.page_start, section.page_end -
-                                section.page_start)
+        oob_val = gef.memory.read_cstring(
+            section.page_start, section.page_end - section.page_start + 0x100
+        )
+        val = gef.memory.read_cstring(
+            section.page_start, section.page_end - section.page_start
+        )
 
         assert val == oob_val

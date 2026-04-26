@@ -74,7 +74,7 @@ class RegressionRegisterOrderNested(RemoteGefUnitTestGeneric):
         lines1 = gdb.execute("registers", to_string=True).splitlines()
         gdb.execute("frame 5")
         lines2 = gdb.execute("registers", to_string=True).splitlines()
-        rips = [x for x in lines1+lines2 if x.startswith("$rip")]
+        rips = [x for x in lines1 + lines2 if x.startswith("$rip")]
         self.assertEqual(len(rips), 2)  # we must have only 2 entries
         self.assertNotEqual(rips[0], rips[1])  # they must be different
         self.assertIn("<f10", rips[0])  # the first one must be in the f10 frame

@@ -21,11 +21,12 @@ class GotCommand(RemoteGefUnitTestGeneric):
         self._target = debug_target("format-string-helper")
         return super().setUp()
 
-
     def test_cmd_got(self):
         gdb = self._gdb
 
-        self.assertEqual(ERROR_INACTIVE_SESSION_MESSAGE,gdb.execute("got", to_string=True))
+        self.assertEqual(
+            ERROR_INACTIVE_SESSION_MESSAGE, gdb.execute("got", to_string=True)
+        )
 
         gdb.execute("start")
         res = gdb.execute("got", to_string=True)
@@ -41,12 +42,12 @@ class GotCommand(RemoteGefUnitTestGeneric):
             if not lines:
                 return None
             if "format-string-helper.out" in lines[0]:
-                res = ''.join(lines)
+                res = "".join(lines)
                 self.assertIn(" printf", res)
                 self.assertNotIn(" strcpy", res)
                 return "format-string-helper.out"
             if "/libc" in lines[0]:
-                res = ''.join(lines)
+                res = "".join(lines)
                 self.assertNotIn(" printf", res)
                 self.assertNotIn(" strcpy", res)
                 return "libc"

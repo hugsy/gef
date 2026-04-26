@@ -2,7 +2,6 @@
 `process-search` command test module
 """
 
-
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import debug_target
 
@@ -28,9 +27,7 @@ class ProcessSearchCommand(RemoteGefUnitTestGeneric):
         lines = gdb.execute("process-search gdb.*fakefake", to_string=True).splitlines()
         self.assertEqual(len(lines), 0)
 
-        lines = gdb.execute(
-            f"process-search gdb.*", to_string=True
-        ).splitlines()
+        lines = gdb.execute("process-search gdb.*", to_string=True).splitlines()
         self.assertGreaterEqual(len(lines), 1)
 
     def test_cmd_process_search_smartscan(self):
