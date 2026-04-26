@@ -29,7 +29,7 @@
 #######################################################################################
 #
 # gef is distributed under the MIT License (MIT)
-# Copyright (c) 2013-2024 crazy rabbidz
+# Copyright (c) 2013-2026 crazy rabbidz
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -1185,52 +1185,52 @@ class Elf(FileFormat):
     @classproperty
     @deprecated("use `Elf.Abi.X86_64`")
     def X86_64(cls) -> int:
-        return Elf.Abi.X86_64.value  # pylint: disable=no-self-argument
+        return Elf.Abi.X86_64.value
 
     @classproperty
     @deprecated("use `Elf.Abi.X86_32`")
     def X86_32(cls) -> int:
-        return Elf.Abi.X86_32.value  # pylint: disable=no-self-argument
+        return Elf.Abi.X86_32.value
 
     @classproperty
     @deprecated("use `Elf.Abi.ARM`")
     def ARM(cls) -> int:
-        return Elf.Abi.ARM.value  # pylint: disable=no-self-argument
+        return Elf.Abi.ARM.value
 
     @classproperty
     @deprecated("use `Elf.Abi.MIPS`")
     def MIPS(cls) -> int:
-        return Elf.Abi.MIPS.value  # pylint: disable=no-self-argument
+        return Elf.Abi.MIPS.value
 
     @classproperty
     @deprecated("use `Elf.Abi.POWERPC`")
     def POWERPC(cls) -> int:
-        return Elf.Abi.POWERPC.value  # pylint: disable=no-self-argument
+        return Elf.Abi.POWERPC.value
 
     @classproperty
     @deprecated("use `Elf.Abi.POWERPC64`")
     def POWERPC64(cls) -> int:
-        return Elf.Abi.POWERPC64.value  # pylint: disable=no-self-argument
+        return Elf.Abi.POWERPC64.value
 
     @classproperty
     @deprecated("use `Elf.Abi.SPARC`")
     def SPARC(cls) -> int:
-        return Elf.Abi.SPARC.value  # pylint: disable=no-self-argument
+        return Elf.Abi.SPARC.value
 
     @classproperty
     @deprecated("use `Elf.Abi.SPARC64`")
     def SPARC64(cls) -> int:
-        return Elf.Abi.SPARC64.value  # pylint: disable=no-self-argument
+        return Elf.Abi.SPARC64.value
 
     @classproperty
     @deprecated("use `Elf.Abi.AARCH64`")
     def AARCH64(cls) -> int:
-        return Elf.Abi.AARCH64.value  # pylint: disable=no-self-argument
+        return Elf.Abi.AARCH64.value
 
     @classproperty
     @deprecated("use `Elf.Abi.RISCV`")
     def RISCV(cls) -> int:
-        return Elf.Abi.RISCV.value  # pylint: disable=no-self-argument
+        return Elf.Abi.RISCV.value
 
 
 class Phdr:
@@ -2348,7 +2348,7 @@ def gef_makedirs(path: str, mode: int = 0o755) -> pathlib.Path:
 def gdb_lookup_symbol(sym: str) -> tuple[gdb.Symtab_and_line, ...] | None:
     """Fetch the proper symbol or None if not defined."""
     try:
-        res = gdb.decode_line(sym)[1]  # pylint: disable=E1136
+        res = gdb.decode_line(sym)[1]
         return res
     except gdb.error:
         return None

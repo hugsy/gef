@@ -18,7 +18,7 @@ class ChecksecCommandNoCanary(RemoteGefUnitTestGeneric):
         gef = self._gef
         res = gdb.execute("checksec", to_string=True)
         assert "Canary                        : ✘" in res
-        assert gef.binary.checksec["Canary"]
+        assert not gef.binary.checksec["Canary"]
 
 
 class ChecksecCommandNoNx(RemoteGefUnitTestGeneric):
@@ -31,7 +31,7 @@ class ChecksecCommandNoNx(RemoteGefUnitTestGeneric):
         gef = self._gef
         res = gdb.execute("checksec", to_string=True)
         assert "NX                            : ✘" in res
-        assert gef.binary.checksec["NX"]
+        assert not gef.binary.checksec["NX"]
 
 
 class ChecksecCommandNoPie(RemoteGefUnitTestGeneric):
@@ -44,4 +44,4 @@ class ChecksecCommandNoPie(RemoteGefUnitTestGeneric):
         gef = self._gef
         res = gdb.execute("checksec", to_string=True)
         assert "PIE                           : ✘" in res
-        assert gef.binary.checksec["PIE"]
+        assert not gef.binary.checksec["PIE"]
