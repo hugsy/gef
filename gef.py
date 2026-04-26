@@ -1597,10 +1597,9 @@ class GlibcArena:
         ]
         if gef and gef.libc.version and gef.libc.version >= (2, 27):
             # https://elixir.bootlin.com/glibc/glibc-2.27/source/malloc/malloc.c#L1684
-            fields += [
-                ("have_fastchunks", ctypes.c_uint32),
-                ("UNUSED_c", ctypes.c_uint32),  # padding to align to 0x10
-            ]
+            fields += [("have_fastchunks", ctypes.c_uint32)]
+            if gef.arch.ptrsize == 8:
+                fields += [("UNUSED_c", ctypes.c_uint32)]
         fields += [
             ("fastbinsY", GlibcArena.NFASTBINS * pointer),
             ("top", pointer),
