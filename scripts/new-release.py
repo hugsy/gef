@@ -53,8 +53,7 @@ def generate_changelog(args: argparse.Namespace) -> bool:
     content = f"# Changelog: {args.version} - {args.codename}{os.linesep}{os.linesep}"
 
     dbg("Adding commit summary...")
-    content +=
-        f"## Highlights of `{args.codename}`{os.linesep}{os.linesep}"
+    content += f"## Highlights of `{args.codename}`{os.linesep}{os.linesep}"
     content += f"{os.linesep}{os.linesep}"
 
     dbg("Adding contributor summary...")
