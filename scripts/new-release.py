@@ -50,18 +50,15 @@ def generate_changelog(args: argparse.Namespace) -> bool:
     latest_tag = shell("git describe --tags --abbrev=0")
 
     print(f"Creating changelog for {args.version} in {args.output_file.name}")
-    args.output_file.write(
-        f"# Changelog: {args.version} - {args.codename}{os.linesep}{os.linesep}"
-    )
+    content = f"# Changelog: {args.version} - {args.codename}{os.linesep}{os.linesep}"
 
     dbg("Adding commit summary...")
-    args.output_file.write(
+    content +=
         f"## Highlights of `{args.codename}`{os.linesep}{os.linesep}"
-    )
-    args.output_file.write(f"{os.linesep}{os.linesep}")
+    content += f"{os.linesep}{os.linesep}"
 
     dbg("Adding contributor summary...")
-    args.output_file.write(f"## Contributors{os.linesep}{os.linesep}")
+    content += f"## Contributors{os.linesep}{os.linesep}"
     contributor_names = shell(
         f"git log {latest_tag}..HEAD --pretty=format:'%aN' | sort -u"
     ).splitlines()
@@ -73,12 +70,12 @@ def generate_changelog(args: argparse.Namespace) -> bool:
         commits[author] = len(author_commits)
     total_commits = sum(commits.values())
 
-    args.output_file.write(f"| Author | Number of commits | {os.linesep}")
-    args.output_file.write(f"|:--|--:| {os.linesep}")
+    content += f"| Author | Number of commits | {os.linesep}"
+    content += f"|:--|--:| {os.linesep}"
     commits_sorted = dict(sorted(commits.items(), key=lambda item: -item[1]))
     for author in commits_sorted:
-        args.output_file.write(f"| {author} | {commits[author]}|{os.linesep}")
-    args.output_file.write(f"{os.linesep}{os.linesep}")
+        content += f"| {author} | {commits[author]}|{os.linesep}"
+    content += f"{os.linesep}{os.linesep}"
 
     dbg("Adding Github info...")
     url = f"https://api.github.com/repos/{args.repository}/issues?state=closed&milestone.title=Release%3a%20{args.version}"
@@ -89,8 +86,7 @@ def generate_changelog(args: argparse.Namespace) -> bool:
     closed_issues_item = " &bull; ".join(
         [f" [{nb}]({url}) " for nb, url in issues.items()]
     )
-    args.output_file.write(
-        f"""
+    content += f"""
 ## Closed Issues
 
   * {len(issues)} issues closed ({closed_issues_item})
@@ -108,8 +104,7 @@ def generate_changelog(args: argparse.Namespace) -> bool:
         f"""git log {latest_tag}..HEAD  --pretty=format:' * %cs [%h](https://github.com/{args.repository}/commit/%H) &bull; *%aN* &bull; %s ' --reverse"""
     )
     diff = shell(f"""git diff --no-color --stat {latest_tag}..HEAD""")
-    args.output_file.write_text(
-        f"""
+    content += f"""
 ## Commit details
 
 <details>
@@ -130,7 +125,7 @@ def generate_changelog(args: argparse.Namespace) -> bool:
 </details>
 
 """
-    )
+    args.output_file.write_text(content)
     print(f"Done, the changelog file was written to `{args.output_file.name}`")
 
     if args.push_release:
