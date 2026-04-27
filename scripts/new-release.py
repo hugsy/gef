@@ -97,7 +97,6 @@ def generate_changelog(args: argparse.Namespace) -> bool:
  * {len(prs)} PRs closed ({closed_prs_item})
 
 """
-    )
 
     dbg("Adding commit summary...")
     log = shell(
