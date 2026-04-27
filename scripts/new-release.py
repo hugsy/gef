@@ -108,7 +108,7 @@ def generate_changelog(args: argparse.Namespace) -> bool:
         f"""git log {latest_tag}..HEAD  --pretty=format:' * %cs [%h](https://github.com/{args.repository}/commit/%H) &bull; *%aN* &bull; %s ' --reverse"""
     )
     diff = shell(f"""git diff --no-color --stat {latest_tag}..HEAD""")
-    args.output_file.write(
+    args.output_file.write_text(
         f"""
 ## Commit details
 
@@ -179,8 +179,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-o",
         "--output-file",
-        type=argparse.FileType("w", encoding="UTF-8"),
-        default=str(OUTPUT_FILE.absolute()),
+        type=pathlib.Path,
+        default=OUTPUT_FILE.absolute(),
         metavar="/path/to/output_file.md",
         help=f"Specify the output file (default: '{OUTPUT_FILE}')",
     )
