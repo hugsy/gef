@@ -12,11 +12,12 @@ from https://github.com/settings/tokens/new).
 
 import argparse
 import datetime
-import requests
-import subprocess
 import os
 import pathlib
+import subprocess
 import tempfile
+
+import requests
 
 __author__ = "@_hugsy_"
 __version__ = 0.1
@@ -179,7 +180,7 @@ if __name__ == "__main__":
         "-o",
         "--output-file",
         type=argparse.FileType("w", encoding="UTF-8"),
-        default=open(str(OUTPUT_FILE.absolute()), "w"),
+        default=str(OUTPUT_FILE.absolute()),
         metavar="/path/to/output_file.md",
         help=f"Specify the output file (default: '{OUTPUT_FILE}')",
     )
@@ -192,7 +193,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--codename",
         type=str,
-        default=shell("random-word").title(),
+        default="GENERATE_ME",
         help="Specify the version codename (default: '%(default)s')",
     )
     parser.add_argument(
@@ -204,6 +205,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     DEBUG = args.debug
+
+    if args.codename == "GENERATE_ME":
+        args.codename = shell("random-word").title()
 
     if not test_token(args):
         dbg("The GITHUB_TOKEN is not valid")
