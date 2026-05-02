@@ -2795,40 +2795,13 @@ class RISCV(Architecture):
     arch = "RISCV"
     mode = "RISCV"
     aliases = ("RISCV", Elf.Abi.RISCV)
-    all_registers = (
-        "$zero",
-        "$ra",
-        "$sp",
-        "$gp",
-        "$tp",
-        "$t0",
-        "$t1",
-        "$t2",
-        "$fp",
-        "$s1",
-        "$a0",
-        "$a1",
-        "$a2",
-        "$a3",
-        "$a4",
-        "$a5",
-        "$a6",
-        "$a7",
-        "$s2",
-        "$s3",
-        "$s4",
-        "$s5",
-        "$s6",
-        "$s7",
-        "$s8",
-        "$s9",
-        "$s10",
-        "$s11",
-        "$t3",
-        "$t4",
-        "$t5",
-        "$t6",
-    )
+    # fmt: off
+    all_registers = ("$zero", "$ra", "$sp", "$gp", "$tp", "$t0", "$t1",
+                     "$t2", "$fp", "$s1", "$a0", "$a1", "$a2", "$a3",
+                     "$a4", "$a5", "$a6", "$a7", "$s2", "$s3", "$s4",
+                     "$s5", "$s6", "$s7", "$s8", "$s9", "$s10", "$s11",
+                     "$t3", "$t4", "$t5", "$t6",)
+    # fmt: on
     return_register = "$a0"
     function_parameters = ("$a0", "$a1", "$a2", "$a3", "$a4", "$a5", "$a6", "$a7")
     syscall_register = "$a7"
@@ -2965,25 +2938,11 @@ class RISCV(Architecture):
 class ARM(Architecture):
     aliases = ("ARM", Elf.Abi.ARM)
     arch = "ARM"
-    all_registers = (
-        "$r0",
-        "$r1",
-        "$r2",
-        "$r3",
-        "$r4",
-        "$r5",
-        "$r6",
-        "$r7",
-        "$r8",
-        "$r9",
-        "$r10",
-        "$r11",
-        "$r12",
-        "$sp",
-        "$lr",
-        "$pc",
-        "$cpsr",
-    )
+    # fmt: off
+    all_registers = ("$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6",
+                     "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$sp",
+                     "$lr", "$pc", "$cpsr",)
+    # fmt: on
 
     nop_insn = b"\x00\xf0\x20\xe3"  # hint #0
     return_register = "$r0"
@@ -3183,45 +3142,14 @@ class AARCH64(ARM):
     aliases = ("ARM64", "AARCH64", Elf.Abi.AARCH64)
     arch = "ARM64"
     mode: str = ""
-
+    # fmt: off
     all_registers = (
-        "$x0",
-        "$x1",
-        "$x2",
-        "$x3",
-        "$x4",
-        "$x5",
-        "$x6",
-        "$x7",
-        "$x8",
-        "$x9",
-        "$x10",
-        "$x11",
-        "$x12",
-        "$x13",
-        "$x14",
-        "$x15",
-        "$x16",
-        "$x17",
-        "$x18",
-        "$x19",
-        "$x20",
-        "$x21",
-        "$x22",
-        "$x23",
-        "$x24",
-        "$x25",
-        "$x26",
-        "$x27",
-        "$x28",
-        "$x29",
-        "$x30",
-        "$sp",
-        "$pc",
-        "$cpsr",
-        "$fpsr",
-        "$fpcr",
-    )
+        "$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7",
+        "$x8", "$x9", "$x10", "$x11", "$x12", "$x13", "$x14","$x15",
+        "$x16", "$x17", "$x18", "$x19", "$x20", "$x21", "$x22", "$x23",
+        "$x24", "$x25", "$x26", "$x27", "$x28", "$x29", "$x30", "$sp",
+        "$pc", "$cpsr", "$fpsr", "$fpcr",)
+    # fmt: on
     return_register = "$x0"
     flag_register = "$cpsr"
     flags_table = {
@@ -3564,26 +3492,11 @@ class X86_64(X86):
     aliases = ("X86_64", Elf.Abi.X86_64, "i386:x86-64")
     arch = "X86"
     mode = "64"
-
+    # fmt: off
     gpr_registers = (
-        "$rax",
-        "$rbx",
-        "$rcx",
-        "$rdx",
-        "$rsp",
-        "$rbp",
-        "$rsi",
-        "$rdi",
-        "$rip",
-        "$r8",
-        "$r9",
-        "$r10",
-        "$r11",
-        "$r12",
-        "$r13",
-        "$r14",
-        "$r15",
-    )
+        "$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip",
+        "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", )
+    # fmt: on
     all_registers = gpr_registers + (X86.flag_register,) + X86.special_registers
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
@@ -3627,48 +3540,14 @@ class PowerPC(Architecture):
     aliases = ("PowerPC", Elf.Abi.POWERPC, "PPC")
     arch = "PPC"
     mode = "PPC32"
-
+    # fmt: off
     all_registers = (
-        "$r0",
-        "$r1",
-        "$r2",
-        "$r3",
-        "$r4",
-        "$r5",
-        "$r6",
-        "$r7",
-        "$r8",
-        "$r9",
-        "$r10",
-        "$r11",
-        "$r12",
-        "$r13",
-        "$r14",
-        "$r15",
-        "$r16",
-        "$r17",
-        "$r18",
-        "$r19",
-        "$r20",
-        "$r21",
-        "$r22",
-        "$r23",
-        "$r24",
-        "$r25",
-        "$r26",
-        "$r27",
-        "$r28",
-        "$r29",
-        "$r30",
-        "$r31",
-        "$pc",
-        "$msr",
-        "$cr",
-        "$lr",
-        "$ctr",
-        "$xer",
-        "$trap",
-    )
+        "$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6", "$r7",
+        "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15",
+        "$r16", "$r17", "$r18", "$r19", "$r20", "$r21", "$r22", "$r23",
+        "$r24", "$r25", "$r26", "$r27", "$r28", "$r29", "$r30", "$r31",
+        "$pc", "$msr", "$cr", "$lr", "$ctr", "$xer", "$trap",)
+    # fmt: on
     instruction_length = 4
     nop_insn = b"\x60\x00\x00\x00"  # https://developer.ibm.com/articles/l-ppc/
     return_register = "$r0"
@@ -3785,44 +3664,14 @@ class SPARC(Architecture):
     aliases = ("SPARC", Elf.Abi.SPARC)
     arch = "SPARC"
     mode = ""
-
+    # fmt: off
     all_registers = (
-        "$g0",
-        "$g1",
-        "$g2",
-        "$g3",
-        "$g4",
-        "$g5",
-        "$g6",
-        "$g7",
-        "$o0",
-        "$o1",
-        "$o2",
-        "$o3",
-        "$o4",
-        "$o5",
-        "$o7",
-        "$l0",
-        "$l1",
-        "$l2",
-        "$l3",
-        "$l4",
-        "$l5",
-        "$l6",
-        "$l7",
-        "$i0",
-        "$i1",
-        "$i2",
-        "$i3",
-        "$i4",
-        "$i5",
-        "$i7",
-        "$pc",
-        "$npc",
-        "$sp ",
-        "$fp ",
-        "$psr",
-    )
+        "$g0", "$g1", "$g2", "$g3", "$g4", "$g5", "$g6", "$g7",
+        "$o0", "$o1", "$o2", "$o3", "$o4", "$o5", "$o7",
+        "$l0", "$l1", "$l2", "$l3", "$l4", "$l5", "$l6", "$l7",
+        "$i0", "$i1", "$i2", "$i3", "$i4", "$i5", "$i7",
+        "$pc", "$npc", "$sp ", "$fp ", "$psr",)
+    # fmt: on
     instruction_length = 4
     nop_insn = b"\x00\x00\x00\x00"  # sethi 0, %g0
     return_register = "$i0"
@@ -3995,44 +3844,14 @@ class SPARC64(SPARC):
     aliases = ("SPARC64", Elf.Abi.SPARC64)
     arch = "SPARC"
     mode = "V9"
-
+    # fmt: off
     all_registers = [
-        "$g0",
-        "$g1",
-        "$g2",
-        "$g3",
-        "$g4",
-        "$g5",
-        "$g6",
-        "$g7",
-        "$o0",
-        "$o1",
-        "$o2",
-        "$o3",
-        "$o4",
-        "$o5",
-        "$o7",
-        "$l0",
-        "$l1",
-        "$l2",
-        "$l3",
-        "$l4",
-        "$l5",
-        "$l6",
-        "$l7",
-        "$i0",
-        "$i1",
-        "$i2",
-        "$i3",
-        "$i4",
-        "$i5",
-        "$i7",
-        "$pc",
-        "$npc",
-        "$sp",
-        "$fp",
-        "$state",
-    ]
+        "$g0", "$g1", "$g2", "$g3", "$g4", "$g5", "$g6", "$g7",
+        "$o0", "$o1", "$o2", "$o3", "$o4", "$o5", "$o7",
+        "$l0", "$l1", "$l2", "$l3", "$l4", "$l5", "$l6", "$l7",
+        "$i0", "$i1", "$i2", "$i3", "$i4", "$i5", "$i7",
+        "$pc", "$npc", "$sp", "$fp", "$state", ]
+    # fmt: on
 
     flag_register = "$state"  # sparcv9.pdf, 5.1.5.1 (ccr)
     flags_table = {
@@ -4076,44 +3895,14 @@ class MIPS(Architecture):
     mode = "MIPS32"
 
     # https://vhouten.home.xs4all.nl/mipsel/r3000-isa.html
+    # fmt: off
     all_registers = (
-        "$zero",
-        "$at",
-        "$v0",
-        "$v1",
-        "$a0",
-        "$a1",
-        "$a2",
-        "$a3",
-        "$t0",
-        "$t1",
-        "$t2",
-        "$t3",
-        "$t4",
-        "$t5",
-        "$t6",
-        "$t7",
-        "$s0",
-        "$s1",
-        "$s2",
-        "$s3",
-        "$s4",
-        "$s5",
-        "$s6",
-        "$s7",
-        "$t8",
-        "$t9",
-        "$k0",
-        "$k1",
-        "$s8",
-        "$pc",
-        "$sp",
-        "$hi",
-        "$lo",
-        "$fir",
-        "$ra",
-        "$gp",
-    )
+        "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3",
+        "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",
+        "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
+        "$t8", "$t9", "$k0", "$k1", "$s8", "$pc", "$sp", "$hi",
+        "$lo", "$fir", "$ra", "$gp", )
+    # fmt: on
     instruction_length = 4
     _ptrsize = 4
     nop_insn = b"\x00\x00\x00\x00"  # sll $0,$0,0
