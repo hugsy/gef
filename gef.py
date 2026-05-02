@@ -7789,10 +7789,10 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
     _cmdline_ = "heap bins tcache"
     _syntax_ = f"{_cmdline_} [all] [thread_ids...]"
 
-    # Use the TCACHE_MAX_BINS constants only for size calculation! 
+    # Use the TCACHE_MAX_BINS constants only for size calculation!
     # Use self.tcache_max_bins instead as it's detected at runtime
-    TCACHE_MAX_BINS = 0x40          #   before glibc 2.42
-    TCACHE_MAX_BINS_2_42 = 0x4C     # since glibc 2.42
+    TCACHE_MAX_BINS = 0x40  #   before glibc 2.42
+    TCACHE_MAX_BINS_2_42 = 0x4C  # since glibc 2.42
 
     # Max number of chunks in a tcache bin
     TCACHE_MAX_CHUNKS_IN_BIN = 7
@@ -7802,16 +7802,22 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
         # actual number of tcache bins
         # this will be overridded by find_tcache if None
-        self.tcache_max_bins = None 
-        
+        self.tcache_max_bins = None
+
         # actual number of bytes for each slot_nums entry
         # this will be overridded by find_tcache if None
-        self.tcache_count_size = None 
+        self.tcache_count_size = None
 
         # if we have a glibc version, set those value explicitly as we know them exactly
         if gef.libc.version:
-            self.tcache_max_bins = self.TCACHE_MAX_BINS_2_42 if gef.libc.version >= (2, 42) else self.TCACHE_MAX_BINS
-            self.tcache_count_size = 2 if gef.libc.version and gef.libc.version >= (2, 30) else 1
+            self.tcache_max_bins = (
+                self.TCACHE_MAX_BINS_2_42
+                if gef.libc.version >= (2, 42)
+                else self.TCACHE_MAX_BINS
+            )
+            self.tcache_count_size = (
+                2 if gef.libc.version and gef.libc.version >= (2, 30) else 1
+            )
 
         return
 
@@ -7917,7 +7923,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                 return 0x0
             tcache_addr = heap_base + 0x10
 
-            # Actually, recent version of glibc allocate the tcache only if malloc 
+            # Actually, recent version of glibc allocate the tcache only if malloc
             # is requested to allocate a chunk of a size fitting the tcache range.
             # So we cannot assume the first chunk is always the tcache.
             # We will use a simple heuristic that check for specific patterns
@@ -7928,9 +7934,11 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                     candidate_tcache_chunk = candidate_tcache_chunk.get_next_chunk()
 
                 tcache_addr = candidate_tcache_chunk.data_address
-            except e as MemoryError:
-                warn("Cannot find the tcache chunk, using the first allocated chunk. This may be wrong!")
-
+            except Exception as e:
+                warn(
+                    "Cannot find the tcache chunk, using the first allocated chunk. This may be wrong!"
+                    f" (reason: {e})"
+                )
 
         # We found the tcache chunk but this structed changed over time
         # update the attributes we need (max bins, count size) if needed
@@ -7948,44 +7956,56 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
     ) -> tuple[GlibcTcacheChunk | None, int]:
         """Return the head chunk in tcache[i] and the number of chunks in the bin."""
         if i >= self.tcache_max_bins:
-            err("Incorrect index value, index value must be between 0 and "
+            err(
+                "Incorrect index value, index value must be between 0 and "
                 f"{self.tcache_max_bins}-1, given {i}"
             )
             return None, 0
 
-        tcache_chunk = GlibcTcacheChunk(tcache_base)
         read_count = u16 if self.tcache_count_size == 2 else u8
-        count = read_count(gef.memory.read(tcache_base + self.tcache_count_size*i, self.tcache_count_size))
-        chunk = dereference(tcache_base + self.tcache_count_size*self.tcache_max_bins + i*gef.arch.ptrsize)
+        count = read_count(
+            gef.memory.read(
+                tcache_base + self.tcache_count_size * i, self.tcache_count_size
+            )
+        )
+        chunk = dereference(
+            tcache_base
+            + self.tcache_count_size * self.tcache_max_bins
+            + i * gef.arch.ptrsize
+        )
         chunk = GlibcTcacheChunk(int(chunk)) if chunk else None
         return chunk, count
 
-    def check_chunk_is_tcache(self, tcache_chunk: GlibcChunk) -> bool: 
-        """ Check min chunk size and the first TCACHE_MAX_BINS bytes to be all <= TCACHE_MAX_BINS """
+    def check_chunk_is_tcache(self, tcache_chunk: GlibcChunk) -> bool:
+        """Check min chunk size and the first TCACHE_MAX_BINS bytes to be all <= TCACHE_MAX_BINS"""
 
         dbg(f"Checking tcache chunk at address {hex(tcache_chunk.data_address)}")
 
         # glibc < 2.30 has the smallest tcache
-        tcache_min_size_2_30 = self.get_tcache_size(wide_slots = False, nbins = self.TCACHE_MAX_BINS)
+        tcache_min_size_2_30 = self.get_tcache_size(
+            wide_slots=False, nbins=self.TCACHE_MAX_BINS
+        )
 
         # if this chunk is smaller, then it's not a tcache
         if tcache_chunk.usable_size < tcache_min_size_2_30:
-            dbg(f"Chunk at address {hex(tcache_chunk.data_address)} is too small to be the tcache")
-            return False 
+            dbg(
+                f"Chunk at address {hex(tcache_chunk.data_address)} is too small to be the tcache"
+            )
+            return False
 
         # the chunk is big enough for an array of TCACHE_MAX_BINS bytes.
         tcache_data = gef.memory.read(tcache_chunk.data_address, self.TCACHE_MAX_BINS)
-      
+
         # all TCACHE_MAX_BINS bytes must be less or equal to TCACHE_MAX_CHUNKS_IN_BIN
         if all(map(lambda i: i <= self.TCACHE_MAX_CHUNKS_IN_BIN, tcache_data)):
-            return True 
+            return True
 
         # this is not a tcache chunk as far as we can tell
         return False
 
     def update_tcache_attributes(self, tcache_chunk: GlibcChunk):
-        """ Update the max bin size and count size if they are not already set using the 
-            tcache chunk size to infer the glibc version range """
+        """Update the max bin size and count size if they are not already set using the
+        tcache chunk size to infer the glibc version range"""
 
         # Glibc changed the size of the tcache in version 2.30; this fix has
         # been backported inconsistently between distributions. We detect the
@@ -7999,14 +8019,18 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         #
         # Furthermore, since 2.42 there are 64+12 bins, not 64.
 
-        size_from_2_30 = self.get_tcache_size(wide_slots = True, nbins = self.TCACHE_MAX_BINS)
-        size_from_2_42= self.get_tcache_size(wide_slots = True, nbins = self.TCACHE_MAX_BINS_2_42)
+        size_from_2_30 = self.get_tcache_size(
+            wide_slots=True, nbins=self.TCACHE_MAX_BINS
+        )
+        size_from_2_42 = self.get_tcache_size(
+            wide_slots=True, nbins=self.TCACHE_MAX_BINS_2_42
+        )
 
         # does the tcache looks like a >= 2.42 tcache, based on its size?
         if tcache_chunk.usable_size >= size_from_2_42:
             detected_tcache_count_size = 2
             detected_tcache_max_bins = self.TCACHE_MAX_BINS_2_42
-        
+
         # does the tcache looks like a < 2.30 tcache, based on its size?
         elif tcache_chunk.usable_size < size_from_2_30:
             detected_tcache_count_size = 1
@@ -8020,12 +8044,12 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         # only update if not already set
         if self.tcache_count_size is None:
             self.tcache_count_size = detected_tcache_count_size
-        if self.tcache_max_bins is None: 
+        if self.tcache_max_bins is None:
             self.tcache_max_bins = detected_tcache_max_bins
 
     def get_tcache_size(self, wide_slots: bool, nbins: int) -> int:
-        """ Get the tcache size """
-        return nbins * ( (2 if wide_slots else 1) + gef.arch.ptrsize)
+        """Get the tcache size"""
+        return nbins * ((2 if wide_slots else 1) + gef.arch.ptrsize)
 
 
 @register
