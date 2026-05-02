@@ -24,10 +24,11 @@ class RemoteDebugService(rpyc.Service):
     exposed_gef = gef  # noqa: F821
 
 
-def start_rpyc_service(port: int = RPYC_PORT):
-    logging.info(f"RPYC service listening on tcp/{port}")
+def start_rpyc_service(port: int = RPYC_PORT, bind_host: str = "127.0.0.1"):
+    logging.info(f"RPYC service listening on {bind_host}:tcp/{port}")
     svc = rpyc.utils.server.OneShotServer(
         RemoteDebugService,
+        hostname=bind_host,
         port=port,
         protocol_config={
             "allow_public_attrs": True,
