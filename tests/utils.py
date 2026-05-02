@@ -12,7 +12,6 @@ import struct
 import subprocess
 import tempfile
 import time
-
 from typing import Iterable, List, Optional, Union
 from urllib.request import urlopen
 
@@ -82,7 +81,7 @@ class Color(enum.Enum):
 def is_glibc_ge(major, minor):
     ver = platform.libc_ver()
     if ver[0] == "glibc":
-        (glibc_major, glibc_minor, *glibc_patch) = list(map(int, ver[1].split(".")))
+        (glibc_major, glibc_minor, *_) = list(map(int, ver[1].split(".")))
         return (glibc_major, glibc_minor) >= (major, minor)
     return False
 

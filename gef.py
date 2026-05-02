@@ -3017,7 +3017,9 @@ class ARM(Architecture):
 
     def is_conditional_branch(self, insn: Instruction) -> bool:
         # fmt: off
-        conditions = {"eq", "ne", "lt", "le", "gt", "ge", "vs", "vc", "mi", "pl", "hi", "ls", "cc", "cs"}
+        conditions = {
+            "eq", "ne", "lt", "le", "gt", "ge", "vs", "vc", "mi", "pl", "hi", "ls", "cc", "cs"
+        }
         # fmt: on
         return insn.mnemonic[-2:] in conditions
 
