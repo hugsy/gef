@@ -3016,22 +3016,9 @@ class ARM(Architecture):
         return flags_to_human(val, self.flags_table)
 
     def is_conditional_branch(self, insn: Instruction) -> bool:
-        conditions = {
-            "eq",
-            "ne",
-            "lt",
-            "le",
-            "gt",
-            "ge",
-            "vs",
-            "vc",
-            "mi",
-            "pl",
-            "hi",
-            "ls",
-            "cc",
-            "cs",
-        }
+        # fmt: off
+        conditions = {"eq", "ne", "lt", "le", "gt", "ge", "vs", "vc", "mi", "pl", "hi", "ls", "cc", "cs"}
+        # fmt: on
         return insn.mnemonic[-2:] in conditions
 
     def is_branch_taken(self, insn: Instruction) -> tuple[bool, str]:
@@ -3285,25 +3272,14 @@ class X86(Architecture):
 
     nop_insn = b"\x90"
     flag_register: str = "$eflags"
+    # fmt: off
     special_registers = (
-        "$cs",
-        "$ss",
-        "$ds",
-        "$es",
-        "$fs",
-        "$gs",
+        "$cs", "$ss", "$ds", "$es", "$fs", "$gs",
     )
     gpr_registers = (
-        "$eax",
-        "$ebx",
-        "$ecx",
-        "$edx",
-        "$esp",
-        "$ebp",
-        "$esi",
-        "$edi",
-        "$eip",
+        "$eax", "$ebx", "$ecx", "$edx", "$esp", "$ebp", "$esi", "$edi", "$eip",
     )
+    # fmt: on
     all_registers = gpr_registers + (flag_register,) + special_registers
     instruction_length = None
     return_register = "$eax"
