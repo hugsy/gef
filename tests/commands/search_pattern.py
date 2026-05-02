@@ -2,7 +2,6 @@
 search_pattern command test module
 """
 
-
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import BIN_SH, ERROR_INACTIVE_SESSION_MESSAGE
 
@@ -26,7 +25,7 @@ class SearchPatternCommand(RemoteGefUnitTestGeneric):
         gdb.execute("set {char[6]} $sp = { 0x41, 0x42, 0x43, 0x44, 0x45, 0x00 }")
         res = gdb.execute(
             r"search-pattern --regex $sp $sp+7 ([\\x20-\\x7E]{2,})(?=\\x00)",
-            to_string=True
+            to_string=True,
         )
         self.assertTrue(r"b'ABCDE'" in res)
 
@@ -34,6 +33,6 @@ class SearchPatternCommand(RemoteGefUnitTestGeneric):
         gdb.execute("set {char[6]} $sp = { 0x41, 0x42, 0x43, 0x44, 0x45, 0x03 }")
         res = gdb.execute(
             r"search-pattern --regex $sp $sp+7 ([\\x20-\\x7E]{2,})(?=\\x00)",
-            to_string=True
+            to_string=True,
         )
         self.assertNotIn(r"b'ABCDE'", res)

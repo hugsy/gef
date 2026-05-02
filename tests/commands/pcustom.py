@@ -45,7 +45,7 @@ class PcustomCommand(RemoteGefUnitTestGeneric):
                 #
                 gdb.execute(f"gef config pcustom.struct_path {dirpath}")
                 res = gdb.execute("gef config pcustom.struct_path", to_string=True)
-                self.assertIn(f'pcustom.struct_path (Path) = {dirpath}', res)
+                self.assertIn(f"pcustom.struct_path (Path) = {dirpath}", res)
 
                 #
                 # List the structures in the files inside dirpath
@@ -59,8 +59,12 @@ class PcustomCommand(RemoteGefUnitTestGeneric):
                 #
                 gdb.execute("run")
                 bad_struct_name = "meh_t"
-                res = gdb.execute(f"pcustom {bad_struct_name} 0x1337100", to_string=True).strip()
-                self.assertEqual(f"[!] No structure named '{bad_struct_name}' found", res)
+                res = gdb.execute(
+                    f"pcustom {bad_struct_name} 0x1337100", to_string=True
+                ).strip()
+                self.assertEqual(
+                    f"[!] No structure named '{bad_struct_name}' found", res
+                )
                 print(res)
 
     def test_cmd_pcustom_show(self):
@@ -102,13 +106,13 @@ class PcustomCommand(RemoteGefUnitTestGeneric):
                 res = gdb.execute("pcustom goo_t 0x1337100", to_string=True)
                 if is_64b():
                     self.assertIn(
-                        f"""0x1337100+0x00 a :                      3 (c_int)
+                        """0x1337100+0x00 a :                      3 (c_int)
 0x1337100+0x04 b :                      4 (c_int)
 0x1337100+0x08 c :                      """,
                         res,
                     )
                     self.assertIn(
-                        f"""  0x1337000+0x00 a :                      1 (c_int)
+                        """  0x1337000+0x00 a :                      1 (c_int)
   0x1337000+0x04 b :                      2 (c_int)
 0x1337100+0x10 d :                      12 (c_int)
 0x1337100+0x14 e :                      13 (c_int)""",
@@ -116,13 +120,13 @@ class PcustomCommand(RemoteGefUnitTestGeneric):
                     )
                 else:
                     self.assertIn(
-                        f"""0x1337100+0x00 a :                      3 (c_long)
+                        """0x1337100+0x00 a :                      3 (c_long)
 0x1337100+0x04 b :                      4 (c_long)
 0x1337100+0x08 c :                      """,
                         res,
                     )
                     self.assertIn(
-                        f"""  0x1337000+0x00 a :                      1 (c_long)
+                        """  0x1337000+0x00 a :                      1 (c_long)
   0x1337000+0x04 b :                      2 (c_long)
 0x1337100+0x0c d :                      12 (c_long)
 0x1337100+0x10 e :                      13 (c_long)""",

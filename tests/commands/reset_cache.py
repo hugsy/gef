@@ -2,13 +2,11 @@
 `reset-cache` command test module
 """
 
-
 from tests.base import RemoteGefUnitTestGeneric
 
 
 class ResetCacheCommand(RemoteGefUnitTestGeneric):
     """`reset-cache` command test module"""
-
 
     def test_cmd_reset_cache(self):
         gdb = self._gdb

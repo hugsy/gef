@@ -2,7 +2,6 @@
 stub command test module
 """
 
-
 import pytest
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE

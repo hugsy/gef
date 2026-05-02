@@ -16,6 +16,7 @@ page aims to track those changes.
 | `windbg` | Moved | [a933a5a](https://github.com/hugsy/gef-extras/commit/a933a5ac43933742d91f4e299eadf05e3e0670be) | [New location](https://github.com/hugsy/gef-extras/blob/main/scripts/windbg.py) | |
 | `is-syscall` | Moved | [3f79fb38](https://github.com/hugsy/gef-extras/commit/3f79fb382aa9052d073698d40237f98982c5d2de) | [New location](https://github.com/hugsy/gef-extras/blob/main/scripts/syscall_args) | |
 | `syscall-args` | Moved | [3f79fb38](https://github.com/hugsy/gef-extras/commit/3f79fb382aa9052d073698d40237f98982c5d2de) | [New location](https://github.com/hugsy/gef-extras/blob/main/scripts/syscall_args) | |
+| `shellcode` | Removed | 2026.06 | N/A | Reason: `http://shell-storm.org` not active |
 
 ## Removed support for pyenv
 

@@ -171,10 +171,13 @@ class NopCommand(RemoteGefUnitTestGeneric):
         gef = self._gef
         gdb.execute("start")
         gef.memory.write(gef.arch.pc, p16(0x9191))
-        res = gdb.execute(
-            f"{self.cmd} --b",
-            to_string=True,
-        ) or ""
+        res = (
+            gdb.execute(
+                f"{self.cmd} --b",
+                to_string=True,
+            )
+            or ""
+        )
         assert res
         mem = u16(gef.memory.read(gef.arch.pc, 2))
         self.assertEqual(0x9190, mem)
@@ -199,7 +202,7 @@ class NopCommand(RemoteGefUnitTestGeneric):
         res = gdb.execute(f"{self.cmd} --b --f", to_string=True)
         mem = u16(gef.memory.read(gef.arch.pc, 2))
         self.assertIn(r"will result in LAST-INSTRUCTION", res)
-        self.assertEqual(0xfe90, mem)
+        self.assertEqual(0xFE90, mem)
 
     @pytest.mark.skipif(ARCH not in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
     def test_cmd_nop_bytes_arg(self):
@@ -247,7 +250,7 @@ class NopCommandMmapKnownAddress(RemoteGefUnitTestGeneric):
     def test_cmd_nop_invalid_end_address(self):
         gdb = self._gdb
         gdb.execute("run")
-        res = gdb.execute(f"nop --i 5 0x1337000+0x1000-4", to_string=True)
+        res = gdb.execute("nop --i 5 0x1337000+0x1000-4", to_string=True)
         self.assertIn("reaching unmapped area", res)
 
     @pytest.mark.skipif(ARCH not in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
@@ -256,7 +259,7 @@ class NopCommandMmapKnownAddress(RemoteGefUnitTestGeneric):
         gef = self._gef
         # Make sure we error out if writing nops into an unmapped or RO area
         gdb.execute("run")
-        res = gdb.execute(f"nop --b --i 5 0x1337000+0x1000-4", to_string=True)
+        res = gdb.execute("nop --b --i 5 0x1337000+0x1000-4", to_string=True)
         self.assertIn(
             "Cannot patch instruction at 0x1337ffc: reaching unmapped area", res
         )

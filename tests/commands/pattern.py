@@ -1,6 +1,7 @@
 """
 Pattern commands test module
 """
+
 import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
@@ -91,4 +92,4 @@ class PatternCommand(RemoteGefUnitTestGeneric):
         gdb.execute("set args aaaabaaacaaadaaaeaaafaaagaaahaaa")
         gdb.execute("run")
         res = gdb.execute(cmd, to_string=True)
-        self.assertIn(f"not found", res)
+        self.assertIn("not found", res)
