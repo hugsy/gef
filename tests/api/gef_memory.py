@@ -3,7 +3,6 @@
 """
 
 import pathlib
-import random
 import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
@@ -15,7 +14,6 @@ from tests.utils import (
     gdbserver_session,
     get_random_port,
     qemuuser_session,
-    GDBSERVER_DEFAULT_HOST,
 )
 
 

@@ -4,7 +4,6 @@
 
 import os
 import pathlib
-import random
 import re
 import pytest
 
@@ -16,7 +15,6 @@ from tests.utils import (
     gdbserver_session,
     get_random_port,
     qemuuser_session,
-    GDBSERVER_DEFAULT_HOST,
 )
 
 
