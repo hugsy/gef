@@ -301,7 +301,6 @@ class InitializationError(Exception):
     pass
 
 
-
 class ObsoleteException(Exception):
     pass
 
@@ -4101,6 +4100,14 @@ def is_running_in_qemu_system() -> bool:
         gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False) or ""
     )
     return 'received: ""' in response
+
+
+def is_running_in_gdbserver() -> bool:
+    return is_target_remote_or_extended() and not is_running_in_qemu()
+
+
+def is_running_in_rr() -> bool:
+    return is_running_in_gdbserver() and os.environ.get("GDB_UNDER_RR", None) == "1"
 
 
 def is_target_coredump() -> bool:
