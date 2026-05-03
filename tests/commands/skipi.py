@@ -50,7 +50,8 @@ class SkipiCommand(RemoteGefUnitTestGeneric):
         gdb.execute("start")
         gef.memory.write(gef.arch.pc, p64(0x9090FEEBFEEBFEEB))
         res = gdb.execute(
-            f"{self.cmd} $pc+2 --n 2", to_string=True  # from the second short jump
+            f"{self.cmd} $pc+2 --n 2",  # from the second short jump
+            to_string=True,
         )
         assert res
         mem = u16(gef.memory.read(gef.arch.pc, 2))  # read 2 bytes

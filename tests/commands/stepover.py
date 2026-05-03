@@ -5,7 +5,7 @@
 import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
-from tests.utils import ARCH, ERROR_INACTIVE_SESSION_MESSAGE, p32, p64, u16, u32
+from tests.utils import ARCH, ERROR_INACTIVE_SESSION_MESSAGE, u16
 
 
 class Stepover(RemoteGefUnitTestGeneric):
@@ -24,7 +24,7 @@ class Stepover(RemoteGefUnitTestGeneric):
         gef = self._gef
 
         payload = b"\xe8\x05\x00\x00\x00\x90\x90\x6a\x00\xc3\xb8\x69\x69\x69\x69\xc3"
-        '''
+        """
         call movtag <- 'stepover' execution from this point
         nop <- 'stepover' should stops here and eax value should be 0x69696969
         nop
@@ -33,7 +33,7 @@ class Stepover(RemoteGefUnitTestGeneric):
         movtag:
         mov eax, 0x69696969
         ret
-        '''
+        """
 
         gdb.execute("start")
         gef.memory.write(gef.arch.pc, payload)

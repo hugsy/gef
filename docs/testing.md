@@ -138,7 +138,7 @@ cases, the following command is enough:
 
 ```bash
 cd /root/of/gef
-python3 -m pylint --rcfile .pylintrc
+ruff check ./gef.py [other/python/file/added/modified]
 ```
 
 Note that to ensure compatibility, tests must be executed with the same Python version GDB was

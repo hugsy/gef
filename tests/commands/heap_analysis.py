@@ -2,7 +2,6 @@
 `heap-analysis` command test module
 """
 
-
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE, debug_target
 

@@ -37,9 +37,9 @@ class TestGefConfigUnit(RemoteGefUnitTestGeneric):
         for line in lines:
             parts = line.replace(GEF_RIGHT_ARROW, "").split()
             opcode: str = parts[1].replace("...", "").lower()
-            assert (
-                len(opcode) <= max_opcode_len * 2
-            ), f"Invalid length for {opcode=}: {len(opcode)}"
+            assert len(opcode) <= max_opcode_len * 2, (
+                f"Invalid length for {opcode=}: {len(opcode)}"
+            )
             assert all(map(lambda c: c in "0123456789abcdef", opcode))
 
     def test_config_hook_validator(self):
@@ -75,7 +75,9 @@ class TestGefConfigUnit(RemoteGefUnitTestGeneric):
         gdb.execute("gef config gef.debug 0")
 
         # debug disable -> set setting should not raise but print error
-        output = (gdb.execute("gef config gef.debug 'fooo'", to_string=True) or "").strip()
+        output = (
+            gdb.execute("gef config gef.debug 'fooo'", to_string=True) or ""
+        ).strip()
         assert output == "[!] Cannot parse 'fooo' as bool"
 
     def test_config_libc_version(self):

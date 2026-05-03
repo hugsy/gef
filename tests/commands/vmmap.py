@@ -2,7 +2,6 @@
 vmmap command test module
 """
 
-
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE
 
@@ -24,7 +23,9 @@ class VmmapCommand(RemoteGefUnitTestGeneric):
         self.assertEqual(len(res.splitlines()), 9)
 
         res = gdb.execute("vmmap $pc", to_string=True)
-        assert "`$pc` has no type specified. We guessed it was an address filter." in res
+        assert (
+            "`$pc` has no type specified. We guessed it was an address filter." in res
+        )
         self.assertEqual(len(res.splitlines()), 8)
 
     def test_cmd_vmmap_addr(self):

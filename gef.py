@@ -97,7 +97,6 @@ from typing import (
 )
 from urllib.request import urlopen
 
-
 GEF_DEFAULT_BRANCH = "main"
 GEF_EXTRAS_DEFAULT_BRANCH = "main"
 
@@ -300,6 +299,7 @@ class ValidationError(Exception):
 
 class InitializationError(Exception):
     pass
+
 
 
 class ObsoleteException(Exception):
@@ -1037,9 +1037,12 @@ class Elf(FileFormat):
 
         with self.path.open("rb") as self.fd:
             # off 0x0
-            self.e_magic, e_class, e_endianness, self.e_eiversion = (
-                self.read_and_unpack(">IBBB")
-            )
+            (
+                self.e_magic,
+                e_class,
+                e_endianness,
+                self.e_eiversion,
+            ) = self.read_and_unpack(">IBBB")
             if self.e_magic != Elf.ELF_MAGIC:
                 # The ELF is corrupted, GDB won't handle it, no point going further
                 raise RuntimeError("Not a valid ELF file (magic)")
@@ -1075,9 +1078,12 @@ class Elf(FileFormat):
                     f"{endian}III"
                 )
 
-            self.e_flags, self.e_ehsize, self.e_phentsize, self.e_phnum = (
-                self.read_and_unpack(f"{endian}IHHH")
-            )
+            (
+                self.e_flags,
+                self.e_ehsize,
+                self.e_phentsize,
+                self.e_phnum,
+            ) = self.read_and_unpack(f"{endian}IHHH")
             self.e_shentsize, self.e_shnum, self.e_shstrndx = self.read_and_unpack(
                 f"{endian}HHH"
             )
@@ -1181,52 +1187,52 @@ class Elf(FileFormat):
     @classproperty
     @deprecated("use `Elf.Abi.X86_64`")
     def X86_64(cls) -> int:
-        return Elf.Abi.X86_64.value  # pylint: disable=no-self-argument
+        return Elf.Abi.X86_64.value
 
     @classproperty
     @deprecated("use `Elf.Abi.X86_32`")
     def X86_32(cls) -> int:
-        return Elf.Abi.X86_32.value  # pylint: disable=no-self-argument
+        return Elf.Abi.X86_32.value
 
     @classproperty
     @deprecated("use `Elf.Abi.ARM`")
     def ARM(cls) -> int:
-        return Elf.Abi.ARM.value  # pylint: disable=no-self-argument
+        return Elf.Abi.ARM.value
 
     @classproperty
     @deprecated("use `Elf.Abi.MIPS`")
     def MIPS(cls) -> int:
-        return Elf.Abi.MIPS.value  # pylint: disable=no-self-argument
+        return Elf.Abi.MIPS.value
 
     @classproperty
     @deprecated("use `Elf.Abi.POWERPC`")
     def POWERPC(cls) -> int:
-        return Elf.Abi.POWERPC.value  # pylint: disable=no-self-argument
+        return Elf.Abi.POWERPC.value
 
     @classproperty
     @deprecated("use `Elf.Abi.POWERPC64`")
     def POWERPC64(cls) -> int:
-        return Elf.Abi.POWERPC64.value  # pylint: disable=no-self-argument
+        return Elf.Abi.POWERPC64.value
 
     @classproperty
     @deprecated("use `Elf.Abi.SPARC`")
     def SPARC(cls) -> int:
-        return Elf.Abi.SPARC.value  # pylint: disable=no-self-argument
+        return Elf.Abi.SPARC.value
 
     @classproperty
     @deprecated("use `Elf.Abi.SPARC64`")
     def SPARC64(cls) -> int:
-        return Elf.Abi.SPARC64.value  # pylint: disable=no-self-argument
+        return Elf.Abi.SPARC64.value
 
     @classproperty
     @deprecated("use `Elf.Abi.AARCH64`")
     def AARCH64(cls) -> int:
-        return Elf.Abi.AARCH64.value  # pylint: disable=no-self-argument
+        return Elf.Abi.AARCH64.value
 
     @classproperty
     @deprecated("use `Elf.Abi.RISCV`")
     def RISCV(cls) -> int:
-        return Elf.Abi.RISCV.value  # pylint: disable=no-self-argument
+        return Elf.Abi.RISCV.value
 
 
 class Phdr:
@@ -1594,10 +1600,9 @@ class GlibcArena:
         ]
         if gef and gef.libc.version and gef.libc.version >= (2, 27):
             # https://elixir.bootlin.com/glibc/glibc-2.27/source/malloc/malloc.c#L1684
-            fields += [
-                ("have_fastchunks", ctypes.c_uint32),
-                ("UNUSED_c", ctypes.c_uint32),  # padding to align to 0x10
-            ]
+            fields += [("have_fastchunks", ctypes.c_uint32)]
+            if gef.arch.ptrsize == 8:
+                fields += [("UNUSED_c", ctypes.c_uint32)]
         fields += [
             ("fastbinsY", GlibcArena.NFASTBINS * pointer),
             ("top", pointer),
@@ -2344,7 +2349,7 @@ def gef_makedirs(path: str, mode: int = 0o755) -> pathlib.Path:
 def gdb_lookup_symbol(sym: str) -> tuple[gdb.Symtab_and_line, ...] | None:
     """Fetch the proper symbol or None if not defined."""
     try:
-        res = gdb.decode_line(sym)[1]  # pylint: disable=E1136
+        res = gdb.decode_line(sym)[1]
         return res
     except gdb.error:
         return None
@@ -2793,40 +2798,13 @@ class RISCV(Architecture):
     arch = "RISCV"
     mode = "RISCV"
     aliases = ("RISCV", Elf.Abi.RISCV)
-    all_registers = (
-        "$zero",
-        "$ra",
-        "$sp",
-        "$gp",
-        "$tp",
-        "$t0",
-        "$t1",
-        "$t2",
-        "$fp",
-        "$s1",
-        "$a0",
-        "$a1",
-        "$a2",
-        "$a3",
-        "$a4",
-        "$a5",
-        "$a6",
-        "$a7",
-        "$s2",
-        "$s3",
-        "$s4",
-        "$s5",
-        "$s6",
-        "$s7",
-        "$s8",
-        "$s9",
-        "$s10",
-        "$s11",
-        "$t3",
-        "$t4",
-        "$t5",
-        "$t6",
-    )
+    # fmt: off
+    all_registers = ("$zero", "$ra", "$sp", "$gp", "$tp", "$t0", "$t1",
+                     "$t2", "$fp", "$s1", "$a0", "$a1", "$a2", "$a3",
+                     "$a4", "$a5", "$a6", "$a7", "$s2", "$s3", "$s4",
+                     "$s5", "$s6", "$s7", "$s8", "$s9", "$s10", "$s11",
+                     "$t3", "$t4", "$t5", "$t6",)
+    # fmt: on
     return_register = "$a0"
     function_parameters = ("$a0", "$a1", "$a2", "$a3", "$a4", "$a5", "$a6", "$a7")
     syscall_register = "$a7"
@@ -2963,25 +2941,11 @@ class RISCV(Architecture):
 class ARM(Architecture):
     aliases = ("ARM", Elf.Abi.ARM)
     arch = "ARM"
-    all_registers = (
-        "$r0",
-        "$r1",
-        "$r2",
-        "$r3",
-        "$r4",
-        "$r5",
-        "$r6",
-        "$r7",
-        "$r8",
-        "$r9",
-        "$r10",
-        "$r11",
-        "$r12",
-        "$sp",
-        "$lr",
-        "$pc",
-        "$cpsr",
-    )
+    # fmt: off
+    all_registers = ("$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6",
+                     "$r7", "$r8", "$r9", "$r10", "$r11", "$r12", "$sp",
+                     "$lr", "$pc", "$cpsr",)
+    # fmt: on
 
     nop_insn = b"\x00\xf0\x20\xe3"  # hint #0
     return_register = "$r0"
@@ -3055,22 +3019,11 @@ class ARM(Architecture):
         return flags_to_human(val, self.flags_table)
 
     def is_conditional_branch(self, insn: Instruction) -> bool:
+        # fmt: off
         conditions = {
-            "eq",
-            "ne",
-            "lt",
-            "le",
-            "gt",
-            "ge",
-            "vs",
-            "vc",
-            "mi",
-            "pl",
-            "hi",
-            "ls",
-            "cc",
-            "cs",
+            "eq", "ne", "lt", "le", "gt", "ge", "vs", "vc", "mi", "pl", "hi", "ls", "cc", "cs"
         }
+        # fmt: on
         return insn.mnemonic[-2:] in conditions
 
     def is_branch_taken(self, insn: Instruction) -> tuple[bool, str]:
@@ -3181,45 +3134,14 @@ class AARCH64(ARM):
     aliases = ("ARM64", "AARCH64", Elf.Abi.AARCH64)
     arch = "ARM64"
     mode: str = ""
-
+    # fmt: off
     all_registers = (
-        "$x0",
-        "$x1",
-        "$x2",
-        "$x3",
-        "$x4",
-        "$x5",
-        "$x6",
-        "$x7",
-        "$x8",
-        "$x9",
-        "$x10",
-        "$x11",
-        "$x12",
-        "$x13",
-        "$x14",
-        "$x15",
-        "$x16",
-        "$x17",
-        "$x18",
-        "$x19",
-        "$x20",
-        "$x21",
-        "$x22",
-        "$x23",
-        "$x24",
-        "$x25",
-        "$x26",
-        "$x27",
-        "$x28",
-        "$x29",
-        "$x30",
-        "$sp",
-        "$pc",
-        "$cpsr",
-        "$fpsr",
-        "$fpcr",
-    )
+        "$x0", "$x1", "$x2", "$x3", "$x4", "$x5", "$x6", "$x7",
+        "$x8", "$x9", "$x10", "$x11", "$x12", "$x13", "$x14","$x15",
+        "$x16", "$x17", "$x18", "$x19", "$x20", "$x21", "$x22", "$x23",
+        "$x24", "$x25", "$x26", "$x27", "$x28", "$x29", "$x30", "$sp",
+        "$pc", "$cpsr", "$fpsr", "$fpcr",)
+    # fmt: on
     return_register = "$x0"
     flag_register = "$cpsr"
     flags_table = {
@@ -3355,25 +3277,14 @@ class X86(Architecture):
 
     nop_insn = b"\x90"
     flag_register: str = "$eflags"
+    # fmt: off
     special_registers = (
-        "$cs",
-        "$ss",
-        "$ds",
-        "$es",
-        "$fs",
-        "$gs",
+        "$cs", "$ss", "$ds", "$es", "$fs", "$gs",
     )
     gpr_registers = (
-        "$eax",
-        "$ebx",
-        "$ecx",
-        "$edx",
-        "$esp",
-        "$ebp",
-        "$esi",
-        "$edi",
-        "$eip",
+        "$eax", "$ebx", "$ecx", "$edx", "$esp", "$ebp", "$esi", "$edi", "$eip",
     )
+    # fmt: on
     all_registers = gpr_registers + (flag_register,) + special_registers
     instruction_length = None
     return_register = "$eax"
@@ -3562,26 +3473,11 @@ class X86_64(X86):
     aliases = ("X86_64", Elf.Abi.X86_64, "i386:x86-64")
     arch = "X86"
     mode = "64"
-
+    # fmt: off
     gpr_registers = (
-        "$rax",
-        "$rbx",
-        "$rcx",
-        "$rdx",
-        "$rsp",
-        "$rbp",
-        "$rsi",
-        "$rdi",
-        "$rip",
-        "$r8",
-        "$r9",
-        "$r10",
-        "$r11",
-        "$r12",
-        "$r13",
-        "$r14",
-        "$r15",
-    )
+        "$rax", "$rbx", "$rcx", "$rdx", "$rsp", "$rbp", "$rsi", "$rdi", "$rip",
+        "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15", )
+    # fmt: on
     all_registers = gpr_registers + (X86.flag_register,) + X86.special_registers
     return_register = "$rax"
     function_parameters = ["$rdi", "$rsi", "$rdx", "$rcx", "$r8", "$r9"]
@@ -3625,48 +3521,14 @@ class PowerPC(Architecture):
     aliases = ("PowerPC", Elf.Abi.POWERPC, "PPC")
     arch = "PPC"
     mode = "PPC32"
-
+    # fmt: off
     all_registers = (
-        "$r0",
-        "$r1",
-        "$r2",
-        "$r3",
-        "$r4",
-        "$r5",
-        "$r6",
-        "$r7",
-        "$r8",
-        "$r9",
-        "$r10",
-        "$r11",
-        "$r12",
-        "$r13",
-        "$r14",
-        "$r15",
-        "$r16",
-        "$r17",
-        "$r18",
-        "$r19",
-        "$r20",
-        "$r21",
-        "$r22",
-        "$r23",
-        "$r24",
-        "$r25",
-        "$r26",
-        "$r27",
-        "$r28",
-        "$r29",
-        "$r30",
-        "$r31",
-        "$pc",
-        "$msr",
-        "$cr",
-        "$lr",
-        "$ctr",
-        "$xer",
-        "$trap",
-    )
+        "$r0", "$r1", "$r2", "$r3", "$r4", "$r5", "$r6", "$r7",
+        "$r8", "$r9", "$r10", "$r11", "$r12", "$r13", "$r14", "$r15",
+        "$r16", "$r17", "$r18", "$r19", "$r20", "$r21", "$r22", "$r23",
+        "$r24", "$r25", "$r26", "$r27", "$r28", "$r29", "$r30", "$r31",
+        "$pc", "$msr", "$cr", "$lr", "$ctr", "$xer", "$trap",)
+    # fmt: on
     instruction_length = 4
     nop_insn = b"\x60\x00\x00\x00"  # https://developer.ibm.com/articles/l-ppc/
     return_register = "$r0"
@@ -3783,44 +3645,14 @@ class SPARC(Architecture):
     aliases = ("SPARC", Elf.Abi.SPARC)
     arch = "SPARC"
     mode = ""
-
+    # fmt: off
     all_registers = (
-        "$g0",
-        "$g1",
-        "$g2",
-        "$g3",
-        "$g4",
-        "$g5",
-        "$g6",
-        "$g7",
-        "$o0",
-        "$o1",
-        "$o2",
-        "$o3",
-        "$o4",
-        "$o5",
-        "$o7",
-        "$l0",
-        "$l1",
-        "$l2",
-        "$l3",
-        "$l4",
-        "$l5",
-        "$l6",
-        "$l7",
-        "$i0",
-        "$i1",
-        "$i2",
-        "$i3",
-        "$i4",
-        "$i5",
-        "$i7",
-        "$pc",
-        "$npc",
-        "$sp ",
-        "$fp ",
-        "$psr",
-    )
+        "$g0", "$g1", "$g2", "$g3", "$g4", "$g5", "$g6", "$g7",
+        "$o0", "$o1", "$o2", "$o3", "$o4", "$o5", "$o7",
+        "$l0", "$l1", "$l2", "$l3", "$l4", "$l5", "$l6", "$l7",
+        "$i0", "$i1", "$i2", "$i3", "$i4", "$i5", "$i7",
+        "$pc", "$npc", "$sp ", "$fp ", "$psr",)
+    # fmt: on
     instruction_length = 4
     nop_insn = b"\x00\x00\x00\x00"  # sethi 0, %g0
     return_register = "$i0"
@@ -3993,44 +3825,14 @@ class SPARC64(SPARC):
     aliases = ("SPARC64", Elf.Abi.SPARC64)
     arch = "SPARC"
     mode = "V9"
-
+    # fmt: off
     all_registers = [
-        "$g0",
-        "$g1",
-        "$g2",
-        "$g3",
-        "$g4",
-        "$g5",
-        "$g6",
-        "$g7",
-        "$o0",
-        "$o1",
-        "$o2",
-        "$o3",
-        "$o4",
-        "$o5",
-        "$o7",
-        "$l0",
-        "$l1",
-        "$l2",
-        "$l3",
-        "$l4",
-        "$l5",
-        "$l6",
-        "$l7",
-        "$i0",
-        "$i1",
-        "$i2",
-        "$i3",
-        "$i4",
-        "$i5",
-        "$i7",
-        "$pc",
-        "$npc",
-        "$sp",
-        "$fp",
-        "$state",
-    ]
+        "$g0", "$g1", "$g2", "$g3", "$g4", "$g5", "$g6", "$g7",
+        "$o0", "$o1", "$o2", "$o3", "$o4", "$o5", "$o7",
+        "$l0", "$l1", "$l2", "$l3", "$l4", "$l5", "$l6", "$l7",
+        "$i0", "$i1", "$i2", "$i3", "$i4", "$i5", "$i7",
+        "$pc", "$npc", "$sp", "$fp", "$state", ]
+    # fmt: on
 
     flag_register = "$state"  # sparcv9.pdf, 5.1.5.1 (ccr)
     flags_table = {
@@ -4074,44 +3876,14 @@ class MIPS(Architecture):
     mode = "MIPS32"
 
     # https://vhouten.home.xs4all.nl/mipsel/r3000-isa.html
+    # fmt: off
     all_registers = (
-        "$zero",
-        "$at",
-        "$v0",
-        "$v1",
-        "$a0",
-        "$a1",
-        "$a2",
-        "$a3",
-        "$t0",
-        "$t1",
-        "$t2",
-        "$t3",
-        "$t4",
-        "$t5",
-        "$t6",
-        "$t7",
-        "$s0",
-        "$s1",
-        "$s2",
-        "$s3",
-        "$s4",
-        "$s5",
-        "$s6",
-        "$s7",
-        "$t8",
-        "$t9",
-        "$k0",
-        "$k1",
-        "$s8",
-        "$pc",
-        "$sp",
-        "$hi",
-        "$lo",
-        "$fir",
-        "$ra",
-        "$gp",
-    )
+        "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3",
+        "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",
+        "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
+        "$t8", "$t9", "$k0", "$k1", "$s8", "$pc", "$sp", "$hi",
+        "$lo", "$fir", "$ra", "$gp", )
+    # fmt: on
     instruction_length = 4
     _ptrsize = 4
     nop_insn = b"\x00\x00\x00\x00"  # sll $0,$0,0
@@ -4318,26 +4090,17 @@ def is_running_in_qemu_user() -> bool:
         return False
     response = (
         gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False) or ""
-    )  # Use `qAttached`?
+    )
     return "Text=" in response
 
 
 def is_running_in_qemu_system() -> bool:
     if not is_running_in_qemu():
         return False
-    # Use "maintenance packet qqemu.PhyMemMode"?
     response = (
         gdb.execute("maintenance packet qOffsets", to_string=True, from_tty=False) or ""
     )
     return 'received: ""' in response
-
-
-def is_running_in_gdbserver() -> bool:
-    return is_target_remote_or_extended() and not is_running_in_qemu()
-
-
-def is_running_in_rr() -> bool:
-    return is_running_in_gdbserver() and os.environ.get("GDB_UNDER_RR", None) == "1"
 
 
 def is_target_coredump() -> bool:
@@ -7092,7 +6855,11 @@ class ScanSectionCommand(GenericCommand):
                 continue
             if haystack in sect.path:
                 haystack_sections.append(
-                    (sect.page_start, sect.page_end, os.path.basename(sect.path))
+                    (
+                        sect.page_start,
+                        sect.page_end,
+                        os.path.basename(sect.path),
+                    )
                 )
             if needle in sect.path:
                 needle_sections.append((sect.page_start, sect.page_end))
@@ -8014,10 +7781,36 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
     _cmdline_ = "heap bins tcache"
     _syntax_ = f"{_cmdline_} [all] [thread_ids...]"
 
-    TCACHE_MAX_BINS = 0x40
+    # Use the TCACHE_MAX_BINS constants only for size calculation!
+    # Use self.tcache_max_bins instead as it's detected at runtime
+    TCACHE_MAX_BINS = 0x40  #   before glibc 2.42
+    TCACHE_MAX_BINS_2_42 = 0x4C  # since glibc 2.42
+
+    # Max number of chunks in a tcache bin
+    TCACHE_MAX_CHUNKS_IN_BIN = 7
 
     def __init__(self) -> None:
         super().__init__(complete=gdb.COMPLETE_LOCATION)
+
+        # actual number of tcache bins
+        # this will be overridded by find_tcache if None
+        self.tcache_max_bins = None
+
+        # actual number of bytes for each slot_nums entry
+        # this will be overridded by find_tcache if None
+        self.tcache_count_size = None
+
+        # if we have a glibc version, set those value explicitly as we know them exactly
+        if gef.libc.version:
+            self.tcache_max_bins = (
+                self.TCACHE_MAX_BINS_2_42
+                if gef.libc.version >= (2, 42)
+                else self.TCACHE_MAX_BINS
+            )
+            self.tcache_count_size = (
+                2 if gef.libc.version and gef.libc.version >= (2, 30) else 1
+            )
+
         return
 
     @only_if_gdb_running
@@ -8055,7 +7848,7 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
 
             gef_print(titlify(f"Tcachebins for thread {thread.num:d}"))
             tcache_empty = True
-            for i in range(self.TCACHE_MAX_BINS):
+            for i in range(self.tcache_max_bins):
                 chunk, count = self.tcachebin(tcache_addr, i)
                 chunks = set()
                 msg = []
@@ -8121,6 +7914,28 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
                 err("No heap section")
                 return 0x0
             tcache_addr = heap_base + 0x10
+
+            # Actually, recent version of glibc allocate the tcache only if malloc
+            # is requested to allocate a chunk of a size fitting the tcache range.
+            # So we cannot assume the first chunk is always the tcache.
+            # We will use a simple heuristic that check for specific patterns
+            # This is an approximation.
+            try:
+                candidate_tcache_chunk = GlibcChunk(tcache_addr)
+                while not self.check_chunk_is_tcache(candidate_tcache_chunk):
+                    candidate_tcache_chunk = candidate_tcache_chunk.get_next_chunk()
+
+                tcache_addr = candidate_tcache_chunk.data_address
+            except Exception as e:
+                warn(
+                    "Cannot find the tcache chunk, using the first allocated chunk. This may be wrong!"
+                    f" (reason: {e})"
+                )
+
+        # We found the tcache chunk but this structed changed over time
+        # update the attributes we need (max bins, count size) if needed
+        self.update_tcache_attributes(GlibcChunk(tcache_addr))
+
         return tcache_addr
 
     def check_thread_ids(self, tids: list[int]) -> list[int]:
@@ -8132,14 +7947,57 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         self, tcache_base: int, i: int
     ) -> tuple[GlibcTcacheChunk | None, int]:
         """Return the head chunk in tcache[i] and the number of chunks in the bin."""
-        if i >= self.TCACHE_MAX_BINS:
+        if i >= self.tcache_max_bins:
             err(
                 "Incorrect index value, index value must be between 0 and "
-                f"{self.TCACHE_MAX_BINS}-1, given {i}"
+                f"{self.tcache_max_bins}-1, given {i}"
             )
             return None, 0
 
-        tcache_chunk = GlibcTcacheChunk(tcache_base)
+        read_count = u16 if self.tcache_count_size == 2 else u8
+        count = read_count(
+            gef.memory.read(
+                tcache_base + self.tcache_count_size * i, self.tcache_count_size
+            )
+        )
+        chunk = dereference(
+            tcache_base
+            + self.tcache_count_size * self.tcache_max_bins
+            + i * gef.arch.ptrsize
+        )
+        chunk = GlibcTcacheChunk(int(chunk)) if chunk else None
+        return chunk, count
+
+    def check_chunk_is_tcache(self, tcache_chunk: GlibcChunk) -> bool:
+        """Check min chunk size and the first TCACHE_MAX_BINS bytes to be all <= TCACHE_MAX_BINS"""
+
+        dbg(f"Checking tcache chunk at address {hex(tcache_chunk.data_address)}")
+
+        # glibc < 2.30 has the smallest tcache
+        tcache_min_size_2_30 = self.get_tcache_size(
+            wide_slots=False, nbins=self.TCACHE_MAX_BINS
+        )
+
+        # if this chunk is smaller, then it's not a tcache
+        if tcache_chunk.usable_size < tcache_min_size_2_30:
+            dbg(
+                f"Chunk at address {hex(tcache_chunk.data_address)} is too small to be the tcache"
+            )
+            return False
+
+        # the chunk is big enough for an array of TCACHE_MAX_BINS bytes.
+        tcache_data = gef.memory.read(tcache_chunk.data_address, self.TCACHE_MAX_BINS)
+
+        # all TCACHE_MAX_BINS bytes must be less or equal to TCACHE_MAX_CHUNKS_IN_BIN
+        if all(map(lambda i: i <= self.TCACHE_MAX_CHUNKS_IN_BIN, tcache_data)):
+            return True
+
+        # this is not a tcache chunk as far as we can tell
+        return False
+
+    def update_tcache_attributes(self, tcache_chunk: GlibcChunk):
+        """Update the max bin size and count size if they are not already set using the
+        tcache chunk size to infer the glibc version range"""
 
         # Glibc changed the size of the tcache in version 2.30; this fix has
         # been backported inconsistently between distributions. We detect the
@@ -8150,24 +8008,40 @@ class GlibcHeapTcachebinsCommand(GenericCommand):
         #   TCACHE_MAX_BINS * _2_ + TCACHE_MAX_BINS * ptrsize
         #   For old tcache:
         #   TCACHE_MAX_BINS * _1_ + TCACHE_MAX_BINS * ptrsize
-        new_tcache_min_size = (
-            self.TCACHE_MAX_BINS * 2 + self.TCACHE_MAX_BINS * gef.arch.ptrsize
+        #
+        # Furthermore, since 2.42 there are 64+12 bins, not 64.
+
+        size_from_2_30 = self.get_tcache_size(
+            wide_slots=True, nbins=self.TCACHE_MAX_BINS
+        )
+        size_from_2_42 = self.get_tcache_size(
+            wide_slots=True, nbins=self.TCACHE_MAX_BINS_2_42
         )
 
-        if tcache_chunk.usable_size < new_tcache_min_size:
-            tcache_count_size = 1
-            count = ord(gef.memory.read(tcache_base + tcache_count_size * i, 1))
+        # does the tcache looks like a >= 2.42 tcache, based on its size?
+        if tcache_chunk.usable_size >= size_from_2_42:
+            detected_tcache_count_size = 2
+            detected_tcache_max_bins = self.TCACHE_MAX_BINS_2_42
+
+        # does the tcache looks like a < 2.30 tcache, based on its size?
+        elif tcache_chunk.usable_size < size_from_2_30:
+            detected_tcache_count_size = 1
+            detected_tcache_max_bins = self.TCACHE_MAX_BINS
+
+        # problably a tcache from >= 2.30 < 2.42
         else:
-            tcache_count_size = 2
-            count = u16(gef.memory.read(tcache_base + tcache_count_size * i, 2))
+            detected_tcache_count_size = 2
+            detected_tcache_max_bins = self.TCACHE_MAX_BINS
 
-        chunk = dereference(
-            tcache_base
-            + tcache_count_size * self.TCACHE_MAX_BINS
-            + i * gef.arch.ptrsize
-        )
-        chunk = GlibcTcacheChunk(int(chunk)) if chunk else None
-        return chunk, count
+        # only update if not already set
+        if self.tcache_count_size is None:
+            self.tcache_count_size = detected_tcache_count_size
+        if self.tcache_max_bins is None:
+            self.tcache_max_bins = detected_tcache_max_bins
+
+    def get_tcache_size(self, wide_slots: bool, nbins: int) -> int:
+        """Get the tcache size"""
+        return nbins * ((2 if wide_slots else 1) + gef.arch.ptrsize)
 
 
 @register
@@ -8445,120 +8319,6 @@ class DetailRegistersCommand(GenericCommand):
 
         if special_line:
             gef_print(special_line)
-        return
-
-
-@register
-class ShellcodeCommand(GenericCommand):
-    """ShellcodeCommand uses @JonathanSalwan simple-yet-awesome shellcode API to
-    download shellcodes."""
-
-    _cmdline_ = "shellcode"
-    _syntax_ = f"{_cmdline_} (search|get)"
-
-    def __init__(self) -> None:
-        super().__init__(prefix=True)
-        return
-
-    def do_invoke(self, _: list[str]) -> None:
-        err("Missing sub-command (search|get)")
-        self.usage()
-        return
-
-
-@register
-class ShellcodeSearchCommand(GenericCommand):
-    """Search pattern in shell-storm's shellcode database."""
-
-    _cmdline_ = "shellcode search"
-    _syntax_ = f"{_cmdline_} PATTERN1 PATTERN2"
-    _aliases_ = [
-        "sc-search",
-    ]
-
-    api_base = "http://shell-storm.org"
-    search_url = f"{api_base}/api/?s="
-
-    def do_invoke(self, argv: list[str]) -> None:
-        if not argv:
-            err("Missing pattern to search")
-            self.usage()
-            return
-
-        # API : http://shell-storm.org/shellcode/
-        args = "*".join(argv)
-
-        res = http_get(self.search_url + args)
-        if res is None:
-            err("Could not query search page")
-            return
-
-        ret = gef_pystring(res)
-
-        # format: [author, OS/arch, cmd, id, link]
-        lines = ret.split("\\n")
-        refs = [line.split("::::") for line in lines]
-
-        if refs:
-            info("Showing matching shellcodes")
-            info("\t".join(["Id", "Platform", "Description"]))
-            for ref in refs:
-                try:
-                    _, arch, cmd, sid, _ = ref
-                    gef_print("\t".join([sid, arch, cmd]))
-                except ValueError:
-                    continue
-
-            info("Use `shellcode get <id>` to fetch shellcode")
-        return
-
-
-@register
-class ShellcodeGetCommand(GenericCommand):
-    """Download shellcode from shell-storm's shellcode database."""
-
-    _cmdline_ = "shellcode get"
-    _syntax_ = f"{_cmdline_} SHELLCODE_ID"
-    _aliases_ = [
-        "sc-get",
-    ]
-
-    api_base = "http://shell-storm.org"
-    get_url = f"{api_base}/shellcode/files/shellcode-{{:d}}.html"
-
-    def do_invoke(self, argv: list[str]) -> None:
-        if len(argv) != 1:
-            err("Missing ID to download")
-            self.usage()
-            return
-
-        if not argv[0].isdigit():
-            err("ID is not a number")
-            self.usage()
-            return
-
-        self.get_shellcode(int(argv[0]))
-        return
-
-    def get_shellcode(self, sid: int) -> None:
-        info(f"Downloading shellcode id={sid}")
-        res = http_get(self.get_url.format(sid))
-        if res is None:
-            err(f"Failed to fetch shellcode #{sid}")
-            return
-
-        ok("Downloaded, written to disk...")
-        with tempfile.NamedTemporaryFile(
-            prefix="sc-",
-            suffix=".txt",
-            mode="w+b",
-            delete=False,
-            dir=gef.config["gef.tempdir"],
-        ) as fd:
-            shellcode = res.split(b"<pre>")[1].split(b"</pre>")[0]
-            shellcode = shellcode.replace(b"&quot;", b'"')
-            fd.write(shellcode)
-            ok(f"Shellcode written to '{fd.name}'")
         return
 
 
@@ -8990,9 +8750,11 @@ class ContextCommand(GenericCommand):
                 continue
 
             try:
-                display_pane_function, pane_title_function, condition = (
-                    self.layout_mapping[section]
-                )
+                (
+                    display_pane_function,
+                    pane_title_function,
+                    condition,
+                ) = self.layout_mapping[section]
                 if condition:
                     if not condition():
                         continue
@@ -12343,7 +12105,10 @@ class GefInstallExtraScriptCommand(gdb.Command):
 
         if "--list" in args or "-l" in args:
             subprocess.run(
-                ["xdg-open", f"https://github.com/hugsy/gef-extras/{self.branch}/"]
+                [
+                    "xdg-open",
+                    f"https://github.com/hugsy/gef-extras/{self.branch}/",
+                ]
             )
             return
 

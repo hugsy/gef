@@ -2,7 +2,6 @@
 `xfiles` command test module
 """
 
-
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE
 
@@ -17,4 +16,4 @@ class XfilesCommand(RemoteGefUnitTestGeneric):
         )
         gdb.execute("start")
         res = gdb.execute("xfiles", to_string=True)
-        self.assertGreaterEqual(len(res.splitlines()) , 3)
+        self.assertGreaterEqual(len(res.splitlines()), 3)

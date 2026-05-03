@@ -120,8 +120,10 @@ For a full demo, watch the following tutorial:
 
 Additionally, if you have successfully configured your IDA settings, you can also directly import
 the structure(s) that was(were) reverse-engineered in IDA directly in your GDB session:
-![ida-structure-examples](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/ida-structure-examples.png) - (see `gef-extras/ida-rpyc`,
-which is the new improved version of `ida-interact`)
+<!-- markdownlint-disable MD013 -->
+![ida-structure-examples](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/ida-structure-examples.png)
+<!-- markdownlint-enable MD013 -->
+(see `gef-extras/ida-rpyc`, which is the new improved version of `ida-interact`)
 
 #### Dynamic `ctypes.Structure`-like classes
 

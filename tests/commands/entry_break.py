@@ -2,7 +2,6 @@
 `entry-break` command test module
 """
 
-
 from tests.base import RemoteGefUnitTestGeneric
 
 

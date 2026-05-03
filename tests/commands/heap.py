@@ -187,7 +187,14 @@ class HeapCommandNonMain(RemoteGefUnitTestGeneric):
         res = gdb.execute(cmd, to_string=True)
         self.assertIn("size=0x20", res)
 
-    @pytest.mark.skipif(ARCH not in ("i686", "x86_64",), reason=f"Skipped for {ARCH}")
+    @pytest.mark.skipif(
+        ARCH
+        not in (
+            "i686",
+            "x86_64",
+        ),
+        reason=f"Skipped for {ARCH}",
+    )
     @pytest.mark.skipif(is_glibc_ge(2, 42), reason="Skipped for glibc >= 2.42")
     def test_cmd_heap_bins_tcache(self):
         gdb = self._gdb
@@ -238,7 +245,7 @@ class HeapCommandClass(RemoteGefUnitTestGeneric):
         assert len(lines) > 0
         self.assertEqual("== Chunk distribution by size ==", lines[0])
         self.assertIn("== Chunk distribution by flag ==", lines)
-        assert any( map(lambda x: "B<TraitA, TraitB>" in x, lines))
+        assert any(map(lambda x: "B<TraitA, TraitB>" in x, lines))
 
 
 class HeapCommandFastBins(RemoteGefUnitTestGeneric):

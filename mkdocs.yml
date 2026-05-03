@@ -61,7 +61,6 @@ nav:
   - reset-cache: commands/reset-cache.md
   - scan: commands/scan.md
   - search-pattern: commands/search-pattern.md
-  - shellcode: commands/shellcode.md
   - stub: commands/stub.md
   - stepover: commands/stepover.md
   - skipi: commands/skipi.md

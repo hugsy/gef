@@ -23,8 +23,12 @@ Patching `fork()` calls:
 
 *  Without stub:
 
-![fork execution](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/fork execution.png)
+<!-- markdownlint-disable MD013,MD034 -->
+![fork execution](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/fork-execution.png)
+<!-- markdownlint-enable MD013,MD034 -->
 
 *  With stub:
 
-![stubbed fork](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/stubbed fork.png)
+<!-- markdownlint-disable MD013,MD034 -->
+![stubbed fork](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/stubbed-fork.png)
+<!-- markdownlint-enable MD013,MD034 -->
