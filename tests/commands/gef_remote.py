@@ -7,11 +7,11 @@ import pytest
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import (
     ARCH,
+    GDBSERVER_DEFAULT_HOST,
     debug_target,
     gdbserver_session,
     get_random_port,
     qemuuser_session,
-    GDBSERVER_DEFAULT_HOST,
 )
 
 
@@ -31,7 +31,9 @@ class GefRemoteCommand(RemoteGefUnitTestGeneric):
         with gdbserver_session(port=port):
             gdb.execute(f"target remote {GDBSERVER_DEFAULT_HOST}:{port}")
             res: str = str(gef.session.remote)
-            assert res.startswith(f"RemoteSession(target='{GDBSERVER_DEFAULT_HOST}:{port}', local='/")
+            assert res.startswith(
+                f"RemoteSession(target='{GDBSERVER_DEFAULT_HOST}:{port}', local='/"
+            )
             assert res.endswith(f"mode={gdbserver_mode}, pid={gef.session.pid})")
 
     @pytest.mark.slow
@@ -46,7 +48,9 @@ class GefRemoteCommand(RemoteGefUnitTestGeneric):
             cmd = f"target remote {GDBSERVER_DEFAULT_HOST}:{port}"
             gdb.execute(cmd)
             res = str(gef.session.remote)
-            assert res.startswith(f"RemoteSession(target='{GDBSERVER_DEFAULT_HOST}:{port}', local='/")
+            assert res.startswith(
+                f"RemoteSession(target='{GDBSERVER_DEFAULT_HOST}:{port}', local='/"
+            )
             assert res.endswith(f"mode={qemu_mode})")
 
     def test_cmd_target_remote(self):
