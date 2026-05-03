@@ -2,13 +2,25 @@
 `target remote/extended-remote` test module.
 """
 
+import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
-from tests.utils import debug_target, gdbserver_session, gdbserver_multi_session, get_random_port, qemuuser_session
+from tests.utils import (
+    ARCH,
+    OS,
+    debug_target,
+    gdbserver_multi_session,
+    gdbserver_session,
+    get_random_port,
+    qemuuser_session,
+)
 
 
+@pytest.mark.skipif(
+    OS != "ubuntu" or ARCH != "x86_64",
+    reason=f"Skipped for {OS} on CI",
+)
 class GefRemoteApi(RemoteGefUnitTestGeneric):
-
     def setUp(self) -> None:
         self._target = debug_target("default")
         return super().setUp()
