@@ -11,10 +11,14 @@
 <!-- Annotate your PR with label proper labels (architecture impacted, type of improvement,
 etc.) -->
 
-## Licensing
+
+## Contribution
 
 -  [ ] I have read and agree to the **CONTRIBUTING** document.
--  [ ] The code of this PR contains LLM-generated code
+
+## Licensing
+
+-  [ ] The code of this PR contains LLM-generated code.
 
 ## Checklist
 
