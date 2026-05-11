@@ -80,8 +80,18 @@ class TmuxSplitCommand(RemoteGefUnitTestGeneric):
     def test_per_section_settings_registered(self):
         """All known sections must have a `context.output.<section>` setting registered."""
         gef = self._gef
-        for section in ("legend", "regs", "stack", "code", "args",
-                        "memory", "source", "trace", "threads", "extra"):
+        for section in (
+            "legend",
+            "regs",
+            "stack",
+            "code",
+            "args",
+            "memory",
+            "source",
+            "trace",
+            "threads",
+            "extra",
+        ):
             assert f"context.output.{section}" in gef.config
 
     def _run_parser(self, ini_text: str) -> str:
@@ -147,10 +157,7 @@ class TmuxSplitCommand(RemoteGefUnitTestGeneric):
         assert "more than one pane" in result
 
     def test_layout_parser_rejects_bad_direction(self):
-        bad = (
-            "[layout]\npanes = a\n"
-            "[pane.a]\nsection = regs\ndirection = sideways\n"
-        )
+        bad = "[layout]\npanes = a\n[pane.a]\nsection = regs\ndirection = sideways\n"
         result = self._run_parser(bad)
         assert "direction" in result
 
