@@ -577,7 +577,7 @@ class Color:
     # \033      ->  Start an ANSI escape code for displaying colors
     colors = {
         "normal": "\001\033[0m\002",
-        "gray": "\001\033[1;38;5;240m\002",
+        "gray": "\001\033[90m\002",
         "light_gray": "\001\033[0;37m\002",
         "red": "\001\033[31m\002",
         "green": "\001\033[32m\002",
