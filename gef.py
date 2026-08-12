@@ -1589,19 +1589,26 @@ class GlibcArena:
     BINMAPSIZE = NBINS // BITSPERMAP
 
     @staticmethod
+    def has_fastbins() -> bool:
+        """Fastbins were removed in glibc 2.43, see
+        https://sourceware.org/git/?p=glibc.git;a=commit;h=bb5a4f5295ced26532939703867c35f2ce8c149b"""
+        return not (gef and gef.libc.version and gef.libc.version >= (2, 43))
+
+    @staticmethod
     def malloc_state_t() -> Type[ctypes.Structure]:
         pointer = ctypes.c_uint64 if gef and gef.arch.ptrsize == 8 else ctypes.c_uint32
         fields = [
             ("mutex", ctypes.c_uint32),
             ("flags", ctypes.c_uint32),
         ]
-        if gef and gef.libc.version and gef.libc.version >= (2, 27):
-            # https://elixir.bootlin.com/glibc/glibc-2.27/source/malloc/malloc.c#L1684
-            fields += [("have_fastchunks", ctypes.c_uint32)]
-            if gef.arch.ptrsize == 8:
-                fields += [("UNUSED_c", ctypes.c_uint32)]
+        if GlibcArena.has_fastbins():
+            if gef and gef.libc.version and gef.libc.version >= (2, 27):
+                # https://elixir.bootlin.com/glibc/glibc-2.27/source/malloc/malloc.c#L1684
+                fields += [("have_fastchunks", ctypes.c_uint32)]
+                if gef.arch.ptrsize == 8:
+                    fields += [("UNUSED_c", ctypes.c_uint32)]
+            fields += [("fastbinsY", GlibcArena.NFASTBINS * pointer)]
         fields += [
-            ("fastbinsY", GlibcArena.NFASTBINS * pointer),
             ("top", pointer),
             ("last_remainder", pointer),
             ("bins", (GlibcArena.NBINS * 2 - 2) * pointer),
@@ -1697,6 +1704,9 @@ class GlibcArena:
 
     @property
     def fastbinsY(self) -> ctypes.Array:
+        if not GlibcArena.has_fastbins():
+            pointer = ctypes.c_uint64 if gef.arch.ptrsize == 8 else ctypes.c_uint32
+            return (pointer * GlibcArena.NFASTBINS)()
         return self.__arena.fastbinsY
 
     @property
@@ -8067,6 +8077,10 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
     @parse_arguments({"arena_address": ""}, {})
     @only_if_gdb_running
     def do_invoke(self, *_: Any, **kwargs: Any) -> None:
+        if not GlibcArena.has_fastbins():
+            err("Fastbins were removed in glibc 2.43, this command is not supported here")
+            return
+
         def fastbin_index(sz: int) -> int:
             return (sz >> 4) - 2 if SIZE_SZ == 8 else (sz >> 3) - 2
 
