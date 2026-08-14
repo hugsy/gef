@@ -8078,7 +8078,9 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
     @only_if_gdb_running
     def do_invoke(self, *_: Any, **kwargs: Any) -> None:
         if not GlibcArena.has_fastbins():
-            err("Fastbins were removed in glibc 2.43, this command is not supported here")
+            err(
+                "Fastbins were removed in glibc 2.43, this command is not supported here"
+            )
             return
 
         def fastbin_index(sz: int) -> int:

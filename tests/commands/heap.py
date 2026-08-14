@@ -253,6 +253,7 @@ class HeapCommandFastBins(RemoteGefUnitTestGeneric):
         self._target = debug_target("heap-fastbins")
         return super().setUp()
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_bins_fast(self):
         gdb = self._gdb
         cmd = "heap bins fast"
