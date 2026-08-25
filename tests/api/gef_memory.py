@@ -3,7 +3,6 @@
 """
 
 import pathlib
-import random
 import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
@@ -13,8 +12,8 @@ from tests.utils import (
     IN_GITHUB_ACTIONS,
     debug_target,
     gdbserver_session,
+    get_random_port,
     qemuuser_session,
-    GDBSERVER_DEFAULT_HOST,
 )
 
 
@@ -122,18 +121,15 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
     @pytest.mark.slow
     def test_func_parse_maps_remote_gdbserver(self):
         gef, gdb = self._gef, self._gdb
-        # When in a gef-remote session `parse_gdb_info_proc_maps` should work to
+        # When in a remote session `parse_gdb_info_proc_maps` should work to
         # query the memory maps
-        while True:
-            port = random.randint(1025, 65535)
-            if port != self._port:
-                break
+        port = get_random_port()
 
         with pytest.raises(Exception):
-            gdb.execute(f"gef-remote {GDBSERVER_DEFAULT_HOST} {port}")
+            gdb.execute(f"target remote :{port}")
 
         with gdbserver_session(port=port) as _:
-            gdb.execute(f"gef-remote {GDBSERVER_DEFAULT_HOST} {port}")
+            gdb.execute(f"target remote :{port}")
             sections = gef.memory.maps
             assert len(sections) > 0
 
@@ -142,15 +138,10 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
     )
     def test_func_parse_maps_remote_qemu(self):
         gdb, gef = self._gdb, self._gef
-        # When in a gef-remote qemu-user session `parse_gdb_info_proc_maps`
-        # should work to query the memory maps
-        while True:
-            port = random.randint(1025, 65535)
-            if port != self._port:
-                break
+        port = get_random_port()
 
         with qemuuser_session(port=port) as _:
-            cmd = f"gef-remote --qemu-user --qemu-binary {self._target} {GDBSERVER_DEFAULT_HOST} {port}"
+            cmd = f"target remote :{port}"
             gdb.execute(cmd)
             sections = gef.memory.maps
             assert len(sections) > 0
@@ -160,15 +151,10 @@ class GefMemoryApi(RemoteGefUnitTestGeneric):
     )
     def test_func_parse_maps_realpath(self):
         gef, gdb = self._gef, self._gdb
-        # When in a gef-remote session `parse_gdb_info_proc_maps` should work to
-        # query the memory maps
-        while True:
-            port = random.randint(1025, 65535)
-            if port != self._port:
-                break
+        port = get_random_port()
 
         with gdbserver_session(port=port) as _:
-            gdb.execute(f"gef-remote {GDBSERVER_DEFAULT_HOST} {port}")
+            gdb.execute(f"target remote :{port}")
             gdb.execute("b main")
             gdb.execute("continue")
             sections = gef.memory.maps
