@@ -33,7 +33,7 @@ COPY tests/requirements.txt /tmp/requirements.txt
 # Install Python requirements
 RUN PY_VER=$(gdb -q -nx -ex "pi print('.'.join(map(str, sys.version_info[:2])))" -ex quit 2>/dev/null || echo "3") && \
   if grep -q "24.04" /etc/os-release 2>/dev/null; then \
-    python${PY_VER} -m pip install --break-system-packages --upgrade -r /tmp/requirements.txt; \
+    python${PY_VER} -m pip install --break-system-packages --ignore-installed --upgrade -r /tmp/requirements.txt; \
   else \
     python${PY_VER} -m pip install --upgrade -r /tmp/requirements.txt; \
   fi
