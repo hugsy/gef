@@ -2280,13 +2280,30 @@ def unhide_context() -> bool:
 
 
 class DisableContextOutputContext:
+    """Hide the context pane for the duration of the block. The previous visibility is restored
+    on exit (even on exception), so these blocks can be safely nested."""
+
     def __enter__(self) -> None:
+        self.__was_hidden = gef.ui.context_hidden
         hide_context()
         return
 
     def __exit__(self, *exc: Any) -> None:
-        unhide_context()
+        gef.ui.context_hidden = self.__was_hidden
         return
+
+
+def _run_until_first_solib_event(argv: list[str]) -> None:
+    """Start the process and stop at the first shared-library event (i.e. once the binary is
+    mapped), with the context hidden. Both temporary states are restored even if `run` fails."""
+    previous = gdb.parameter("stop-on-solib-events")
+    gdb.execute("set stop-on-solib-events 1")
+    try:
+        with DisableContextOutputContext():
+            gdb.execute(f"run {' '.join(argv)}")
+    finally:
+        gdb.execute(f"set stop-on-solib-events {previous or 0}")
+    return
 
 
 class RedirectOutputContext:
@@ -5864,11 +5881,7 @@ class PieRunCommand(GenericCommand):
             warn("gdb is already running. Restart process.")
 
         # get base address
-        gdb.execute("set stop-on-solib-events 1")
-        hide_context()
-        gdb.execute(f"run {' '.join(argv)}")
-        unhide_context()
-        gdb.execute("set stop-on-solib-events 0")
+        _run_until_first_solib_event(argv)
         vmmap = gef.memory.maps
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
         info(f"base address {hex(base_address)}")
@@ -8590,11 +8603,7 @@ class EntryPointBreakCommand(GenericCommand):
 
     def set_init_tbreak_pie(self, addr: int, argv: list[str]) -> EntryBreakBreakpoint:
         warn("PIC binary detected, retrieving text base address")
-        gdb.execute("set stop-on-solib-events 1")
-        hide_context()
-        gdb.execute(f"run {' '.join(argv)}")
-        unhide_context()
-        gdb.execute("set stop-on-solib-events 0")
+        _run_until_first_solib_event(argv)
         vmmap = gef.memory.maps
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
         return self.set_init_tbreak(base_address + addr)
@@ -10466,10 +10475,8 @@ class TraceRunCommand(GenericCommand):
     def trace(self, loc_start: int, loc_end: int, depth: int) -> None:
         info(f"Tracing from {loc_start:#x} to {loc_end:#x} (max depth={depth:d})")
         logfile = f"{self['tracefile_prefix']}{loc_start:#x}-{loc_end:#x}.txt"
-        with RedirectOutputContext(to_file=logfile):
-            hide_context()
+        with RedirectOutputContext(to_file=logfile), DisableContextOutputContext():
             self.start_tracing(loc_start, loc_end, depth)
-            unhide_context()
         ok(f"Done, logfile stored as '{logfile}'")
         info(
             "Hint: import logfile with `ida_color_gdb_trace.py` script in IDA to visualize path"
