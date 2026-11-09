@@ -6262,6 +6262,10 @@ class GefThemeCommand(GenericCommand):
             "green",
             "Color to use for the current code line in the source window",
         )
+        self["threads_pc"] = (
+            "blue",
+            "Color of the program counter in the threads window",
+        )
         return
 
     def do_invoke(self, args: list[str]) -> None:
@@ -9392,7 +9396,7 @@ class ContextCommand(GenericCommand):
                         frame_name = f"<{sym_name}+{offset:x}>"
 
                 line += (
-                    f" {Color.colorify(f'{frame.pc():#x}', 'blue')} in "
+                    f" {Color.colorify(f'{frame.pc():#x}', gef.config['theme.threads_pc'])} in "
                     f"{Color.colorify(frame_name or '??', 'bold yellow')} (), "
                     f"reason: {Color.colorify(reason(), 'bold pink')}"
                 )
