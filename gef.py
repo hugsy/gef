@@ -10549,6 +10549,8 @@ class PatternCreateCommand(GenericCommand):
     )
     def do_invoke(self, _: list[str], **kwargs: Any) -> None:
         args: argparse.Namespace = kwargs["arguments"]
+        if args.length:
+            gef.config["pattern.length"] = args.length
         length = args.length or gef.config["pattern.length"]
         n = args.n or gef.arch.ptrsize
         info(f"Generating a pattern of {length:d} bytes (n={n:d})")
@@ -10611,21 +10613,17 @@ class PatternSearchCommand(GenericCommand):
             f"Searching for '{pattern_le.hex()}'/'{pattern_be.hex()}' with period={period}"
         )
         cyclic_pattern = generate_cyclic_pattern(size, period)
-        off = cyclic_pattern.find(pattern_le)
-        if off >= 0:
-            ok(
-                f"Found at offset {off:d} (little-endian search) "
-                f"{Color.colorify('likely', 'bold red') if gef.arch.endianness == Endianness.LITTLE_ENDIAN else ''}"
-            )
-            return
+        if gef.arch.endianness == Endianness.LITTLE_ENDIAN:
+            candidates = ((pattern_le, "little-endian"), (pattern_be, "big-endian"))
+        else:
+            candidates = ((pattern_be, "big-endian"), (pattern_le, "little-endian"))
 
-        off = cyclic_pattern.find(pattern_be)
-        if off >= 0:
-            ok(
-                f"Found at offset {off:d} (big-endian search) "
-                f"{Color.colorify('likely', 'bold green') if gef.arch.endianness == Endianness.BIG_ENDIAN else ''}"
-            )
-            return
+        for idx, (needle, label) in enumerate(candidates):
+            off = cyclic_pattern.find(needle)
+            if off >= 0:
+                tag = Color.colorify("likely", "bold green") if idx == 0 else ""
+                ok(f"Found at offset {off:d} ({label} search) {tag}")
+                return
 
         err(f"Pattern '{pattern}' not found")
         return
