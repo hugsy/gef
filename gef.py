@@ -955,6 +955,7 @@ class Elf(FileFormat):
         ELF_64_BITS = 0x02
 
     ELF_MAGIC = 0x7F454C46
+    EF_MIPS_ABI2 = 0x00000020
 
     class Abi(enum.Enum):
         X86_64 = 0x3E
@@ -1118,6 +1119,15 @@ class Elf(FileFormat):
     @property
     def entry_point(self) -> int:
         return self.e_entry
+
+    @property
+    def is_mips_n32(self) -> bool:
+        """MIPS N32 binaries are ELF32 files flagged with `EF_MIPS_ABI2`, they use 64-bit registers."""
+        return (
+            self.e_machine == Elf.Abi.MIPS
+            and self.e_class == Elf.Class.ELF_32_BITS
+            and bool(self.e_flags & Elf.EF_MIPS_ABI2)
+        )
 
     @classmethod
     def is_valid(cls, path: pathlib.Path) -> bool:
@@ -3986,8 +3996,9 @@ class MIPS64(MIPS):
     def supports_gdb_arch(gdb_arch: str) -> bool | None:
         if not gef.binary or not isinstance(gef.binary, Elf):
             return False
-        return (
-            gdb_arch.startswith("mips") and gef.binary.e_class == Elf.Class.ELF_64_BITS
+        # N32 binaries are ELF32 files but use 64-bit registers
+        return gdb_arch.startswith("mips") and (
+            gef.binary.e_class == Elf.Class.ELF_64_BITS or gef.binary.is_mips_n32
         )
 
 
@@ -4437,7 +4448,10 @@ def reset_architecture(arch: str | None = None) -> None:
     # last resort, use the info from elf header to find it from the known architectures
     if gef.binary and isinstance(gef.binary, Elf):
         try:
-            gef.arch = arches[gef.binary.e_machine]()
+            if gef.binary.is_mips_n32:
+                gef.arch = arches["mips64"]()
+            else:
+                gef.arch = arches[gef.binary.e_machine]()
             gef.arch_reason = "The architecture has been detected via the ELF headers"
         except KeyError:
             raise OSError(
