@@ -11201,6 +11201,7 @@ class GefFunctionsCommand(GenericCommand):
         super().__init__()
         self.docs = []
         self.should_refresh = True
+        self.function_count = 0
         return
 
     def __add__(self, function: GenericFunction):
@@ -11220,16 +11221,18 @@ class GefFunctionsCommand(GenericCommand):
         return self.__add__(function)
 
     def __str__(self) -> str:
-        if self.should_refresh:
+        """Lazily regenerate the documentation if functions were added (e.g. by plugins)"""
+        if self.should_refresh or self.function_count != len(gef.gdb.functions):
             self.__rebuild()
         return self.__doc__ or ""
 
     def __rebuild(self) -> None:
         """Rebuild the documentation for functions."""
+        self.docs = []
         for function in gef.gdb.functions.values():
             self += function
 
-        self.command_size = len(gef.gdb.commands)
+        self.function_count = len(gef.gdb.functions)
         _, cols = get_terminal_size()
         separator = HORIZONTAL_LINE * cols
         self.__doc__ = f"\n{separator}\n".join(sorted(self.docs))
@@ -11548,6 +11551,7 @@ class GefHelpCommand(gdb.Command):
 
     def __rebuild(self) -> None:
         """Rebuild the documentation."""
+        self.docs = []
         for name, cmd in gef.gdb.commands.items():
             self += (name, cmd)
 
