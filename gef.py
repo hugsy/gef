@@ -4311,11 +4311,7 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
 
     # disconnect properly the remote session
     gef.session.qemu_mode = False
-    if gef.session.remote:
-        gef.session.remote.close()
-        del gef.session.remote
-        gef.session.remote = None
-        gef.session.remote_initializing = False
+    gef.session.end_remote()
 
     # if `autosave_breakpoints_file` setting is configured, save the breakpoints to disk
     setting = (gef.config["gef.autosave_breakpoints_file"] or "").strip()
@@ -7189,22 +7185,29 @@ class RemoteCommand(GenericCommand):
                 return
 
         # Try to establish the remote session, throw on error
-        # Set `.remote_initializing` to True here - `GefRemoteSessionManager` invokes code which
-        # calls `is_remote_debug` which checks if `remote_initializing` is True or `.remote` is None
-        # This prevents some spurious errors being thrown during startup
-        gef.session.remote_initializing = True
-        session = GefRemoteSessionManager(args.host, args.port, args.pid, qemu_binary)
+        # Enter the CONNECTING state first - `GefRemoteSessionManager` invokes code which
+        # calls `is_remote_debug`, which must already be true to prevent spurious errors
+        # during startup (and makes the `target remote` post-hook a no-op).
+        gef.session.begin_remote()
+        session = None
+        try:
+            session = GefRemoteSessionManager(
+                args.host, args.port, args.pid, qemu_binary
+            )
+            dbg(
+                f"[remote] initializing remote session with {session.target} under {session.root}"
+            )
+            if not session.connect(args.pid) or not session.setup():
+                raise EnvironmentError("Failed to setup remote target")
+        except BaseException:
+            # whatever happened, go back to a clean local state (restores the objfile hooks)
+            try:
+                gef.session.end_remote(session)
+            except Exception as e:
+                dbg(f"[remote] cleanup after failure raised: {e}")
+            raise
 
-        dbg(
-            f"[remote] initializing remote session with {session.target} under {session.root}"
-        )
-        if not session.connect(args.pid) or not session.setup():
-            gef.session.remote = None
-            gef.session.remote_initializing = False
-            raise EnvironmentError("Failed to setup remote target")
-
-        gef.session.remote_initializing = False
-        gef.session.remote = session
+        gef.session.attach_remote(session)
         reset_all_caches()
         gdb.execute("context")
         return
@@ -12866,6 +12869,39 @@ class GefSessionManager(GefManager):
         self._root: pathlib.Path | None = None
         return
 
+    # Remote session lifecycle. The state is encoded by (`remote`, `remote_initializing`):
+    #
+    #   LOCAL      (None,    False) --begin_remote()-->  CONNECTING
+    #   CONNECTING (None,    True)  --attach_remote()--> REMOTE
+    #                               --end_remote()-----> LOCAL      (on failure)
+    #   REMOTE     (session, False) --end_remote()-----> LOCAL      (on exit)
+    #
+    # Prefer these methods over assigning the attributes directly: `end_remote()` guarantees
+    # that the remote session resources (temp dir, objfile hooks) are released.
+
+    def begin_remote(self) -> None:
+        """Enter the CONNECTING state: `is_remote_debug()` becomes true while the session is set up."""
+        if self.remote is not None:
+            raise RuntimeError("A remote session is already active")
+        self.remote_initializing = True
+        return
+
+    def attach_remote(self, session: "GefRemoteSessionManager") -> None:
+        """Enter the REMOTE state with a connected and set up `session`."""
+        self.remote = session
+        self.remote_initializing = False
+        return
+
+    def end_remote(self, session: "GefRemoteSessionManager | None" = None) -> None:
+        """Return to the LOCAL state, releasing the current remote session, or `session` if it
+        never got attached (i.e. a failed connection attempt)."""
+        session = session or self.remote
+        self.remote = None
+        self.remote_initializing = False
+        if session is not None:
+            session.close()
+        return
+
     def __str__(self) -> str:
         _type = "Local" if self.remote is None else f"Remote/{self.remote.mode}"
         return f"Session(type={_type}, pid={self.pid or 'Not running'}, os='{self.os}')"
@@ -13026,6 +13062,8 @@ class GefRemoteSessionManager(GefSessionManager):
         self.__local_root_fd = tempfile.TemporaryDirectory()
         self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
         self.__qemu = qemu
+        # whether `connect()` swapped the default objfile handler for the remote one
+        self.__objfile_hooks_swapped = False
         if pid > 0:
             self._pid = pid
 
@@ -13038,9 +13076,12 @@ class GefRemoteSessionManager(GefSessionManager):
 
     def close(self) -> None:
         self.__local_root_fd.cleanup()
+        if not self.__objfile_hooks_swapped:
+            return
         try:
             gef_on_new_unhook(self.remote_objfile_event_handler)
             gef_on_new_hook(new_objfile_handler)
+            self.__objfile_hooks_swapped = False
         except Exception as e:
             warn(f"Exception while restoring local context: {str(e)}")
             raise
@@ -13112,6 +13153,7 @@ class GefRemoteSessionManager(GefSessionManager):
             pass
 
         gef_on_new_hook(self.remote_objfile_event_handler)
+        self.__objfile_hooks_swapped = True
 
         # then attempt to connect
         is_extended_mode = pid > -1
@@ -13362,11 +13404,16 @@ def target_remote_posthook():
     if gef.session.remote_initializing:
         return
 
-    gef.session.remote = GefRemoteSessionManager("", 0)
-    if not gef.session.remote.setup():
-        raise EnvironmentError(
-            f"Failed to create a proper environment for {gef.session.remote}"
-        )
+    session = GefRemoteSessionManager("", 0)
+    gef.session.attach_remote(session)
+    try:
+        ok = session.setup()
+    except BaseException:
+        gef.session.end_remote()
+        raise
+    if not ok:
+        gef.session.end_remote()
+        raise EnvironmentError(f"Failed to create a proper environment for {session}")
 
 
 if __name__ == "__main__":
