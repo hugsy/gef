@@ -258,36 +258,46 @@ def bufferize(f: Callable) -> Callable:
         try:
             rv = f(*args, **kwargs)
         finally:
-            redirect = gef.config["context.redirect"]
-            if redirect.startswith("/dev/pts/"):
-                if not gef.ui.redirect_fd:
-                    # if the FD has never been open, open it
-                    fd = open(redirect, "wt")
-                    gef.ui.redirect_fd = fd
-                elif redirect != gef.ui.redirect_fd.name:
-                    # if the user has changed the redirect setting during runtime, update the state
-                    gef.ui.redirect_fd.close()
-                    fd = open(redirect, "wt")
-                    gef.ui.redirect_fd = fd
-                else:
-                    # otherwise, keep using it
-                    fd = gef.ui.redirect_fd
-            else:
-                fd = sys.stdout
-                gef.ui.redirect_fd = None
-
-            if gef.ui.redirect_fd and fd.closed:
-                # if the tty was closed, revert back to stdout
-                fd = sys.stdout
-                gef.ui.redirect_fd = None
-                gef.config["context.redirect"] = ""
-
-            fd.write(gef.ui.stream_buffer.getvalue())
-            fd.flush()
-            gef.ui.stream_buffer = None
+            # Leave the buffering state *before* flushing, so that the buffer is never left
+            # dangling if the flush fails (which would silently swallow all further output).
+            buffer, gef.ui.stream_buffer = gef.ui.stream_buffer, None
+            _flush_output(buffer.getvalue())
         return rv
 
     return wrapper
+
+
+def _flush_output(content: str) -> None:
+    """Write `content` to the output selected by `context.redirect`. The redirection target
+    state (`gef.ui.redirect_fd`) is either `None` (stdout) or an open handle to the tty named
+    by the setting; any failure to use the tty reverts to stdout and clears the setting."""
+    redirect = gef.config["context.redirect"]
+    current = gef.ui.redirect_fd
+    if redirect.startswith("/dev/pts/"):
+        try:
+            if current and current.closed:
+                # the tty was closed, revert back to stdout
+                raise OSError(f"'{redirect}' was closed")
+            if not current or current.name != redirect:
+                # never opened, or the user changed the setting during runtime
+                if current:
+                    current.close()
+                current = gef.ui.redirect_fd = open(redirect, "wt")
+            current.write(content)
+            current.flush()
+            return
+        except (OSError, ValueError) as e:
+            gef.ui.redirect_fd = None
+            gef.config["context.redirect"] = ""
+            warn(f"Output redirection disabled, reverting to stdout: {e}")
+    elif current:
+        if not current.closed:
+            current.close()
+        gef.ui.redirect_fd = None
+
+    sys.stdout.write(content)
+    sys.stdout.flush()
+    return
 
 
 class ValidationError(Exception):
