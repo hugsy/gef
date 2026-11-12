@@ -6,16 +6,16 @@ import os
 import pathlib
 import random
 import re
+
 import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
-
 from tests.utils import (
     ARCH,
+    GDBSERVER_DEFAULT_HOST,
     debug_target,
     gdbserver_session,
     qemuuser_session,
-    GDBSERVER_DEFAULT_HOST,
 )
 
 
@@ -25,6 +25,40 @@ class GefSessionApi(RemoteGefUnitTestGeneric):
     def setUp(self) -> None:
         self._target = debug_target("default")
         return super().setUp()
+
+    def test_func_remote_lifecycle_transitions(self):
+        """`begin_remote()` / `attach_remote()` / `end_remote()` move the session between the
+        LOCAL, CONNECTING and REMOTE states (PR #1243)."""
+        root = self._conn.root
+
+        # LOCAL -> CONNECTING -> LOCAL (failed connection, no session object yet)
+        root.eval("gef.session.begin_remote()")
+        assert root.eval("gef.session.remote_initializing")
+        assert root.eval("is_remote_debug()")
+        root.eval("gef.session.end_remote()")
+        assert not root.eval("gef.session.remote_initializing")
+        assert not root.eval("is_remote_debug()")
+
+        # LOCAL -> CONNECTING -> REMOTE. The session is never connected, so closing it must
+        # not touch the objfile handlers, only remove its temporary directory.
+        session = root.eval("GefRemoteSessionManager('', 0)")
+        local_root = str(session.root)
+        root.eval("gef.session.begin_remote()")
+        root.eval("gef.session.attach_remote")(session)
+        assert bool(root.eval("gef.session.remote") == session)
+        assert not root.eval("gef.session.remote_initializing")
+        assert root.eval("is_remote_debug()")
+
+        # only one remote session at a time
+        with pytest.raises(Exception, match="already active"):
+            root.eval("gef.session.begin_remote()")
+
+        # REMOTE -> LOCAL, idempotent
+        root.eval("gef.session.end_remote()")
+        root.eval("gef.session.end_remote()")
+        assert root.eval("gef.session.remote is None")
+        assert not root.eval("is_remote_debug()")
+        assert not root.eval(f"pathlib.Path({local_root!r}).exists()")
 
     def test_func_get_filepath(self):
         gdb, gef = self._gdb, self._gef
