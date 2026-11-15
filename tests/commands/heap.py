@@ -253,6 +253,7 @@ class HeapCommandFastBins(RemoteGefUnitTestGeneric):
         self._target = debug_target("heap-fastbins")
         return super().setUp()
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_bins_fast(self):
         gdb = self._gdb
         cmd = "heap bins fast"
@@ -265,6 +266,39 @@ class HeapCommandFastBins(RemoteGefUnitTestGeneric):
         # ensure fastbins is populated
         self.assertIn("Fastbins[idx=0, size=", res)
         self.assertIn("Chunk(addr=", res)
+
+
+class HeapCommandNoFastbins(RemoteGefUnitTestGeneric):
+    """Fastbin commands when running on glibc >= 2.43, where fastbins were
+    removed from the malloc implementation (see
+    https://github.com/hugsy/gef/issues/1225)."""
+
+    def setUp(self) -> None:
+        self._target = debug_target("heap")
+        super().setUp()
+        self._gdb.execute("python gef.libc._version = (2, 43)")
+
+    def test_cmd_heap_bins_fast_not_supported(self):
+        gdb = self._gdb
+        gdb.execute("run")
+        res = gdb.execute("heap bins fast", to_string=True)
+        self.assertIn("not supported", res.lower())
+
+    def test_arena_layout_has_no_fastbins(self):
+        gdb = self._gdb
+        gdb.execute("run")
+        gdb.execute("heap set-arena &main_arena")
+        res = gdb.execute(
+            "python print([f[0] for f in type(gef.heap.main_arena).malloc_state_t()._fields_])",
+            to_string=True,
+        )
+        self.assertNotIn("fastbinsY", res)
+        self.assertNotIn("have_fastchunks", res)
+        res = gdb.execute(
+            "python print(gef.heap.main_arena.fastbin(0) is None, len(gef.heap.main_arena.fastbinsY))",
+            to_string=True,
+        )
+        self.assertIn("True 10", res)
 
 
 class HeapCommandBins(RemoteGefUnitTestGeneric):

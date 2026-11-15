@@ -2,12 +2,14 @@
 `canary` command test module
 """
 
+import pytest
 from tests.utils import (
     ERROR_INACTIVE_SESSION_MESSAGE,
     debug_target,
     p64,
     p32,
     is_64b,
+    is_glibc_ge,
     u32,
 )
 from tests.base import RemoteGefUnitTestGeneric
@@ -20,6 +22,10 @@ class CanaryCommand(RemoteGefUnitTestGeneric):
         self._target = debug_target("canary")
         return super().setUp()
 
+    @pytest.mark.skipif(
+        is_glibc_ge(2, 44),
+        reason="Skipped for glibc >= 2.44 (canary is no longer derived from AT_RANDOM)",
+    )
     def test_cmd_canary(self):
         assert ERROR_INACTIVE_SESSION_MESSAGE == self._gdb.execute(
             "canary", to_string=True

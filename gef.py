@@ -258,41 +258,48 @@ def bufferize(f: Callable) -> Callable:
         try:
             rv = f(*args, **kwargs)
         finally:
-            redirect = gef.config["context.redirect"]
-            if redirect.startswith("/dev/pts/"):
-                if not gef.ui.redirect_fd:
-                    # if the FD has never been open, open it
-                    fd = open(redirect, "wt")
-                    gef.ui.redirect_fd = fd
-                elif redirect != gef.ui.redirect_fd.name:
-                    # if the user has changed the redirect setting during runtime, update the state
-                    gef.ui.redirect_fd.close()
-                    fd = open(redirect, "wt")
-                    gef.ui.redirect_fd = fd
-                else:
-                    # otherwise, keep using it
-                    fd = gef.ui.redirect_fd
-            else:
-                fd = sys.stdout
-                gef.ui.redirect_fd = None
-
-            if gef.ui.redirect_fd and fd.closed:
-                # if the tty was closed, revert back to stdout
-                fd = sys.stdout
-                gef.ui.redirect_fd = None
-                gef.config["context.redirect"] = ""
-
-            fd.write(gef.ui.stream_buffer.getvalue())
-            fd.flush()
-            gef.ui.stream_buffer = None
+            # Leave the buffering state *before* flushing, so that the buffer is never left
+            # dangling if the flush fails (which would silently swallow all further output).
+            buffer, gef.ui.stream_buffer = gef.ui.stream_buffer, None
+            _flush_output(buffer.getvalue())
         return rv
 
     return wrapper
 
 
-#
-# Helpers
-#
+def _flush_output(content: str) -> None:
+    """Write `content` to the output selected by `context.redirect`. The redirection target
+    state (`gef.ui.redirect_fd`) is either `None` (stdout) or an open handle to the tty named
+    by the setting; any failure to use the tty reverts to stdout and clears the setting."""
+    redirect = gef.config["context.redirect"]
+    current = gef.ui.redirect_fd
+    if redirect.startswith("/dev/pts/"):
+        try:
+            if current and current.closed:
+                # the tty was closed, revert back to stdout
+                raise OSError(f"'{redirect}' was closed")
+            if not current or current.name != redirect:
+                # never opened, or the user changed the setting during runtime
+                if current:
+                    current.close()
+                current = gef.ui.redirect_fd = open(redirect, "wt")
+            current.write(content)
+            current.flush()
+            return
+        except (OSError, ValueError) as e:
+            gef.ui.redirect_fd = None
+            gef.config["context.redirect"] = ""
+            warn(f"Output redirection disabled, reverting to stdout: {e}")
+    elif current:
+        if not current.closed:
+            current.close()
+        gef.ui.redirect_fd = None
+
+    sys.stdout.write(content)
+    sys.stdout.flush()
+    return
+
+
 class ValidationError(Exception):
     pass
 
@@ -579,7 +586,7 @@ class Color:
     # \033      ->  Start an ANSI escape code for displaying colors
     colors = {
         "normal": "\001\033[0m\002",
-        "gray": "\001\033[1;38;5;240m\002",
+        "gray": "\001\033[90m\002",
         "light_gray": "\001\033[0;37m\002",
         "red": "\001\033[31m\002",
         "green": "\001\033[32m\002",
@@ -1591,19 +1598,26 @@ class GlibcArena:
     BINMAPSIZE = NBINS // BITSPERMAP
 
     @staticmethod
+    def has_fastbins() -> bool:
+        """Fastbins were removed in glibc 2.43, see
+        https://sourceware.org/git/?p=glibc.git;a=commit;h=bb5a4f5295ced26532939703867c35f2ce8c149b"""
+        return not (gef and gef.libc.version and gef.libc.version >= (2, 43))
+
+    @staticmethod
     def malloc_state_t() -> Type[ctypes.Structure]:
         pointer = ctypes.c_uint64 if gef and gef.arch.ptrsize == 8 else ctypes.c_uint32
         fields = [
             ("mutex", ctypes.c_uint32),
             ("flags", ctypes.c_uint32),
         ]
-        if gef and gef.libc.version and gef.libc.version >= (2, 27):
-            # https://elixir.bootlin.com/glibc/glibc-2.27/source/malloc/malloc.c#L1684
-            fields += [("have_fastchunks", ctypes.c_uint32)]
-            if gef.arch.ptrsize == 8:
-                fields += [("UNUSED_c", ctypes.c_uint32)]
+        if GlibcArena.has_fastbins():
+            if gef and gef.libc.version and gef.libc.version >= (2, 27):
+                # https://elixir.bootlin.com/glibc/glibc-2.27/source/malloc/malloc.c#L1684
+                fields += [("have_fastchunks", ctypes.c_uint32)]
+                if gef.arch.ptrsize == 8:
+                    fields += [("UNUSED_c", ctypes.c_uint32)]
+            fields += [("fastbinsY", GlibcArena.NFASTBINS * pointer)]
         fields += [
-            ("fastbinsY", GlibcArena.NFASTBINS * pointer),
             ("top", pointer),
             ("last_remainder", pointer),
             ("bins", (GlibcArena.NBINS * 2 - 2) * pointer),
@@ -1699,6 +1713,9 @@ class GlibcArena:
 
     @property
     def fastbinsY(self) -> ctypes.Array:
+        if not GlibcArena.has_fastbins():
+            pointer = ctypes.c_uint64 if gef.arch.ptrsize == 8 else ctypes.c_uint32
+            return (pointer * GlibcArena.NFASTBINS)()
         return self.__arena.fastbinsY
 
     @property
@@ -6282,6 +6299,10 @@ class GefThemeCommand(GenericCommand):
             "green",
             "Color to use for the current code line in the source window",
         )
+        self["threads_pc"] = (
+            "blue",
+            "Color of the program counter in the threads window",
+        )
         return
 
     def do_invoke(self, args: list[str]) -> None:
@@ -8066,6 +8087,12 @@ class GlibcHeapFastbinsYCommand(GenericCommand):
     @parse_arguments({"arena_address": ""}, {})
     @only_if_gdb_running
     def do_invoke(self, *_: Any, **kwargs: Any) -> None:
+        if not GlibcArena.has_fastbins():
+            err(
+                "Fastbins were removed in glibc 2.43, this command is not supported here"
+            )
+            return
+
         def fastbin_index(sz: int) -> int:
             return (sz >> 4) - 2 if SIZE_SZ == 8 else (sz >> 3) - 2
 
@@ -9375,7 +9402,7 @@ class ContextCommand(GenericCommand):
                         frame_name = f"<{sym_name}+{offset:x}>"
 
                 line += (
-                    f" {Color.colorify(f'{frame.pc():#x}', 'blue')} in "
+                    f" {Color.colorify(f'{frame.pc():#x}', gef.config['theme.threads_pc'])} in "
                     f"{Color.colorify(frame_name or '??', 'bold yellow')} (), "
                     f"reason: {Color.colorify(reason(), 'bold pink')}"
                 )
@@ -10532,6 +10559,8 @@ class PatternCreateCommand(GenericCommand):
     )
     def do_invoke(self, _: list[str], **kwargs: Any) -> None:
         args: argparse.Namespace = kwargs["arguments"]
+        if args.length:
+            gef.config["pattern.length"] = args.length
         length = args.length or gef.config["pattern.length"]
         n = args.n or gef.arch.ptrsize
         info(f"Generating a pattern of {length:d} bytes (n={n:d})")
@@ -10594,21 +10623,17 @@ class PatternSearchCommand(GenericCommand):
             f"Searching for '{pattern_le.hex()}'/'{pattern_be.hex()}' with period={period}"
         )
         cyclic_pattern = generate_cyclic_pattern(size, period)
-        off = cyclic_pattern.find(pattern_le)
-        if off >= 0:
-            ok(
-                f"Found at offset {off:d} (little-endian search) "
-                f"{Color.colorify('likely', 'bold red') if gef.arch.endianness == Endianness.LITTLE_ENDIAN else ''}"
-            )
-            return
+        if gef.arch.endianness == Endianness.LITTLE_ENDIAN:
+            candidates = ((pattern_le, "little-endian"), (pattern_be, "big-endian"))
+        else:
+            candidates = ((pattern_be, "big-endian"), (pattern_le, "little-endian"))
 
-        off = cyclic_pattern.find(pattern_be)
-        if off >= 0:
-            ok(
-                f"Found at offset {off:d} (big-endian search) "
-                f"{Color.colorify('likely', 'bold green') if gef.arch.endianness == Endianness.BIG_ENDIAN else ''}"
-            )
-            return
+        for idx, (needle, label) in enumerate(candidates):
+            off = cyclic_pattern.find(needle)
+            if off >= 0:
+                tag = Color.colorify("likely", "bold green") if idx == 0 else ""
+                ok(f"Found at offset {off:d} ({label} search) {tag}")
+                return
 
         err(f"Pattern '{pattern}' not found")
         return
@@ -11182,6 +11207,7 @@ class GefFunctionsCommand(GenericCommand):
         super().__init__()
         self.docs = []
         self.should_refresh = True
+        self.function_count = 0
         return
 
     def __add__(self, function: GenericFunction):
@@ -11201,16 +11227,18 @@ class GefFunctionsCommand(GenericCommand):
         return self.__add__(function)
 
     def __str__(self) -> str:
-        if self.should_refresh:
+        """Lazily regenerate the documentation if functions were added (e.g. by plugins)"""
+        if self.should_refresh or self.function_count != len(gef.gdb.functions):
             self.__rebuild()
         return self.__doc__ or ""
 
     def __rebuild(self) -> None:
         """Rebuild the documentation for functions."""
+        self.docs = []
         for function in gef.gdb.functions.values():
             self += function
 
-        self.command_size = len(gef.gdb.commands)
+        self.function_count = len(gef.gdb.functions)
         _, cols = get_terminal_size()
         separator = HORIZONTAL_LINE * cols
         self.__doc__ = f"\n{separator}\n".join(sorted(self.docs))
@@ -11529,6 +11557,7 @@ class GefHelpCommand(gdb.Command):
 
     def __rebuild(self) -> None:
         """Rebuild the documentation."""
+        self.docs = []
         for name, cmd in gef.gdb.commands.items():
             self += (name, cmd)
 

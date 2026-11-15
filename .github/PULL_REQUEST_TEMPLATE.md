@@ -9,7 +9,16 @@
 <!-- How does this look? Add a screenshot if you can -->
 
 <!-- Annotate your PR with label proper labels (architecture impacted, type of improvement,
-etc.) ->
+etc.) -->
+
+
+## Contribution
+
+-  [ ] I have read and agree to the **CONTRIBUTING** document.
+
+## Licensing
+
+-  [ ] The code of this PR contains LLM-generated code.
 
 ## Checklist
 
@@ -18,4 +27,3 @@ etc.) ->
 -  [ ] My code follows the code style of this project.
 -  [ ] My change includes a change to the documentation, if required.
 -  [ ] If my change adds new code, [adequate tests](docs/testing.md) have been added.
--  [ ] I have read and agree to the **CONTRIBUTING** document.
