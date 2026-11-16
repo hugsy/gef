@@ -2,9 +2,18 @@
 `canary` command test module
 """
 
-
-from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE, debug_target, p64, p32, is_64b, u32
+import pytest
+from tests.utils import (
+    ERROR_INACTIVE_SESSION_MESSAGE,
+    debug_target,
+    p64,
+    p32,
+    is_64b,
+    is_glibc_ge,
+    u32,
+)
 from tests.base import RemoteGefUnitTestGeneric
+
 
 class CanaryCommand(RemoteGefUnitTestGeneric):
     """`canary` command test module"""
@@ -13,8 +22,14 @@ class CanaryCommand(RemoteGefUnitTestGeneric):
         self._target = debug_target("canary")
         return super().setUp()
 
+    @pytest.mark.skipif(
+        is_glibc_ge(2, 44),
+        reason="Skipped for glibc >= 2.44 (canary is no longer derived from AT_RANDOM)",
+    )
     def test_cmd_canary(self):
-        assert ERROR_INACTIVE_SESSION_MESSAGE == self._gdb.execute("canary", to_string=True)
+        assert ERROR_INACTIVE_SESSION_MESSAGE == self._gdb.execute(
+            "canary", to_string=True
+        )
         self._gdb.execute("start")
         res = self._gdb.execute("canary", to_string=True)
         assert "The canary of process" in res
@@ -30,4 +45,4 @@ class CanaryCommand(RemoteGefUnitTestGeneric):
         else:
             gef.memory.write(canary_address, p32(0xDEADBEEF))
         res = u32(gef.memory.read(canary_address, gef.arch.ptrsize))
-        assert 0xdeadbeef == res
+        assert 0xDEADBEEF == res

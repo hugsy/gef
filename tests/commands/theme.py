@@ -2,7 +2,6 @@
 theme command test module
 """
 
-
 from tests.base import RemoteGefUnitTestGeneric
 
 
@@ -39,7 +38,6 @@ class ThemeCommand(RemoteGefUnitTestGeneric):
             # testing command setting
             v = "blue blah 10 -1 0xfff bold"
             gdb.execute(f"theme {t} {v}")
-
 
         res = gdb.execute("theme ___I_DONT_EXIST___", to_string=True)
         self.assertIn("Invalid key", res)

@@ -2,12 +2,14 @@
 Heap commands test module
 """
 
+import pytest
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import (
     ARCH,
     ERROR_INACTIVE_SESSION_MESSAGE,
     debug_target,
     findlines,
+    is_glibc_ge,
     is_32b,
     is_64b,
 )
@@ -20,6 +22,7 @@ class HeapCommand(RemoteGefUnitTestGeneric):
         self._target = debug_target("heap")
         return super().setUp()
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_arenas(self):
         gdb = self._gdb
         cmd = "heap arenas"
@@ -31,6 +34,7 @@ class HeapCommand(RemoteGefUnitTestGeneric):
         res = gdb.execute(cmd, to_string=True)
         self.assertIn("Arena(base=", res)
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_set_arena(self):
         gdb = self._gdb
         cmd = "heap set-arena &main_arena"
@@ -66,6 +70,7 @@ class HeapCommand(RemoteGefUnitTestGeneric):
         chunklines = findlines("Chunk(addr=", res)
         self.assertEqual(len(chunklines), 2)
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_chunks(self):
         gdb = self._gdb
         cmd = "heap chunks"
@@ -90,6 +95,7 @@ class HeapCommand(RemoteGefUnitTestGeneric):
         self.assertIn("== Chunk distribution by size", res)
         self.assertIn("== Chunk distribution by flag", res)
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_chunks_min_size_filter(self):
         gdb = self._gdb
         self.assertEqual(
@@ -147,6 +153,7 @@ class HeapCommandNonMain(RemoteGefUnitTestGeneric):
         self._target = debug_target("heap-non-main")
         return super().setUp()
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_chunks(self):
         gdb = self._gdb
         cmd = "heap chunks"
@@ -168,6 +175,7 @@ class HeapCommandNonMain(RemoteGefUnitTestGeneric):
         # make sure that the chunks of each arena are distinct
         self.assertNotEqual(chunks, non_main_chunks)
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_bins_non_main(self):
         gdb = self._gdb
         gef = self._gef
@@ -179,6 +187,15 @@ class HeapCommandNonMain(RemoteGefUnitTestGeneric):
         res = gdb.execute(cmd, to_string=True)
         self.assertIn("size=0x20", res)
 
+    @pytest.mark.skipif(
+        ARCH
+        not in (
+            "i686",
+            "x86_64",
+        ),
+        reason=f"Skipped for {ARCH}",
+    )
+    @pytest.mark.skipif(is_glibc_ge(2, 42), reason="Skipped for glibc >= 2.42")
     def test_cmd_heap_bins_tcache(self):
         gdb = self._gdb
         gdb.execute("run")
@@ -200,6 +217,7 @@ class HeapCommandMultipleHeaps(RemoteGefUnitTestGeneric):
         self._target = debug_target("heap-multiple-heaps")
         return super().setUp()
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_chunks_mult_heaps(self):
         gdb = self._gdb
 
@@ -227,7 +245,7 @@ class HeapCommandClass(RemoteGefUnitTestGeneric):
         assert len(lines) > 0
         self.assertEqual("== Chunk distribution by size ==", lines[0])
         self.assertIn("== Chunk distribution by flag ==", lines)
-        assert any( map(lambda x: "B<TraitA, TraitB>" in x, lines))
+        assert any(map(lambda x: "B<TraitA, TraitB>" in x, lines))
 
 
 class HeapCommandFastBins(RemoteGefUnitTestGeneric):
@@ -235,6 +253,7 @@ class HeapCommandFastBins(RemoteGefUnitTestGeneric):
         self._target = debug_target("heap-fastbins")
         return super().setUp()
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_bins_fast(self):
         gdb = self._gdb
         cmd = "heap bins fast"
@@ -249,6 +268,39 @@ class HeapCommandFastBins(RemoteGefUnitTestGeneric):
         self.assertIn("Chunk(addr=", res)
 
 
+class HeapCommandNoFastbins(RemoteGefUnitTestGeneric):
+    """Fastbin commands when running on glibc >= 2.43, where fastbins were
+    removed from the malloc implementation (see
+    https://github.com/hugsy/gef/issues/1225)."""
+
+    def setUp(self) -> None:
+        self._target = debug_target("heap")
+        super().setUp()
+        self._gdb.execute("python gef.libc._version = (2, 43)")
+
+    def test_cmd_heap_bins_fast_not_supported(self):
+        gdb = self._gdb
+        gdb.execute("run")
+        res = gdb.execute("heap bins fast", to_string=True)
+        self.assertIn("not supported", res.lower())
+
+    def test_arena_layout_has_no_fastbins(self):
+        gdb = self._gdb
+        gdb.execute("run")
+        gdb.execute("heap set-arena &main_arena")
+        res = gdb.execute(
+            "python print([f[0] for f in type(gef.heap.main_arena).malloc_state_t()._fields_])",
+            to_string=True,
+        )
+        self.assertNotIn("fastbinsY", res)
+        self.assertNotIn("have_fastchunks", res)
+        res = gdb.execute(
+            "python print(gef.heap.main_arena.fastbin(0) is None, len(gef.heap.main_arena.fastbinsY))",
+            to_string=True,
+        )
+        self.assertIn("True 10", res)
+
+
 class HeapCommandBins(RemoteGefUnitTestGeneric):
     def setUp(self) -> None:
         self._target = debug_target("heap-bins")
@@ -257,6 +309,7 @@ class HeapCommandBins(RemoteGefUnitTestGeneric):
         self.expected_unsorted_bin_size = 0x430 if ARCH == "i686" or is_64b() else 0x428
         return super().setUp()
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_bins_large(self):
         gdb = self._gdb
         gdb.execute("run")
@@ -266,6 +319,7 @@ class HeapCommandBins(RemoteGefUnitTestGeneric):
         self.assertIn("Chunk(addr=", res)
         self.assertIn(f"size={self.expected_large_bin_size:#x}", res)
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_bins_small(self):
         gdb = self._gdb
         cmd = "heap bins small"
@@ -276,6 +330,7 @@ class HeapCommandBins(RemoteGefUnitTestGeneric):
         self.assertIn("Chunk(addr=", res)
         self.assertIn(f"size={self.expected_small_bin_size:#x}", res)
 
+    @pytest.mark.skipif(is_glibc_ge(2, 43), reason="Skipped for glibc >= 2.43")
     def test_cmd_heap_bins_unsorted(self):
         gdb = self._gdb
         gdb.execute("run")
@@ -292,6 +347,8 @@ class HeapCommandTcache(RemoteGefUnitTestGeneric):
         self.expected_tcache_bin_size = 0x20 if ARCH == "i686" or is_64b() else 0x18
         return super().setUp()
 
+    @pytest.mark.skipif(ARCH not in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")
+    @pytest.mark.skipif(is_glibc_ge(2, 42), reason="Skipped for glibc >= 2.42")
     def test_cmd_heap_bins_tcache_all(self):
         gdb = self._gdb
         gdb.execute("run")

@@ -2,11 +2,10 @@
 `edit-flags` command test module
 """
 
-
 import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
-from tests.utils import ARCH, ERROR_INACTIVE_SESSION_MESSAGE
+from tests.utils import ARCH
 
 
 @pytest.mark.skipif(ARCH not in ("i686", "x86_64"), reason=f"Skipped for {ARCH}")

@@ -1,6 +1,7 @@
 """
 Pattern commands test module
 """
+
 import pytest
 
 from tests.base import RemoteGefUnitTestGeneric
@@ -91,4 +92,12 @@ class PatternCommand(RemoteGefUnitTestGeneric):
         gdb.execute("set args aaaabaaacaaadaaaeaaafaaagaaahaaa")
         gdb.execute("run")
         res = gdb.execute(cmd, to_string=True)
-        self.assertIn(f"not found", res)
+        self.assertIn("not found", res)
+
+    @pytest.mark.skipif(not is_64b(), reason="Requires a 64-bit (8-byte) pattern")
+    def test_cmd_pattern_offset_length_sync(self):
+        gdb = self._gdb
+        gdb.execute("start")
+        gdb.execute("pattern create 1200")
+        res = gdb.execute("pattern offset 0x6661616161616165", to_string=True)
+        self.assertIn("Found at offset 1032 (little-endian search) likely", res)

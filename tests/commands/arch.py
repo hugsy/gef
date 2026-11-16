@@ -28,7 +28,6 @@ class ArchCommand(RemoteGefUnitTestGeneric):
         assert " Architecture(X86, 32, LITTLE_ENDIAN)" in res
         assert " The architecture has been set manually" in res
 
-
         gdb.execute("arch set ppc")
 
         res = gdb.execute("arch get", to_string=True)

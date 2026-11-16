@@ -12,4 +12,4 @@ It will perform the following actions:
    header, set a breakpoint and run. This case should never fail if the ELF binary has a valid
    structure.
 
-![entry-break-example](https://i.imgur.com/zXSERMh.png)
+![entry-break-example](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/entry-break-example.png)

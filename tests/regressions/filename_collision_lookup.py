@@ -1,5 +1,3 @@
-import pytest
-
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import debug_target
 

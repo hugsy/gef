@@ -2,7 +2,6 @@
 test module for deprecated functions
 """
 
-
 import pytest
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import WARNING_DEPRECATION_MESSAGE

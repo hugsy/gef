@@ -2,7 +2,6 @@
 `highlight` command test module
 """
 
-
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import Color
 

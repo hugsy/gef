@@ -2,7 +2,6 @@
 print-format command test module
 """
 
-
 from tests.base import RemoteGefUnitTestGeneric
 from tests.utils import ERROR_INACTIVE_SESSION_MESSAGE, p32
 
@@ -41,7 +40,9 @@ class PrintFormatCommand(RemoteGefUnitTestGeneric):
 
         gef.memory.write(gef.arch.sp, p32(0x41414141))
 
-        res = gdb.execute("print-format --lang bytearray -l 4 $sp", to_string=True).strip()
+        res = gdb.execute(
+            "print-format --lang bytearray -l 4 $sp", to_string=True
+        ).strip()
         gef_var = res.split("$_gef")[1].split("'")[0]
         self.assertEqual(f"Saved data b'AAAA'... in '$_gef{gef_var}'", res)
 

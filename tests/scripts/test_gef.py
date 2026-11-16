@@ -1,10 +1,10 @@
 import pathlib
-import unittest
-import tempfile
 import subprocess
-import requests
+import tempfile
+import unittest
 
 import pytest
+import requests
 
 from tests.utils import GEF_PATH
 
@@ -15,6 +15,8 @@ class GefInstallScript(unittest.TestCase):
     def setUp(self):
         url = "https://api.github.com/repos/hugsy/gef/tags"
         res = requests.get(url)
+        if res.status_code == 403:
+            pytest.skip("API rate limit exceeded")
         assert res.status_code == 200
         self.latest_release = res.json()[0]["name"]
 

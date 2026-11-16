@@ -52,8 +52,8 @@ class RemoteGefUnitTestGeneric(unittest.TestCase):
         if not hasattr(self, "_target"):
             setattr(self, "_target", debug_target("default"))
         else:
-            assert isinstance(self._target, pathlib.Path)  # type: ignore pylint: disable=E1101
-            assert self._target.exists()  # type: ignore pylint: disable=E1101
+            assert isinstance(self._target, pathlib.Path)
+            assert self._target.exists()
 
         #
         # Select a random tcp port for rpyc
@@ -90,7 +90,7 @@ pi start_rpyc_service({self._port})
             "-ex",
             f"source {self._initfile.name}",
             "--",
-            str(self._target.absolute()),  # type: ignore pylint: disable=E1101
+            str(self._target.absolute()),
         ]
         self._process = subprocess.Popen(self._command)
         assert self._process.pid > 0

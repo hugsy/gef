@@ -2,7 +2,6 @@
 `gef.arch` test module.
 """
 
-
 import pytest
 
 from tests.base import RemoteGefUnitTestGeneric

@@ -1,5 +1,4 @@
-pylint
-pytest
+pytest<9.2  # 9.2 breaks pytest-forked (<=1.7.5): every forked test exits with status 3
 pytest-cov
 pytest-xdist
 pytest-benchmark
@@ -8,3 +7,4 @@ coverage
 pre-commit
 rpyc>=5
 requests
+ruff

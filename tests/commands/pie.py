@@ -44,10 +44,7 @@ class PieCommand(RemoteGefUnitTestGeneric):
         gdb = self._gdb
         # breakpoint at a random instruction and run
         gdb.execute(f"pie breakpoint {self.pie_offset}")
-        res = gdb.execute(
-            "pie run",
-            to_string=True
-        )
+        res = gdb.execute("pie run", to_string=True)
         # check we stopped for a breakpoint
         res = removeuntil('Name: "default.out", stopped ', res).splitlines()[0]
         self.assertIn("in main (), reason: BREAKPOINT", res)
