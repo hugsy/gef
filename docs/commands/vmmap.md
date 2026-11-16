@@ -30,7 +30,7 @@ The address can be also be given in the form of a register or variable:
 
 Using permissions:
 
-![vmmap-perms](https://github.com/user-attachments/assets/c34822d3-2369-464f-aafa-87113b293174)
+![vmmap-perms](https://raw.githubusercontent.com/hugsy/gef/refs/heads/main/docs/assets/images/vmmap-perms-filter.png)
 
 And you can do all of them in one command 🙂
 
