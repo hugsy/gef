@@ -788,7 +788,7 @@ class Permission(enum.Flag):
 
         for k in range(3):
             for i in range(len(perms)):
-                p = cls(1 << (2-k))
+                p = cls(1 << (2 - k))
                 if filter_str[k] == "rwx"[k]:
                     perms[i] |= p
                 elif filter_str[k] == "?":
@@ -10138,9 +10138,10 @@ class VMMapCommand(GenericCommand):
     _example_ = f"{_cmdline_} libc"
 
     @only_if_gdb_running
-    @parse_arguments({"unknown_types": [""]}, {("--addr", "-a"): [""],
-                                               ("--name", "-n"): [""],
-                                               ("--perms", "-p"): [""]})
+    @parse_arguments(
+        {"unknown_types": [""]},
+        {("--addr", "-a"): [""],("--name", "-n"): [""],("--perms", "-p"): [""]}
+    )
     def do_invoke(self, _: list[str], **kwargs: Any) -> None:
         args: argparse.Namespace = kwargs["arguments"]
         vmmap = gef.memory.maps
@@ -10165,11 +10166,11 @@ class VMMapCommand(GenericCommand):
                 addr = safe_parse_and_eval(arg)
 
             if addr is None:
-                if arg[0] in "r-?" and \
-                        arg[1] in "w-?" and \
-                        arg[2] in "x-?":
+                if arg[0] in "r-?" and arg[1] in "w-?" and arg[2] in "x-?":
                     perms = perms.union(Permission.from_filter_repr(arg))
-                    warn(f"`{arg}` has no type specified. We guessed it was a perm filter.")
+                    warn(
+                        f"`{arg}` has no type specified. We guessed it was a perm filter."
+                    )
                     continue
 
                 names.append(arg)
@@ -10209,7 +10210,9 @@ class VMMapCommand(GenericCommand):
                 if entry.page_start <= addr < entry.page_end
             ]
             perms_filter = [f"perms = {x}" for x in perms if entry.permission == x]
-            filter_content = f"[{' & '.join([*names_filter, *addrs_filter, *perms_filter])}]"
+            filter_content = (
+                f"[{' & '.join([*names_filter, *addrs_filter, *perms_filter])}]"
+            )
 
             if not names and not addrs and not perms:
                 self.print_entry(entry)
