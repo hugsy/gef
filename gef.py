@@ -797,7 +797,6 @@ class Permission(enum.Flag):
         return perms
 
 
-
 class Section:
     """GEF representation of process memory sections."""
 
