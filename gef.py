@@ -10140,7 +10140,7 @@ class VMMapCommand(GenericCommand):
     @only_if_gdb_running
     @parse_arguments(
         {"unknown_types": [""]},
-        {("--addr", "-a"): [""], ("--name", "-n"): [""], ("--perms", "-p"): [""]}
+        {("--addr", "-a"): [""], ("--name", "-n"): [""], ("--perms", "-p"): [""]},
     )
     def do_invoke(self, _: list[str], **kwargs: Any) -> None:
         args: argparse.Namespace = kwargs["arguments"]
