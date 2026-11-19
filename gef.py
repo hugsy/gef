@@ -784,6 +784,13 @@ class Permission(enum.Flag):
 
     @classmethod
     def from_filter_repr(cls, filter_str: str) -> list["Permission"]:
+        if len(filter_str) != 3 or any(
+            char not in (expected, "-", "?")
+            for char, expected in zip(filter_str, "rwx")
+        ):
+            raise ValueError(
+                "Permission filters must have three characters matching [r?-][w?-][x?-]"
+            )
         perms: list["Permission"] = [cls(0)]
 
         for k in range(3):
