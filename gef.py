@@ -2289,13 +2289,30 @@ def unhide_context() -> bool:
 
 
 class DisableContextOutputContext:
+    """Hide the context pane for the duration of the block. The previous visibility is restored
+    on exit (even on exception), so these blocks can be safely nested."""
+
     def __enter__(self) -> None:
+        self.__was_hidden = gef.ui.context_hidden
         hide_context()
         return
 
     def __exit__(self, *exc: Any) -> None:
-        unhide_context()
+        gef.ui.context_hidden = self.__was_hidden
         return
+
+
+def _run_until_first_solib_event(argv: list[str]) -> None:
+    """Start the process and stop at the first shared-library event (i.e. once the binary is
+    mapped), with the context hidden. Both temporary states are restored even if `run` fails."""
+    previous = gdb.parameter("stop-on-solib-events")
+    gdb.execute("set stop-on-solib-events 1")
+    try:
+        with DisableContextOutputContext():
+            gdb.execute(f"run {' '.join(argv)}")
+    finally:
+        gdb.execute(f"set stop-on-solib-events {previous or 0}")
+    return
 
 
 class RedirectOutputContext:
@@ -4337,11 +4354,7 @@ def exit_handler(_: "gdb.ExitedEvent") -> None:
 
     # disconnect properly the remote session
     gef.session.qemu_mode = False
-    if gef.session.remote:
-        gef.session.remote.close()
-        del gef.session.remote
-        gef.session.remote = None
-        gef.session.remote_initializing = False
+    gef.session.end_remote()
 
     # if `autosave_breakpoints_file` setting is configured, save the breakpoints to disk
     setting = (gef.config["gef.autosave_breakpoints_file"] or "").strip()
@@ -5901,11 +5914,7 @@ class PieRunCommand(GenericCommand):
             warn("gdb is already running. Restart process.")
 
         # get base address
-        gdb.execute("set stop-on-solib-events 1")
-        hide_context()
-        gdb.execute(f"run {' '.join(argv)}")
-        unhide_context()
-        gdb.execute("set stop-on-solib-events 0")
+        _run_until_first_solib_event(argv)
         vmmap = gef.memory.maps
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
         info(f"base address {hex(base_address)}")
@@ -7202,7 +7211,47 @@ class RemoteCommand(GenericCommand):
             err("Missing host/port parameters")
             return
 
-        gdb.execute(f"target remote {args.host}:{args.port}")
+        # qemu-user support
+        qemu_binary: pathlib.Path | None = None
+        if args.qemu_user:
+            try:
+                qemu_binary = (
+                    pathlib.Path(args.qemu_binary).expanduser().absolute()
+                    if args.qemu_binary
+                    else gef.session.file
+                )
+                if not qemu_binary or not qemu_binary.exists():
+                    raise FileNotFoundError(f"{qemu_binary} does not exist")
+            except Exception as e:
+                err(f"Failed to initialize qemu-user mode, reason: {str(e)}")
+                return
+
+        # Try to establish the remote session, throw on error
+        # Enter the CONNECTING state first - `GefRemoteSessionManager` invokes code which
+        # calls `is_remote_debug`, which must already be true to prevent spurious errors
+        # during startup (and makes the `target remote` post-hook a no-op).
+        gef.session.begin_remote()
+        session = None
+        try:
+            session = GefRemoteSessionManager(
+                args.host, args.port, args.pid, qemu_binary
+            )
+            dbg(
+                f"[remote] initializing remote session with {session.target} under {session.root}"
+            )
+            if not session.connect(args.pid) or not session.setup():
+                raise EnvironmentError("Failed to setup remote target")
+        except BaseException:
+            # whatever happened, go back to a clean local state (restores the objfile hooks)
+            try:
+                gef.session.end_remote(session)
+            except Exception as e:
+                dbg(f"[remote] cleanup after failure raised: {e}")
+            raise
+
+        gef.session.attach_remote(session)
+        reset_all_caches()
+        gdb.execute("context")
         return
 
 
@@ -8596,11 +8645,7 @@ class EntryPointBreakCommand(GenericCommand):
 
     def set_init_tbreak_pie(self, addr: int, argv: list[str]) -> EntryBreakBreakpoint:
         warn("PIC binary detected, retrieving text base address")
-        gdb.execute("set stop-on-solib-events 1")
-        hide_context()
-        gdb.execute(f"run {' '.join(argv)}")
-        unhide_context()
-        gdb.execute("set stop-on-solib-events 0")
+        _run_until_first_solib_event(argv)
         vmmap = gef.memory.maps
         base_address = [x.page_start for x in vmmap if x.path == get_filepath()][0]
         return self.set_init_tbreak(base_address + addr)
@@ -10472,10 +10517,8 @@ class TraceRunCommand(GenericCommand):
     def trace(self, loc_start: int, loc_end: int, depth: int) -> None:
         info(f"Tracing from {loc_start:#x} to {loc_end:#x} (max depth={depth:d})")
         logfile = f"{self['tracefile_prefix']}{loc_start:#x}-{loc_end:#x}.txt"
-        with RedirectOutputContext(to_file=logfile):
-            hide_context()
+        with RedirectOutputContext(to_file=logfile), DisableContextOutputContext():
             self.start_tracing(loc_start, loc_end, depth)
-            unhide_context()
         ok(f"Done, logfile stored as '{logfile}'")
         info(
             "Hint: import logfile with `ida_color_gdb_trace.py` script in IDA to visualize path"
@@ -12882,6 +12925,39 @@ class GefSessionManager(GefManager):
         self._root: pathlib.Path | None = None
         return
 
+    # Remote session lifecycle. The state is encoded by (`remote`, `remote_initializing`):
+    #
+    #   LOCAL      (None,    False) --begin_remote()-->  CONNECTING
+    #   CONNECTING (None,    True)  --attach_remote()--> REMOTE
+    #                               --end_remote()-----> LOCAL      (on failure)
+    #   REMOTE     (session, False) --end_remote()-----> LOCAL      (on exit)
+    #
+    # Prefer these methods over assigning the attributes directly: `end_remote()` guarantees
+    # that the remote session resources (temp dir, objfile hooks) are released.
+
+    def begin_remote(self) -> None:
+        """Enter the CONNECTING state: `is_remote_debug()` becomes true while the session is set up."""
+        if self.remote is not None:
+            raise RuntimeError("A remote session is already active")
+        self.remote_initializing = True
+        return
+
+    def attach_remote(self, session: "GefRemoteSessionManager") -> None:
+        """Enter the REMOTE state with a connected and set up `session`."""
+        self.remote = session
+        self.remote_initializing = False
+        return
+
+    def end_remote(self, session: "GefRemoteSessionManager | None" = None) -> None:
+        """Return to the LOCAL state, releasing the current remote session, or `session` if it
+        never got attached (i.e. a failed connection attempt)."""
+        session = session or self.remote
+        self.remote = None
+        self.remote_initializing = False
+        if session is not None:
+            session.close()
+        return
+
     def __str__(self) -> str:
         _type = "Local" if self.remote is None else f"Remote/{self.remote.mode}"
         return f"Session(type={_type}, pid={self.pid or 'Not running'}, os='{self.os}')"
@@ -13068,11 +13144,25 @@ class GefRemoteSessionManager(GefSessionManager):
         self.__local_root_fd = tempfile.TemporaryDirectory()
         self.__local_root_path = pathlib.Path(self.__local_root_fd.name)
         self._mode = GefRemoteSessionManager.RemoteMode.init()
+        self.__qemu = qemu
+        # whether `connect()` swapped the default objfile handler for the remote one
+        self.__objfile_hooks_swapped = False
+        if pid > 0:
+            self._pid = pid
 
         self.setup()
 
     def close(self) -> None:
         self.__local_root_fd.cleanup()
+        if not self.__objfile_hooks_swapped:
+            return
+        try:
+            gef_on_new_unhook(self.remote_objfile_event_handler)
+            gef_on_new_hook(new_objfile_handler)
+            self.__objfile_hooks_swapped = False
+        except Exception as e:
+            warn(f"Exception while restoring local context: {str(e)}")
+            raise
 
     def __str__(self) -> str:
         msg = f"RemoteSession(target='{self.target}', local='{self.root}', mode={self.mode}"
@@ -13317,11 +13407,16 @@ def target_remote_posthook():
     assert is_target_remote_or_extended(conn), "Target is not remote"
     gef.session.remote = GefRemoteSessionManager(conn)
 
-    # switch back context to its old context
-    gef.config["context.enable"] = gef.temp.pop("context_old_value", True)
-
-    # if here, no exception was thrown, print context
-    gdb.execute("context")
+    session = GefRemoteSessionManager("", 0)
+    gef.session.attach_remote(session)
+    try:
+        ok = session.setup()
+    except BaseException:
+        gef.session.end_remote()
+        raise
+    if not ok:
+        gef.session.end_remote()
+        raise EnvironmentError(f"Failed to create a proper environment for {session}")
 
 
 if __name__ == "__main__":
