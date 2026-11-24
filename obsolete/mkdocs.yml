@@ -1,0 +1,6 @@
+site_name: GEF - GDB Enhanced Features documentation
+repo_url: https://github.com/hugsy/gef/
+docs_dir: docs/
+theme: readthedocs
+nav:
+- Home: index.md
