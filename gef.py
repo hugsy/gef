@@ -11692,6 +11692,8 @@ class GefConfigCommand(gdb.Command):
                     )
                     for name in names:
                         self.print_setting(name)
+            else:
+                err(f"No configuration setting matches '{prefix}'")
             return
 
         if not is_debug():
@@ -11746,7 +11748,7 @@ class GefConfigCommand(gdb.Command):
             return False
 
         if key not in gef.config:
-            dbg(f"'{key}' is not a valid configuration setting")
+            err(f"'{key}' is not a valid configuration setting")
             return False
 
         _type = gef.config.raw_entry(key).type
