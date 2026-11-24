@@ -782,6 +782,27 @@ class Permission(enum.Flag):
             perm |= Permission.EXECUTE
         return perm
 
+    @classmethod
+    def from_filter_repr(cls, filter_str: str) -> list["Permission"]:
+        if len(filter_str) != 3 or any(
+            char not in (expected, "-", "?")
+            for char, expected in zip(filter_str, "rwx")
+        ):
+            raise ValueError(
+                "Permission filters must have three characters matching [r?-][w?-][x?-]"
+            )
+        perms: list["Permission"] = [cls(0)]
+
+        for k in range(3):
+            for i in range(len(perms)):
+                p = cls(1 << (2 - k))
+                if filter_str[k] == "rwx"[k]:
+                    perms[i] |= p
+                elif filter_str[k] == "?":
+                    perms.append(perms[i] | p)
+
+        return perms
+
 
 class Section:
     """GEF representation of process memory sections."""
@@ -10136,7 +10157,8 @@ class VMMapCommand(GenericCommand):
 
     @only_if_gdb_running
     @parse_arguments(
-        {"unknown_types": [""]}, {("--addr", "-a"): [""], ("--name", "-n"): [""]}
+        {"unknown_types": [""]},
+        {("--addr", "-a"): [""], ("--name", "-n"): [""], ("--perms", "-p"): [""]},
     )
     def do_invoke(self, _: list[str], **kwargs: Any) -> None:
         args: argparse.Namespace = kwargs["arguments"]
@@ -10147,6 +10169,10 @@ class VMMapCommand(GenericCommand):
 
         addrs: dict[str, int] = {x: parse_address(x) for x in args.addr}
         names: list[str] = [x for x in args.name]
+        perms: set[Permission] = set()
+
+        for p in args.perms:
+            perms = perms.union(Permission.from_filter_repr(p))
 
         for arg in args.unknown_types:
             if not arg:
@@ -10158,6 +10184,18 @@ class VMMapCommand(GenericCommand):
                 addr = safe_parse_and_eval(arg)
 
             if addr is None:
+                if (
+                    len(arg) == 3
+                    and arg[0] in "r-?"
+                    and arg[1] in "w-?"
+                    and arg[2] in "x-?"
+                ):
+                    perms = perms.union(Permission.from_filter_repr(arg))
+                    warn(
+                        f"`{arg}` has no type specified. We guessed it was a perm filter."
+                    )
+                    continue
+
                 names.append(arg)
                 warn(f"`{arg}` has no type specified. We guessed it was a name filter.")
             else:
@@ -10166,7 +10204,7 @@ class VMMapCommand(GenericCommand):
                     f"`{arg}` has no type specified. We guessed it was an address filter."
                 )
             warn(
-                "You can use --name or --addr before the filter value for specifying its type manually."
+                "You can use --name, --addr or --perms before the filter value for specifying its type manually."
             )
             gef_print()
 
@@ -10194,12 +10232,15 @@ class VMMapCommand(GenericCommand):
                 for arg, addr in addrs.items()
                 if entry.page_start <= addr < entry.page_end
             ]
-            filter_content = f"[{' & '.join([*names_filter, *addrs_filter])}]"
+            perms_filter = [f"perms = {x}" for x in perms if entry.permission == x]
+            filter_content = (
+                f"[{' & '.join([*names_filter, *addrs_filter, *perms_filter])}]"
+            )
 
-            if not names and not addrs:
+            if not names and not addrs and not perms:
                 self.print_entry(entry)
 
-            elif names_filter or addrs_filter:
+            elif names_filter or addrs_filter or perms_filter:
                 if filter_content != last_printed_filter:
                     gef_print()  # skip a line between different filters
                     gef_print(Color.greenify(filter_content))
