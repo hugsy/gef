@@ -211,6 +211,10 @@ def highlight_text(text: str) -> str:
     """
     global gef
 
+    # This is not a prompt, so readline special chars are useless
+    text = text.replace("\001", "")
+    text = text.replace("\002", "")
+
     if not gef.ui.highlight_table:
         return text
 
