@@ -15,3 +15,5 @@ htmlcov
 .benchmarks
 site/
 untracked/
+.zed/
+Dockerfile

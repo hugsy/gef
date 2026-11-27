@@ -13,7 +13,7 @@ PY_VER=$(gdb -q -nx -ex 'pi print(f"{sys.version_info.major}.{sys.version_info.m
 rm -f -- "${GEF_DOCS_DIR}"/*
 
 echo "[+] Generating coverage report in '${TMPDIR_RUN}'"
-COVERAGE_DIR="${TMPDIR_RUN}" python${PY_VER} -m pytest -n ${NB_CORES} "${GEF_TESTS_DIR}" -k "not benchmark"
+COVERAGE_DIR="${TMPDIR_RUN}" python${PY_VER} -m pytest --forked -n ${NB_CORES} -v "${GEF_TESTS_DIR}" -m "not benchmark"
 
 echo "[+] Combining data to '${TMPDIR_COV}'"
 python${PY_VER} -m coverage combine --data-file=${TMPDIR_COV} "${TMPDIR_RUN}"/*
